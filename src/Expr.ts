@@ -86,8 +86,8 @@ export class Grouping extends Expr {
 }
 
 export class Literal extends Expr {
-  value!: number | string | boolean
-  constructor(value: number | string | boolean) {
+  value!: number | string | boolean | null
+  constructor(value: number | string | boolean | null) {
     super()
     this.value = value
   }

@@ -1,3 +1,6 @@
+import Token from "./token"
+import { TokenType } from "./types"
+
 let hadError = false
 
 export const getError = () => hadError
@@ -8,4 +11,12 @@ export const error = (line: number, message: string) => {
 export const report = (line: number, where: string, message: string) => {
   setError(true)
   console.error(`[line ${line}] Error ${where}: ${message}`)
+}
+
+export const tokenError = (token: Token, message: string) => {
+  if (token.type == TokenType.EOF) {
+    report(token.line, " at end", message)
+  } else {
+    report(token.line, " at '" + token.lexeme + "'", message)
+  }
 }

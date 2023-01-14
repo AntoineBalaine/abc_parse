@@ -18,7 +18,7 @@ import {
 import Token from "./token"
 import { TokenType } from "./types"
 
-class AstPrinter implements Visitor<string> {
+export class AstPrinter implements Visitor<string> {
   print(expr: Expr): string {
     return expr.accept(this)
   }

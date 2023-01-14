@@ -1,6 +1,10 @@
 import { readFileSync } from "fs"
 import readline from "readline"
+import { parseArgs } from "util"
+import { AstPrinter } from "./AstPrinter"
 import { getError, setError } from "./error"
+import { Expr } from "./Expr"
+import { Parser } from "./Parser"
 import Scanner from "./Scanner"
 import Token from "./token"
 
@@ -42,12 +46,11 @@ function runPrompt() {
 function run(source: string) {
   const scanner = new Scanner(source)
   const tokens: Array<Token> = scanner.scanTokens()
-  for (const token in tokens) {
-    if (Object.prototype.hasOwnProperty.call(tokens, token)) {
-      const element = tokens[token]
-      console.log("token", element)
-    }
-  }
+  const parser = new Parser(tokens)
+  const expression = parser.parse()
+
+  if (hadError) return
+  console.log(new AstPrinter().print(expression as Expr))
 }
 
 main(process.argv.slice(2))
