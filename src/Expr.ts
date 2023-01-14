@@ -22,7 +22,8 @@ export abstract class Expr {
 export class Assign extends Expr {
   name!: Token
   value!: Expr
-  Assign(name: Token, value: Expr) {
+  constructor(name: Token, value: Expr) {
+    super()
     this.name = name
     this.value = value
   }
@@ -35,7 +36,8 @@ export class Binary extends Expr {
   left!: Expr
   operator!: Token
   right!: Expr
-  Binary(left: Expr, operator: Token, right: Expr) {
+  constructor(left: Expr, operator: Token, right: Expr) {
+    super()
     this.left = left
     this.operator = operator
     this.right = right
@@ -48,7 +50,8 @@ export class Call extends Expr {
   callee!: Expr
   paren!: Token
   args!: Array<Expr>
-  Call(callee: Expr, paren: Token, args: Array<Expr>) {
+  constructor(callee: Expr, paren: Token, args: Array<Expr>) {
+    super()
     this.callee = callee
     this.paren = paren
     this.args = args
@@ -61,7 +64,8 @@ export class Call extends Expr {
 export class Get extends Expr {
   object!: Expr
   name!: Token
-  Get(object: Expr, name: Token) {
+  constructor(object: Expr, name: Token) {
+    super()
     this.object = object
     this.name = name
   }
@@ -72,7 +76,8 @@ export class Get extends Expr {
 
 export class Grouping extends Expr {
   expression!: Expr
-  Grouping(expression: Expr) {
+  constructor(expression: Expr) {
+    super()
     this.expression = expression
   }
   accept<R>(visitor: Visitor<R>): R {
@@ -81,8 +86,9 @@ export class Grouping extends Expr {
 }
 
 export class Literal extends Expr {
-  value!: Expr
-  Literal(value: Expr) {
+  value!: number | string | boolean
+  constructor(value: number | string | boolean) {
+    super()
     this.value = value
   }
   accept<R>(visitor: Visitor<R>): R {
@@ -94,7 +100,8 @@ export class Logical extends Expr {
   left!: Expr
   operator!: Token
   right!: Expr
-  Logical(left: Expr, operator: Token, right: Expr) {
+  constructor(left: Expr, operator: Token, right: Expr) {
+    super()
     this.left = left
     this.operator = operator
     this.right = right
@@ -108,7 +115,8 @@ export class Set extends Expr {
   object!: Expr
   name!: Token
   value!: Expr
-  Set(object: Expr, name: Token, value: Expr) {
+  constructor(object: Expr, name: Token, value: Expr) {
+    super()
     this.object = object
     this.name = name
     this.value = value
@@ -121,7 +129,8 @@ export class Set extends Expr {
 export class Super extends Expr {
   keyword!: Token
   method!: Expr
-  Super(keyword: Token, method: Expr) {
+  constructor(keyword: Token, method: Expr) {
+    super()
     this.keyword = keyword
     this.method = method
   }
@@ -132,7 +141,8 @@ export class Super extends Expr {
 
 export class This extends Expr {
   keyword!: Token
-  This(keyword: Token) {
+  constructor(keyword: Token) {
+    super()
     this.keyword = keyword
   }
   accept<R>(visitor: Visitor<R>): R {
@@ -141,9 +151,10 @@ export class This extends Expr {
 }
 
 export class Unary extends Expr {
-  operator!: Token
-  right!: Expr
-  Unary(operator: Token, right: Expr) {
+  operator: Token
+  right: Expr
+  constructor(operator: Token, right: Expr) {
+    super()
     this.operator = operator
     this.right = right
   }
@@ -154,7 +165,8 @@ export class Unary extends Expr {
 
 export class Variable extends Expr {
   name!: Token
-  Variable(name: Token) {
+  constructor(name: Token) {
+    super()
     this.name = name
   }
   accept<R>(visitor: Visitor<R>): R {
