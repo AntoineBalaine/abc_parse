@@ -1,4 +1,3 @@
-import { stringify } from "querystring"
 import { error } from "./error"
 import Token from "./token"
 import { TokenType } from "./types"
@@ -25,10 +24,16 @@ export default class Scanner {
   private scanToken() {
     let c = this.advance()
     switch (c) {
+      case "'":
+        while (this.peek() === "'" && !this.isAtEnd()) {
+          this.advance()
+        }
+        this.addToken(TokenType.APOSTROPHE)
+        break
       case "\\":
         if (this.peek() == "\n" && !this.isAtEnd()) {
           this.advance()
-          this.addToken(TokenType.ANTISLASH_EOL)
+          this.addToken(TokenType.EOL)
         }
         break
       case "|": {
@@ -93,8 +98,8 @@ export default class Scanner {
           this.addToken(TokenType.FLAT_DBL)
         } else {
           this.addToken(TokenType.FLAT)
-          break
         }
+        break
       case "♭":
         this.addToken(TokenType.FLAT)
         break
@@ -191,6 +196,7 @@ export default class Scanner {
          * purposes?
          */
         this.line++
+        this.addToken(TokenType.LINE_BREAK)
         break
       case '"':
         this.string()
@@ -200,16 +206,11 @@ export default class Scanner {
           this.number()
         } else if (this.isAlpha(c)) {
           const pkd = this.peek()
-
-          if (/[a-z]/.test(c)) {
-            if (this.match(":")) {
-              this.addToken(TokenType.LETTER_LOWERCASE_COLON)
-            } else this.addToken(TokenType.LETTER_LOWERCASE)
-          } else {
-            if (this.match(":")) {
-              this.addToken(TokenType.LETTER_UPPERCASE_COLON)
-            } else this.addToken(TokenType.LETTER_UPPERCASE)
-          }
+          if (this.match(":")) {
+            this.addToken(TokenType.LETTER_UPPERCASE_COLON)
+          } else if (/a-gA-G/.test(c)) {
+            this.addToken(TokenType.NOTE_LETTER)
+          } else this.addToken(TokenType.LETTER)
         } else {
           error(this.line, "unexpected character")
         }

@@ -1,4 +1,5 @@
 export enum TokenType {
+  APOSTROPHE,
   ANTISLASH_EOL,
   BARLINE, //|
   BAR_COLON, // |:
@@ -28,10 +29,10 @@ export enum TokenType {
   /**
    * into default case
    */
-  LETTER_LOWERCASE_COLON,
+  NOTE_LETTER,
+  LETTER,
   LETTER_UPPERCASE_COLON,
-  LETTER_LOWERCASE,
-  LETTER_UPPERCASE,
+  LINE_BREAK,
   MINUS, //-
   NATURAL, // ♮
   NUMBER,
