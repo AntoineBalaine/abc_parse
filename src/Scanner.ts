@@ -1,7 +1,7 @@
 import { stringify } from "querystring"
 import { error } from "./error"
 import Token from "./token"
-import { Keywords, TokenType } from "./types"
+import { TokenType } from "./types"
 
 export default class Scanner {
   private source: string
@@ -25,65 +25,171 @@ export default class Scanner {
   private scanToken() {
     let c = this.advance()
     switch (c) {
-      case "(":
-        this.addToken(TokenType.LEFT_PAREN)
+      case "\\":
+        if (this.peek() == "\n" && !this.isAtEnd()) {
+          this.advance()
+          this.addToken(TokenType.ANTISLASH_EOL)
+        }
         break
-      case ")":
-        this.addToken(TokenType.RIGHT_PAREN)
+      case "|": {
+        const pkd = this.peek()
+        if ((pkd == ":" || pkd == "|" || pkd == "]") && !this.isAtEnd()) {
+          this.advance()
+          switch (pkd) {
+            case ":":
+              this.addToken(TokenType.BAR_COLON)
+              break
+            case "|":
+              this.addToken(TokenType.BAR_DBL)
+              break
+            case "]":
+              this.addToken(TokenType.BAR_RIGHTBRKT)
+              break
+          }
+        } else {
+          this.addToken(TokenType.BARLINE)
+        }
         break
-      case "{":
-        this.addToken(TokenType.LEFT_BRACE)
+      }
+      // is caret always a sharp?
+      case "^":
+        this.addToken(this.match("^") ? TokenType.SHARP_DBL : TokenType.SHARP)
         break
-      case "}":
-        this.addToken(TokenType.RIGHT_BRACE)
+      case ":": {
+        const pkd = this.peek()
+        if ((pkd == "|" || pkd == ":") && !this.isAtEnd()) {
+          this.advance()
+          if (pkd == "|") this.addToken(TokenType.COLON_BAR)
+          if (pkd == ":") this.addToken(TokenType.COLON_DBL)
+        } else {
+          this.addToken(TokenType.COLON)
+        }
         break
+      }
       case ",":
+        while (this.peek() === "," && !this.isAtEnd()) {
+          this.advance()
+        }
         this.addToken(TokenType.COMMA)
+        break
+      case "%":
+        const pkd = this.peek()
+        while (this.peek() !== "\n" && !this.isAtEnd()) {
+          this.advance()
+        }
+        this.addToken(
+          pkd === "%" ? TokenType.STYLESHEET_DIRECTIVE : TokenType.COMMENT
+        )
         break
       case ".":
         this.addToken(TokenType.DOT)
         break
+      case "\n":
+        this.addToken(TokenType.EOL)
+        break
+      case "_":
+        if (this.peek() === "_") {
+          this.advance()
+          this.addToken(TokenType.FLAT_DBL)
+        } else {
+          this.addToken(TokenType.FLAT)
+          break
+        }
+      case "♭":
+        this.addToken(TokenType.FLAT)
+        break
+      case "𝄫":
+        this.addToken(TokenType.FLAT_DBL)
+        break
+      case ">":
+        while (this.peek() === ">" && !this.isAtEnd()) {
+          this.advance()
+        }
+        this.addToken(TokenType.GREATER)
+        break
+      case "[": {
+        const pkd = this.peek()
+        if (pkd === "|") {
+          this.advance()
+          this.addToken(TokenType.LEFTBRKT_BAR)
+        } else if (this.isDigit(pkd)) {
+          while (this.isDigit(this.peek())) this.advance()
+          this.addToken(TokenType.LEFTBRKT_NUMBER)
+        } else {
+          this.addToken(TokenType.LEFTBRKT)
+        }
+        break
+      }
+      case "{":
+        this.addToken(TokenType.LEFT_BRACE)
+        break
+      case "(":
+        if (this.isDigit(this.peek())) {
+          while (this.isDigit(this.peek())) this.advance()
+          this.addToken(TokenType.LEFTPAREN_NUMBER)
+        } else this.addToken(TokenType.LEFTPAREN)
+        break
+      case "<":
+        while (this.peek() === "<" && !this.isAtEnd()) {
+          this.advance()
+        }
+        this.addToken(TokenType.LESS)
+        break
       case "-":
         this.addToken(TokenType.MINUS)
         break
-      case "+":
-        this.addToken(TokenType.PLUS)
-        break
-      case ";":
-        this.addToken(TokenType.SEMICOLON)
-        break
-      case "*":
-        this.addToken(TokenType.STAR)
-        break
-      case "!":
-        this.addToken(this.match("=") ? TokenType.BANG_EQUAL : TokenType.BANG)
-        break
+      case "♮":
       case "=":
-        this.addToken(this.match("=") ? TokenType.EQUAL_EQUAL : TokenType.EQUAL)
+        this.addToken(TokenType.NATURAL)
         break
-      case "<":
-        this.addToken(this.match("=") ? TokenType.LESS_EQUAL : TokenType.LESS)
+      case "+":
+        if (this.peek() === ":") {
+          this.advance()
+          this.addToken(TokenType.PLUS_COLON)
+        } else {
+          this.addToken(TokenType.PLUS)
+        }
         break
-      case ">":
-        this.addToken(
-          this.match("=") ? TokenType.GREATER_EQUAL : TokenType.GREATER
-        )
+      case ")":
+        this.addToken(TokenType.RIGHT_PAREN)
+        break
+      case "}":
+        this.addToken(TokenType.RIGHT_BRACE)
+        break
+      case "]":
+        this.addToken(TokenType.RIGHT_BRKT)
+        break
+      case "♯":
+        this.addToken(TokenType.SHARP)
+        break
+      case "𝄪":
+        this.addToken(TokenType.SHARP_DBL)
         break
       case "/":
-        // second slash means it's a comment
-        // so we keep consuming chars til EOL
-        if (this.match("/")) {
-          while (this.peek() != "\n" && !this.isAtEnd()) this.advance()
-        } else {
-          this.addToken(TokenType.SLASH)
+        while (this.peek() === "/" && !this.isAtEnd()) {
+          this.advance()
         }
+        this.addToken(TokenType.SLASH)
+        break
+      case "!":
+        while (this.peek() !== "!" && !this.isAtEnd()) this.advance()
+        this.addToken(TokenType.SYMBOL)
+        break
+      case "~":
+        this.addToken(TokenType.TILDE)
         break
       case " ":
       case "\r":
       case "\t":
-        // Ignore whitespace.
+        // Don't Ignore whitespace, the standard is space-sensitive
+        this.addToken(TokenType.WHITESPACE)
         break
       case "\n":
+        /**
+         * should I include the line breaks with a token,
+         * since they can be marked as ignored for pagination
+         * purposes?
+         */
         this.line++
         break
       case '"':
@@ -93,22 +199,22 @@ export default class Scanner {
         if (this.isDigit(c)) {
           this.number()
         } else if (this.isAlpha(c)) {
-          this.identifier()
+          const pkd = this.peek()
+
+          if (/[a-z]/.test(c)) {
+            if (this.match(":")) {
+              this.addToken(TokenType.LETTER_LOWERCASE_COLON)
+            } else this.addToken(TokenType.LETTER_LOWERCASE)
+          } else {
+            if (this.match(":")) {
+              this.addToken(TokenType.LETTER_UPPERCASE_COLON)
+            } else this.addToken(TokenType.LETTER_UPPERCASE)
+          }
         } else {
           error(this.line, "unexpected character")
         }
         break
     }
-  }
-
-  private identifier() {
-    while (this.isAlphaNumeric(this.peek())) this.advance()
-    const text = this.source.substring(this.start, this.current)
-
-    let type = Keywords.get(text)
-    if (type == null) type = TokenType.IDENTIFIER
-
-    this.addToken(type)
   }
 
   private number() {

@@ -1,68 +1,54 @@
 export enum TokenType {
-  // Single-character tokens.
-  LEFT_PAREN,
-  RIGHT_PAREN,
-  LEFT_BRACE,
-  RIGHT_BRACE,
-  COMMA,
+  ANTISLASH_EOL,
+  BARLINE, //|
+  BAR_COLON, // |:
+  BAR_DBL, // ||
+  BAR_RIGHTBRKT, // |]
+  COLON, // :
+  COLON_BAR, // :|
+  COLON_DBL, // ::
+  COMMA, //,,,,,,
+  COMMENT,
   DOT,
-  MINUS,
-  PLUS,
-  SEMICOLON,
-  SLASH,
-  STAR,
-
-  // One or two character tokens.
-  BANG,
-  BANG_EQUAL,
-  EQUAL,
-  EQUAL_EQUAL,
-  GREATER,
-  GREATER_EQUAL,
-  LESS,
-  LESS_EQUAL,
-
-  // Literals.
-  IDENTIFIER,
-  STRING,
-  NUMBER,
-
-  // Keywords.
-  AND,
-  CLASS,
-  ELSE,
-  FALSE,
-  FUN,
-  FOR,
-  IF,
-  NIL,
-  OR,
-  PRINT,
-  RETURN,
-  SUPER,
-  THIS,
-  TRUE,
-  VAR,
-  WHILE,
-
   EOF,
+  EOL,
+  FLAT, // ♭
+  FLAT_DBL, // 𝄫
+  GREATER, //>>>>>
+  LEFTBRKT_BAR, // [|
+  LEFTBRKT_NUMBER, // [number
+  LEFT_BRACE, // {
+  /**
+   * intégrer ici les inline info fields?
+   */
+  LEFTBRKT, // [
+  LEFTPAREN, // (
+  LEFTPAREN_NUMBER, // (
+  LESS, // <<<<<
+  /**
+   * into default case
+   */
+  LETTER_LOWERCASE_COLON,
+  LETTER_UPPERCASE_COLON,
+  LETTER_LOWERCASE,
+  LETTER_UPPERCASE,
+  MINUS, //-
+  NATURAL, // ♮
+  NUMBER,
+  PLUS, //+
+  PLUS_COLON, //+
+  RIGHT_BRACE, // }
+  RIGHT_BRKT,
+  RIGHT_PAREN, // )
+  SHARP, // ♯
+  SHARP_DBL, // 𝄪
+  SLASH, // ////
+  STRING, // any un-categorizable text
+  STYLESHEET_DIRECTIVE, // %%
+  SYMBOL, // ![a-zA-Z]!
+  TILDE, // ~
+  /**
+   * # * ; ? @ are reserved symbols, treated as ws
+   */
+  WHITESPACE,
 }
-
-export const Keywords = new Map([
-  ["and", TokenType.AND],
-  ["class", TokenType.CLASS],
-  ["else", TokenType.ELSE],
-  ["false", TokenType.FALSE],
-  ["for", TokenType.FOR],
-  ["fun", TokenType.FUN],
-  ["if", TokenType.IF],
-  ["nil", TokenType.NIL],
-  ["or", TokenType.OR],
-  ["print", TokenType.PRINT],
-  ["return", TokenType.RETURN],
-  ["super", TokenType.SUPER],
-  ["this", TokenType.THIS],
-  ["true", TokenType.TRUE],
-  ["var", TokenType.VAR],
-  ["while", TokenType.WHILE],
-])
