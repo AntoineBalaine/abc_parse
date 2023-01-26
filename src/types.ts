@@ -1,3 +1,5 @@
+import Token from "./token"
+
 export enum TokenType {
   APOSTROPHE,
   ANTISLASH_EOL,
@@ -24,20 +26,19 @@ export enum TokenType {
    */
   LEFTBRKT, // [
   LEFTPAREN, // (
-  LEFTPAREN_NUMBER, // (
+  LEFTPAREN_NUMBER, // (1
   LESS, // <<<<<
   /**
    * into default case
    */
   NOTE_LETTER,
   LETTER,
-  LETTER_UPPERCASE_COLON,
-  LINE_BREAK,
+  LETTER_COLON,
   MINUS, //-
   NATURAL, // ♮
   NUMBER,
   PLUS, //+
-  PLUS_COLON, //+
+  PLUS_COLON, //+: - extending info line
   RIGHT_BRACE, // }
   RIGHT_BRKT,
   RIGHT_PAREN, // )

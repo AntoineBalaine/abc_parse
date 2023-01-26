@@ -20,3 +20,6 @@ export const tokenError = (token: Token, message: string) => {
     report(token.line, " at '" + token.lexeme + "'", message)
   }
 }
+export const parserError = (token: Token, message: string) => {
+  tokenError(token, message)
+}

@@ -196,7 +196,7 @@ export default class Scanner {
          * purposes?
          */
         this.line++
-        this.addToken(TokenType.LINE_BREAK)
+        this.addToken(TokenType.EOL)
         break
       case '"':
         this.string()
@@ -207,12 +207,13 @@ export default class Scanner {
         } else if (this.isAlpha(c)) {
           const pkd = this.peek()
           if (this.match(":")) {
-            this.addToken(TokenType.LETTER_UPPERCASE_COLON)
+            this.addToken(TokenType.LETTER_COLON)
           } else if (/a-gA-G/.test(c)) {
             this.addToken(TokenType.NOTE_LETTER)
           } else this.addToken(TokenType.LETTER)
         } else {
-          error(this.line, "unexpected character")
+          const curLine = this.source.split("\n")[this.line]
+          error(this.line, `Scanner Error: unexpected character:\n${curLine}`)
         }
         break
     }
