@@ -38,7 +38,11 @@ export default class Scanner {
         break
       case "|": {
         const pkd = this.peek()
-        if ((pkd == ":" || pkd == "|" || pkd == "]") && !this.isAtEnd()) {
+        if (
+          // TODO for now, only allow one digit after barline
+          (pkd == ":" || pkd == "|" || pkd == "]" || /[0-9]/.test(pkd)) &&
+          !this.isAtEnd()
+        ) {
           this.advance()
           switch (pkd) {
             case ":":
@@ -50,6 +54,11 @@ export default class Scanner {
             case "]":
               this.addToken(TokenType.BAR_RIGHTBRKT)
               break
+            default: {
+              if (/[0-9]/.test(pkd)) {
+                this.addToken(TokenType.BAR_DIGIT)
+              }
+            }
           }
         } else {
           this.addToken(TokenType.BARLINE)
@@ -64,8 +73,14 @@ export default class Scanner {
         const pkd = this.peek()
         if ((pkd == "|" || pkd == ":") && !this.isAtEnd()) {
           this.advance()
-          if (pkd == "|") this.addToken(TokenType.COLON_BAR)
-          if (pkd == ":") this.addToken(TokenType.COLON_DBL)
+          if (pkd == "|") {
+            if (/0-9/.test(this.peekNext())) {
+              this.advance()
+              this.addToken(TokenType.COLON_BAR_DIGIT)
+            } else {
+              this.addToken(TokenType.COLON_BAR)
+            }
+          } else if (pkd == ":") this.addToken(TokenType.COLON_DBL)
         } else {
           this.addToken(TokenType.COLON)
         }

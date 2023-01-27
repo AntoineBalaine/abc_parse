@@ -6,9 +6,11 @@ export enum TokenType {
   BARLINE, //|
   BAR_COLON, // |:
   BAR_DBL, // ||
+  BAR_DIGIT, // |1
   BAR_RIGHTBRKT, // |]
   COLON, // :
   COLON_BAR, // :|
+  COLON_BAR_DIGIT, // :|1
   COLON_DBL, // ::
   COMMA, //,,,,,,
   COMMENT,
