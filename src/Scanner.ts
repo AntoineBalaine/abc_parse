@@ -17,13 +17,23 @@ export default class Scanner {
       this.start = this.current
       this.scanToken()
     }
-    this.tokens.push(new Token(TokenType.EOF, "", null, this.line))
+    this.tokens.push(
+      new Token(TokenType.EOF, "\n", null, this.line, this.start)
+    )
     return this.tokens
   }
 
   private scanToken() {
     let c = this.advance()
     switch (c) {
+      case "\\":
+        if (this.peek() === "\n" && !this.isAtEnd()) {
+          this.advance()
+          this.addToken(TokenType.ANTISLASH_EOL)
+        } else {
+          error(this.line, this.errorMessage("expected an end of line"))
+        }
+        break
       case "'":
         while (this.peek() === "'" && !this.isAtEnd()) {
           this.advance()
@@ -74,7 +84,7 @@ export default class Scanner {
         if ((pkd == "|" || pkd == ":") && !this.isAtEnd()) {
           this.advance()
           if (pkd == "|") {
-            if (/0-9/.test(this.peekNext())) {
+            if (/[0-9]/.test(this.peek())) {
               this.advance()
               this.addToken(TokenType.COLON_BAR_DIGIT)
             } else {
@@ -192,7 +202,10 @@ export default class Scanner {
         this.addToken(TokenType.SLASH)
         break
       case "!":
-        while (this.peek() !== "!" && !this.isAtEnd()) this.advance()
+        while (this.peek() !== "!" && !this.isAtEnd()) {
+          this.advance()
+        }
+        this.advance()
         this.addToken(TokenType.SYMBOL)
         break
       case "~":
@@ -223,25 +236,35 @@ export default class Scanner {
           const pkd = this.peek()
           if (this.match(":")) {
             this.addToken(TokenType.LETTER_COLON)
-          } else if (/a-gA-G/.test(c)) {
+          } else if (/[a-gA-G]/.test(c)) {
             this.addToken(TokenType.NOTE_LETTER)
           } else this.addToken(TokenType.LETTER)
         } else {
           const curLine = this.source.split("\n")[this.line]
-          error(this.line, `Scanner Error: unexpected character:\n${curLine}`)
+          error(this.line, this.errorMessage())
         }
         break
     }
   }
 
+  private errorMessage(scannerMessage: string = "") {
+    // find the line and the current character
+    const line = this.source.split("\n")[this.line]
+    const char = this.source[this.current]
+    let message = `Scanner Error: unexpected character:\n${line}\n`
+    //find the line break preceding the current character
+    const lineBreak = this.source.lastIndexOf("\n", this.current)
+    //find the position of the current character in the line
+    const charPos = this.current - lineBreak
+    //add a caret to the message
+    const caret = " ".repeat(charPos) + "^"
+    message += caret
+    return message
+  }
+
   private number() {
+    // only INTEGERS
     while (this.isDigit(this.peek())) this.advance()
-    // look for a fractional part
-    if (this.peek() == "." && this.isDigit(this.peekNext())) {
-      // consume the "."
-      this.advance()
-      while (this.isDigit(this.peek())) this.advance()
-    }
     this.addToken(
       TokenType.NUMBER,
       Number(this.source.substring(this.start, this.current))
@@ -254,7 +277,7 @@ export default class Scanner {
       this.advance()
     }
     if (this.isAtEnd()) {
-      error(this.line, "Unterminated string")
+      error(this.line, this.errorMessage("Unterminated string"))
       return
     }
     // the closing ".
@@ -307,6 +330,8 @@ export default class Scanner {
 
   private addToken(type: TokenType, literal?: any | null) {
     const text = this.source.substring(this.start, this.current)
-    this.tokens.push(new Token(type, text, literal || null, this.line))
+    this.tokens.push(
+      new Token(type, text, literal || null, this.line, this.start)
+    )
   }
 }

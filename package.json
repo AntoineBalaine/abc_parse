@@ -19,7 +19,7 @@
   "scripts": {
     "start": "tsc && node dist/src/abc.js",
     "prepare": "husky install",
-    "test": "jest"
+    "test": "mocha -r ts-node/register src/**/*.spec.ts"
   },
   "lint-staged": {
     "**/*": "prettier --write --ignore-unknown"

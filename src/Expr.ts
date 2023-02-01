@@ -281,14 +281,17 @@ export class BarLine extends Expr {
 }
 
 type music_code =
+  | Token
+  | BarLine
+  | Annotation
   | Note
-  | Chord
   | Grace_group
   | Nth_repeat
-  | BarLine
+  | Inline_field
+  | Chord
   | Symbol
-  | Comment
-  | Token
+  | MultiMeasureRest
+  | Slur_group
 
 export class Music_code extends Expr {
   contents: Array<music_code>
@@ -302,8 +305,8 @@ export class Music_code extends Expr {
 }
 
 export class Slur_group extends Expr {
-  contents: Array<Note | Chord>
-  constructor(contents: Array<Note | Chord>) {
+  contents: Array<Music_code>
+  constructor(contents: Array<Music_code>) {
     super()
     this.contents = contents
   }

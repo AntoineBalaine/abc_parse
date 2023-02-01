@@ -1,6 +1,6 @@
 import { readFileSync } from "fs"
 import readline from "readline"
-import { AstPrinter } from "./AstPrinter"
+// import { AstPrinter } from "./AstPrinter"
 import { getError, setError } from "./error"
 import { Expr } from "./Expr"
 import { Parser } from "./Parser"
@@ -52,7 +52,7 @@ function run(source: string) {
     console.log("\nhad error")
     return
   }
-  console.log(new AstPrinter().print(expression as Expr))
+  //console.log(new AstPrinter().print(expression as Expr))
 }
 
 main(process.argv.slice(2))

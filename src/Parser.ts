@@ -1,25 +1,27 @@
 import { parserError, tokenError } from "./error"
 import {
+  Annotation,
+  BarLine,
+  Chord,
+  Comment,
   File_header,
+  Grace_group,
   Info_line,
+  Inline_field,
   Lyric_section,
+  MultiMeasureRest,
+  Music_code,
   Note,
+  Nth_repeat,
   Pitch,
   Rest,
   Rhythm,
-  Tune,
-  Tune_header,
-  Symbol,
-  Grace_group,
-  Inline_field,
-  Chord,
-  Nth_repeat,
-  Tune_body,
-  Annotation,
-  BarLine,
-  MultiMeasureRest,
-  Music_code,
   Slur_group,
+  Symbol,
+  Tune,
+  Tune_Body,
+  Tune_header,
+  tune_body_code,
 } from "./Expr"
 import Token from "./token"
 import { TokenType } from "./types"
@@ -120,7 +122,7 @@ export class Parser {
   }
 
   private tune_body() {
-    let elements: Array<Comment | Info_line | Music_code> = []
+    let elements: Array<tune_body_code> = []
     while (!this.isAtEnd()) {
       //check for commentline
       // check for info line
@@ -140,7 +142,7 @@ export class Parser {
         break
       }
     }
-    return new Tune_body(elements)
+    return new Tune_Body(elements)
   }
 
   private music_content(breakerToken?: TokenType) {
@@ -282,23 +284,38 @@ export class Parser {
       // create a bar token
       // and a number token
       if (pkd.type === TokenType.BAR_DIGIT) {
-        const barToken = new Token(TokenType.BARLINE, "|", null, pkd.line)
+        // TODO: move this to the tokenizer
+        const barToken = new Token(
+          TokenType.BARLINE,
+          "|",
+          null,
+          pkd.line,
+          /**TEMPORARY */ 0
+        )
         const numberToken = new Token(
           TokenType.NUMBER,
           pkd.lexeme.substring(1),
           null,
-          pkd.line
+          pkd.line,
+          /**TEMPORARY */ 0
         )
         return [new BarLine(barToken), new Nth_repeat(numberToken)]
         // create a COLON_BAR token
         // and a number token
       } else {
-        const barToken = new Token(TokenType.COLON_BAR, ":|", null, pkd.line)
+        const barToken = new Token(
+          TokenType.COLON_BAR,
+          ":|",
+          null,
+          pkd.line,
+          /**TEMPORARY */ 0
+        )
         const numberToken = new Token(
           TokenType.NUMBER,
           pkd.lexeme.substring(2),
           null,
-          pkd.line
+          pkd.line,
+          /**TEMPORARY */ 0
         )
         return [new BarLine(barToken), new Nth_repeat(numberToken)]
       }
@@ -551,24 +568,13 @@ export class Parser {
     return new Error()
   }
 
-  /*   private synchronize() {
+  private synchronize() {
     this.advance()
     while (!this.isAtEnd()) {
-      if (this.previous().type == TokenType.SEMICOLON) return
-      switch (this.peek().type) {
-        case TokenType.CLASS:
-        case TokenType.FUN:
-        case TokenType.VAR:
-        case TokenType.FOR:
-        case TokenType.IF:
-        case TokenType.WHILE:
-        case TokenType.PRINT:
-        case TokenType.RETURN:
-          return
-      }
+      if (this.previous().type == TokenType.EOL) return
       this.advance()
     }
-  } */
+  }
   private match(...types: Array<TokenType>): boolean {
     for (const type of types) {
       if (this.check(type)) {
