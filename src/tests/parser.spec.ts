@@ -1,9 +1,8 @@
 import { Parser } from "../Parser"
-import { TokenType } from "../types"
-import { Pitch } from "../Expr"
-import Token from "../token"
+import { File_structure, Info_line, Pitch, Tune_header } from "../Expr"
 import chai from "chai"
 import assert from "assert"
+import Scanner from "../Scanner"
 const expect = chai.expect
 
 describe("Pitch", () => {
@@ -15,17 +14,19 @@ describe("Pitch", () => {
     assert.equal(result, null)
   })
 
-  it("pitch should throw an error if the first token is not a note letter", () => {
-    const tokens: Array<Token> = [
-      {
-        type: TokenType.LETTER,
-        lexeme: "X",
-        literal: null,
-        line: 1,
-        position: 0,
-      },
-    ]
+  it("should accept empty tunes", () => {
+    let scanner = new Scanner("X:1\n")
+    const tokens = scanner.scanTokens()
     parser = new Parser(tokens)
-    expect(() => parser.parse()).to.throw()
+    const result = parser.parse()
+    // assert result to be an instance of file structure
+    // that only containes a tune
+    // that only contains an info line
+    expect(result).to.be.an.instanceof(File_structure)
+    expect(result?.tune[0].tune_header).to.be.an.instanceof(Tune_header)
+    expect(result?.tune[0].tune_header.info_lines[0]).to.be.an.instanceof(
+      Info_line
+    )
+    expect(result?.tune[0].tune_header.info_lines[0].key.lexeme).to.equal("X:")
   })
 })

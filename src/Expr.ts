@@ -30,9 +30,9 @@ export abstract class Expr {
 }
 
 export class File_structure extends Expr {
-  file_header: Expr | undefined
+  file_header: Expr | null
   tune: Array<Tune>
-  constructor(file_header: Expr | undefined, tune: Array<Tune>) {
+  constructor(file_header: Expr | null, tune: Array<Tune>) {
     super()
     this.file_header = file_header
     this.tune = tune
@@ -124,8 +124,8 @@ export type tune_body_code = Comment | Info_line | Music_code
 
 export class Tune extends Expr {
   tune_header: Tune_header
-  tune_body: Tune_Body | undefined
-  constructor(tune_header: Tune_header, tune_body: Tune_Body | undefined) {
+  tune_body?: Tune_Body
+  constructor(tune_header: Tune_header, tune_body?: Tune_Body) {
     super()
     this.tune_header = tune_header
     this.tune_body = tune_body

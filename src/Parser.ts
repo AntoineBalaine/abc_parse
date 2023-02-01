@@ -22,6 +22,7 @@ import {
   Tune_Body,
   Tune_header,
   tune_body_code,
+  File_structure,
 } from "./Expr"
 import Token from "./token"
 import { TokenType } from "./types"
@@ -42,11 +43,18 @@ export class Parser {
   }
 
   private file_structure() {
+    let file_header: File_header | null = null
+    let tunes: Array<Tune> = []
     while (!this.isAtEnd()) {
-      if ((this.current = 0 && this.peek().lexeme !== "X:")) this.file_header()
-      else if (this.peek().lexeme === "X:") this.tune()
-      this.tune()
+      const pkd = this.peek()
+      if ((this.current = 0 && this.peek().lexeme !== "X:"))
+        file_header = this.file_header()
+      else if (pkd.type === TokenType.LETTER_COLON) tunes.push(this.tune())
+      else if (pkd.type === TokenType.EOF) {
+        break
+      } else throw this.error(this.peek(), "Expected a tune or file header")
     }
+    return new File_structure(file_header, tunes)
   }
   private file_header() {
     //collect a multiline string
@@ -70,8 +78,11 @@ export class Parser {
     // then try to parse a tune body
     // unless the header is followed by a line break
     const tune_header = this.tune_header()
-    if (this.peek().type === TokenType.EOL) {
-      return tune_header
+    if (
+      this.peek().type === TokenType.EOL ||
+      this.peek().type === TokenType.EOF
+    ) {
+      return new Tune(tune_header)
     } else {
       const tune_body = this.tune_body()
       return new Tune(tune_header, tune_body)
@@ -83,7 +94,8 @@ export class Parser {
     let currentTokens: Array<Token> = []
     while (!this.isAtEnd()) {
       if (
-        this.peek().type === TokenType.EOL &&
+        this.previous() !== undefined &&
+        this.previous().type === TokenType.EOL &&
         this.peekNext().type !== TokenType.LETTER_COLON
       ) {
         break
@@ -290,14 +302,14 @@ export class Parser {
           "|",
           null,
           pkd.line,
-          /**TEMPORARY */ 0
+          pkd.position
         )
         const numberToken = new Token(
           TokenType.NUMBER,
           pkd.lexeme.substring(1),
           null,
           pkd.line,
-          /**TEMPORARY */ 0
+          pkd.position + 1
         )
         return [new BarLine(barToken), new Nth_repeat(numberToken)]
         // create a COLON_BAR token
@@ -308,14 +320,14 @@ export class Parser {
           ":|",
           null,
           pkd.line,
-          /**TEMPORARY */ 0
+          pkd.position
         )
         const numberToken = new Token(
           TokenType.NUMBER,
           pkd.lexeme.substring(2),
           null,
           pkd.line,
-          /**TEMPORARY */ 0
+          pkd.position + 2
         )
         return [new BarLine(barToken), new Nth_repeat(numberToken)]
       }
