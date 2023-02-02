@@ -3,6 +3,7 @@ import {
   Annotation,
   BarLine,
   Chord,
+  Comment,
   Symbol,
   Expr,
   File_header,
@@ -17,6 +18,7 @@ import {
   Tune_header,
   MultiMeasureRest,
   Slur_group,
+  Rhythm,
 } from "../Expr"
 import chai from "chai"
 import assert from "assert"
@@ -54,17 +56,106 @@ describe("Parser", () => {
   })
   describe("Tune body", () => {
     describe("music code", () => {
-      it("should parse pitch", () => {
-        const result = new Parser(new Scanner("X:1\nC").scanTokens()).parse()
-        expect(result).to.be.an.instanceof(File_structure)
-        const musicCode = result?.tune[0].tune_body?.sequence[0]
-        expect(isMusicCode(musicCode)).to.be.true
-        if (isMusicCode(musicCode)) {
-          expect(musicCode.contents[0]).to.be.an.instanceof(Note)
-          if (isNote(musicCode.contents[0])) {
-            expect(musicCode.contents[0].pitch).to.be.an.instanceof(Pitch)
+      describe("Note", () => {
+        it("should parse pitch", () => {
+          const result = new Parser(new Scanner("X:1\nC").scanTokens()).parse()
+          expect(result).to.be.an.instanceof(File_structure)
+          const musicCode = result?.tune[0].tune_body?.sequence[0]
+          expect(isMusicCode(musicCode)).to.be.true
+          if (isMusicCode(musicCode)) {
+            expect(musicCode.contents[0]).to.be.an.instanceof(Note)
+            if (isNote(musicCode.contents[0])) {
+              expect(musicCode.contents[0].pitch).to.be.an.instanceof(Pitch)
+            }
           }
-        }
+        })
+        it("should parse octave", () => {
+          const result = new Parser(new Scanner("X:1\nC'").scanTokens()).parse()
+          const musicCode = result?.tune[0].tune_body?.sequence[0]
+          if (isMusicCode(musicCode)) {
+            expect(musicCode.contents[0]).to.be.an.instanceof(Note)
+            if (
+              isNote(musicCode.contents[0]) &&
+              isPitch(musicCode.contents[0].pitch)
+            ) {
+              expect(musicCode.contents[0].pitch.octave).to.exist
+              expect(musicCode.contents[0].pitch.octave?.lexeme).to.equal("'")
+            }
+          }
+        })
+        it("should parse alteration", () => {
+          const result = new Parser(new Scanner("X:1\n^C").scanTokens()).parse()
+          const musicCode = result?.tune[0].tune_body?.sequence[0]
+          if (isMusicCode(musicCode)) {
+            expect(musicCode.contents[0]).to.be.an.instanceof(Note)
+            if (
+              isNote(musicCode.contents[0]) &&
+              isPitch(musicCode.contents[0].pitch)
+            ) {
+              expect(musicCode.contents[0].pitch.alteration).to.exist
+              expect(musicCode.contents[0].pitch.alteration?.lexeme).to.equal(
+                "^"
+              )
+            }
+          }
+        })
+        describe("rhythm", () => {
+          it("should parse single slash", () => {
+            const result = new Parser(
+              new Scanner("X:1\nC/").scanTokens()
+            ).parse()
+            const musicCode = result?.tune[0].tune_body?.sequence[0]
+            if (isMusicCode(musicCode)) {
+              expect(musicCode.contents[0]).to.be.an.instanceof(Note)
+              if (isNote(musicCode.contents[0])) {
+                expect(musicCode.contents[0].rhythm).to.exist
+                if (isRhythm(musicCode.contents[0].rhythm)) {
+                  expect(musicCode.contents[0].rhythm.separator).to.equal("/")
+                }
+              }
+            }
+          })
+          it("should parse slash number", () => {
+            const result = new Parser(
+              new Scanner("X:1\nC/2").scanTokens()
+            ).parse()
+            const musicCode = result?.tune[0].tune_body?.sequence[0]
+            if (isMusicCode(musicCode)) {
+              expect(musicCode.contents[0]).to.be.an.instanceof(Note)
+              if (isNote(musicCode.contents[0])) {
+                expect(musicCode.contents[0].rhythm).to.exist
+                if (isRhythm(musicCode.contents[0].rhythm)) {
+                  expect(musicCode.contents[0].rhythm.denominator).to.exist
+                  expect(
+                    musicCode.contents[0].rhythm.denominator?.lexeme
+                  ).to.equal("2")
+                }
+              }
+            }
+          })
+          it("should parser number slash number", () => {
+            const result = new Parser(
+              new Scanner("X:1\nC2/2").scanTokens()
+            ).parse()
+            const musicCode = result?.tune[0].tune_body?.sequence[0]
+            if (isMusicCode(musicCode)) {
+              expect(musicCode.contents[0]).to.be.an.instanceof(Note)
+              if (isNote(musicCode.contents[0])) {
+                expect(musicCode.contents[0].rhythm).to.exist
+                if (isRhythm(musicCode.contents[0].rhythm)) {
+                  expect(musicCode.contents[0].rhythm.numerator).to.exist
+                  expect(
+                    musicCode.contents[0].rhythm.numerator?.lexeme
+                  ).to.equal("2")
+                  expect(musicCode.contents[0].rhythm.denominator).to.exist
+                  expect(
+                    musicCode.contents[0].rhythm.denominator?.lexeme
+                  ).to.equal("2")
+                }
+              }
+            }
+          })
+        })
       })
       it("should parse barline", () => {
         const result = new Parser(new Scanner("X:1\n|").scanTokens()).parse()
@@ -168,6 +259,17 @@ describe("Parser", () => {
         }
       })
     })
+    describe("comments", () => {
+      it("should parse comment", () => {
+        const result = new Parser(
+          new Scanner("X:1\n%comment").scanTokens()
+        ).parse()
+        const comment = result?.tune[0].tune_body?.sequence[0]
+        if (isComment(comment)) {
+          expect(comment.text).to.equal("%comment")
+        }
+      })
+    })
   })
 })
 
@@ -207,4 +309,13 @@ const isMultiMeasureRest = (
 }
 const isSlurGroup = (expr: Expr | undefined | Token): expr is Slur_group => {
   return expr instanceof Slur_group
+}
+const isComment = (expr: Expr | undefined | Token): expr is Comment => {
+  return expr instanceof Comment
+}
+const isPitch = (expr: Expr | undefined | Token): expr is Pitch => {
+  return expr instanceof Pitch
+}
+const isRhythm = (expr: Expr | undefined | Token): expr is Rhythm => {
+  return expr instanceof Rhythm
 }
