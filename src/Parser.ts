@@ -47,7 +47,7 @@ export class Parser {
     let tunes: Array<Tune> = []
     while (!this.isAtEnd()) {
       const pkd = this.peek()
-      if ((this.current = 0 && this.peek().lexeme !== "X:"))
+      if (this.current === 0 && pkd.lexeme !== "X:")
         file_header = this.file_header()
       else if (pkd.type === TokenType.LETTER_COLON) tunes.push(this.tune())
       else if (pkd.type === TokenType.EOF) {
@@ -62,8 +62,9 @@ export class Parser {
     let header_text = ""
     while (!this.isAtEnd()) {
       if (
-        this.peek().type === TokenType.EOL &&
-        this.peekNext().type === TokenType.EOL
+        (this.peek().type === TokenType.EOL &&
+          this.peekNext().type === TokenType.EOL) ||
+        this.peek().lexeme === "X:"
       ) {
         break
       } else {
@@ -94,10 +95,14 @@ export class Parser {
     let currentTokens: Array<Token> = []
     while (!this.isAtEnd()) {
       if (
-        this.previous() !== undefined &&
-        this.previous().type === TokenType.EOL &&
+        this.peek().type === TokenType.EOL &&
         this.peekNext().type !== TokenType.LETTER_COLON
       ) {
+        if (currentTokens.length > 0) {
+          const line = new Info_line(currentTokens)
+          info_lines.push(line)
+          currentTokens = []
+        }
         break
       } else {
         if (this.peek().type === TokenType.EOL) {
@@ -110,6 +115,7 @@ export class Parser {
         this.advance()
       }
     }
+    this.advance()
     return new Tune_header(info_lines)
   }
 
