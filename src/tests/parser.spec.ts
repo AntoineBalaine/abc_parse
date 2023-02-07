@@ -61,41 +61,32 @@ describe("Parser", () => {
           const result = new Parser(new Scanner("X:1\nC").scanTokens()).parse()
           expect(result).to.be.an.instanceof(File_structure)
           const musicCode = result?.tune[0].tune_body?.sequence[0]
-          expect(isMusicCode(musicCode)).to.be.true
-          if (isMusicCode(musicCode)) {
-            expect(musicCode.contents[0]).to.be.an.instanceof(Note)
-            if (isNote(musicCode.contents[0])) {
-              expect(musicCode.contents[0].pitch).to.be.an.instanceof(Pitch)
+          if (musicCode) {
+            expect(musicCode).to.be.instanceOf(Note)
+            if (isNote(musicCode)) {
+              expect(musicCode.pitch).to.be.an.instanceof(Pitch)
             }
           }
         })
         it("should parse octave", () => {
           const result = new Parser(new Scanner("X:1\nC'").scanTokens()).parse()
           const musicCode = result?.tune[0].tune_body?.sequence[0]
-          if (isMusicCode(musicCode)) {
-            expect(musicCode.contents[0]).to.be.an.instanceof(Note)
-            if (
-              isNote(musicCode.contents[0]) &&
-              isPitch(musicCode.contents[0].pitch)
-            ) {
-              expect(musicCode.contents[0].pitch.octave).to.exist
-              expect(musicCode.contents[0].pitch.octave?.lexeme).to.equal("'")
+          if (musicCode) {
+            expect(musicCode).to.be.an.instanceof(Note)
+            if (isNote(musicCode) && isPitch(musicCode.pitch)) {
+              expect(musicCode.pitch.octave).to.exist
+              expect(musicCode.pitch.octave?.lexeme).to.equal("'")
             }
           }
         })
         it("should parse alteration", () => {
           const result = new Parser(new Scanner("X:1\n^C").scanTokens()).parse()
           const musicCode = result?.tune[0].tune_body?.sequence[0]
-          if (isMusicCode(musicCode)) {
-            expect(musicCode.contents[0]).to.be.an.instanceof(Note)
-            if (
-              isNote(musicCode.contents[0]) &&
-              isPitch(musicCode.contents[0].pitch)
-            ) {
-              expect(musicCode.contents[0].pitch.alteration).to.exist
-              expect(musicCode.contents[0].pitch.alteration?.lexeme).to.equal(
-                "^"
-              )
+          if (musicCode) {
+            expect(musicCode).to.be.an.instanceof(Note)
+            if (isNote(musicCode) && isPitch(musicCode.pitch)) {
+              expect(musicCode.pitch.alteration).to.exist
+              expect(musicCode.pitch.alteration?.lexeme).to.equal("^")
             }
           }
         })
@@ -105,14 +96,12 @@ describe("Parser", () => {
               new Scanner("X:1\nC/").scanTokens()
             ).parse()
             const musicCode = result?.tune[0].tune_body?.sequence[0]
-            if (isMusicCode(musicCode)) {
-              expect(musicCode.contents[0]).to.be.an.instanceof(Note)
-              if (isNote(musicCode.contents[0])) {
-                expect(musicCode.contents[0].rhythm).to.exist
-                if (isRhythm(musicCode.contents[0].rhythm)) {
-                  expect(
-                    musicCode.contents[0].rhythm?.separator?.lexeme
-                  ).to.equal("/")
+            if (musicCode) {
+              expect(musicCode).to.be.an.instanceof(Note)
+              if (isNote(musicCode) && isPitch(musicCode.pitch)) {
+                expect(musicCode.rhythm).to.exist
+                if (isRhythm(musicCode.rhythm)) {
+                  expect(musicCode.rhythm?.separator?.lexeme).to.equal("/")
                 }
               }
             }
@@ -122,15 +111,13 @@ describe("Parser", () => {
               new Scanner("X:1\nC/2").scanTokens()
             ).parse()
             const musicCode = result?.tune[0].tune_body?.sequence[0]
-            if (isMusicCode(musicCode)) {
-              expect(musicCode.contents[0]).to.be.an.instanceof(Note)
-              if (isNote(musicCode.contents[0])) {
-                expect(musicCode.contents[0].rhythm).to.exist
-                if (isRhythm(musicCode.contents[0].rhythm)) {
-                  expect(musicCode.contents[0].rhythm.denominator).to.exist
-                  expect(
-                    musicCode.contents[0].rhythm.denominator?.lexeme
-                  ).to.equal("2")
+            if (musicCode) {
+              expect(musicCode).to.be.an.instanceof(Note)
+              if (isNote(musicCode) && isPitch(musicCode.pitch)) {
+                expect(musicCode.rhythm).to.exist
+                if (isRhythm(musicCode.rhythm)) {
+                  expect(musicCode.rhythm.denominator).to.exist
+                  expect(musicCode.rhythm.denominator?.lexeme).to.equal("2")
                 }
               }
             }
@@ -140,19 +127,15 @@ describe("Parser", () => {
               new Scanner("X:1\nC2/2").scanTokens()
             ).parse()
             const musicCode = result?.tune[0].tune_body?.sequence[0]
-            if (isMusicCode(musicCode)) {
-              expect(musicCode.contents[0]).to.be.an.instanceof(Note)
-              if (isNote(musicCode.contents[0])) {
-                expect(musicCode.contents[0].rhythm).to.exist
-                if (isRhythm(musicCode.contents[0].rhythm)) {
-                  expect(musicCode.contents[0].rhythm.numerator).to.exist
-                  expect(
-                    musicCode.contents[0].rhythm.numerator?.lexeme
-                  ).to.equal("2")
-                  expect(musicCode.contents[0].rhythm.denominator).to.exist
-                  expect(
-                    musicCode.contents[0].rhythm.denominator?.lexeme
-                  ).to.equal("2")
+            if (musicCode) {
+              expect(musicCode).to.be.an.instanceof(Note)
+              if (isNote(musicCode) && isPitch(musicCode.pitch)) {
+                expect(musicCode.rhythm).to.exist
+                if (isRhythm(musicCode.rhythm)) {
+                  expect(musicCode.rhythm.numerator).to.exist
+                  expect(musicCode.rhythm.numerator?.lexeme).to.equal("2")
+                  expect(musicCode.rhythm.denominator).to.exist
+                  expect(musicCode.rhythm.denominator?.lexeme).to.equal("2")
                 }
               }
             }
@@ -162,15 +145,13 @@ describe("Parser", () => {
               new Scanner("X:1\nC>>").scanTokens()
             ).parse()
             const musicCode = result?.tune[0].tune_body?.sequence[0]
-            if (isMusicCode(musicCode)) {
-              expect(musicCode.contents[0]).to.be.an.instanceof(Note)
-              if (isNote(musicCode.contents[0])) {
-                expect(musicCode.contents[0].rhythm).to.exist
-                if (isRhythm(musicCode.contents[0].rhythm)) {
-                  expect(musicCode.contents[0].rhythm.separator).to.exist
-                  expect(
-                    musicCode.contents[0].rhythm.separator?.lexeme
-                  ).to.equal(">>")
+            if (musicCode) {
+              expect(musicCode).to.be.an.instanceof(Note)
+              if (isNote(musicCode) && isPitch(musicCode.pitch)) {
+                expect(musicCode.rhythm).to.exist
+                if (isRhythm(musicCode.rhythm)) {
+                  expect(musicCode.rhythm.separator).to.exist
+                  expect(musicCode.rhythm.separator?.lexeme).to.equal(">>")
                 }
               }
             }
@@ -180,10 +161,10 @@ describe("Parser", () => {
       it("should parse barline", () => {
         const result = new Parser(new Scanner("X:1\n|").scanTokens()).parse()
         const musicCode = result?.tune[0].tune_body?.sequence[0]
-        if (isMusicCode(musicCode)) {
-          expect(musicCode.contents[0]).to.be.an.instanceof(BarLine)
-          if (isBarLine(musicCode.contents[0])) {
-            expect(musicCode.contents[0].barline.lexeme).to.equal("|")
+        if (musicCode) {
+          expect(musicCode).to.be.an.instanceof(BarLine)
+          if (isBarLine(musicCode)) {
+            expect(musicCode.barline.lexeme).to.equal("|")
           }
         }
       })
@@ -192,30 +173,30 @@ describe("Parser", () => {
           new Scanner('X:1\n"string"').scanTokens()
         ).parse()
         const musicCode = result?.tune[0].tune_body?.sequence[0]
-        if (isMusicCode(musicCode)) {
-          expect(musicCode.contents[0]).to.be.an.instanceof(Annotation)
-          if (isAnnotation(musicCode.contents[0])) {
-            expect(musicCode.contents[0].text.lexeme).to.equal('"string"')
+        if (musicCode) {
+          expect(musicCode).to.be.an.instanceof(Annotation)
+          if (isAnnotation(musicCode)) {
+            expect(musicCode.text.lexeme).to.equal('"string"')
           }
         }
       })
       it("should parse grace group", () => {
         const result = new Parser(new Scanner("X:1\n{g}").scanTokens()).parse()
         const musicCode = result?.tune[0].tune_body?.sequence[0]
-        if (isMusicCode(musicCode)) {
-          expect(musicCode.contents[0]).to.be.an.instanceof(Grace_group)
-          if (isGraceGroup(musicCode.contents[0])) {
-            expect(musicCode.contents[0].notes[0]).to.be.an.instanceof(Note)
+        if (musicCode) {
+          expect(musicCode).to.be.an.instanceof(Grace_group)
+          if (isGraceGroup(musicCode)) {
+            expect(musicCode.notes[0]).to.be.an.instanceof(Note)
           }
         }
       })
       it("should parse Nth repeat", () => {
         const result = new Parser(new Scanner("X:1\n[1").scanTokens()).parse()
         const musicCode = result?.tune[0].tune_body?.sequence[0]
-        if (isMusicCode(musicCode)) {
-          expect(musicCode.contents[0]).to.be.an.instanceof(Nth_repeat)
-          if (isNthRepeat(musicCode.contents[0])) {
-            expect(musicCode.contents[0].repeat.lexeme).to.equal("[1")
+        if (musicCode) {
+          expect(musicCode).to.be.an.instanceof(Nth_repeat)
+          if (isNthRepeat(musicCode)) {
+            expect(musicCode.repeat.lexeme).to.equal("[1")
           }
         }
       })
@@ -224,21 +205,21 @@ describe("Parser", () => {
           new Scanner("X:1\n[M:3/4]").scanTokens()
         ).parse()
         const musicCode = result?.tune[0].tune_body?.sequence[0]
-        if (isMusicCode(musicCode)) {
-          expect(musicCode.contents[0]).to.be.an.instanceof(Inline_field)
-          if (isInline_field(musicCode.contents[0])) {
-            expect(musicCode.contents[0].field.lexeme).to.equal("M:")
-            expect(musicCode.contents[0].text[0].lexeme).to.equal("3")
+        if (musicCode) {
+          expect(musicCode).to.be.an.instanceof(Inline_field)
+          if (isInline_field(musicCode)) {
+            expect(musicCode.field.lexeme).to.equal("M:")
+            expect(musicCode.text[0].lexeme).to.equal("3")
           }
         }
       })
       it("should parse chord", () => {
         const result = new Parser(new Scanner("X:1\n[C]").scanTokens()).parse()
         const musicCode = result?.tune[0].tune_body?.sequence[0]
-        if (isMusicCode(musicCode)) {
-          expect(musicCode.contents[0]).to.be.an.instanceof(Chord)
-          if (isChord(musicCode.contents[0])) {
-            expect(musicCode.contents[0].contents[0]).to.be.an.instanceof(Note)
+        if (musicCode) {
+          expect(musicCode).to.be.an.instanceof(Chord)
+          if (isChord(musicCode)) {
+            expect(musicCode.contents[0]).to.be.an.instanceof(Note)
           }
         }
       })
@@ -247,22 +228,22 @@ describe("Parser", () => {
           new Scanner("X:1\n!fff!").scanTokens()
         ).parse()
         const musicCode = result?.tune[0].tune_body?.sequence[0]
-        if (isMusicCode(musicCode)) {
-          expect(musicCode.contents[0]).to.be.an.instanceof(Symbol)
-          if (isSymbol(musicCode.contents[0])) {
-            expect(musicCode.contents[0].symbol.lexeme).to.equal("!fff!")
+        if (musicCode) {
+          expect(musicCode).to.be.an.instanceof(Symbol)
+          if (isSymbol(musicCode)) {
+            expect(musicCode.symbol.lexeme).to.equal("!fff!")
           }
         }
       })
       it("should parse MultiMeasureRest", () => {
         const result = new Parser(new Scanner("X:1\nZ4").scanTokens()).parse()
         const musicCode = result?.tune[0].tune_body?.sequence[0]
-        if (isMusicCode(musicCode)) {
-          expect(musicCode.contents[0]).to.be.an.instanceof(MultiMeasureRest)
-          if (isMultiMeasureRest(musicCode.contents[0])) {
-            expect(musicCode.contents[0].rest.lexeme).to.equal("Z")
-            expect(musicCode.contents[0].length).to.exist
-            expect(musicCode.contents[0].length?.lexeme).to.equal("4")
+        if (musicCode) {
+          expect(musicCode).to.be.an.instanceof(MultiMeasureRest)
+          if (isMultiMeasureRest(musicCode)) {
+            expect(musicCode.rest.lexeme).to.equal("Z")
+            expect(musicCode.length).to.exist
+            expect(musicCode.length?.lexeme).to.equal("4")
           }
         }
       })
@@ -271,12 +252,10 @@ describe("Parser", () => {
           new Scanner("X:1\n(abc)").scanTokens()
         ).parse()
         const musicCode = result?.tune[0].tune_body?.sequence[0]
-        if (isMusicCode(musicCode)) {
-          expect(musicCode.contents[0]).to.be.an.instanceof(Slur_group)
-          if (isSlurGroup(musicCode.contents[0])) {
-            expect(
-              musicCode.contents[0].contents[0].contents[0]
-            ).to.be.an.instanceof(Note)
+        if (musicCode) {
+          expect(musicCode).to.be.an.instanceof(Slur_group)
+          if (isSlurGroup(musicCode)) {
+            expect(musicCode.contents[0]).to.be.an.instanceof(Note)
           }
         }
       })
@@ -299,16 +278,13 @@ describe("Parser", () => {
         new Scanner("X:1\n~23 a bc\na,,").scanTokens()
       ).parse()
       const musicCode = result?.tune[0].tune_body?.sequence[0]
-      if (isMusicCode(musicCode)) {
-        expect(musicCode.contents[0]).to.be.an.instanceof(Note)
+      if (musicCode) {
+        expect(musicCode).to.be.an.instanceof(Note)
       }
     })
   })
 })
 
-const isMusicCode = (expr: Expr | undefined): expr is Music_code => {
-  return expr instanceof Music_code
-}
 const isNote = (expr: Expr | undefined | Token): expr is Note => {
   return expr instanceof Note
 }

@@ -23,6 +23,7 @@ import {
   Tune_header,
   tune_body_code,
   File_structure,
+  music_code,
 } from "./Expr"
 import Token from "./token"
 import { TokenType } from "./types"
@@ -157,7 +158,7 @@ export class Parser {
             this.peekNext().type === TokenType.EOL
           )
         ) {
-          elements.push(this.music_content())
+          elements = elements.concat(this.music_content().contents)
         } else if (this.peek().type === TokenType.EOL) {
           break
         }
@@ -438,10 +439,11 @@ export class Parser {
     // which is a leftparen followed by
     // anything except a rightparen
     // followed by a rightparen
-    const slurGroup: Array<Music_code> = []
+    let slurGroup: Array<music_code> = []
     this.advance()
     while (!this.isAtEnd() && !(this.peek().type === TokenType.RIGHT_PAREN)) {
-      slurGroup.push(this.music_content())
+      const music_content = this.music_content()
+      slurGroup = slurGroup.concat(music_content.contents)
     }
     this.consume(TokenType.RIGHT_PAREN, "expected a right parenthesis")
     return new Slur_group(slurGroup)

@@ -120,7 +120,7 @@ export class Comment extends Expr {
     return visitor.visitCommentExpr(this)
   }
 }
-export type tune_body_code = Comment | Info_line | Music_code
+export type tune_body_code = Comment | Info_line | music_code
 
 export class Tune extends Expr {
   tune_header: Tune_header
@@ -248,7 +248,7 @@ export class Nth_repeat extends Expr {
 }
 
 export class Tune_Body extends Expr {
-  sequence: Array<Expr>
+  sequence: Array<Expr | Token>
   constructor(sequence: Array<tune_body_code>) {
     super()
     this.sequence = sequence
@@ -280,7 +280,7 @@ export class BarLine extends Expr {
   }
 }
 
-type music_code =
+export type music_code =
   | Token
   | BarLine
   | Annotation
@@ -305,8 +305,8 @@ export class Music_code extends Expr {
 }
 
 export class Slur_group extends Expr {
-  contents: Array<Music_code>
-  constructor(contents: Array<Music_code>) {
+  contents: Array<music_code>
+  constructor(contents: Array<music_code>) {
     super()
     this.contents = contents
   }
