@@ -1,4 +1,4 @@
-import { parserError, tokenError } from "./error"
+import { parserError } from "./error"
 import {
   Annotation,
   BarLine,
@@ -56,6 +56,7 @@ export class Parser {
     }
     return new File_structure(file_header, tunes)
   }
+
   private file_header() {
     //collect a multiline string
     //until finding two line breaks in a row
@@ -145,25 +146,29 @@ export class Parser {
       //check for commentline
       // check for info line
       // check for music_code
-      if (this.peek().type === TokenType.COMMENT) {
-        elements.push(this.comment_line())
-      } else if (this.peek().type === TokenType.LETTER_COLON) {
-        elements.push(this.info_line())
-      } else if (
-        !(
-          this.peek().type === TokenType.EOL &&
-          this.peekNext().type === TokenType.EOL
-        )
-      ) {
-        elements.push(this.music_content())
-      } else if (this.peek().type === TokenType.EOL) {
-        break
+      try {
+        if (this.peek().type === TokenType.COMMENT) {
+          elements.push(this.comment_line())
+        } else if (this.peek().type === TokenType.LETTER_COLON) {
+          elements.push(this.info_line())
+        } else if (
+          !(
+            this.peek().type === TokenType.EOL &&
+            this.peekNext().type === TokenType.EOL
+          )
+        ) {
+          elements.push(this.music_content())
+        } else if (this.peek().type === TokenType.EOL) {
+          break
+        }
+      } catch {
+        this.synchronize()
       }
     }
     return new Tune_Body(elements)
   }
 
-  private music_content(breakerToken?: TokenType) {
+  private music_content() {
     const contents: Array<
       | Token
       | BarLine
@@ -178,109 +183,104 @@ export class Parser {
       | Slur_group
     > = []
     const curTokn = this.peek()
-    while (
-      !this.isAtEnd() &&
-      curTokn.type !== TokenType.EOL &&
-      curTokn.type !== breakerToken
-    ) {
-      switch (curTokn.type) {
-        case TokenType.WHITESPACE:
-        case TokenType.ANTISLASH_EOL:
+
+    switch (curTokn.type) {
+      case TokenType.WHITESPACE:
+      case TokenType.ANTISLASH_EOL:
+        contents.push(curTokn)
+        this.advance()
+      case TokenType.BARLINE:
+      case TokenType.BAR_COLON:
+      case TokenType.BAR_DBL:
+      case TokenType.BAR_RIGHTBRKT:
+      case TokenType.COLON_BAR:
+      case TokenType.COLON_DBL:
+      case TokenType.LEFTBRKT_BAR:
+        contents.push(this.barline())
+        this.advance()
+        break
+      case TokenType.STRING:
+        contents.push(this.annotation())
+        this.advance()
+        break
+      case TokenType.DOT:
+      case TokenType.TILDE:
+        // parse the note following the dot
+        // and add the dot to the note
+        if (this.isDecoration()) {
           contents.push(curTokn)
-          this.advance()
-          continue
-        case TokenType.BARLINE:
-        case TokenType.BAR_COLON:
-        case TokenType.BAR_DBL:
-        case TokenType.BAR_RIGHTBRKT:
-        case TokenType.COLON_BAR:
-        case TokenType.COLON_DBL:
-        case TokenType.LEFTBRKT_BAR:
-          contents.push(this.barline())
-          this.advance()
-          break
-        case TokenType.STRING:
-          contents.push(this.annotation())
-          this.advance()
-          break
-        case TokenType.DOT:
-        case TokenType.TILDE:
-          // parse the note following the dot
-          // and add the dot to the note
-          if (this.isDecoration()) {
-            contents.push(curTokn)
-          } else {
-            throw this.error(
-              this.peek(),
-              "Unexpected token: " +
-                curTokn.lexeme +
-                "\nline " +
-                curTokn.line +
-                "\n decorations should be followed by a note"
-            )
-          }
-          break
-        case TokenType.FLAT:
-        case TokenType.FLAT_DBL:
-        case TokenType.NATURAL:
-        case TokenType.NOTE_LETTER:
-        case TokenType.SHARP:
-        case TokenType.SHARP_DBL:
-          // TODO in the interpreter:
-          // parse a beam group
-          // if there is only one note in the beam group
-          // return a note
+        } else {
+          throw this.error(
+            this.peek(),
+            "Unexpected token: " +
+              curTokn.lexeme +
+              "\nline " +
+              curTokn.line +
+              "\n decorations should be followed by a note"
+          )
+        }
+        break
+      case TokenType.FLAT:
+      case TokenType.FLAT_DBL:
+      case TokenType.NATURAL:
+      case TokenType.NOTE_LETTER:
+      case TokenType.SHARP:
+      case TokenType.SHARP_DBL:
+        // TODO in the interpreter:
+        // parse a beam group
+        // if there is only one note in the beam group
+        // return a note
+        contents.push(this.parse_note())
+        break
+      case TokenType.LEFT_BRACE:
+        contents.push(this.grace_group())
+        break
+      case TokenType.BAR_DIGIT:
+      case TokenType.COLON_BAR_DIGIT:
+      case TokenType.LEFTBRKT_NUMBER:
+        // TODO accomodate cases of
+        // nth repeat containing a barline
+        // parse a nth repeat
+        const nthRepeat = this.nth_repeat()
+        if (nthRepeat.length == 2) {
+          contents.push(nthRepeat[0])
+          contents.push(nthRepeat[1])
+        } else if (nthRepeat.length == 1) {
+          contents.push(nthRepeat[0])
+        }
+        break
+      case TokenType.LEFTBRKT:
+        if (this.peekNext().type === TokenType.LETTER_COLON) {
+          contents.push(this.inline_field())
+        } else {
+          contents.push(this.chord())
+        }
+        break
+      case TokenType.LEFTPAREN:
+        contents.push(this.slurGroup())
+        break
+      case TokenType.LEFTPAREN_NUMBER:
+      // parse a tuplet
+      // which is a leftparen_number followed by
+      // a beam group
+      case TokenType.SYMBOL:
+        contents.push(this.symbol())
+        break
+      case TokenType.LETTER:
+        if (this.isDecoration()) {
+          contents.push(curTokn)
+        } else if (this.isMultiMesureRest()) {
+          contents.push(this.multiMeasureRest())
+        } else if (this.isRest()) {
           contents.push(this.parse_note())
-          break
-        case TokenType.LEFT_BRACE:
-          contents.push(this.grace_group())
-          break
-        case TokenType.BAR_DIGIT:
-        case TokenType.COLON_BAR_DIGIT:
-        case TokenType.LEFTBRKT_NUMBER:
-          // TODO accomodate cases of
-          // nth repeat containing a barline
-          // parse a nth repeat
-          const nthRepeat = this.nth_repeat()
-          if (nthRepeat.length == 2) {
-            contents.push(nthRepeat[0])
-            contents.push(nthRepeat[1])
-          } else if (nthRepeat.length == 1) {
-            contents.push(nthRepeat[0])
-          }
-          break
-        case TokenType.LEFTBRKT:
-          if (this.peekNext().type === TokenType.LETTER_COLON) {
-            contents.push(this.inline_field())
-          } else {
-            contents.push(this.chord())
-          }
-          break
-        case TokenType.LEFTPAREN:
-          contents.push(this.slurGroup())
-          break
-        case TokenType.LEFTPAREN_NUMBER:
-        // parse a tuplet
-        // which is a leftparen_number followed by
-        // a beam group
-        case TokenType.SYMBOL:
-          contents.push(this.symbol())
-          break
-        case TokenType.LETTER:
-          if (this.isDecoration()) {
-            contents.push(curTokn)
-          } else if (this.isMultiMesureRest()) {
-            contents.push(this.multiMeasureRest())
-          } else if (this.isRest()) {
-            contents.push(this.parse_note())
-          } else {
-            throw this.error(curTokn, "Unexpected token")
-          }
-          break
-        default:
+        } else {
           throw this.error(curTokn, "Unexpected token")
-      }
+        }
+        break
+      default:
+        throw this.error(curTokn, "Unexpected token")
     }
+
     return new Music_code(contents)
   }
   barline() {
@@ -348,18 +348,17 @@ export class Parser {
     const type = this.peek().type
     const nxtType = this.peekNext()
     if (
-      type === TokenType.DOT ||
-      type === TokenType.TILDE ||
-      (type === TokenType.LETTER &&
-        /[HLMOPSTuv]/.test(lexeme) &&
-        (nxtType.type === TokenType.FLAT ||
-          nxtType.type === TokenType.FLAT_DBL ||
-          nxtType.type === TokenType.NATURAL ||
-          nxtType.type === TokenType.NOTE_LETTER ||
-          nxtType.type === TokenType.SHARP ||
-          nxtType.type === TokenType.SHARP_DBL ||
-          this.hasRestAttributes(nxtType) ||
-          this.peekNext().type === TokenType.NOTE_LETTER))
+      (type === TokenType.DOT ||
+        type === TokenType.TILDE ||
+        (type === TokenType.LETTER && /[HLMOPSTuv]/.test(lexeme))) &&
+      (nxtType.type === TokenType.FLAT ||
+        nxtType.type === TokenType.FLAT_DBL ||
+        nxtType.type === TokenType.NATURAL ||
+        nxtType.type === TokenType.NOTE_LETTER ||
+        nxtType.type === TokenType.SHARP ||
+        nxtType.type === TokenType.SHARP_DBL ||
+        this.hasRestAttributes(nxtType) ||
+        this.peekNext().type === TokenType.NOTE_LETTER)
     ) {
       return true
     }
@@ -426,6 +425,7 @@ export class Parser {
     while (!this.isAtEnd() && this.peek().type !== TokenType.RIGHT_BRACE) {
       notes.push(this.parse_note())
     }
+    this.consume(TokenType.RIGHT_BRACE, "expected a right brace")
     return new Grace_group(notes, isAccaciatura)
   }
   private symbol() {
@@ -439,9 +439,9 @@ export class Parser {
     // anything except a rightparen
     // followed by a rightparen
     const slurGroup: Array<Music_code> = []
+    this.advance()
     while (!this.isAtEnd() && !(this.peek().type === TokenType.RIGHT_PAREN)) {
-      slurGroup.push(this.music_content(TokenType.RIGHT_PAREN))
-      this.advance()
+      slurGroup.push(this.music_content())
     }
     this.consume(TokenType.RIGHT_PAREN, "expected a right parenthesis")
     return new Slur_group(slurGroup)
@@ -616,6 +616,7 @@ export class Parser {
       this.advance()
     }
   }
+
   private match(...types: Array<TokenType>): boolean {
     for (const type of types) {
       if (this.check(type)) {

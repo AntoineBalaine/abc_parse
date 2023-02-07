@@ -274,7 +274,9 @@ describe("Parser", () => {
         if (isMusicCode(musicCode)) {
           expect(musicCode.contents[0]).to.be.an.instanceof(Slur_group)
           if (isSlurGroup(musicCode.contents[0])) {
-            expect(musicCode.contents[0].contents[0]).to.be.an.instanceof(Note)
+            expect(
+              musicCode.contents[0].contents[0].contents[0]
+            ).to.be.an.instanceof(Note)
           }
         }
       })
@@ -289,6 +291,17 @@ describe("Parser", () => {
           expect(comment.text).to.equal("%comment")
         }
       })
+    })
+  })
+  describe("synchronize in case of error", () => {
+    it("synchronize after an unexpected token", () => {
+      const result = new Parser(
+        new Scanner("X:1\n~23 a bc\na,,").scanTokens()
+      ).parse()
+      const musicCode = result?.tune[0].tune_body?.sequence[0]
+      if (isMusicCode(musicCode)) {
+        expect(musicCode.contents[0]).to.be.an.instanceof(Note)
+      }
     })
   })
 })
