@@ -23,16 +23,10 @@ export enum TokenType {
   LEFTBRKT_BAR, // [|
   LEFTBRKT_NUMBER, // [number
   LEFT_BRACE, // {
-  /**
-   * intégrer ici les inline info fields?
-   */
   LEFTBRKT, // [
   LEFTPAREN, // (
   LEFTPAREN_NUMBER, // (1
   LESS, // <<<<<
-  /**
-   * into default case
-   */
   NOTE_LETTER,
   LETTER,
   LETTER_COLON,

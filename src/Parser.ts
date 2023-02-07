@@ -337,9 +337,9 @@ export class Parser {
         )
         return [new BarLine(barToken), new Nth_repeat(numberToken)]
       }
-      // else if pkd.type=== TokenType.LEFTBRKT_NUMBER
     } else {
-      return [new Nth_repeat(this.peek())]
+      this.advance()
+      return [new Nth_repeat(this.previous())]
     }
   }
   private isDecoration() {
@@ -418,6 +418,7 @@ export class Parser {
     // followed by a right brace
     let isAccaciatura = false
     let notes: Array<Note> = []
+    this.advance()
     if (!this.isAtEnd() && this.peek().type === TokenType.SLASH) {
       isAccaciatura = true
       this.advance()
@@ -452,8 +453,15 @@ export class Parser {
       rhythm?: Rhythm
     }
     let note = <noteType>{}
-
-    if (this.peek().type === TokenType.NOTE_LETTER) {
+    const pkd = this.peek()
+    if (
+      pkd.type === TokenType.SHARP ||
+      pkd.type === TokenType.FLAT ||
+      pkd.type === TokenType.SHARP_DBL ||
+      pkd.type === TokenType.FLAT_DBL
+    ) {
+      note = { pitchOrRest: this.pitch() }
+    } else if (this.peek().type === TokenType.NOTE_LETTER) {
       note = { pitchOrRest: this.pitch() }
     } else if (this.isRest()) {
       note = { pitchOrRest: this.rest() }
@@ -482,7 +490,7 @@ export class Parser {
   private multiMeasureRest() {
     let rest: Token
     let length: Token
-    if (this.isRest()) {
+    if (this.isMultiMesureRest()) {
       rest = this.peek()
       this.advance()
     } else {
@@ -491,17 +499,23 @@ export class Parser {
     if (this.peek().type === TokenType.NUMBER) {
       length = this.peek()
       this.advance()
+      return new MultiMeasureRest(rest, length || undefined)
     }
-    return new Rest(rest)
+    return new MultiMeasureRest(rest)
   }
 
   private rhythm() {
     // slash optionnally followed by a number
     if (this.peek().type === TokenType.SLASH) {
       if (this.peekNext().type === TokenType.NUMBER) {
-        return new Rhythm(null, this.peek(), this.peekNext())
+        const slash = this.peek()
+        const number = this.peekNext()
+        this.advance()
+        this.advance()
+        return new Rhythm(null, slash, number)
       } else {
-        return new Rhythm(null, this.peek())
+        this.advance()
+        return new Rhythm(null, this.previous())
       }
       // number optionnally followed by a slash and a number
     } else if (this.peek().type === TokenType.NUMBER) {
@@ -509,17 +523,26 @@ export class Parser {
       this.advance()
       if (this.peek().type === TokenType.SLASH) {
         if (this.peekNext().type === TokenType.NUMBER) {
-          return new Rhythm(null, this.peek(), this.peekNext())
+          const rhythm = new Rhythm(firstNum, this.peek(), this.peekNext())
+          this.advance()
+          this.advance()
+          return rhythm
         } else {
-          return new Rhythm(null, this.peek())
+          const rhythm = new Rhythm(null, this.peek())
+          this.advance()
+          return rhythm
         }
-      } else return new Rhythm(this.peek())
+      } else {
+        this.advance()
+        return new Rhythm(this.peek())
+      }
       // broken rhythm
     } else if (
       this.peek().type === TokenType.GREATER ||
       this.peek().type === TokenType.LESS
     ) {
-      return new Rhythm(null, this.peek())
+      this.advance()
+      return new Rhythm(null, this.previous())
     } else {
       throw this.error(this.peek(), "Unexpected token")
     }
@@ -625,13 +648,18 @@ export class Parser {
 
   private isRhythm = () => {
     const pkd = this.peek()
-    return pkd.type === TokenType.SLASH || pkd.type === TokenType.NUMBER
+    return (
+      pkd.type === TokenType.SLASH ||
+      pkd.type === TokenType.NUMBER ||
+      pkd.type === TokenType.GREATER ||
+      pkd.type === TokenType.LESS
+    )
   }
 
   private isMultiMesureRest = () => {
     const pkd = this.peek()
     return (
-      pkd.type === TokenType.NOTE_LETTER &&
+      pkd.type === TokenType.LETTER &&
       (pkd.lexeme === "Z" || pkd.lexeme === "X")
     )
   }
