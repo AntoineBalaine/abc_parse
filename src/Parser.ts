@@ -186,10 +186,12 @@ export class Parser {
     const curTokn = this.peek()
 
     switch (curTokn.type) {
+      case TokenType.EOL:
       case TokenType.WHITESPACE:
       case TokenType.ANTISLASH_EOL:
         contents.push(curTokn)
         this.advance()
+        break
       case TokenType.BARLINE:
       case TokenType.BAR_COLON:
       case TokenType.BAR_DBL:
@@ -386,12 +388,12 @@ export class Parser {
         chordContents.push(this.parse_note())
       }
     }
+    //consume the right bracket
+    this.consume(this.peek().type, "Expected a right bracket")
     // optionally parse a rhythm
     if (this.isRhythm()) {
       chordRhythm = this.rhythm()
     }
-    //consume the right bracket
-    this.consume(this.peek().type, "Expected a right bracket")
     return new Chord(chordContents, chordRhythm)
   }
   inline_field() {
@@ -460,7 +462,8 @@ export class Parser {
       pkd.type === TokenType.SHARP ||
       pkd.type === TokenType.FLAT ||
       pkd.type === TokenType.SHARP_DBL ||
-      pkd.type === TokenType.FLAT_DBL
+      pkd.type === TokenType.FLAT_DBL ||
+      pkd.type === TokenType.NATURAL
     ) {
       note = { pitchOrRest: this.pitch() }
     } else if (this.peek().type === TokenType.NOTE_LETTER) {
@@ -614,7 +617,11 @@ export class Parser {
   private synchronize() {
     this.advance()
     while (!this.isAtEnd()) {
-      if (this.previous().type == TokenType.EOL) return
+      if (
+        this.previous().type == TokenType.EOL ||
+        this.previous().type === TokenType.BARLINE
+      )
+        return
       this.advance()
     }
   }
