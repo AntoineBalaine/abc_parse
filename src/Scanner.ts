@@ -115,6 +115,7 @@ export default class Scanner {
         this.addToken(TokenType.DOT)
         break
       case "\n":
+        this.line++
         this.addToken(TokenType.EOL)
         break
       case "_":
@@ -216,15 +217,6 @@ export default class Scanner {
       case "\t":
         // Don't Ignore whitespace, the standard is space-sensitive
         this.addToken(TokenType.WHITESPACE)
-        break
-      case "\n":
-        /**
-         * should I include the line breaks with a token,
-         * since they can be marked as ignored for pagination
-         * purposes?
-         */
-        this.line++
-        this.addToken(TokenType.EOL)
         break
       case '"':
         this.string()
@@ -330,8 +322,9 @@ export default class Scanner {
 
   private addToken(type: TokenType, literal?: any | null) {
     const text = this.source.substring(this.start, this.current)
-    this.tokens.push(
-      new Token(type, text, literal || null, this.line, this.start)
-    )
+    const lineBreak = this.source.lastIndexOf("\n", this.current)
+    const charPos = this.current - lineBreak - 1
+
+    this.tokens.push(new Token(type, text, literal || null, this.line, charPos))
   }
 }

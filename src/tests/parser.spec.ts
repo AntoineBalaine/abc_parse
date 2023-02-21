@@ -42,16 +42,50 @@ describe("Parser", () => {
       expect(result?.file_header).to.be.an.instanceof(File_header)
     })
     // it should parse tune headers
-    it("should parse tune headers", () => {
-      const result = new Parser(new Scanner("X:1\n").scanTokens()).parse()
-      expect(result).to.be.an.instanceof(File_structure)
-      expect(result?.tune[0].tune_header).to.be.an.instanceof(Tune_header)
-      expect(result?.tune[0].tune_header.info_lines[0]).to.be.an.instanceof(
-        Info_line
-      )
-      expect(result?.tune[0].tune_header.info_lines[0].key.lexeme).to.equal(
-        "X:"
-      )
+    describe("tune headers", () => {
+      it("should parse tune headers", () => {
+        const result = new Parser(new Scanner("X:1\n").scanTokens()).parse()
+        expect(result).to.be.an.instanceof(File_structure)
+        expect(result?.tune[0].tune_header).to.be.an.instanceof(Tune_header)
+        expect(result?.tune[0].tune_header.info_lines[0]).to.be.an.instanceof(
+          Info_line
+        )
+        expect(result?.tune[0].tune_header.info_lines[0].key.lexeme).to.equal(
+          "X:"
+        )
+      })
+      it("should parse info lines in header", () => {
+        const result = new Parser(
+          new Scanner("X:1\nT:Test Song\n").scanTokens()
+        ).parse()
+        expect(result).to.be.an.instanceof(File_structure)
+        expect(result?.tune[0].tune_header.info_lines[0]).to.be.an.instanceof(
+          Info_line
+        )
+        expect(result?.tune[0].tune_header.info_lines[0].key.lexeme).to.equal(
+          "X:"
+        )
+        expect(result?.tune[0].tune_header.info_lines[1]).to.be.an.instanceof(
+          Info_line
+        )
+        expect(result?.tune[0].tune_header.info_lines[1].key.lexeme).to.equal(
+          "T:"
+        )
+      })
+      it("should parse broken info line in header", () => {
+        const result = new Parser(
+          new Scanner("X:1\nI:Some info here\n+:More info").scanTokens()
+        ).parse()
+        expect(result?.tune[0].tune_header.info_lines[1]).to.be.an.instanceof(
+          Info_line
+        )
+        expect(result?.tune[0].tune_header.info_lines[1].key.lexeme).to.equal(
+          "I:"
+        )
+        expect(
+          result?.tune[0].tune_header.info_lines[1].value[0].lexeme
+        ).to.equal("Some info here")
+      })
     })
   })
   describe("Tune body", () => {
@@ -152,6 +186,24 @@ describe("Parser", () => {
                 if (isRhythm(musicCode.rhythm)) {
                   expect(musicCode.rhythm.separator).to.exist
                   expect(musicCode.rhythm.separator?.lexeme).to.equal(">>")
+                }
+              }
+            }
+          })
+          it("should parse broken rhythm with number", () => {
+            const result = new Parser(
+              new Scanner("X:1\nC2>").scanTokens()
+            ).parse()
+            const musicCode = result?.tune[0].tune_body?.sequence[0]
+            if (musicCode) {
+              expect(musicCode).to.be.an.instanceof(Note)
+              if (isNote(musicCode) && isPitch(musicCode.pitch)) {
+                expect(musicCode.rhythm).to.exist
+                if (isRhythm(musicCode.rhythm)) {
+                  expect(musicCode.rhythm.separator).to.exist
+                  expect(musicCode.rhythm.separator?.lexeme).to.equal(">")
+                  expect(musicCode.rhythm.numerator).to.exist
+                  expect(musicCode.rhythm.numerator?.lexeme).to.equal("2")
                 }
               }
             }

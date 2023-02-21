@@ -31,8 +31,12 @@ import { TokenType } from "./types"
 export class Parser {
   private tokens: Array<Token>
   private current = 0
-  constructor(tokens: Array<Token>) {
+  private source = ""
+  constructor(tokens: Array<Token>, source?: string) {
     this.tokens = tokens
+    if (source) {
+      this.source = source
+    }
   }
 
   parse() {
@@ -277,11 +281,11 @@ export class Parser {
         } else if (this.isRest()) {
           contents.push(this.parse_note())
         } else {
-          throw this.error(curTokn, "Unexpected token")
+          throw this.error(curTokn, "Unexpected token after letter")
         }
         break
       default:
-        throw this.error(curTokn, "Unexpected token")
+        throw this.error(curTokn, "Unexpected token in music code")
     }
 
     return new Music_code(contents)
@@ -471,7 +475,7 @@ export class Parser {
     } else if (this.isRest()) {
       note = { pitchOrRest: this.rest() }
     } else {
-      throw this.error(this.peek(), "Unexpected token")
+      throw this.error(this.peek(), "Unexpected token in note")
     }
 
     if (!this.isAtEnd() && this.isRhythm()) {
@@ -487,7 +491,7 @@ export class Parser {
       rest = this.peek()
       this.advance()
     } else {
-      throw this.error(this.peek(), "Unexpected token")
+      throw this.error(this.peek(), "Unexpected token in rest")
     }
     return new Rest(rest)
   }
@@ -499,7 +503,7 @@ export class Parser {
       rest = this.peek()
       this.advance()
     } else {
-      throw this.error(this.peek(), "Unexpected token")
+      throw this.error(this.peek(), "Unexpected token in multi measure rest")
     }
     if (this.peek().type === TokenType.NUMBER) {
       length = this.peek()
@@ -522,24 +526,28 @@ export class Parser {
         this.advance()
         return new Rhythm(null, this.previous())
       }
-      // number optionnally followed by a slash and a number
+      // number optionnally followed by a ( slash|greater|less ) and a number
     } else if (this.peek().type === TokenType.NUMBER) {
       const firstNum = this.peek()
       this.advance()
-      if (this.peek().type === TokenType.SLASH) {
+      if (
+        this.peek().type === TokenType.SLASH ||
+        this.peek().type === TokenType.GREATER ||
+        this.peek().type === TokenType.LESS
+      ) {
         if (this.peekNext().type === TokenType.NUMBER) {
           const rhythm = new Rhythm(firstNum, this.peek(), this.peekNext())
           this.advance()
           this.advance()
           return rhythm
         } else {
-          const rhythm = new Rhythm(null, this.peek())
+          const rhythm = new Rhythm(firstNum, this.peek())
           this.advance()
           return rhythm
         }
       } else {
-        this.advance()
-        return new Rhythm(this.peek())
+        //this.advance()
+        return new Rhythm(firstNum)
       }
       // broken rhythm
     } else if (
@@ -549,7 +557,7 @@ export class Parser {
       this.advance()
       return new Rhythm(null, this.previous())
     } else {
-      throw this.error(this.peek(), "Unexpected token")
+      throw this.error(this.peek(), "Unexpected token in rhythm")
     }
   }
 
@@ -610,7 +618,17 @@ export class Parser {
   }
 
   private error(token: Token, message: string): Error {
-    parserError(token, message)
+    // get the currentline
+    if (this.source) {
+      const curLin = this.source.substring(0).split("\n")[token.line - 1]
+      const test = `${curLin}\n` + " ".repeat(token.position) + "^"
+      // add a caret under the token
+      //const caret = " ".repeat(token.position) + "^"
+      parserError(token, message + "\n" + test)
+    } else {
+      parserError(token, message)
+    }
+
     return new Error()
   }
 
@@ -679,7 +697,7 @@ export class Parser {
   }
   private hasRestAttributes = (token: Token) => {
     return (
-      token.type === TokenType.NOTE_LETTER &&
+      token.type === TokenType.LETTER &&
       (token.lexeme === "z" || token.lexeme === "x")
     )
   }

@@ -1,5 +1,6 @@
 {
   "devDependencies": {
+    "@istanbuljs/nyc-config-typescript": "^1.0.2",
     "@jest/globals": "^29.3.1",
     "@types/chai": "^4.3.4",
     "@types/mocha": "^10.0.1",
@@ -10,6 +11,7 @@
     "jest": "^29.3.1",
     "lint-staged": "^13.1.0",
     "mocha": "^10.2.0",
+    "nyc": "^15.1.0",
     "prettier": "^2.8.2",
     "ts-jest": "^29.0.5",
     "ts-mocha": "^10.0.0",
@@ -19,9 +21,29 @@
   "scripts": {
     "start": "tsc && node dist/abc.js",
     "prepare": "husky install",
-    "test": "mocha -r ts-node/register src/**/*.spec.ts"
+    "test": "mocha -r ts-node/register src/**/*.spec.ts",
+    "test:coverage": "nyc pnpm run test",
+    "file": "ts-node src/abc.ts /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/all/lazy_river.abc"
   },
   "lint-staged": {
     "**/*": "prettier --write --ignore-unknown"
+  },
+  "nyc": {
+    "extends": "@istanbuljs/nyc-config-typescript",
+    "check-coverage": true,
+    "all": true,
+    "include": [
+      "src/**/!(*.spec.*).[tj]s?(x)"
+    ],
+    "exclude": [
+      "src/_tests_/**/*.*"
+    ],
+    "reporter": [
+      "html",
+      "lcov",
+      "text",
+      "text-summary"
+    ],
+    "report-dir": "coverage"
   }
 }

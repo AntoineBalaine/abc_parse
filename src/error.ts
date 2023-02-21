@@ -21,5 +21,5 @@ export const tokenError = (token: Token, message: string) => {
   }
 }
 export const parserError = (token: Token, message: string) => {
-  tokenError(token, message)
+  report(token.line, `at pos.${token.position} - '${token.lexeme}'`, message)
 }

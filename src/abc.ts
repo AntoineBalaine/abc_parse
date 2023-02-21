@@ -45,7 +45,7 @@ function runPrompt() {
 function run(source: string) {
   const scanner = new Scanner(source)
   const tokens: Array<Token> = scanner.scanTokens()
-  const parser = new Parser(tokens)
+  const parser = new Parser(tokens, source)
   const expression = parser.parse()
 
   if (hadError) {

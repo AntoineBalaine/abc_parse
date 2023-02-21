@@ -8,7 +8,8 @@ const testBuilder = (
   tokenName: string,
   lexeme: string,
   tokenType: TokenType,
-  result_literal: string | number | null = null
+  result_literal: string | number | null = null,
+  lineNumber: number = 1
 ) => {
   it(`should handle case "${lexeme}" ${tokenName}`, () => {
     let scanner = new Scanner(lexeme)
@@ -17,7 +18,7 @@ const testBuilder = (
     assert.equal(tokens[0].type, tokenType)
     assert.equal(tokens[0].lexeme, lexeme)
     assert.equal(tokens[0].literal, result_literal)
-    assert.equal(tokens[0].line, 1)
+    assert.equal(tokens[0].line, lineNumber)
   })
 }
 
@@ -36,7 +37,7 @@ describe("Scanner", () => {
     testBuilder("COMMA", ",", TokenType.COMMA)
     testBuilder("COMMENT", "%this is a comment", TokenType.COMMENT)
     testBuilder("DOT", ".", TokenType.DOT)
-    testBuilder("EOL", "\n", TokenType.EOL)
+    testBuilder("EOL", "\n", TokenType.EOL, null, 2)
     testBuilder("FLAT", "_", TokenType.FLAT)
     testBuilder("FLAT_DBL", "__", TokenType.FLAT_DBL)
     testBuilder("GREATER", ">>>>", TokenType.GREATER)
