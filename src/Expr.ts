@@ -2,6 +2,7 @@ import Token from "./token"
 import { TokenType } from "./types"
 
 export interface Visitor<R> {
+  visitDecorationExpr(expr: Decoration): R
   visitPitchExpr(expr: Pitch): R
   visitFileHeaderExpr(expr: File_header): R
   visitInfoLineExpr(expr: Info_line): R
@@ -246,9 +247,9 @@ export class Inline_field extends Expr {
 }
 
 export class Chord extends Expr {
-  contents: Array<Note | Token>
+  contents: Array<Note | Token | Annotation>
   rhythm?: Rhythm
-  constructor(contents: Array<Note | Token>, rhythm?: Rhythm) {
+  constructor(contents: Array<Note | Token | Annotation>, rhythm?: Rhythm) {
     super()
     this.contents = contents
     this.rhythm = rhythm
@@ -306,6 +307,7 @@ export type music_code =
   | Token
   | BarLine
   | Annotation
+  | Decoration
   | Note
   | Grace_group
   | Nth_repeat
@@ -334,5 +336,15 @@ export class Slur_group extends Expr {
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitSlurGroupExpr(this)
+  }
+}
+export class Decoration extends Expr {
+  decoration: Token
+  constructor(decoration: Token) {
+    super()
+    this.decoration = decoration
+  }
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitDecorationExpr(this)
   }
 }

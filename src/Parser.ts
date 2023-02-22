@@ -24,6 +24,7 @@ import {
   tune_body_code,
   File_structure,
   music_code,
+  Decoration,
 } from "./Expr"
 import Token from "./token"
 import { TokenType } from "./types"
@@ -166,6 +167,7 @@ export class Parser {
     const contents: Array<
       | Token
       | BarLine
+      | Decoration
       | Annotation
       | Note
       | Grace_group
@@ -204,7 +206,8 @@ export class Parser {
         // parse the note following the dot
         // and add the dot to the note
         if (this.isDecoration()) {
-          contents.push(curTokn)
+          contents.push(new Decoration(curTokn))
+          this.advance()
         } else {
           throw this.error(
             this.peek(),
@@ -264,7 +267,8 @@ export class Parser {
         break
       case TokenType.LETTER:
         if (this.isDecoration()) {
-          contents.push(curTokn)
+          contents.push(new Decoration(curTokn))
+          this.advance()
         } else if (this.isMultiMesureRest()) {
           contents.push(this.multiMeasureRest())
         } else if (this.isRest()) {
@@ -313,6 +317,7 @@ export class Parser {
           pkd.line,
           pkd.position + 1
         )
+        this.advance()
         return [new BarLine(barToken), new Nth_repeat(numberToken)]
         // create a COLON_BAR token
         // and a number token
@@ -331,6 +336,7 @@ export class Parser {
           pkd.line,
           pkd.position + 2
         )
+        this.advance()
         return [new BarLine(barToken), new Nth_repeat(numberToken)]
       }
     } else {
@@ -375,7 +381,8 @@ export class Parser {
       // parse string
       // or parse a note
       if (this.peek().type === TokenType.STRING) {
-        chordContents.push(this.peek())
+        chordContents.push(this.annotation())
+        //chordContents.push(this.peek())
         this.advance()
       } else {
         chordContents.push(this.parse_note())
