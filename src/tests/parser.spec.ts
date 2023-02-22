@@ -84,7 +84,7 @@ describe("Parser", () => {
         )
         expect(
           result?.tune[0].tune_header.info_lines[1].value[0].lexeme
-        ).to.equal("Some info here")
+        ).to.equal("Some info here\n+:More info")
       })
     })
   })

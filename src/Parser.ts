@@ -98,27 +98,16 @@ export class Parser {
 
   private tune_header() {
     const info_lines = []
-    let currentTokens: Array<Token> = []
     while (!this.isAtEnd()) {
-      if (
+      if (this.peek().type === TokenType.LETTER_COLON) {
+        info_lines.push(this.info_line())
+      } else if (
         this.peek().type === TokenType.EOL &&
-        this.peekNext().type !== TokenType.LETTER_COLON
+        this.peekNext().type === TokenType.LETTER_COLON
       ) {
-        if (currentTokens.length > 0) {
-          const line = new Info_line(currentTokens)
-          info_lines.push(line)
-          currentTokens = []
-        }
-        break
-      } else {
-        if (this.peek().type === TokenType.EOL) {
-          const line = new Info_line(currentTokens)
-          info_lines.push(line)
-          currentTokens = []
-        } else {
-          currentTokens.push(this.peek())
-        }
         this.advance()
+      } else {
+        break
       }
     }
     this.advance()
