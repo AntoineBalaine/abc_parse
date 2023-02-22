@@ -190,10 +190,12 @@ export class Rest extends Expr {
 export class Note extends Expr {
   pitch: Pitch | Rest
   rhythm?: Rhythm
-  constructor(pitch: Pitch | Rest, rhythm?: Rhythm) {
+  tie?: boolean
+  constructor(pitch: Pitch | Rest, rhythm?: Rhythm, tie?: boolean) {
     super()
     this.pitch = pitch
     this.rhythm = rhythm
+    this.tie = tie || false
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitNoteExpr(this)

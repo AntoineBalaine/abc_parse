@@ -455,6 +455,7 @@ export class Parser {
     type noteType = {
       pitchOrRest: Pitch | Rest
       rhythm?: Rhythm
+      tie?: boolean
     }
     let note = <noteType>{}
     const pkd = this.peek()
@@ -477,7 +478,11 @@ export class Parser {
     if (!this.isAtEnd() && this.isRhythm()) {
       note.rhythm = this.rhythm()
     }
-    return new Note(note.pitchOrRest, note.rhythm)
+    if (!this.isAtEnd() && this.peek().type === TokenType.MINUS) {
+      note.tie = true
+      this.advance()
+    }
+    return new Note(note.pitchOrRest, note.rhythm, note.tie)
   }
 
   private rest() {

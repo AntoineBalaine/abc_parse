@@ -104,6 +104,22 @@ describe("Parser", () => {
             }
           }
         })
+        it("should parse tied note", () => {
+          const result = new Parser(
+            new Scanner("X:1\nC-C").scanTokens()
+          ).parse()
+          const musicCode = result?.tune[0].tune_body?.sequence[0]
+          if (musicCode) {
+            expect(musicCode).to.be.an.instanceof(Note)
+            if (isNote(musicCode)) {
+              expect(musicCode.pitch).to.be.an.instanceof(Pitch)
+              if (isPitch(musicCode.pitch)) {
+                expect(musicCode.pitch.noteLetter.lexeme).to.equal("C")
+                expect(musicCode.tie).to.be.true
+              }
+            }
+          }
+        })
         it("should parse octave", () => {
           const result = new Parser(new Scanner("X:1\nC'").scanTokens()).parse()
           const musicCode = result?.tune[0].tune_body?.sequence[0]
