@@ -1,4 +1,5 @@
 import Token from "./token"
+import { TokenType } from "./types"
 
 export interface Visitor<R> {
   visitPitchExpr(expr: Pitch): R
@@ -83,7 +84,28 @@ export class Info_line extends Expr {
     super()
     this.key = tokens[0]
     tokens.shift()
-    this.value = tokens
+    // merge the tokens into a string token, and push them into the value
+    let result = ""
+    let index = -1
+    while (index < tokens.length - 1) {
+      index += 1
+      if (tokens[index].type === TokenType.COMMENT) break
+      result += tokens[index].lexeme
+    }
+    let value = Array<Token>()
+    value.push(
+      new Token(
+        TokenType.STRING,
+        result,
+        null,
+        tokens[0].line,
+        tokens[0].position
+      )
+    )
+    if (tokens[index].type === TokenType.COMMENT) {
+      value.push(tokens[index])
+    }
+    this.value = value
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitInfoLineExpr(this)
