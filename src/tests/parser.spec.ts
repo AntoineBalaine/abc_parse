@@ -443,6 +443,16 @@ describe("Parser", () => {
           }
         }
       })
+      it("should parse y spacer", () => {
+        const result = new Parser(new Scanner("X:1\ny2").scanTokens()).parse()
+        const musicCode = result?.tune[0].tune_body?.sequence[0]
+        if (musicCode) {
+          expect(musicCode).to.be.an.instanceof(Token)
+          if (isToken(musicCode)) {
+            expect(musicCode.lexeme).to.equal("y")
+          }
+        }
+      })
     })
     describe("comments", () => {
       it("should parse comment", () => {

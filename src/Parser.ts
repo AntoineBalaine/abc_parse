@@ -1,3 +1,4 @@
+import { pbkdf2 } from "crypto"
 import { parserError } from "./error"
 import {
   Annotation,
@@ -266,7 +267,18 @@ export class Parser {
         contents.push(this.symbol())
         break
       case TokenType.LETTER:
-        if (this.isDecoration()) {
+        if (curTokn.lexeme === "y") {
+          this.advance()
+          contents.push(
+            new Token(
+              TokenType.YSPACER,
+              "y",
+              null,
+              this.peek().line,
+              this.peek().position
+            )
+          )
+        } else if (this.isDecoration()) {
           contents.push(new Decoration(curTokn))
           this.advance()
         } else if (this.isMultiMesureRest()) {

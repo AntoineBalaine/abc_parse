@@ -49,4 +49,5 @@ export enum TokenType {
    * # * ; ? @ are reserved symbols, treated as ws
    */
   WHITESPACE,
+  YSPACER,
 }
