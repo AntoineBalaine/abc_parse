@@ -26,6 +26,7 @@ import {
   File_structure,
   music_code,
   Decoration,
+  YSPACER,
 } from "./Expr"
 import Token from "./token"
 import { TokenType } from "./types"
@@ -167,6 +168,7 @@ export class Parser {
   private music_content() {
     const contents: Array<
       | Token
+      | YSPACER
       | BarLine
       | Decoration
       | Annotation
@@ -268,16 +270,15 @@ export class Parser {
         break
       case TokenType.LETTER:
         if (curTokn.lexeme === "y") {
-          this.advance()
           contents.push(
-            new Token(
-              TokenType.YSPACER,
-              "y",
-              null,
-              this.peek().line,
-              this.peek().position
+            new YSPACER(
+              curTokn,
+              this.peekNext().type === TokenType.NUMBER
+                ? this.peekNext()
+                : undefined
             )
           )
+          this.advance()
         } else if (this.isDecoration()) {
           contents.push(new Decoration(curTokn))
           this.advance()
@@ -527,51 +528,57 @@ export class Parser {
   }
 
   private rhythm() {
+    let numerator: Token | null = null
+    let separator: Token | undefined = undefined
+    let denominator: Token | null | undefined = undefined
+    let broken: Token | null = null
+
     // slash optionnally followed by a number
     if (this.peek().type === TokenType.SLASH) {
       if (this.peekNext().type === TokenType.NUMBER) {
-        const slash = this.peek()
-        const number = this.peekNext()
+        separator = this.peek()
+        denominator = this.peekNext()
         this.advance()
         this.advance()
-        return new Rhythm(null, slash, number)
+        //return new Rhythm(null, slash, number)
       } else {
+        separator = this.peek()
         this.advance()
-        return new Rhythm(null, this.previous())
+        //return new Rhythm(null, this.previous())
       }
       // number optionnally followed by a ( slash|greater|less ) and a number
     } else if (this.peek().type === TokenType.NUMBER) {
-      const firstNum = this.peek()
+      numerator = this.peek()
       this.advance()
-      if (
-        this.peek().type === TokenType.SLASH ||
-        this.peek().type === TokenType.GREATER ||
-        this.peek().type === TokenType.LESS
-      ) {
+      if (this.peek().type === TokenType.SLASH) {
         if (this.peekNext().type === TokenType.NUMBER) {
-          const rhythm = new Rhythm(firstNum, this.peek(), this.peekNext())
+          separator = this.peek()
+          denominator = this.peekNext()
+          //const rhythm = new Rhythm(firstNum, this.peek(), this.peekNext())
           this.advance()
           this.advance()
-          return rhythm
+          //return rhythm
         } else {
-          const rhythm = new Rhythm(firstNum, this.peek())
+          separator = this.peek()
+          //const rhythm = new Rhythm(firstNum, this.peek())
           this.advance()
-          return rhythm
+          //return rhythm
         }
-      } else {
+      } /* else {
         //this.advance()
         return new Rhythm(firstNum)
-      }
+      } */
       // broken rhythm
-    } else if (
+    }
+    if (
       this.peek().type === TokenType.GREATER ||
       this.peek().type === TokenType.LESS
     ) {
+      broken = this.peek()
       this.advance()
-      return new Rhythm(null, this.previous())
-    } else {
-      throw this.error(this.peek(), "Unexpected token in rhythm")
+      //return new Rhythm(null, this.previous())
     }
+    return new Rhythm(numerator, separator, denominator, broken)
   }
 
   private comment_line() {

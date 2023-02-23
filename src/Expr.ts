@@ -1,7 +1,9 @@
+import { runInThisContext } from "vm"
 import Token from "./token"
 import { TokenType } from "./types"
 
 export interface Visitor<R> {
+  visitYSpacerExpr(expr: YSPACER): R
   visitDecorationExpr(expr: Decoration): R
   visitPitchExpr(expr: Pitch): R
   visitFileHeaderExpr(expr: File_header): R
@@ -161,15 +163,18 @@ export class Rhythm extends Expr {
   numerator?: Token | null
   separator?: Token
   denominator?: Token | null
+  broken?: Token | null
   constructor(
     numerator: Token | null,
     separator?: Token,
-    denominator?: Token | null
+    denominator?: Token | null,
+    broken?: Token | null
   ) {
     super()
     this.numerator = numerator
     this.separator = separator
     this.denominator = denominator
+    this.broken = broken
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitRhythmExpr(this)
@@ -307,6 +312,7 @@ export class BarLine extends Expr {
 
 export type music_code =
   | Token
+  | YSPACER
   | BarLine
   | Annotation
   | Decoration
@@ -348,5 +354,19 @@ export class Decoration extends Expr {
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitDecorationExpr(this)
+  }
+}
+export class YSPACER extends Expr {
+  number?: Token | null
+  ySpacer: Token
+  constructor(ySpacer: Token, number?: Token) {
+    super()
+    this.ySpacer = ySpacer
+    if (number) {
+      this.number = number
+    }
+  }
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitYSpacerExpr(this)
   }
 }

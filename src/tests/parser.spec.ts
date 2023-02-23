@@ -21,6 +21,7 @@ import {
   Rhythm,
   Rest,
   Decoration,
+  YSPACER,
 } from "../Expr"
 import chai from "chai"
 import assert from "assert"
@@ -202,8 +203,8 @@ describe("Parser", () => {
               if (isNote(musicCode) && isPitch(musicCode.pitch)) {
                 expect(musicCode.rhythm).to.exist
                 if (isRhythm(musicCode.rhythm)) {
-                  expect(musicCode.rhythm.separator).to.exist
-                  expect(musicCode.rhythm.separator?.lexeme).to.equal(">>")
+                  expect(musicCode.rhythm.broken).to.exist
+                  expect(musicCode.rhythm.broken?.lexeme).to.equal(">>")
                 }
               }
             }
@@ -218,8 +219,8 @@ describe("Parser", () => {
               if (isNote(musicCode) && isPitch(musicCode.pitch)) {
                 expect(musicCode.rhythm).to.exist
                 if (isRhythm(musicCode.rhythm)) {
-                  expect(musicCode.rhythm.separator).to.exist
-                  expect(musicCode.rhythm.separator?.lexeme).to.equal(">")
+                  expect(musicCode.rhythm.broken).to.exist
+                  expect(musicCode.rhythm.broken?.lexeme).to.equal(">")
                   expect(musicCode.rhythm.numerator).to.exist
                   expect(musicCode.rhythm.numerator?.lexeme).to.equal("2")
                 }
@@ -447,9 +448,10 @@ describe("Parser", () => {
         const result = new Parser(new Scanner("X:1\ny2").scanTokens()).parse()
         const musicCode = result?.tune[0].tune_body?.sequence[0]
         if (musicCode) {
-          expect(musicCode).to.be.an.instanceof(Token)
-          if (isToken(musicCode)) {
-            expect(musicCode.lexeme).to.equal("y")
+          expect(musicCode).to.be.an.instanceof(YSPACER)
+          if (isYSPACER(musicCode)) {
+            expect(musicCode.ySpacer.lexeme).to.equal("y")
+            expect(musicCode.number?.lexeme).to.equal("2")
           }
         }
       })
@@ -530,4 +532,7 @@ const isToken = (expr: Expr | undefined | Token): expr is Token => {
 }
 const isInfo_line = (expr: Expr | undefined | Token): expr is Info_line => {
   return expr instanceof Info_line
+}
+function isYSPACER(expr: Expr | Token): expr is YSPACER {
+  return expr instanceof YSPACER
 }
