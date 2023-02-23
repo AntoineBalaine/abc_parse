@@ -1,4 +1,3 @@
-import { pbkdf2 } from "crypto"
 import { parserError } from "./error"
 import {
   Annotation,
@@ -185,6 +184,8 @@ export class Parser {
 
     switch (curTokn.type) {
       case TokenType.EOL:
+      case TokenType.DOLLAR:
+      case TokenType.RESERVED_CHAR:
       case TokenType.WHITESPACE:
       case TokenType.ANTISLASH_EOL:
         contents.push(curTokn)

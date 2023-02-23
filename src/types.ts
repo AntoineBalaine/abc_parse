@@ -14,6 +14,7 @@ export enum TokenType {
   COLON_DBL, // ::
   COMMA, //,,,,,,
   COMMENT,
+  DOLLAR, //$
   DOT,
   EOF,
   EOL,
@@ -35,6 +36,7 @@ export enum TokenType {
   NUMBER,
   PLUS, //+
   PLUS_COLON, //+: - extending info line
+  RESERVED_CHAR,
   RIGHT_BRACE, // }
   RIGHT_BRKT,
   RIGHT_PAREN, // )

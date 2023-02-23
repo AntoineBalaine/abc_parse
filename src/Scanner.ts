@@ -221,6 +221,9 @@ export default class Scanner {
       case '"':
         this.string()
         break
+      case "$":
+        this.addToken(TokenType.DOLLAR)
+        break
       default:
         if (this.isDigit(c)) {
           this.number()
@@ -231,9 +234,11 @@ export default class Scanner {
           } else if (/[a-gA-G]/.test(c)) {
             this.addToken(TokenType.NOTE_LETTER)
           } else this.addToken(TokenType.LETTER)
+        } else if (this.isReservedChar(c)) {
+          this.addToken(TokenType.RESERVED_CHAR)
         } else {
           const curLine = this.source.split("\n")[this.line]
-          error(this.line, this.errorMessage())
+          error(this.line, this.errorMessage(c))
         }
         break
     }
@@ -243,7 +248,7 @@ export default class Scanner {
     // find the line and the current character
     const line = this.source.split("\n")[this.line]
     const char = this.source[this.current]
-    let message = `Scanner Error: unexpected character:\n${line}\n`
+    let message = `Scanner Error: unexpected character: ${scannerMessage}\n${line}\n`
     //find the line break preceding the current character
     const lineBreak = this.source.lastIndexOf("\n", this.current)
     //find the position of the current character in the line
@@ -300,8 +305,14 @@ export default class Scanner {
     return this.source.charAt(this.current + 1)
   }
 
+  private isReservedChar(c: string) {
+    //# * ; ? @
+    return /[#\*;\?@]/.test(c)
+  }
   private isAlpha(c: string) {
-    return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c == "_"
+    return (
+      (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c == "_" || c == "&"
+    )
   }
 
   private isAlphaNumeric(c: string) {

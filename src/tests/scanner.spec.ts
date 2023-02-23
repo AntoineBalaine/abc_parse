@@ -140,4 +140,16 @@ describe("Scanner", () => {
       assert.equal(tokens[4].line, 1)
     })
   })
+  describe("special cases", () => {
+    it("should handle any ASCII charaters", () => {
+      let scanner = new Scanner("! ! #$&'()*+,-./0123456789:;<=>?@")
+      const tokens = scanner.scanTokens()
+      assert.equal(tokens.length, 23)
+    })
+    it("should handle meter", () => {
+      let scanner = new Scanner("S:Copyright 1935, Chappell & Co, Inc\nM:4/4")
+      const tokens = scanner.scanTokens()
+      assert.equal(tokens.length, 38)
+    })
+  })
 })
