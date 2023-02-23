@@ -280,6 +280,9 @@ export class Parser {
             )
           )
           this.advance()
+          if (this.peek().type === TokenType.NUMBER) {
+            this.advance()
+          }
         } else if (this.isDecoration()) {
           contents.push(new Decoration(curTokn))
           this.advance()
