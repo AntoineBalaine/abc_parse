@@ -70,10 +70,12 @@ export class Parser {
     let header_text = ""
     while (!this.isAtEnd()) {
       if (
-        (this.peek().type === TokenType.EOL &&
-          this.peekNext().type === TokenType.EOL) ||
-        this.peek().lexeme === "X:"
+        this.peek().type === TokenType.EOL &&
+        this.peekNext().type === TokenType.EOL
       ) {
+        this.consume(TokenType.EOL, "Expected a line break")
+        this.consume(TokenType.EOL, "Expected a line break")
+      } else if (this.peek().lexeme === "X:") {
         break
       } else {
         header_text += this.peek().lexeme
