@@ -9,7 +9,7 @@ const testBuilder = (
   lexeme: string,
   tokenType: TokenType,
   result_literal: string | number | null = null,
-  lineNumber: number = 1
+  lineNumber: number = 0
 ) => {
   it(`should handle case "${lexeme}" ${tokenName}`, () => {
     let scanner = new Scanner(lexeme);
@@ -37,7 +37,7 @@ describe("Scanner", () => {
     testBuilder("COMMA", ",", TokenType.COMMA);
     testBuilder("COMMENT", "%this is a comment", TokenType.COMMENT);
     testBuilder("DOT", ".", TokenType.DOT);
-    testBuilder("EOL", "\n", TokenType.EOL, null, 2);
+    testBuilder("EOL", "\n", TokenType.EOL, null, 0);
     testBuilder("FLAT", "_", TokenType.FLAT);
     testBuilder("FLAT_DBL", "__", TokenType.FLAT_DBL);
     testBuilder("GREATER", ">>>>", TokenType.GREATER);
@@ -87,11 +87,11 @@ describe("Scanner", () => {
       assert.equal(tokens[0].type, TokenType.LETTER_COLON);
       assert.equal(tokens[0].lexeme, "X:");
       assert.equal(tokens[0].literal, null);
-      assert.equal(tokens[0].line, 1);
+      assert.equal(tokens[0].line, 0);
       assert.equal(tokens[1].type, TokenType.NUMBER);
       assert.equal(tokens[1].lexeme, "1");
       assert.equal(tokens[1].literal, 1);
-      assert.equal(tokens[1].line, 1);
+      assert.equal(tokens[1].line, 0);
     });
     it("should handle multiple tokens", () => {
       let scanner = new Scanner("A B");
@@ -100,19 +100,19 @@ describe("Scanner", () => {
       assert.equal(tokens[0].type, TokenType.NOTE_LETTER);
       assert.equal(tokens[0].lexeme, "A");
       assert.equal(tokens[0].literal, null);
-      assert.equal(tokens[0].line, 1);
+      assert.equal(tokens[0].line, 0);
       assert.equal(tokens[1].type, TokenType.WHITESPACE);
       assert.equal(tokens[1].lexeme, " ");
       assert.equal(tokens[1].literal, null);
-      assert.equal(tokens[1].line, 1);
+      assert.equal(tokens[1].line, 0);
       assert.equal(tokens[2].type, TokenType.NOTE_LETTER);
       assert.equal(tokens[2].lexeme, "B");
       assert.equal(tokens[2].literal, null);
-      assert.equal(tokens[2].line, 1);
+      assert.equal(tokens[2].line, 0);
       assert.equal(tokens[3].type, TokenType.EOF);
       assert.equal(tokens[3].lexeme, "\n");
       assert.equal(tokens[3].literal, null);
-      assert.equal(tokens[3].line, 1);
+      assert.equal(tokens[3].line, 0);
     });
     it("should handle multiple tokens with comments", () => {
       let scanner = new Scanner("A B %comment");
@@ -121,23 +121,23 @@ describe("Scanner", () => {
       assert.equal(tokens[0].type, TokenType.NOTE_LETTER);
       assert.equal(tokens[0].lexeme, "A");
       assert.equal(tokens[0].literal, null);
-      assert.equal(tokens[0].line, 1);
+      assert.equal(tokens[0].line, 0);
       assert.equal(tokens[1].type, TokenType.WHITESPACE);
       assert.equal(tokens[1].lexeme, " ");
       assert.equal(tokens[1].literal, null);
-      assert.equal(tokens[1].line, 1);
+      assert.equal(tokens[1].line, 0);
       assert.equal(tokens[2].type, TokenType.NOTE_LETTER);
       assert.equal(tokens[2].lexeme, "B");
       assert.equal(tokens[2].literal, null);
-      assert.equal(tokens[2].line, 1);
+      assert.equal(tokens[2].line, 0);
       assert.equal(tokens[3].type, TokenType.WHITESPACE);
       assert.equal(tokens[3].lexeme, " ");
       assert.equal(tokens[3].literal, null);
-      assert.equal(tokens[3].line, 1);
+      assert.equal(tokens[3].line, 0);
       assert.equal(tokens[4].type, TokenType.COMMENT);
       assert.equal(tokens[4].lexeme, "%comment");
       assert.equal(tokens[4].literal, null);
-      assert.equal(tokens[4].line, 1);
+      assert.equal(tokens[4].line, 0);
     });
   });
   describe("special cases", () => {
