@@ -1,4 +1,3 @@
-import { runInThisContext } from "vm"
 import Token from "./token"
 import { TokenType } from "./types"
 
@@ -278,7 +277,7 @@ export class Nth_repeat extends Expr {
 }
 
 export class Tune_Body extends Expr {
-  sequence: Array<Expr | Token>
+  sequence: Array<tune_body_code | Token>
   constructor(sequence: Array<tune_body_code>) {
     super()
     this.sequence = sequence
