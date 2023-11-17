@@ -6,13 +6,11 @@
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.11.18",
     "chai": "^4.3.7",
-    "eslint": "^8.31.0",
-    "husky": "^8.0.3",
+    "eslint": "^8.54.0",
     "jest": "^29.3.1",
     "lint-staged": "^13.1.0",
     "mocha": "^10.2.0",
     "nyc": "^15.1.0",
-    "prettier": "^2.8.2",
     "ts-jest": "^29.0.5",
     "ts-mocha": "^10.0.0",
     "ts-node": "^10.9.1",
@@ -20,13 +18,10 @@
   },
   "scripts": {
     "start": "tsc && node dist/abc.js",
-    "prepare": "husky install",
     "test": "mocha -r ts-node/register src/**/*.spec.ts",
     "test:coverage": "nyc pnpm run test",
-    "file": "ts-node src/abc.ts /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/all/lazy_river.abc"
-  },
-  "lint-staged": {
-    "**/*": "prettier --write --ignore-unknown"
+    "file": "ts-node src/abc.ts /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/all/lazy_river.abc",
+    "lint": "eslint src --ext ts"
   },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",

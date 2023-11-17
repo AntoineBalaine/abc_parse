@@ -1,100 +1,104 @@
-import Token from "./token"
-import { TokenType } from "./types"
+import Token from "./token";
+import { TokenType } from "./types";
 
 export interface Visitor<R> {
-  visitYSpacerExpr(expr: YSPACER): R
-  visitDecorationExpr(expr: Decoration): R
-  visitPitchExpr(expr: Pitch): R
-  visitFileHeaderExpr(expr: File_header): R
-  visitInfoLineExpr(expr: Info_line): R
-  visitTuneHeaderExpr(expr: Tune_header): R
-  visitCommentExpr(expr: Comment): R
-  visitTuneBodyExpr(expr: Tune_Body): R
-  visitTuneExpr(expr: Tune): R
-  visitFileStructureExpr(expr: File_structure): R
-  visitRhythmExpr(expr: Rhythm): R
-  visitLyricSectionExpr(expr: Lyric_section): R
-  visitRestExpr(expr: Rest): R
-  visitNoteExpr(expr: Note): R
-  visitMultiMeasureRestExpr(expr: MultiMeasureRest): R
-  visitSymbolExpr(expr: Symbol): R
-  visitGraceGroupExpr(expr: Grace_group): R
-  visitInlineFieldExpr(expr: Inline_field): R
-  visitChordExpr(expr: Chord): R
-  visitNthRepeatExpr(expr: Nth_repeat): R
-  visitAnnotationExpr(expr: Annotation): R
-  visitBarLineExpr(expr: BarLine): R
-  visitMusicCodeExpr(expr: Music_code): R
-  visitSlurGroupExpr(expr: Slur_group): R
+  visitAnnotationExpr(expr: Annotation): R;
+  visitBarLineExpr(expr: BarLine): R;
+  visitChordExpr(expr: Chord): R;
+  visitCommentExpr(expr: Comment): R;
+  visitDecorationExpr(expr: Decoration): R;
+  visitFileHeaderExpr(expr: File_header): R;
+  visitFileStructureExpr(expr: File_structure): R;
+  visitGraceGroupExpr(expr: Grace_group): R;
+  visitInfoLineExpr(expr: Info_line): R;
+  visitInlineFieldExpr(expr: Inline_field): R;
+  visitLyricSectionExpr(expr: Lyric_section): R;
+  visitMultiMeasureRestExpr(expr: MultiMeasureRest): R;
+  visitMusicCodeExpr(expr: Music_code): R;
+  visitNoteExpr(expr: Note): R;
+  visitNthRepeatExpr(expr: Nth_repeat): R;
+  visitPitchExpr(expr: Pitch): R;
+  visitRestExpr(expr: Rest): R;
+  visitRhythmExpr(expr: Rhythm): R;
+  visitSlurGroupExpr(expr: Slur_group): R;
+  visitSymbolExpr(expr: Symbol): R;
+  visitTuneBodyExpr(expr: Tune_Body): R;
+  visitTuneExpr(expr: Tune): R;
+  visitTuneHeaderExpr(expr: Tune_header): R;
+  visitYSpacerExpr(expr: YSPACER): R;
 }
 
 export abstract class Expr {
-  abstract accept<R>(visitor: Visitor<R>): R
+  abstract accept<R>(visitor: Visitor<R>): R;
 }
 
 export class File_structure extends Expr {
-  file_header: Expr | null
-  tune: Array<Tune>
-  constructor(file_header: Expr | null, tune: Array<Tune>) {
-    super()
-    this.file_header = file_header
-    this.tune = tune
+  file_header: File_header | null;
+  tune: Array<Tune>;
+  constructor(file_header: File_header | null, tune: Array<Tune>) {
+    super();
+    this.file_header = file_header;
+    this.tune = tune;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitFileStructureExpr(this)
+    return visitor.visitFileStructureExpr(this);
   }
 }
 
 export class Pitch extends Expr {
-  alteration?: Token
-  noteLetter: Token
-  octave?: Token
+  alteration?: Token;
+  noteLetter: Token;
+  octave?: Token;
   constructor({
     alteration,
     noteLetter,
     octave,
   }: {
-    alteration?: Token
-    noteLetter: Token
-    octave?: Token
+    alteration?: Token;
+    noteLetter: Token;
+    octave?: Token;
   }) {
-    super()
-    this.alteration = alteration
-    this.noteLetter = noteLetter
-    this.octave = octave
+    super();
+    this.alteration = alteration;
+    this.noteLetter = noteLetter;
+    this.octave = octave;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitPitchExpr(this)
+    return visitor.visitPitchExpr(this);
   }
 }
 
 export class File_header extends Expr {
-  text: string
-  constructor(text: string) {
-    super()
-    this.text = text
+  text: string;
+  tokens: Array<Token>;
+  constructor(text: string, tokens: Array<Token>) {
+    super();
+    this.text = text;
+    this.tokens = tokens;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitFileHeaderExpr(this)
+    return visitor.visitFileHeaderExpr(this);
   }
 }
 
 export class Info_line extends Expr {
-  key: Token
-  value: Array<Token>
+  key: Token;
+  value: Array<Token>;
   constructor(tokens: Array<Token>) {
-    super()
-    this.key = tokens[0]
-    tokens.shift()
+    super();
+    this.key = tokens[0];
+    tokens.shift();
     // merge the tokens into a string token, and push them into the value
-    let result = ""
-    let index = -1
+    let result = "";
+    let index = -1;
     while (index < tokens.length - 1) {
-      index += 1
-      if (tokens[index].type === TokenType.COMMENT) break
-      result += tokens[index].lexeme
+      index += 1;
+      if (tokens[index].type === TokenType.COMMENT) {
+        break;
+      }
+      result += tokens[index].lexeme;
     }
-    let value = Array<Token>()
+    let value = Array<Token>();
     value.push(
       new Token(
         TokenType.STRING,
@@ -103,209 +107,211 @@ export class Info_line extends Expr {
         tokens[0].line,
         tokens[0].position
       )
-    )
+    );
     if (tokens[index].type === TokenType.COMMENT) {
-      value.push(tokens[index])
+      value.push(tokens[index]);
     }
-    this.value = value
+    this.value = value;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitInfoLineExpr(this)
+    return visitor.visitInfoLineExpr(this);
   }
 }
 
 export class Lyric_section extends Expr {
-  info_lines: Array<Info_line>
+  info_lines: Array<Info_line>;
   constructor(info_lines: Array<Info_line>) {
-    super()
-    this.info_lines = info_lines
+    super();
+    this.info_lines = info_lines;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitLyricSectionExpr(this)
+    return visitor.visitLyricSectionExpr(this);
   }
 }
 export class Tune_header extends Expr {
-  info_lines: Array<Info_line>
+  info_lines: Array<Info_line>;
   constructor(info_lines: Array<Info_line>) {
-    super()
-    this.info_lines = info_lines
+    super();
+    this.info_lines = info_lines;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitTuneHeaderExpr(this)
+    return visitor.visitTuneHeaderExpr(this);
   }
 }
 export class Comment extends Expr {
-  text: string
-  constructor(text: string) {
-    super()
-    this.text = text
+  text: string;
+  token: Token;
+  constructor(text: string, token: Token) {
+    super();
+    this.text = text;
+    this.token = token;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitCommentExpr(this)
+    return visitor.visitCommentExpr(this);
   }
 }
-export type tune_body_code = Comment | Info_line | music_code
+export type tune_body_code = Comment | Info_line | music_code;
 
 export class Tune extends Expr {
-  tune_header: Tune_header
-  tune_body?: Tune_Body
+  tune_header: Tune_header;
+  tune_body?: Tune_Body;
   constructor(tune_header: Tune_header, tune_body?: Tune_Body) {
-    super()
-    this.tune_header = tune_header
-    this.tune_body = tune_body
+    super();
+    this.tune_header = tune_header;
+    this.tune_body = tune_body;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitTuneExpr(this)
+    return visitor.visitTuneExpr(this);
   }
 }
 export class Rhythm extends Expr {
-  numerator?: Token | null
-  separator?: Token
-  denominator?: Token | null
-  broken?: Token | null
+  numerator?: Token | null;
+  separator?: Token;
+  denominator?: Token | null;
+  broken?: Token | null;
   constructor(
     numerator: Token | null,
     separator?: Token,
     denominator?: Token | null,
     broken?: Token | null
   ) {
-    super()
-    this.numerator = numerator
-    this.separator = separator
-    this.denominator = denominator
-    this.broken = broken
+    super();
+    this.numerator = numerator;
+    this.separator = separator;
+    this.denominator = denominator;
+    this.broken = broken;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitRhythmExpr(this)
+    return visitor.visitRhythmExpr(this);
   }
 }
 
 export class Rest extends Expr {
-  rest: Token
+  rest: Token;
   constructor(rest: Token) {
-    super()
-    this.rest = rest
+    super();
+    this.rest = rest;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitRestExpr(this)
+    return visitor.visitRestExpr(this);
   }
 }
 
 export class Note extends Expr {
-  pitch: Pitch | Rest
-  rhythm?: Rhythm
-  tie?: boolean
+  pitch: Pitch | Rest;
+  rhythm?: Rhythm;
+  tie?: boolean;
   constructor(pitch: Pitch | Rest, rhythm?: Rhythm, tie?: boolean) {
-    super()
-    this.pitch = pitch
-    this.rhythm = rhythm
-    this.tie = tie || false
+    super();
+    this.pitch = pitch;
+    this.rhythm = rhythm;
+    this.tie = tie || false;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitNoteExpr(this)
+    return visitor.visitNoteExpr(this);
   }
 }
 export class MultiMeasureRest extends Expr {
-  rest: Token
-  length?: Token
+  rest: Token;
+  length?: Token;
   constructor(rest: Token, length?: Token) {
-    super()
-    this.rest = rest
-    this.length = length
+    super();
+    this.rest = rest;
+    this.length = length;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitMultiMeasureRestExpr(this)
+    return visitor.visitMultiMeasureRestExpr(this);
   }
 }
 export class Symbol extends Expr {
-  symbol: Token
+  symbol: Token;
   constructor(symbol: Token) {
-    super()
-    this.symbol = symbol
+    super();
+    this.symbol = symbol;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitSymbolExpr(this)
+    return visitor.visitSymbolExpr(this);
   }
 }
 export class Grace_group extends Expr {
-  notes: Array<Note>
-  isAccacciatura?: boolean
+  notes: Array<Note>;
+  isAccacciatura?: boolean;
   constructor(notes: Array<Note>, isAccacciatura?: boolean) {
-    super()
-    this.notes = notes
-    this.isAccacciatura = isAccacciatura
+    super();
+    this.notes = notes;
+    this.isAccacciatura = isAccacciatura;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitGraceGroupExpr(this)
+    return visitor.visitGraceGroupExpr(this);
   }
 }
 export class Inline_field extends Expr {
-  field: Token
-  text: Array<Token>
+  field: Token;
+  text: Array<Token>;
   constructor(field: Token, text: Array<Token>) {
-    super()
-    this.field = field
-    this.text = text
+    super();
+    this.field = field;
+    this.text = text;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitInlineFieldExpr(this)
+    return visitor.visitInlineFieldExpr(this);
   }
 }
 
 export class Chord extends Expr {
-  contents: Array<Note | Token | Annotation>
-  rhythm?: Rhythm
+  contents: Array<Note | Token | Annotation>;
+  rhythm?: Rhythm;
   constructor(contents: Array<Note | Token | Annotation>, rhythm?: Rhythm) {
-    super()
-    this.contents = contents
-    this.rhythm = rhythm
+    super();
+    this.contents = contents;
+    this.rhythm = rhythm;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitChordExpr(this)
+    return visitor.visitChordExpr(this);
   }
 }
 
 export class Nth_repeat extends Expr {
-  repeat: Token
+  repeat: Token;
   constructor(repeat: Token) {
-    super()
-    this.repeat = repeat
+    super();
+    this.repeat = repeat;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitNthRepeatExpr(this)
+    return visitor.visitNthRepeatExpr(this);
   }
 }
 
 export class Tune_Body extends Expr {
-  sequence: Array<tune_body_code | Token>
+  sequence: Array<tune_body_code | Token>;
   constructor(sequence: Array<tune_body_code>) {
-    super()
-    this.sequence = sequence
+    super();
+    this.sequence = sequence;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitTuneBodyExpr(this)
+    return visitor.visitTuneBodyExpr(this);
   }
 }
 
 export class Annotation extends Expr {
-  text: Token
+  text: Token;
   constructor(text: Token) {
-    super()
-    this.text = text
+    super();
+    this.text = text;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitAnnotationExpr(this)
+    return visitor.visitAnnotationExpr(this);
   }
 }
 
 export class BarLine extends Expr {
-  barline: Token
+  barline: Token;
   constructor(barline: Token) {
-    super()
-    this.barline = barline
+    super();
+    this.barline = barline;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitBarLineExpr(this)
+    return visitor.visitBarLineExpr(this);
   }
 }
 
@@ -322,50 +328,50 @@ export type music_code =
   | Chord
   | Symbol
   | MultiMeasureRest
-  | Slur_group
+  | Slur_group;
 
 export class Music_code extends Expr {
-  contents: Array<music_code>
+  contents: Array<music_code>;
   constructor(contents: Array<music_code>) {
-    super()
-    this.contents = contents
+    super();
+    this.contents = contents;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitMusicCodeExpr(this)
+    return visitor.visitMusicCodeExpr(this);
   }
 }
 
 export class Slur_group extends Expr {
-  contents: Array<music_code>
+  contents: Array<music_code>;
   constructor(contents: Array<music_code>) {
-    super()
-    this.contents = contents
+    super();
+    this.contents = contents;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitSlurGroupExpr(this)
+    return visitor.visitSlurGroupExpr(this);
   }
 }
 export class Decoration extends Expr {
-  decoration: Token
+  decoration: Token;
   constructor(decoration: Token) {
-    super()
-    this.decoration = decoration
+    super();
+    this.decoration = decoration;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitDecorationExpr(this)
+    return visitor.visitDecorationExpr(this);
   }
 }
 export class YSPACER extends Expr {
-  number?: Token | null
-  ySpacer: Token
+  number?: Token | null;
+  ySpacer: Token;
   constructor(ySpacer: Token, number?: Token) {
-    super()
-    this.ySpacer = ySpacer
+    super();
+    this.ySpacer = ySpacer;
     if (number) {
-      this.number = number
+      this.number = number;
     }
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitYSpacerExpr(this)
+    return visitor.visitYSpacerExpr(this);
   }
 }
