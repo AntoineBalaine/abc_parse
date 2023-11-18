@@ -1,5 +1,3 @@
-import Token from "./token"
-
 export enum TokenType {
   APOSTROPHE,
   ANTISLASH_EOL,

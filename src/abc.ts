@@ -1,58 +1,59 @@
-import { readFileSync } from "fs"
-import readline from "readline"
-// import { AstPrinter } from "./AstPrinter"
-import { getError, setError } from "./error"
-import { Expr } from "./Expr"
-import { Parser } from "./Parser"
-import Scanner from "./Scanner"
-import Token from "./token"
+import { readFileSync } from "fs";
+import readline from "readline";
+import { Parser } from "./Parser";
+import Scanner from "./Scanner";
+import { TokensVisitor } from "./Visitors/SemanticTokens";
+import { getError, setError } from "./error";
 
-export let hadError = false
+export let hadError = false;
 
 const main = (args: string[]) => {
   if (args.length > 1) {
-    console.log("Usage: jlox [script]")
-    return
+    console.log("Usage: abc [script]");
+    return;
   } else if (args.length === 1) {
-    runFile(args[0])
+    runFile(args[0]);
   } else {
-    runPrompt()
+    runPrompt();
   }
-}
+};
 
 function runFile(path: string) {
   const bytes = readFileSync(path, {
     encoding: "utf8",
-  })
-  run(bytes)
-  if (getError()) return
+  });
+  run(bytes);
+  if (getError()) {
+    return;
+  }
 }
 
 function runPrompt() {
   let rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-  })
-  rl.setPrompt("> ")
-  rl.prompt()
+  });
+  rl.setPrompt("> ");
+  rl.prompt();
   rl.on("line", (line) => {
-    run(line)
-    setError(false)
-    rl.prompt()
-  })
+    run(line);
+    setError(false);
+    rl.prompt();
+  });
 }
 
 function run(source: string) {
-  const scanner = new Scanner(source)
-  const tokens: Array<Token> = scanner.scanTokens()
-  const parser = new Parser(tokens, source)
-  const expression = parser.parse()
+  const scanner = new Scanner(source);
+  const parser = new Parser(scanner.scanTokens(), source);
+  const expression = parser.parse();
 
-  if (hadError) {
-    console.log("\nhad error")
-    return
+  if (hadError || getError() || !expression) {
+    console.log("\nhad error");
+    return;
   }
-  //console.log(new AstPrinter().print(expression as Expr))
+  const semanticTokensVisitor = new TokensVisitor();
+  const semanticTokens = semanticTokensVisitor.analyze(expression).tokens;
+  console.log("SemanticTokens: \n", semanticTokens);
 }
 
-main(process.argv.slice(2))
+main(process.argv.slice(2));
