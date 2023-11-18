@@ -22,10 +22,10 @@
     "typescript": "^4.9.5"
   },
   "scripts": {
-    "start": "tsc && node out/abc.js",
+    "start": "tsc && node out/Abc.js",
     "test": "mocha -r ts-node/register src/**/*.spec.ts",
     "test:coverage": "nyc pnpm run test",
-    "file": "ts-node src/abc.ts /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/all/lazy_river.abc",
+    "file": "ts-node src/Abc.ts /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/all/lazy_river.abc",
     "lint": "eslint src --ext ts"
   },
   "nyc": {

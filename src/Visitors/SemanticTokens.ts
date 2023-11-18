@@ -27,6 +27,7 @@ import {
   YSPACER,
   music_code,
 } from "../Expr";
+import { mergeTokens } from "../helpers";
 import Token from "../token";
 
 export class TokensVisitor implements Visitor<void> {
@@ -199,18 +200,3 @@ export class TokensVisitor implements Visitor<void> {
 /**
  * TODO double check this
  */
-export const mergeTokens = (tokens: Array<Token>) => {
-  return tokens
-    .map((t) => cloneToken(t))
-    .reduce((prev, cur, index) => {
-      if (index === 0) {
-        return prev;
-      }
-      prev.lexeme = prev.lexeme + cur.lexeme;
-      return prev;
-    });
-};
-
-export const cloneToken = (token: Token) => {
-  return new Token(token.type, token.lexeme, null, token.line, token.position);
-};
