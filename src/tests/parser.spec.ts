@@ -4,9 +4,7 @@ import {
   Annotation,
   BarLine,
   Chord,
-  Comment,
   Decoration,
-  Expr,
   File_header,
   File_structure,
   Grace_group,
@@ -17,7 +15,6 @@ import {
   Nth_repeat,
   Pitch,
   Rest,
-  Rhythm,
   Slur_group,
   Symbol,
   Tune_header,
@@ -25,6 +22,7 @@ import {
 } from "../Expr";
 import { Parser } from "../Parser";
 import Scanner from "../Scanner";
+import { isAnnotation, isBarLine, isChord, isComment, isGraceGroup, isInfo_line, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isPitch, isRest, isRhythm, isSlurGroup, isSymbol, isToken, isYSPACER } from "../helpers";
 import Token from "../token";
 const expect = chai.expect;
 
@@ -480,58 +478,3 @@ describe("Parser", () => {
   });
 });
 
-const isNote = (expr: Expr | undefined | Token): expr is Note => {
-  return expr instanceof Note;
-};
-const isBarLine = (expr: Expr | undefined | Token): expr is BarLine => {
-  return expr instanceof BarLine;
-};
-const isAnnotation = (expr: Expr | undefined | Token): expr is Annotation => {
-  return expr instanceof Annotation;
-};
-const isGraceGroup = (expr: Expr | undefined | Token): expr is Grace_group => {
-  return expr instanceof Grace_group;
-};
-const isNthRepeat = (expr: Expr | undefined | Token): expr is Nth_repeat => {
-  return expr instanceof Nth_repeat;
-};
-const isInline_field = (
-  expr: Expr | undefined | Token
-): expr is Inline_field => {
-  return expr instanceof Inline_field;
-};
-const isChord = (expr: Expr | undefined | Token): expr is Chord => {
-  return expr instanceof Chord;
-};
-const isSymbol = (expr: Expr | undefined | Token): expr is Symbol => {
-  return expr instanceof Symbol;
-};
-const isMultiMeasureRest = (
-  expr: Expr | undefined | Token
-): expr is MultiMeasureRest => {
-  return expr instanceof MultiMeasureRest;
-};
-const isSlurGroup = (expr: Expr | undefined | Token): expr is Slur_group => {
-  return expr instanceof Slur_group;
-};
-const isComment = (expr: Expr | undefined | Token): expr is Comment => {
-  return expr instanceof Comment;
-};
-const isPitch = (expr: Expr | undefined | Token): expr is Pitch => {
-  return expr instanceof Pitch;
-};
-const isRhythm = (expr: Expr | undefined | Token): expr is Rhythm => {
-  return expr instanceof Rhythm;
-};
-const isRest = (expr: Expr | undefined | Token): expr is Rest => {
-  return expr instanceof Rest;
-};
-const isToken = (expr: Expr | undefined | Token): expr is Token => {
-  return expr instanceof Token;
-};
-const isInfo_line = (expr: Expr | undefined | Token): expr is Info_line => {
-  return expr instanceof Info_line;
-};
-function isYSPACER(expr: Expr | Token): expr is YSPACER {
-  return expr instanceof YSPACER;
-}

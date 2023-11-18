@@ -355,7 +355,6 @@ export class Slur_group extends Expr {
 }
 
 export type Beam_contents =
-
   | Token
   | YSPACER
   | Annotation
@@ -364,9 +363,8 @@ export type Beam_contents =
   | Grace_group
   | Chord
   | Symbol
-  | MultiMeasureRest
   | Slur_group
-  | Beam;
+  ;
 
 export class Beam extends Expr {
   contents: Array<Beam_contents>;

@@ -1,9 +1,8 @@
 import { readFileSync } from "fs";
 import readline from "readline";
-// import { AstPrinter } from "./AstPrinter"
 import { Parser } from "./Parser";
 import Scanner from "./Scanner";
-import { TokensVisitor } from "./SemanticTokens.ts/SemanticTokens";
+import { TokensVisitor } from "./Visitors/SemanticTokens";
 import { getError, setError } from "./error";
 
 export let hadError = false;

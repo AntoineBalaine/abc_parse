@@ -29,7 +29,7 @@ import {
   Tune_header,
   YSPACER
 } from "./Expr";
-import { followedByNote, followedByWS, isBeamContents } from "./helpers";
+import { isBeam, isNote } from "./helpers";
 import Token from "./token";
 import { TokenType } from "./types";
 
@@ -171,7 +171,8 @@ export class Parser {
         this.synchronize();
       }
     }
-    return new Tune_Body(elements);
+    const elements_with_beams = this.beam(elements);
+    return new Tune_Body(elements_with_beams);
   }
 
   private music_content() {
@@ -308,51 +309,34 @@ export class Parser {
       default:
         throw this.error(curTokn, "Unexpected token in music code");
     }
-    const contents_with_beams = this.beam(contents);
 
     return new Music_code(contents);
   }
-  beam(music_code: Array<music_code>) {
-    /**
-     * iterate the music code
-     * if find a note and it's not followed by a whitespace
-     * create a beam
-     * add tokens until you find a note followed by a whitespace,
-     * unless you find one of the tokens excluded from the beam
-     * (barline, inline field, nth_repeat, beam)
-     * if one of the notes is followed by a Whitespace,
-     */
-    let updatedMusicCode: Array<music_code> = [];
-    let foundBeam = false;
+  /**
+   * iterate the music code
+   * 
+   * if find beamed notes (not WS-separated), create a beam.
+   * For all the other tokens, keep them as is.
+   */
+  beam(music_code: Array<tune_body_code>) {
+    let updatedMusicCode: Array<tune_body_code> = [];
     let beam: Array<Beam_contents> = [];
 
-
-    music_code.forEach((e, index, arr) => {
-      if (e instanceof Note) {
-        if (followedByWS(arr[index + 1]) || index === arr.length - 1) {
-          if (foundBeam) {
-            foundBeam = false;
-            beam.push(e);
-            updatedMusicCode.push(new Beam(beam));
-          } else {
-            updatedMusicCode.push(e);
-          }
-        } else if (followedByNote(arr, index + 1)) {
-          foundBeam = true; // found beam true only if there is no breaking token before the next note
-          beam.push(e);
-        } else {
-          updatedMusicCode.push(e);
+    for (let i = 0; i < music_code.length; i++) {
+      if (isBeam(music_code, i)) {
+        while (isBeam(music_code, i)) {
+          beam.push(music_code[i] as Beam_contents);
+          i++;
         }
-      } else if (foundBeam) {
-        if (isBeamContents(e)) {
-          foundBeam = false;
-          updatedMusicCode.push(new Beam(beam));
-          updatedMusicCode.push(e);
+        if (isNote(music_code[i])) {
+          beam.push(music_code[i] as Note);
         }
+        updatedMusicCode.push(new Beam(beam));
+        beam = [];
       } else {
-        updatedMusicCode.push(e);
+        updatedMusicCode.push(music_code[i]);
       }
-    });
+    }
     return updatedMusicCode;
   }
 
@@ -502,6 +486,7 @@ export class Parser {
       notes.push(this.parse_note());
     }
     this.consume(TokenType.RIGHT_BRACE, "expected a right brace");
+    // TODO include beam in grace group
     return new Grace_group(notes, isAccaciatura);
   }
   private symbol() {
@@ -522,7 +507,7 @@ export class Parser {
     }
     this.consume(TokenType.RIGHT_PAREN, "expected a right parenthesis");
 
-    const slurGroup_with_beams = this.beam(slurGroup);
+    // const slurGroup_with_beams = this.beam(slurGroup);
     return new Slur_group(slurGroup);
   }
   private parse_note() {
