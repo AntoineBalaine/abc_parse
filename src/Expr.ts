@@ -26,6 +26,7 @@ export interface Visitor<R> {
   visitTuneExpr(expr: Tune): R;
   visitTuneHeaderExpr(expr: Tune_header): R;
   visitYSpacerExpr(expr: YSPACER): R;
+  visitBeamExpr(expr: Beam): R;
 }
 
 export abstract class Expr {
@@ -328,7 +329,8 @@ export type music_code =
   | Chord
   | Symbol
   | MultiMeasureRest
-  | Slur_group;
+  | Slur_group
+  | Beam;
 
 export class Music_code extends Expr {
   contents: Array<music_code>;
@@ -349,6 +351,31 @@ export class Slur_group extends Expr {
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitSlurGroupExpr(this);
+  }
+}
+
+export type Beam_contents =
+
+  | Token
+  | YSPACER
+  | Annotation
+  | Decoration
+  | Note
+  | Grace_group
+  | Chord
+  | Symbol
+  | MultiMeasureRest
+  | Slur_group
+  | Beam;
+
+export class Beam extends Expr {
+  contents: Array<Beam_contents>;
+  constructor(contents: Array<Beam_contents>) {
+    super();
+    this.contents = contents;
+  }
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitBeamExpr(this);
   }
 }
 export class Decoration extends Expr {

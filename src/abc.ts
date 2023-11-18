@@ -1,10 +1,10 @@
 import { readFileSync } from "fs";
 import readline from "readline";
 // import { AstPrinter } from "./AstPrinter"
-import { getError, setError } from "./error";
 import { Parser } from "./Parser";
 import Scanner from "./Scanner";
-import Token from "./token";
+import { TokensVisitor } from "./SemanticTokens.ts/SemanticTokens";
+import { getError, setError } from "./error";
 
 export let hadError = false;
 
@@ -45,15 +45,16 @@ function runPrompt() {
 
 function run(source: string) {
   const scanner = new Scanner(source);
-  const tokens: Array<Token> = scanner.scanTokens();
-  const parser = new Parser(tokens, source);
+  const parser = new Parser(scanner.scanTokens(), source);
   const expression = parser.parse();
 
-  if (hadError) {
+  if (hadError || getError() || !expression) {
     console.log("\nhad error");
     return;
   }
-  //console.log(new AstPrinter().print(expression as Expr))
+  const semanticTokensVisitor = new TokensVisitor();
+  const semanticTokens = semanticTokensVisitor.analyze(expression).tokens;
+  console.log("SemanticTokens: \n", semanticTokens);
 }
 
 main(process.argv.slice(2));

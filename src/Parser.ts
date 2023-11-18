@@ -2,6 +2,8 @@ import { parserError } from "./error";
 import {
   Annotation,
   BarLine,
+  Beam,
+  Beam_contents,
   Chord,
   Comment,
   Decoration,
@@ -25,8 +27,9 @@ import {
   Tune_Body,
   tune_body_code,
   Tune_header,
-  YSPACER,
+  YSPACER
 } from "./Expr";
+import { followedByNote, followedByWS, isBeamContents } from "./helpers";
 import Token from "./token";
 import { TokenType } from "./types";
 
@@ -186,6 +189,7 @@ export class Parser {
       | Symbol
       | MultiMeasureRest
       | Slur_group
+      | Beam
     > = [];
     const curTokn = this.peek();
 
@@ -223,10 +227,10 @@ export class Parser {
           throw this.error(
             this.peek(),
             "Unexpected token: " +
-              curTokn.lexeme +
-              "\nline " +
-              curTokn.line +
-              "\n decorations should be followed by a note"
+            curTokn.lexeme +
+            "\nline " +
+            curTokn.line +
+            "\n decorations should be followed by a note"
           );
         }
         break;
@@ -236,7 +240,7 @@ export class Parser {
       case TokenType.NOTE_LETTER:
       case TokenType.SHARP:
       case TokenType.SHARP_DBL:
-        // TODO in the interpreter:
+        // TODO in the interpreter:
         // parse a beam group
         // if there is only one note in the beam group
         // return a note
@@ -304,9 +308,54 @@ export class Parser {
       default:
         throw this.error(curTokn, "Unexpected token in music code");
     }
+    const contents_with_beams = this.beam(contents);
 
     return new Music_code(contents);
   }
+  beam(music_code: Array<music_code>) {
+    /**
+     * iterate the music code
+     * if find a note and it's not followed by a whitespace
+     * create a beam
+     * add tokens until you find a note followed by a whitespace,
+     * unless you find one of the tokens excluded from the beam
+     * (barline, inline field, nth_repeat, beam)
+     * if one of the notes is followed by a Whitespace,
+     */
+    let updatedMusicCode: Array<music_code> = [];
+    let foundBeam = false;
+    let beam: Array<Beam_contents> = [];
+
+
+    music_code.forEach((e, index, arr) => {
+      if (e instanceof Note) {
+        if (followedByWS(arr[index + 1]) || index === arr.length - 1) {
+          if (foundBeam) {
+            foundBeam = false;
+            beam.push(e);
+            updatedMusicCode.push(new Beam(beam));
+          } else {
+            updatedMusicCode.push(e);
+          }
+        } else if (followedByNote(arr, index + 1)) {
+          foundBeam = true; // found beam true only if there is no breaking token before the next note
+          beam.push(e);
+        } else {
+          updatedMusicCode.push(e);
+        }
+      } else if (foundBeam) {
+        if (isBeamContents(e)) {
+          foundBeam = false;
+          updatedMusicCode.push(new Beam(beam));
+          updatedMusicCode.push(e);
+        }
+      } else {
+        updatedMusicCode.push(e);
+      }
+    });
+    return updatedMusicCode;
+  }
+
   barline() {
     return new BarLine(this.peek());
   }
@@ -472,6 +521,8 @@ export class Parser {
       slurGroup = slurGroup.concat(music_content.contents);
     }
     this.consume(TokenType.RIGHT_PAREN, "expected a right parenthesis");
+
+    const slurGroup_with_beams = this.beam(slurGroup);
     return new Slur_group(slurGroup);
   }
   private parse_note() {
