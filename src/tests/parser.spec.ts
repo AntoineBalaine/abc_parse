@@ -3,6 +3,7 @@ import chai from "chai";
 import {
   Annotation,
   BarLine,
+  Beam,
   Chord,
   Decoration,
   File_header,
@@ -21,7 +22,7 @@ import {
 } from "../Expr";
 import { Parser } from "../Parser";
 import { Scanner } from "../Scanner";
-import { isAnnotation, isBarLine, isChord, isComment, isGraceGroup, isInfo_line, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isPitch, isRest, isRhythm, isSymbol, isToken, isYSPACER } from "../helpers";
+import { isAnnotation, isBarLine, isBeam, isChord, isComment, isGraceGroup, isInfo_line, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isPitch, isRest, isRhythm, isSymbol, isToken, isYSPACER } from "../helpers";
 import { Token } from "../token";
 const expect = chai.expect;
 
@@ -349,6 +350,19 @@ describe("Parser", () => {
           if (isChord(musicCode)) {
             expect(musicCode.rhythm).to.exist;
             expect(musicCode.contents[0]).to.be.an.instanceof(Annotation);
+            expect(musicCode.contents[1]).to.be.an.instanceof(Note);
+          }
+        }
+      });
+      it("should parse beam", () => {
+        const result = new Parser(
+          new Scanner('X:1\n[CA]ABC ').scanTokens()
+        ).parse();
+        const musicCode = result?.tune[0].tune_body?.sequence[0];
+        if (musicCode) {
+          expect(musicCode).to.be.an.instanceof(Beam);
+          if (isBeam(musicCode)) {
+            expect(musicCode.contents[0]).to.be.an.instanceof(Chord);;
             expect(musicCode.contents[1]).to.be.an.instanceof(Note);
           }
         }

@@ -27,7 +27,7 @@ import {
   Tune_header,
   YSPACER
 } from "./Expr";
-import { isBeam, isNote } from "./helpers";
+import { foundBeam, isChord, isNote } from "./helpers";
 import { Token } from "./token";
 import { TokenType } from "./types";
 
@@ -325,12 +325,12 @@ export class Parser {
     let beam: Array<Beam_contents> = [];
 
     for (let i = 0; i < music_code.length; i++) {
-      if (isBeam(music_code, i)) {
-        while (isBeam(music_code, i)) {
+      if (foundBeam(music_code, i)) {
+        while (foundBeam(music_code, i)) {
           beam.push(music_code[i] as Beam_contents);
           i++;
         }
-        if (isNote(music_code[i])) {
+        if (isNote(music_code[i]) || isChord(music_code[i])) {
           beam.push(music_code[i] as Note);
         }
         updatedMusicCode.push(new Beam(beam));

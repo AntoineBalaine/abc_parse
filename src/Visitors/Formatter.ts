@@ -25,7 +25,9 @@ import {
   Visitor,
   YSPACER,
 } from "../Expr";
+import { isBeam, isToken, isWS } from "../helpers";
 import { Token } from "../token";
+import { TokenType } from "../types";
 
 export class AbcFormatter implements Visitor<string> {
   format(file_structure: File_structure) {
@@ -38,13 +40,14 @@ export class AbcFormatter implements Visitor<string> {
     return expr.barline.lexeme;
   }
   visitBeamExpr(expr: Beam): string {
-    return expr.contents.map((content) => {
+    let fmt = expr.contents.map((content) => {
       if (content instanceof Token) {
         return content.lexeme;
       } else {
         return content.accept(this);
       }
     }).join("");
+    return fmt;
   }
   visitChordExpr(expr: Chord): string {
     const str = expr.contents
@@ -173,11 +176,32 @@ export class AbcFormatter implements Visitor<string> {
   }
   visitTuneBodyExpr(expr: Tune_Body): string {
     return expr.sequence
-      .map((content) => {
+      .map((content, idx, arr) => {
         if (content instanceof Token) {
-          return content.lexeme;
+          if (content.type === TokenType.WHITESPACE) {
+            return "";
+
+          } else if (!isWS(content)) {
+            if (content.type === TokenType.LEFTPAREN) {
+              return content.lexeme;
+            } else {
+              return content.lexeme + " ";
+            }
+          } else {
+            return content.lexeme;
+          }
         } else {
-          return content.accept(this);
+          const fmt = content.accept(this);
+          const nextExpr = arr[idx + 1];
+          if ((isBeam(content) && isToken(nextExpr) && nextExpr.type === TokenType.RIGHT_PAREN)
+          /**
+           * TODO add this: for now this is causing issue in parsing:
+           * Last expr before EOL doesn't get correctly parsed if it's not a WS.
+           *  || (onlyWSTillEnd(idx + 1, arr)) */) {
+            return fmt;
+          } else {
+            return fmt + " ";
+          }
         }
       })
       .join("");
