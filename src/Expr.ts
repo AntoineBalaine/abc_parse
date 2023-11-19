@@ -20,7 +20,6 @@ export interface Visitor<R> {
   visitPitchExpr(expr: Pitch): R;
   visitRestExpr(expr: Rest): R;
   visitRhythmExpr(expr: Rhythm): R;
-  visitSlurGroupExpr(expr: Slur_group): R;
   visitSymbolExpr(expr: Symbol): R;
   visitTuneBodyExpr(expr: Tune_Body): R;
   visitTuneExpr(expr: Tune): R;
@@ -329,7 +328,6 @@ export type music_code =
   | Chord
   | Symbol
   | MultiMeasureRest
-  | Slur_group
   | Beam;
 
 export class Music_code extends Expr {
@@ -343,16 +341,6 @@ export class Music_code extends Expr {
   }
 }
 
-export class Slur_group extends Expr {
-  contents: Array<music_code>;
-  constructor(contents: Array<music_code>) {
-    super();
-    this.contents = contents;
-  }
-  accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitSlurGroupExpr(this);
-  }
-}
 
 export type Beam_contents =
   | Token
@@ -362,9 +350,7 @@ export type Beam_contents =
   | Note
   | Grace_group
   | Chord
-  | Symbol
-  | Slur_group
-  ;
+  | Symbol;
 
 export class Beam extends Expr {
   contents: Array<Beam_contents>;

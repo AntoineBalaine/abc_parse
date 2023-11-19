@@ -15,7 +15,6 @@ import {
   Pitch,
   Rest,
   Rhythm,
-  Slur_group,
   Symbol,
   YSPACER,
   music_code
@@ -53,9 +52,6 @@ export const isMultiMeasureRest = (
   expr: Expr | undefined | Token
 ): expr is MultiMeasureRest => {
   return expr instanceof MultiMeasureRest;
-};
-export const isSlurGroup = (expr: Expr | undefined | Token): expr is Slur_group => {
-  return expr instanceof Slur_group;
 };
 export const isComment = (expr: Expr | undefined | Token): expr is Comment => {
   return expr instanceof Comment;
@@ -136,7 +132,6 @@ export function isBeamContents(e: unknown): e is Beam_contents {
     || e instanceof Grace_group
     || e instanceof Chord
     || e instanceof Symbol
-    || e instanceof Slur_group
   );
 }
 

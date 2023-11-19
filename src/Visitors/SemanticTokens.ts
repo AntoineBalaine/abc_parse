@@ -18,7 +18,6 @@ import {
   Pitch,
   Rest,
   Rhythm,
-  Slur_group,
   Symbol,
   Tune,
   Tune_Body,
@@ -123,15 +122,6 @@ export class TokensVisitor implements Visitor<void> {
     if (pitch.octave) {
       this.tokens.push(pitch.octave);
     }
-  }
-  visitSlurGroupExpr(expr: Slur_group) {
-    expr.contents.forEach((e) => {
-      if (e instanceof Token) {
-        this.tokens.push(e);
-      } else {
-        e.accept(this);
-      }
-    });
   }
   visitInfoLineExpr(element: Info_line) {
     const { key, value } = element;

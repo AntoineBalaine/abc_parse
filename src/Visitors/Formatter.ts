@@ -18,7 +18,6 @@ import {
   Pitch,
   Rest,
   Rhythm,
-  Slur_group,
   Symbol,
   Tune,
   Tune_Body,
@@ -168,19 +167,6 @@ export class AbcFormatter implements Visitor<string> {
       formatted += expr.broken.lexeme;
     }
     return formatted;
-  }
-  visitSlurGroupExpr(expr: Slur_group) {
-    let formatted = "";
-    formatted += expr.contents
-      .map((content) => {
-        if (content instanceof Token) {
-          return content.lexeme;
-        } else {
-          return content.accept(this);
-        }
-      })
-      .join("");
-    return `(${formatted})`;
   }
   visitSymbolExpr(expr: Symbol) {
     return `!${expr.symbol.lexeme}!`;
