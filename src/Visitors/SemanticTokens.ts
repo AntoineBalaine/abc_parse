@@ -26,7 +26,7 @@ import {
   YSPACER,
   music_code,
 } from "../Expr";
-import { mergeTokens } from "../helpers";
+import { isToken, mergeTokens } from "../helpers";
 import { Token } from "../token";
 
 export class TokensVisitor implements Visitor<void> {
@@ -61,7 +61,7 @@ export class TokensVisitor implements Visitor<void> {
   }
   visitTuneBodyExpr(tune_body: Tune_Body): void {
     tune_body?.sequence.forEach((tuneBody_element) => {
-      if (tuneBody_element instanceof Token) {
+      if (isToken(tuneBody_element)) {
         this.tokens.push(tuneBody_element);
       } else {
         tuneBody_element.accept(this);
@@ -70,7 +70,7 @@ export class TokensVisitor implements Visitor<void> {
   }
   visitBeamExpr(expr: Beam): void {
     expr.contents.forEach((content) => {
-      if (content instanceof Token) {
+      if (isToken(content)) {
         this.tokens.push(content);
       } else {
         content.accept(this);
@@ -79,7 +79,7 @@ export class TokensVisitor implements Visitor<void> {
   }
   visitMusicCodeExpr(element: Music_code) {
     element.contents.forEach((content: music_code) => {
-      if (content instanceof Token) {
+      if (isToken(content)) {
         this.tokens.push(content);
       } else {
         content.accept(this);
@@ -133,7 +133,7 @@ export class TokensVisitor implements Visitor<void> {
   }
   visitChordExpr(e: Chord) {
     e.contents.forEach((content) => {
-      if (content instanceof Token) {
+      if (isToken(content)) {
         this.tokens.push(content);
       } else {
         content.accept(this);

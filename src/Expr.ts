@@ -150,7 +150,7 @@ export class Comment extends Expr {
     return visitor.visitCommentExpr(this);
   }
 }
-export type tune_body_code = Comment | Info_line | music_code;
+export type tune_body_code = Comment | Info_line | music_code | Music_code;
 
 export class Tune extends Expr {
   tune_header: Tune_header;

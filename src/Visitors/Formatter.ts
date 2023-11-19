@@ -161,7 +161,16 @@ export class AbcFormatter implements Visitor<string> {
       formatted += expr.numerator.lexeme;
     }
     if (expr.separator) {
-      formatted += expr.separator.lexeme;
+      // in case we have expr like <pitch>///
+      if (expr.separator.lexeme.length > 1 && !expr.denominator) {
+        // count the separators.
+        const numDivisions = expr.separator.lexeme.length;
+        formatted += `/${numDivisions * 2}`;
+      } else if (expr.separator.lexeme.length > 1) {
+      } else {
+        // for now, don't handle mix of multiple slashes and a denominator
+        formatted += expr.separator.lexeme;
+      }
     }
     if (expr.denominator) {
       formatted += expr.denominator.lexeme;

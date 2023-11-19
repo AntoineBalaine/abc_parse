@@ -11,6 +11,7 @@ import {
   Info_line,
   Inline_field,
   MultiMeasureRest,
+  Music_code,
   Note,
   Nth_repeat,
   Pitch,
@@ -22,6 +23,10 @@ import {
 } from './Expr';
 import { Token } from './token';
 import { TokenType } from './types';
+
+export function isMusicCode(expr: Expr | Token): expr is Music_code {
+  return expr instanceof Music_code;
+}
 
 export const isBeam = (expr: Expr | undefined | Token): expr is Beam => {
   return expr instanceof Beam;
@@ -173,6 +178,16 @@ export function foundBeam(music_code: Array<Expr | Token>, index: number) {
    */
   if ((isNote(music_code[index]) || isChord(music_code[index])) && !isWS(music_code[index + 1])) {
     return followedByNote(music_code, index + 1);
+  } else {
+    return false;
+  }
+}
+/**
+ * TODO FIX ME
+ */
+export function isInRange(range: { start: number, end: number }, expr: Expr | Token): boolean {
+  if (isToken(expr)) {
+    return range.start >= expr.position && expr.position <= range.end;
   } else {
     return false;
   }
