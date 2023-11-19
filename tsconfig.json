@@ -12,6 +12,15 @@
 		"noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
 		"noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
 		"esModuleInterop": true,
-		"skipLibCheck": true /* Skip type checking all .d.ts files. */
-	}
+		"skipLibCheck": true, /* Skip type checking all .d.ts files. */
+		"declaration": true,
+	},
+	"include": [
+		"src/**/*.ts",
+		"index.ts"
+	],
+	"exclude": [
+		"node_modules",
+		"out"
+	]
 }
