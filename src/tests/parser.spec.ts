@@ -21,9 +21,9 @@ import {
   YSPACER
 } from "../Expr";
 import { Parser } from "../Parser";
-import Scanner from "../Scanner";
+import { Scanner } from "../Scanner";
 import { isAnnotation, isBarLine, isChord, isComment, isGraceGroup, isInfo_line, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isPitch, isRest, isRhythm, isSlurGroup, isSymbol, isToken, isYSPACER } from "../helpers";
-import Token from "../token";
+import { Token } from "../token";
 const expect = chai.expect;
 
 describe("Parser", () => {

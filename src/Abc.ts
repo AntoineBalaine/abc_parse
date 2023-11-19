@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import readline from "readline";
 import { Parser } from "./Parser";
-import Scanner from "./Scanner";
+import { Scanner } from "./Scanner";
 import { TokensVisitor } from "./Visitors/SemanticTokens";
 import { getError, setError } from "./error";
 

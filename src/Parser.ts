@@ -30,7 +30,7 @@ import {
   YSPACER
 } from "./Expr";
 import { isBeam, isNote } from "./helpers";
-import Token from "./token";
+import { Token } from "./token";
 import { TokenType } from "./types";
 
 export class Parser {
@@ -171,8 +171,8 @@ export class Parser {
         this.synchronize();
       }
     }
-    const elements_with_beams = this.beam(elements);
-    return new Tune_Body(elements_with_beams);
+    // const elements_with_beams = this.beam(elements);
+    return new Tune_Body(elements);
   }
 
   private music_content() {

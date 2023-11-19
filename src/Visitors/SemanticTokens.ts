@@ -28,7 +28,7 @@ import {
   music_code,
 } from "../Expr";
 import { mergeTokens } from "../helpers";
-import Token from "../token";
+import { Token } from "../token";
 
 export class TokensVisitor implements Visitor<void> {
   public tokens: Array<Token> = [];

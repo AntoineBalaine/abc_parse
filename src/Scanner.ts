@@ -1,8 +1,8 @@
 import { error } from "./error";
-import Token from "./token";
+import { Token } from "./token";
 import { TokenType } from "./types";
 
-export default class Scanner {
+export class Scanner {
   private source: string;
   private tokens: Array<Token> = new Array();
   private start = 0;

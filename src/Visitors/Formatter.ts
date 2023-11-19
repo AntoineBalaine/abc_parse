@@ -1,6 +1,7 @@
 import {
   Annotation,
   BarLine,
+  Beam,
   Chord,
   Comment,
   Decoration,
@@ -25,7 +26,7 @@ import {
   Visitor,
   YSPACER,
 } from "../Expr";
-import Token from "../token";
+import { Token } from "../token";
 
 export class AbcFormatter implements Visitor<string> {
   format(file_structure: File_structure) {
@@ -36,6 +37,15 @@ export class AbcFormatter implements Visitor<string> {
   }
   visitBarLineExpr(expr: BarLine) {
     return expr.barline.lexeme;
+  }
+  visitBeamExpr(expr: Beam): string {
+    return expr.contents.map((content) => {
+      if (content instanceof Token) {
+        return content.lexeme;
+      } else {
+        return content.accept(this);
+      }
+    }).join("");
   }
   visitChordExpr(expr: Chord): string {
     const str = expr.contents

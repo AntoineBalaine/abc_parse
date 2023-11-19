@@ -1,5 +1,5 @@
 import assert from "assert";
-import Scanner from "../Scanner";
+import { Scanner } from "../Scanner";
 import { TokenType } from "../types";
 
 // create a test for each token type

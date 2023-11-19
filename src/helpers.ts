@@ -20,7 +20,7 @@ import {
   YSPACER,
   music_code
 } from './Expr';
-import Token from './token';
+import { Token } from './token';
 import { TokenType } from './types';
 
 export const isNote = (expr: Expr | undefined | Token): expr is Note => {

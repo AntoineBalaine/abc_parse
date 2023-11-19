@@ -1,4 +1,4 @@
-import Token from "./token";
+import { Token } from "./token";
 import { TokenType } from "./types";
 
 export interface Visitor<R> {
