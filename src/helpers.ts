@@ -22,7 +22,7 @@ import {
   music_code
 } from './Expr';
 import { Token } from './token';
-import { TokenType } from './types';
+import { Range, TokenType } from './types';
 
 export function isMusicCode(expr: Expr | Token): expr is Music_code {
   return expr instanceof Music_code;
@@ -160,6 +160,11 @@ export function followedByNote(music_code: Array<Expr | Token>, index: number) {
   return false;
 }
 
+/**
+ * checks whether e is WHITESPACE, EOL, EOF, or ANTISLASH_EOL
+ * @param e 
+ * @returns 
+ */
 export function isWS(e: unknown) {
   return e instanceof Token && (e.type === TokenType.WHITESPACE || e.type === TokenType.EOL || e.type === TokenType.EOF || e.type === TokenType.ANTISLASH_EOL);
 }
@@ -182,13 +187,25 @@ export function foundBeam(music_code: Array<Expr | Token>, index: number) {
     return false;
   }
 }
-/**
- * TODO FIX ME
- */
-export function isInRange(range: { start: number, end: number }, expr: Expr | Token): boolean {
-  if (isToken(expr)) {
-    return range.start >= expr.position && expr.position <= range.end;
-  } else {
-    return false;
-  }
+
+export function isRhythmInRange(range: Range, expr: Rhythm): boolean {
+  const {
+    numerator,
+    separator,
+    denominator,
+    broken,
+  } = expr;
+  const arr = [
+    numerator,
+    separator,
+    denominator,
+    broken,
+  ].filter((e): e is Token => (!!e));
+  if (arr.some(e => isTokenInRange(range, e))) {
+    return true;
+  } else { return false; }
+}
+
+function isTokenInRange(range: Range, expr: Token): boolean {
+  return range.start.line <= expr.line && range.end.line >= expr.line && range.start.character <= expr.position && range.end.character >= expr.position;
 }
