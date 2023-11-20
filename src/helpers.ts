@@ -1,6 +1,7 @@
 import {
   Annotation,
   BarLine,
+  Beam,
   Beam_contents,
   Chord,
   Comment,
@@ -10,12 +11,12 @@ import {
   Info_line,
   Inline_field,
   MultiMeasureRest,
+  Music_code,
   Note,
   Nth_repeat,
   Pitch,
   Rest,
   Rhythm,
-  Slur_group,
   Symbol,
   YSPACER,
   music_code
@@ -23,6 +24,13 @@ import {
 import { Token } from './token';
 import { TokenType } from './types';
 
+export function isMusicCode(expr: Expr | Token): expr is Music_code {
+  return expr instanceof Music_code;
+}
+
+export const isBeam = (expr: Expr | undefined | Token): expr is Beam => {
+  return expr instanceof Beam;
+};
 export const isNote = (expr: Expr | undefined | Token): expr is Note => {
   return expr instanceof Note;
 };
@@ -53,9 +61,6 @@ export const isMultiMeasureRest = (
   expr: Expr | undefined | Token
 ): expr is MultiMeasureRest => {
   return expr instanceof MultiMeasureRest;
-};
-export const isSlurGroup = (expr: Expr | undefined | Token): expr is Slur_group => {
-  return expr instanceof Slur_group;
 };
 export const isComment = (expr: Expr | undefined | Token): expr is Comment => {
   return expr instanceof Comment;
@@ -136,7 +141,6 @@ export function isBeamContents(e: unknown): e is Beam_contents {
     || e instanceof Grace_group
     || e instanceof Chord
     || e instanceof Symbol
-    || e instanceof Slur_group
   );
 }
 
@@ -149,14 +153,14 @@ export function followedByNote(music_code: Array<Expr | Token>, index: number) {
   for (let i = index; i < music_code.length; i++) {
     if (!isBeamContents(music_code[i])) {
       return false;
-    } else if (music_code[i] instanceof Note) {
+    } else if (isNote(music_code[i]) || isChord(music_code[i])) {
       return true;
     }
   }
   return false;
 }
 
-export function isWS(e: unknown): e is Token {
+export function isWS(e: unknown) {
   return e instanceof Token && (e.type === TokenType.WHITESPACE || e.type === TokenType.EOL || e.type === TokenType.EOF || e.type === TokenType.ANTISLASH_EOL);
 }
 
@@ -166,14 +170,24 @@ export function isWS(e: unknown): e is Token {
  *
  * Beam breakers are barlines, inline fields, and nth repeats.
  */
-export function isBeam(music_code: Array<Expr | Token>, index: number) {
+export function foundBeam(music_code: Array<Expr | Token>, index: number) {
   /**
    * iterate the array from the given index.
    * if any of the expressions is a note, return true.
    * if any of the expressions is a beam breaker, return false.
    */
-  if (isNote(music_code[index]) && !isWS(music_code[index + 1])) {
+  if ((isNote(music_code[index]) || isChord(music_code[index])) && !isWS(music_code[index + 1])) {
     return followedByNote(music_code, index + 1);
+  } else {
+    return false;
+  }
+}
+/**
+ * TODO FIX ME
+ */
+export function isInRange(range: { start: number, end: number }, expr: Expr | Token): boolean {
+  if (isToken(expr)) {
+    return range.start >= expr.position && expr.position <= range.end;
   } else {
     return false;
   }

@@ -3,6 +3,7 @@ import chai from "chai";
 import {
   Annotation,
   BarLine,
+  Beam,
   Chord,
   Decoration,
   File_header,
@@ -15,14 +16,13 @@ import {
   Nth_repeat,
   Pitch,
   Rest,
-  Slur_group,
   Symbol,
   Tune_header,
   YSPACER
 } from "../Expr";
 import { Parser } from "../Parser";
 import { Scanner } from "../Scanner";
-import { isAnnotation, isBarLine, isChord, isComment, isGraceGroup, isInfo_line, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isPitch, isRest, isRhythm, isSlurGroup, isSymbol, isToken, isYSPACER } from "../helpers";
+import { isAnnotation, isBarLine, isBeam, isChord, isComment, isGraceGroup, isInfo_line, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isPitch, isRest, isRhythm, isSymbol, isToken, isYSPACER } from "../helpers";
 import { Token } from "../token";
 const expect = chai.expect;
 
@@ -354,6 +354,19 @@ describe("Parser", () => {
           }
         }
       });
+      it("should parse beam", () => {
+        const result = new Parser(
+          new Scanner('X:1\n[CA]ABC ').scanTokens()
+        ).parse();
+        const musicCode = result?.tune[0].tune_body?.sequence[0];
+        if (musicCode) {
+          expect(musicCode).to.be.an.instanceof(Beam);
+          if (isBeam(musicCode)) {
+            expect(musicCode.contents[0]).to.be.an.instanceof(Chord);;
+            expect(musicCode.contents[1]).to.be.an.instanceof(Note);
+          }
+        }
+      });
       it("should parse symbol", () => {
         const result = new Parser(
           new Scanner("X:1\n!fff!").scanTokens()
@@ -397,18 +410,6 @@ describe("Parser", () => {
           if (isMultiMeasureRest(secondRest)) {
             expect(secondRest.rest.lexeme).to.equal("Z");
             expect(secondRest.length).to.not.exist;
-          }
-        }
-      });
-      it("should parse slur group", () => {
-        const result = new Parser(
-          new Scanner("X:1\n(abc)").scanTokens()
-        ).parse();
-        const musicCode = result?.tune[0].tune_body?.sequence[0];
-        if (musicCode) {
-          expect(musicCode).to.be.an.instanceof(Slur_group);
-          if (isSlurGroup(musicCode)) {
-            expect(musicCode.contents[0]).to.be.an.instanceof(Note);
           }
         }
       });

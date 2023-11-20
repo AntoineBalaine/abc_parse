@@ -15,13 +15,11 @@ import {
   Lyric_section,
   MultiMeasureRest,
   Music_code,
-  music_code,
   Note,
   Nth_repeat,
   Pitch,
   Rest,
   Rhythm,
-  Slur_group,
   Symbol,
   Tune,
   Tune_Body,
@@ -29,7 +27,7 @@ import {
   Tune_header,
   YSPACER
 } from "./Expr";
-import { isBeam, isNote } from "./helpers";
+import { foundBeam, isChord, isNote } from "./helpers";
 import { Token } from "./token";
 import { TokenType } from "./types";
 
@@ -171,8 +169,8 @@ export class Parser {
         this.synchronize();
       }
     }
-    // const elements_with_beams = this.beam(elements);
-    return new Tune_Body(elements);
+    const elements_with_beams = this.beam(elements);
+    return new Tune_Body(elements_with_beams);
   }
 
   private music_content() {
@@ -189,7 +187,6 @@ export class Parser {
       | Chord
       | Symbol
       | MultiMeasureRest
-      | Slur_group
       | Beam
     > = [];
     const curTokn = this.peek();
@@ -272,10 +269,15 @@ export class Parser {
         }
         break;
       case TokenType.LEFTPAREN:
-        contents.push(this.slurGroup());
+        contents.push(curTokn);
+        this.advance();
+        break;
+      case TokenType.RIGHT_PAREN:
+        contents.push(curTokn);
+        this.advance();
         break;
       case TokenType.LEFTPAREN_NUMBER:
-      // parse a tuplet
+      // TODO parse a tuplet
       // which is a leftparen_number followed by
       // a beam group
       case TokenType.SYMBOL:
@@ -323,12 +325,12 @@ export class Parser {
     let beam: Array<Beam_contents> = [];
 
     for (let i = 0; i < music_code.length; i++) {
-      if (isBeam(music_code, i)) {
-        while (isBeam(music_code, i)) {
+      if (foundBeam(music_code, i)) {
+        while (foundBeam(music_code, i)) {
           beam.push(music_code[i] as Beam_contents);
           i++;
         }
-        if (isNote(music_code[i])) {
+        if (isNote(music_code[i]) || isChord(music_code[i])) {
           beam.push(music_code[i] as Note);
         }
         updatedMusicCode.push(new Beam(beam));
@@ -493,22 +495,6 @@ export class Parser {
     const symbol = this.peek();
     this.advance();
     return new Symbol(symbol);
-  }
-  private slurGroup() {
-    // parse a beam group
-    // which is a leftparen followed by
-    // anything except a rightparen
-    // followed by a rightparen
-    let slurGroup: Array<music_code> = [];
-    this.advance();
-    while (!this.isAtEnd() && !(this.peek().type === TokenType.RIGHT_PAREN)) {
-      const music_content = this.music_content();
-      slurGroup = slurGroup.concat(music_content.contents);
-    }
-    this.consume(TokenType.RIGHT_PAREN, "expected a right parenthesis");
-
-    // const slurGroup_with_beams = this.beam(slurGroup);
-    return new Slur_group(slurGroup);
   }
   private parse_note() {
     // pitch or rest, optionnally followed by a rhythm
