@@ -56,7 +56,7 @@ describe("Rhythms", () => {
 
   describe("divide rhythms", () => {
     divide.forEach(([input, expected]) => {
-      it(`should duplicate ${input} to ${expected}`, () => {
+      it(`should divide ${input} to ${expected}`, () => {
         const multiply = new RhythmVisitor(buildParse(input)).transform("/");
         const fmt = new AbcFormatter().format(multiply);
         assert.equal(removeTuneHeader(fmt).trim(), expected);

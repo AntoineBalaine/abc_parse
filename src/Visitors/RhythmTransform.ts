@@ -221,7 +221,14 @@ export class RhythmVisitor implements Visitor<Expr | Token> {
          * add a separator, format the separators
          */
         const numDivisions = expr.separator.lexeme.length + 1;
-        expr.separator.lexeme = `/${numDivisions * 2}`;
+        let count = 1;
+        for (let i = 0; i < numDivisions; i++) {
+          count = count * 2;
+        }
+        expr.separator.lexeme = `/`;
+        if (count > 2) {
+          expr.denominator = new Token(TokenType.NUMBER, `${count}`, null, -1, -1);
+        }
       } else {
         let denominator_int = parseInt(expr.denominator.lexeme);
         /**
