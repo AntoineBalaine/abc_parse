@@ -28,27 +28,23 @@ import {
   YSPACER,
   tune_body_code
 } from "../Expr";
-import { isBeam, isChord, isGraceGroup, isInRange, isMusicCode, isNote, isToken } from "../helpers";
+import { isBeam, isChord, isGraceGroup, isMusicCode, isNote, isPitch, isToken } from "../helpers";
 import { Token } from "../token";
-import { TokenType } from "../types";
 
-export class RhythmVisitor implements Visitor<Expr | Token> {
+export class Transposer implements Visitor<Expr | Token> {
+  distance: number = 0;
   source: File_structure;
-  factor?: "*" | "/";
-  times?: number;
-  range?: { start: number, end: number };
-
   constructor(source: File_structure) {
     this.source = source;
   }
-
-  transform(factor: "*" | "/", times?: number, range?: { start: number, end: number }) {
-    this.factor = factor;
-    this.times = times;
-    this.range = range;
+  transpose(distance: number) {
+    this.distance = distance;
     return this.visitFileStructureExpr(this.source);
   }
 
+  /* create all the properties that are needed for the transposer
+  for each expression, create a visit method
+  that returns the expression */
   visitAnnotationExpr(expr: Annotation): Annotation {
     return expr;
   };
@@ -62,10 +58,8 @@ export class RhythmVisitor implements Visitor<Expr | Token> {
       } else {
         return content;
       }
+
     });
-    if (expr.rhythm) {
-      expr.rhythm = this.visitRhythmExpr(expr.rhythm);
-    }
     return expr;
   };
   visitCommentExpr(expr: Comment): Comment { return expr; };
@@ -110,35 +104,18 @@ export class RhythmVisitor implements Visitor<Expr | Token> {
     return expr;
   };
   visitNoteExpr(expr: Note): Note {
-    if (expr.rhythm) {
-      expr.rhythm = this.visitRhythmExpr(expr.rhythm);
-    } else {
-      if (this.factor === "*") {
-        expr.rhythm = new Rhythm(new Token(TokenType.NUMBER, "2", null, -1, -1));
-      } else {
-        expr.rhythm = new Rhythm(null, new Token(TokenType.SLASH, "/", null, -1, -1));
-      }
+    if (isPitch(expr.pitch)) {
+      expr.pitch = this.visitPitchExpr(expr.pitch);
     }
     return expr;
   };
   visitNthRepeatExpr(expr: Nth_repeat): Nth_repeat { return expr; };
-  visitPitchExpr(expr: Pitch): Pitch { return expr; };
-  visitRestExpr(expr: Rest): Rest { return expr; };
-  visitRhythmExpr(expr: Rhythm): Rhythm {
-    if (!this.factor) {
-      return expr;
-    }
-    if ((this.range && isInRange(this.range, expr)) || !this.range) {
-      if (this.factor === "*") {
-        return this.duplicateLength(expr);
-      } else {
-        return this.divideLength(expr);
-      }
-    } else {
-      return expr;
-    }
-
+  visitPitchExpr(expr: Pitch): Pitch {
+    // TODO
+    return expr;
   };
+  visitRestExpr(expr: Rest): Rest { return expr; };
+  visitRhythmExpr(expr: Rhythm): Rhythm { return expr; };
   visitSymbolExpr(expr: Symbol): Symbol { return expr; };
   visitTuneBodyExpr(expr: Tune_Body): Tune_Body {
     expr.sequence = expr.sequence.map((e): tune_body_code | Token => {
@@ -184,61 +161,4 @@ export class RhythmVisitor implements Visitor<Expr | Token> {
     });
     return expr;
   };
-  private duplicateLength(expr: Rhythm): Rhythm {
-    if (expr.separator) {
-      if (!expr.denominator) {
-        /**
-         * remove a separator
-         * if there was only one separator, remove the token altogether
-         */
-        expr.separator.lexeme = expr.separator.lexeme.substring(0, expr.separator.lexeme.length - 1);
-        if (expr.separator.lexeme === "") {
-          expr.separator = undefined;
-        }
-      } else {
-        let denominator_int = parseInt(expr.denominator.lexeme);
-        /**
-         * count the separators
-         * add them to the denominator
-         */
-        expr.denominator.lexeme = (denominator_int / 2).toString();
-        if (expr.denominator.lexeme === "1") {
-          expr.denominator = undefined;
-          expr.separator = undefined;
-        }
-      }
-    } else if (expr.numerator) {
-      expr.numerator.lexeme = (parseInt(expr.numerator.lexeme) * 2).toString();
-    } else {
-      expr.numerator = new Token(TokenType.NUMBER, "2", null, -1, -1);
-    }
-    return expr;
-  };
-  private divideLength(expr: Rhythm): Rhythm {
-    if (expr.separator) {
-      if (!expr.denominator) {
-        /**
-         * add a separator, format the separators
-         */
-        const numDivisions = expr.separator.lexeme.length + 1;
-        expr.separator.lexeme += `/${numDivisions * 2}`;
-      } else {
-        let denominator_int = parseInt(expr.denominator.lexeme);
-        /**
-         * count the separators
-         * add them to the denominator
-         */
-        expr.denominator.lexeme = (denominator_int * 2).toString();
-      }
-    } else if (expr.numerator) {
-      expr.numerator.lexeme = (parseInt(expr.numerator.lexeme) / 2).toString();
-      if (expr.numerator.lexeme === "1") {
-        expr.numerator = undefined;
-        expr.separator = undefined;
-      }
-    } else {
-      expr.separator = new Token(TokenType.SLASH, "/", null, -1, -1);
-    }
-    return expr;
-  }
 }
