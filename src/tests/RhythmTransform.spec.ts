@@ -29,6 +29,7 @@ describe("Rhythms", () => {
   const duplicate = [
     ["a", "a2"],
     ["a2", "a4"],
+    ["a/", "a"],
     ["a/2", "a"], // ERR: yields a/1
     ["a//", "a/"],
     ["a/4", "a/2"],
@@ -36,6 +37,7 @@ describe("Rhythms", () => {
   const divide = [
     ["a,2", "a,"],
     ["a4", "a2"],
+    ["a/", "a/4"],
     ["a/2", "a/4"],
     ["a//", "a/8"],
     ["a", "a/"],
