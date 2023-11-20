@@ -24,6 +24,7 @@ import { Parser } from "../Parser";
 import { Scanner } from "../Scanner";
 import { isAnnotation, isBarLine, isBeam, isChord, isComment, isGraceGroup, isInfo_line, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isPitch, isRest, isRhythm, isSymbol, isToken, isYSPACER } from "../helpers";
 import { Token } from "../token";
+import { buildParse } from "./RhythmTransform.spec";
 const expect = chai.expect;
 
 describe("Parser", () => {
@@ -226,9 +227,32 @@ describe("Parser", () => {
           });
         });
       });
+      describe("beam", () => {
+        it("should parse beam", () => {
+          const musicCode = buildParse("CAB").tune[0].tune_body?.sequence[0];
+          if (musicCode) {
+            expect(musicCode).to.be.an.instanceof(Beam);
+            if (isBeam(musicCode)) {
+              expect(musicCode.contents).to.be.an.instanceof(Array);
+              musicCode.contents.forEach((note) => {
+                expect(note).to.be.an.instanceof(Note);
+              });
+            }
+          }
+        });
+        it("should parse beam spanning closing parens", () => {
+          const musicCode = buildParse(`CA)B`).tune[0].tune_body?.sequence[0];
+          if (musicCode) {
+            expect(musicCode).to.be.an.instanceof(Beam);
+            if (isBeam(musicCode)) {
+              expect(musicCode.contents).to.be.an.instanceof(Array);
+              expect(musicCode.contents[2]).to.be.an.instanceof(Token);
+            }
+          }
+        });
+      });
       it("should parse barline", () => {
-        const result = new Parser(new Scanner("X:1\n|").scanTokens()).parse();
-        const musicCode = result?.tune[0].tune_body?.sequence[0];
+        const musicCode = buildParse("|").tune[0].tune_body?.sequence[0];
         if (musicCode) {
           expect(musicCode).to.be.an.instanceof(BarLine);
           if (isBarLine(musicCode)) {
@@ -240,7 +264,7 @@ describe("Parser", () => {
         const result = new Parser(
           new Scanner('X:1\n"string"').scanTokens()
         ).parse();
-        const musicCode = result?.tune[0].tune_body?.sequence[0];
+        const musicCode = buildParse("string").tune[0].tune_body?.sequence[0];
         if (musicCode) {
           expect(musicCode).to.be.an.instanceof(Annotation);
           if (isAnnotation(musicCode)) {
