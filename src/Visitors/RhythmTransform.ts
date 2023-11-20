@@ -28,21 +28,21 @@ import {
   YSPACER,
   tune_body_code
 } from "../Expr";
-import { isBeam, isChord, isGraceGroup, isInRange, isMusicCode, isNote, isToken } from "../helpers";
+import { isBeam, isChord, isGraceGroup, isMusicCode, isNote, isRhythmInRange, isToken } from "../helpers";
 import { Token } from "../token";
-import { TokenType } from "../types";
+import { Range, TokenType } from "../types";
 
 export class RhythmVisitor implements Visitor<Expr | Token> {
   source: File_structure;
   factor?: "*" | "/";
   times?: number;
-  range?: { start: number, end: number };
+  range?: Range;
 
   constructor(source: File_structure) {
     this.source = source;
   }
 
-  transform(factor: "*" | "/", times?: number, range?: { start: number, end: number }) {
+  transform(factor: "*" | "/", times?: number, range?: Range) {
     this.factor = factor;
     this.times = times;
     this.range = range;
@@ -128,7 +128,7 @@ export class RhythmVisitor implements Visitor<Expr | Token> {
     if (!this.factor) {
       return expr;
     }
-    if ((this.range && isInRange(this.range, expr)) || !this.range) {
+    if ((this.range && isRhythmInRange(this.range, expr)) || !this.range) {
       if (this.factor === "*") {
         return this.duplicateLength(expr);
       } else {

@@ -1,18 +1,29 @@
 import assert from "assert";
 import chai from "chai";
+import { File_header, File_structure } from "../Expr";
 import { Parser } from "../Parser";
 import { Scanner } from "../Scanner";
 import { AbcFormatter } from "../Visitors/Formatter";
 import { RhythmVisitor } from "../Visitors/RhythmTransform";
 const expect = chai.expect;
 
-function tuneHeader(testStr: string) {
+export function tuneHeader(testStr: string) {
   return `X:1\n${testStr}`;
 }
-function removeTuneHeader(testStr: string) {
+
+export function removeTuneHeader(testStr: string) {
   return testStr.replace(`X:1\n`, "");
 }
 
+export function buildParse(source: string): File_structure {
+  const scan = new Scanner(tuneHeader(source)).scanTokens();
+  const parse = new Parser(scan).parse();
+  if (!parse) {
+    return new File_structure(new File_header("", []), []);;
+  } else {
+    return parse;
+  };
+}
 
 describe("Rhythms", () => {
   const duplicate = [
@@ -34,10 +45,7 @@ describe("Rhythms", () => {
   describe("duplicate rhythms", () => {
     duplicate.forEach(([input, expected]) => {
       it(`should duplicate ${input} to ${expected}`, () => {
-        const scan = new Scanner(tuneHeader(input)).scanTokens();
-        const parse = new Parser(scan).parse();
-        if (!parse) { return; }
-        const multiply = new RhythmVisitor(parse).transform("*");
+        const multiply = new RhythmVisitor(buildParse(input)).transform("*");
         const fmt = new AbcFormatter().format(multiply);
         assert.equal(removeTuneHeader(fmt).trim(), expected);
       });
@@ -47,10 +55,7 @@ describe("Rhythms", () => {
   describe("divide rhythms", () => {
     divide.forEach(([input, expected]) => {
       it(`should duplicate ${input} to ${expected}`, () => {
-        const scan = new Scanner(tuneHeader(input)).scanTokens();
-        const parse = new Parser(scan).parse();
-        if (!parse) { return; }
-        const multiply = new RhythmVisitor(parse).transform("/");
+        const multiply = new RhythmVisitor(buildParse(input)).transform("/");
         const fmt = new AbcFormatter().format(multiply);
         assert.equal(removeTuneHeader(fmt).trim(), expected);
       });
