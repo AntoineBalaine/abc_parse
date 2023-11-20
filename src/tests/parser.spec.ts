@@ -24,6 +24,7 @@ import { Parser } from "../Parser";
 import { Scanner } from "../Scanner";
 import { isAnnotation, isBarLine, isBeam, isChord, isComment, isGraceGroup, isInfo_line, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isPitch, isRest, isRhythm, isSymbol, isToken, isYSPACER } from "../helpers";
 import { Token } from "../token";
+import { TokenType } from "../types";
 import { buildParse } from "./RhythmTransform.spec";
 const expect = chai.expect;
 
@@ -98,12 +99,16 @@ describe("Parser", () => {
         });
         it("should parse tied note", () => {
           const musicCode = buildParse("C-C").tune[0].tune_body?.sequence[0];
-          expect(musicCode).to.be.an.instanceof(Note);
-          if (isNote(musicCode)) {
-            expect(musicCode.pitch).to.be.an.instanceof(Pitch);
-            if (isPitch(musicCode.pitch)) {
-              expect(musicCode.pitch.noteLetter.lexeme).to.equal("C");
-              expect(musicCode.tie).to.be.true;
+          expect(musicCode).to.be.an.instanceof(Beam);
+          if (isBeam(musicCode)) {
+            const firstNote = musicCode.contents[0];
+            expect(firstNote).to.be.an.instanceof(Note);
+            if (isNote(firstNote)) {
+              expect(firstNote.pitch).to.be.an.instanceof(Pitch);
+              if (isPitch(firstNote.pitch)) {
+                expect(firstNote.pitch.noteLetter.lexeme).to.equal("C");
+                expect(firstNote.tie).to.be.true;
+              }
             }
           }
         });
@@ -203,6 +208,20 @@ describe("Parser", () => {
             expect(musicCode.contents[2]).to.be.an.instanceof(Token);
           }
         });
+
+        it("should parse multiple beams spanning parens", () => {
+          const musicCode = buildParse(`CA(B CD)E`).tune[0].tune_body?.sequence;
+          expect(musicCode).to.be.an.instanceof(Array);
+          if (Array.isArray(musicCode)) {
+            const [beam1, ws, beam2, ...rest] = musicCode;
+            expect(beam1).to.be.an.instanceof(Beam);
+            expect(ws).to.be.an.instanceof(Token);
+            if (isToken(ws)) {
+              assert.equal(ws.type, TokenType.WHITESPACE);
+            }
+            expect(beam2).to.be.an.instanceof(Beam);
+          }
+        });
       });
       it("should parse barline", () => {
         const musicCode = buildParse("|").tune[0].tune_body?.sequence[0];
@@ -212,7 +231,7 @@ describe("Parser", () => {
         }
       });
       it("should parse annotation", () => {
-        const musicCode = buildParse("string").tune[0].tune_body?.sequence[0];
+        const musicCode = buildParse('"string"').tune[0].tune_body?.sequence[0];
         expect(musicCode).to.be.an.instanceof(Annotation);
         if (isAnnotation(musicCode)) {
           expect(musicCode.text.lexeme).to.equal('"string"');
@@ -282,7 +301,7 @@ describe("Parser", () => {
         }
       });
       it("should parse info_line in body", () => {
-        const musicCode = buildParse("K:C\nabc\nT:Title").tune[0].tune_body?.sequence[4];
+        const musicCode = buildParse("K:C\nabc\nT:Title").tune[0].tune_body?.sequence[2];
         expect(musicCode).to.be.an.instanceof(Info_line);
         if (isInfo_line(musicCode)) {
           expect(musicCode.key.lexeme).to.equal("T:");

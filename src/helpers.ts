@@ -83,6 +83,9 @@ export const isInfo_line = (expr: Expr | undefined | Token): expr is Info_line =
 export function isYSPACER(expr: Expr | Token): expr is YSPACER {
   return expr instanceof YSPACER;
 }
+export function isSlurToken(expr: Expr | Token) {
+  return expr instanceof Token && (expr.type === TokenType.LEFTPAREN || expr.type === TokenType.RIGHT_PAREN);
+}
 
 export const mergeTokens = (tokens: Token[]) => {
   return tokens
@@ -151,7 +154,7 @@ export function isBeamContents(e: unknown): e is Beam_contents {
  */
 export function followedByNote(music_code: Array<Expr | Token>, index: number) {
   for (let i = index; i < music_code.length; i++) {
-    if (!isBeamContents(music_code[i])) {
+    if (!isBeamContents(music_code[i]) || isWS(music_code[i])) {
       return false;
     } else if (isNote(music_code[i]) || isChord(music_code[i])) {
       return true;
@@ -188,6 +191,19 @@ export function foundBeam(music_code: Array<Expr | Token>, index: number) {
   }
 }
 
+/**
+ * beam's end is when we find a beam breaker or end of array.
+ */
+export function beamEnd(music_code: Array<Expr | Token>, index: number) {
+  const cur = music_code[index];
+  const next = music_code[index + 1];
+  if ((isNote(cur) || isChord(cur)) && isBeamBreaker(cur)) {
+    return true;
+  } else {
+    return isBeamBreaker(cur);
+  }
+}
+
 export function isRhythmInRange(range: Range, expr: Rhythm): boolean {
   const {
     numerator,
@@ -208,4 +224,12 @@ export function isRhythmInRange(range: Range, expr: Rhythm): boolean {
 
 function isTokenInRange(range: Range, expr: Token): boolean {
   return range.start.line <= expr.line && range.end.line >= expr.line && range.start.character <= expr.position && range.end.character >= expr.position;
+}
+
+function isBeamBreaker(cur: Token | Expr): boolean {
+  if (isToken(cur)) {
+    return isWS(cur);
+  } else {
+    return !isBeamContents(cur) || isBarLine(cur);
+  }
 }
