@@ -28,21 +28,21 @@ import {
   YSPACER,
   tune_body_code
 } from "../Expr";
-import { isBeam, isChord, isGraceGroup, isInRange, isMusicCode, isNote, isToken } from "../helpers";
+import { isBeam, isChord, isGraceGroup, isMusicCode, isNote, isRhythmInRange, isToken } from "../helpers";
 import { Token } from "../token";
-import { TokenType } from "../types";
+import { Range, TokenType } from "../types";
 
 export class RhythmVisitor implements Visitor<Expr | Token> {
   source: File_structure;
   factor?: "*" | "/";
   times?: number;
-  range?: { start: number, end: number };
+  range?: Range;
 
   constructor(source: File_structure) {
     this.source = source;
   }
 
-  transform(factor: "*" | "/", times?: number, range?: { start: number, end: number }) {
+  transform(factor: "*" | "/", times?: number, range?: Range) {
     this.factor = factor;
     this.times = times;
     this.range = range;
@@ -128,7 +128,7 @@ export class RhythmVisitor implements Visitor<Expr | Token> {
     if (!this.factor) {
       return expr;
     }
-    if ((this.range && isInRange(this.range, expr)) || !this.range) {
+    if ((this.range && isRhythmInRange(this.range, expr)) || !this.range) {
       if (this.factor === "*") {
         return this.duplicateLength(expr);
       } else {
@@ -221,7 +221,14 @@ export class RhythmVisitor implements Visitor<Expr | Token> {
          * add a separator, format the separators
          */
         const numDivisions = expr.separator.lexeme.length + 1;
-        expr.separator.lexeme += `/${numDivisions * 2}`;
+        let count = 1;
+        for (let i = 0; i < numDivisions; i++) {
+          count = count * 2;
+        }
+        expr.separator.lexeme = `/`;
+        if (count > 2) {
+          expr.denominator = new Token(TokenType.NUMBER, `${count}`, null, -1, -1);
+        }
       } else {
         let denominator_int = parseInt(expr.denominator.lexeme);
         /**

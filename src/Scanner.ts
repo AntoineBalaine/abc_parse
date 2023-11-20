@@ -79,6 +79,9 @@ export class Scanner {
       case "^":
         this.addToken(this.match("^") ? TokenType.SHARP_DBL : TokenType.SHARP);
         break;
+      /**
+       * TODO implement backticks in beams
+       */
       case ":": {
         const pkd = this.peek();
         if ((pkd === "|" || pkd === ":") && !this.isAtEnd()) {

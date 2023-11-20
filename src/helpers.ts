@@ -22,7 +22,7 @@ import {
   music_code
 } from './Expr';
 import { Token } from './token';
-import { TokenType } from './types';
+import { Range, TokenType } from './types';
 
 export function isMusicCode(expr: Expr | Token): expr is Music_code {
   return expr instanceof Music_code;
@@ -82,6 +82,9 @@ export const isInfo_line = (expr: Expr | undefined | Token): expr is Info_line =
 };
 export function isYSPACER(expr: Expr | Token): expr is YSPACER {
   return expr instanceof YSPACER;
+}
+export function isSlurToken(expr: Expr | Token) {
+  return expr instanceof Token && (expr.type === TokenType.LEFTPAREN || expr.type === TokenType.RIGHT_PAREN);
 }
 
 export const mergeTokens = (tokens: Token[]) => {
@@ -151,7 +154,7 @@ export function isBeamContents(e: unknown): e is Beam_contents {
  */
 export function followedByNote(music_code: Array<Expr | Token>, index: number) {
   for (let i = index; i < music_code.length; i++) {
-    if (!isBeamContents(music_code[i])) {
+    if (!isBeamContents(music_code[i]) || isWS(music_code[i])) {
       return false;
     } else if (isNote(music_code[i]) || isChord(music_code[i])) {
       return true;
@@ -160,6 +163,11 @@ export function followedByNote(music_code: Array<Expr | Token>, index: number) {
   return false;
 }
 
+/**
+ * checks whether e is WHITESPACE, EOL, EOF, or ANTISLASH_EOL
+ * @param e 
+ * @returns 
+ */
 export function isWS(e: unknown) {
   return e instanceof Token && (e.type === TokenType.WHITESPACE || e.type === TokenType.EOL || e.type === TokenType.EOF || e.type === TokenType.ANTISLASH_EOL);
 }
@@ -182,13 +190,46 @@ export function foundBeam(music_code: Array<Expr | Token>, index: number) {
     return false;
   }
 }
+
 /**
- * TODO FIX ME
+ * beam's end is when we find a beam breaker or end of array.
  */
-export function isInRange(range: { start: number, end: number }, expr: Expr | Token): boolean {
-  if (isToken(expr)) {
-    return range.start >= expr.position && expr.position <= range.end;
+export function beamEnd(music_code: Array<Expr | Token>, index: number) {
+  const cur = music_code[index];
+  const next = music_code[index + 1];
+  if ((isNote(cur) || isChord(cur)) && isBeamBreaker(cur)) {
+    return true;
   } else {
-    return false;
+    return isBeamBreaker(cur);
+  }
+}
+
+export function isRhythmInRange(range: Range, expr: Rhythm): boolean {
+  const {
+    numerator,
+    separator,
+    denominator,
+    broken,
+  } = expr;
+  const arr = [
+    numerator,
+    separator,
+    denominator,
+    broken,
+  ].filter((e): e is Token => (!!e));
+  if (arr.some(e => isTokenInRange(range, e))) {
+    return true;
+  } else { return false; }
+}
+
+function isTokenInRange(range: Range, expr: Token): boolean {
+  return range.start.line <= expr.line && range.end.line >= expr.line && range.start.character <= expr.position && range.end.character >= expr.position;
+}
+
+function isBeamBreaker(cur: Token | Expr): boolean {
+  if (isToken(cur)) {
+    return isWS(cur);
+  } else {
+    return !isBeamContents(cur) || isBarLine(cur);
   }
 }
