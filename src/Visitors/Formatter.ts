@@ -30,8 +30,19 @@ import { Token } from "../token";
 import { TokenType } from "../types";
 
 export class AbcFormatter implements Visitor<string> {
+  /**
+   * use this flag to indicate if we just want to stringify the tree, without pretty-printing
+   */
+  no_format: boolean = false;
   format(file_structure: File_structure) {
+    this.no_format = false;
     return file_structure.accept(this);
+  }
+  stringify(file_structure: File_structure) {
+    this.no_format = true;
+    const fmt = file_structure.accept(this);
+    this.no_format = false;
+    return fmt;
   }
   visitAnnotationExpr(expr: Annotation) {
     return expr.text.lexeme;
@@ -186,7 +197,13 @@ export class AbcFormatter implements Visitor<string> {
   visitTuneBodyExpr(expr: Tune_Body): string {
     return expr.sequence
       .map((content, idx, arr) => {
-        if (content instanceof Token) {
+        /**
+         * if we're just printing as is, return the lexeme of the token
+         */
+        if (this.no_format) {
+          return isToken(content) ? content.lexeme : content.accept(this);
+        }
+        if (isToken(content)) {
           if (content.type === TokenType.WHITESPACE) {
             return "";
 
