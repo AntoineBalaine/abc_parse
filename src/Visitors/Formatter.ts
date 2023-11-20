@@ -168,6 +168,10 @@ export class AbcFormatter implements Visitor<string> {
   }
   visitRhythmExpr(expr: Rhythm) {
     let formatted = "";
+    if (this.no_format) {
+      const { numerator, separator, denominator, broken } = expr;
+      return [numerator, separator, denominator, broken].map((e) => (e?.lexeme || "")).join("");
+    }
     if (expr.numerator) {
       formatted += expr.numerator.lexeme;
     }
@@ -176,8 +180,14 @@ export class AbcFormatter implements Visitor<string> {
       if (expr.separator.lexeme.length > 1 && !expr.denominator) {
         // count the separators.
         const numDivisions = expr.separator.lexeme.length;
-        formatted += `/${numDivisions * 2}`;
-      } else if (expr.separator.lexeme.length > 1) {
+        let count = 1;
+        for (let i = 0; i < numDivisions; i++) {
+          count = count * 2;
+        }
+        formatted += `/${count}`;
+      } else if (expr.separator.lexeme === "/" && expr.denominator && expr.denominator.lexeme === "2") {
+        formatted += "/";
+        expr.denominator = undefined;
       } else {
         // for now, don't handle mix of multiple slashes and a denominator
         formatted += expr.separator.lexeme;

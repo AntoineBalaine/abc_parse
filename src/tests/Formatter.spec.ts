@@ -77,6 +77,20 @@ describe("Formatter", function () {
           });
         }); */
   });
+  describe("format rhythms", () => {
+    const sample = [
+      ["a/2", "a/"],
+      ["a//", "a/4"],
+      ["z/2", "z/"],
+      ["z//", "z/4"],
+    ];
+    sample.forEach(([input, expected]) => {
+      it(`should format ${input} into ${expected}`, () => {
+        const fmt = new AbcFormatter().format(buildParse(input));
+        assert.equal(removeTuneHeader(fmt).trim(), expected);
+      });
+    });
+  });
 
   /*   describe("formats a whole score", function () {
     it("splices chunks of score correctly", function () {

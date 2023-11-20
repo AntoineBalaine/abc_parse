@@ -48,7 +48,7 @@ describe("Rhythms", () => {
     duplicate.forEach(([input, expected]) => {
       it(`should duplicate ${input} to ${expected}`, () => {
         const multiply = new RhythmVisitor(buildParse(input)).transform("*");
-        const fmt = new AbcFormatter().format(multiply);
+        const fmt = new AbcFormatter().stringify(multiply);
         assert.equal(removeTuneHeader(fmt).trim(), expected);
       });
     });
@@ -58,7 +58,7 @@ describe("Rhythms", () => {
     divide.forEach(([input, expected]) => {
       it(`should divide ${input} to ${expected}`, () => {
         const multiply = new RhythmVisitor(buildParse(input)).transform("/");
-        const fmt = new AbcFormatter().format(multiply);
+        const fmt = new AbcFormatter().stringify(multiply);
         assert.equal(removeTuneHeader(fmt).trim(), expected);
       });
     });
