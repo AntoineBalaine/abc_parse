@@ -63,4 +63,26 @@ describe("Rhythms", () => {
       });
     });
   });
+
+  describe("Range: divide rhythms", () => {
+    const divide = [
+      ["c2d", "c"],
+      /*       ["a4", "a2"],
+            ["a/", "a/4"],
+            ["a/2", "a/4"],
+            ["a//", "a/8"],
+            ["a", "a/"],
+            ["^a''", "^a''/"], */
+    ];
+    divide.forEach(([input, expected]) => {
+      it(`should divide ${input} to ${expected}`, () => {
+        const parse = buildParse(input);
+        const rhythmVisitor = new RhythmVisitor(parse);
+        rhythmVisitor.transform("/", { start: { line: 1, character: 0 }, end: { line: 1, character: 1 } });
+        const fmt = rhythmVisitor.getChanges();
+        assert.equal(removeTuneHeader(fmt).trim(), expected);
+      });
+    });
+  });
+
 });

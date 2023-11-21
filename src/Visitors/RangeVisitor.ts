@@ -107,7 +107,7 @@ export class RangeVisitor implements Visitor<Range> {
     } = expr;
     // TODO accomodate tie
     return [pitch, rhythm]
-      .filter((e): e is Pitch | Rest | Rhythm => !!e).map((e) => {
+      .filter((e): e is Pitch | Rest | Rhythm => (!!e)).map((e) => {
         if (isToken(e)) {
           return getTokenRange(e);
         } else {

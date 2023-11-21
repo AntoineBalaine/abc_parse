@@ -104,7 +104,11 @@ export const mergeTokens = (tokens: Token[]) => {
 };
 
 export const cloneToken = (token: Token) => {
-  return new Token(token.type, token.lexeme, null, token.line, token.position);
+  return new Token(token.type, cloneText(token.lexeme), null, token.line, token.position);
+};
+
+export const cloneText = (text: string) => {
+  return (" " + text).slice(1);
 };
 
 export function stringifyNote(note: Note): string {
@@ -275,11 +279,11 @@ export function getPitchRange(e: Pitch | Rest): Range {
   }
 }
 
-export function isInRange(control_range: Range, expr_range: Range): boolean {
+export function exprIsInRange(control_range: Range, expr_range: Range): boolean {
   return expr_range.start.line >= control_range.start.line
     && expr_range.end.line <= control_range.end.line
     && expr_range.start.character >= control_range.start.character
-    && expr_range.end.character <= control_range.end.character;
+    && expr_range.end.character <= control_range.end.character + 1;
 
 }
 export function getTokenRange(token: Token): Range {
@@ -295,8 +299,8 @@ export function getTokenRange(token: Token): Range {
   };
 }
 
-export const reduceRanges = (acc: Range, cur: Range, idx: number, arr: Range[]): Range => {
-  if (Object.keys(acc).length === 0) {
+export const reduceRanges = (acc: Range, cur: Range, index: number, arr: Range[]): Range => {
+  if (index === 0) {
     return cur;
   };
   return {
@@ -309,4 +313,14 @@ export const reduceRanges = (acc: Range, cur: Range, idx: number, arr: Range[]):
       character: Math.max(acc.end.character, cur.end.character)
     }
   };
+};
+
+export const isEmptyRhythm = (rhythm: Rhythm): boolean => {
+  const {
+    numerator,
+    separator,
+    denominator,
+    broken,
+  } = rhythm;
+  return !numerator && !separator && !denominator && !broken;
 };
