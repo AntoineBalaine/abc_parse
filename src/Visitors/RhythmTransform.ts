@@ -28,17 +28,17 @@ import {
   YSPACER,
   tune_body_code
 } from "../Expr";
-import { isBeam, isChord, isGraceGroup, isMusicCode, isNote, isRhythmInRange, isToken } from "../helpers";
+import { isChord, isRhythmInRange, isToken, isTune_Body } from "../helpers";
 import { Token } from "../token";
 import { Range, TokenType } from "../types";
 
-export class RhythmVisitor implements Visitor<Expr | Token> {
-  source: File_structure;
+export class RhythmVisitor implements Visitor<Expr> {
+  source: Expr;
   factor?: "*" | "/";
   times?: number;
   range?: Range;
 
-  constructor(source: File_structure) {
+  constructor(source: Expr) {
     this.source = source;
   }
 
@@ -46,25 +46,26 @@ export class RhythmVisitor implements Visitor<Expr | Token> {
     this.factor = factor;
     this.times = times;
     this.range = range;
-    return this.visitFileStructureExpr(this.source);
+    return this.source.accept(this);
   }
 
   visitAnnotationExpr(expr: Annotation): Annotation {
     return expr;
   };
-  visitBarLineExpr(expr: BarLine): BarLine {
+  visitBarLineExpr(expr: BarLine): Expr { // FIXME - return type should be BarLine
     return expr;
   };
   visitChordExpr(expr: Chord): Chord {
+    if (!isChord(expr)) { return expr; }
     expr.contents.map((content) => {
-      if (isNote(content)) {
-        return this.visitNoteExpr(content);
+      if (!isToken(content)) {
+        return content.accept(this);
       } else {
         return content;
       }
     });
     if (expr.rhythm) {
-      expr.rhythm = this.visitRhythmExpr(expr.rhythm);
+      expr.rhythm = expr.rhythm.accept(this);
     }
     return expr;
   };
@@ -73,18 +74,14 @@ export class RhythmVisitor implements Visitor<Expr | Token> {
   visitFileHeaderExpr(expr: File_header): File_header { return expr; };
   visitFileStructureExpr(expr: File_structure): File_structure {
     expr.tune = expr.tune.map((tune) => {
-      return this.visitTuneExpr(tune);
-    });
+      return tune.accept(this);
+    }) as Tune[];
     return expr;
   };
   visitGraceGroupExpr(expr: Grace_group): Grace_group {
     expr.notes = expr.notes.map(e => {
-      if (isNote(e)) {
-        return this.visitNoteExpr(e);
-      } else {
-        return e;
-      }
-    });
+      return e.accept(this);
+    }) as Note[];
     return expr;
   };
   visitInfoLineExpr(expr: Info_line): Info_line { return expr; };
@@ -95,23 +92,15 @@ export class RhythmVisitor implements Visitor<Expr | Token> {
     expr.contents.map((e) => {
       if (isToken(e)) {
         return e;
-      } else if (isBeam(e)) {
-        return this.visitBeamExpr(e);
-      } else if (isChord(e)) {
-        return this.visitChordExpr(e);
-      } else if (isNote(e)) {
-        return this.visitNoteExpr(e);
-      } else if (isGraceGroup(e)) {
-        return this.visitGraceGroupExpr(e);
       } else {
-        return e;
+        return e.accept(this);
       }
     });
     return expr;
   };
   visitNoteExpr(expr: Note): Note {
     if (expr.rhythm) {
-      expr.rhythm = this.visitRhythmExpr(expr.rhythm);
+      expr.rhythm = expr.rhythm.accept(this);
     } else {
       if (this.factor === "*") {
         expr.rhythm = new Rhythm(new Token(TokenType.NUMBER, "2", null, -1, -1));
@@ -141,28 +130,19 @@ export class RhythmVisitor implements Visitor<Expr | Token> {
   };
   visitSymbolExpr(expr: Symbol): Symbol { return expr; };
   visitTuneBodyExpr(expr: Tune_Body): Tune_Body {
+    if (!isTune_Body(expr)) { return expr; }
     expr.sequence = expr.sequence.map((e): tune_body_code | Token => {
       if (isToken(e)) {
         return e;
-      } else if (isMusicCode(e)) {
-        return this.visitMusicCodeExpr(e);
-      } else if (isBeam(e)) {
-        return this.visitBeamExpr(e);
-      } else if (isChord(e)) {
-        return this.visitChordExpr(e);
-      } else if (isNote(e)) {
-        return this.visitNoteExpr(e);
-      } else if (isGraceGroup(e)) {
-        return this.visitGraceGroupExpr(e);
       } else {
-        return e;
+        return e.accept(this) as tune_body_code;
       }
     });
     return expr;
   };
   visitTuneExpr(expr: Tune): Tune {
     if (expr.tune_body) {
-      expr.tune_body = this.visitTuneBodyExpr(expr.tune_body);
+      expr.tune_body = expr.tune_body.accept(this) as Tune_Body;
     }
     return expr;
   };
@@ -172,14 +152,8 @@ export class RhythmVisitor implements Visitor<Expr | Token> {
     expr.contents.map((content) => {
       if (isToken(content)) {
         return content;
-      } else if (isChord(content)) {
-        return this.visitChordExpr(content);
-      } else if (isNote(content)) {
-        return this.visitNoteExpr(content);
-      } else if (isGraceGroup(content)) {
-        return this.visitGraceGroupExpr(content);
       } else {
-        return content;
+        return content.accept(this);
       }
     });
     return expr;

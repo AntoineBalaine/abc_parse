@@ -5,6 +5,7 @@ import {
   Chord,
   Comment,
   Decoration,
+  Expr,
   File_header,
   File_structure,
   Grace_group,
@@ -34,13 +35,13 @@ export class AbcFormatter implements Visitor<string> {
    * use this flag to indicate if we just want to stringify the tree, without pretty-printing
    */
   no_format: boolean = false;
-  format(file_structure: File_structure) {
+  format(expr: Expr) {
     this.no_format = false;
-    return file_structure.accept(this);
+    return expr.accept(this);
   }
-  stringify(file_structure: File_structure) {
+  stringify(expr: Expr) {
     this.no_format = true;
-    const fmt = file_structure.accept(this);
+    const fmt = expr.accept(this);
     this.no_format = false;
     return fmt;
   }

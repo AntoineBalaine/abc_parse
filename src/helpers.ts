@@ -18,6 +18,7 @@ import {
   Rest,
   Rhythm,
   Symbol,
+  Tune_Body,
   YSPACER,
   music_code
 } from './Expr';
@@ -85,6 +86,9 @@ export function isYSPACER(expr: Expr | Token): expr is YSPACER {
 }
 export function isSlurToken(expr: Expr | Token) {
   return expr instanceof Token && (expr.type === TokenType.LEFTPAREN || expr.type === TokenType.RIGHT_PAREN);
+}
+export function isTune_Body(expr: Expr): expr is Tune_Body {
+  return expr instanceof Tune_Body;
 }
 
 export const mergeTokens = (tokens: Token[]) => {
