@@ -55,9 +55,20 @@ export class RangeVisitor implements Visitor<Range> {
       .reduce(reduceRanges, <Range>{});
   }
   visitGraceGroupExpr(expr: Grace_group): Range {
-    // TODO how to handle accacciatura?
-    return expr.notes.map(e => (e.accept(this)))
+    let res = expr.notes.map(e => (e.accept(this)))
       .reduce(reduceRanges, <Range>{});
+    /**
+     * Since Grace Group's curlies are not saved in tree, accomodate for them here
+     */
+    res.start.character -= 1;
+    res.end.character += 1;
+    /**
+     * handle accacciatura by adding a character to the end
+     */
+    if (expr.isAccacciatura) {
+      res.start.character -= 1;
+    }
+    return res;
   }
   visitInfoLineExpr(expr: Info_line): Range {
     return expr.value.map(t => (getTokenRange(t)))

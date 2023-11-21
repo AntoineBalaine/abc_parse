@@ -226,7 +226,7 @@ export function isRhythmInRange(range: Range, expr: Rhythm): boolean {
   } else { return false; }
 }
 
-function isTokenInRange(range: Range, expr: Token): boolean {
+export function isTokenInRange(range: Range, expr: Token): boolean {
   return range.start.line <= expr.line && range.end.line >= expr.line && range.start.character <= expr.position && range.end.character >= expr.position;
 }
 
@@ -237,3 +237,76 @@ function isBeamBreaker(cur: Token | Expr): boolean {
     return !isBeamContents(cur) || isBarLine(cur);
   }
 }
+
+
+export function getPitchRange(e: Pitch | Rest): Range {
+  if (isRest(e)) {
+    return {
+      start: {
+        line: e.rest.line,
+        character: e.rest.position
+      },
+      end: {
+        line: e.rest.line,
+        character: e.rest.position + e.rest.lexeme.length
+      }
+    };
+  } else {
+
+    let range = {
+      start: {
+        line: e.noteLetter.line,
+        character: e.noteLetter.position
+      },
+      end: {
+        line: e.noteLetter.line,
+        character: e.noteLetter.position + e.noteLetter.lexeme.length
+      }
+    };
+    if (e.alteration) {
+      range.start.line = e.alteration.line;
+      range.start.character = e.alteration.position;
+    }
+    if (e.octave) {
+      range.end.line = e.octave.line;
+      range.end.character = e.octave.position + e.octave.lexeme.length;
+    }
+    return range;
+  }
+}
+
+export function isInRange(control_range: Range, expr_range: Range): boolean {
+  return expr_range.start.line >= control_range.start.line
+    && expr_range.end.line <= control_range.end.line
+    && expr_range.start.character >= control_range.start.character
+    && expr_range.end.character <= control_range.end.character;
+
+}
+export function getTokenRange(token: Token): Range {
+  return {
+    start: {
+      line: token.line,
+      character: token.position,
+    },
+    end: {
+      line: token.line,
+      character: token.position + token.lexeme.length,
+    }
+  };
+}
+
+export const reduceRanges = (acc: Range, cur: Range, idx: number, arr: Range[]): Range => {
+  if (Object.keys(acc).length === 0) {
+    return cur;
+  };
+  return {
+    start: {
+      line: Math.min(acc.start.line, cur.start.line),
+      character: Math.min(acc.start.character, cur.start.character)
+    },
+    end: {
+      line: Math.max(acc.end.line, cur.end.line),
+      character: Math.max(acc.end.character, cur.end.character)
+    }
+  };
+};
