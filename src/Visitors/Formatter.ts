@@ -100,12 +100,17 @@ export class AbcFormatter implements Visitor<string> {
     );
   }
   visitGraceGroupExpr(expr: Grace_group): string {
-    // TODO implement accaciatura formatting
-    return expr.notes
+    const fmt = expr.notes
       .map((note) => {
         return note.accept(this);
       })
       .join("");
+    // TODO implement accaciatura formatting
+    if (expr.isAccacciatura) {
+      return `{/${fmt}}`;
+    } else {
+      return `{${fmt}}`;
+    }
   }
   visitInfoLineExpr(expr: Info_line) {
     const { key, value } = expr;

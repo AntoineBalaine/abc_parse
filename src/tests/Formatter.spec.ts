@@ -227,3 +227,29 @@ w:     À vous di rai                                je ma       man | Ce qui ca
     }); */
   });
 });
+
+describe("Formatter: Stringify", () => {
+  describe("stringify grace groups", () => {
+    const sample = [
+      ["{b}c", "{b}c"],
+      ["{/b}c", "{/b}c"]
+    ];
+    sample.forEach(([input, expected]) => {
+      it(`should stringify ${input} into ${expected}`, () => {
+        const fmt = new AbcFormatter().stringify(buildParse(input));
+        assert.equal(removeTuneHeader(fmt).trim(), expected);
+      });
+    });
+  });
+  describe("stringify notes with ties", () => {
+    const sample = [
+      ["a-", "a-"],
+    ];
+    sample.forEach(([input, expected]) => {
+      it(`should stringify ${input} into ${expected}`, () => {
+        const fmt = new AbcFormatter().stringify(buildParse(input));
+        assert.equal(removeTuneHeader(fmt).trim(), expected);
+      });
+    });
+  });
+});
