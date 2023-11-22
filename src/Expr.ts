@@ -98,6 +98,10 @@ export class Info_line extends Expr {
       }
       result += tokens[index].lexeme;
     }
+    if (!tokens.length) {
+      this.value = [];
+      return;
+    }
     let value = Array<Token>();
     value.push(
       new Token(
