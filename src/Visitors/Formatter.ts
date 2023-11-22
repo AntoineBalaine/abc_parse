@@ -241,6 +241,12 @@ export class AbcFormatter implements Visitor<string> {
            * Last expr before EOL doesn't get correctly parsed if it's not a WS.
            *  || (onlyWSTillEnd(idx + 1, arr)) */) {
             return fmt;
+          } else if (
+            isToken(nextExpr) &&
+            (nextExpr.type === TokenType.EOL
+              || nextExpr.type === TokenType.EOF
+              || nextExpr.type === TokenType.ANTISLASH_EOL)) {
+            return fmt;
           } else {
             return fmt + " ";
           }
