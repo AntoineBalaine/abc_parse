@@ -1,25 +1,48 @@
 import { Token } from "./token";
-import { TokenType } from "./types";
+import { ParserErrorType, TokenType } from "./types";
 
-let hadError = false;
+type ErrorStorageEntry = { line: number, where: string, message: string, origin?: { type: ParserErrorType } };
+let errStorage: ErrorStorageEntry[] = [];
 
-export const getError = () => hadError;
-export const setError = (setter: boolean) => (hadError = setter);
+export const hasErrors = () => errStorage.length > 0;
+export const resetError = () => (errStorage = []);
+export const getErrors = () => errStorage;
+
+
 export const error = (line: number, message: string) => {
-  report(line, "", message);
+  return report(line, "", message);
 };
-export const report = (line: number, where: string, message: string) => {
-  setError(true);
-  console.error(`[line ${line}] Error ${where}: ${message}`);
+
+const report = (line: number, where: string, message: string, origin?: { type: ParserErrorType }) => {
+  errStorage.push({ line, where, message, origin });
+  const errMsg = stringifyError(line, where, message, origin);
+  return errMsg;
 };
+
+export function stringifyError(line: number, where: string, message: string, origin?: { type: ParserErrorType }) {
+  let errMsg = `[line ${line}] Error ${where}: ${message}`;
+  if (origin) {
+    if (origin.type === ParserErrorType.TUNE_BODY) {
+      errMsg = (`Tune Body Error:\n ${errMsg}\n`);
+    } else if (origin.type === ParserErrorType.TUNE_HEADER) {
+      errMsg = (`Tune Header Error:\n ${errMsg}\n`);
+    } else if (origin.type === ParserErrorType.FILE_HEADER) {
+      errMsg = (`File Header Error:\n ${errMsg}\n`);
+    }
+    else {
+      errMsg = (`File Structure error:\n ${errMsg}\n`);
+    }
+  }
+  return errMsg;
+}
 
 export const tokenError = (token: Token, message: string) => {
   if (token.type === TokenType.EOF) {
-    report(token.line, " at end", message);
+    return report(token.line, " at end", message);
   } else {
-    report(token.line, " at '" + token.lexeme + "'", message);
+    return report(token.line, " at '" + token.lexeme + "'", message);
   }
 };
-export const parserError = (token: Token, message: string) => {
-  report(token.line, `at pos.${token.position} - '${token.lexeme}'`, message);
+export const parserError = (token: Token, message: string, origin: ParserErrorType) => {
+  return report(token.line, `at pos.${token.position} - '${token.lexeme}'`, message, { type: origin });
 };

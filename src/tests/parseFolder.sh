@@ -3,6 +3,9 @@
 find "$1" -name "*.abc" | while read -r file;
 do
   # Run the pnpm start command with the file name
-  pnpm start "$file" 2>&1 | rg -i -q "error" && echo "found" && echo "$file" >> ./error.log
+  pnpm start "$file" >> ./error.log
+  # pnpm start "$file" 2>&1 | \
+  # rg -i -q ".*" && echo "found" && \
+  # echo "$file" >> ./error.log
 
 done

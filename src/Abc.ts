@@ -2,12 +2,10 @@ import { readFileSync } from "fs";
 import readline from "readline";
 import { Parser } from "./Parser";
 import { Scanner } from "./Scanner";
-import { getError, setError } from "./error";
-
-export let hadError = false;
+import { resetError } from "./error";
 
 const main = (args: string[]) => {
-  setError(false);
+  resetError();
   if (args.length > 1) {
     console.log("Usage: abc [script]");
     return;
@@ -22,11 +20,7 @@ function runFile(path: string) {
   const bytes = readFileSync(path, {
     encoding: "utf8",
   });
-  console.log("run ", path.substring(path.lastIndexOf("/")));
   run(bytes);
-  if (getError()) {
-    return;
-  }
 }
 
 function runPrompt() {
@@ -38,7 +32,7 @@ function runPrompt() {
   rl.prompt();
   rl.on("line", (line) => {
     run(line);
-    setError(false);
+    resetError();
     rl.prompt();
   });
 }
@@ -48,10 +42,6 @@ function run(source: string) {
   const parser = new Parser(scanner.scanTokens(), source);
   const expression = parser.parse();
 
-  if (hadError || getError() || !expression) {
-    console.log("\nhad error");
-    return;
-  }
   // const semanticTokensVisitor = new TokensVisitor();
   // const semanticTokens = semanticTokensVisitor.analyze(expression).tokens;
   // console.log("SemanticTokens: \n", semanticTokens);
