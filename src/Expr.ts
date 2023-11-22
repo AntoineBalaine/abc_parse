@@ -129,8 +129,8 @@ export class Lyric_section extends Expr {
   }
 }
 export class Tune_header extends Expr {
-  info_lines: Array<Info_line>;
-  constructor(info_lines: Array<Info_line>) {
+  info_lines: Array<Info_line | Comment>;
+  constructor(info_lines: Array<Info_line | Comment>) {
     super();
     this.info_lines = info_lines;
   }

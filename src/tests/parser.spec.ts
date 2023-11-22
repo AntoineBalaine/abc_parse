@@ -53,9 +53,12 @@ describe("Parser", () => {
         expect(result?.tune[0].tune_header.info_lines[0]).to.be.an.instanceof(
           Info_line
         );
-        expect(result?.tune[0].tune_header.info_lines[0].key.lexeme).to.equal(
-          "X:"
-        );
+        const infoLine = result?.tune[0].tune_header.info_lines[0];
+        if (isInfo_line(infoLine)) {
+          expect(infoLine.key.lexeme).to.equal(
+            "X:"
+          );
+        }
       });
       it("should parse info lines in header", () => {
         const result = buildParse("T:Test Song\n");
@@ -63,15 +66,21 @@ describe("Parser", () => {
         expect(result?.tune[0].tune_header.info_lines[0]).to.be.an.instanceof(
           Info_line
         );
-        expect(result?.tune[0].tune_header.info_lines[0].key.lexeme).to.equal(
-          "X:"
-        );
+        const infoLine1 = result?.tune[0].tune_header.info_lines[0];
+        if (isInfo_line(infoLine1)) {
+          expect(infoLine1.key.lexeme).to.equal(
+            "X:"
+          );
+        }
         expect(result?.tune[0].tune_header.info_lines[1]).to.be.an.instanceof(
           Info_line
         );
-        expect(result?.tune[0].tune_header.info_lines[1].key.lexeme).to.equal(
-          "T:"
-        );
+        const infoLine2 = result?.tune[0].tune_header.info_lines[1];
+        if (isInfo_line(infoLine2)) {
+          expect(infoLine2.key.lexeme).to.equal(
+            "T:"
+          );
+        }
       });
       it("should parse broken info line in header", () => {
         const result =
@@ -79,12 +88,18 @@ describe("Parser", () => {
         expect(result?.tune[0].tune_header.info_lines[1]).to.be.an.instanceof(
           Info_line
         );
-        expect(result?.tune[0].tune_header.info_lines[1].key.lexeme).to.equal(
-          "I:"
-        );
-        expect(
-          result?.tune[0].tune_header.info_lines[1].value[0].lexeme
-        ).to.equal("Some info here\n+:More info");
+        const infoLine1 = result?.tune[0].tune_header.info_lines[1];
+        if (isInfo_line(infoLine1)) {
+          expect(infoLine1.key.lexeme).to.equal(
+            "I:"
+          );
+        }
+        const infoLine2 = result?.tune[0].tune_header.info_lines[1];
+        if (isInfo_line(infoLine2)) {
+          expect(
+            infoLine2.value[0].lexeme
+          ).to.equal("Some info here\n+:More info");
+        }
       });
     });
   });
@@ -400,11 +415,29 @@ describe("Parser", () => {
           expect(comment.text).to.equal("%comment");
         }
       });
-      it("should figure out the correct position for comments", () => {
+      it("should parse stylesheet indications", () => {
+        const parse = buildParse("T:SOMETITLE\n%%gchordfont Verdana 20\nM:4/4\nabcde");
+        const comment = parse.tune[0].tune_header.info_lines[2];
+        if (isComment(comment)) {
+          expect(comment.text).to.equal("%%gchordfont Verdana 20");
+        }
+      });
+      const mixed_tune_header = `X:1
+T:After You've Gone
+%%gchordfont Verdana 20
+M:4/4
+L:1/8`;
 
+      it("should parse mixed tune headers", () => {
+        const parse = buildParse(mixed_tune_header);
+        const comment = parse.tune[0].tune_header.info_lines[2];
+        if (isComment(comment)) {
+          expect(comment.text).to.equal("%%comment");
+        }
+      });
+      it("should figure out the correct position for comments", () => {
         const comment = buildParse("A B\n%comment").tune[0].tune_body?.sequence[4];
         expect(comment).to.not.be.undefined;
-
         expect(comment).to.be.an.instanceof(Comment);
         if (isComment(comment)) {
           assert.equal(comment.token.type, TokenType.COMMENT);

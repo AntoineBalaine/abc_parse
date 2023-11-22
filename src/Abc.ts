@@ -2,12 +2,12 @@ import { readFileSync } from "fs";
 import readline from "readline";
 import { Parser } from "./Parser";
 import { Scanner } from "./Scanner";
-import { TokensVisitor } from "./Visitors/SemanticTokens";
 import { getError, setError } from "./error";
 
 export let hadError = false;
 
 const main = (args: string[]) => {
+  setError(false);
   if (args.length > 1) {
     console.log("Usage: abc [script]");
     return;
@@ -22,6 +22,7 @@ function runFile(path: string) {
   const bytes = readFileSync(path, {
     encoding: "utf8",
   });
+  console.log("run ", path.substring(path.lastIndexOf("/")));
   run(bytes);
   if (getError()) {
     return;
@@ -51,9 +52,9 @@ function run(source: string) {
     console.log("\nhad error");
     return;
   }
-  const semanticTokensVisitor = new TokensVisitor();
-  const semanticTokens = semanticTokensVisitor.analyze(expression).tokens;
-  console.log("SemanticTokens: \n", semanticTokens);
+  // const semanticTokensVisitor = new TokensVisitor();
+  // const semanticTokens = semanticTokensVisitor.analyze(expression).tokens;
+  // console.log("SemanticTokens: \n", semanticTokens);
 }
 
 main(process.argv.slice(2));

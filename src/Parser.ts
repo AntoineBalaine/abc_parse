@@ -111,9 +111,16 @@ export class Parser {
     while (!this.isAtEnd()) {
       if (this.peek().type === TokenType.LETTER_COLON) {
         info_lines.push(this.info_line());
+      } else if (this.peek().type === TokenType.COMMENT
+        || this.peek().type === TokenType.STYLESHEET_DIRECTIVE
+      ) {
+        info_lines.push(this.comment_line());
       } else if (
         this.peek().type === TokenType.EOL &&
-        this.peekNext().type === TokenType.LETTER_COLON
+        (this.peekNext().type === TokenType.LETTER_COLON
+          || this.peekNext().type === TokenType.COMMENT
+          || this.peekNext().type === TokenType.STYLESHEET_DIRECTIVE
+        )
       ) {
         this.advance();
       } else {
