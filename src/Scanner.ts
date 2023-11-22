@@ -357,7 +357,7 @@ export class Scanner {
   private addToken(type: TokenType, literal?: any | null) {
     const text = this.source.substring(this.start, this.current);
     let lineBreak =
-      this.line === 0 ? 0 : this.source.lastIndexOf("\n", this.current) + 1;
+      this.line === 0 ? 0 : this.source.lastIndexOf("\n", this.start) + 1;
 
     let charPos = this.start - lineBreak;
     this.tokens.push(
