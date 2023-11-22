@@ -139,6 +139,15 @@ describe("Scanner", () => {
       assert.equal(tokens[4].literal, null);
       assert.equal(tokens[4].line, 0);
     });
+    it("should figure out the correct position for comments", () => {
+      let scanner = new Scanner("A B\n%comment");
+      const tokens = scanner.scanTokens();
+      assert.equal(tokens[4].type, TokenType.COMMENT);
+      assert.equal(tokens[4].lexeme, "%comment");
+      assert.equal(tokens[4].literal, null);
+      assert.equal(tokens[4].line, 1);
+      assert.equal(tokens[4].position, 0);
+    });
   });
   describe("special cases", () => {
     it("should handle any ASCII charaters", () => {

@@ -5,6 +5,7 @@ import {
   BarLine,
   Beam,
   Chord,
+  Comment,
   Decoration,
   File_header,
   File_structure,
@@ -399,6 +400,20 @@ describe("Parser", () => {
           expect(comment.text).to.equal("%comment");
         }
       });
+      it("should figure out the correct position for comments", () => {
+
+        const comment = buildParse("A B\n%comment").tune[0].tune_body?.sequence[4];
+        expect(comment).to.not.be.undefined;
+
+        expect(comment).to.be.an.instanceof(Comment);
+        if (isComment(comment)) {
+          assert.equal(comment.token.type, TokenType.COMMENT);
+          assert.equal(comment.token.lexeme, "%comment");
+          assert.equal(comment.token.literal, null);
+          assert.equal(comment.token.line, 2);
+          assert.equal(comment.token.position, 0);
+        }
+      });
     });
   });
   describe("synchronize in case of error", () => {
@@ -409,5 +424,7 @@ describe("Parser", () => {
       }
     });
   });
+
+
 });
 

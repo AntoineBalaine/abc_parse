@@ -326,7 +326,7 @@ export class Parser {
 
     for (let i = 0; i < music_code.length; i++) {
       if (foundBeam(music_code, i)) {
-        while (!beamEnd(music_code, i)) {
+        while (!beamEnd(music_code, i) && i < music_code.length) {
           beam.push(music_code[i] as Beam_contents);
           i++;
         }
@@ -337,7 +337,9 @@ export class Parser {
         } else {
           updatedMusicCode.push(new Beam(beam));
           beam = [];
-          updatedMusicCode.push(music_code[i]);
+          if (i < music_code.length) {
+            updatedMusicCode.push(music_code[i]);
+          }
         }
       } else {
         updatedMusicCode.push(music_code[i]);

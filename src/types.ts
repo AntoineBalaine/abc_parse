@@ -58,11 +58,11 @@ export type Position = {
   /**
    * The zero-based line value.
    */
-  readonly line: number;
+  line: number;
   /**
    * The zero-based character value.
    */
-  readonly character: number;
+  character: number;
 };
 
 export type Range = {
@@ -70,10 +70,10 @@ export type Range = {
   /**
    * The start position. It is before or equal to [end](#Range.end).
    */
-  readonly start: Position;
+  start: Position;
 
   /**
    * The end position. It is after or equal to [start](#Range.start).
    */
-  readonly end: Position;
+  end: Position;
 };
