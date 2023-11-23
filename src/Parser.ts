@@ -1,4 +1,4 @@
-import { parserError } from "./error";
+import { AbcErrorReporter } from "./ErrorReporter";
 import {
   Annotation,
   BarLine,
@@ -36,12 +36,21 @@ export class Parser {
   private tokens: Array<Token>;
   private current = 0;
   private source = "";
-  constructor(tokens: Array<Token>, source?: string) {
+  private errorReporter: AbcErrorReporter;
+  constructor(tokens: Array<Token>, source?: string, errorReporter?: AbcErrorReporter) {
     this.tokens = tokens;
     if (source) {
       this.source = source;
     }
+    if (errorReporter) {
+      this.errorReporter = errorReporter;
+    } else {
+      this.errorReporter = new AbcErrorReporter();
+    }
   }
+  hasErrors = () => this.errorReporter.hasErrors();
+  resetErrors = () => this.errorReporter.resetErrors();
+  getErrors = () => this.errorReporter.getErrors();
 
   parse() {
     try {
@@ -720,9 +729,9 @@ export class Parser {
       const test = `${curLin}\n${" ".repeat(position)}^\n${" ".repeat(position)}${message}\n`;
       // add a caret under the token
       //const caret = " ".repeat(token.position) + "^"
-      errMsg = parserError(token, "\n" + test, origin);
+      errMsg = this.errorReporter.parserError(token, "\n" + test, origin);
     } else {
-      errMsg = parserError(token, message, origin);
+      errMsg = this.errorReporter.parserError(token, message, origin);
     }
 
     return new Error(errMsg);

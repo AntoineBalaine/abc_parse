@@ -2,10 +2,8 @@ import { readFileSync } from "fs";
 import readline from "readline";
 import { Parser } from "./Parser";
 import { Scanner } from "./Scanner";
-import { resetError } from "./error";
 
 const main = (args: string[]) => {
-  resetError();
   if (args.length > 1) {
     console.log("Usage: abc [script]");
     return;
@@ -32,7 +30,6 @@ function runPrompt() {
   rl.prompt();
   rl.on("line", (line) => {
     run(line);
-    resetError();
     rl.prompt();
   });
 }
