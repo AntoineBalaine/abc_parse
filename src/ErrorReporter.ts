@@ -1,7 +1,7 @@
 import { Token } from "./token";
 import { ParserErrorType, TokenType } from "./types";
 
-export type AbcError = { line: number, where: string, message: string, origin?: { type: ParserErrorType } };
+export type AbcError = { line: number, where: string, message: string, token: Token, origin?: { type: ParserErrorType } };
 
 export class AbcErrorReporter {
   private errors: AbcError[];
@@ -10,8 +10,8 @@ export class AbcErrorReporter {
     this.errors = [];
   }
 
-  private report = (line: number, where: string, message: string, origin?: { type: ParserErrorType }) => {
-    this.errors.push({ line, where, message, origin });
+  private report = (line: number, where: string, message: string, token: Token, origin?: { type: ParserErrorType }) => {
+    this.errors.push({ line, where, message, token, origin });
     const errMsg = this.stringifyError(line, where, message, origin);
     return errMsg;
   };
@@ -21,8 +21,8 @@ export class AbcErrorReporter {
   getErrors = () => this.errors;
 
 
-  ScannerError = (line: number, message: string) => {
-    return this.report(line, "", message);
+  ScannerError = (line: number, message: string, token: Token) => {
+    return this.report(line, "", message, token);
   };
 
 
@@ -45,14 +45,14 @@ export class AbcErrorReporter {
 
   tokenError = (token: Token, message: string) => {
     if (token.type === TokenType.EOF) {
-      return this.report(token.line, " at end", message);
+      return this.report(token.line, " at end", message, token);
     } else {
-      return this.report(token.line, " at '" + token.lexeme + "'", message);
+      return this.report(token.line, " at '" + token.lexeme + "'", message, token);
     }
   };
 
   parserError = (token: Token, message: string, origin: ParserErrorType) => {
-    return this.report(token.line, `at pos.${token.position} - '${token.lexeme}'`, message, { type: origin });
+    return this.report(token.line, `at pos.${token.position} - '${token.lexeme}'`, message, token, { type: origin });
   };
 
 }
