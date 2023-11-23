@@ -19,14 +19,16 @@ import {
   Rest,
   Symbol,
   Tune_header,
+  Voice_overlay,
   YSPACER
 } from "../Expr";
 import { Parser } from "../Parser";
 import { Scanner } from "../Scanner";
-import { isAnnotation, isBarLine, isBeam, isChord, isComment, isGraceGroup, isInfo_line, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isPitch, isRest, isRhythm, isSymbol, isToken, isYSPACER } from "../helpers";
+import { AbcFormatter } from "../Visitors/Formatter";
+import { isAnnotation, isBarLine, isBeam, isChord, isComment, isGraceGroup, isInfo_line, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isPitch, isRest, isRhythm, isSymbol, isToken, isVoice_overlay, isYSPACER } from "../helpers";
 import { Token } from "../token";
 import { TokenType } from "../types";
-import { buildParse } from "./RhythmTransform.spec";
+import { buildParse, tuneHeader } from "./RhythmTransform.spec";
 const expect = chai.expect;
 
 describe("Parser", () => {
@@ -53,9 +55,12 @@ describe("Parser", () => {
         expect(result?.tune[0].tune_header.info_lines[0]).to.be.an.instanceof(
           Info_line
         );
-        expect(result?.tune[0].tune_header.info_lines[0].key.lexeme).to.equal(
-          "X:"
-        );
+        const infoLine = result?.tune[0].tune_header.info_lines[0];
+        if (isInfo_line(infoLine)) {
+          expect(infoLine.key.lexeme).to.equal(
+            "X:"
+          );
+        }
       });
       it("should parse info lines in header", () => {
         const result = buildParse("T:Test Song\n");
@@ -63,15 +68,21 @@ describe("Parser", () => {
         expect(result?.tune[0].tune_header.info_lines[0]).to.be.an.instanceof(
           Info_line
         );
-        expect(result?.tune[0].tune_header.info_lines[0].key.lexeme).to.equal(
-          "X:"
-        );
+        const infoLine1 = result?.tune[0].tune_header.info_lines[0];
+        if (isInfo_line(infoLine1)) {
+          expect(infoLine1.key.lexeme).to.equal(
+            "X:"
+          );
+        }
         expect(result?.tune[0].tune_header.info_lines[1]).to.be.an.instanceof(
           Info_line
         );
-        expect(result?.tune[0].tune_header.info_lines[1].key.lexeme).to.equal(
-          "T:"
-        );
+        const infoLine2 = result?.tune[0].tune_header.info_lines[1];
+        if (isInfo_line(infoLine2)) {
+          expect(infoLine2.key.lexeme).to.equal(
+            "T:"
+          );
+        }
       });
       it("should parse broken info line in header", () => {
         const result =
@@ -79,12 +90,18 @@ describe("Parser", () => {
         expect(result?.tune[0].tune_header.info_lines[1]).to.be.an.instanceof(
           Info_line
         );
-        expect(result?.tune[0].tune_header.info_lines[1].key.lexeme).to.equal(
-          "I:"
-        );
-        expect(
-          result?.tune[0].tune_header.info_lines[1].value[0].lexeme
-        ).to.equal("Some info here\n+:More info");
+        const infoLine1 = result?.tune[0].tune_header.info_lines[1];
+        if (isInfo_line(infoLine1)) {
+          expect(infoLine1.key.lexeme).to.equal(
+            "I:"
+          );
+        }
+        const infoLine2 = result?.tune[0].tune_header.info_lines[1];
+        if (isInfo_line(infoLine2)) {
+          expect(
+            infoLine2.value[0].lexeme
+          ).to.equal("Some info here\n+:More info");
+        }
       });
     });
   });
@@ -111,6 +128,13 @@ describe("Parser", () => {
                 expect(firstNote.tie).to.be.true;
               }
             }
+          }
+        });
+        it("should parse voice overlay", () => {
+          const musicCode = buildParse("&&&").tune[0].tune_body?.sequence[0];
+          expect(musicCode).to.be.an.instanceof(Voice_overlay);
+          if (isVoice_overlay(musicCode)) {
+            expect(musicCode.contents[0].lexeme).to.equal("&");
           }
         });
         it("should parse octave", () => {
@@ -164,16 +188,23 @@ describe("Parser", () => {
               }
             }
           });
-          it("should parse broken rhythm", () => {
-            const musicCode = buildParse("C>>").tune[0].tune_body?.sequence[0];
-            expect(musicCode).to.be.an.instanceof(Note);
-            if (isNote(musicCode) && isPitch(musicCode.pitch)) {
-              expect(musicCode.rhythm).to.exist;
-              if (isRhythm(musicCode.rhythm)) {
-                expect(musicCode.rhythm.broken).to.exist;
-                expect(musicCode.rhythm.broken?.lexeme).to.equal(">>");
-              }
-            }
+          describe("should parse broken rhythm", () => {
+            const cases = [
+              ["C>>", ">>"],
+              ["C<<", "<<"]];
+            cases.forEach(([input, expected]) => {
+              it(`should find broken rhythm ${expected} in ${input}`, () => {
+                const musicCode = buildParse(input).tune[0].tune_body?.sequence[0];
+                expect(musicCode).to.be.an.instanceof(Note);
+                if (isNote(musicCode) && isPitch(musicCode.pitch)) {
+                  expect(musicCode.rhythm).to.exist;
+                  if (isRhythm(musicCode.rhythm)) {
+                    expect(musicCode.rhythm.broken).to.exist;
+                    expect(musicCode.rhythm.broken?.lexeme).to.equal(expected);
+                  }
+                }
+              });
+            });
           });
           it("should parse broken rhythm with number", () => {
             const musicCode = buildParse("C2>").tune[0].tune_body?.sequence[0];
@@ -400,11 +431,29 @@ describe("Parser", () => {
           expect(comment.text).to.equal("%comment");
         }
       });
-      it("should figure out the correct position for comments", () => {
+      it("should parse stylesheet indications", () => {
+        const parse = buildParse("T:SOMETITLE\n%%gchordfont Verdana 20\nM:4/4\nabcde");
+        const comment = parse.tune[0].tune_header.info_lines[2];
+        if (isComment(comment)) {
+          expect(comment.text).to.equal("%%gchordfont Verdana 20");
+        }
+      });
+      const mixed_tune_header = `X:1
+T:After You've Gone
+%%gchordfont Verdana 20
+M:4/4
+L:1/8`;
 
+      it("should parse mixed tune headers", () => {
+        const parse = buildParse(mixed_tune_header);
+        const comment = parse.tune[0].tune_header.info_lines[2];
+        if (isComment(comment)) {
+          expect(comment.text).to.equal("%%comment");
+        }
+      });
+      it("should figure out the correct position for comments", () => {
         const comment = buildParse("A B\n%comment").tune[0].tune_body?.sequence[4];
         expect(comment).to.not.be.undefined;
-
         expect(comment).to.be.an.instanceof(Comment);
         if (isComment(comment)) {
           assert.equal(comment.token.type, TokenType.COMMENT);
@@ -412,6 +461,20 @@ describe("Parser", () => {
           assert.equal(comment.token.literal, null);
           assert.equal(comment.token.line, 2);
           assert.equal(comment.token.position, 0);
+        }
+      });
+      it("should survive a bang in middle of an info line", () => {
+        const input = "T: TEST: ABC2WIN ! in middle of line.\n";
+        const parse = buildParse(input);
+        const info_line = parse.tune[0].tune_header.info_lines[0];
+        // expect there to be only 1 info line.
+        // expect the info line to correspond to the input string, without its last line break
+        expect(info_line).to.not.be.undefined;
+        expect(info_line).to.be.an.instanceof(Info_line);
+        if (isInfo_line(info_line)) {
+          const fmt = new AbcFormatter().stringify(parse);
+          const tune_head = tuneHeader(input);
+          assert.equal(fmt.substring(0, tune_head.length - 1), tune_head.substring(0, tune_head.length - 1));
         }
       });
     });

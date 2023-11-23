@@ -26,6 +26,7 @@ describe("Scanner", () => {
   describe("individual tokens", () => {
     testBuilder("APOSTROPHE", "'", TokenType.APOSTROPHE);
     testBuilder("ANTISLASH_EOL", "\\\n", TokenType.ANTISLASH_EOL);
+    testBuilder("AMPERSAND", "&", TokenType.AMPERSAND);
     testBuilder("BARLINE", "|", TokenType.BARLINE);
     testBuilder("BAR_COLON", "|:", TokenType.BAR_COLON);
     testBuilder("BAR_DBL", "||", TokenType.BAR_DBL);

@@ -26,6 +26,7 @@ import {
   Tune_Body,
   Tune_header,
   Visitor,
+  Voice_overlay,
   YSPACER,
   music_code,
   tune_body_code
@@ -306,6 +307,14 @@ export class RhythmVisitor implements Visitor<Expr> {
     return expr;
   };
   visitTuneHeaderExpr(expr: Tune_header): Tune_header { return expr; };
+
+  visitVoiceOverlayExpr(expr: Voice_overlay): Voice_overlay {
+    if (this.isInRange(expr)) {
+      this.updateChanges([expr]);
+    }
+    return expr;
+  }
+
   visitYSpacerExpr(expr: YSPACER): YSPACER {
     if (this.isInRange(expr)) {
       this.updateChanges([expr]);

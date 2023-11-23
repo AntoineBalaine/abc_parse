@@ -25,6 +25,7 @@ import {
   Tune_Body,
   Tune_header,
   Visitor,
+  Voice_overlay,
   YSPACER,
   music_code,
   tune_body_code,
@@ -147,6 +148,11 @@ export class Cloner implements Visitor<Expr | Token> {
   visitTuneHeaderExpr(expr: Tune_header): Tune_header {
     let newInfo_lines: Array<Info_line> = expr.info_lines.map((e) => (e.accept(this) as Info_line));
     return new Tune_header(newInfo_lines);
+  }
+  visitVoiceOverlayExpr(expr: Voice_overlay) {
+    let newAmpersands = expr.contents
+      .map((token) => cloneToken(token));
+    return new Voice_overlay(newAmpersands);
   }
   visitYSpacerExpr(expr: YSPACER): YSPACER {
     let newNumber: Token | undefined = expr.number ? cloneToken(expr.number) : undefined;

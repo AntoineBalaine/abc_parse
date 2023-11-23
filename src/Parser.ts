@@ -1,4 +1,4 @@
-import { parserError } from "./error";
+import { AbcErrorReporter } from "./ErrorReporter";
 import {
   Annotation,
   BarLine,
@@ -25,27 +25,38 @@ import {
   Tune_Body,
   tune_body_code,
   Tune_header,
+  Voice_overlay,
   YSPACER
 } from "./Expr";
 import { beamEnd, foundBeam, isChord, isNote } from "./helpers";
 import { Token } from "./token";
-import { TokenType } from "./types";
+import { ParserErrorType, TokenType } from "./types";
 
 export class Parser {
   private tokens: Array<Token>;
   private current = 0;
   private source = "";
-  constructor(tokens: Array<Token>, source?: string) {
+  private errorReporter: AbcErrorReporter;
+  constructor(tokens: Array<Token>, source?: string, errorReporter?: AbcErrorReporter) {
     this.tokens = tokens;
     if (source) {
       this.source = source;
     }
+    if (errorReporter) {
+      this.errorReporter = errorReporter;
+    } else {
+      this.errorReporter = new AbcErrorReporter();
+    }
   }
+  hasErrors = () => this.errorReporter.hasErrors();
+  resetErrors = () => this.errorReporter.resetErrors();
+  getErrors = () => this.errorReporter.getErrors();
 
   parse() {
     try {
       return this.file_structure();
-    } catch {
+    } catch (err: any) {
+      console.error(err);
       return null;
     }
   }
@@ -61,8 +72,12 @@ export class Parser {
         tunes.push(this.tune());
       } else if (pkd.type === TokenType.EOF) {
         break;
+        /**accomodate cases where WS and empty lines follow end of a tune */
+      } else if (pkd.type === TokenType.WHITESPACE || pkd.type === TokenType.EOL) {
+        this.advance();
+        continue;
       } else {
-        throw this.error(this.peek(), "Expected a tune or file header");
+        throw this.error(this.peek(), "Expected a tune or file header", ParserErrorType.FILE_HEADER);
       }
     }
     return new File_structure(file_header, tunes);
@@ -111,9 +126,16 @@ export class Parser {
     while (!this.isAtEnd()) {
       if (this.peek().type === TokenType.LETTER_COLON) {
         info_lines.push(this.info_line());
+      } else if (this.peek().type === TokenType.COMMENT
+        || this.peek().type === TokenType.STYLESHEET_DIRECTIVE
+      ) {
+        info_lines.push(this.comment_line());
       } else if (
         this.peek().type === TokenType.EOL &&
-        this.peekNext().type === TokenType.LETTER_COLON
+        (this.peekNext().type === TokenType.LETTER_COLON
+          || this.peekNext().type === TokenType.COMMENT
+          || this.peekNext().type === TokenType.STYLESHEET_DIRECTIVE
+        )
       ) {
         this.advance();
       } else {
@@ -151,7 +173,7 @@ export class Parser {
       // check for info line
       // check for music_code
       try {
-        if (this.peek().type === TokenType.COMMENT) {
+        if (this.peek().type === TokenType.COMMENT || this.peek().type === TokenType.STYLESHEET_DIRECTIVE) {
           elements.push(this.comment_line());
         } else if (this.peek().type === TokenType.LETTER_COLON) {
           elements.push(this.info_line());
@@ -165,7 +187,8 @@ export class Parser {
         } else if (this.peek().type === TokenType.EOL) {
           break;
         }
-      } catch {
+      } catch (err: any) {
+        console.error(err.message);
         this.synchronize();
       }
     }
@@ -200,6 +223,14 @@ export class Parser {
         contents.push(curTokn);
         this.advance();
         break;
+      case TokenType.AMPERSAND:
+        let ampersands = [];
+        while (this.peek().type === TokenType.AMPERSAND) {
+          ampersands.push(this.peek());
+          this.advance();
+        }
+        contents.push(this.voice_overlay(ampersands));
+        break;
       case TokenType.BARLINE:
       case TokenType.BAR_COLON:
       case TokenType.BAR_DBL:
@@ -229,7 +260,7 @@ export class Parser {
             "\nline " +
             curTokn.line +
             "\n decorations should be followed by a note"
-          );
+            , ParserErrorType.TUNE_BODY);
         }
         break;
       case TokenType.FLAT:
@@ -305,14 +336,17 @@ export class Parser {
         } else if (this.isRest()) {
           contents.push(this.parse_note());
         } else {
-          throw this.error(curTokn, "Unexpected token after letter");
+          throw this.error(curTokn, "Unexpected token after letter", ParserErrorType.TUNE_BODY);
         }
         break;
       default:
-        throw this.error(curTokn, "Unexpected token in music code");
+        throw this.error(curTokn, "Unexpected token in music code", ParserErrorType.TUNE_BODY);
     }
 
     return new Music_code(contents);
+  }
+  voice_overlay(ampersands: Token[]): Voice_overlay {
+    return new Voice_overlay(ampersands);
   }
   /**
    * iterate the music code
@@ -524,7 +558,7 @@ export class Parser {
     } else if (this.isRest()) {
       note = { pitchOrRest: this.rest() };
     } else {
-      throw this.error(this.peek(), "Unexpected token in note");
+      throw this.error(this.peek(), "Unexpected token in note", ParserErrorType.TUNE_BODY);
     }
 
     if (!this.isAtEnd() && this.isRhythm()) {
@@ -544,7 +578,7 @@ export class Parser {
       rest = this.peek();
       this.advance();
     } else {
-      throw this.error(this.peek(), "Unexpected token in rest");
+      throw this.error(this.peek(), "Unexpected token in rest", ParserErrorType.TUNE_BODY);
     }
     return new Rest(rest);
   }
@@ -556,7 +590,7 @@ export class Parser {
       rest = this.peek();
       this.advance();
     } else {
-      throw this.error(this.peek(), "Unexpected token in multi measure rest");
+      throw this.error(this.peek(), "Unexpected token in multi measure rest", ParserErrorType.TUNE_BODY);
     }
     if (this.peek().type === TokenType.NUMBER) {
       length = this.peek();
@@ -608,7 +642,13 @@ export class Parser {
         return new Rhythm(firstNum)
       } */
       // broken rhythm
+    } else if (!(
+      this.peek().type === TokenType.GREATER ||
+      this.peek().type === TokenType.LESS
+    )) {
+      throw this.error(this.peek(), "Unexpected token in rhythm", ParserErrorType.TUNE_BODY);
     }
+
     if (
       this.peek().type === TokenType.GREATER ||
       this.peek().type === TokenType.LESS
@@ -634,7 +674,7 @@ export class Parser {
     token.lexeme = comment;
     return new Comment(comment, token);
   }
-  // TODO integrate in the file structure
+  // TODO integrate in the file structure
   private lyric_section() {
     const lyric_section = [];
     while (
@@ -665,7 +705,7 @@ export class Parser {
       //new NoteLetter
       noteLetter = this.previous();
     } else {
-      throw this.error(this.peek(), "Expected a note letter");
+      throw this.error(this.peek(), "Expected a note letter", ParserErrorType.TUNE_BODY);
     }
     if (this.match(TokenType.COMMA, TokenType.APOSTROPHE)) {
       octave = this.previous();
@@ -677,22 +717,24 @@ export class Parser {
     if (this.check(type)) {
       return this.advance();
     }
-    throw this.error(this.peek(), message);
+    throw this.error(this.peek(), message, ParserErrorType.UNKNOWN);
   }
 
-  private error(token: Token, message: string): Error {
+  private error(token: Token, message: string, origin: ParserErrorType): Error {
+    let errMsg: string;
     // get the currentline
     if (this.source) {
-      const curLin = this.source.substring(0).split("\n")[token.line - 1]; //TODO double check now that lines are 0-indexed
-      const test = `${curLin}\n` + " ".repeat(token.position) + "^";
+      const curLin = this.source.substring(0).split("\n")[token.line]; //TODO double check now that lines are 0-indexed
+      const position = token.position >= 0 ? token.position : 0;
+      const test = `${curLin}\n${" ".repeat(position)}^\n${" ".repeat(position)}${message}\n`;
       // add a caret under the token
       //const caret = " ".repeat(token.position) + "^"
-      parserError(token, message + "\n" + test);
+      errMsg = this.errorReporter.parserError(token, "\n" + test, origin);
     } else {
-      parserError(token, message);
+      errMsg = this.errorReporter.parserError(token, message, origin);
     }
 
-    return new Error();
+    return new Error(errMsg);
   }
 
   private synchronize() {
@@ -700,7 +742,13 @@ export class Parser {
     while (!this.isAtEnd()) {
       if (
         this.previous().type === TokenType.EOL ||
-        this.previous().type === TokenType.BARLINE
+        this.previous().type === TokenType.BARLINE ||
+        this.previous().type === TokenType.BAR_COLON || // |:
+        this.previous().type === TokenType.BAR_DBL || // ||
+        this.previous().type === TokenType.BAR_DIGIT || // |1
+        this.previous().type === TokenType.BAR_RIGHTBRKT || // |]
+        this.previous().type === TokenType.COLON_BAR || // :|
+        this.previous().type === TokenType.COLON_BAR_DIGIT // :|1
       ) {
         return;
       }

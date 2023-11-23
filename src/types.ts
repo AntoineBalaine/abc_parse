@@ -1,6 +1,7 @@
 export enum TokenType {
   APOSTROPHE,
   ANTISLASH_EOL,
+  AMPERSAND, // &
   BARLINE, //|
   BAR_COLON, // |:
   BAR_DBL, // ||
@@ -77,3 +78,10 @@ export type Range = {
    */
   end: Position;
 };
+
+export enum ParserErrorType {
+  TUNE_BODY,
+  TUNE_HEADER,
+  FILE_HEADER,
+  UNKNOWN
+}

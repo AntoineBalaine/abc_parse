@@ -26,6 +26,8 @@ export interface Visitor<R> {
   visitTuneHeaderExpr(expr: Tune_header): R;
   visitYSpacerExpr(expr: YSPACER): R;
   visitBeamExpr(expr: Beam): R;
+  visitVoiceOverlayExpr(expr: Voice_overlay): R;
+
 }
 
 export abstract class Expr {
@@ -98,6 +100,10 @@ export class Info_line extends Expr {
       }
       result += tokens[index].lexeme;
     }
+    if (!tokens.length) {
+      this.value = [];
+      return;
+    }
     let value = Array<Token>();
     value.push(
       new Token(
@@ -129,8 +135,8 @@ export class Lyric_section extends Expr {
   }
 }
 export class Tune_header extends Expr {
-  info_lines: Array<Info_line>;
-  constructor(info_lines: Array<Info_line>) {
+  info_lines: Array<Info_line | Comment>;
+  constructor(info_lines: Array<Info_line | Comment>) {
     super();
     this.info_lines = info_lines;
   }
@@ -183,6 +189,17 @@ export class Rhythm extends Expr {
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitRhythmExpr(this);
+  }
+}
+
+export class Voice_overlay extends Expr {
+  contents: Array<Token>;
+  constructor(contents: Array<Token>) {
+    super();
+    this.contents = contents;
+  }
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitVoiceOverlayExpr(this);
   }
 }
 

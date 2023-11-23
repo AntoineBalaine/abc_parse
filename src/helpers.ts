@@ -19,6 +19,7 @@ import {
   Rhythm,
   Symbol,
   Tune_Body,
+  Voice_overlay,
   YSPACER,
   music_code
 } from './Expr';
@@ -78,7 +79,7 @@ export const isRest = (expr: Expr | undefined | Token): expr is Rest => {
 export const isToken = (expr: Expr | undefined | Token): expr is Token => {
   return expr instanceof Token;
 };
-export const isInfo_line = (expr: Expr | undefined | Token): expr is Info_line => {
+export const isInfo_line = (expr: unknown): expr is Info_line => {
   return expr instanceof Info_line;
 };
 export function isYSPACER(expr: Expr | Token): expr is YSPACER {
@@ -89,6 +90,9 @@ export function isSlurToken(expr: Expr | Token) {
 }
 export function isTune_Body(expr: Expr): expr is Tune_Body {
   return expr instanceof Tune_Body;
+}
+export function isVoice_overlay(expr: unknown): expr is Voice_overlay {
+  return expr instanceof Voice_overlay;
 }
 
 export const mergeTokens = (tokens: Token[]) => {

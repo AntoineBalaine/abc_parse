@@ -1,4 +1,4 @@
-import { error } from "./error";
+import { AbcErrorReporter } from "./ErrorReporter";
 import { Token } from "./token";
 import { TokenType } from "./types";
 
@@ -8,9 +8,19 @@ export class Scanner {
   private start = 0;
   private current = 0;
   private line = 0;
-  constructor(source: string) {
+  private errorReporter: AbcErrorReporter;
+  constructor(source: string, errorReporter?: AbcErrorReporter) {
     this.source = source;
+    if (errorReporter) {
+      this.errorReporter = errorReporter;
+    } else {
+      this.errorReporter = new AbcErrorReporter();
+    }
   }
+
+  hasErrors = () => this.errorReporter.hasErrors();
+  resetErrors = () => this.errorReporter.resetErrors();
+  getErrors = () => this.errorReporter.getErrors();
 
   scanTokens = (): Array<Token> => {
     while (!this.isAtEnd()) {
@@ -31,8 +41,11 @@ export class Scanner {
           this.advance();
           this.addToken(TokenType.ANTISLASH_EOL);
         } else {
-          error(this.line, this.errorMessage("expected an end of line"));
+          this.errorReporter.ScannerError(this.line, this.errorMessage("expected an end of line"));
         }
+        break;
+      case "&":
+        this.addToken(TokenType.AMPERSAND);
         break;
       case "'":
         while (this.peek() === "'" && !this.isAtEnd()) {
@@ -251,7 +264,7 @@ export class Scanner {
           this.addToken(TokenType.RESERVED_CHAR);
         } else {
           const curLine = this.source.split("\n")[this.line];
-          error(this.line, this.errorMessage(c));
+          this.errorReporter.ScannerError(this.line, this.errorMessage(c));
         }
         break;
     }
@@ -291,7 +304,7 @@ export class Scanner {
       this.advance();
     }
     if (this.isAtEnd()) {
-      error(this.line, this.errorMessage("Unterminated string"));
+      this.errorReporter.ScannerError(this.line, this.errorMessage("Unterminated string"));
       return;
     }
     // the closing ".
