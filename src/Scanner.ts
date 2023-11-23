@@ -41,7 +41,7 @@ export class Scanner {
           this.advance();
           this.addToken(TokenType.ANTISLASH_EOL);
         } else {
-          this.errorReporter.ScannerError(this.line, this.errorMessage("expected an end of line"));
+          this.errorReporter.ScannerError(this.line, this.errorMessage("expected an end of line"), this.createToken(TokenType.STRING));
         }
         break;
       case "&":
@@ -264,7 +264,7 @@ export class Scanner {
           this.addToken(TokenType.RESERVED_CHAR);
         } else {
           const curLine = this.source.split("\n")[this.line];
-          this.errorReporter.ScannerError(this.line, this.errorMessage(c));
+          this.errorReporter.ScannerError(this.line, this.errorMessage(c), this.createToken(TokenType.STRING));
         }
         break;
     }
@@ -304,7 +304,7 @@ export class Scanner {
       this.advance();
     }
     if (this.isAtEnd()) {
-      this.errorReporter.ScannerError(this.line, this.errorMessage("Unterminated string"));
+      this.errorReporter.ScannerError(this.line, this.errorMessage("Unterminated string"), this.createToken(TokenType.EOF));
       return;
     }
     // the closing ".
@@ -367,14 +367,19 @@ export class Scanner {
     return this.source.charAt(this.current++);
   }
 
-  private addToken(type: TokenType, literal?: any | null) {
+  private createToken(type: TokenType, literal?: any | null) {
     const text = this.source.substring(this.start, this.current);
     let lineBreak =
       this.line === 0 ? 0 : this.source.lastIndexOf("\n", this.start) + 1;
 
     let charPos = this.start - lineBreak;
+    const token = new Token(type, text, literal || null, this.line, charPos);
+    return token;
+  }
+
+  private addToken(type: TokenType, literal?: any | null) {
     this.tokens.push(
-      new Token(type, text, literal || null, this.line, charPos)
+      this.createToken(type, literal)
     );
   }
 }
