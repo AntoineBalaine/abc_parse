@@ -1,10 +1,10 @@
 import { Token } from "./token";
 import { ParserErrorType, TokenType } from "./types";
 
-type ErrorStorageEntry = { line: number, where: string, message: string, origin?: { type: ParserErrorType } };
+export type AbcError = { line: number, where: string, message: string, origin?: { type: ParserErrorType } };
 
 export class AbcErrorReporter {
-  private errors: ErrorStorageEntry[];
+  private errors: AbcError[];
 
   constructor() {
     this.errors = [];
