@@ -79,7 +79,7 @@ export const isRest = (expr: Expr | undefined | Token): expr is Rest => {
 export const isToken = (expr: Expr | undefined | Token): expr is Token => {
   return expr instanceof Token;
 };
-export const isInfo_line = (expr: Expr | undefined | Token): expr is Info_line => {
+export const isInfo_line = (expr: unknown): expr is Info_line => {
   return expr instanceof Info_line;
 };
 export function isYSPACER(expr: Expr | Token): expr is YSPACER {

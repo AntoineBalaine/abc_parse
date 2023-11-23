@@ -24,10 +24,11 @@ import {
 } from "../Expr";
 import { Parser } from "../Parser";
 import { Scanner } from "../Scanner";
+import { AbcFormatter } from "../Visitors/Formatter";
 import { isAnnotation, isBarLine, isBeam, isChord, isComment, isGraceGroup, isInfo_line, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isPitch, isRest, isRhythm, isSymbol, isToken, isVoice_overlay, isYSPACER } from "../helpers";
 import { Token } from "../token";
 import { TokenType } from "../types";
-import { buildParse } from "./RhythmTransform.spec";
+import { buildParse, tuneHeader } from "./RhythmTransform.spec";
 const expect = chai.expect;
 
 describe("Parser", () => {
@@ -460,6 +461,20 @@ L:1/8`;
           assert.equal(comment.token.literal, null);
           assert.equal(comment.token.line, 2);
           assert.equal(comment.token.position, 0);
+        }
+      });
+      it("should survive a bang in middle of an info line", () => {
+        const input = "T: TEST: ABC2WIN ! in middle of line.\n";
+        const parse = buildParse(input);
+        const info_line = parse.tune[0].tune_header.info_lines[0];
+        // expect there to be only 1 info line.
+        // expect the info line to correspond to the input string, without its last line break
+        expect(info_line).to.not.be.undefined;
+        expect(info_line).to.be.an.instanceof(Info_line);
+        if (isInfo_line(info_line)) {
+          const fmt = new AbcFormatter().stringify(parse);
+          const tune_head = tuneHeader(input);
+          assert.equal(fmt.substring(0, tune_head.length - 1), tune_head.substring(0, tune_head.length - 1));
         }
       });
     });
