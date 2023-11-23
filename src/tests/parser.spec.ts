@@ -19,11 +19,12 @@ import {
   Rest,
   Symbol,
   Tune_header,
+  Voice_overlay,
   YSPACER
 } from "../Expr";
 import { Parser } from "../Parser";
 import { Scanner } from "../Scanner";
-import { isAnnotation, isBarLine, isBeam, isChord, isComment, isGraceGroup, isInfo_line, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isPitch, isRest, isRhythm, isSymbol, isToken, isYSPACER } from "../helpers";
+import { isAnnotation, isBarLine, isBeam, isChord, isComment, isGraceGroup, isInfo_line, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isPitch, isRest, isRhythm, isSymbol, isToken, isVoice_overlay, isYSPACER } from "../helpers";
 import { Token } from "../token";
 import { TokenType } from "../types";
 import { buildParse } from "./RhythmTransform.spec";
@@ -126,6 +127,13 @@ describe("Parser", () => {
                 expect(firstNote.tie).to.be.true;
               }
             }
+          }
+        });
+        it("should parse voice overlay", () => {
+          const musicCode = buildParse("&&&").tune[0].tune_body?.sequence[0];
+          expect(musicCode).to.be.an.instanceof(Voice_overlay);
+          if (isVoice_overlay(musicCode)) {
+            expect(musicCode.contents[0].lexeme).to.equal("&");
           }
         });
         it("should parse octave", () => {

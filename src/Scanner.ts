@@ -34,6 +34,9 @@ export class Scanner {
           error(this.line, this.errorMessage("expected an end of line"));
         }
         break;
+      case "&":
+        this.addToken(TokenType.AMPERSAND);
+        break;
       case "'":
         while (this.peek() === "'" && !this.isAtEnd()) {
           this.advance();

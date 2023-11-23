@@ -24,6 +24,7 @@ import {
   Tune_Body,
   Tune_header,
   Visitor,
+  Voice_overlay,
   YSPACER,
 } from "../Expr";
 import { isBeam, isToken, isWS } from "../helpers";
@@ -265,6 +266,12 @@ export class AbcFormatter implements Visitor<string> {
   visitTuneHeaderExpr(expr: Tune_header) {
     return expr.info_lines
       .map((infoLine): string => infoLine.accept(this))
+      .join("");
+  }
+
+  visitVoiceOverlayExpr(expr: Voice_overlay) {
+    return expr.contents
+      .map((token): string => (token.lexeme))
       .join("");
   }
   visitYSpacerExpr(expr: YSPACER) {

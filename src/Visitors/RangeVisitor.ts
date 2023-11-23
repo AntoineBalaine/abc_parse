@@ -23,6 +23,7 @@ import {
   Tune_Body,
   Tune_header,
   Visitor,
+  Voice_overlay,
   YSPACER
 } from "../Expr";
 import { getTokenRange, isToken, reduceRanges } from "../helpers";
@@ -159,6 +160,11 @@ export class RangeVisitor implements Visitor<Range> {
   }
   visitTuneHeaderExpr(expr: Tune_header): Range {
     return expr.info_lines.map(e => (e.accept(this)))
+      .reduce(reduceRanges, <Range>{});
+  }
+  visitVoiceOverlayExpr(expr: Voice_overlay): Range {
+    return expr.contents
+      .map(e => (getTokenRange(e)))
       .reduce(reduceRanges, <Range>{});
   }
   visitYSpacerExpr(expr: YSPACER): Range {

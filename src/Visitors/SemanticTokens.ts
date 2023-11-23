@@ -23,6 +23,7 @@ import {
   Tune_Body,
   Tune_header,
   Visitor,
+  Voice_overlay,
   YSPACER,
   music_code,
 } from "../Expr";
@@ -180,6 +181,11 @@ export class TokensVisitor implements Visitor<void> {
     if (e.tune_body) {
       e.tune_body.accept(this);
     }
+  }
+  visitVoiceOverlayExpr(expr: Voice_overlay) {
+    expr.contents.forEach((element) => {
+      this.tokens.push(element);
+    });
   }
   visitYSpacerExpr(e: YSPACER) {
     this.tokens.push(e.ySpacer);

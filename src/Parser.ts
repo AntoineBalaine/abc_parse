@@ -25,6 +25,7 @@ import {
   Tune_Body,
   tune_body_code,
   Tune_header,
+  Voice_overlay,
   YSPACER
 } from "./Expr";
 import { beamEnd, foundBeam, isChord, isNote } from "./helpers";
@@ -213,6 +214,14 @@ export class Parser {
         contents.push(curTokn);
         this.advance();
         break;
+      case TokenType.AMPERSAND:
+        let ampersands = [];
+        while (this.peek().type === TokenType.AMPERSAND) {
+          ampersands.push(this.peek());
+          this.advance();
+        }
+        contents.push(this.voice_overlay(ampersands));
+        break;
       case TokenType.BARLINE:
       case TokenType.BAR_COLON:
       case TokenType.BAR_DBL:
@@ -326,6 +335,9 @@ export class Parser {
     }
 
     return new Music_code(contents);
+  }
+  voice_overlay(ampersands: Token[]): Voice_overlay {
+    return new Voice_overlay(ampersands);
   }
   /**
    * iterate the music code

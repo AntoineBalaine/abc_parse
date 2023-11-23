@@ -26,6 +26,8 @@ export interface Visitor<R> {
   visitTuneHeaderExpr(expr: Tune_header): R;
   visitYSpacerExpr(expr: YSPACER): R;
   visitBeamExpr(expr: Beam): R;
+  visitVoiceOverlayExpr(expr: Voice_overlay): R;
+
 }
 
 export abstract class Expr {
@@ -187,6 +189,17 @@ export class Rhythm extends Expr {
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitRhythmExpr(this);
+  }
+}
+
+export class Voice_overlay extends Expr {
+  contents: Array<Token>;
+  constructor(contents: Array<Token>) {
+    super();
+    this.contents = contents;
+  }
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitVoiceOverlayExpr(this);
   }
 }
 

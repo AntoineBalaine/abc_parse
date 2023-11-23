@@ -1,6 +1,7 @@
 export enum TokenType {
   APOSTROPHE,
   ANTISLASH_EOL,
+  AMPERSAND, // &
   BARLINE, //|
   BAR_COLON, // |:
   BAR_DBL, // ||

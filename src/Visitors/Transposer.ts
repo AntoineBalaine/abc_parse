@@ -25,6 +25,7 @@ import {
   Tune_Body,
   Tune_header,
   Visitor,
+  Voice_overlay,
   YSPACER,
   tune_body_code
 } from "../Expr";
@@ -144,6 +145,10 @@ export class Transposer implements Visitor<Expr | Token> {
     return expr;
   };
   visitTuneHeaderExpr(expr: Tune_header): Tune_header { return expr; };
+
+  visitVoiceOverlayExpr(expr: Voice_overlay) {
+    return expr; // TODO dbl check this
+  }
   visitYSpacerExpr(expr: YSPACER): YSPACER { return expr; };
   visitBeamExpr(expr: Beam): Beam {
     expr.contents.map((content) => {
