@@ -187,16 +187,23 @@ describe("Parser", () => {
               }
             }
           });
-          it("should parse broken rhythm", () => {
-            const musicCode = buildParse("C>>").tune[0].tune_body?.sequence[0];
-            expect(musicCode).to.be.an.instanceof(Note);
-            if (isNote(musicCode) && isPitch(musicCode.pitch)) {
-              expect(musicCode.rhythm).to.exist;
-              if (isRhythm(musicCode.rhythm)) {
-                expect(musicCode.rhythm.broken).to.exist;
-                expect(musicCode.rhythm.broken?.lexeme).to.equal(">>");
-              }
-            }
+          describe("should parse broken rhythm", () => {
+            const cases = [
+              ["C>>", ">>"],
+              ["C<<", "<<"]];
+            cases.forEach(([input, expected]) => {
+              it(`should find broken rhythm ${expected} in ${input}`, () => {
+                const musicCode = buildParse(input).tune[0].tune_body?.sequence[0];
+                expect(musicCode).to.be.an.instanceof(Note);
+                if (isNote(musicCode) && isPitch(musicCode.pitch)) {
+                  expect(musicCode.rhythm).to.exist;
+                  if (isRhythm(musicCode.rhythm)) {
+                    expect(musicCode.rhythm.broken).to.exist;
+                    expect(musicCode.rhythm.broken?.lexeme).to.equal(expected);
+                  }
+                }
+              });
+            });
           });
           it("should parse broken rhythm with number", () => {
             const musicCode = buildParse("C2>").tune[0].tune_body?.sequence[0];
