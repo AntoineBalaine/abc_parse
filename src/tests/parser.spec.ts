@@ -478,6 +478,26 @@ L:1/8`;
         }
       });
     });
+    describe("misc.", () => {
+      // this case doesn't work because JS' parser discards line continuation chars.
+      /*       it("antislashes before EOF", () => {
+              const input = `A2 | \
+       D4 |\
+      `;
+              const parse = buildParse(input);
+              console.log(parse);
+            }); */
+      it("mulitple decorations following each other", () => {
+        const input = "uTg";
+
+        const parse = buildParse(input);
+        const body = parse.tune[0].tune_body;
+        const d1 = body?.sequence[0];
+        const d2 = body?.sequence[1];
+        expect(d1).to.be.an.instanceof(Decoration);
+        expect(d1).to.be.an.instanceof(Decoration);
+      });
+    });
   });
   describe("synchronize in case of error", () => {
     it("synchronize after an unexpected token", () => {

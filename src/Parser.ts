@@ -28,7 +28,7 @@ import {
   Voice_overlay,
   YSPACER
 } from "./Expr";
-import { beamEnd, foundBeam, isChord, isNote } from "./helpers";
+import { beamEnd, foundBeam, hasRestAttributes, isChord, isDecorationToken, isMultiMesureRestToken, isNote, isNoteToken, isRestToken, isRhythmToken } from "./helpers";
 import { Token } from "./token";
 import { ParserErrorType, TokenType } from "./types";
 
@@ -331,9 +331,9 @@ export class Parser {
         } else if (this.isDecoration()) {
           contents.push(new Decoration(curTokn));
           this.advance();
-        } else if (this.isMultiMesureRest()) {
+        } else if (isMultiMesureRestToken(this.peek())) {
           contents.push(this.multiMeasureRest());
-        } else if (this.isRest()) {
+        } else if (isRestToken(this.peek())) {
           contents.push(this.parse_note());
         } else {
           throw this.error(curTokn, "Unexpected token after letter", ParserErrorType.TUNE_BODY);
@@ -449,21 +449,33 @@ export class Parser {
     const type = this.peek().type;
     const nxtType = this.peekNext();
     if (
-      (type === TokenType.DOT ||
-        type === TokenType.TILDE ||
-        (type === TokenType.LETTER && /[HLMOPSTuv]/.test(lexeme))) &&
-      (nxtType.type === TokenType.FLAT ||
-        nxtType.type === TokenType.FLAT_DBL ||
-        nxtType.type === TokenType.NATURAL ||
-        nxtType.type === TokenType.NOTE_LETTER ||
-        nxtType.type === TokenType.SHARP ||
-        nxtType.type === TokenType.SHARP_DBL ||
-        this.hasRestAttributes(nxtType) ||
-        this.peekNext().type === TokenType.NOTE_LETTER)
+      isDecorationToken(pkd) &&
+      (isNoteToken(nxtType) ||
+        hasRestAttributes(nxtType))
     ) {
       return true;
+    } else if (
+      type === TokenType.DOT ||
+      type === TokenType.TILDE ||
+      (type === TokenType.LETTER && /[HLMOPSTuv]/.test(lexeme))
+    ) {
+      let i = this.current;
+      while (i < this.tokens.length) {
+        i++;
+        const cur = this.tokens[i];
+        if (!isDecorationToken(cur)
+          && !isNoteToken(cur)
+          && !hasRestAttributes(cur)) {
+          return false;
+        } else if (isNoteToken(cur)) {
+          return true;
+        }
+      }
+      return false;
     }
-    return false;
+    else {
+      return false;
+    }
   }
   chord() {
     // parse a chord
@@ -490,7 +502,7 @@ export class Parser {
     //consume the right bracket
     this.consume(this.peek().type, "Expected a right bracket");
     // optionally parse a rhythm
-    if (this.isRhythm()) {
+    if (isRhythmToken(this.peek())) {
       chordRhythm = this.rhythm();
     }
     return new Chord(chordContents, chordRhythm);
@@ -555,13 +567,13 @@ export class Parser {
       note = { pitchOrRest: this.pitch() };
     } else if (this.peek().type === TokenType.NOTE_LETTER) {
       note = { pitchOrRest: this.pitch() };
-    } else if (this.isRest()) {
+    } else if (isRestToken(this.peek())) {
       note = { pitchOrRest: this.rest() };
     } else {
       throw this.error(this.peek(), "Unexpected token in note", ParserErrorType.TUNE_BODY);
     }
 
-    if (!this.isAtEnd() && this.isRhythm()) {
+    if (!this.isAtEnd() && isRhythmToken(this.peek())) {
       note.rhythm = this.rhythm();
     }
     if (!this.isAtEnd() && this.peek().type === TokenType.MINUS) {
@@ -574,7 +586,7 @@ export class Parser {
   private rest() {
     let rest: Token;
 
-    if (this.isRest()) {
+    if (isRestToken(this.peek())) {
       rest = this.peek();
       this.advance();
     } else {
@@ -586,7 +598,7 @@ export class Parser {
   private multiMeasureRest() {
     let rest: Token;
     let length: Token;
-    if (this.isMultiMesureRest()) {
+    if (isMultiMesureRestToken(this.peek())) {
       rest = this.peek();
       this.advance();
     } else {
@@ -789,32 +801,4 @@ export class Parser {
   private previous(): Token {
     return this.tokens[this.current - 1];
   }
-
-  private isRhythm = () => {
-    const pkd = this.peek();
-    return (
-      pkd.type === TokenType.SLASH ||
-      pkd.type === TokenType.NUMBER ||
-      pkd.type === TokenType.GREATER ||
-      pkd.type === TokenType.LESS
-    );
-  };
-
-  private isMultiMesureRest = () => {
-    const pkd = this.peek();
-    return (
-      pkd.type === TokenType.LETTER &&
-      (pkd.lexeme === "Z" || pkd.lexeme === "X")
-    );
-  };
-  private isRest = () => {
-    const pkd = this.peek();
-    return this.hasRestAttributes(pkd);
-  };
-  private hasRestAttributes = (token: Token) => {
-    return (
-      token.type === TokenType.LETTER &&
-      (token.lexeme === "z" || token.lexeme === "x")
-    );
-  };
 }

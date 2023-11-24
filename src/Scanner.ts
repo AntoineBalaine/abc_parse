@@ -236,6 +236,14 @@ export class Scanner {
       case "~":
         this.addToken(TokenType.TILDE);
         break;
+      /**
+       * This case actually never triggers:
+       * JS eats up line-continuation characters.
+       */
+      case "\\n":
+        // Don't Ignore whitespace, the standard is space-sensitive
+        this.addToken(TokenType.ANTISLASH_EOL);
+        break;
       case " ":
       case "\r":
       case "\t":

@@ -16,7 +16,8 @@ export function removeTuneHeader(testStr: string) {
 }
 
 export function buildParse(source: string): File_structure {
-  const scan = new Scanner(tuneHeader(source)).scanTokens();
+  const fmtHeader = tuneHeader(source);
+  const scan = new Scanner(fmtHeader).scanTokens();
   const parse = new Parser(scan).parse();
   if (!parse) {
     return new File_structure(new File_header("", []), []);;

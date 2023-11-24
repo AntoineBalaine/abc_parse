@@ -238,6 +238,25 @@ export function isTokenInRange(range: Range, expr: Token): boolean {
   return range.start.line <= expr.line && range.end.line >= expr.line && range.start.character <= expr.position && range.end.character >= expr.position;
 }
 
+export function isDecorationToken(token: Token) {
+  const type = token.type;
+  const lexeme = token.lexeme;
+  return (
+    type === TokenType.DOT ||
+    type === TokenType.TILDE ||
+    (type === TokenType.LETTER && /[HLMOPSTuv]/.test(lexeme))
+  );
+}
+
+export function isNoteToken(token: Token) {
+  return (token.type === TokenType.FLAT ||
+    token.type === TokenType.FLAT_DBL ||
+    token.type === TokenType.NATURAL ||
+    token.type === TokenType.NOTE_LETTER ||
+    token.type === TokenType.SHARP ||
+    token.type === TokenType.SHARP_DBL);
+}
+
 function isBeamBreaker(cur: Token | Expr): boolean {
   if (isToken(cur)) {
     return isWS(cur);
@@ -327,4 +346,30 @@ export const isEmptyRhythm = (rhythm: Rhythm): boolean => {
     broken,
   } = rhythm;
   return !numerator && !separator && !denominator && !broken;
+};
+
+
+export function hasRestAttributes(token: Token) {
+  return (
+    token.type === TokenType.LETTER &&
+    (token.lexeme === "z" || token.lexeme === "x")
+  );
+}
+export const isRhythmToken = (pkd: Token) => {
+  return (
+    pkd.type === TokenType.SLASH ||
+    pkd.type === TokenType.NUMBER ||
+    pkd.type === TokenType.GREATER ||
+    pkd.type === TokenType.LESS
+  );
+};
+
+export const isMultiMesureRestToken = (pkd: Token) => {
+  return (
+    pkd.type === TokenType.LETTER &&
+    (pkd.lexeme === "Z" || pkd.lexeme === "X")
+  );
+};
+export const isRestToken = (pkd: Token) => {
+  return hasRestAttributes(pkd);
 };
