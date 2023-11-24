@@ -35,6 +35,7 @@ describe("Scanner", () => {
     testBuilder("COLON_BAR", ":|", TokenType.COLON_BAR);
     testBuilder("COLON_BAR_DIGIT", ":|2", TokenType.COLON_BAR_DIGIT, null);
     testBuilder("COLON_DBL", "::", TokenType.COLON_DBL);
+    testBuilder("COLON_NUMBER", ":1", TokenType.COLON_NUMBER);
     testBuilder("COMMA", ",", TokenType.COMMA);
     testBuilder("COMMENT", "%this is a comment", TokenType.COMMENT);
     testBuilder("DOT", ".", TokenType.DOT);
@@ -149,6 +150,19 @@ describe("Scanner", () => {
       assert.equal(tokens[4].line, 1);
       assert.equal(tokens[4].position, 0);
     });
+    it("should handle colon followed by a number, twice", () => {
+      let scanner = new Scanner(":1:1");
+      const tokens = scanner.scanTokens();
+      assert.equal(tokens[0].type, TokenType.COLON_NUMBER);
+      assert.equal(tokens[1].type, TokenType.COLON_NUMBER);
+    });
+    it("should handle double colon followed by a number", () => {
+      let scanner = new Scanner("::1");
+      const tokens = scanner.scanTokens();
+      assert.equal(tokens[0].type, TokenType.COLON);
+      assert.equal(tokens[1].type, TokenType.COLON_NUMBER);
+    });
+
   });
   describe("special cases", () => {
     it("should handle any ASCII charaters", () => {

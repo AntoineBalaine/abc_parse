@@ -97,7 +97,7 @@ export class Scanner {
        */
       case ":": {
         const pkd = this.peek();
-        if ((pkd === "|" || pkd === ":") && !this.isAtEnd()) {
+        if ((pkd === "|" || pkd === ":" || /[0-9]/.test(pkd)) && !this.isAtEnd()) {
           this.advance();
           if (pkd === "|") {
             if (/[0-9]/.test(this.peek())) {
@@ -107,7 +107,15 @@ export class Scanner {
               this.addToken(TokenType.COLON_BAR);
             }
           } else if (pkd === ":") {
-            this.addToken(TokenType.COLON_DBL);
+            if (/[0-9]/.test(this.peek())) {
+              this.addToken(TokenType.COLON);
+              const col = this.advance();
+              this.addToken(TokenType.COLON_NUMBER);
+            } else {
+              this.addToken(TokenType.COLON_DBL);
+            }
+          } else {
+            this.addToken(TokenType.COLON_NUMBER);
           }
         } else {
           this.addToken(TokenType.COLON);

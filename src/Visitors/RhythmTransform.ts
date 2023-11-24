@@ -25,6 +25,7 @@ import {
   Tune,
   Tune_Body,
   Tune_header,
+  Tuplet,
   Visitor,
   Voice_overlay,
   YSPACER,
@@ -341,6 +342,12 @@ export class RhythmVisitor implements Visitor<Expr> {
     this.updateChanges(rangeExpr);
     return expr;
   };
+  visitTupletExpr(expr: Tuplet) {
+    if (this.isInRange(expr)) {
+      this.updateChanges([expr]);
+    }
+    return expr;
+  }
   private duplicateLength(expr: Rhythm): Rhythm {
     if (expr.separator) {
       if (!expr.denominator) {

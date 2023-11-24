@@ -373,3 +373,7 @@ export const isMultiMesureRestToken = (pkd: Token) => {
 export const isRestToken = (pkd: Token) => {
   return hasRestAttributes(pkd);
 };
+
+export function isTupletToken(pkd: Token) {
+  return pkd.type === TokenType.LEFTPAREN_NUMBER || pkd.type === TokenType.COLON_DBL || pkd.type === TokenType.NUMBER;
+}

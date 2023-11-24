@@ -11,6 +11,7 @@ export enum TokenType {
   COLON_BAR, // :|
   COLON_BAR_DIGIT, // :|1
   COLON_DBL, // ::
+  COLON_NUMBER, // :1
   COMMA, //,,,,,,
   COMMENT,
   DOLLAR, //$
