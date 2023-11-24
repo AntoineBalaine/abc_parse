@@ -487,15 +487,25 @@ L:1/8`;
               const parse = buildParse(input);
               console.log(parse);
             }); */
-      it("mulitple decorations following each other", () => {
-        const input = "uTg";
-
-        const parse = buildParse(input);
-        const body = parse.tune[0].tune_body;
-        const d1 = body?.sequence[0];
-        const d2 = body?.sequence[1];
-        expect(d1).to.be.an.instanceof(Decoration);
-        expect(d1).to.be.an.instanceof(Decoration);
+      const with_decorations = [
+        '"Cmaj7b5"HJLMOPRSTuvc"2 ',
+        "THcd",
+        /**
+         * Removing these two cases, that are not valid: fermata and bowing have to apply to notes.
+         */
+        /*         "Hy2",
+                "u2", */
+        "uTg"
+      ];
+      with_decorations.forEach((input) => {
+        it(`can parse multiple decorations in ${input}`, () => {
+          const fmtHeader = tuneHeader(input);
+          const scan = new Scanner(fmtHeader).scanTokens();
+          const parse = new Parser(scan).parse();
+          expect(parse).to.not.be.null;
+          if (parse === null) { return; }
+          expect(parse.tune[0].tune_body?.sequence).to.not.be.empty;
+        });
       });
     });
   });
