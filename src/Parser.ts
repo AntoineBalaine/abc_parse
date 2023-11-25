@@ -39,6 +39,7 @@ export class Parser {
   private current = 0;
   private source = "";
   private errorReporter: AbcErrorReporter;
+  private AST: File_structure | null = null;
   constructor(tokens: Array<Token>, source?: string, errorReporter?: AbcErrorReporter) {
     this.tokens = tokens;
     if (source) {
@@ -56,11 +57,24 @@ export class Parser {
 
   parse() {
     try {
-      return this.file_structure();
+      const AST = this.file_structure();
+      this.AST = AST;
+      return AST;
     } catch (err: any) {
       console.error(err);
       return null;
     }
+  }
+
+  getSystems() {
+
+    const tune_body = this.AST?.tune[0].tune_body;
+    const voices = this.AST?.tune[0].tune_header.voices;
+    if (!tune_body || !voices) {
+      return null;
+    }
+    const systems = new VoiceParser(tune_body.sequence, voices).parse();
+    return systems;
   }
 
   private file_structure() {
@@ -211,10 +225,6 @@ export class Parser {
     }
     const elements_with_beams = this.beam(elements);
 
-    if (voices) {
-      const systems = new VoiceParser(elements_with_beams, voices).parse();
-      console.log(systems);
-    }
     return new Tune_Body(elements_with_beams);
   }
 

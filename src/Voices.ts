@@ -1,8 +1,6 @@
-import { Comment, Info_line, music_code, tune_body_code } from "./Expr";
+import { Info_line, Inline_field, tune_body_code } from "./Expr";
 import { isInline_field, isToken, isVoice } from "./helpers";
-import { TokenType } from "./types";
-
-type System = Array<Comment | Info_line | music_code>;
+import { System, TokenType } from "./types";
 
 /**
  * voices: 
@@ -15,7 +13,7 @@ export class VoiceParser {
   private voices: string[];
   private current = 0;
   private systems: Array<System> = [];
-  private curSystem: System = [];
+  private curSystem: System | undefined;
   private lastVoice: string = "";
   constructor(cts: tune_body_code[], voices: string[]) {
     this.cts = cts;
@@ -23,18 +21,26 @@ export class VoiceParser {
   }
 
   parse() {
-    while (!this.isAtEnd()) {
-      if (isVoice(this.peek())) {
+    while (!this.isAtEnd() && this.peek() !== undefined) {
+      const expr = this.peek();
+      if (isVoice(expr)) {
         if (this.isNewSystem()) {
           /**
            * create new system
            */
-          this.systems.push(this.curSystem);
+          if (this.curSystem) {
+            this.systems.push(this.curSystem);
+          }
           this.curSystem = [];
+        } else {
+          this.lastVoice = this.stringifyVoice(expr);
         }
       }
-      this.curSystem.push(this.peek());
+      this.curSystem && this.curSystem.push(this.peek());
       this.advance();
+    }
+    if (this.curSystem) {
+      this.systems.push(this.curSystem);
     }
     return this.systems;
   }
@@ -52,12 +58,7 @@ export class VoiceParser {
     let rv = false;
     const cur = this.peek();
     if (isVoice(cur)) {
-      let voice: string;
-      if (isInline_field(cur)) {
-        voice = cur.text.map(e => e.lexeme).join("");
-      } else {
-        voice = cur.value.map(e => e.lexeme).join("");
-      }
+      let voice = this.stringifyVoice(cur);
       if (this.lastVoice === "") {
         rv = true;
       } else {
@@ -74,13 +75,19 @@ export class VoiceParser {
     return rv;
   }
 
-  private check(type: TokenType) {
-    if (this.isAtEnd()) {
-      return false;
+  /**
+   * todo stringify inline fields when creating them
+   */
+  private stringifyVoice(expr: Inline_field | Info_line) {
+    let voice: string;
+    if (isInline_field(expr)) {
+      voice = expr.text.map(e => e.lexeme).join("").trim();
+    } else {
+      voice = expr.value.map(e => e.lexeme).join("").trim();
     }
-    const e = this.peek();
-    return isToken(e) && e.type === type;
+    return voice;
   }
+
   private advance() {
     if (!this.isAtEnd()) {
       this.current++;
@@ -93,9 +100,6 @@ export class VoiceParser {
   }
   private peek() {
     return this.cts[this.current];
-  }
-  private peekNext() {
-    return this.cts[this.current + 1];
   }
   private previous() {
     return this.cts[this.current - 1];

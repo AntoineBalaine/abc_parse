@@ -1,3 +1,5 @@
+import { Comment, Info_line, music_code } from "./Expr";
+
 export enum TokenType {
   APOSTROPHE,
   ANTISLASH_EOL,
@@ -86,3 +88,6 @@ export enum ParserErrorType {
   FILE_HEADER,
   UNKNOWN
 }
+
+
+export type System = Array<Comment | Info_line | music_code>;
