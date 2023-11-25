@@ -15,7 +15,7 @@ export class VoiceParser {
   private systems: Array<System> = [];
   private curSystem: System | undefined;
   private lastVoice: string = "";
-  constructor(tune_body: tune_body_code[], voices: string[]) {
+  constructor(tune_body: tune_body_code[], voices: string[] = []) {
     this.tune_body = tune_body;
     this.voices = voices;
   }

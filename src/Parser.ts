@@ -66,15 +66,6 @@ export class Parser {
     }
   }
 
-  getSystems() {
-    const tune_body = this.AST?.tune[0].tune_body;
-    const voices = this.AST?.tune[0].tune_header.voices;
-    if (!tune_body || !voices) {
-      return null;
-    }
-    const systems = new VoiceParser(tune_body.sequence, voices).parse();
-    return systems;
-  }
 
   private file_structure() {
     let file_header: File_header | null = null;
@@ -222,9 +213,10 @@ export class Parser {
         this.synchronize();
       }
     }
-    const elements_with_beams = this.beam(elements);
 
-    return new Tune_Body(elements_with_beams);
+    const elements_with_beams = this.beam(elements);
+    const systems = new VoiceParser(elements_with_beams, voices).parse();
+    return new Tune_Body(systems);
   }
 
   private music_content() {

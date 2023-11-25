@@ -283,20 +283,22 @@ export class RhythmVisitor implements Visitor<Expr> {
   visitTuneBodyExpr(expr: Tune_Body): Tune_Body {
     let rangeExpr: Array<Expr | Token> = [];
     if (!isTune_Body(expr)) { return expr; }
-    expr.sequence = expr.sequence.map((e, idx, arr): tune_body_code | Token => {
-      if (isToken(e)) {
-        if (this.isInRange(e)) {
-          rangeExpr.push(e);
+    expr.sequence = expr.sequence.map((e) => {
+      return e.map((exp) => {
+        if (isToken(exp)) {
+          if (this.isInRange(exp)) {
+            rangeExpr.push(exp);
+          }
+          return exp;
+        } else {
+          const isInRange = (this.isInRange(exp));
+          const updated = exp.accept(this) as tune_body_code;
+          if (isInRange) {
+            rangeExpr.push(updated);
+          }
+          return updated;
         }
-        return e;
-      } else {
-        const isInRange = (this.isInRange(e));
-        const updated = e.accept(this) as tune_body_code;
-        if (isInRange) {
-          rangeExpr.push(updated);
-        }
-        return updated;
-      }
+      });
     });
     this.updateChanges(rangeExpr);
     return expr;

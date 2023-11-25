@@ -146,11 +146,13 @@ export class RangeVisitor implements Visitor<Range> {
   }
   visitTuneBodyExpr(expr: Tune_Body): Range {
     return expr.sequence.map((e) => {
-      if (isToken(e)) {
-        return getTokenRange(e);
-      } else {
-        return e.accept(this);
-      }
+      return e.map(expr => {
+        if (isToken(expr)) {
+          return getTokenRange(expr);
+        } else {
+          return expr.accept(this);
+        }
+      }).reduce(reduceRanges, <Range>{});
     }).reduce(reduceRanges, <Range>{});
   }
   visitTuneExpr(expr: Tune): Range {

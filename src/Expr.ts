@@ -1,5 +1,5 @@
 import { Token } from "./token";
-import { TokenType } from "./types";
+import { System, TokenType } from "./types";
 
 export interface Visitor<R> {
   visitAnnotationExpr(expr: Annotation): R;
@@ -324,8 +324,8 @@ export class Nth_repeat extends Expr {
 }
 
 export class Tune_Body extends Expr {
-  sequence: Array<tune_body_code | Token>;
-  constructor(sequence: Array<tune_body_code>) {
+  sequence: Array<System>;
+  constructor(sequence: Array<System>) {
     super();
     this.sequence = sequence;
   }

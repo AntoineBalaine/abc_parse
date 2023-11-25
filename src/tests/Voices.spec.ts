@@ -20,14 +20,18 @@ L:1/8
 z16|
 z16|`;
     const parser = new Parser(new Scanner(sample).scanTokens());
-    parser.parse();
-    const systems = parser.getSystems();
+    const parse = parser.parse();
+    expect(parse).to.not.be.null;
+    if (!parse) { return; }
+    const systems = parse.tune[0].tune_body?.sequence;
     expect(systems).to.have.lengthOf(2);
   });
   it("should find systems in score", () => {
     const parser = new Parser(new Scanner(two_voices).scanTokens());
     const parse = parser.parse();
-    const systems = parser.getSystems();
+    expect(parse).to.not.be.null;
+    if (!parse) { return; }
+    const systems = parse.tune[0].tune_body?.sequence;
     expect(systems).to.have.lengthOf(1);
   });
 
@@ -35,8 +39,10 @@ z16|`;
     const sample = two_voices + `[V: V0]z16|
 [V: V1]z16|`;
     const parser = new Parser(new Scanner(sample).scanTokens());
-    parser.parse();
-    const systems = parser.getSystems();
+    const parse = parser.parse();
+    expect(parse).to.not.be.null;
+    if (!parse) { return; }
+    const systems = parse.tune[0].tune_body?.sequence;
     expect(systems).to.have.lengthOf(2);
   });
   it("should find multiple systems interspersed with comments", () => {
@@ -44,8 +50,10 @@ z16|`;
 [V: V0]z16|
 [V: V1]z16|`;
     const parser = new Parser(new Scanner(sample).scanTokens());
-    parser.parse();
-    const systems = parser.getSystems();
+    const parse = parser.parse();
+    expect(parse).to.not.be.null;
+    if (!parse) { return; }
+    const systems = parse.tune[0].tune_body?.sequence;
     expect(systems).to.have.lengthOf(2);
   });
 });

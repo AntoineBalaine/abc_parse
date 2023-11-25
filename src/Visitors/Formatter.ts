@@ -214,45 +214,47 @@ export class AbcFormatter implements Visitor<string> {
   }
   visitTuneBodyExpr(expr: Tune_Body): string {
     return expr.sequence
-      .map((content, idx, arr) => {
-        /**
-         * if we're just printing as is, return the lexeme of the token
-         */
-        if (this.no_format) {
-          return isToken(content) ? content.lexeme : content.accept(this);
-        }
-        if (isToken(content)) {
-          if (content.type === TokenType.WHITESPACE) {
-            return "";
+      .map((system) => {
+        return system.map((expr, idx, arr) => {
+          /**
+           * if we're just printing as is, return the lexeme of the token
+           */
+          if (this.no_format) {
+            return isToken(expr) ? expr.lexeme : expr.accept(this);
+          }
+          if (isToken(expr)) {
+            if (expr.type === TokenType.WHITESPACE) {
+              return "";
 
-          } else if (!isWS(content)) {
-            if (content.type === TokenType.LEFTPAREN) {
-              return content.lexeme;
+            } else if (!isWS(expr)) {
+              if (expr.type === TokenType.LEFTPAREN) {
+                return expr.lexeme;
+              } else {
+                return expr.lexeme + " ";
+              }
             } else {
-              return content.lexeme + " ";
+              return expr.lexeme;
             }
           } else {
-            return content.lexeme;
-          }
-        } else {
-          const fmt = content.accept(this);
-          const nextExpr = arr[idx + 1];
-          if ((isBeam(content) && isToken(nextExpr) && nextExpr.type === TokenType.RIGHT_PAREN)
+            const fmt = expr.accept(this);
+            const nextExpr = arr[idx + 1];
+            if ((isBeam(expr) && isToken(nextExpr) && nextExpr.type === TokenType.RIGHT_PAREN)
           /**
            * TODO add this: for now this is causing issue in parsing:
            * Last expr before EOL doesn't get correctly parsed if it's not a WS.
            *  || (onlyWSTillEnd(idx + 1, arr)) */) {
-            return fmt;
-          } else if (
-            isToken(nextExpr) &&
-            (nextExpr.type === TokenType.EOL
-              || nextExpr.type === TokenType.EOF
-              || nextExpr.type === TokenType.ANTISLASH_EOL)) {
-            return fmt;
-          } else {
-            return fmt + " ";
+              return fmt;
+            } else if (
+              isToken(nextExpr) &&
+              (nextExpr.type === TokenType.EOL
+                || nextExpr.type === TokenType.EOF
+                || nextExpr.type === TokenType.ANTISLASH_EOL)) {
+              return fmt;
+            } else {
+              return fmt + " ";
+            }
           }
-        }
+        }).join("");
       })
       .join("");
   }
