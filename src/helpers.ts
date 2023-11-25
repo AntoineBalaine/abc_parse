@@ -21,7 +21,8 @@ import {
   Tune_Body,
   Voice_overlay,
   YSPACER,
-  music_code
+  music_code,
+  tune_body_code
 } from './Expr';
 import { Token } from './token';
 import { Range, TokenType } from './types';
@@ -376,4 +377,14 @@ export const isRestToken = (pkd: Token) => {
 
 export function isTupletToken(pkd: Token) {
   return pkd.type === TokenType.LEFTPAREN_NUMBER || pkd.type === TokenType.COLON_DBL || pkd.type === TokenType.NUMBER;
+}
+
+export function isVoice(e: tune_body_code): e is Info_line | Inline_field {
+  if (isInfo_line(e) && e.key.lexeme === "V:") {
+    return true;
+  } else if (isInline_field(e) && e.field.lexeme === "V:") {
+    return true;
+  } else {
+    return false;
+  }
 }

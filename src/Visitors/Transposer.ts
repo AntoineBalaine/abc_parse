@@ -30,7 +30,7 @@ import {
   YSPACER,
   tune_body_code
 } from "../Expr";
-import { isBeam, isChord, isGraceGroup, isMusicCode, isNote, isPitch, isToken } from "../helpers";
+import { isBeam, isChord, isGraceGroup, isNote, isPitch, isToken } from "../helpers";
 import { Token } from "../token";
 
 export class Transposer implements Visitor<Expr | Token> {
@@ -123,8 +123,6 @@ export class Transposer implements Visitor<Expr | Token> {
     expr.sequence = expr.sequence.map((e): tune_body_code | Token => {
       if (isToken(e)) {
         return e;
-      } else if (isMusicCode(e)) {
-        return this.visitMusicCodeExpr(e);
       } else if (isBeam(e)) {
         return this.visitBeamExpr(e);
       } else if (isChord(e)) {
