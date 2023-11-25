@@ -22,6 +22,7 @@ import {
   Tune,
   Tune_Body,
   Tune_header,
+  Tuplet,
   Visitor,
   Voice_overlay,
   YSPACER,
@@ -190,6 +191,13 @@ export class TokensVisitor implements Visitor<void> {
   visitYSpacerExpr(e: YSPACER) {
     this.tokens.push(e.ySpacer);
     e.number && this.tokens.push(e.number);
+  }
+
+  visitTupletExpr(expr: Tuplet) {
+    let { p, q, r } = expr;
+    return [p, q, r]
+      .filter((e): e is Token => !!e)
+      .forEach((e) => { this.tokens.push(e); });
   }
 }
 

@@ -24,6 +24,7 @@ import {
   Tune,
   Tune_Body,
   Tune_header,
+  Tuplet,
   Visitor,
   Voice_overlay,
   YSPACER,
@@ -166,4 +167,6 @@ export class Transposer implements Visitor<Expr | Token> {
     });
     return expr;
   };
+
+  visitTupletExpr(expr: Tuplet): Tuplet { return expr; };
 }

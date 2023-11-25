@@ -19,6 +19,7 @@ import {
   Rest,
   Symbol,
   Tune_header,
+  Tuplet,
   Voice_overlay,
   YSPACER
 } from "../Expr";
@@ -476,6 +477,26 @@ L:1/8`;
           const tune_head = tuneHeader(input);
           assert.equal(fmt.substring(0, tune_head.length - 1), tune_head.substring(0, tune_head.length - 1));
         }
+      });
+    });
+
+    describe("Tuplets", () => {
+      const samples: Array<string> = [
+        '(3a',
+        '(3::a',
+        '(3:2:3a',
+        '(3:2a',
+      ];
+      samples.forEach((input) => {
+        it(`can parse tuplets in ${input}`, () => {
+          const fmtHeader = tuneHeader(input);
+          const scan = new Scanner(fmtHeader).scanTokens();
+          const parse = new Parser(scan).parse();
+          expect(parse).to.not.be.null;
+          if (parse === null) { return; }
+          expect(parse.tune[0].tune_body?.sequence).to.not.be.empty;
+          expect(parse.tune[0].tune_body?.sequence[0]).to.be.instanceof(Tuplet);
+        });
       });
     });
     describe("misc.", () => {

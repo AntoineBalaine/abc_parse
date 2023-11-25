@@ -23,6 +23,7 @@ import {
   Tune,
   Tune_Body,
   Tune_header,
+  Tuplet,
   Visitor,
   Voice_overlay,
   YSPACER,
@@ -281,4 +282,12 @@ export class AbcFormatter implements Visitor<string> {
     }
     return formatted;
   }
+  visitTupletExpr(expr: Tuplet) {
+    let { p, q, r } = expr;
+    return [p, q, r]
+      .filter((e): e is Token => !!e)
+      .map((token): string => (token.lexeme))
+      .join("");
+  }
+
 }

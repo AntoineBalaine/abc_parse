@@ -24,6 +24,7 @@ import {
   Tune,
   Tune_Body,
   Tune_header,
+  Tuplet,
   Visitor,
   Voice_overlay,
   YSPACER,
@@ -168,5 +169,17 @@ export class Cloner implements Visitor<Expr | Token> {
       }
     });
     return new Beam(newContents);
+  }
+  visitTupletExpr(expr: Tuplet): Tuplet {
+    let p = cloneToken(expr.p);
+    let q: Token | undefined;
+    let r: Token | undefined;
+    if (expr.q) {
+      let q = cloneToken(expr.q);
+    }
+    if (expr.r) {
+      let r = cloneToken(expr.r);
+    }
+    return new Tuplet(p, q, r);
   }
 }

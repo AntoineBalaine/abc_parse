@@ -27,7 +27,7 @@ export interface Visitor<R> {
   visitYSpacerExpr(expr: YSPACER): R;
   visitBeamExpr(expr: Beam): R;
   visitVoiceOverlayExpr(expr: Voice_overlay): R;
-
+  visitTupletExpr(expr: Tuplet): R;
 }
 
 export abstract class Expr {
@@ -203,6 +203,28 @@ export class Voice_overlay extends Expr {
   }
 }
 
+/**
+ * syntax `(p:q:r` which means 'put p notes into the time of q for the next r notes'. If q is not given, it defaults as above. If r is not given, it defaults to p. 
+ */
+export class Tuplet extends Expr {
+  p: Token;
+  q?: Token;
+  r?: Token;
+  constructor(
+    p: Token,
+    q?: Token,
+    r?: Token,
+  ) {
+    super();
+    this.p = p;
+    this.q = q;
+    this.r = r;
+  }
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitTupletExpr(this);
+  }
+}
+
 export class Rest extends Expr {
   rest: Token;
   constructor(rest: Token) {
@@ -345,7 +367,8 @@ export type music_code =
   | Chord
   | Symbol
   | MultiMeasureRest
-  | Beam;
+  | Beam
+  | Tuplet;
 
 export class Music_code extends Expr {
   contents: Array<music_code>;

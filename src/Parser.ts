@@ -25,6 +25,7 @@ import {
   Tune_Body,
   tune_body_code,
   Tune_header,
+  Tuplet,
   Voice_overlay,
   YSPACER
 } from "./Expr";
@@ -211,6 +212,7 @@ export class Parser {
       | Symbol
       | MultiMeasureRest
       | Beam
+      | Tuplet
     > = [];
     const curTokn = this.peek();
 
@@ -308,9 +310,12 @@ export class Parser {
         this.advance();
         break;
       case TokenType.LEFTPAREN_NUMBER:
-      // TODO parse a tuplet
-      // which is a leftparen_number followed by
-      // a beam group
+        if (this.isTuplet()) {
+          contents.push(this.tuplet());
+        } else {
+          throw this.error(curTokn, "Tuplet markers should be followed by a note", ParserErrorType.TUNE_BODY);
+        }
+        break;
       case TokenType.SYMBOL:
         contents.push(this.symbol());
         break;
@@ -347,6 +352,42 @@ export class Parser {
   }
   voice_overlay(ampersands: Token[]): Voice_overlay {
     return new Voice_overlay(ampersands);
+  }
+  tuplet() {
+    // implement more strictly the possible contents of the tuplet
+    // which is a leftparen_number followed by
+    /**
+     * find end of expression
+     * (leftparen_number, :[0-9], :[0-9]
+     * opt WS
+     * NOTE
+     *
+COLON NUMBER (opt *2)
+COLON_DBL NUMBER
+     */
+    let p: Token;
+    let q: Token | undefined = undefined;
+    let r: Token | undefined = undefined;
+    // find if followed by note
+    p = this.peek();
+    this.advance();
+    if (this.peek().type === TokenType.COLON_DBL) {
+      q = new Token(TokenType.COLON, ":", null, p.line, this.peek().position);
+      r = new Token(TokenType.COLON, ":", null, p.line, this.peek().position + 1);
+      this.advance();
+    } else {
+      /** either it will be a COLON_NUMBER once or TWICE */
+      if (this.peek().type === TokenType.COLON_NUMBER) {
+        q = this.peek();
+        this.advance();
+      }
+      /**second time */
+      if (this.peek().type === TokenType.COLON_NUMBER) {
+        q = this.peek();
+        this.advance();
+      }
+    }
+    return new Tuplet(p, q, r);
   }
   /**
    * iterate the music code
@@ -476,6 +517,31 @@ export class Parser {
     else {
       return false;
     }
+  }
+  private isTuplet() {
+    /**
+     * start at next token
+     * if is anything other than a note token, a decoration, or a ws,
+     * or <annotations> or <decorations>
+     * or colondouble followed by number
+    */
+    let i = this.current + 1;
+    while (i < this.tokens.length) {
+      i++;
+      const cur = this.tokens[i];
+      if (!isDecorationToken(cur)
+        && !isNoteToken(cur)
+        && (cur.type !== TokenType.STRING && cur.lexeme !== "\"")
+        && cur.type !== TokenType.WHITESPACE
+        && cur.type !== TokenType.COLON_DBL
+        && cur.type !== TokenType.NUMBER
+      ) {
+        return false;
+      } else if (isNoteToken(cur)) {
+        return true;
+      }
+    }
+    return false;
   }
   chord() {
     // parse a chord
