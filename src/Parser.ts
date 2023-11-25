@@ -67,7 +67,6 @@ export class Parser {
   }
 
   getSystems() {
-
     const tune_body = this.AST?.tune[0].tune_body;
     const voices = this.AST?.tune[0].tune_header.voices;
     if (!tune_body || !voices) {

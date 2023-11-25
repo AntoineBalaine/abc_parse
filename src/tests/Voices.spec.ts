@@ -13,6 +13,17 @@ L:1/8
 `;
 
 describe("Voices / Systems", () => {
+  it("should parse even when there are no voices in score", () => {
+    const sample = `X:1
+M:4/4
+L:1/8
+z16|
+z16|`;
+    const parser = new Parser(new Scanner(sample).scanTokens());
+    parser.parse();
+    const systems = parser.getSystems();
+    expect(systems).to.have.lengthOf(2);
+  });
   it("should find systems in score", () => {
     const parser = new Parser(new Scanner(two_voices).scanTokens());
     const parse = parser.parse();
@@ -28,5 +39,13 @@ describe("Voices / Systems", () => {
     const systems = parser.getSystems();
     expect(systems).to.have.lengthOf(2);
   });
-  it("should find multiple systems, interspersed with comments", () => { });
+  it("should find multiple systems interspersed with comments", () => {
+    const sample = `${two_voices}%this is comment
+[V: V0]z16|
+[V: V1]z16|`;
+    const parser = new Parser(new Scanner(sample).scanTokens());
+    parser.parse();
+    const systems = parser.getSystems();
+    expect(systems).to.have.lengthOf(2);
+  });
 });

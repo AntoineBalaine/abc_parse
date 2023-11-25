@@ -9,18 +9,51 @@ import { System, TokenType } from "./types";
  * Every time a voice that is not the next expected in the order appears, start a new system.
 */
 export class VoiceParser {
-  private cts: tune_body_code[];
+  private tune_body: tune_body_code[];
   private voices: string[];
   private current = 0;
   private systems: Array<System> = [];
   private curSystem: System | undefined;
   private lastVoice: string = "";
-  constructor(cts: tune_body_code[], voices: string[]) {
-    this.cts = cts;
+  constructor(tune_body: tune_body_code[], voices: string[]) {
+    this.tune_body = tune_body;
     this.voices = voices;
   }
 
   parse() {
+    if (this.voices.length === 0) {
+      return this.parseNoVoices();
+    } else {
+      return this.parseVoices();
+    }
+  }
+
+  parseNoVoices() {
+    /**
+     * create new system at each new line of music
+     */
+    this.curSystem = [];
+    while (!this.isAtEnd() && this.peek() !== undefined) {
+      const expr = this.peek();
+      if (isToken(expr) && (expr.type === TokenType.EOL || expr.type === TokenType.EOF)) {
+        if (this.curSystem) { // in practice, this condition is useless since the function initializes curSystem
+          this.curSystem.push(expr);
+          this.systems.push(this.curSystem);
+        }
+        this.advance();
+        this.curSystem = [];
+      } else {
+        this.curSystem && this.curSystem.push(expr);
+        this.advance();
+      }
+    }
+    if (this.curSystem && this.curSystem.length) {
+      this.systems.push(this.curSystem);
+    }
+    return this.systems;
+  }
+
+  parseVoices() {
     while (!this.isAtEnd() && this.peek() !== undefined) {
       const expr = this.peek();
       if (isVoice(expr)) {
@@ -39,7 +72,7 @@ export class VoiceParser {
       this.curSystem && this.curSystem.push(this.peek());
       this.advance();
     }
-    if (this.curSystem) {
+    if (this.curSystem && this.curSystem.length) {
       this.systems.push(this.curSystem);
     }
     return this.systems;
@@ -99,9 +132,9 @@ export class VoiceParser {
     return isToken(e) && e.type === TokenType.EOF;
   }
   private peek() {
-    return this.cts[this.current];
+    return this.tune_body[this.current];
   }
   private previous() {
-    return this.cts[this.current - 1];
+    return this.tune_body[this.current - 1];
   }
 }
