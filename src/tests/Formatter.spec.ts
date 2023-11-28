@@ -56,7 +56,7 @@ describe("Format Systems", function () {
       input: `V:3\nV:4\n[V:3] B,2 C2  | D C B, A,    | B, C2 B,   | B,2 A,2  | HD4   |
 [V:4] G,2 A,2 | B, A, G,^F, | G, A, B, G, | E, C, F,2 | HB,,4 |`,
       expected: `[V:3] B,2 C2  | D C B, A,   | B, C2 B,    | B,2 A,2   | HD4   |
-[V:4] G,2 A,2 | B, A, G,^F, | G, A, B, G, | E, C, F,2 | HB,,4 | `
+[V:4] G,2 A,2 | B, A, G,^F, | G, A, B, G, | E, C, F,2 | HB,,4 |`
     }
   ];
   SystemLineTests.forEach(({ title, test, input, expected }) => {

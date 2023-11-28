@@ -29,7 +29,7 @@ import {
   YSPACER,
   music_code,
 } from "../Expr";
-import { isBarLine, isBeam, isComment, isDecoration, isToken, isWS } from "../helpers";
+import { isBarLine, isBeam, isComment, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isToken, isVoice_overlay } from "../helpers";
 import { Token } from "../token";
 import { System, TokenType } from "../types";
 import { Formatter_Bar, Formatter_LineWithBars, GroupBarsInLines, convertVoiceInfoLinesToInlineInfos, splitSystemLines } from './Formatter_helpers';
@@ -230,7 +230,13 @@ export class AbcFormatter implements Visitor<string> {
   }
   visitTuneHeaderExpr(expr: Tune_header) {
     return expr.info_lines
-      .map((infoLine): string => infoLine.accept(this))
+      .map((infoLine): string => {
+        let rv = infoLine.accept(this);
+        if (isComment(infoLine)) {
+          rv += "\n";
+        }
+        return rv;
+      })
       .join("");
   }
 
@@ -254,11 +260,52 @@ export class AbcFormatter implements Visitor<string> {
       .join("");
   }
 
+  formatUpsideDown(system: System) {
+    system = system.filter(expr => !(expr instanceof Token && expr.type === TokenType.WHITESPACE));
+    for (let idx = 0; idx < system.length; idx++) {
+      const expr = system[idx];
+      function insertWS_FRMTR(index?: number) {
+        const nextExpr = system[index || idx + 1];
+        if (!nextExpr || (isToken(nextExpr) && nextExpr.type === TokenType.EOL)) { return; }
+        const wsToken = new Token(TokenType.WHITESPACE_FORMATTER, " ", null, -1, -1);
+        system.splice(index || idx + 1, 0, wsToken);
+      }
+      if (isBarLine(expr)) { insertWS_FRMTR(); }
+      else if (isInline_field(expr)) { insertWS_FRMTR(); }
+      else if (isMultiMeasureRest(expr)) { insertWS_FRMTR(); }
+      else if (isNote(expr)) { insertWS_FRMTR(); }
+      else if (isNthRepeat(expr)) { insertWS_FRMTR(); }
+      else if (isBeam(expr)) { insertWS_FRMTR(); }
+      else if (isVoice_overlay(expr)) { insertWS_FRMTR(); }
+      else if (isToken(expr) && expr.type === TokenType.WHITESPACE_FORMATTER) { continue; }
+      else { continue; }
+      // Levaing the other cases here for now, in case they need to be revisited later
+      /*
+      else if (isChord(expr)) { }
+      if (isAnnotation(expr)) { }
+            else if (isComment(expr)) { }
+            else if (isDecoration(expr)) { }
+            else if (isGraceGroup(expr)) { }
+            else if (isInfo_line(expr)) { }
+            // else if (isLyricSection(expr)){}
+            else if (isSymbol(expr)) { }
+            else if (isYSPACER(expr)) { }
+            else if (isToken(expr) && isTupletToken(expr)) { }
+      */
+    }
+    return system;
+  }
   /**
   * ensure every bar is the same length,
   * and that every line starts at the same char after the inline voice indication
   * */
   formatSystem(system: System) {
+    if (this.no_format) {
+      return system.map((expr, idx, arr) => {
+        return isToken(expr) ? expr.lexeme : expr.accept(this);
+      }).join("");
+    }
+    system = this.formatUpsideDown(system);
     const convertVoiceHeaders = convertVoiceInfoLinesToInlineInfos(system);
     const lines = splitSystemLines(convertVoiceHeaders);
     const fmtLines = this.addWSToLines(lines).flat();
@@ -266,47 +313,7 @@ export class AbcFormatter implements Visitor<string> {
       /**
        * if we're just printing as is, return the lexeme of the token
        */
-      if (this.no_format) {
-        return isToken(expr) ? expr.lexeme : expr.accept(this);
-      }
-      if (isToken(expr)) {
-        if (expr.type === TokenType.WHITESPACE) {
-          return "";
-
-        } else if (expr.type === TokenType.WHITESPACE_FORMATTER) {
-          if (idx === arr.length - 1) {
-            return "";
-          } else {
-            return " ";
-          }
-        } else if (!isWS(expr)) {
-          if (expr.type === TokenType.LEFTPAREN) {
-            return expr.lexeme;
-          } else {
-            return expr.lexeme + " ";
-          }
-        } else {
-          return expr.lexeme;
-        }
-      } else {
-        const fmt = expr.accept(this);
-        const nextExpr = arr[idx + 1];
-        if (((isBeam(expr) && isToken(nextExpr) && nextExpr.type === TokenType.RIGHT_PAREN) || isDecoration(expr))
-          /**
-           * TODO add this: for now this is causing issue in parsing:
-           * Last expr before EOL doesn't get correctly parsed if it's not a WS.
-           *  || (onlyWSTillEnd(idx + 1, arr)) */) {
-          return fmt;
-        } else if (
-          isToken(nextExpr) &&
-          (nextExpr.type === TokenType.EOL
-            || nextExpr.type === TokenType.EOF
-            || nextExpr.type === TokenType.ANTISLASH_EOL)) {
-          return fmt;
-        } else {
-          return fmt + " ";
-        }
-      }
+      return isToken(expr) ? expr.lexeme : expr.accept(this);
     }).join("");
 
   }
