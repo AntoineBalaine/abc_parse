@@ -38,11 +38,10 @@ export function splitSystemLines(system: System) {
       lines.push(curLine);
       curLine = [];
     }
-    /*     if (isVoice(expr)) {
-          lines.push(curLine);
-          curLine = [];
-        } */
   });
+  if (curLine.length) {
+    lines.push(curLine);
+  }
   return lines;
 }
 

@@ -7,7 +7,7 @@ import { RunVoiceSystemsTest, SystemLineTest } from "./helpers.spec";
 
 const expect = chai.expect;
 
-describe.only("Format Systems", function () {
+describe("Format Systems", function () {
   const SystemLineTests: SystemLineTest[] = [
     {
       title: "format a single system",
@@ -24,15 +24,15 @@ describe.only("Format Systems", function () {
       title: "format multiple systems",
       test: (systems: Array<System>, expected) => {
         const formatter = new AbcFormatter();
-        const fmt = systems.map((system) => { return formatter.formatSystem(system); }).join("");
+        const fmt = systems.map((system) => {
+          return formatter.formatSystem(system);
+        }).join("");
         assert.equal(fmt, expected);
       },
       input: `V:1\nV:2\n[V:1]abc|ab\n[V:2]cd|dc
-[V:1]ab|ab\n[V:2]cde|dc
-`,
+[V:1]ab|ab\n[V:2]cde|dc\n`,
       expected: `[V:1] abc | ab\n[V:2] cd  | dc
-[V:1] ab  | ab\n[V:2] cde | dc
-`
+[V:1] ab  | ab\n[V:2] cde | dc\n`
     },
     {
       title: "format multiple systems with comment lines interspersed",
@@ -41,12 +41,10 @@ describe.only("Format Systems", function () {
         const fmt = systems.map((system) => { return formatter.formatSystem(system); }).join("");
         assert.equal(fmt, expected);
       },
-      input: `V:1\nV:2\n[V:1]abc|ab\n[V:2]cd|dc
-[V:1]ab|ab\n[V:2]cde|dc
-`,
+      input: `V:1\nV:2\n[V:1]abc|ab\n%surprise!\n[V:2]cde|dc
+[V:1]ab|ab\n%surprise!\n[V:2]cde|dc\n`,
       expected: `[V:1] abc | ab\n%surprise!\n[V:2] cde | dc
-[V:1] ab  | ab\n%surprise!\n[V:2] cde | dc
-`
+[V:1] ab  | ab\n%surprise!\n[V:2] cde | dc\n`
     }
   ];
   SystemLineTests.forEach(({ title, test, input, expected }) => {

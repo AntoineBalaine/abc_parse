@@ -29,7 +29,7 @@ import {
   YSPACER,
   music_code,
 } from "../Expr";
-import { isBarLine, isBeam, isToken, isWS } from "../helpers";
+import { isBarLine, isBeam, isComment, isToken, isWS } from "../helpers";
 import { Token } from "../token";
 import { System, TokenType } from "../types";
 import { Formatter_Bar, Formatter_LineWithBars, GroupBarsInLines, convertVoiceInfoLinesToInlineInfos, splitSystemLines } from './Formatter_helpers';
@@ -303,53 +303,56 @@ export class AbcFormatter implements Visitor<string> {
   * and that every line starts at the same char after the inline voice indication
   * */
   formatSystem(system: System) {
-    const lines = splitSystemLines(convertVoiceInfoLinesToInlineInfos(system));
-    const fmtLines = this.addWSToLines(lines);
-    return fmtLines.map((line) => {
-      return line.map((expr, idx, arr) => {
-        /**
-         * if we're just printing as is, return the lexeme of the token
-         */
-        if (this.no_format) {
-          return isToken(expr) ? expr.lexeme : expr.accept(this);
-        }
-        if (isToken(expr)) {
-          if (expr.type === TokenType.WHITESPACE) {
-            return "";
+    const convertVoiceHeaders = convertVoiceInfoLinesToInlineInfos(system);
+    const lines = splitSystemLines(convertVoiceHeaders);
+    const fmtLines = this.addWSToLines(lines).flat();
+    return fmtLines.map((expr, idx, arr) => {
+      /**
+       * if we're just printing as is, return the lexeme of the token
+       */
+      if (this.no_format) {
+        return isToken(expr) ? expr.lexeme : expr.accept(this);
+      }
+      if (isToken(expr)) {
+        if (expr.type === TokenType.WHITESPACE) {
+          return "";
 
-          } else if (expr.type === TokenType.WHITESPACE_FORMATTER) {
-            return " ";
-          } else if (!isWS(expr)) {
-            if (expr.type === TokenType.LEFTPAREN) {
-              return expr.lexeme;
-            } else {
-              return expr.lexeme + " ";
-            }
+        } else if (expr.type === TokenType.WHITESPACE_FORMATTER) {
+          if (idx === arr.length - 1) {
+            return "";
           } else {
+            return " ";
+          }
+        } else if (!isWS(expr)) {
+          if (expr.type === TokenType.LEFTPAREN) {
             return expr.lexeme;
+          } else {
+            return expr.lexeme + " ";
           }
         } else {
-          const fmt = expr.accept(this);
-          const nextExpr = arr[idx + 1];
-          if ((isBeam(expr) && isToken(nextExpr) && nextExpr.type === TokenType.RIGHT_PAREN)
+          return expr.lexeme;
+        }
+      } else {
+        const fmt = expr.accept(this);
+        const nextExpr = arr[idx + 1];
+        if ((isBeam(expr) && isToken(nextExpr) && nextExpr.type === TokenType.RIGHT_PAREN)
           /**
            * TODO add this: for now this is causing issue in parsing:
            * Last expr before EOL doesn't get correctly parsed if it's not a WS.
            *  || (onlyWSTillEnd(idx + 1, arr)) */) {
-            return fmt;
-          } else if (
-            isToken(nextExpr) &&
-            (nextExpr.type === TokenType.EOL
-              || nextExpr.type === TokenType.EOF
-              || nextExpr.type === TokenType.ANTISLASH_EOL)) {
-            return fmt;
-          } else {
-            return fmt + " ";
-          }
+          return fmt;
+        } else if (
+          isToken(nextExpr) &&
+          (nextExpr.type === TokenType.EOL
+            || nextExpr.type === TokenType.EOF
+            || nextExpr.type === TokenType.ANTISLASH_EOL)) {
+          return fmt;
+        } else {
+          return fmt + " ";
         }
-      }).join("");
-
+      }
     }).join("");
+
   }
 
 
@@ -385,6 +388,9 @@ export class AbcFormatter implements Visitor<string> {
       });
     });
     let largestBarCount = linesWithStr.reduce((acc, bars) => {
+      if (isComment(bars[0].bar[0])) {
+        return acc;
+      }
       if (bars.length > acc) {
         acc = bars.length;
       }
@@ -397,7 +403,7 @@ export class AbcFormatter implements Visitor<string> {
        */
       const longestBarAtBarIdx = linesWithStr.reduce((longestBar, curLine) => {
         const curBar = curLine[barIdx];
-        if (curBar) {
+        if (curBar && !isComment(curBar.bar[0])) {
           if (curBar.str.length > longestBar) {
             longestBar = curBar.str.length;
           }
@@ -412,7 +418,7 @@ export class AbcFormatter implements Visitor<string> {
         const curLine = linesWithStr[lineIdx];
         const curBar = curLine[barIdx];
         if (curBar) {
-          if (curBar.str.length < longestBarAtBarIdx) {
+          if (!isComment(curBar.bar[0]) && curBar.str.length < longestBarAtBarIdx) {
             let diff = longestBarAtBarIdx - curBar.str.length;
 
             for (let WScount = 0; WScount < diff; WScount++) {
