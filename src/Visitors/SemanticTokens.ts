@@ -62,12 +62,14 @@ export class TokensVisitor implements Visitor<void> {
     });
   }
   visitTuneBodyExpr(tune_body: Tune_Body): void {
-    tune_body?.sequence.forEach((tuneBody_element) => {
-      if (isToken(tuneBody_element)) {
-        this.tokens.push(tuneBody_element);
-      } else {
-        tuneBody_element.accept(this);
-      }
+    tune_body?.sequence.forEach((system) => {
+      system.forEach((element) => {
+        if (isToken(element)) {
+          this.tokens.push(element);
+        } else {
+          element.accept(this);
+        }
+      });
     });
   }
   visitBeamExpr(expr: Beam): void {

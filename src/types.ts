@@ -1,3 +1,5 @@
+import { Comment, Info_line, music_code } from "./Expr";
+
 export enum TokenType {
   APOSTROPHE,
   ANTISLASH_EOL,
@@ -51,6 +53,7 @@ export enum TokenType {
    * # * ; ? @ are reserved symbols, treated as ws
    */
   WHITESPACE,
+  WHITESPACE_FORMATTER, // THIS IS NOT USED IN THE LEXER OR THE PARSER, only in the formatter
 }
 
 /**
@@ -86,3 +89,6 @@ export enum ParserErrorType {
   FILE_HEADER,
   UNKNOWN
 }
+
+
+export type System = Array<Comment | Info_line | music_code>;

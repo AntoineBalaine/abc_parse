@@ -23,12 +23,13 @@ import {
   Symbol,
   Tune,
   Tune_Body,
-  tune_body_code,
   Tune_header,
   Tuplet,
   Voice_overlay,
-  YSPACER
+  YSPACER,
+  tune_body_code
 } from "./Expr";
+import { VoiceParser } from "./Voices";
 import { beamEnd, foundBeam, hasRestAttributes, isChord, isDecorationToken, isMultiMesureRestToken, isNote, isNoteToken, isRestToken, isRhythmToken } from "./helpers";
 import { Token } from "./token";
 import { ParserErrorType, TokenType } from "./types";
@@ -38,6 +39,7 @@ export class Parser {
   private current = 0;
   private source = "";
   private errorReporter: AbcErrorReporter;
+  private AST: File_structure | null = null;
   constructor(tokens: Array<Token>, source?: string, errorReporter?: AbcErrorReporter) {
     this.tokens = tokens;
     if (source) {
@@ -55,12 +57,15 @@ export class Parser {
 
   parse() {
     try {
-      return this.file_structure();
+      const AST = this.file_structure();
+      this.AST = AST;
+      return AST;
     } catch (err: any) {
       console.error(err);
       return null;
     }
   }
+
 
   private file_structure() {
     let file_header: File_header | null = null;
@@ -117,16 +122,29 @@ export class Parser {
     ) {
       return new Tune(tune_header);
     } else {
-      const tune_body = this.tune_body();
+      const tune_body = this.tune_body(tune_header.voices);
       return new Tune(tune_header, tune_body);
     }
   }
 
   private tune_header() {
     const info_lines = [];
+    const voices = [];
     while (!this.isAtEnd()) {
       if (this.peek().type === TokenType.LETTER_COLON) {
-        info_lines.push(this.info_line());
+        /**
+         * read the info line: if it's a VOICE line (V: key)
+         * then stringify the tokens in the value, and add to the array of voice names.
+         */
+        const line = this.info_line();
+        if (line.key.lexeme === "V:") {
+          /**
+           * trim the space in the value line, and remove any trailing comments after the legend
+           */
+          const legend = line.value.map(token => token.lexeme).join("").trim().replace(/\s.*/, "");
+          voices.push(legend);
+        }
+        info_lines.push(line);
       } else if (this.peek().type === TokenType.COMMENT
         || this.peek().type === TokenType.STYLESHEET_DIRECTIVE
       ) {
@@ -144,7 +162,7 @@ export class Parser {
       }
     }
     this.advance();
-    return new Tune_header(info_lines);
+    return new Tune_header(info_lines, voices);
   }
 
   private info_line() {
@@ -167,8 +185,9 @@ export class Parser {
     return new Info_line(info_line);
   }
 
-  private tune_body() {
+  private tune_body(voices?: string[]) {
     let elements: Array<tune_body_code> = [];
+
     while (!this.isAtEnd()) {
       //check for commentline
       // check for info line
@@ -177,7 +196,8 @@ export class Parser {
         if (this.peek().type === TokenType.COMMENT || this.peek().type === TokenType.STYLESHEET_DIRECTIVE) {
           elements.push(this.comment_line());
         } else if (this.peek().type === TokenType.LETTER_COLON) {
-          elements.push(this.info_line());
+          const info_line = this.info_line();
+          elements.push(info_line);
         } else if (
           !(
             this.peek().type === TokenType.EOL &&
@@ -193,8 +213,10 @@ export class Parser {
         this.synchronize();
       }
     }
+
     const elements_with_beams = this.beam(elements);
-    return new Tune_Body(elements_with_beams);
+    const systems = new VoiceParser(elements_with_beams, voices).parse();
+    return new Tune_Body(systems);
   }
 
   private music_content() {
@@ -371,6 +393,9 @@ COLON_DBL NUMBER
     // find if followed by note
     p = this.peek();
     this.advance();
+    /**
+     * TODO rewrite using this.match()
+     */
     if (this.peek().type === TokenType.COLON_DBL) {
       q = new Token(TokenType.COLON, ":", null, p.line, this.peek().position);
       r = new Token(TokenType.COLON, ":", null, p.line, this.peek().position + 1);
@@ -400,6 +425,9 @@ COLON_DBL NUMBER
     let beam: Array<Beam_contents> = [];
 
     for (let i = 0; i < music_code.length; i++) {
+      /**
+       * TODO rewrite using this.match()
+       */
       if (foundBeam(music_code, i)) {
         while (!beamEnd(music_code, i) && i < music_code.length) {
           beam.push(music_code[i] as Beam_contents);
@@ -529,6 +557,10 @@ COLON_DBL NUMBER
     while (i < this.tokens.length) {
       i++;
       const cur = this.tokens[i];
+
+      /**
+       * TODO rewrite using this.match()
+       */
       if (!isDecorationToken(cur)
         && !isNoteToken(cur)
         && (cur.type !== TokenType.STRING && cur.lexeme !== "\"")

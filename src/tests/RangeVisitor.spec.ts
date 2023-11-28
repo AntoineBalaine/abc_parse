@@ -16,7 +16,7 @@ describe("Range Visitor", function () {
       start: { line: 1, character: 0 },
       end: { line: 1, character: 2 }
     };
-    const parse = buildParse(input).tune[0].tune_body?.sequence[0];
+    const parse = buildParse(input).tune[0].tune_body?.sequence[0][0];
     expect(parse).to.not.be.undefined;
     if (parse) {
       expect(parse).to.be.instanceof(Note);
@@ -33,7 +33,7 @@ describe("Range Visitor", function () {
       start: { line: 1, character: 0 },
       end: { line: 1, character: 4 }
     };
-    const parse = buildParse(input).tune[0].tune_body?.sequence[0];
+    const parse = buildParse(input).tune[0].tune_body?.sequence[0][0];
     if (parse) {
       expect(parse).to.be.instanceof(Grace_group);
       if (isGraceGroup(parse)) {

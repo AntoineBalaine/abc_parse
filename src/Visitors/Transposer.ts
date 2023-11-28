@@ -27,10 +27,9 @@ import {
   Tuplet,
   Visitor,
   Voice_overlay,
-  YSPACER,
-  tune_body_code
+  YSPACER
 } from "../Expr";
-import { isBeam, isChord, isGraceGroup, isMusicCode, isNote, isPitch, isToken } from "../helpers";
+import { isBeam, isChord, isGraceGroup, isNote, isPitch, isToken } from "../helpers";
 import { Token } from "../token";
 
 export class Transposer implements Visitor<Expr | Token> {
@@ -120,22 +119,22 @@ export class Transposer implements Visitor<Expr | Token> {
   visitRhythmExpr(expr: Rhythm): Rhythm { return expr; };
   visitSymbolExpr(expr: Symbol): Symbol { return expr; };
   visitTuneBodyExpr(expr: Tune_Body): Tune_Body {
-    expr.sequence = expr.sequence.map((e): tune_body_code | Token => {
-      if (isToken(e)) {
-        return e;
-      } else if (isMusicCode(e)) {
-        return this.visitMusicCodeExpr(e);
-      } else if (isBeam(e)) {
-        return this.visitBeamExpr(e);
-      } else if (isChord(e)) {
-        return this.visitChordExpr(e);
-      } else if (isNote(e)) {
-        return this.visitNoteExpr(e);
-      } else if (isGraceGroup(e)) {
-        return this.visitGraceGroupExpr(e);
-      } else {
-        return e;
-      }
+    expr.sequence = expr.sequence.map((system) => {
+      return system.map(expr => {
+        if (isToken(expr)) {
+          return expr;
+        } else if (isBeam(expr)) {
+          return this.visitBeamExpr(expr);
+        } else if (isChord(expr)) {
+          return this.visitChordExpr(expr);
+        } else if (isNote(expr)) {
+          return this.visitNoteExpr(expr);
+        } else if (isGraceGroup(expr)) {
+          return this.visitGraceGroupExpr(expr);
+        } else {
+          return expr;
+        }
+      });
     });
     return expr;
   };

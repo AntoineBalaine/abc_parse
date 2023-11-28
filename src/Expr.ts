@@ -1,5 +1,5 @@
 import { Token } from "./token";
-import { TokenType } from "./types";
+import { System, TokenType } from "./types";
 
 export interface Visitor<R> {
   visitAnnotationExpr(expr: Annotation): R;
@@ -136,9 +136,11 @@ export class Lyric_section extends Expr {
 }
 export class Tune_header extends Expr {
   info_lines: Array<Info_line | Comment>;
-  constructor(info_lines: Array<Info_line | Comment>) {
+  voices: Array<string>;
+  constructor(info_lines: Array<Info_line | Comment>, voices?: Array<string>) {
     super();
     this.info_lines = info_lines;
+    this.voices = voices || [];
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitTuneHeaderExpr(this);
@@ -156,7 +158,7 @@ export class Comment extends Expr {
     return visitor.visitCommentExpr(this);
   }
 }
-export type tune_body_code = Comment | Info_line | music_code | Music_code;
+export type tune_body_code = Comment | Info_line | music_code;
 
 export class Tune extends Expr {
   tune_header: Tune_header;
@@ -322,8 +324,8 @@ export class Nth_repeat extends Expr {
 }
 
 export class Tune_Body extends Expr {
-  sequence: Array<tune_body_code | Token>;
-  constructor(sequence: Array<tune_body_code>) {
+  sequence: Array<System>;
+  constructor(sequence: Array<System>) {
     super();
     this.sequence = sequence;
   }
