@@ -53,6 +53,7 @@ export enum TokenType {
    * # * ; ? @ are reserved symbols, treated as ws
    */
   WHITESPACE,
+  WHITESPACE_FORMATTER, // THIS IS NOT USED IN THE LEXER OR THE PARSER, only in the formatter
 }
 
 /**

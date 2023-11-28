@@ -27,10 +27,12 @@ import {
   Visitor,
   Voice_overlay,
   YSPACER,
+  music_code,
 } from "../Expr";
-import { isBeam, isToken, isWS } from "../helpers";
+import { isBarLine, isBeam, isToken, isWS } from "../helpers";
 import { Token } from "../token";
-import { TokenType } from "../types";
+import { System, TokenType } from "../types";
+import { Formatter_Bar, Formatter_LineWithBars, GroupBarsInLines, convertVoiceInfoLinesToInlineInfos, splitSystemLines } from './Formatter_helpers';
 
 export class AbcFormatter implements Visitor<string> {
   /**
@@ -213,6 +215,10 @@ export class AbcFormatter implements Visitor<string> {
     return `!${expr.symbol.lexeme}!`;
   }
   visitTuneBodyExpr(expr: Tune_Body): string {
+    /*     return expr.sequence
+          .map((system) => {
+            return this.formatSystem(system);
+          }).join(""); */
     return expr.sequence
       .map((system) => {
         return system.map((expr, idx, arr) => {
@@ -292,4 +298,166 @@ export class AbcFormatter implements Visitor<string> {
       .join("");
   }
 
+  /**
+  * ensure every bar is the same length,
+  * and that every line starts at the same char after the inline voice indication
+  * */
+  formatSystem(system: System) {
+    const lines = splitSystemLines(convertVoiceInfoLinesToInlineInfos(system));
+    const fmtLines = this.addWSToLines(lines);
+    return fmtLines.map((line) => {
+      return line.map((expr, idx, arr) => {
+        /**
+         * if we're just printing as is, return the lexeme of the token
+         */
+        if (this.no_format) {
+          return isToken(expr) ? expr.lexeme : expr.accept(this);
+        }
+        if (isToken(expr)) {
+          if (expr.type === TokenType.WHITESPACE) {
+            return "";
+
+          } else if (expr.type === TokenType.WHITESPACE_FORMATTER) {
+            return " ";
+          } else if (!isWS(expr)) {
+            if (expr.type === TokenType.LEFTPAREN) {
+              return expr.lexeme;
+            } else {
+              return expr.lexeme + " ";
+            }
+          } else {
+            return expr.lexeme;
+          }
+        } else {
+          const fmt = expr.accept(this);
+          const nextExpr = arr[idx + 1];
+          if ((isBeam(expr) && isToken(nextExpr) && nextExpr.type === TokenType.RIGHT_PAREN)
+          /**
+           * TODO add this: for now this is causing issue in parsing:
+           * Last expr before EOL doesn't get correctly parsed if it's not a WS.
+           *  || (onlyWSTillEnd(idx + 1, arr)) */) {
+            return fmt;
+          } else if (
+            isToken(nextExpr) &&
+            (nextExpr.type === TokenType.EOL
+              || nextExpr.type === TokenType.EOF
+              || nextExpr.type === TokenType.ANTISLASH_EOL)) {
+            return fmt;
+          } else {
+            return fmt + " ";
+          }
+        }
+      }).join("");
+
+    }).join("");
+  }
+
+
+  /**
+  * find all the inline voice indicators `[V:1]`
+  * stringify them and find the longest string.
+  * 
+  * Then, iterate the array of lines:
+  * at each time you encounter an inlineVoice, 
+  * if it's shorter that the longest string,
+  * insert as many WS as the diff btw longestSring and lengthOfInlineVoice;
+  * */
+  addWSToLines(lines: Array<Array<Comment | Info_line | music_code>>) {
+    const linesIntoBars = lines.map(GroupBarsInLines);
+
+    const linesWithStr: Array<Formatter_LineWithBars> = linesIntoBars.map(line => {
+      return line.map(bar => {
+        const str = bar.map(expr => {
+          if (isToken(expr)) {
+            if (expr.type === TokenType.WHITESPACE) {
+              return "";
+            } else {
+              return expr.lexeme;
+            }
+          } else {
+            return expr.accept(this);
+          }
+        }).join("");
+        return {
+          str,
+          bar
+        };
+      });
+    });
+    let largestBarCount = linesWithStr.reduce((acc, bars) => {
+      if (bars.length > acc) {
+        acc = bars.length;
+      }
+      return acc;
+    }, 0);
+
+    for (let barIdx = 0; barIdx < largestBarCount; barIdx++) {
+      /**
+       * Get each line's bar at BarIdx, and find the longest one.
+       */
+      const longestBarAtBarIdx = linesWithStr.reduce((longestBar, curLine) => {
+        const curBar = curLine[barIdx];
+        if (curBar) {
+          if (curBar.str.length > longestBar) {
+            longestBar = curBar.str.length;
+          }
+        }
+        return longestBar;
+      }, 0);
+
+      /**
+       * insert WS tokens at every line at every bar that is shorter than longestBarAtBarIdx
+       */
+      for (let lineIdx = 0; lineIdx < linesWithStr.length; lineIdx++) {
+        const curLine = linesWithStr[lineIdx];
+        const curBar = curLine[barIdx];
+        if (curBar) {
+          if (curBar.str.length < longestBarAtBarIdx) {
+            let diff = longestBarAtBarIdx - curBar.str.length;
+
+            for (let WScount = 0; WScount < diff; WScount++) {
+              const wsToken = new Token(TokenType.WHITESPACE_FORMATTER, " ", null, -1, -1);
+              //Should this be replaced by a special token?
+              let curBar = linesIntoBars[lineIdx][barIdx];
+              if (isBarLine(curBar[curBar.length - 1])) {
+                linesIntoBars[lineIdx][barIdx].splice(curBar.length - 1, 0, wsToken);
+              } else {
+                linesIntoBars[lineIdx][barIdx].push(wsToken);
+              }
+            }
+          }
+        }
+      }
+
+
+    }
+    return linesIntoBars.flat();
+  }
+
+  /**
+   * Add the stringified version of a bar 
+   * structure goes:
+   * Lines
+   *  Bars
+   *   Expr
+   */
+  stringifyBarsInLines(line: Array<Array<Expr | Token>>): Array<Formatter_Bar> {
+    return line.map(bar => {
+      const str = bar.map(expr => {
+        if (isToken(expr)) {
+          if (expr.type === TokenType.WHITESPACE) {
+            return "";
+          } else {
+            return expr.lexeme;
+          }
+        } else {
+          return expr.accept(this);
+        }
+      }).join("");
+      return {
+        str,
+        bar
+      };
+    });
+  }
 }

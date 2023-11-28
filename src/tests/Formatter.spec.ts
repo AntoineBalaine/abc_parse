@@ -1,9 +1,59 @@
 import assert from "assert";
 import chai from "chai";
 import { AbcFormatter } from "../Visitors/Formatter";
+import { System } from "../types";
 import { buildParse, removeTuneHeader } from "./RhythmTransform.spec";
+import { RunVoiceSystemsTest, SystemLineTest } from "./helpers.spec";
 
 const expect = chai.expect;
+
+describe.only("Format Systems", function () {
+  const SystemLineTests: SystemLineTest[] = [
+    {
+      title: "format a single system",
+      test: (systems: Array<System>, expected) => {
+        const formatter = new AbcFormatter();
+        const fmt = formatter.formatSystem(systems[0]);
+        expect(fmt).to.not.be.undefined;
+        assert.equal(fmt, expected);
+      },
+      input: `V:1\nV:2\n[V:1]abc|ab\n[V:2]cd|dc\n`,
+      expected: `[V:1] abc | ab\n[V:2] cd  | dc\n`
+    },
+    {
+      title: "format multiple systems",
+      test: (systems: Array<System>, expected) => {
+        const formatter = new AbcFormatter();
+        const fmt = systems.map((system) => { return formatter.formatSystem(system); }).join("");
+        assert.equal(fmt, expected);
+      },
+      input: `V:1\nV:2\n[V:1]abc|ab\n[V:2]cd|dc
+[V:1]ab|ab\n[V:2]cde|dc
+`,
+      expected: `[V:1] abc | ab\n[V:2] cd  | dc
+[V:1] ab  | ab\n[V:2] cde | dc
+`
+    },
+    {
+      title: "format multiple systems with comment lines interspersed",
+      test: (systems: Array<System>, expected) => {
+        const formatter = new AbcFormatter();
+        const fmt = systems.map((system) => { return formatter.formatSystem(system); }).join("");
+        assert.equal(fmt, expected);
+      },
+      input: `V:1\nV:2\n[V:1]abc|ab\n[V:2]cd|dc
+[V:1]ab|ab\n[V:2]cde|dc
+`,
+      expected: `[V:1] abc | ab\n%surprise!\n[V:2] cde | dc
+[V:1] ab  | ab\n%surprise!\n[V:2] cde | dc
+`
+    }
+  ];
+  SystemLineTests.forEach(({ title, test, input, expected }) => {
+    it(title, RunVoiceSystemsTest(input, test, expected));
+  });
+});
+
 describe("Formatter", function () {
   /*   describe("extracts voices names", function () {
       const voicesNames = ["T1", "T2", "B1", "B2"];
