@@ -29,7 +29,7 @@ import {
   YSPACER,
   music_code,
 } from "../Expr";
-import { isBarLine, isBeam, isComment, isToken, isWS } from "../helpers";
+import { isBarLine, isBeam, isComment, isDecoration, isToken, isWS } from "../helpers";
 import { Token } from "../token";
 import { System, TokenType } from "../types";
 import { Formatter_Bar, Formatter_LineWithBars, GroupBarsInLines, convertVoiceInfoLinesToInlineInfos, splitSystemLines } from './Formatter_helpers';
@@ -291,7 +291,7 @@ export class AbcFormatter implements Visitor<string> {
       } else {
         const fmt = expr.accept(this);
         const nextExpr = arr[idx + 1];
-        if ((isBeam(expr) && isToken(nextExpr) && nextExpr.type === TokenType.RIGHT_PAREN)
+        if (((isBeam(expr) && isToken(nextExpr) && nextExpr.type === TokenType.RIGHT_PAREN) || isDecoration(expr))
           /**
            * TODO add this: for now this is causing issue in parsing:
            * Last expr before EOL doesn't get correctly parsed if it's not a WS.
@@ -328,15 +328,11 @@ export class AbcFormatter implements Visitor<string> {
       return line.map(bar => {
         const str = bar.map(expr => {
           if (isToken(expr)) {
-            if (expr.type === TokenType.WHITESPACE) {
-              return "";
-            } else {
-              return expr.lexeme;
-            }
+            return expr.lexeme;
           } else {
             return expr.accept(this);
           }
-        }).join("");
+        }).join("").replace(/[|]/g, "").trim();
         return {
           str,
           bar

@@ -95,6 +95,9 @@ export function isTune_Body(expr: Expr): expr is Tune_Body {
 export function isVoice_overlay(expr: unknown): expr is Voice_overlay {
   return expr instanceof Voice_overlay;
 }
+export function isDecoration(expr: unknown): expr is Decoration {
+  return expr instanceof Decoration;
+}
 
 export const mergeTokens = (tokens: Token[]) => {
   return tokens
