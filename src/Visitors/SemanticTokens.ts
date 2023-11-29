@@ -30,6 +30,7 @@ import {
 } from "../Expr";
 import { isToken, mergeTokens } from "../helpers";
 import { Token } from "../token";
+import { TokenType } from "../types";
 
 export class TokensVisitor implements Visitor<void> {
   public tokens: Array<Token> = [];
@@ -157,7 +158,10 @@ export class TokensVisitor implements Visitor<void> {
   }
   visitInlineFieldExpr(e: Inline_field) {
     this.tokens.push(e.field);
-    e.text.forEach((element) => {
+    e.text.map(element => {
+      element.type = TokenType.STRING;
+      return element;
+    }).forEach((element) => {
       this.tokens.push(element);
     });
   }
