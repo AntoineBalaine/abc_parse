@@ -504,13 +504,18 @@ L:1/8`;
     });
     describe("misc.", () => {
       // this case doesn't work because JS' parser discards line continuation chars.
-      /*       it("antislashes before EOF", () => {
-              const input = `A2 | \
-       D4 |\
-      `;
-              const parse = buildParse(input);
-              console.log(parse);
-            }); */
+      it("antislashes before EOF", () => {
+        const input = String.raw`A2 | \
+D4`;
+        const parse = buildParse(input);
+        const system = parse.tune[0].tune_body?.sequence[0];
+        // expect there to be only 1 info line.
+        // expect the info line to correspond to the input string, without its last line break
+        expect(system).to.not.be.undefined;
+        if (system) {
+          expect(system.length).to.equal(6);
+        }
+      });
       const with_decorations = [
         '"Cmaj7b5"HJLMOPRSTuvc"2 ',
         "THcd",

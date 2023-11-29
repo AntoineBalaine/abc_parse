@@ -10,7 +10,8 @@ export class Scanner {
   private line = 0;
   private errorReporter: AbcErrorReporter;
   constructor(source: string, errorReporter?: AbcErrorReporter) {
-    this.source = source;
+    this.source = String.raw`${source}`;
+    // this.source = source;
     if (errorReporter) {
       this.errorReporter = errorReporter;
     } else {
@@ -40,6 +41,7 @@ export class Scanner {
         if (this.peek() === "\n" && !this.isAtEnd()) {
           this.advance();
           this.addToken(TokenType.ANTISLASH_EOL);
+          this.line++;
         } else {
           this.errorReporter.ScannerError(this.line, this.errorMessage("expected an end of line"), this.createToken(TokenType.STRING));
         }
