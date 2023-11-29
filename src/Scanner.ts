@@ -43,7 +43,8 @@ export class Scanner {
           this.addToken(TokenType.ANTISLASH_EOL);
           this.line++;
         } else {
-          this.errorReporter.ScannerError(this.line, this.errorMessage("expected an end of line"), this.createToken(TokenType.STRING));
+          this.advance();
+          this.addToken(TokenType.ESCAPED_CHAR);
         }
         break;
       case "&":

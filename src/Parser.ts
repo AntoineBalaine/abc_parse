@@ -248,6 +248,7 @@ export class Parser {
       case TokenType.RESERVED_CHAR:
       case TokenType.WHITESPACE:
       case TokenType.ANTISLASH_EOL:
+      case TokenType.ESCAPED_CHAR:
         contents.push(curTokn);
         this.advance();
         break;
