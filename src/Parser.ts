@@ -30,7 +30,7 @@ import {
   tune_body_code
 } from "./Expr";
 import { VoiceParser } from "./Voices";
-import { beamEnd, foundBeam, hasRestAttributes, isChord, isDecorationToken, isMultiMesureRestToken, isNote, isNoteToken, isRestToken, isRhythmToken } from "./helpers";
+import { beamEnd, foundBeam, hasRestAttributes, isChord, isDecorationToken, isMultiMesureRestToken, isNote, isNoteToken, isRestToken, isRhythmToken, isTupletToken } from "./helpers";
 import { Token } from "./token";
 import { ParserErrorType, TokenType } from "./types";
 
@@ -553,7 +553,7 @@ COLON_DBL NUMBER
      * or <annotations> or <decorations>
      * or colondouble followed by number
     */
-    let i = this.current + 1;
+    let i = this.current;
     while (i < this.tokens.length) {
       i++;
       const cur = this.tokens[i];
@@ -563,6 +563,7 @@ COLON_DBL NUMBER
        */
       if (!isDecorationToken(cur)
         && !isNoteToken(cur)
+        && !isTupletToken(cur)
         && (cur.type !== TokenType.STRING && cur.lexeme !== "\"")
         && cur.type !== TokenType.WHITESPACE
         && cur.type !== TokenType.COLON_DBL

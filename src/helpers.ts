@@ -379,7 +379,7 @@ export const isRestToken = (pkd: Token) => {
 };
 
 export function isTupletToken(pkd: Token) {
-  return pkd.type === TokenType.LEFTPAREN_NUMBER || pkd.type === TokenType.COLON_DBL || pkd.type === TokenType.NUMBER;
+  return pkd.type === TokenType.LEFTPAREN_NUMBER || pkd.type === TokenType.COLON_DBL || pkd.type === TokenType.NUMBER || pkd.type === TokenType.COLON_NUMBER;
 }
 
 export function isVoice(e: tune_body_code): e is Info_line | Inline_field {
