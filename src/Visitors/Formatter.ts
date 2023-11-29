@@ -155,7 +155,7 @@ export class AbcFormatter implements Visitor<string> {
       formattedNote += expr.rhythm.accept(this);
     }
     if (expr.tie) {
-      formattedNote += "-";
+      formattedNote += expr.tie.lexeme;
     }
     return formattedNote;
   }

@@ -126,7 +126,7 @@ describe("Parser", () => {
               expect(firstNote.pitch).to.be.an.instanceof(Pitch);
               if (isPitch(firstNote.pitch)) {
                 expect(firstNote.pitch.noteLetter.lexeme).to.equal("C");
-                expect(firstNote.tie).to.be.true;
+                expect(firstNote.tie).to.be.instanceof(Token);
               }
             }
           }

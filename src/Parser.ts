@@ -687,7 +687,7 @@ COLON_DBL NUMBER
     type noteType = {
       pitchOrRest: Pitch | Rest;
       rhythm?: Rhythm;
-      tie?: boolean;
+      tie?: Token;
     };
     let note = <noteType>{};
     const pkd = this.peek();
@@ -711,7 +711,7 @@ COLON_DBL NUMBER
       note.rhythm = this.rhythm();
     }
     if (!this.isAtEnd() && this.peek().type === TokenType.MINUS) {
-      note.tie = true;
+      note.tie = this.peek();
       this.advance();
     }
     return new Note(note.pitchOrRest, note.rhythm, note.tie);
