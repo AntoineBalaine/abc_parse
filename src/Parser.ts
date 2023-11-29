@@ -136,6 +136,10 @@ export class Parser {
          * read the info line: if it's a VOICE line (V: key)
          * then stringify the tokens in the value, and add to the array of voice names.
          */
+        //find whether this is the voices legend or the actual start of the tune_body.
+        if (this.peek().lexeme === "V:" && !this.isVoicesLegend() && !voices.length) {
+          return new Tune_header(info_lines, voices);
+        }
         const line = this.info_line();
         if (line.key.lexeme === "V:") {
           /**
@@ -545,6 +549,37 @@ COLON_DBL NUMBER
     else {
       return false;
     }
+  }
+
+  /**
+   * parse all tokens entil EOL.
+   * Then, if the next line is a voice, return true
+   * 
+   * if it's a comment, skip it and continue 
+   * 
+   * if it's an info line, return true
+   * 
+   * else return false
+   * */
+  private isVoicesLegend() {
+    let i = this.current;
+    while (i < this.tokens.length && this.tokens[i].type !== TokenType.EOL) {
+      i++;
+    }
+    while (i < this.tokens.length) {
+      i++;
+      const cur = this.tokens[i];
+      if (cur.type === TokenType.COMMENT || cur.type === TokenType.STYLESHEET_DIRECTIVE) {
+        continue;
+      } else if (cur.type === TokenType.LETTER_COLON) {
+        return true;
+      } else if (cur.type === TokenType.EOF) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+    return false;
   }
   private isTuplet() {
     /**
