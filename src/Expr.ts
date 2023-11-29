@@ -302,10 +302,12 @@ export class Inline_field extends Expr {
 export class Chord extends Expr {
   contents: Array<Note | Token | Annotation>;
   rhythm?: Rhythm;
-  constructor(contents: Array<Note | Token | Annotation>, rhythm?: Rhythm) {
+  tie?: Token;
+  constructor(contents: Array<Note | Token | Annotation>, rhythm?: Rhythm, tie?: Token) {
     super();
     this.contents = contents;
     this.rhythm = rhythm;
+    this.tie = tie;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitChordExpr(this);

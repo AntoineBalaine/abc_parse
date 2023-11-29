@@ -147,6 +147,9 @@ export class TokensVisitor implements Visitor<void> {
     if (e.rhythm) {
       e.rhythm.accept(this);
     }
+    if (e.tie) {
+      this.tokens.push(e.tie);
+    }
   }
   visitDecorationExpr(e: Decoration) {
     this.tokens.push(e.decoration);

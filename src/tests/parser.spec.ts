@@ -358,12 +358,14 @@ describe("Parser", () => {
         }
       });
       it("should parse chord", () => {
-        const musicCode = buildParse('["suprise"C]4').tune[0].tune_body?.sequence[0][0];
+        const musicCode = buildParse('["suprise"C]4-').tune[0].tune_body?.sequence[0][0];
         expect(musicCode).to.be.an.instanceof(Chord);
         if (isChord(musicCode)) {
           expect(musicCode.rhythm).to.exist;
           expect(musicCode.contents[0]).to.be.an.instanceof(Annotation);
           expect(musicCode.contents[1]).to.be.an.instanceof(Note);
+          expect(musicCode.tie).to.not.be.undefined;
+          expect(musicCode.tie).to.be.an.instanceof(Token);
         }
       });
       it("should parse beam", () => {

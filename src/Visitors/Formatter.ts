@@ -75,11 +75,16 @@ export class AbcFormatter implements Visitor<string> {
         }
       })
       .join("");
+
+    let rhythm: string = "";
+    let tie: string = "";
     if (expr.rhythm) {
-      return `[${str}]${expr.rhythm.accept(this)}`;
-    } else {
-      return `[${str}]`;
+      rhythm = expr.rhythm.accept(this);
     }
+    if (expr.tie) {
+      tie = expr.tie.lexeme;
+    }
+    return `[${str}]${rhythm}${tie}`;
   }
   visitCommentExpr(expr: Comment) {
     return expr.text;

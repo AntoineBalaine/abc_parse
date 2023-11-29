@@ -620,6 +620,7 @@ COLON_DBL NUMBER
     // optionally followed by a rhythm
     const chordContents = [];
     let chordRhythm: Rhythm | undefined = undefined;
+    let chordTie: Token | undefined = undefined;
     const leftBracket = this.peek();
     this.advance();
     while (!this.isAtEnd() && !(this.peek().type === TokenType.RIGHT_BRKT)) {
@@ -639,7 +640,12 @@ COLON_DBL NUMBER
     if (isRhythmToken(this.peek())) {
       chordRhythm = this.rhythm();
     }
-    return new Chord(chordContents, chordRhythm);
+    if (!this.isAtEnd() && this.peek().type === TokenType.MINUS) {
+      chordTie = this.peek();
+      this.advance();
+    }
+
+    return new Chord(chordContents, chordRhythm, chordTie);
   }
   inline_field() {
     // inline field is a left bracket followed by a letter followed by a colon
