@@ -173,8 +173,8 @@ export class Parser {
     const info_line = [];
     while (!this.isAtEnd()) {
       if (
-        this.peek().type === TokenType.EOL &&
-        !(this.peekNext().type === TokenType.PLUS_COLON)
+        (this.peek().type === TokenType.EOL &&
+          !(this.peekNext().type === TokenType.PLUS_COLON)) || this.peek().type === TokenType.COMMENT
       ) {
         break;
       } else {

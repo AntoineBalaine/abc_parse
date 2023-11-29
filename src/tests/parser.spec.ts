@@ -333,6 +333,13 @@ describe("Parser", () => {
           expect(musicCode.text[0].lexeme).to.equal("3");
         }
       });
+      it("should parse comment in info line", () => {
+        const tune_body = buildParse("K:C\nabc\nT:Title %surprise").tune[0].tune_body;
+        const info_line = tune_body?.sequence[1][0];
+        const comment = tune_body?.sequence[1][1];
+        expect(info_line).to.be.an.instanceof(Info_line);
+        expect(comment).to.be.an.instanceof(Comment);
+      });
       it("should parse info_line in body", () => {
         const musicCode = buildParse("K:C\nabc\nT:Title").tune[0].tune_body?.sequence[1][0];
         expect(musicCode).to.be.an.instanceof(Info_line);

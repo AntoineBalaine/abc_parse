@@ -119,7 +119,7 @@ export class AbcFormatter implements Visitor<string> {
   visitInfoLineExpr(expr: Info_line) {
     const { key, value } = expr;
     const formattedVal = value.map((val) => val.lexeme).join("");
-    return `${key.lexeme}${formattedVal}\n`;
+    return `${key.lexeme}${formattedVal}`;
   }
   visitInlineFieldExpr(expr: Inline_field) {
     // TODO fix Inline_field parsing (numbers causing issue)
@@ -229,14 +229,13 @@ export class AbcFormatter implements Visitor<string> {
     return formatted;
   }
   visitTuneHeaderExpr(expr: Tune_header) {
-    return expr.info_lines
+    const info_lines = expr.info_lines
       .map((infoLine): string => {
         let rv = infoLine.accept(this);
-        if (isComment(infoLine)) {
-          rv += "\n";
-        }
+        rv += "\n";
         return rv;
-      })
+      });
+    return info_lines
       .join("");
   }
 
