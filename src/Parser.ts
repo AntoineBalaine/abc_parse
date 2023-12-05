@@ -248,7 +248,11 @@ export class Parser {
       case TokenType.RESERVED_CHAR:
       case TokenType.WHITESPACE:
       case TokenType.ANTISLASH_EOL:
+        contents.push(curTokn);
+        this.advance();
+        break;
       case TokenType.ESCAPED_CHAR:
+        this.errorReporter.parserWarning(curTokn, "Escaped characters don't get evaluated as music.", ParserErrorType.TUNE_BODY);
         contents.push(curTokn);
         this.advance();
         break;
