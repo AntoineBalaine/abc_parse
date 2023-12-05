@@ -20,6 +20,7 @@ export enum TokenType {
   DOT,
   EOF,
   EOL,
+  ESCAPED_CHAR,
   FLAT, // ♭
   FLAT_DBL, // 𝄫
   GREATER, //>>>>>

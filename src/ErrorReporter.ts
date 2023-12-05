@@ -5,9 +5,11 @@ export type AbcError = { line: number, where: string, message: string, token: To
 
 export class AbcErrorReporter {
   private errors: AbcError[];
+  private warnings: AbcError[];
 
   constructor() {
     this.errors = [];
+    this.warnings = [];
   }
 
   private report = (line: number, where: string, message: string, token: Token, origin?: { type: ParserErrorType }) => {
@@ -19,6 +21,9 @@ export class AbcErrorReporter {
   hasErrors = () => this.errors.length > 0;
   resetErrors = () => (this.errors = []);
   getErrors = () => this.errors;
+  hasWarnings = () => this.warnings.length > 0;
+  resetWarnings = () => (this.warnings = []);
+  getWarnings = () => this.warnings;
 
 
   ScannerError = (line: number, message: string, token: Token) => {
@@ -55,4 +60,7 @@ export class AbcErrorReporter {
     return this.report(token.line, `at pos.${token.position} - '${token.lexeme}'`, message, token, { type: origin });
   };
 
+  parserWarning = (token: Token, message: string, origin: ParserErrorType) => {
+    this.warnings.push({ line: token.line, where: `at pos.${token.position} - '${token.lexeme}'`, message, token, origin: { type: origin } });
+  };
 }

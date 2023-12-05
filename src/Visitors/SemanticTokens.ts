@@ -107,7 +107,7 @@ export class TokensVisitor implements Visitor<void> {
       content.rhythm.accept(this);
     }
     if (content.tie) {
-      // TODO do nothing for now, ignore
+      this.tokens.push(content.tie);
     }
   }
   visitRhythmExpr(rhythm: Rhythm) {
@@ -146,6 +146,9 @@ export class TokensVisitor implements Visitor<void> {
     });
     if (e.rhythm) {
       e.rhythm.accept(this);
+    }
+    if (e.tie) {
+      this.tokens.push(e.tie);
     }
   }
   visitDecorationExpr(e: Decoration) {

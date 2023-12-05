@@ -173,8 +173,8 @@ export class Parser {
     const info_line = [];
     while (!this.isAtEnd()) {
       if (
-        this.peek().type === TokenType.EOL &&
-        !(this.peekNext().type === TokenType.PLUS_COLON)
+        (this.peek().type === TokenType.EOL &&
+          !(this.peekNext().type === TokenType.PLUS_COLON)) || this.peek().type === TokenType.COMMENT
       ) {
         break;
       } else {
@@ -248,6 +248,11 @@ export class Parser {
       case TokenType.RESERVED_CHAR:
       case TokenType.WHITESPACE:
       case TokenType.ANTISLASH_EOL:
+        contents.push(curTokn);
+        this.advance();
+        break;
+      case TokenType.ESCAPED_CHAR:
+        this.errorReporter.parserWarning(curTokn, "Escaped characters don't get evaluated as music.", ParserErrorType.TUNE_BODY);
         contents.push(curTokn);
         this.advance();
         break;
@@ -620,6 +625,7 @@ COLON_DBL NUMBER
     // optionally followed by a rhythm
     const chordContents = [];
     let chordRhythm: Rhythm | undefined = undefined;
+    let chordTie: Token | undefined = undefined;
     const leftBracket = this.peek();
     this.advance();
     while (!this.isAtEnd() && !(this.peek().type === TokenType.RIGHT_BRKT)) {
@@ -639,7 +645,12 @@ COLON_DBL NUMBER
     if (isRhythmToken(this.peek())) {
       chordRhythm = this.rhythm();
     }
-    return new Chord(chordContents, chordRhythm);
+    if (!this.isAtEnd() && this.peek().type === TokenType.MINUS) {
+      chordTie = this.peek();
+      this.advance();
+    }
+
+    return new Chord(chordContents, chordRhythm, chordTie);
   }
   inline_field() {
     // inline field is a left bracket followed by a letter followed by a colon
@@ -687,7 +698,7 @@ COLON_DBL NUMBER
     type noteType = {
       pitchOrRest: Pitch | Rest;
       rhythm?: Rhythm;
-      tie?: boolean;
+      tie?: Token;
     };
     let note = <noteType>{};
     const pkd = this.peek();
@@ -711,7 +722,7 @@ COLON_DBL NUMBER
       note.rhythm = this.rhythm();
     }
     if (!this.isAtEnd() && this.peek().type === TokenType.MINUS) {
-      note.tie = true;
+      note.tie = this.peek();
       this.advance();
     }
     return new Note(note.pitchOrRest, note.rhythm, note.tie);

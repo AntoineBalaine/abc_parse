@@ -126,7 +126,7 @@ describe("Parser", () => {
               expect(firstNote.pitch).to.be.an.instanceof(Pitch);
               if (isPitch(firstNote.pitch)) {
                 expect(firstNote.pitch.noteLetter.lexeme).to.equal("C");
-                expect(firstNote.tie).to.be.true;
+                expect(firstNote.tie).to.be.instanceof(Token);
               }
             }
           }
@@ -333,6 +333,13 @@ describe("Parser", () => {
           expect(musicCode.text[0].lexeme).to.equal("3");
         }
       });
+      it("should parse comment in info line", () => {
+        const tune_body = buildParse("K:C\nabc\nT:Title %surprise").tune[0].tune_body;
+        const info_line = tune_body?.sequence[1][0];
+        const comment = tune_body?.sequence[1][1];
+        expect(info_line).to.be.an.instanceof(Info_line);
+        expect(comment).to.be.an.instanceof(Comment);
+      });
       it("should parse info_line in body", () => {
         const musicCode = buildParse("K:C\nabc\nT:Title").tune[0].tune_body?.sequence[1][0];
         expect(musicCode).to.be.an.instanceof(Info_line);
@@ -351,12 +358,14 @@ describe("Parser", () => {
         }
       });
       it("should parse chord", () => {
-        const musicCode = buildParse('["suprise"C]4').tune[0].tune_body?.sequence[0][0];
+        const musicCode = buildParse('["suprise"C]4-').tune[0].tune_body?.sequence[0][0];
         expect(musicCode).to.be.an.instanceof(Chord);
         if (isChord(musicCode)) {
           expect(musicCode.rhythm).to.exist;
           expect(musicCode.contents[0]).to.be.an.instanceof(Annotation);
           expect(musicCode.contents[1]).to.be.an.instanceof(Note);
+          expect(musicCode.tie).to.not.be.undefined;
+          expect(musicCode.tie).to.be.an.instanceof(Token);
         }
       });
       it("should parse beam", () => {

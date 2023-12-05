@@ -241,12 +241,12 @@ export class Rest extends Expr {
 export class Note extends Expr {
   pitch: Pitch | Rest;
   rhythm?: Rhythm;
-  tie?: boolean;
-  constructor(pitch: Pitch | Rest, rhythm?: Rhythm, tie?: boolean) {
+  tie?: Token;
+  constructor(pitch: Pitch | Rest, rhythm?: Rhythm, tie?: Token) {
     super();
     this.pitch = pitch;
     this.rhythm = rhythm;
-    this.tie = tie || false;
+    this.tie = tie;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitNoteExpr(this);
@@ -302,10 +302,12 @@ export class Inline_field extends Expr {
 export class Chord extends Expr {
   contents: Array<Note | Token | Annotation>;
   rhythm?: Rhythm;
-  constructor(contents: Array<Note | Token | Annotation>, rhythm?: Rhythm) {
+  tie?: Token;
+  constructor(contents: Array<Note | Token | Annotation>, rhythm?: Rhythm, tie?: Token) {
     super();
     this.contents = contents;
     this.rhythm = rhythm;
+    this.tie = tie;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitChordExpr(this);

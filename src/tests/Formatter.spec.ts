@@ -64,6 +64,65 @@ describe("Format Systems", function () {
   });
 });
 
+describe("Format Info Lines in Tune Header", function () {
+  const SystemLineTests: SystemLineTest[] = [
+    {
+      title: "format a tune header containing info lines only",
+      test: (input, expected) => {
+        const parse = buildParse(input);
+        const tune_header = parse.tune[0].tune_header;
+        const formatter = new AbcFormatter();
+        const fmt = formatter.visitTuneHeaderExpr(tune_header);
+        expect(fmt).to.not.be.undefined;
+        assert.equal(fmt, expected);
+      },
+      input: `M:4/4\nL:1/8\nK:C\n`,
+      expected: `X:1\nM:4/4\nL:1/8\nK:C\n`
+    },
+    {
+      title: "format a tune header containing comments",
+      test: (input, expected) => {
+        const parse = buildParse(input);
+        const tune_header = parse.tune[0].tune_header;
+        const formatter = new AbcFormatter();
+        const fmt = formatter.visitTuneHeaderExpr(tune_header);
+        expect(fmt).to.not.be.undefined;
+        assert.equal(fmt, expected);
+      },
+      input: `M:4/4\nL:1/8\n%surprise\nK:C\n`,
+      expected: `X:1\nM:4/4\nL:1/8\n%surprise\nK:C\n`
+    },
+  ];
+
+  SystemLineTests.forEach(({ title, test, input, expected }) => {
+    it(title, () => { test(input, expected); });
+  });
+});
+
+describe("Format Info Lines in Tune Body", function () {
+  const SystemLineTests: SystemLineTest[] = [
+    {
+      title: "format a tune header containing info lines only",
+      test: (input, expected) => {
+        const parse = buildParse(input);
+        const tune_body = parse.tune[0].tune_body;
+        expect(tune_body).to.not.be.undefined;
+        if (!tune_body) { return; }
+        const formatter = new AbcFormatter();
+        const fmt = formatter.visitTuneBodyExpr(tune_body);
+        expect(fmt).to.not.be.undefined;
+        assert.equal(fmt, expected);
+      },
+      input: `abc\nM:4/4\nL:1/8\nK:C\n`,
+      expected: `abc\nM:4/4\nL:1/8\nK:C\n`
+    },
+  ];
+  SystemLineTests.forEach(({ title, test, input, expected }) => {
+    it(title, () => { test(input, expected); });
+  });
+});
+
+
 describe("Formatter", function () {
   /*   describe("extracts voices names", function () {
       const voicesNames = ["T1", "T2", "B1", "B2"];
