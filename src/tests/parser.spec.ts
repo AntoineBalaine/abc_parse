@@ -1,5 +1,9 @@
 import assert from "assert";
 import chai from "chai";
+import { Parser } from "../parsers/Parser";
+import { Scanner } from "../parsers/Scanner";
+import { AbcFormatter } from "../Visitors/Formatter";
+import { isAnnotation, isBarLine, isBeam, isChord, isComment, isGraceGroup, isInfo_line, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isPitch, isRest, isRhythm, isSymbol, isToken, isVoice_overlay, isYSPACER } from "../helpers";
 import {
   Annotation,
   BarLine,
@@ -22,13 +26,9 @@ import {
   Tuplet,
   Voice_overlay,
   YSPACER
-} from "../Expr";
-import { Parser } from "../Parser";
-import { Scanner } from "../Scanner";
-import { AbcFormatter } from "../Visitors/Formatter";
-import { isAnnotation, isBarLine, isBeam, isChord, isComment, isGraceGroup, isInfo_line, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isPitch, isRest, isRhythm, isSymbol, isToken, isVoice_overlay, isYSPACER } from "../helpers";
-import { Token } from "../token";
-import { TokenType } from "../types";
+} from "../types/Expr";
+import { Token } from "../types/token";
+import { TokenType } from "../types/types";
 import { buildParse, tuneHeader } from "./RhythmTransform.spec";
 const expect = chai.expect;
 

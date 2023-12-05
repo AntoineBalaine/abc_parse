@@ -1,3 +1,4 @@
+import { getTokenRange, isToken, reduceRanges } from "../helpers";
 import {
   Annotation,
   BarLine,
@@ -26,10 +27,9 @@ import {
   Visitor,
   Voice_overlay,
   YSPACER
-} from "../Expr";
-import { getTokenRange, isToken, reduceRanges } from "../helpers";
-import { Token } from "../token";
-import { Range } from "../types";
+} from "../types/Expr";
+import { Token } from "../types/token";
+import { Range } from "../types/types";
 
 /**
  * Use this visitor to figure out the range of a given expr.

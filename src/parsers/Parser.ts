@@ -1,4 +1,4 @@
-import { AbcErrorReporter } from "./ErrorReporter";
+import { beamEnd, foundBeam, hasRestAttributes, isChord, isDecorationToken, isMultiMesureRestToken, isNote, isNoteToken, isRestToken, isRhythmToken, isTupletToken } from "../helpers";
 import {
   Annotation,
   BarLine,
@@ -28,11 +28,11 @@ import {
   Voice_overlay,
   YSPACER,
   tune_body_code
-} from "./Expr";
+} from "../types/Expr";
+import { Token } from "../types/token";
+import { ParserErrorType, TokenType } from "../types/types";
+import { AbcErrorReporter } from "./ErrorReporter";
 import { VoiceParser } from "./Voices";
-import { beamEnd, foundBeam, hasRestAttributes, isChord, isDecorationToken, isMultiMesureRestToken, isNote, isNoteToken, isRestToken, isRhythmToken, isTupletToken } from "./helpers";
-import { Token } from "./token";
-import { ParserErrorType, TokenType } from "./types";
 
 export class Parser {
   private tokens: Array<Token>;

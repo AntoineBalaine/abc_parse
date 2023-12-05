@@ -1,5 +1,5 @@
-import { Token } from "./token";
-import { ParserErrorType, TokenType } from "./types";
+import { Token } from "../types/token";
+import { ParserErrorType, TokenType } from "../types/types";
 
 export type AbcError = { line: number, where: string, message: string, token: Token, origin?: { type: ParserErrorType } };
 

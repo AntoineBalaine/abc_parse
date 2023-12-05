@@ -1,6 +1,6 @@
-import { Info_line, Inline_field, tune_body_code } from "./Expr";
-import { isInline_field, isToken, isVoice } from "./helpers";
-import { System, TokenType } from "./types";
+import { isInline_field, isToken, isVoice } from "../helpers";
+import { Info_line, Inline_field, tune_body_code } from "../types/Expr";
+import { System, TokenType } from "../types/types";
 
 /**
  * voices: 

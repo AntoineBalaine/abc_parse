@@ -1,6 +1,6 @@
+import { Token } from "../types/token";
+import { TokenType } from "../types/types";
 import { AbcErrorReporter } from "./ErrorReporter";
-import { Token } from "./token";
-import { TokenType } from "./types";
 
 export class Scanner {
   private source: string;

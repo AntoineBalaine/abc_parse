@@ -1,3 +1,4 @@
+import { cloneText, cloneToken, isToken } from "../helpers";
 import {
   Annotation,
   BarLine,
@@ -29,10 +30,9 @@ import {
   Voice_overlay,
   YSPACER,
   music_code
-} from "../Expr";
-import { cloneText, cloneToken, isToken } from "../helpers";
-import { Token } from "../token";
-import { System } from "../types";
+} from "../types/Expr";
+import { Token } from "../types/token";
+import { System } from "../types/types";
 export class Cloner implements Visitor<Expr | Token> {
 
   visitAnnotationExpr(expr: Annotation): Annotation {

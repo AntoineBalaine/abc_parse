@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import readline from "readline";
-import { Parser } from "./Parser";
-import { Scanner } from "./Scanner";
+import { Parser } from "./parsers/Parser";
+import { Scanner } from "./parsers/Scanner";
 
 const main = (args: string[]) => {
   if (args.length > 1) {

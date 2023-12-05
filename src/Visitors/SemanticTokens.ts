@@ -1,3 +1,4 @@
+import { isToken, mergeTokens } from "../helpers";
 import {
   Annotation,
   BarLine,
@@ -27,10 +28,9 @@ import {
   Voice_overlay,
   YSPACER,
   music_code,
-} from "../Expr";
-import { isToken, mergeTokens } from "../helpers";
-import { Token } from "../token";
-import { TokenType } from "../types";
+} from "../types/Expr";
+import { Token } from "../types/token";
+import { TokenType } from "../types/types";
 
 export class TokensVisitor implements Visitor<void> {
   public tokens: Array<Token> = [];

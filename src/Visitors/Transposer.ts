@@ -1,4 +1,5 @@
 
+import { isBeam, isChord, isGraceGroup, isNote, isPitch, isToken } from "../helpers";
 import {
   Annotation,
   BarLine,
@@ -28,9 +29,8 @@ import {
   Visitor,
   Voice_overlay,
   YSPACER
-} from "../Expr";
-import { isBeam, isChord, isGraceGroup, isNote, isPitch, isToken } from "../helpers";
-import { Token } from "../token";
+} from "../types/Expr";
+import { Token } from "../types/token";
 
 export class Transposer implements Visitor<Expr | Token> {
   distance: number = 0;

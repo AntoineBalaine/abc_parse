@@ -1,10 +1,10 @@
 
 import assert from "assert";
 import chai from "chai";
-import { Grace_group, Note } from "../Expr";
 import { RangeVisitor } from "../Visitors/RangeVisitor";
 import { isGraceGroup, isNote } from "../helpers";
-import { Range } from "../types";
+import { Grace_group, Note } from "../types/Expr";
+import { Range } from "../types/types";
 import { buildParse } from "./RhythmTransform.spec";
 
 const expect = chai.expect;

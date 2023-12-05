@@ -1,6 +1,6 @@
 import chai from "chai";
-import { Parser } from "../Parser";
-import { Scanner } from "../Scanner";
+import { Parser } from "../parsers/Parser";
+import { Scanner } from "../parsers/Scanner";
 const expect = chai.expect;
 
 const two_voices = `X:1

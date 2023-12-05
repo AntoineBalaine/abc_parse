@@ -23,9 +23,9 @@ import {
   YSPACER,
   music_code,
   tune_body_code
-} from './Expr';
-import { Token } from './token';
-import { Range, TokenType } from './types';
+} from './types/Expr';
+import { Token } from './types/token';
+import { Range, TokenType } from './types/types';
 
 export function isMusicCode(expr: Expr | Token): expr is Music_code {
   return expr instanceof Music_code;

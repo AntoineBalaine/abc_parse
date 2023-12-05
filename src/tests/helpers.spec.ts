@@ -1,6 +1,6 @@
 import chai from "chai";
 import { convertVoiceInfoLinesToInlineInfos, splitSystemLines } from '../Visitors/Formatter_helpers';
-import { System } from "../types";
+import { System } from "../types/types";
 import { buildParse } from "./RhythmTransform.spec";
 const expect = chai.expect;
 

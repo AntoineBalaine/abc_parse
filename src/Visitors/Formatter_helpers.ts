@@ -1,7 +1,7 @@
-import { Comment, Expr, Info_line, Inline_field, music_code } from "../Expr";
 import { isBarLine, isInfo_line, isToken, isWS } from '../helpers';
-import { Token } from "../token";
-import { System, TokenType } from "../types";
+import { Comment, Expr, Info_line, Inline_field, music_code } from "../types/Expr";
+import { Token } from "../types/token";
+import { System, TokenType } from "../types/types";
 
 export function wrapInSpaces(str: string) {
   return ` ${str} `;

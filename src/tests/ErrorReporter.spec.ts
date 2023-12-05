@@ -1,7 +1,7 @@
 import chai from "chai";
-import { AbcErrorReporter } from "../ErrorReporter";
-import { Parser } from "../Parser";
-import { Scanner } from "../Scanner";
+import { AbcErrorReporter } from "../parsers/ErrorReporter";
+import { Parser } from "../parsers/Parser";
+import { Scanner } from "../parsers/Scanner";
 import { tuneHeader } from "./RhythmTransform.spec";
 
 const expect = chai.expect;

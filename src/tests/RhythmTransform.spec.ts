@@ -1,10 +1,10 @@
 import assert from "assert";
 import chai from "chai";
-import { File_header, File_structure } from "../Expr";
-import { Parser } from "../Parser";
-import { Scanner } from "../Scanner";
 import { AbcFormatter } from "../Visitors/Formatter";
 import { RhythmVisitor } from "../Visitors/RhythmTransform";
+import { Parser } from "../parsers/Parser";
+import { Scanner } from "../parsers/Scanner";
+import { File_header, File_structure } from "../types/Expr";
 const expect = chai.expect;
 
 export function tuneHeader(testStr: string) {

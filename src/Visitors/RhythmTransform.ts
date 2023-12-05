@@ -1,4 +1,5 @@
 
+import { cloneToken, exprIsInRange, getPitchRange, getTokenRange, isChord, isEmptyRhythm, isRhythmInRange, isToken, isTune_Body } from "../helpers";
 import {
   Annotation,
   BarLine,
@@ -31,10 +32,9 @@ import {
   YSPACER,
   music_code,
   tune_body_code
-} from "../Expr";
-import { cloneToken, exprIsInRange, getPitchRange, getTokenRange, isChord, isEmptyRhythm, isRhythmInRange, isToken, isTune_Body } from "../helpers";
-import { Token } from "../token";
-import { Range, TokenType } from "../types";
+} from "../types/Expr";
+import { Token } from "../types/token";
+import { Range, TokenType } from "../types/types";
 import { AbcFormatter } from "./Formatter";
 import { RangeVisitor } from "./RangeVisitor";
 

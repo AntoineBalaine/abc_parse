@@ -1,7 +1,7 @@
 import assert from "assert";
 import chai from "chai";
 import { AbcFormatter } from "../Visitors/Formatter";
-import { System } from "../types";
+import { System } from "../types/types";
 import { buildParse, removeTuneHeader } from "./RhythmTransform.spec";
 import { RunVoiceSystemsTest, SystemLineTest } from "./helpers.spec";
 

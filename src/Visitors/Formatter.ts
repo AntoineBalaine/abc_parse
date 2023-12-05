@@ -1,3 +1,4 @@
+import { isBarLine, isBeam, isComment, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isToken, isVoice_overlay } from "../helpers";
 import {
   Annotation,
   BarLine,
@@ -28,10 +29,9 @@ import {
   Voice_overlay,
   YSPACER,
   music_code,
-} from "../Expr";
-import { isBarLine, isBeam, isComment, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isToken, isVoice_overlay } from "../helpers";
-import { Token } from "../token";
-import { System, TokenType } from "../types";
+} from "../types/Expr";
+import { Token } from "../types/token";
+import { System, TokenType } from "../types/types";
 import { Formatter_Bar, Formatter_LineWithBars, GroupBarsInLines, convertVoiceInfoLinesToInlineInfos, splitSystemLines } from './Formatter_helpers';
 
 export class AbcFormatter implements Visitor<string> {

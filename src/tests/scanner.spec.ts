@@ -1,6 +1,6 @@
 import assert from "assert";
-import { Scanner } from "../Scanner";
-import { TokenType } from "../types";
+import { Scanner } from "../parsers/Scanner";
+import { TokenType } from "../types/types";
 
 // create a test for each token type
 // create a test builder
