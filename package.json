@@ -3,6 +3,9 @@
   "displayName": "abc-parser",
   "description": "Abc notation parser",
   "version": "0.0.1",
+  "main": "out/index.js",
+  "types": "out/index.d.ts",
+  "files": ["/out"],
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
     "@jest/globals": "^29.3.1",
