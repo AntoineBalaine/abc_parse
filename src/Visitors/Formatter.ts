@@ -217,7 +217,7 @@ export class AbcFormatter implements Visitor<string> {
     return formatted;
   }
   visitSymbolExpr(expr: Symbol) {
-    return `!${expr.symbol.lexeme}!`;
+    return `${expr.symbol.lexeme}`;
   }
   visitTuneBodyExpr(expr: Tune_Body): string {
     return expr.sequence
