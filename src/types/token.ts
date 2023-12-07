@@ -1,5 +1,10 @@
 import { TokenType } from "./types";
 
+/**
+ * Token is the base element output by the scanner.
+ * It represents one or multiple characters in a score
+ * using {@link TokenType} as reference for what it represents.
+ * */
 export class Token {
   public type: TokenType;
   public lexeme: string;
