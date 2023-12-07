@@ -32,6 +32,20 @@ import {
 import { Token } from "../types/token";
 import { TokenType } from "../types/types";
 
+/**
+ * Use this visitor to retrieve semantic tokens 
+ * that are used for syntax highlighting.
+ *
+ * Always parse from the top of the tree, 
+ * which is from the {@link File_structure} expression.
+ *
+ * eg:
+ * ```typescript
+ * const analyzer = new TokensVisitor();
+ * analyzer.analyze(this.AST);
+ * this.tokens = analyzer.tokens;
+ * ```
+ */
 export class TokensVisitor implements Visitor<void> {
   public tokens: Array<Token> = [];
 
@@ -210,6 +224,3 @@ export class TokensVisitor implements Visitor<void> {
   }
 }
 
-/**
- * TODO double check this
- */

@@ -32,6 +32,10 @@ import {
 } from "../types/Expr";
 import { Token } from "../types/token";
 
+/**
+ * WIP there will be dragons.
+ * Use this to transpose notes within an AST.
+ */
 export class Transposer implements Visitor<Expr | Token> {
   distance: number = 0;
   source: File_structure;

@@ -38,6 +38,29 @@ import { Range, TokenType } from "../types/types";
 import { AbcFormatter } from "./Formatter";
 import { RangeVisitor } from "./RangeVisitor";
 
+/**
+ * Use this visitor to divide or multiply rhythms in a score.
+ *
+ * eg: 
+ * ```typescript
+ * const source = `X:1\nabc`
+ * const ast = new Parser(new Scanner(source).scanTokens()).parse();
+ * const multiply = new RhythmVisitor(ast).transform("/");
+ * const formatted: string = multiply.getChanges();
+ * // will yield `X:1\na/b/c/`
+ * ```
+ * `transform()` can take either `*` or `/`, respectively to multiply or divide rhythms by two.
+ * In the context of editing a score, you might request that 
+ * only a selected portion of the source text be transformed, 
+ * by passing a `Range` object to `transform()`.
+ * ```typescript
+ * const range = { 
+ *  start: { line: 0, character: 0 }, 
+ *  end: { line: 0, character: 5 }
+ * }
+ * const multiply = new RhythmVisitor(ast).transform("/", range);
+ * ```
+ */
 export class RhythmVisitor implements Visitor<Expr> {
   private source: Expr;
   private factor?: "*" | "/";
