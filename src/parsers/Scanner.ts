@@ -2,6 +2,33 @@ import { Token } from "../types/token";
 import { TokenType } from "../types/types";
 import { AbcErrorReporter } from "./ErrorReporter";
 
+/**
+ * Takes a source string (an ABC score), 
+ * scans all the characters in it, 
+ * and returns the array of {@link Token}s 
+ * when you call `scanTokens()`
+ * eg:
+ * ```typescript
+ * const scanner = new Scanner(source).scanTokens();
+ * ```
+ *
+ * The scanner optionnally takes an {@link AbcErrorReporter}, 
+ * in the case you'd like to use the same error Reporter for the Scanner and the Parser.
+ * ```typescript
+ * const errorReporter = new AbcErrorReporter()
+ * const scanner = new Scanner(source, errorReporter).scanTokens();
+ * const errors = errorReporter.getErrors();
+ * ```
+ * Otherwise, you can just retrieve the Scanner's errors directly:
+ * ```typescript
+ * const scanner = new Scanner(source, errorReporter);
+ * const tokens = scanner.scanTokens();
+ * if (scanner.hasErrors()) { 
+ *  const errors = scanner.getErrors();
+ * }
+ * ```
+ * 
+ */
 export class Scanner {
   private source: string;
   private tokens: Array<Token> = new Array();
@@ -23,6 +50,10 @@ export class Scanner {
   resetErrors = () => this.errorReporter.resetErrors();
   getErrors = () => this.errorReporter.getErrors();
 
+  /**
+   * Scan all characters found in the source string into an array of tokens.
+   * If the scanner runs across an unexpected token, it will throw a `scannerError`.
+   */
   scanTokens = (): Array<Token> => {
     while (!this.isAtEnd()) {
       this.start = this.current;

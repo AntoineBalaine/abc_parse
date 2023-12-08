@@ -34,6 +34,20 @@ import { Token } from "../types/token";
 import { System, TokenType } from "../types/types";
 import { Formatter_Bar, Formatter_LineWithBars, GroupBarsInLines, convertVoiceInfoLinesToInlineInfos, splitSystemLines } from './Formatter_helpers';
 
+/**
+ * A pretty printer for a score's AST.
+ * Exposes two main functions:
+ *
+ * `stringify()` will return the AST as written by the composer,
+ * `format()` will apply formatting to the score,
+ * by adding spaces between expressions, and aligning barlines within a multi-voices system.
+ *
+ * eg: 
+ * ```typescript
+ * const ast = new Parser(new Scanner(source).scanTokens()).parse()
+ * const fmt: string = new AbcFormatter().format(ast);
+ * ```
+ */
 export class AbcFormatter implements Visitor<string> {
   /**
    * use this flag to indicate if we just want to stringify the tree, without pretty-printing

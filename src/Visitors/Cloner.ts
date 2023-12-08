@@ -33,6 +33,11 @@ import {
 } from "../types/Expr";
 import { Token } from "../types/token";
 import { System } from "../types/types";
+
+/**
+ * Use to clone an AST. 
+ * Useful in situations where you need to keep an immutable source tree.
+ */
 export class Cloner implements Visitor<Expr | Token> {
 
   visitAnnotationExpr(expr: Annotation): Annotation {
@@ -181,10 +186,10 @@ export class Cloner implements Visitor<Expr | Token> {
     let q: Token | undefined;
     let r: Token | undefined;
     if (expr.q) {
-      let q = cloneToken(expr.q);
+      q = cloneToken(expr.q);
     }
     if (expr.r) {
-      let r = cloneToken(expr.r);
+      r = cloneToken(expr.r);
     }
     return new Tuplet(p, q, r);
   }

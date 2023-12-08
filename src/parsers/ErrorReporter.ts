@@ -3,6 +3,21 @@ import { ParserErrorType, TokenType } from "../types/types";
 
 export type AbcError = { line: number, where: string, message: string, token: Token, origin?: { type: ParserErrorType } };
 
+/**
+ * Handles warnings and errors from the scanner and parser.
+ * Scanner throws `AbcErrorReporter.ScannerErrors` and parser throws `AbcErrorReporter.parserError`.
+ *
+ * exposed methods are: 
+ * ```
+ * hasErrors()
+ * resetErrors()
+ * getErrors()
+ * hasWarnings()
+ * resetWarnings()
+ * getWarnings()
+ * ```
+ * This is meant to be used by diagnostics in the context of an LSP.
+ */
 export class AbcErrorReporter {
   private errors: AbcError[];
   private warnings: AbcError[];
@@ -20,9 +35,16 @@ export class AbcErrorReporter {
 
   hasErrors = () => this.errors.length > 0;
   resetErrors = () => (this.errors = []);
+  /**
+  * Return an array of errors thrown by the parser or the scanner
+  */
   getErrors = () => this.errors;
   hasWarnings = () => this.warnings.length > 0;
   resetWarnings = () => (this.warnings = []);
+  /**
+  * Return an array of warnings thrown by the parser.
+  * WIP - not many warnings are implemented atm.
+  */
   getWarnings = () => this.warnings;
 
 
@@ -31,7 +53,7 @@ export class AbcErrorReporter {
   };
 
 
-  stringifyError(line: number, where: string, message: string, origin?: { type: ParserErrorType }) {
+  private stringifyError(line: number, where: string, message: string, origin?: { type: ParserErrorType }) {
     let errMsg = `[line ${line}] Error ${where}: ${message}`;
     if (origin) {
       if (origin.type === ParserErrorType.TUNE_BODY) {

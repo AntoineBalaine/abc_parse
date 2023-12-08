@@ -1,6 +1,28 @@
 import { Token } from "./token";
 import { System, TokenType } from "./types";
 
+/**
+ * Visitor is the interface that enables walking the parser's syntax tree.
+ * Each method of the Visitor allows for traversing one of the expressions of the syntax tree.
+ *
+ * When implementing a visitor, each of these methods gets access to the data of the nodes:
+ * eg:
+ * ```typescript
+ * // visits the top node of the tree, the `File_structure`
+ * visitFileStructureExpr(expr: File_structure): Range { 
+ *   const { file_header, tune, } = expr;
+ *   return tune.map(t => (t.accept(this))) 
+ * // use the accept method of each of the expressions of the tree, to access its contents. 
+ * }
+ * ```
+ * The visitor can traverse the syntax tree 
+ * and apply any transformations to it via the `accept` method of the nodes.
+ * Use-cases include, amongst others: 
+ * - formatting / pretty-printing the tree
+ * - changing note/rhythm values in the tree
+ * - retrieving tokens for syntax highlighting
+ * - finding the location of certain tokens
+ */
 export interface Visitor<R> {
   visitAnnotationExpr(expr: Annotation): R;
   visitBarLineExpr(expr: BarLine): R;

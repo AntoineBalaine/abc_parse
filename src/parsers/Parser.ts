@@ -34,6 +34,57 @@ import { ParserErrorType, TokenType } from "../types/types";
 import { AbcErrorReporter } from "./ErrorReporter";
 import { VoiceParser } from "./Voices";
 
+/**
+ * Takes an array of tokens from the `Scanner`, 
+ * and parses the result into a syntax tree 
+ * when you call `parse()`.
+ *
+ * eg:
+ * ```typescript
+ * const tokens = new Scanner(source).scanTokens();
+ * const parser = new Parser(tokens, source);
+ * const ast = parser.parse();
+ * ```
+ *
+ * By default, the data type of the AST will be {@link File_structure},
+ * since `parse()` always starts at the top of the file. 
+ * This assumes that the file structure is always the same:
+ * ```
+ * File structure 
+ *  File_Header (optional)
+ *  Tunes (one or many)
+ *    Tune_Header
+ *      Info_lines (at least one: `X:<tune_number>`)
+ *    TuneBody (optional)
+ *      Some music markdown
+ * ```
+ * The {@link File_structure} is the root node of the syntax tree, 
+ * and every node of the tree is either an {@link Expr} or a {@link Token}.
+ * Every {@link Expr} exposes an `accept` method,
+ * which allows for visiting every node of the tree using the {@link Visitor} pattern.
+ *
+ * The parser optionnally takes an {@link AbcErrorReporter}, 
+ * in the case you'd like to use the same error reporter for the Scanner and the Parser.
+ * ```typescript
+ * const errorReporter = new AbcErrorReporter();
+ * const tokens = new Scanner(source, errorReporter).scanTokens();
+ * const parser = new Parser(tokens, source, errorReporter).scanTokens();
+ * const ast = parser.parse();
+ * const errors = errorReporter.getErrors();
+ * ```
+ *
+ * Otherwise, you can just retrieve the parsers's errors directly:
+ * ```typescript
+ * const errorReporter = new AbcErrorReporter();
+ * const tokens = new Scanner(source, errorReporter).scanTokens();
+ * const parser = new Parser(tokens, source, errorReporter).scanTokens();
+ * const ast = parser.parse();
+ * if (parser.hasErrors()) { 
+ *  const errors = parser.getErrors();
+ * }
+ * ```
+ * 
+ */
 export class Parser {
   private tokens: Array<Token>;
   private current = 0;
@@ -55,6 +106,16 @@ export class Parser {
   resetErrors = () => this.errorReporter.resetErrors();
   getErrors = () => this.errorReporter.getErrors();
 
+  /**
+   * Parse the contents of the source file, and return an AST.
+   *
+   * The parser will return `null` in case of uncaught errors 
+   * (though hopefully most of them will get caught.)
+   *
+   * Parsing starts at the top of the file,
+   * returns a `File_structure` expression, 
+   * and expects there to be at least one tune in the file.
+   */
   parse() {
     try {
       const AST = this.file_structure();

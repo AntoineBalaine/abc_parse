@@ -32,8 +32,8 @@ import { Token } from "../types/token";
 import { Range } from "../types/types";
 
 /**
- * Use this visitor to figure out the range of a given expr.
- * Range being: start line and character position, end line and character position.
+ * Use this visitor to figure out the {@link Range} of a given expr.
+ * {@link Range} being: start line and character `Position`, end line and character `Position`.
  */
 export class RangeVisitor implements Visitor<Range> {
   visitAnnotationExpr(expr: Annotation): Range { return getTokenRange(expr.text); }

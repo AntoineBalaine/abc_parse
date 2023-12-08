@@ -3,6 +3,9 @@ import { Comment, Expr, Info_line, Inline_field, music_code } from "../types/Exp
 import { Token } from "../types/token";
 import { System, TokenType } from "../types/types";
 
+/**
+ * Add spaces and start and end of a string.
+ */
 export function wrapInSpaces(str: string) {
   return ` ${str} `;
 }
@@ -72,10 +75,13 @@ export function convertVoiceInfoLinesToInlineInfos(system: System): System {
 
 /**
  * Transform the flat structure of a line into an array of bars
+ *
  * structure goes:
+ * ```
  * Lines
  *  Bars
  *   Expr
+ * ```
  */
 export function GroupBarsInLines(line: System): Array<Array<Expr | Token>> {
   let bars = [];
