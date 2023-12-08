@@ -50,6 +50,10 @@ export class Scanner {
   resetErrors = () => this.errorReporter.resetErrors();
   getErrors = () => this.errorReporter.getErrors();
 
+  /**
+   * Scan all characters found in the source string into an array of tokens.
+   * If the scanner runs across an unexpected token, it will throw a `scannerError`.
+   */
   scanTokens = (): Array<Token> => {
     while (!this.isAtEnd()) {
       this.start = this.current;

@@ -35,9 +35,16 @@ export class AbcErrorReporter {
 
   hasErrors = () => this.errors.length > 0;
   resetErrors = () => (this.errors = []);
+  /**
+  * Return an array of errors thrown by the parser or the scanner
+  */
   getErrors = () => this.errors;
   hasWarnings = () => this.warnings.length > 0;
   resetWarnings = () => (this.warnings = []);
+  /**
+  * Return an array of warnings thrown by the parser.
+  * WIP - not many warnings are implemented atm.
+  */
   getWarnings = () => this.warnings;
 
 

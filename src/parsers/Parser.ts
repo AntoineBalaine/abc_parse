@@ -106,6 +106,16 @@ export class Parser {
   resetErrors = () => this.errorReporter.resetErrors();
   getErrors = () => this.errorReporter.getErrors();
 
+  /**
+   * Parse the contents of the source file, and return an AST.
+   *
+   * The parser will return `null` in case of uncaught errors 
+   * (though hopefully most of them will get caught.)
+   *
+   * Parsing starts at the top of the file,
+   * returns a `File_structure` expression, 
+   * and expects there to be at least one tune in the file.
+   */
   parse() {
     try {
       const AST = this.file_structure();
