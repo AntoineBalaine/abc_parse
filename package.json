@@ -31,6 +31,7 @@
   "scripts": {
     "main": "out/index.js",
     "types": "out/index.d.ts",
+    "build": "tsc",
     "start": "tsc && node out/src/Abc.js",
     "start_debug": "tsc && node out/src/Abc.js /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/all/blues_my_naughty_sweetie_gives.abc",
     "start_debug2": "tsc && node out/src/Abc.js /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/visual/triplet-alignment-overlay.abc",
