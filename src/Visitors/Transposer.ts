@@ -1,5 +1,11 @@
-
-import { isBeam, isChord, isGraceGroup, isNote, isPitch, isToken } from "../helpers";
+import {
+  isBeam,
+  isChord,
+  isGraceGroup,
+  isNote,
+  isPitch,
+  isToken,
+} from "../helpers";
 import {
   Annotation,
   BarLine,
@@ -7,6 +13,7 @@ import {
   Chord,
   Comment,
   Decoration,
+  ErrorExpr,
   Expr,
   File_header,
   File_structure,
@@ -28,7 +35,7 @@ import {
   Tuplet,
   Visitor,
   Voice_overlay,
-  YSPACER
+  YSPACER,
 } from "../types/Expr";
 import { Token } from "../types/token";
 
@@ -52,10 +59,10 @@ export class Transposer implements Visitor<Expr | Token> {
   that returns the expression */
   visitAnnotationExpr(expr: Annotation): Annotation {
     return expr;
-  };
+  }
   visitBarLineExpr(expr: BarLine): BarLine {
     return expr;
-  };
+  }
   visitChordExpr(expr: Chord): Chord {
     expr.contents.map((content) => {
       if (isNote(content)) {
@@ -63,21 +70,26 @@ export class Transposer implements Visitor<Expr | Token> {
       } else {
         return content;
       }
-
     });
     return expr;
-  };
-  visitCommentExpr(expr: Comment): Comment { return expr; };
-  visitDecorationExpr(expr: Decoration): Decoration { return expr; };
-  visitFileHeaderExpr(expr: File_header): File_header { return expr; };
+  }
+  visitCommentExpr(expr: Comment): Comment {
+    return expr;
+  }
+  visitDecorationExpr(expr: Decoration): Decoration {
+    return expr;
+  }
+  visitFileHeaderExpr(expr: File_header): File_header {
+    return expr;
+  }
   visitFileStructureExpr(expr: File_structure): File_structure {
     expr.tune = expr.tune.map((tune) => {
       return this.visitTuneExpr(tune);
     });
     return expr;
-  };
+  }
   visitGraceGroupExpr(expr: Grace_group): Grace_group {
-    expr.notes = expr.notes.map(e => {
+    expr.notes = expr.notes.map((e) => {
       if (isNote(e)) {
         return this.visitNoteExpr(e);
       } else {
@@ -85,11 +97,19 @@ export class Transposer implements Visitor<Expr | Token> {
       }
     });
     return expr;
-  };
-  visitInfoLineExpr(expr: Info_line): Info_line { return expr; };
-  visitInlineFieldExpr(expr: Inline_field): Inline_field { return expr; };
-  visitLyricSectionExpr(expr: Lyric_section): Lyric_section { return expr; };
-  visitMultiMeasureRestExpr(expr: MultiMeasureRest): MultiMeasureRest { return expr; };
+  }
+  visitInfoLineExpr(expr: Info_line): Info_line {
+    return expr;
+  }
+  visitInlineFieldExpr(expr: Inline_field): Inline_field {
+    return expr;
+  }
+  visitLyricSectionExpr(expr: Lyric_section): Lyric_section {
+    return expr;
+  }
+  visitMultiMeasureRestExpr(expr: MultiMeasureRest): MultiMeasureRest {
+    return expr;
+  }
   visitMusicCodeExpr(expr: Music_code): Music_code {
     expr.contents.map((e) => {
       if (isToken(e)) {
@@ -107,24 +127,32 @@ export class Transposer implements Visitor<Expr | Token> {
       }
     });
     return expr;
-  };
+  }
   visitNoteExpr(expr: Note): Note {
     if (isPitch(expr.pitch)) {
       expr.pitch = this.visitPitchExpr(expr.pitch);
     }
     return expr;
-  };
-  visitNthRepeatExpr(expr: Nth_repeat): Nth_repeat { return expr; };
+  }
+  visitNthRepeatExpr(expr: Nth_repeat): Nth_repeat {
+    return expr;
+  }
   visitPitchExpr(expr: Pitch): Pitch {
     // TODO
     return expr;
-  };
-  visitRestExpr(expr: Rest): Rest { return expr; };
-  visitRhythmExpr(expr: Rhythm): Rhythm { return expr; };
-  visitSymbolExpr(expr: Symbol): Symbol { return expr; };
+  }
+  visitRestExpr(expr: Rest): Rest {
+    return expr;
+  }
+  visitRhythmExpr(expr: Rhythm): Rhythm {
+    return expr;
+  }
+  visitSymbolExpr(expr: Symbol): Symbol {
+    return expr;
+  }
   visitTuneBodyExpr(expr: Tune_Body): Tune_Body {
     expr.sequence = expr.sequence.map((system) => {
-      return system.map(expr => {
+      return system.map((expr) => {
         if (isToken(expr)) {
           return expr;
         } else if (isBeam(expr)) {
@@ -141,19 +169,23 @@ export class Transposer implements Visitor<Expr | Token> {
       });
     });
     return expr;
-  };
+  }
   visitTuneExpr(expr: Tune): Tune {
     if (expr.tune_body) {
       expr.tune_body = this.visitTuneBodyExpr(expr.tune_body);
     }
     return expr;
-  };
-  visitTuneHeaderExpr(expr: Tune_header): Tune_header { return expr; };
+  }
+  visitTuneHeaderExpr(expr: Tune_header): Tune_header {
+    return expr;
+  }
 
   visitVoiceOverlayExpr(expr: Voice_overlay) {
     return expr; // TODO dbl check this
   }
-  visitYSpacerExpr(expr: YSPACER): YSPACER { return expr; };
+  visitYSpacerExpr(expr: YSPACER): YSPACER {
+    return expr;
+  }
   visitBeamExpr(expr: Beam): Beam {
     expr.contents.map((content) => {
       if (isToken(content)) {
@@ -169,7 +201,13 @@ export class Transposer implements Visitor<Expr | Token> {
       }
     });
     return expr;
-  };
+  }
 
-  visitTupletExpr(expr: Tuplet): Tuplet { return expr; };
+  visitTupletExpr(expr: Tuplet): Tuplet {
+    return expr;
+  }
+
+  visitErrorExpr(expr: ErrorExpr) {
+    return expr;
+  }
 }

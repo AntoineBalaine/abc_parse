@@ -9,15 +9,15 @@ import { System, TokenType } from "./types";
  * eg:
  * ```typescript
  * // visits the top node of the tree, the `File_structure`
- * visitFileStructureExpr(expr: File_structure): Range { 
+ * visitFileStructureExpr(expr: File_structure): Range {
  *   const { file_header, tune, } = expr;
- *   return tune.map(t => (t.accept(this))) 
- * // use the accept method of each of the expressions of the tree, to access its contents. 
+ *   return tune.map(t => (t.accept(this)))
+ * // use the accept method of each of the expressions of the tree, to access its contents.
  * }
  * ```
- * The visitor can traverse the syntax tree 
+ * The visitor can traverse the syntax tree
  * and apply any transformations to it via the `accept` method of the nodes.
- * Use-cases include, amongst others: 
+ * Use-cases include, amongst others:
  * - formatting / pretty-printing the tree
  * - changing note/rhythm values in the tree
  * - retrieving tokens for syntax highlighting
@@ -50,6 +50,7 @@ export interface Visitor<R> {
   visitBeamExpr(expr: Beam): R;
   visitVoiceOverlayExpr(expr: Voice_overlay): R;
   visitTupletExpr(expr: Tuplet): R;
+  visitErrorExpr(expr: ErrorExpr): R;
 }
 
 export abstract class Expr {
@@ -133,8 +134,8 @@ export class Info_line extends Expr {
         result,
         null,
         tokens[0].line,
-        tokens[0].position
-      )
+        tokens[0].position,
+      ),
     );
     if (tokens[index].type === TokenType.COMMENT) {
       value.push(tokens[index]);
@@ -180,7 +181,7 @@ export class Comment extends Expr {
     return visitor.visitCommentExpr(this);
   }
 }
-export type tune_body_code = Comment | Info_line | music_code;
+export type tune_body_code = Comment | Info_line | music_code | ErrorExpr;
 
 export class Tune extends Expr {
   tune_header: Tune_header;
@@ -203,7 +204,7 @@ export class Rhythm extends Expr {
     numerator: Token | null,
     separator?: Token,
     denominator?: Token | null,
-    broken?: Token | null
+    broken?: Token | null,
   ) {
     super();
     this.numerator = numerator;
@@ -228,17 +229,13 @@ export class Voice_overlay extends Expr {
 }
 
 /**
- * syntax `(p:q:r` which means 'put p notes into the time of q for the next r notes'. If q is not given, it defaults as above. If r is not given, it defaults to p. 
+ * syntax `(p:q:r` which means 'put p notes into the time of q for the next r notes'. If q is not given, it defaults as above. If r is not given, it defaults to p.
  */
 export class Tuplet extends Expr {
   p: Token;
   q?: Token;
   r?: Token;
-  constructor(
-    p: Token,
-    q?: Token,
-    r?: Token,
-  ) {
+  constructor(p: Token, q?: Token, r?: Token) {
     super();
     this.p = p;
     this.q = q;
@@ -325,7 +322,11 @@ export class Chord extends Expr {
   contents: Array<Note | Token | Annotation>;
   rhythm?: Rhythm;
   tie?: Token;
-  constructor(contents: Array<Note | Token | Annotation>, rhythm?: Rhythm, tie?: Token) {
+  constructor(
+    contents: Array<Note | Token | Annotation>,
+    rhythm?: Rhythm,
+    tie?: Token,
+  ) {
     super();
     this.contents = contents;
     this.rhythm = rhythm;
@@ -394,7 +395,8 @@ export type music_code =
   | Symbol
   | MultiMeasureRest
   | Beam
-  | Tuplet;
+  | Tuplet
+  | ErrorExpr;
 
 export class Music_code extends Expr {
   contents: Array<music_code>;
@@ -406,7 +408,6 @@ export class Music_code extends Expr {
     return visitor.visitMusicCodeExpr(this);
   }
 }
-
 
 export type Beam_contents =
   | Token
@@ -450,5 +451,17 @@ export class YSPACER extends Expr {
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitYSpacerExpr(this);
+  }
+}
+
+export class ErrorExpr implements Expr {
+  constructor(
+    public tokens: Token[], // The problematic tokens
+    public expectedType?: TokenType,
+    public errorMessage?: string,
+  ) {}
+
+  accept<T>(visitor: Visitor<T>): T {
+    return visitor.visitErrorExpr(this);
   }
 }

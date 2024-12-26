@@ -29,17 +29,17 @@ import {
   Visitor,
   Voice_overlay,
   YSPACER,
-  music_code
+  music_code,
+  ErrorExpr,
 } from "../types/Expr";
 import { Token } from "../types/token";
 import { System } from "../types/types";
 
 /**
- * Use to clone an AST. 
+ * Use to clone an AST.
  * Useful in situations where you need to keep an immutable source tree.
  */
 export class Cloner implements Visitor<Expr | Token> {
-
   visitAnnotationExpr(expr: Annotation): Annotation {
     return new Annotation(cloneToken(expr.text));
   }
@@ -68,12 +68,12 @@ export class Cloner implements Visitor<Expr | Token> {
   }
   visitFileHeaderExpr(expr: File_header): File_header {
     const newText = cloneText(expr.text);
-    const newTokens: Array<Token> = expr.tokens.map((e) => (cloneToken(e)));
+    const newTokens: Array<Token> = expr.tokens.map((e) => cloneToken(e));
     return new File_header(newText, newTokens);
   }
   visitFileStructureExpr(expr: File_structure): File_structure {
     const newHeader = expr.file_header?.accept(this) as File_header;
-    const newBody = expr.tune.map(e => {
+    const newBody = expr.tune.map((e) => {
       return e.accept(this) as Tune;
     });
 
@@ -91,16 +91,18 @@ export class Cloner implements Visitor<Expr | Token> {
   }
   visitInfoLineExpr(expr: Info_line): Info_line {
     let newKey: Token = cloneToken(expr.key);
-    let newValue: Array<Token> = expr.value.map((e) => (cloneToken(e)));
+    let newValue: Array<Token> = expr.value.map((e) => cloneToken(e));
     return new Info_line([newKey, ...newValue]);
   }
   visitInlineFieldExpr(expr: Inline_field): Inline_field {
     let newField: Token = cloneToken(expr.field);
-    let newText: Array<Token> = expr.text.map((e) => (cloneToken(e)));
+    let newText: Array<Token> = expr.text.map((e) => cloneToken(e));
     return new Inline_field(newField, newText);
   }
   visitLyricSectionExpr(expr: Lyric_section): Lyric_section {
-    let newInfo_lines: Array<Info_line> = expr.info_lines.map((e) => (e.accept(this) as Info_line));
+    let newInfo_lines: Array<Info_line> = expr.info_lines.map(
+      (e) => e.accept(this) as Info_line,
+    );
     return new Lyric_section(newInfo_lines);
   }
   visitMultiMeasureRestExpr(expr: MultiMeasureRest): MultiMeasureRest {
@@ -124,25 +126,45 @@ export class Cloner implements Visitor<Expr | Token> {
     let newTie = expr.tie;
     return new Note(newPitch, newRhythm, newTie);
   }
-  visitNthRepeatExpr(expr: Nth_repeat): Nth_repeat { return new Nth_repeat(cloneToken(expr.repeat)); }
-  visitPitchExpr(expr: Pitch): Pitch {
-    let newAlteration: Token | undefined = expr.alteration ? cloneToken(expr.alteration) : undefined;
-    let newNoteLetter: Token = cloneToken(expr.noteLetter);
-    let newOctave: Token | undefined = expr.octave ? cloneToken(expr.octave) : undefined;
-    return new Pitch({ alteration: newAlteration, noteLetter: newNoteLetter, octave: newOctave });
+  visitNthRepeatExpr(expr: Nth_repeat): Nth_repeat {
+    return new Nth_repeat(cloneToken(expr.repeat));
   }
-  visitRestExpr(expr: Rest): Rest { return new Rest(cloneToken(expr.rest)); }
+  visitPitchExpr(expr: Pitch): Pitch {
+    let newAlteration: Token | undefined = expr.alteration
+      ? cloneToken(expr.alteration)
+      : undefined;
+    let newNoteLetter: Token = cloneToken(expr.noteLetter);
+    let newOctave: Token | undefined = expr.octave
+      ? cloneToken(expr.octave)
+      : undefined;
+    return new Pitch({
+      alteration: newAlteration,
+      noteLetter: newNoteLetter,
+      octave: newOctave,
+    });
+  }
+  visitRestExpr(expr: Rest): Rest {
+    return new Rest(cloneToken(expr.rest));
+  }
   visitRhythmExpr(expr: Rhythm): Rhythm {
-    let newNumerator: Token | null = expr.numerator ? cloneToken(expr.numerator) : null;
-    let newSeparator: Token | undefined = expr.separator ? cloneToken(expr.separator) : undefined;
-    let newDenominator: Token | null = expr.denominator ? cloneToken(expr.denominator) : null;
+    let newNumerator: Token | null = expr.numerator
+      ? cloneToken(expr.numerator)
+      : null;
+    let newSeparator: Token | undefined = expr.separator
+      ? cloneToken(expr.separator)
+      : undefined;
+    let newDenominator: Token | null = expr.denominator
+      ? cloneToken(expr.denominator)
+      : null;
     let newBroken: Token | null = expr.broken ? cloneToken(expr.broken) : null;
     return new Rhythm(newNumerator, newSeparator, newDenominator, newBroken);
   }
-  visitSymbolExpr(expr: Symbol): Symbol { return new Symbol(cloneToken(expr.symbol)); }
+  visitSymbolExpr(expr: Symbol): Symbol {
+    return new Symbol(cloneToken(expr.symbol));
+  }
   visitTuneBodyExpr(expr: Tune_Body): Tune_Body {
     let newSequence = expr.sequence.map((e) => {
-      return e.map(exp => {
+      return e.map((exp) => {
         if (isToken(exp)) {
           return cloneToken(exp);
         } else {
@@ -154,20 +176,25 @@ export class Cloner implements Visitor<Expr | Token> {
   }
   visitTuneExpr(expr: Tune): Tune {
     let newHeader: Tune_header = expr.tune_header.accept(this) as Tune_header;
-    let newBody: Tune_Body | undefined = expr.tune_body ? expr.tune_body.accept(this) as Tune_Body : undefined;
+    let newBody: Tune_Body | undefined = expr.tune_body
+      ? (expr.tune_body.accept(this) as Tune_Body)
+      : undefined;
     return new Tune(newHeader, newBody);
   }
   visitTuneHeaderExpr(expr: Tune_header): Tune_header {
-    let newInfo_lines: Array<Info_line> = expr.info_lines.map((e) => (e.accept(this) as Info_line));
+    let newInfo_lines: Array<Info_line> = expr.info_lines.map(
+      (e) => e.accept(this) as Info_line,
+    );
     return new Tune_header(newInfo_lines);
   }
   visitVoiceOverlayExpr(expr: Voice_overlay) {
-    let newAmpersands = expr.contents
-      .map((token) => cloneToken(token));
+    let newAmpersands = expr.contents.map((token) => cloneToken(token));
     return new Voice_overlay(newAmpersands);
   }
   visitYSpacerExpr(expr: YSPACER): YSPACER {
-    let newNumber: Token | undefined = expr.number ? cloneToken(expr.number) : undefined;
+    let newNumber: Token | undefined = expr.number
+      ? cloneToken(expr.number)
+      : undefined;
     let newYSpacer: Token = cloneToken(expr.ySpacer);
     return new YSPACER(newYSpacer, newNumber);
   }
@@ -192,5 +219,12 @@ export class Cloner implements Visitor<Expr | Token> {
       r = cloneToken(expr.r);
     }
     return new Tuplet(p, q, r);
+  }
+  visitErrorExpr(expr: ErrorExpr): ErrorExpr {
+    const tokens = expr.tokens.map((e) => cloneToken(e));
+    let err_msg = expr.errorMessage
+      ? (" " + expr.errorMessage).slice(1)
+      : expr.errorMessage;
+    return new ErrorExpr(tokens, expr.expectedType, err_msg);
   }
 }

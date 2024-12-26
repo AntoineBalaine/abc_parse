@@ -1,4 +1,16 @@
-import { beamEnd, foundBeam, hasRestAttributes, isChord, isDecorationToken, isMultiMesureRestToken, isNote, isNoteToken, isRestToken, isRhythmToken, isTupletToken } from "../helpers";
+import {
+  beamEnd,
+  foundBeam,
+  hasRestAttributes,
+  isChord,
+  isDecorationToken,
+  isMultiMesureRestToken,
+  isNote,
+  isNoteToken,
+  isRestToken,
+  isRhythmToken,
+  isTupletToken,
+} from "../helpers";
 import {
   Annotation,
   BarLine,
@@ -27,7 +39,8 @@ import {
   Tuplet,
   Voice_overlay,
   YSPACER,
-  tune_body_code
+  tune_body_code,
+  ErrorExpr,
 } from "../types/Expr";
 import { Token } from "../types/token";
 import { ParserErrorType, TokenType } from "../types/types";
@@ -35,8 +48,8 @@ import { AbcErrorReporter } from "./ErrorReporter";
 import { VoiceParser } from "./Voices";
 
 /**
- * Takes an array of tokens from the `Scanner`, 
- * and parses the result into a syntax tree 
+ * Takes an array of tokens from the `Scanner`,
+ * and parses the result into a syntax tree
  * when you call `parse()`.
  *
  * eg:
@@ -47,10 +60,10 @@ import { VoiceParser } from "./Voices";
  * ```
  *
  * By default, the data type of the AST will be {@link File_structure},
- * since `parse()` always starts at the top of the file. 
+ * since `parse()` always starts at the top of the file.
  * This assumes that the file structure is always the same:
  * ```
- * File structure 
+ * File structure
  *  File_Header (optional)
  *  Tunes (one or many)
  *    Tune_Header
@@ -58,12 +71,12 @@ import { VoiceParser } from "./Voices";
  *    TuneBody (optional)
  *      Some music markdown
  * ```
- * The {@link File_structure} is the root node of the syntax tree, 
+ * The {@link File_structure} is the root node of the syntax tree,
  * and every node of the tree is either an {@link Expr} or a {@link Token}.
  * Every {@link Expr} exposes an `accept` method,
  * which allows for visiting every node of the tree using the {@link Visitor} pattern.
  *
- * The parser optionnally takes an {@link AbcErrorReporter}, 
+ * The parser optionnally takes an {@link AbcErrorReporter},
  * in the case you'd like to use the same error reporter for the Scanner and the Parser.
  * ```typescript
  * const errorReporter = new AbcErrorReporter();
@@ -79,11 +92,11 @@ import { VoiceParser } from "./Voices";
  * const tokens = new Scanner(source, errorReporter).scanTokens();
  * const parser = new Parser(tokens, source, errorReporter).scanTokens();
  * const ast = parser.parse();
- * if (parser.hasErrors()) { 
+ * if (parser.hasErrors()) {
  *  const errors = parser.getErrors();
  * }
  * ```
- * 
+ *
  */
 export class Parser {
   private tokens: Array<Token>;
@@ -109,11 +122,11 @@ export class Parser {
   /**
    * Parse the contents of the source file, and return an AST.
    *
-   * The parser will return `null` in case of uncaught errors 
+   * The parser will return `null` in case of uncaught errors
    * (though hopefully most of them will get caught.)
    *
    * Parsing starts at the top of the file,
-   * returns a `File_structure` expression, 
+   * returns a `File_structure` expression,
    * and expects there to be at least one tune in the file.
    */
   parse() {
@@ -126,7 +139,6 @@ export class Parser {
       return null;
     }
   }
-
 
   private file_structure() {
     let file_header: File_header | null = null;
@@ -156,10 +168,7 @@ export class Parser {
     let header_text = "";
     let tokens: Token[] = [];
     while (!this.isAtEnd()) {
-      if (
-        this.peek().type === TokenType.EOL &&
-        this.peekNext().type === TokenType.EOL
-      ) {
+      if (this.peek().type === TokenType.EOL && this.peekNext().type === TokenType.EOL) {
         this.consume(TokenType.EOL, "Expected a line break");
         this.consume(TokenType.EOL, "Expected a line break");
       } else if (this.peek().lexeme === "X:") {
@@ -177,10 +186,7 @@ export class Parser {
     // then try to parse a tune body
     // unless the header is followed by a line break
     const tune_header = this.tune_header();
-    if (
-      this.peek().type === TokenType.EOL ||
-      this.peek().type === TokenType.EOF
-    ) {
+    if (this.peek().type === TokenType.EOL || this.peek().type === TokenType.EOF) {
       return new Tune(tune_header);
     } else {
       const tune_body = this.tune_body(tune_header.voices);
@@ -206,20 +212,21 @@ export class Parser {
           /**
            * trim the space in the value line, and remove any trailing comments after the legend
            */
-          const legend = line.value.map(token => token.lexeme).join("").trim().replace(/\s.*/, "");
+          const legend = line.value
+            .map((token) => token.lexeme)
+            .join("")
+            .trim()
+            .replace(/\s.*/, "");
           voices.push(legend);
         }
         info_lines.push(line);
-      } else if (this.peek().type === TokenType.COMMENT
-        || this.peek().type === TokenType.STYLESHEET_DIRECTIVE
-      ) {
+      } else if (this.peek().type === TokenType.COMMENT || this.peek().type === TokenType.STYLESHEET_DIRECTIVE) {
         info_lines.push(this.comment_line());
       } else if (
         this.peek().type === TokenType.EOL &&
-        (this.peekNext().type === TokenType.LETTER_COLON
-          || this.peekNext().type === TokenType.COMMENT
-          || this.peekNext().type === TokenType.STYLESHEET_DIRECTIVE
-        )
+        (this.peekNext().type === TokenType.LETTER_COLON ||
+          this.peekNext().type === TokenType.COMMENT ||
+          this.peekNext().type === TokenType.STYLESHEET_DIRECTIVE)
       ) {
         this.advance();
       } else {
@@ -233,10 +240,7 @@ export class Parser {
   private info_line() {
     const info_line = [];
     while (!this.isAtEnd()) {
-      if (
-        (this.peek().type === TokenType.EOL &&
-          !(this.peekNext().type === TokenType.PLUS_COLON)) || this.peek().type === TokenType.COMMENT
-      ) {
+      if ((this.peek().type === TokenType.EOL && !(this.peekNext().type === TokenType.PLUS_COLON)) || this.peek().type === TokenType.COMMENT) {
         break;
       } else {
         if (this.peek().type === TokenType.EOL) {
@@ -263,19 +267,19 @@ export class Parser {
         } else if (this.peek().type === TokenType.LETTER_COLON) {
           const info_line = this.info_line();
           elements.push(info_line);
-        } else if (
-          !(
-            this.peek().type === TokenType.EOL &&
-            this.peekNext().type === TokenType.EOL
-          )
-        ) {
+        } else if (!(this.peek().type === TokenType.EOL && this.peekNext().type === TokenType.EOL)) {
           elements = elements.concat(this.music_content().contents);
         } else if (this.peek().type === TokenType.EOL) {
           break;
         }
       } catch (err: any) {
-        console.error(err.message);
-        this.synchronize();
+        // Convert errors into ErrorExpr nodes
+        elements.push(this.handleError(this.peek(), err.message, ParserErrorType.TUNE_BODY));
+        // Synchronize will now return skipped tokens
+        const skipped = this.synchronize();
+        if (skipped.length > 0) {
+          elements.push(new ErrorExpr(skipped));
+        }
       }
     }
 
@@ -300,6 +304,7 @@ export class Parser {
       | MultiMeasureRest
       | Beam
       | Tuplet
+      | ErrorExpr
     > = [];
     const curTokn = this.peek();
 
@@ -349,12 +354,9 @@ export class Parser {
         } else {
           throw this.error(
             this.peek(),
-            "Unexpected token: " +
-            curTokn.lexeme +
-            "\nline " +
-            curTokn.line +
-            "\n decorations should be followed by a note"
-            , ParserErrorType.TUNE_BODY);
+            "Unexpected token: " + curTokn.lexeme + "\nline " + curTokn.line + "\n decorations should be followed by a note",
+            ParserErrorType.TUNE_BODY
+          );
         }
         break;
       case TokenType.FLAT:
@@ -413,14 +415,7 @@ export class Parser {
         break;
       case TokenType.LETTER:
         if (curTokn.lexeme === "y") {
-          contents.push(
-            new YSPACER(
-              curTokn,
-              this.peekNext().type === TokenType.NUMBER
-                ? this.peekNext()
-                : undefined
-            )
-          );
+          contents.push(new YSPACER(curTokn, this.peekNext().type === TokenType.NUMBER ? this.peekNext() : undefined));
           this.advance();
           if (this.peek().type === TokenType.NUMBER) {
             this.advance();
@@ -437,7 +432,9 @@ export class Parser {
         }
         break;
       default:
-        throw this.error(curTokn, "Unexpected token in music code", ParserErrorType.TUNE_BODY);
+        // Instead of throwing, create an error node
+        contents.push(this.handleError(curTokn, "Unexpected token in music code", ParserErrorType.TUNE_BODY));
+        this.advance(); // Move past the problematic token
     }
 
     return new Music_code(contents);
@@ -486,7 +483,7 @@ COLON_DBL NUMBER
   }
   /**
    * iterate the music code
-   * 
+   *
    * if find beamed notes (not WS-separated), create a beam.
    * For all the other tokens, keep them as is.
    */
@@ -533,47 +530,20 @@ COLON_DBL NUMBER
     // and the repeat number
     // it's necessary to separate them.
     const pkd = this.peek();
-    if (
-      pkd.type === TokenType.BAR_DIGIT ||
-      pkd.type === TokenType.COLON_BAR_DIGIT
-    ) {
+    if (pkd.type === TokenType.BAR_DIGIT || pkd.type === TokenType.COLON_BAR_DIGIT) {
       // create a bar token
       // and a number token
       if (pkd.type === TokenType.BAR_DIGIT) {
         // TODO: move this to the tokenizer
-        const barToken = new Token(
-          TokenType.BARLINE,
-          "|",
-          null,
-          pkd.line,
-          pkd.position
-        );
-        const numberToken = new Token(
-          TokenType.NUMBER,
-          pkd.lexeme.substring(1),
-          null,
-          pkd.line,
-          pkd.position + 1
-        );
+        const barToken = new Token(TokenType.BARLINE, "|", null, pkd.line, pkd.position);
+        const numberToken = new Token(TokenType.NUMBER, pkd.lexeme.substring(1), null, pkd.line, pkd.position + 1);
         this.advance();
         return [new BarLine(barToken), new Nth_repeat(numberToken)];
         // create a COLON_BAR token
         // and a number token
       } else {
-        const barToken = new Token(
-          TokenType.COLON_BAR,
-          ":|",
-          null,
-          pkd.line,
-          pkd.position
-        );
-        const numberToken = new Token(
-          TokenType.NUMBER,
-          pkd.lexeme.substring(2),
-          null,
-          pkd.line,
-          pkd.position + 2
-        );
+        const barToken = new Token(TokenType.COLON_BAR, ":|", null, pkd.line, pkd.position);
+        const numberToken = new Token(TokenType.NUMBER, pkd.lexeme.substring(2), null, pkd.line, pkd.position + 2);
         this.advance();
         return [new BarLine(barToken), new Nth_repeat(numberToken)];
       }
@@ -587,32 +557,21 @@ COLON_DBL NUMBER
     const lexeme = pkd.lexeme;
     const type = this.peek().type;
     const nxtType = this.peekNext();
-    if (
-      isDecorationToken(pkd) &&
-      (isNoteToken(nxtType) ||
-        hasRestAttributes(nxtType))
-    ) {
+    if (isDecorationToken(pkd) && (isNoteToken(nxtType) || hasRestAttributes(nxtType))) {
       return true;
-    } else if (
-      type === TokenType.DOT ||
-      type === TokenType.TILDE ||
-      (type === TokenType.LETTER && /[HLMOPSTuv]/.test(lexeme))
-    ) {
+    } else if (type === TokenType.DOT || type === TokenType.TILDE || (type === TokenType.LETTER && /[HLMOPSTuv]/.test(lexeme))) {
       let i = this.current;
       while (i < this.tokens.length) {
         i++;
         const cur = this.tokens[i];
-        if (!isDecorationToken(cur)
-          && !isNoteToken(cur)
-          && !hasRestAttributes(cur)) {
+        if (!isDecorationToken(cur) && !isNoteToken(cur) && !hasRestAttributes(cur)) {
           return false;
         } else if (isNoteToken(cur)) {
           return true;
         }
       }
       return false;
-    }
-    else {
+    } else {
       return false;
     }
   }
@@ -620,11 +579,11 @@ COLON_DBL NUMBER
   /**
    * parse all tokens entil EOL.
    * Then, if the next line is a voice, return true
-   * 
-   * if it's a comment, skip it and continue 
-   * 
+   *
+   * if it's a comment, skip it and continue
+   *
    * if it's an info line, return true
-   * 
+   *
    * else return false
    * */
   private isVoicesLegend() {
@@ -653,7 +612,7 @@ COLON_DBL NUMBER
      * if is anything other than a note token, a decoration, or a ws,
      * or <annotations> or <decorations>
      * or colondouble followed by number
-    */
+     */
     let i = this.current;
     while (i < this.tokens.length) {
       i++;
@@ -662,13 +621,15 @@ COLON_DBL NUMBER
       /**
        * TODO rewrite using this.match()
        */
-      if (!isDecorationToken(cur)
-        && !isNoteToken(cur)
-        && !isTupletToken(cur)
-        && (cur.type !== TokenType.STRING && cur.lexeme !== "\"")
-        && cur.type !== TokenType.WHITESPACE
-        && cur.type !== TokenType.COLON_DBL
-        && cur.type !== TokenType.NUMBER
+      if (
+        !isDecorationToken(cur) &&
+        !isNoteToken(cur) &&
+        !isTupletToken(cur) &&
+        cur.type !== TokenType.STRING &&
+        cur.lexeme !== '"' &&
+        cur.type !== TokenType.WHITESPACE &&
+        cur.type !== TokenType.COLON_DBL &&
+        cur.type !== TokenType.NUMBER
       ) {
         return false;
       } else if (isNoteToken(cur)) {
@@ -860,17 +821,11 @@ COLON_DBL NUMBER
         return new Rhythm(firstNum)
       } */
       // broken rhythm
-    } else if (!(
-      this.peek().type === TokenType.GREATER ||
-      this.peek().type === TokenType.LESS
-    )) {
+    } else if (!(this.peek().type === TokenType.GREATER || this.peek().type === TokenType.LESS)) {
       throw this.error(this.peek(), "Unexpected token in rhythm", ParserErrorType.TUNE_BODY);
     }
 
-    if (
-      this.peek().type === TokenType.GREATER ||
-      this.peek().type === TokenType.LESS
-    ) {
+    if (this.peek().type === TokenType.GREATER || this.peek().type === TokenType.LESS) {
       broken = this.peek();
       this.advance();
       //return new Rhythm(null, this.previous())
@@ -895,11 +850,7 @@ COLON_DBL NUMBER
   // TODO integrate in the file structure
   private lyric_section() {
     const lyric_section = [];
-    while (
-      !this.isAtEnd() &&
-      this.peek().type === TokenType.LETTER_COLON &&
-      this.peekNext().lexeme === "W:"
-    ) {
+    while (!this.isAtEnd() && this.peek().type === TokenType.LETTER_COLON && this.peekNext().lexeme === "W:") {
       lyric_section.push(this.info_line());
     }
     return new Lyric_section(lyric_section);
@@ -907,15 +858,7 @@ COLON_DBL NUMBER
 
   private pitch() {
     let alteration, noteLetter, octave;
-    if (
-      this.match(
-        TokenType.SHARP,
-        TokenType.SHARP_DBL,
-        TokenType.FLAT,
-        TokenType.FLAT_DBL,
-        TokenType.NATURAL
-      )
-    ) {
+    if (this.match(TokenType.SHARP, TokenType.SHARP_DBL, TokenType.FLAT, TokenType.FLAT_DBL, TokenType.NATURAL)) {
       //new Alteration
       alteration = this.previous();
     }
@@ -956,22 +899,15 @@ COLON_DBL NUMBER
   }
 
   private synchronize() {
+    const skippedTokens: Token[] = [];
     this.advance();
     while (!this.isAtEnd()) {
-      if (
-        this.previous().type === TokenType.EOL ||
-        this.previous().type === TokenType.BARLINE ||
-        this.previous().type === TokenType.BAR_COLON || // |:
-        this.previous().type === TokenType.BAR_DBL || // ||
-        this.previous().type === TokenType.BAR_DIGIT || // |1
-        this.previous().type === TokenType.BAR_RIGHTBRKT || // |]
-        this.previous().type === TokenType.COLON_BAR || // :|
-        this.previous().type === TokenType.COLON_BAR_DIGIT // :|1
-      ) {
-        return;
+      if (this.isRecoveryPoint()) {
+        return skippedTokens;
       }
-      this.advance();
+      skippedTokens.push(this.advance());
     }
+    return skippedTokens;
   }
 
   private match(...types: Array<TokenType>): boolean {
@@ -1006,5 +942,34 @@ COLON_DBL NUMBER
   }
   private previous(): Token {
     return this.tokens[this.current - 1];
+  }
+
+  private handleError(token: Token, message: string, origin: ParserErrorType): ErrorExpr {
+    // Log the error but don't throw
+    this.errorReporter.parserError(token, message, origin);
+
+    // Collect tokens until we reach a synchronization point
+    const errorTokens: Token[] = [token];
+    while (!this.isAtEnd() && !this.isRecoveryPoint()) {
+      errorTokens.push(this.advance());
+    }
+
+    return new ErrorExpr(errorTokens, undefined, message);
+  }
+
+  // Helper to identify recovery points
+  private isRecoveryPoint(): boolean {
+    const type = this.peek().type;
+    return (
+      this.previous().type === TokenType.EOL ||
+      this.previous().type === TokenType.BARLINE ||
+      this.previous().type === TokenType.BAR_COLON || // |:
+      this.previous().type === TokenType.BAR_DBL || // ||
+      this.previous().type === TokenType.BAR_DIGIT || // |1
+      this.previous().type === TokenType.BAR_RIGHTBRKT || // |]
+      this.previous().type === TokenType.COLON_BAR || // :|
+      this.previous().type === TokenType.COLON_BAR_DIGIT || // :|1
+      false
+    );
   }
 }

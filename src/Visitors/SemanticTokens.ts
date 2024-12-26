@@ -28,15 +28,16 @@ import {
   Voice_overlay,
   YSPACER,
   music_code,
+  ErrorExpr,
 } from "../types/Expr";
 import { Token } from "../types/token";
 import { TokenType } from "../types/types";
 
 /**
- * Use this visitor to retrieve semantic tokens 
+ * Use this visitor to retrieve semantic tokens
  * that are used for syntax highlighting.
  *
- * Always parse from the top of the tree, 
+ * Always parse from the top of the tree,
  * which is from the {@link File_structure} expression.
  *
  * eg:
@@ -61,7 +62,8 @@ export class TokensVisitor implements Visitor<void> {
     }
     tune.forEach((tune) => {
       const { tune_header, tune_body } = tune;
-      if (!tune_body) { // TODO: don't return when missing body.
+      if (!tune_body) {
+        // TODO: don't return when missing body.
         return;
       }
       tune_header.accept(this);
@@ -127,7 +129,7 @@ export class TokensVisitor implements Visitor<void> {
   visitRhythmExpr(rhythm: Rhythm) {
     const { numerator, separator, denominator, broken } = rhythm;
     const list = [numerator, separator, denominator, broken].filter(
-      (e): e is Token => !!e
+      (e): e is Token => !!e,
     );
     list.forEach((element) => {
       this.tokens.push(element);
@@ -175,12 +177,14 @@ export class TokensVisitor implements Visitor<void> {
   }
   visitInlineFieldExpr(e: Inline_field) {
     this.tokens.push(e.field);
-    e.text.map(element => {
-      element.type = TokenType.STRING;
-      return element;
-    }).forEach((element) => {
-      this.tokens.push(element);
-    });
+    e.text
+      .map((element) => {
+        element.type = TokenType.STRING;
+        return element;
+      })
+      .forEach((element) => {
+        this.tokens.push(element);
+      });
   }
   visitLyricSectionExpr(e: Lyric_section) {
     e.info_lines.forEach((e) => {
@@ -220,7 +224,14 @@ export class TokensVisitor implements Visitor<void> {
     let { p, q, r } = expr;
     return [p, q, r]
       .filter((e): e is Token => !!e)
-      .forEach((e) => { this.tokens.push(e); });
+      .forEach((e) => {
+        this.tokens.push(e);
+      });
+  }
+
+  visitErrorExpr(expr: ErrorExpr) {
+    expr.tokens.forEach((element) => {
+      this.tokens.push(element);
+    });
   }
 }
-

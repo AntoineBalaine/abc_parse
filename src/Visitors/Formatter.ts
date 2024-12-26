@@ -1,4 +1,14 @@
-import { isBarLine, isBeam, isComment, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isToken, isVoice_overlay } from "../helpers";
+import {
+  isBarLine,
+  isBeam,
+  isComment,
+  isInline_field,
+  isMultiMeasureRest,
+  isNote,
+  isNthRepeat,
+  isToken,
+  isVoice_overlay,
+} from "../helpers";
 import {
   Annotation,
   BarLine,
@@ -29,10 +39,17 @@ import {
   Voice_overlay,
   YSPACER,
   music_code,
+  ErrorExpr,
 } from "../types/Expr";
 import { Token } from "../types/token";
 import { System, TokenType } from "../types/types";
-import { Formatter_Bar, Formatter_LineWithBars, GroupBarsInLines, convertVoiceInfoLinesToInlineInfos, splitSystemLines } from './Formatter_helpers';
+import {
+  Formatter_Bar,
+  Formatter_LineWithBars,
+  GroupBarsInLines,
+  convertVoiceInfoLinesToInlineInfos,
+  splitSystemLines,
+} from "./Formatter_helpers";
 
 /**
  * A pretty printer for a score's AST.
@@ -42,7 +59,7 @@ import { Formatter_Bar, Formatter_LineWithBars, GroupBarsInLines, convertVoiceIn
  * `format()` will apply formatting to the score,
  * by adding spaces between expressions, and aligning barlines within a multi-voices system.
  *
- * eg: 
+ * eg:
  * ```typescript
  * const ast = new Parser(new Scanner(source).scanTokens()).parse()
  * const fmt: string = new AbcFormatter().format(ast);
@@ -70,13 +87,15 @@ export class AbcFormatter implements Visitor<string> {
     return expr.barline.lexeme;
   }
   visitBeamExpr(expr: Beam): string {
-    let fmt = expr.contents.map((content) => {
-      if (content instanceof Token) {
-        return content.lexeme;
-      } else {
-        return content.accept(this);
-      }
-    }).join("");
+    let fmt = expr.contents
+      .map((content) => {
+        if (content instanceof Token) {
+          return content.lexeme;
+        } else {
+          return content.accept(this);
+        }
+      })
+      .join("");
     return fmt;
   }
   visitChordExpr(expr: Chord): string {
@@ -199,7 +218,9 @@ export class AbcFormatter implements Visitor<string> {
     let formatted = "";
     if (this.no_format) {
       const { numerator, separator, denominator, broken } = expr;
-      return [numerator, separator, denominator, broken].map((e) => (e?.lexeme || "")).join("");
+      return [numerator, separator, denominator, broken]
+        .map((e) => e?.lexeme || "")
+        .join("");
     }
     if (expr.numerator) {
       formatted += expr.numerator.lexeme;
@@ -214,7 +235,11 @@ export class AbcFormatter implements Visitor<string> {
           count = count * 2;
         }
         formatted += `/${count}`;
-      } else if (expr.separator.lexeme === "/" && expr.denominator && expr.denominator.lexeme === "2") {
+      } else if (
+        expr.separator.lexeme === "/" &&
+        expr.denominator &&
+        expr.denominator.lexeme === "2"
+      ) {
         formatted += "/";
         expr.denominator = undefined;
       } else {
@@ -237,7 +262,8 @@ export class AbcFormatter implements Visitor<string> {
     return expr.sequence
       .map((system) => {
         return this.formatSystem(system);
-      }).join("");
+      })
+      .join("");
   }
   visitTuneExpr(expr: Tune) {
     let formatted = "";
@@ -248,20 +274,16 @@ export class AbcFormatter implements Visitor<string> {
     return formatted;
   }
   visitTuneHeaderExpr(expr: Tune_header) {
-    const info_lines = expr.info_lines
-      .map((infoLine): string => {
-        let rv = infoLine.accept(this);
-        rv += "\n";
-        return rv;
-      });
-    return info_lines
-      .join("");
+    const info_lines = expr.info_lines.map((infoLine): string => {
+      let rv = infoLine.accept(this);
+      rv += "\n";
+      return rv;
+    });
+    return info_lines.join("");
   }
 
   visitVoiceOverlayExpr(expr: Voice_overlay) {
-    return expr.contents
-      .map((token): string => (token.lexeme))
-      .join("");
+    return expr.contents.map((token): string => token.lexeme).join("");
   }
   visitYSpacerExpr(expr: YSPACER) {
     let formatted = expr.ySpacer.lexeme;
@@ -274,29 +296,59 @@ export class AbcFormatter implements Visitor<string> {
     let { p, q, r } = expr;
     return [p, q, r]
       .filter((e): e is Token => !!e)
-      .map((token): string => (token.lexeme))
+      .map((token): string => token.lexeme)
       .join("");
+  }
+  visitErrorExpr(expr: ErrorExpr): string {
+    // Preserve the original text of error nodes
+    return expr.tokens.map((t) => t.lexeme).join("");
   }
 
   formatUpsideDown(system: System) {
-    system = system.filter(expr => !(expr instanceof Token && expr.type === TokenType.WHITESPACE));
+    system = system.filter(
+      (expr) => !(expr instanceof Token && expr.type === TokenType.WHITESPACE),
+    );
     for (let idx = 0; idx < system.length; idx++) {
       const expr = system[idx];
       function insertWS_FRMTR(index?: number) {
         const nextExpr = system[index || idx + 1];
-        if (!nextExpr || (isToken(nextExpr) && nextExpr.type === TokenType.EOL)) { return; }
-        const wsToken = new Token(TokenType.WHITESPACE_FORMATTER, " ", null, -1, -1);
+        if (
+          !nextExpr ||
+          (isToken(nextExpr) && nextExpr.type === TokenType.EOL)
+        ) {
+          return;
+        }
+        const wsToken = new Token(
+          TokenType.WHITESPACE_FORMATTER,
+          " ",
+          null,
+          -1,
+          -1,
+        );
         system.splice(index || idx + 1, 0, wsToken);
       }
-      if (isBarLine(expr)) { insertWS_FRMTR(); }
-      else if (isInline_field(expr)) { insertWS_FRMTR(); }
-      else if (isMultiMeasureRest(expr)) { insertWS_FRMTR(); }
-      else if (isNote(expr)) { insertWS_FRMTR(); }
-      else if (isNthRepeat(expr)) { insertWS_FRMTR(); }
-      else if (isBeam(expr)) { insertWS_FRMTR(); }
-      else if (isVoice_overlay(expr)) { insertWS_FRMTR(); }
-      else if (isToken(expr) && expr.type === TokenType.WHITESPACE_FORMATTER) { continue; }
-      else { continue; }
+      if (isBarLine(expr)) {
+        insertWS_FRMTR();
+      } else if (isInline_field(expr)) {
+        insertWS_FRMTR();
+      } else if (isMultiMeasureRest(expr)) {
+        insertWS_FRMTR();
+      } else if (isNote(expr)) {
+        insertWS_FRMTR();
+      } else if (isNthRepeat(expr)) {
+        insertWS_FRMTR();
+      } else if (isBeam(expr)) {
+        insertWS_FRMTR();
+      } else if (isVoice_overlay(expr)) {
+        insertWS_FRMTR();
+      } else if (
+        isToken(expr) &&
+        expr.type === TokenType.WHITESPACE_FORMATTER
+      ) {
+        continue;
+      } else {
+        continue;
+      }
       // Levaing the other cases here for now, in case they need to be revisited later
       /*
       else if (isChord(expr)) { }
@@ -314,56 +366,64 @@ export class AbcFormatter implements Visitor<string> {
     return system;
   }
   /**
-  * ensure every bar is the same length,
-  * and that every line starts at the same char after the inline voice indication
-  * */
+   * ensure every bar is the same length,
+   * and that every line starts at the same char after the inline voice indication
+   * */
   formatSystem(system: System) {
     if (this.no_format) {
-      return system.map((expr, idx, arr) => {
-        return isToken(expr) ? expr.lexeme : expr.accept(this);
-      }).join("");
+      return system
+        .map((expr, idx, arr) => {
+          return isToken(expr) ? expr.lexeme : expr.accept(this);
+        })
+        .join("");
     }
     system = this.formatUpsideDown(system);
     const convertVoiceHeaders = convertVoiceInfoLinesToInlineInfos(system);
     const lines = splitSystemLines(convertVoiceHeaders);
     const fmtLines = this.addWSToLines(lines).flat();
-    return fmtLines.map((expr, idx, arr) => {
-      /**
-       * if we're just printing as is, return the lexeme of the token
-       */
-      return isToken(expr) ? expr.lexeme : expr.accept(this);
-    }).join("");
-
+    return fmtLines
+      .map((expr, idx, arr) => {
+        /**
+         * if we're just printing as is, return the lexeme of the token
+         */
+        return isToken(expr) ? expr.lexeme : expr.accept(this);
+      })
+      .join("");
   }
 
-
   /**
-  * find all the inline voice indicators `[V:1]`
-  * stringify them and find the longest string.
-  * 
-  * Then, iterate the array of lines:
-  * at each time you encounter an inlineVoice, 
-  * if it's shorter that the longest string,
-  * insert as many WS as the diff btw longestSring and lengthOfInlineVoice;
-  * */
+   * find all the inline voice indicators `[V:1]`
+   * stringify them and find the longest string.
+   *
+   * Then, iterate the array of lines:
+   * at each time you encounter an inlineVoice,
+   * if it's shorter that the longest string,
+   * insert as many WS as the diff btw longestSring and lengthOfInlineVoice;
+   * */
   addWSToLines(lines: Array<Array<Comment | Info_line | music_code>>) {
     const linesIntoBars = lines.map(GroupBarsInLines);
 
-    const linesWithStr: Array<Formatter_LineWithBars> = linesIntoBars.map(line => {
-      return line.map(bar => {
-        const str = bar.map(expr => {
-          if (isToken(expr)) {
-            return expr.lexeme;
-          } else {
-            return expr.accept(this);
-          }
-        }).join("").replace(/[|]/g, "").trim();
-        return {
-          str,
-          bar
-        };
-      });
-    });
+    const linesWithStr: Array<Formatter_LineWithBars> = linesIntoBars.map(
+      (line) => {
+        return line.map((bar) => {
+          const str = bar
+            .map((expr) => {
+              if (isToken(expr)) {
+                return expr.lexeme;
+              } else {
+                return expr.accept(this);
+              }
+            })
+            .join("")
+            .replace(/[|]/g, "")
+            .trim();
+          return {
+            str,
+            bar,
+          };
+        });
+      },
+    );
     let largestBarCount = linesWithStr.reduce((acc, bars) => {
       if (isComment(bars[0].bar[0])) {
         return acc;
@@ -395,15 +455,28 @@ export class AbcFormatter implements Visitor<string> {
         const curLine = linesWithStr[lineIdx];
         const curBar = curLine[barIdx];
         if (curBar) {
-          if (!isComment(curBar.bar[0]) && curBar.str.length < longestBarAtBarIdx) {
+          if (
+            !isComment(curBar.bar[0]) &&
+            curBar.str.length < longestBarAtBarIdx
+          ) {
             let diff = longestBarAtBarIdx - curBar.str.length;
 
             for (let WScount = 0; WScount < diff; WScount++) {
-              const wsToken = new Token(TokenType.WHITESPACE_FORMATTER, " ", null, -1, -1);
+              const wsToken = new Token(
+                TokenType.WHITESPACE_FORMATTER,
+                " ",
+                null,
+                -1,
+                -1,
+              );
               //Should this be replaced by a special token?
               let curBar = linesIntoBars[lineIdx][barIdx];
               if (isBarLine(curBar[curBar.length - 1])) {
-                linesIntoBars[lineIdx][barIdx].splice(curBar.length - 1, 0, wsToken);
+                linesIntoBars[lineIdx][barIdx].splice(
+                  curBar.length - 1,
+                  0,
+                  wsToken,
+                );
               } else {
                 linesIntoBars[lineIdx][barIdx].push(wsToken);
               }
@@ -411,35 +484,35 @@ export class AbcFormatter implements Visitor<string> {
           }
         }
       }
-
-
     }
     return linesIntoBars.flat();
   }
 
   /**
-   * Add the stringified version of a bar 
+   * Add the stringified version of a bar
    * structure goes:
    * Lines
    *  Bars
    *   Expr
    */
   stringifyBarsInLines(line: Array<Array<Expr | Token>>): Array<Formatter_Bar> {
-    return line.map(bar => {
-      const str = bar.map(expr => {
-        if (isToken(expr)) {
-          if (expr.type === TokenType.WHITESPACE) {
-            return "";
+    return line.map((bar) => {
+      const str = bar
+        .map((expr) => {
+          if (isToken(expr)) {
+            if (expr.type === TokenType.WHITESPACE) {
+              return "";
+            } else {
+              return expr.lexeme;
+            }
           } else {
-            return expr.lexeme;
+            return expr.accept(this);
           }
-        } else {
-          return expr.accept(this);
-        }
-      }).join("");
+        })
+        .join("");
       return {
         str,
-        bar
+        bar,
       };
     });
   }
