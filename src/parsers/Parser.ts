@@ -275,11 +275,6 @@ export class Parser {
       } catch (err: any) {
         // Convert errors into ErrorExpr nodes
         elements.push(this.handleError(this.peek(), err.message, ParserErrorType.TUNE_BODY));
-        // Synchronize will now return skipped tokens
-        const skipped = this.synchronize();
-        if (skipped.length > 0) {
-          elements.push(new ErrorExpr(skipped));
-        }
       }
     }
 
@@ -949,7 +944,7 @@ COLON_DBL NUMBER
     this.errorReporter.parserError(token, message, origin);
 
     // Collect tokens until we reach a synchronization point
-    const errorTokens: Token[] = [token];
+    const errorTokens: Token[] = [];
     while (!this.isAtEnd() && !this.isRecoveryPoint()) {
       errorTokens.push(this.advance());
     }
@@ -961,14 +956,14 @@ COLON_DBL NUMBER
   private isRecoveryPoint(): boolean {
     const type = this.peek().type;
     return (
-      this.previous().type === TokenType.EOL ||
-      this.previous().type === TokenType.BARLINE ||
-      this.previous().type === TokenType.BAR_COLON || // |:
-      this.previous().type === TokenType.BAR_DBL || // ||
-      this.previous().type === TokenType.BAR_DIGIT || // |1
-      this.previous().type === TokenType.BAR_RIGHTBRKT || // |]
-      this.previous().type === TokenType.COLON_BAR || // :|
-      this.previous().type === TokenType.COLON_BAR_DIGIT || // :|1
+      type === TokenType.EOL ||
+      type === TokenType.BARLINE ||
+      type === TokenType.BAR_COLON || // |:
+      type === TokenType.BAR_DBL || // ||
+      type === TokenType.BAR_DIGIT || // |1
+      type === TokenType.BAR_RIGHTBRKT || // |]
+      type === TokenType.COLON_BAR || // :|
+      type === TokenType.COLON_BAR_DIGIT || // :|1
       false
     );
   }
