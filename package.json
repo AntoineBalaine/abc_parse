@@ -5,7 +5,9 @@
   "version": "0.0.1",
   "main": "out/index.js",
   "types": "out/index.d.ts",
-  "files": ["/out"],
+  "files": [
+    "/out"
+  ],
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
     "@jest/globals": "^29.3.1",
@@ -38,7 +40,8 @@
     "test": "mocha -r ts-node/register src/**/*.spec.ts",
     "test:coverage": "nyc pnpm run test",
     "file": "ts-node src/Abc.ts /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/all/lazy_river.abc",
-    "lint": "eslint src --ext ts"
+    "lint": "eslint src --ext ts",
+    "parse-folder": "ts-node src/tests/parseFolder.ts"
   },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",
@@ -59,6 +62,6 @@
     "report-dir": "coverage"
   },
   "dependencies": {
-    "@typescript-eslint/parser": "^6.11.0"
+    "@typescript-eslint/parser": "^6.11.0",
   }
 }
