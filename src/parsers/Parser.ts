@@ -44,6 +44,7 @@ import {
 } from "../types/Expr";
 import { Token } from "../types/token";
 import { ParserErrorType, TokenType } from "../types/types";
+import { TokensVisitor } from "../Visitors/SemanticTokens";
 import { AbcErrorReporter } from "./ErrorReporter";
 import { VoiceParser } from "./Voices";
 
@@ -100,6 +101,7 @@ import { VoiceParser } from "./Voices";
  */
 export class Parser {
   private tokens: Array<Token>;
+  private err_tokens: Array<Token> = [];
   private current = 0;
   private source = "";
   private errorReporter: AbcErrorReporter;
@@ -140,6 +142,9 @@ export class Parser {
     }
   }
 
+  /**
+   * @throws {Error}
+   */
   private file_structure() {
     let file_header: File_header | null = null;
     let tunes: Array<Tune> = [];
@@ -283,6 +288,9 @@ export class Parser {
     return new Tune_Body(systems);
   }
 
+  /**
+   * @throws {Error}
+   */
   private music_content() {
     const contents: Array<
       | Token
@@ -347,7 +355,6 @@ export class Parser {
           contents.push(new Decoration(curTokn));
           this.advance();
         } else {
-          this.handleError(curTokn, "Unexpected token in music code", ParserErrorType.TUNE_BODY);
           throw this.error(
             this.peek(),
             "Unexpected token: " + curTokn.lexeme + "\nline " + curTokn.line + "\n decorations should be followed by a note",
@@ -429,7 +436,7 @@ export class Parser {
         break;
       default:
         // Instead of throwing, create an error node
-        contents.push(this.handleError(curTokn, "Unexpected token in music code", ParserErrorType.TUNE_BODY));
+        throw this.error(curTokn, "Unexpected token in music code", ParserErrorType.TUNE_BODY);
     }
 
     return new Music_code(contents);
@@ -640,27 +647,36 @@ COLON_DBL NUMBER
     // or notes
     // followed by a right bracket
     // optionally followed by a rhythm
-    const chordContents = [];
+    const chordContents: Array<Note | Annotation> = [];
     let chordRhythm: Rhythm | undefined = undefined;
     let chordTie: Token | undefined = undefined;
     const leftBracket = this.peek();
     this.advance();
-    while (!this.isAtEnd() && !(this.peek().type === TokenType.RIGHT_BRKT)) {
-      // parse string
-      // or parse a note
-      if (this.peek().type === TokenType.STRING) {
-        chordContents.push(this.annotation());
-        //chordContents.push(this.peek())
-        this.advance();
-      } else {
-        chordContents.push(this.parse_note());
+
+    try {
+      while (!this.isAtEnd() && !(this.peek().type === TokenType.RIGHT_BRKT)) {
+        // parse string
+        // or parse a note
+        if (this.peek().type === TokenType.STRING) {
+          chordContents.push(this.annotation());
+          //chordContents.push(this.peek())
+          this.advance();
+        } else {
+          chordContents.push(this.parse_note());
+        }
       }
-    }
-    //consume the right bracket
-    this.consume(this.peek().type, "Expected a right bracket");
-    // optionally parse a rhythm
-    if (isRhythmToken(this.peek())) {
-      chordRhythm = this.rhythm();
+      //consume the right bracket
+      this.consume(this.peek().type, "Expected a right bracket");
+      // optionally parse a rhythm
+      if (isRhythmToken(this.peek())) {
+        chordRhythm = this.rhythm();
+      }
+    } catch (e) {
+      // if note/rhythm/finding right bracket fails, treat all the other tokens as errs.
+      const reTokenizer = new TokensVisitor();
+      chordContents.forEach((element) => (isNote(element) ? reTokenizer.visitNoteExpr(element) : reTokenizer.visitAnnotationExpr(element)));
+      this.err_tokens.push(...reTokenizer.tokens);
+      throw e;
     }
     if (!this.isAtEnd() && this.peek().type === TokenType.MINUS) {
       chordTie = this.peek();
@@ -699,7 +715,18 @@ COLON_DBL NUMBER
       this.advance();
     }
     while (!this.isAtEnd() && this.peek().type !== TokenType.RIGHT_BRACE) {
-      notes.push(this.parse_note());
+      try {
+        const note = this.parse_note();
+        notes.push(note);
+      } catch (e) {
+        // if one of the notes fails, treat all the others as errs as well
+        const reTokenizer = new TokensVisitor();
+        notes.forEach((element) => {
+          reTokenizer.visitNoteExpr(element);
+        });
+        this.err_tokens.push(...reTokenizer.tokens);
+        throw e;
+      }
     }
     this.consume(TokenType.RIGHT_BRACE, "expected a right brace");
     // TODO include beam in grace group
@@ -710,6 +737,10 @@ COLON_DBL NUMBER
     this.advance();
     return new Symbol(symbol);
   }
+
+  /**
+   * @throws {Error}
+   */
   private parse_note() {
     // pitch or rest, optionnally followed by a rhythm
     type noteType = {
@@ -724,10 +755,9 @@ COLON_DBL NUMBER
       pkd.type === TokenType.FLAT ||
       pkd.type === TokenType.SHARP_DBL ||
       pkd.type === TokenType.FLAT_DBL ||
-      pkd.type === TokenType.NATURAL
+      pkd.type === TokenType.NATURAL ||
+      pkd.type === TokenType.NOTE_LETTER
     ) {
-      note = { pitchOrRest: this.pitch() };
-    } else if (this.peek().type === TokenType.NOTE_LETTER) {
       note = { pitchOrRest: this.pitch() };
     } else if (isRestToken(this.peek())) {
       note = { pitchOrRest: this.rest() };
@@ -736,7 +766,15 @@ COLON_DBL NUMBER
     }
 
     if (!this.isAtEnd() && isRhythmToken(this.peek())) {
-      note.rhythm = this.rhythm();
+      try {
+        note.rhythm = this.rhythm();
+      } catch (e) {
+        // If rhythm fails, treate note’s tokens as an err.
+        const reTokenizer = new TokensVisitor();
+        reTokenizer.visitNoteExpr(new Note(note.pitchOrRest, undefined, undefined));
+        this.err_tokens.push(...reTokenizer.tokens);
+        throw e;
+      }
     }
     if (!this.isAtEnd() && this.peek().type === TokenType.MINUS) {
       note.tie = this.peek();
@@ -745,6 +783,9 @@ COLON_DBL NUMBER
     return new Note(note.pitchOrRest, note.rhythm, note.tie);
   }
 
+  /**
+   * @throws {Error}
+   */
   private rest() {
     let rest: Token;
 
@@ -757,6 +798,9 @@ COLON_DBL NUMBER
     return new Rest(rest);
   }
 
+  /**
+   * @throws {Error}
+   */
   private multiMeasureRest() {
     let rest: Token;
     let length: Token;
@@ -774,6 +818,9 @@ COLON_DBL NUMBER
     return new MultiMeasureRest(rest);
   }
 
+  /**
+   * @throws {Error}
+   */
   private rhythm() {
     let numerator: Token | null = null;
     let separator: Token | undefined = undefined;
@@ -851,6 +898,9 @@ COLON_DBL NUMBER
     return new Lyric_section(lyric_section);
   }
 
+  /**
+   * @throws {Error}
+   */
   private pitch() {
     let alteration, noteLetter, octave;
     if (this.match(TokenType.SHARP, TokenType.SHARP_DBL, TokenType.FLAT, TokenType.FLAT_DBL, TokenType.NATURAL)) {
@@ -869,6 +919,9 @@ COLON_DBL NUMBER
     return new Pitch({ alteration, noteLetter, octave });
   }
 
+  /**
+   * @throws {Error}
+   */
   private consume(type: TokenType, message: string): Token {
     if (this.check(type)) {
       return this.advance();
@@ -876,7 +929,7 @@ COLON_DBL NUMBER
     throw this.error(this.peek(), message, ParserErrorType.UNKNOWN);
   }
 
-  private error(token: Token, message: string, origin: ParserErrorType): Error {
+  private error(token: Token, message: string, origin: ParserErrorType, prev_tokens?: Token[]): Error {
     let errMsg: string;
     // get the currentline
     if (this.source) {
@@ -945,12 +998,14 @@ COLON_DBL NUMBER
     this.errorReporter.parserError(token, message, origin);
 
     // Collect tokens until we reach a synchronization point
-    const errorTokens: Token[] = [];
+
     while (!this.isAtEnd() && !this.isRecoveryPoint()) {
-      errorTokens.push(this.advance());
+      this.err_tokens.push(this.advance());
     }
 
-    return new ErrorExpr(errorTokens, undefined, message);
+    const errorExpr = new ErrorExpr(this.err_tokens, undefined, message);
+    this.err_tokens = [];
+    return errorExpr;
   }
 
   // Helper to identify recovery points

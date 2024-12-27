@@ -74,15 +74,7 @@ export class Pitch extends Expr {
   alteration?: Token;
   noteLetter: Token;
   octave?: Token;
-  constructor({
-    alteration,
-    noteLetter,
-    octave,
-  }: {
-    alteration?: Token;
-    noteLetter: Token;
-    octave?: Token;
-  }) {
+  constructor({ alteration, noteLetter, octave }: { alteration?: Token; noteLetter: Token; octave?: Token }) {
     super();
     this.alteration = alteration;
     this.noteLetter = noteLetter;
@@ -128,15 +120,7 @@ export class Info_line extends Expr {
       return;
     }
     let value = Array<Token>();
-    value.push(
-      new Token(
-        TokenType.STRING,
-        result,
-        null,
-        tokens[0].line,
-        tokens[0].position,
-      ),
-    );
+    value.push(new Token(TokenType.STRING, result, null, tokens[0].line, tokens[0].position));
     if (tokens[index].type === TokenType.COMMENT) {
       value.push(tokens[index]);
     }
@@ -200,12 +184,7 @@ export class Rhythm extends Expr {
   separator?: Token;
   denominator?: Token | null;
   broken?: Token | null;
-  constructor(
-    numerator: Token | null,
-    separator?: Token,
-    denominator?: Token | null,
-    broken?: Token | null,
-  ) {
+  constructor(numerator: Token | null, separator?: Token, denominator?: Token | null, broken?: Token | null) {
     super();
     this.numerator = numerator;
     this.separator = separator;
@@ -322,11 +301,7 @@ export class Chord extends Expr {
   contents: Array<Note | Token | Annotation>;
   rhythm?: Rhythm;
   tie?: Token;
-  constructor(
-    contents: Array<Note | Token | Annotation>,
-    rhythm?: Rhythm,
-    tie?: Token,
-  ) {
+  constructor(contents: Array<Note | Token | Annotation>, rhythm?: Rhythm, tie?: Token) {
     super();
     this.contents = contents;
     this.rhythm = rhythm;
@@ -409,15 +384,7 @@ export class Music_code extends Expr {
   }
 }
 
-export type Beam_contents =
-  | Token
-  | YSPACER
-  | Annotation
-  | Decoration
-  | Note
-  | Grace_group
-  | Chord
-  | Symbol;
+export type Beam_contents = Token | YSPACER | Annotation | Decoration | Note | Grace_group | Chord | Symbol;
 
 export class Beam extends Expr {
   contents: Array<Beam_contents>;
@@ -454,12 +421,17 @@ export class YSPACER extends Expr {
   }
 }
 
-export class ErrorExpr implements Expr {
+export class ErrorExpr extends Expr {
   constructor(
     public tokens: Token[], // The problematic tokens
     public expectedType?: TokenType,
-    public errorMessage?: string,
-  ) {}
+    public errorMessage?: string
+  ) {
+    super();
+    this.tokens = tokens;
+    this.expectedType = expectedType;
+    this.errorMessage = errorMessage;
+  }
 
   accept<T>(visitor: Visitor<T>): T {
     return visitor.visitErrorExpr(this);
