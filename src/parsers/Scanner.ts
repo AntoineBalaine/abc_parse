@@ -3,16 +3,16 @@ import { TokenType } from "../types/types";
 import { AbcErrorReporter } from "./ErrorReporter";
 
 /**
- * Takes a source string (an ABC score), 
- * scans all the characters in it, 
- * and returns the array of {@link Token}s 
+ * Takes a source string (an ABC score),
+ * scans all the characters in it,
+ * and returns the array of {@link Token}s
  * when you call `scanTokens()`
  * eg:
  * ```typescript
  * const scanner = new Scanner(source).scanTokens();
  * ```
  *
- * The scanner optionnally takes an {@link AbcErrorReporter}, 
+ * The scanner optionnally takes an {@link AbcErrorReporter},
  * in the case you'd like to use the same error Reporter for the Scanner and the Parser.
  * ```typescript
  * const errorReporter = new AbcErrorReporter()
@@ -23,11 +23,11 @@ import { AbcErrorReporter } from "./ErrorReporter";
  * ```typescript
  * const scanner = new Scanner(source, errorReporter);
  * const tokens = scanner.scanTokens();
- * if (scanner.hasErrors()) { 
+ * if (scanner.hasErrors()) {
  *  const errors = scanner.getErrors();
  * }
  * ```
- * 
+ *
  */
 export class Scanner {
   private source: string;
@@ -59,9 +59,7 @@ export class Scanner {
       this.start = this.current;
       this.scanToken();
     }
-    this.tokens.push(
-      new Token(TokenType.EOF, "\n", null, this.line, this.start)
-    );
+    this.tokens.push(new Token(TokenType.EOF, "\n", null, this.line, this.start));
     return this.tokens;
   };
 
@@ -167,9 +165,7 @@ export class Scanner {
         while (this.peek() !== "\n" && !this.isAtEnd()) {
           this.advance();
         }
-        this.addToken(
-          pkd === "%" ? TokenType.STYLESHEET_DIRECTIVE : TokenType.COMMENT
-        );
+        this.addToken(pkd === "%" ? TokenType.STYLESHEET_DIRECTIVE : TokenType.COMMENT);
         break;
       case ".":
         this.addToken(TokenType.DOT);
@@ -314,6 +310,7 @@ export class Scanner {
           this.addToken(TokenType.RESERVED_CHAR);
         } else {
           const curLine = this.source.split("\n")[this.line];
+          this.addToken(TokenType.INVALID);
           this.errorReporter.ScannerError(this.line, this.errorMessage(c), this.createToken(TokenType.STRING));
         }
         break;
@@ -340,10 +337,7 @@ export class Scanner {
     while (this.isDigit(this.peek())) {
       this.advance();
     }
-    this.addToken(
-      TokenType.NUMBER,
-      Number(this.source.substring(this.start, this.current))
-    );
+    this.addToken(TokenType.NUMBER, Number(this.source.substring(this.start, this.current)));
   }
   private string() {
     //jump to end of string
@@ -396,9 +390,7 @@ export class Scanner {
     return /[#\*;\?@]/.test(c);
   }
   private isAlpha(c: string) {
-    return (
-      (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c === "_" || c === "&"
-    );
+    return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c === "_" || c === "&";
   }
 
   private isAlphaNumeric(c: string) {
@@ -419,8 +411,7 @@ export class Scanner {
 
   private createToken(type: TokenType, literal?: any | null) {
     const text = this.source.substring(this.start, this.current);
-    let lineBreak =
-      this.line === 0 ? 0 : this.source.lastIndexOf("\n", this.start) + 1;
+    let lineBreak = this.line === 0 ? 0 : this.source.lastIndexOf("\n", this.start) + 1;
 
     let charPos = this.start - lineBreak;
     const token = new Token(type, text, literal || null, this.line, charPos);
@@ -428,8 +419,6 @@ export class Scanner {
   }
 
   private addToken(type: TokenType, literal?: any | null) {
-    this.tokens.push(
-      this.createToken(type, literal)
-    );
+    this.tokens.push(this.createToken(type, literal));
   }
 }

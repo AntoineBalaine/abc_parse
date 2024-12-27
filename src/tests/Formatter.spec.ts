@@ -18,46 +18,56 @@ describe("Format Systems", function () {
         assert.equal(fmt, expected);
       },
       input: `V:1\nV:2\n[V:1]abc|ab\n[V:2]cd|dc\n`,
-      expected: `[V:1] abc | ab\n[V:2] cd  | dc\n`
+      expected: `[V:1] abc | ab\n[V:2] cd  | dc\n`,
     },
     {
       title: "format multiple systems",
       test: (systems: Array<System>, expected) => {
         const formatter = new AbcFormatter();
-        const fmt = systems.map((system) => {
-          return formatter.formatSystem(system);
-        }).join("");
+        const fmt = systems
+          .map((system) => {
+            return formatter.formatSystem(system);
+          })
+          .join("");
         assert.equal(fmt, expected);
       },
       input: `V:1\nV:2\n[V:1]abc|ab\n[V:2]cd|dc
 [V:1]ab|ab\n[V:2]cde|dc\n`,
       expected: `[V:1] abc | ab\n[V:2] cd  | dc
-[V:1] ab  | ab\n[V:2] cde | dc\n`
+[V:1] ab  | ab\n[V:2] cde | dc\n`,
     },
     {
       title: "format multiple systems with comment lines interspersed",
       test: (systems: Array<System>, expected) => {
         const formatter = new AbcFormatter();
-        const fmt = systems.map((system) => { return formatter.formatSystem(system); }).join("");
+        const fmt = systems
+          .map((system) => {
+            return formatter.formatSystem(system);
+          })
+          .join("");
         assert.equal(fmt, expected);
       },
       input: `V:1\nV:2\n[V:1]abc|ab\n%surprise!\n[V:2]cde|dc
 [V:1]ab|ab\n%surprise!\n[V:2]cde|dc\n`,
       expected: `[V:1] abc | ab\n%surprise!\n[V:2] cde | dc
-[V:1] ab  | ab\n%surprise!\n[V:2] cde | dc\n`
+[V:1] ab  | ab\n%surprise!\n[V:2] cde | dc\n`,
     },
     {
       title: "format multiple systems with comment lines interspersed",
       test: (systems: Array<System>, expected) => {
         const formatter = new AbcFormatter();
-        const fmt = systems.map((system) => { return formatter.formatSystem(system); }).join("");
+        const fmt = systems
+          .map((system) => {
+            return formatter.formatSystem(system);
+          })
+          .join("");
         assert.equal(fmt, expected);
       },
       input: `V:3\nV:4\n[V:3] B,2 C2  | D C B, A,    | B, C2 B,   | B,2 A,2  | HD4   |
 [V:4] G,2 A,2 | B, A, G,^F, | G, A, B, G, | E, C, F,2 | HB,,4 |`,
       expected: `[V:3] B,2 C2  | D C B, A,   | B, C2 B,    | B,2 A,2   | HD4   |
-[V:4] G,2 A,2 | B, A, G,^F, | G, A, B, G, | E, C, F,2 | HB,,4 |`
-    }
+[V:4] G,2 A,2 | B, A, G,^F, | G, A, B, G, | E, C, F,2 | HB,,4 |`,
+    },
   ];
   SystemLineTests.forEach(({ title, test, input, expected }) => {
     it(title, RunVoiceSystemsTest(input, test, expected));
@@ -77,7 +87,7 @@ describe("Format Info Lines in Tune Header", function () {
         assert.equal(fmt, expected);
       },
       input: `M:4/4\nL:1/8\nK:C\n`,
-      expected: `X:1\nM:4/4\nL:1/8\nK:C\n`
+      expected: `X:1\nM:4/4\nL:1/8\nK:C\n`,
     },
     {
       title: "format a tune header containing comments",
@@ -90,12 +100,14 @@ describe("Format Info Lines in Tune Header", function () {
         assert.equal(fmt, expected);
       },
       input: `M:4/4\nL:1/8\n%surprise\nK:C\n`,
-      expected: `X:1\nM:4/4\nL:1/8\n%surprise\nK:C\n`
+      expected: `X:1\nM:4/4\nL:1/8\n%surprise\nK:C\n`,
     },
   ];
 
   SystemLineTests.forEach(({ title, test, input, expected }) => {
-    it(title, () => { test(input, expected); });
+    it(title, () => {
+      test(input, expected);
+    });
   });
 });
 
@@ -107,21 +119,24 @@ describe("Format Info Lines in Tune Body", function () {
         const parse = buildParse(input);
         const tune_body = parse.tune[0].tune_body;
         expect(tune_body).to.not.be.undefined;
-        if (!tune_body) { return; }
+        if (!tune_body) {
+          return;
+        }
         const formatter = new AbcFormatter();
         const fmt = formatter.visitTuneBodyExpr(tune_body);
         expect(fmt).to.not.be.undefined;
         assert.equal(fmt, expected);
       },
       input: `abc\nM:4/4\nL:1/8\nK:C\n`,
-      expected: `abc\nM:4/4\nL:1/8\nK:C\n`
+      expected: `abc\nM:4/4\nL:1/8\nK:C\n`,
     },
   ];
   SystemLineTests.forEach(({ title, test, input, expected }) => {
-    it(title, () => { test(input, expected); });
+    it(title, () => {
+      test(input, expected);
+    });
   });
 });
-
 
 describe("Formatter", function () {
   /*   describe("extracts voices names", function () {
@@ -137,15 +152,13 @@ describe("Formatter", function () {
     }); */
 
   describe("formats text", function () {
-
     const input = "[V:T1] (B2c2 d2g2)   | f6e2   |   (d2c2 d2)e2 | d4 c2z2 |";
-    const expected_no_format = (' ' + input).slice(1);
+    const expected_no_format = (" " + input).slice(1);
     const expected_fmt = "[V:T1] (B2c2 d2g2) | f6e2 | (d2c2 d2)e2 | d4 c2z2 |";
 
     it("can visit the tree without modifying source", function () {
       const fmt = new AbcFormatter().stringify(buildParse(input));
       assert.equal(removeTuneHeader(fmt).trim(), expected_no_format);
-
     });
     it("removes useless double spaces", function () {
       const fmt = new AbcFormatter().format(buildParse(input));
@@ -157,13 +170,12 @@ describe("Formatter", function () {
     [V:T2](G2A2 B2e2)  | d6c2  | (B2A2 B2)c2| B4 A2z2|`;
           const formattedLine = `[V:T1] (B2c2 d2g2) | f6e2 | (d2c2 d2)e2 | d4 c2z2 |
     [V:T2] (G2A2 B2e2) | d6c2 | (B2A2 B2)c2 | B4 A2z2 |`;
-    
+
           assert.equal(
             formatLineSystem(0, unformattedLine.length + 1, unformattedLine),
             formattedLine
           );
         }); */
-
 
     /*     it("inserts spaces around bar lines", function () {
           const unformatted = "[V:T1](B2c2 d2g2)|f6e2|(d2c2 d2)e2|d4 c2z2|";
@@ -181,7 +193,7 @@ describe("Formatter", function () {
     [V: wd] abcd |
     [V:3] abcd |
     w: abcd |`;
-    
+
             const formatted = `
     [V: str] abcd |
     [V: wd]  abcd |
@@ -351,7 +363,7 @@ describe("Formatter: Stringify", () => {
   describe("stringify grace groups", () => {
     const sample = [
       ["{b}c", "{b}c"],
-      ["{/b}c", "{/b}c"]
+      ["{/b}c", "{/b}c"],
     ];
     sample.forEach(([input, expected]) => {
       it(`should stringify ${input} into ${expected}`, () => {
@@ -361,14 +373,83 @@ describe("Formatter: Stringify", () => {
     });
   });
   describe("stringify notes with ties", () => {
-    const sample = [
-      ["a-", "a-"],
-    ];
+    const sample = [["a-", "a-"]];
     sample.forEach(([input, expected]) => {
       it(`should stringify ${input} into ${expected}`, () => {
         const fmt = new AbcFormatter().stringify(buildParse(input));
         assert.equal(removeTuneHeader(fmt).trim(), expected);
       });
     });
+  });
+});
+
+describe("Formatter: Error Preservation", () => {
+  const errorSamples = [
+    {
+      title: "preserves invalid decoration",
+      input: "~23 abc",
+      expected: "~23 abc",
+    },
+    {
+      title: "preserves invalid escaped character",
+      input: "abc \\e def",
+      expected: "abc \\e def",
+    },
+    {
+      title: "preserves invalid chord syntax",
+      input: "abc [CE def",
+      expected: "abc [CE def",
+    },
+    {
+      title: "preserves error tokens while formatting valid parts",
+      input: "abc ~23 | def",
+      expected: "abc ~23 | def",
+    },
+    { title: "error at end of input", input: "abcî", expected: "abc î" },
+  ];
+
+  // Test both stringify and format methods
+  describe("using stringify()", () => {
+    errorSamples.forEach(({ title, input, expected }) => {
+      it(title, () => {
+        const formatter = new AbcFormatter();
+        const parse = buildParse(input);
+        const result = formatter.stringify(parse);
+        assert.equal(removeTuneHeader(result).trim(), expected);
+      });
+    });
+  });
+
+  describe("using format()", () => {
+    errorSamples.forEach(({ title, input, expected }) => {
+      it(title, () => {
+        const formatter = new AbcFormatter();
+        const parse = buildParse(input);
+        const result = formatter.format(parse);
+        assert.equal(removeTuneHeader(result).trim(), expected);
+      });
+    });
+  });
+
+  // Test that errors are preserved even in complex contexts
+  it("preserves errors in multi-voice context", () => {
+    const input = `[V:1]abc ~23 |\n[V:2]def \\e |\n`;
+    const expected = `[V:1] abc ~23 |\n[V:2] def \\e |`;
+
+    const formatter = new AbcFormatter();
+    const parse = buildParse(input);
+    const result = formatter.format(parse);
+    assert.equal(removeTuneHeader(result).trim(), expected);
+  });
+
+  // Test that error nodes don't break formatting of surrounding valid code
+  it("maintains formatting of valid code around errors", () => {
+    const input = "abc  ~23  def  |  ghi";
+    const expected = "abc ~23 def | g hi"; // Assume that errors are separated from the rest
+
+    const formatter = new AbcFormatter();
+    const parse = buildParse(input);
+    const result = formatter.format(parse);
+    assert.equal(removeTuneHeader(result).trim(), expected);
   });
 });

@@ -1,14 +1,4 @@
-import {
-  isBarLine,
-  isBeam,
-  isComment,
-  isInline_field,
-  isMultiMeasureRest,
-  isNote,
-  isNthRepeat,
-  isToken,
-  isVoice_overlay,
-} from "../helpers";
+import { isBarLine, isBeam, isComment, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isToken, isVoice_overlay } from "../helpers";
 import {
   Annotation,
   BarLine,
@@ -43,13 +33,7 @@ import {
 } from "../types/Expr";
 import { Token } from "../types/token";
 import { System, TokenType } from "../types/types";
-import {
-  Formatter_Bar,
-  Formatter_LineWithBars,
-  GroupBarsInLines,
-  convertVoiceInfoLinesToInlineInfos,
-  splitSystemLines,
-} from "./Formatter_helpers";
+import { Formatter_Bar, Formatter_LineWithBars, GroupBarsInLines, convertVoiceInfoLinesToInlineInfos, splitSystemLines } from "./Formatter_helpers";
 
 /**
  * A pretty printer for a score's AST.
@@ -137,9 +121,7 @@ export class AbcFormatter implements Visitor<string> {
     const formattedTunes = expr.tune.map((tune): string => {
       return tune.accept(this);
     });
-    return (
-      formattedFile + formattedTunes.join(formattedFile.length > 0 ? "\n" : "")
-    );
+    return formattedFile + formattedTunes.join(formattedFile.length > 0 ? "\n" : "");
   }
   visitGraceGroupExpr(expr: Grace_group): string {
     const fmt = expr.notes
@@ -218,9 +200,7 @@ export class AbcFormatter implements Visitor<string> {
     let formatted = "";
     if (this.no_format) {
       const { numerator, separator, denominator, broken } = expr;
-      return [numerator, separator, denominator, broken]
-        .map((e) => e?.lexeme || "")
-        .join("");
+      return [numerator, separator, denominator, broken].map((e) => e?.lexeme || "").join("");
     }
     if (expr.numerator) {
       formatted += expr.numerator.lexeme;
@@ -235,11 +215,7 @@ export class AbcFormatter implements Visitor<string> {
           count = count * 2;
         }
         formatted += `/${count}`;
-      } else if (
-        expr.separator.lexeme === "/" &&
-        expr.denominator &&
-        expr.denominator.lexeme === "2"
-      ) {
+      } else if (expr.separator.lexeme === "/" && expr.denominator && expr.denominator.lexeme === "2") {
         formatted += "/";
         expr.denominator = undefined;
       } else {
@@ -305,26 +281,15 @@ export class AbcFormatter implements Visitor<string> {
   }
 
   formatUpsideDown(system: System) {
-    system = system.filter(
-      (expr) => !(expr instanceof Token && expr.type === TokenType.WHITESPACE),
-    );
+    system = system.filter((expr) => !(expr instanceof Token && expr.type === TokenType.WHITESPACE));
     for (let idx = 0; idx < system.length; idx++) {
       const expr = system[idx];
       function insertWS_FRMTR(index?: number) {
         const nextExpr = system[index || idx + 1];
-        if (
-          !nextExpr ||
-          (isToken(nextExpr) && nextExpr.type === TokenType.EOL)
-        ) {
+        if (!nextExpr || (isToken(nextExpr) && nextExpr.type === TokenType.EOL)) {
           return;
         }
-        const wsToken = new Token(
-          TokenType.WHITESPACE_FORMATTER,
-          " ",
-          null,
-          -1,
-          -1,
-        );
+        const wsToken = new Token(TokenType.WHITESPACE_FORMATTER, " ", null, -1, -1);
         system.splice(index || idx + 1, 0, wsToken);
       }
       if (isBarLine(expr)) {
@@ -341,10 +306,7 @@ export class AbcFormatter implements Visitor<string> {
         insertWS_FRMTR();
       } else if (isVoice_overlay(expr)) {
         insertWS_FRMTR();
-      } else if (
-        isToken(expr) &&
-        expr.type === TokenType.WHITESPACE_FORMATTER
-      ) {
+      } else if (isToken(expr) && expr.type === TokenType.WHITESPACE_FORMATTER) {
         continue;
       } else {
         continue;
@@ -403,27 +365,25 @@ export class AbcFormatter implements Visitor<string> {
   addWSToLines(lines: Array<Array<Comment | Info_line | music_code>>) {
     const linesIntoBars = lines.map(GroupBarsInLines);
 
-    const linesWithStr: Array<Formatter_LineWithBars> = linesIntoBars.map(
-      (line) => {
-        return line.map((bar) => {
-          const str = bar
-            .map((expr) => {
-              if (isToken(expr)) {
-                return expr.lexeme;
-              } else {
-                return expr.accept(this);
-              }
-            })
-            .join("")
-            .replace(/[|]/g, "")
-            .trim();
-          return {
-            str,
-            bar,
-          };
-        });
-      },
-    );
+    const linesWithStr: Array<Formatter_LineWithBars> = linesIntoBars.map((line) => {
+      return line.map((bar) => {
+        const str = bar
+          .map((expr) => {
+            if (isToken(expr)) {
+              return expr.lexeme;
+            } else {
+              return expr.accept(this);
+            }
+          })
+          .join("")
+          .replace(/[|]/g, "")
+          .trim();
+        return {
+          str,
+          bar,
+        };
+      });
+    });
     let largestBarCount = linesWithStr.reduce((acc, bars) => {
       if (isComment(bars[0].bar[0])) {
         return acc;
@@ -455,28 +415,15 @@ export class AbcFormatter implements Visitor<string> {
         const curLine = linesWithStr[lineIdx];
         const curBar = curLine[barIdx];
         if (curBar) {
-          if (
-            !isComment(curBar.bar[0]) &&
-            curBar.str.length < longestBarAtBarIdx
-          ) {
+          if (!isComment(curBar.bar[0]) && curBar.str.length < longestBarAtBarIdx) {
             let diff = longestBarAtBarIdx - curBar.str.length;
 
             for (let WScount = 0; WScount < diff; WScount++) {
-              const wsToken = new Token(
-                TokenType.WHITESPACE_FORMATTER,
-                " ",
-                null,
-                -1,
-                -1,
-              );
+              const wsToken = new Token(TokenType.WHITESPACE_FORMATTER, " ", null, -1, -1);
               //Should this be replaced by a special token?
               let curBar = linesIntoBars[lineIdx][barIdx];
               if (isBarLine(curBar[curBar.length - 1])) {
-                linesIntoBars[lineIdx][barIdx].splice(
-                  curBar.length - 1,
-                  0,
-                  wsToken,
-                );
+                linesIntoBars[lineIdx][barIdx].splice(curBar.length - 1, 0, wsToken);
               } else {
                 linesIntoBars[lineIdx][barIdx].push(wsToken);
               }

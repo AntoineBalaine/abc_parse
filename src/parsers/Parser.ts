@@ -312,11 +312,11 @@ export class Parser {
         contents.push(curTokn);
         this.advance();
         break;
-      case TokenType.ESCAPED_CHAR:
-        this.errorReporter.parserWarning(curTokn, "Escaped characters don't get evaluated as music.", ParserErrorType.TUNE_BODY);
-        contents.push(curTokn);
-        this.advance();
-        break;
+      // case TokenType.ESCAPED_CHAR:
+      //   this.errorReporter.parserWarning(curTokn, "Escaped characters don't get evaluated as music.", ParserErrorType.TUNE_BODY);
+      //   contents.push(curTokn);
+      //   this.advance();
+      //   break;
       case TokenType.AMPERSAND:
         let ampersands = [];
         while (this.peek().type === TokenType.AMPERSAND) {
@@ -347,6 +347,7 @@ export class Parser {
           contents.push(new Decoration(curTokn));
           this.advance();
         } else {
+          this.handleError(curTokn, "Unexpected token in music code", ParserErrorType.TUNE_BODY);
           throw this.error(
             this.peek(),
             "Unexpected token: " + curTokn.lexeme + "\nline " + curTokn.line + "\n decorations should be followed by a note",
@@ -429,7 +430,6 @@ export class Parser {
       default:
         // Instead of throwing, create an error node
         contents.push(this.handleError(curTokn, "Unexpected token in music code", ParserErrorType.TUNE_BODY));
-        this.advance(); // Move past the problematic token
     }
 
     return new Music_code(contents);
@@ -940,6 +940,7 @@ COLON_DBL NUMBER
   }
 
   private handleError(token: Token, message: string, origin: ParserErrorType): ErrorExpr {
+    // const token = this.peek();
     // Log the error but don't throw
     this.errorReporter.parserError(token, message, origin);
 
