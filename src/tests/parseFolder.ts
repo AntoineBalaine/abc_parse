@@ -12,15 +12,29 @@ function processFile(filePath: string, errorLog: string[]) {
     const parser = new Parser(tokens, content);
     const ast = parser.parse();
 
-    if (parser.hasErrors()) {
-      const errors = parser.getErrors();
+    if (ast === null) {
+      // Log parsing failure but don't throw
       errorLog.push(`\nFile: ${filePath}`);
       errorLog.push("-".repeat(80));
+      errorLog.push("Failed to parse file structure");
+      if (parser.hasErrors()) {
+        const errors = parser.getErrors();
+        errors.forEach((error) => {
+          errorLog.push(JSON.stringify(error));
+        });
+      }
+    } else if (parser.hasErrors()) {
+      // Log errors from successful parse
+      errorLog.push(`\nFile: ${filePath}`);
+      errorLog.push("-".repeat(80));
+      const errors = parser.getErrors();
       errors.forEach((error) => {
         errorLog.push(JSON.stringify(error));
       });
     }
   } catch (err) {
+    // Log any other errors
+    console.error(`Error processing file ${filePath}:`, err);
     errorLog.push(`\nFile: ${filePath}`);
     errorLog.push("-".repeat(80));
     errorLog.push(`Failed to process file: ${err}`);
@@ -29,6 +43,7 @@ function processFile(filePath: string, errorLog: string[]) {
 
 function processDirectory(directoryPath: string): void {
   const errorLog: string[] = [];
+  const failedFiles: string[] = [];
 
   function walkDir(currentPath: string) {
     const files = fs.readdirSync(currentPath);
@@ -57,6 +72,22 @@ function processDirectory(directoryPath: string): void {
     }
   } catch (err) {
     console.error("Error processing directory:", err);
+  }
+
+  if (errorLog.length > 0) {
+    const logPath = path.join(process.cwd(), "error.log");
+    const summary = [
+      "ABC Parser Error Summary",
+      "=====================",
+      `Total files with errors: ${failedFiles.length}`,
+      "\nFailed files:",
+      ...failedFiles,
+      "\nDetailed Errors:",
+      ...errorLog,
+    ];
+    fs.writeFileSync(logPath, summary.join("\n"));
+    console.log(`Errors found and logged to ${logPath}`);
+    console.log(`${failedFiles.length} files had errors`);
   }
 }
 

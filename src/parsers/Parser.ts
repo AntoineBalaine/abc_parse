@@ -136,8 +136,7 @@ export class Parser {
       const AST = this.file_structure();
       this.AST = AST;
       return AST;
-    } catch (err: any) {
-      console.error(err);
+    } catch (err) {
       return null;
     }
   }
@@ -627,6 +626,7 @@ COLON_DBL NUMBER
         !isDecorationToken(cur) &&
         !isNoteToken(cur) &&
         !isTupletToken(cur) &&
+        !isRestToken(cur) &&
         cur.type !== TokenType.STRING &&
         cur.lexeme !== '"' &&
         cur.type !== TokenType.WHITESPACE &&
@@ -634,7 +634,7 @@ COLON_DBL NUMBER
         cur.type !== TokenType.NUMBER
       ) {
         return false;
-      } else if (isNoteToken(cur)) {
+      } else if (isNoteToken(cur) || isRestToken(cur)) {
         return true;
       }
     }

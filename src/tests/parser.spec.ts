@@ -502,8 +502,10 @@ L:1/8`;
       const samples: Array<string> = [
         /*         '(3a',
                 '(3::a', */
-        '(3:2:3a',
-        '(3:2a',
+        "(3abc",
+        "(3zab",
+        "(3:2:3a",
+        "(3:2a",
       ];
       samples.forEach((input) => {
         it(`can parse tuplets in ${input}`, () => {
