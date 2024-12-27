@@ -650,8 +650,7 @@ COLON_DBL NUMBER
     const chordContents: Array<Note | Annotation> = [];
     let chordRhythm: Rhythm | undefined = undefined;
     let chordTie: Token | undefined = undefined;
-    const leftBracket = this.peek();
-    this.advance();
+    const leftBracket = this.advance();
 
     try {
       while (!this.isAtEnd() && !(this.peek().type === TokenType.RIGHT_BRKT)) {
@@ -674,8 +673,9 @@ COLON_DBL NUMBER
     } catch (e) {
       // if note/rhythm/finding right bracket fails, treat all the other tokens as errs.
       const reTokenizer = new TokensVisitor();
+
       chordContents.forEach((element) => (isNote(element) ? reTokenizer.visitNoteExpr(element) : reTokenizer.visitAnnotationExpr(element)));
-      this.err_tokens.push(...reTokenizer.tokens);
+      this.err_tokens.push(leftBracket, ...reTokenizer.tokens);
       throw e;
     }
     if (!this.isAtEnd() && this.peek().type === TokenType.MINUS) {
