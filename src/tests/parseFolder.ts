@@ -19,7 +19,7 @@ function formatError(error: AbcError, sourceContent: string): string {
   ].join("\n");
 }
 
-function processFile(filePath: string, errorLog: string[]) {
+function processFile(filePath: string, errorLog: string[]): boolean {
   try {
     const content = fs.readFileSync(filePath, "utf-8");
     const scanner = new Scanner(content);
@@ -38,6 +38,7 @@ function processFile(filePath: string, errorLog: string[]) {
           errorLog.push(JSON.stringify(error));
         });
       }
+      return true;
     } else if (parser.hasErrors()) {
       // Log errors from successful parse
       errorLog.push(`\nFile: ${filePath}`);
@@ -46,19 +47,23 @@ function processFile(filePath: string, errorLog: string[]) {
       errors.forEach((error) => {
         errorLog.push(formatError(error, content));
       });
+      return true;
     }
+    return false;
   } catch (err) {
     // Log any other errors
     console.error(`Error processing file ${filePath}:`, err);
     errorLog.push(`\nFile: ${filePath}`);
     errorLog.push("-".repeat(80));
     errorLog.push(`Failed to process file: ${err}`);
+    return true;
   }
 }
 
 function processDirectory(directoryPath: string): void {
   const errorLog: string[] = [];
   const failedFiles: string[] = [];
+  let files_processed = 0;
 
   function walkDir(currentPath: string) {
     const files = fs.readdirSync(currentPath);
@@ -70,7 +75,11 @@ function processDirectory(directoryPath: string): void {
       if (stat.isDirectory()) {
         walkDir(filePath);
       } else if (path.extname(file) === ".abc") {
-        processFile(filePath, errorLog);
+        const had_error = processFile(filePath, errorLog);
+        files_processed += 1;
+        if (had_error) {
+          failedFiles.push(filePath);
+        }
       }
     });
   }
@@ -95,6 +104,8 @@ function processDirectory(directoryPath: string): void {
       "ABC Parser Error Summary",
       "=====================",
       `Total files with errors: ${failedFiles.length}`,
+      "\nRead files:",
+      `${files_processed}`,
       "\nFailed files:",
       ...failedFiles,
       "\nDetailed Errors:",
@@ -102,6 +113,7 @@ function processDirectory(directoryPath: string): void {
     ];
     fs.writeFileSync(logPath, summary.join("\n"));
     console.log(`Errors found and logged to ${logPath}`);
+    console.log(`${files_processed} read files`);
     console.log(`${failedFiles.length} files had errors`);
   }
 }
