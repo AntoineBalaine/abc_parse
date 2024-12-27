@@ -1,8 +1,23 @@
 // abc_parse/src/tests/parseFolder.ts
 import fs from "fs";
 import path from "path";
+import { AbcError } from "../parsers/ErrorReporter";
 import { Parser } from "../parsers/Parser";
 import { Scanner } from "../parsers/Scanner";
+
+function formatError(error: AbcError, sourceContent: string): string {
+  const lines = sourceContent.split("\n");
+  const errorLine = lines[error.token.line];
+  const position = error.token.position;
+
+  return [
+    ``,
+    errorLine,
+    " ".repeat(position) + "^",
+    " ".repeat(position) +
+      `${error.message} - line ${error.token.line + 1}:${position + 1}`,
+  ].join("\n");
+}
 
 function processFile(filePath: string, errorLog: string[]) {
   try {
@@ -29,7 +44,7 @@ function processFile(filePath: string, errorLog: string[]) {
       errorLog.push("-".repeat(80));
       const errors = parser.getErrors();
       errors.forEach((error) => {
-        errorLog.push(JSON.stringify(error));
+        errorLog.push(formatError(error, content));
       });
     }
   } catch (err) {

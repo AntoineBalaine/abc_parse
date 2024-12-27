@@ -972,7 +972,6 @@ COLON_DBL NUMBER
   private handleError(token: Token, message: string, origin: ParserErrorType): ErrorExpr {
     // const token = this.peek();
     // Log the error but don't throw
-    this.errorReporter.parserError(token, message, origin);
 
     // Collect tokens until we reach a synchronization point
 
