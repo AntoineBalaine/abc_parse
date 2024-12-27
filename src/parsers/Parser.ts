@@ -173,8 +173,7 @@ export class Parser {
     let tokens: Token[] = [];
     while (!this.isAtEnd()) {
       if (this.peek().type === TokenType.EOL && this.peekNext().type === TokenType.EOL) {
-        this.consume(TokenType.EOL, "Expected a line break");
-        this.consume(TokenType.EOL, "Expected a line break");
+        this.consume(TokenType.EOL, "Expected a line break", ParserErrorType.FILE_HEADER);
       } else if (this.peek().lexeme === "X:") {
         break;
       } else {
@@ -319,11 +318,6 @@ export class Parser {
         contents.push(curTokn);
         this.advance();
         break;
-      // case TokenType.ESCAPED_CHAR:
-      //   this.errorReporter.parserWarning(curTokn, "Escaped characters don't get evaluated as music.", ParserErrorType.TUNE_BODY);
-      //   contents.push(curTokn);
-      //   this.advance();
-      //   break;
       case TokenType.AMPERSAND:
         let ampersands = [];
         while (this.peek().type === TokenType.AMPERSAND) {
@@ -354,11 +348,7 @@ export class Parser {
           contents.push(new Decoration(curTokn));
           this.advance();
         } else {
-          throw this.error(
-            this.peek(),
-            "Unexpected token: " + curTokn.lexeme + "\nline " + curTokn.line + "\n decorations should be followed by a note",
-            ParserErrorType.TUNE_BODY
-          );
+          throw this.error(this.peek(), "decorations should be followed by a note", ParserErrorType.DECORATION);
         }
         break;
       case TokenType.FLAT:
@@ -409,7 +399,7 @@ export class Parser {
         if (this.isTuplet()) {
           contents.push(this.tuplet());
         } else {
-          throw this.error(curTokn, "Tuplet markers should be followed by a note", ParserErrorType.TUNE_BODY);
+          throw this.error(curTokn, "Tuplet markers should be followed by a note", ParserErrorType.TUPLET);
         }
         break;
       case TokenType.SYMBOL:
@@ -430,7 +420,7 @@ export class Parser {
         } else if (isRestToken(this.peek())) {
           contents.push(this.parse_note());
         } else {
-          throw this.error(curTokn, "Unexpected token after letter", ParserErrorType.TUNE_BODY);
+          throw this.error(curTokn, "Unexpected token after letter", ParserErrorType.LETTER);
         }
         break;
       default:
@@ -665,7 +655,7 @@ COLON_DBL NUMBER
         }
       }
       //consume the right bracket
-      this.consume(this.peek().type, "Expected a right bracket");
+      this.consume(this.peek().type, "Expected a right bracket", ParserErrorType.CHORD);
       // optionally parse a rhythm
       if (isRhythmToken(this.peek())) {
         chordRhythm = this.rhythm();
@@ -698,7 +688,7 @@ COLON_DBL NUMBER
       this.advance();
     }
     // consume the right bracket
-    this.consume(this.peek().type, "Expected a right bracket");
+    this.consume(this.peek().type, "Expected a right bracket", ParserErrorType.INLINE_FIELD);
     return new Inline_field(field, text);
   }
   grace_group() {
@@ -728,7 +718,7 @@ COLON_DBL NUMBER
         throw e;
       }
     }
-    this.consume(TokenType.RIGHT_BRACE, "expected a right brace");
+    this.consume(TokenType.RIGHT_BRACE, "expected a right brace", ParserErrorType.GRACE_GROUP);
     // TODO include beam in grace group
     return new Grace_group(notes, isAccaciatura);
   }
@@ -762,7 +752,7 @@ COLON_DBL NUMBER
     } else if (isRestToken(this.peek())) {
       note = { pitchOrRest: this.rest() };
     } else {
-      throw this.error(this.peek(), "Unexpected token in note", ParserErrorType.TUNE_BODY);
+      throw this.error(this.peek(), "Unexpected token in note", ParserErrorType.NOTE);
     }
 
     if (!this.isAtEnd() && isRhythmToken(this.peek())) {
@@ -793,7 +783,7 @@ COLON_DBL NUMBER
       rest = this.peek();
       this.advance();
     } else {
-      throw this.error(this.peek(), "Unexpected token in rest", ParserErrorType.TUNE_BODY);
+      throw this.error(this.peek(), "Unexpected token in rest", ParserErrorType.REST);
     }
     return new Rest(rest);
   }
@@ -808,7 +798,7 @@ COLON_DBL NUMBER
       rest = this.peek();
       this.advance();
     } else {
-      throw this.error(this.peek(), "Unexpected token in multi measure rest", ParserErrorType.TUNE_BODY);
+      throw this.error(this.peek(), "Unexpected token in multi measure rest", ParserErrorType.MULTI_MEASURE_REST);
     }
     if (this.peek().type === TokenType.NUMBER) {
       length = this.peek();
@@ -864,7 +854,7 @@ COLON_DBL NUMBER
       } */
       // broken rhythm
     } else if (!(this.peek().type === TokenType.GREATER || this.peek().type === TokenType.LESS)) {
-      throw this.error(this.peek(), "Unexpected token in rhythm", ParserErrorType.TUNE_BODY);
+      throw this.error(this.peek(), "Unexpected token in rhythm", ParserErrorType.RHYTHM);
     }
 
     if (this.peek().type === TokenType.GREATER || this.peek().type === TokenType.LESS) {
@@ -911,7 +901,7 @@ COLON_DBL NUMBER
       //new NoteLetter
       noteLetter = this.previous();
     } else {
-      throw this.error(this.peek(), "Expected a note letter", ParserErrorType.TUNE_BODY);
+      throw this.error(this.peek(), "Expected a note letter", ParserErrorType.PITCH);
     }
     if (this.match(TokenType.COMMA, TokenType.APOSTROPHE)) {
       octave = this.previous();
@@ -922,28 +912,15 @@ COLON_DBL NUMBER
   /**
    * @throws {Error}
    */
-  private consume(type: TokenType, message: string): Token {
+  private consume(type: TokenType, message: string, errorType: ParserErrorType): Token {
     if (this.check(type)) {
       return this.advance();
     }
-    throw this.error(this.peek(), message, ParserErrorType.UNKNOWN);
+    throw this.error(this.peek(), message, errorType);
   }
 
-  private error(token: Token, message: string, origin: ParserErrorType, prev_tokens?: Token[]): Error {
-    let errMsg: string;
-    // get the currentline
-    if (this.source) {
-      const curLin = this.source.substring(0).split("\n")[token.line]; //TODO double check now that lines are 0-indexed
-      const position = token.position >= 0 ? token.position : 0;
-      const test = `${curLin}\n${" ".repeat(position)}^\n${" ".repeat(position)}${message}\n`;
-      // add a caret under the token
-      //const caret = " ".repeat(token.position) + "^"
-      errMsg = this.errorReporter.parserError(token, "\n" + test, origin);
-    } else {
-      errMsg = this.errorReporter.parserError(token, message, origin);
-    }
-
-    return new Error(errMsg);
+  private error(token: Token, message: string, origin: ParserErrorType): Error {
+    return new Error(this.errorReporter.parserError(token, message, origin));
   }
 
   private synchronize() {

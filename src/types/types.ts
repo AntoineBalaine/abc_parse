@@ -112,10 +112,22 @@ export type Range = {
  * The origin of an error, used by the {@link Parser}.
  */
 export enum ParserErrorType {
-  TUNE_BODY,
-  TUNE_HEADER,
-  FILE_HEADER,
-  UNKNOWN,
+  CHORD = "CHORD",
+  DECORATION = "DECORATION",
+  FILE_HEADER = "FILE_HEADER",
+  GRACE_GROUP = "GRACE_GROUP",
+  INLINE_FIELD = "INLINE_FIELD",
+  LETTER = "LETTER",
+  MULTI_MEASURE_REST = "MULTI_MEASURE_REST",
+  NOTE = "NOTE",
+  PITCH = "PITCH",
+  REST = "REST",
+  RHYTHM = "RHYTHM",
+  TUNE_BODY = "TUNE_BODY",
+  TUNE_HEADER = "TUNE_HEADER",
+  TUPLET = "TUPLET",
+  UNKNOWN = "UNKNOWN",
+  SCANNER = "SCANNER",
 }
 
 /**

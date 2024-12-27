@@ -309,27 +309,11 @@ export class Scanner {
         } else if (this.isReservedChar(c)) {
           this.addToken(TokenType.RESERVED_CHAR);
         } else {
-          const curLine = this.source.split("\n")[this.line];
           this.addToken(TokenType.INVALID);
-          this.errorReporter.ScannerError(this.line, this.errorMessage(c), this.createToken(TokenType.STRING));
+          this.errorReporter.ScannerError(c, this.createToken(TokenType.STRING));
         }
         break;
     }
-  }
-
-  private errorMessage(scannerMessage: string = "") {
-    // find the line and the current character
-    const line = this.source.split("\n")[this.line];
-    const char = this.source[this.current];
-    let message = `Scanner Error: unexpected character: ${scannerMessage}\n${line}\n`;
-    //find the line break preceding the current character
-    const lineBreak = this.source.lastIndexOf("\n", this.current);
-    //find the position of the current character in the line
-    const charPos = this.current - lineBreak;
-    //add a caret to the message
-    const caret = " ".repeat(charPos) + "^";
-    message += caret;
-    return message;
   }
 
   private number() {
@@ -348,7 +332,7 @@ export class Scanner {
       this.advance();
     }
     if (this.isAtEnd()) {
-      this.errorReporter.ScannerError(this.line, this.errorMessage("Unterminated string"), this.createToken(TokenType.EOF));
+      this.errorReporter.ScannerError("Unterminated string", this.createToken(TokenType.EOF));
       return;
     }
     // the closing ".
