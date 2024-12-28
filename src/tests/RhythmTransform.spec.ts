@@ -20,10 +20,10 @@ export function buildParse(source: string): File_structure {
   const scan = new Scanner(fmtHeader).scanTokens();
   const parse = new Parser(scan, fmtHeader).parse();
   if (!parse) {
-    return new File_structure(new File_header("", []), []);;
+    return new File_structure(new File_header("", []), []);
   } else {
     return parse;
-  };
+  }
 }
 
 describe("Rhythms", () => {
@@ -85,5 +85,4 @@ describe("Rhythms", () => {
       });
     });
   });
-
 });

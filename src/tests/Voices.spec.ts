@@ -22,7 +22,9 @@ z16|`;
     const parser = new Parser(new Scanner(sample).scanTokens());
     const parse = parser.parse();
     expect(parse).to.not.be.null;
-    if (!parse) { return; }
+    if (!parse) {
+      return;
+    }
     const systems = parse.tune[0].tune_body?.sequence;
     expect(systems).to.have.lengthOf(2);
   });
@@ -30,18 +32,24 @@ z16|`;
     const parser = new Parser(new Scanner(two_voices).scanTokens());
     const parse = parser.parse();
     expect(parse).to.not.be.null;
-    if (!parse) { return; }
+    if (!parse) {
+      return;
+    }
     const systems = parse.tune[0].tune_body?.sequence;
     expect(systems).to.have.lengthOf(1);
   });
 
   it("should find multiple systems in score", () => {
-    const sample = two_voices + `[V: V0]z16|
+    const sample =
+      two_voices +
+      `[V: V0]z16|
 [V: V1]z16|`;
     const parser = new Parser(new Scanner(sample).scanTokens());
     const parse = parser.parse();
     expect(parse).to.not.be.null;
-    if (!parse) { return; }
+    if (!parse) {
+      return;
+    }
     const systems = parse.tune[0].tune_body?.sequence;
     expect(systems).to.have.lengthOf(2);
   });
@@ -52,8 +60,23 @@ z16|`;
     const parser = new Parser(new Scanner(sample).scanTokens());
     const parse = parser.parse();
     expect(parse).to.not.be.null;
-    if (!parse) { return; }
+    if (!parse) {
+      return;
+    }
     const systems = parse.tune[0].tune_body?.sequence;
     expect(systems).to.have.lengthOf(2);
+  });
+  it("should find multiple voices with custom names", () => {
+    const sample = `X:1
+V:RH clef=treble
+V:LH clef=bass
+K:C
+[V: RH] C|
+[V: LH] G| 
+[V: RH] D|
+[V: LH] A| 
+`;
+    const parse = new Parser(new Scanner(sample).scanTokens()).parse();
+    expect(parse!.tune[0].tune_body!.sequence).to.have.lengthOf(2);
   });
 });

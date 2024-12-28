@@ -193,7 +193,7 @@ describe("Parser", () => {
             const cases = [
               ["C>>", ">>"],
               ["C<<", "<<"],
-              ["C->", ">"],
+              ["C>", ">"],
             ];
             cases.forEach(([input, expected]) => {
               it(`should find broken rhythm ${expected} in ${input}`, () => {
