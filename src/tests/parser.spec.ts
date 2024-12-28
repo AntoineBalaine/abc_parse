@@ -192,7 +192,9 @@ describe("Parser", () => {
           describe("should parse broken rhythm", () => {
             const cases = [
               ["C>>", ">>"],
-              ["C<<", "<<"]];
+              ["C<<", "<<"],
+              ["C->", ">"],
+            ];
             cases.forEach(([input, expected]) => {
               it(`should find broken rhythm ${expected} in ${input}`, () => {
                 const musicCode = buildParse(input).tune[0].tune_body?.sequence[0][0];
@@ -372,7 +374,7 @@ describe("Parser", () => {
         const musicCode = buildParse("[CA]ABC").tune[0].tune_body?.sequence[0][0];
         expect(musicCode).to.be.an.instanceof(Beam);
         if (isBeam(musicCode)) {
-          expect(musicCode.contents[0]).to.be.an.instanceof(Chord);;
+          expect(musicCode.contents[0]).to.be.an.instanceof(Chord);
           expect(musicCode.contents[1]).to.be.an.instanceof(Note);
         }
       });
@@ -542,7 +544,9 @@ D4`;
          */
         /*         "Hy2",
                 "u2", */
-        "uTg"
+        "uTg",
+        ".A",
+        ".[Ace]",
       ];
       with_decorations.forEach((input) => {
         it(`can parse multiple decorations in ${input}`, () => {
@@ -564,7 +568,4 @@ D4`;
       }
     });
   });
-
-
 });
-

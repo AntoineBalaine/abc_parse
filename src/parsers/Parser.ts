@@ -548,9 +548,9 @@ COLON_DBL NUMBER
     const lexeme = pkd.lexeme;
     const type = this.peek().type;
     const nxtType = this.peekNext();
-    if (isDecorationToken(pkd) && (isNoteToken(nxtType) || hasRestAttributes(nxtType))) {
+    if (isDecorationToken(pkd) && (isNoteToken(nxtType) || hasRestAttributes(nxtType) || nxtType.type === TokenType.LEFTBRKT)) {
       return true;
-    } else if (type === TokenType.DOT || type === TokenType.TILDE || (type === TokenType.LETTER && /[HLMOPSTuv]/.test(lexeme))) {
+    } else if (isDecorationToken(pkd)) {
       let i = this.current;
       while (i < this.tokens.length) {
         i++;

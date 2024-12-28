@@ -248,7 +248,7 @@ export function isDecorationToken(token: Token) {
   return (
     type === TokenType.DOT ||
     type === TokenType.TILDE ||
-    (type === TokenType.LETTER && /[HLMOPSTuv]/.test(lexeme))
+    (type === TokenType.LETTER && /[RHJLMOPSTuv]/.test(lexeme))
   );
 }
 
