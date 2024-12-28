@@ -923,18 +923,6 @@ COLON_DBL NUMBER
     return new Error(this.errorReporter.parserError(token, message, origin));
   }
 
-  private synchronize() {
-    const skippedTokens: Token[] = [];
-    this.advance();
-    while (!this.isAtEnd()) {
-      if (this.isRecoveryPoint()) {
-        return skippedTokens;
-      }
-      skippedTokens.push(this.advance());
-    }
-    return skippedTokens;
-  }
-
   private match(...types: Array<TokenType>): boolean {
     for (const type of types) {
       if (this.check(type)) {

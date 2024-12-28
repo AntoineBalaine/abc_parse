@@ -560,12 +560,4 @@ D4`;
       });
     });
   });
-  describe("synchronize in case of error", () => {
-    it("synchronize after an unexpected token", () => {
-      const musicCode = buildParse("~23 a bc\na,,").tune[0].tune_body?.sequence[1];
-      if (musicCode) {
-        expect(musicCode).to.be.an.instanceof(Note);
-      }
-    });
-  });
 });
