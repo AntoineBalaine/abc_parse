@@ -405,6 +405,12 @@ describe("Formatter: Error Preservation", () => {
       input: "abc ~23 | def",
       expected: "abc ~23 | def",
     },
+
+    {
+      title: "removes trailing whitespaces",
+      input: "ab | \\   ",
+      expected: "ab | \\",
+    },
     { title: "error at end of input", input: "abcî", expected: "abc î" },
   ];
 

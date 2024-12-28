@@ -67,7 +67,10 @@ export class Scanner {
     let c = this.advance();
     switch (c) {
       case "\\":
-        if (this.peek() === "\n" && !this.isAtEnd()) {
+        if (/\s*\n/.test(this.source.substring(this.current)) || (this.peek() === "\n" && !this.isAtEnd())) {
+          while (this.peek() !== "\n" && !this.isAtEnd()) {
+            this.advance();
+          }
           this.advance();
           this.addToken(TokenType.ANTISLASH_EOL);
           this.line++;
