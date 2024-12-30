@@ -1,4 +1,4 @@
-import { isBarLine, isInfo_line, isToken, isWS } from '../helpers';
+import { isBarLine, isInfo_line, isToken, isWS } from "../helpers";
 import { Comment, Expr, Info_line, Inline_field, music_code } from "../types/Expr";
 import { Token } from "../types/token";
 import { System, TokenType } from "../types/types";
@@ -19,9 +19,12 @@ export function onlyWSTillEnd(idx: number, arr: Array<Expr | Token>): boolean {
       if (isToken(expr)) {
         if (expr.type === TokenType.EOF || expr.type === TokenType.EOL || expr.type === TokenType.ANTISLASH_EOL) {
           return true;
-        } if (expr.type === TokenType.WHITESPACE) {
+        }
+        if (expr.type === TokenType.WHITESPACE) {
           continue;
-        } else { return false; };
+        } else {
+          return false;
+        }
       }
     }
   }
@@ -35,7 +38,7 @@ export function onlyWSTillEnd(idx: number, arr: Array<Expr | Token>): boolean {
 export function splitSystemLines(system: System) {
   const lines: Array<Array<Comment | Info_line | music_code>> = [];
   let curLine: Array<Comment | Info_line | music_code> = [];
-  system.forEach(expr => {
+  system.forEach((expr) => {
     curLine.push(expr);
     if (isToken(expr) && expr.type === TokenType.EOL) {
       lines.push(curLine);
@@ -47,7 +50,6 @@ export function splitSystemLines(system: System) {
   }
   return lines;
 }
-
 /**
  * In a voice-system, convert every Info line that represents a voice (`V:1\nabc`)
  * into an inline info (`[V:1]abc`)
@@ -108,5 +110,3 @@ export type Formatter_Bar = {
   str: string;
   bar: Array<Expr | Token>;
 };
-
-export type Formatter_LineWithBars = Array<Formatter_Bar>;

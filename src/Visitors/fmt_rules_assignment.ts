@@ -33,31 +33,30 @@ enum SpcRul {
 }
 
 export class RuleAssigner {
-  private ruleMap = new Map<Expr | Token, SpcRul[]>();
 
-  assignRules(ast: File_structure) {
+  collectRules(ast: File_structure) {
     // Start at tune body level
     for (const tune of ast.tune) {
       if (tune.tune_body) {
-        this.assignTuneBodyRules(tune.tune_body);
+        this.resolveTuneBody(tune.tune_body, this.assignTuneBodyRules(tune.tune_body));
       }
     }
-    return this.ruleMap;
   }
 
-  private assignTuneBodyRules(tuneBody: Tune_Body) {
+  private assignTuneBodyRules(tuneBody: Tune_Body): Map<Expr | Token, SpcRul[]> {
+    let ruleMap = new Map<Expr | Token, SpcRul[]>();
     // Process each system
     for (let system of tuneBody.sequence) {
       system = system.filter((expr) => !(expr instanceof Token && expr.type === TokenType.WHITESPACE));
       for (const node of system) {
         if (isComment(node) || isTuplet(node) || isDecoration(node) || isGrace_group(node) || isSymbol(node)) {
-          this.ruleMap.set(node, [SpcRul.PRECEDE_SPC]);
+          ruleMap.set(node, [SpcRul.PRECEDE_SPC]);
         } else if (
           isYSPACER(node) ||
           (isToken(node) &&
             (node.type === TokenType.RIGHT_PAREN || node.type === TokenType.LEFTPAREN || node.type === TokenType.EOL || node.type === TokenType.EOF))
         ) {
-          this.ruleMap.set(node, [SpcRul.NO_SPC]);
+          ruleMap.set(node, [SpcRul.NO_SPC]);
         } else if (
           isAnnotation(node) ||
           isBarLine(node) ||
@@ -70,18 +69,34 @@ export class RuleAssigner {
           isMultiMeasureRest(node) ||
           isToken(node)
         ) {
-          this.ruleMap.set(node, [SpcRul.SURROUND_SPC]);
+          ruleMap.set(node, [SpcRul.SURROUND_SPC]);
         } else if (isInline_field(node)) {
-          this.ruleMap.set(node, [SpcRul.FOLLOW_SPC]);
+          ruleMap.set(node, [SpcRul.FOLLOW_SPC]);
+        }
+      }
+    }
+    return ruleMap;
+  }
+
+  /** 
+   * Updates the parse tree in place
+   */
+  resolveTuneBody(tuneBody: Tune_Body, ruleMap: Map<Expr | Token, SpcRul[]>) {
+    for (let s = 0; s < tuneBody.sequence.length; s++) {
+      let system = tuneBody.sequence[s];
+      const spacingDecisions = this.resolveSystem(ruleMap, system);
+      for (let i = 0; i < system.length; i++) {
+        const node = system[i];
+        const decision = spacingDecisions.get(node);
+        if (decision === TokenType.WHITESPACE) {
+          tuneBody.sequence[s].splice(i, 0, new Token(TokenType.WHITESPACE, " ", null, -1, -1));
+          i += 1;
         }
       }
     }
   }
-}
 
-export class RulesResolver {
-  // Input is the map from your RuleAssigner
-  resolve(ruleMap: Map<Expr | Token, SpcRul[]>, system: System) {
+  resolveSystem(ruleMap: Map<Expr | Token, SpcRul[]>, system: System) {
     // Will hold final spacing decisions
     const spacingDecisions = new Map<Expr | Token, TokenType | null>();
 
@@ -124,3 +139,4 @@ export class RulesResolver {
     return spacingDecisions;
   }
 }
+

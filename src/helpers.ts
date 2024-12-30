@@ -6,6 +6,7 @@ import {
   Chord,
   Comment,
   Decoration,
+  ErrorExpr,
   Expr,
   Grace_group,
   Info_line,
@@ -19,13 +20,14 @@ import {
   Rhythm,
   Symbol,
   Tune_Body,
+  Tuplet,
   Voice_overlay,
   YSPACER,
   music_code,
-  tune_body_code
-} from './types/Expr';
-import { Token } from './types/token';
-import { Range, TokenType } from './types/types';
+  tune_body_code,
+} from "./types/Expr";
+import { Token } from "./types/token";
+import { Range, TokenType } from "./types/types";
 
 export function isMusicCode(expr: Expr | Token): expr is Music_code {
   return expr instanceof Music_code;
@@ -49,9 +51,7 @@ export const isGraceGroup = (expr: Expr | undefined | Token): expr is Grace_grou
 export const isNthRepeat = (expr: Expr | undefined | Token): expr is Nth_repeat => {
   return expr instanceof Nth_repeat;
 };
-export const isInline_field = (
-  expr: Expr | undefined | Token
-): expr is Inline_field => {
+export const isInline_field = (expr: Expr | undefined | Token): expr is Inline_field => {
   return expr instanceof Inline_field;
 };
 export const isChord = (expr: Expr | undefined | Token): expr is Chord => {
@@ -60,9 +60,7 @@ export const isChord = (expr: Expr | undefined | Token): expr is Chord => {
 export const isSymbol = (expr: Expr | undefined | Token): expr is Symbol => {
   return expr instanceof Symbol;
 };
-export const isMultiMeasureRest = (
-  expr: Expr | undefined | Token
-): expr is MultiMeasureRest => {
+export const isMultiMeasureRest = (expr: Expr | undefined | Token): expr is MultiMeasureRest => {
   return expr instanceof MultiMeasureRest;
 };
 export const isComment = (expr: Expr | undefined | Token): expr is Comment => {
@@ -98,7 +96,18 @@ export function isVoice_overlay(expr: unknown): expr is Voice_overlay {
 export function isDecoration(expr: unknown): expr is Decoration {
   return expr instanceof Decoration;
 }
-
+export function isTuplet(expr: unknown): expr is Tuplet {
+  return expr instanceof Tuplet;
+}
+export function isGrace_group(expr: unknown): expr is Grace_group {
+  return expr instanceof Grace_group;
+}
+export function isNth_repeat(expr: unknown): expr is Nth_repeat {
+  return expr instanceof Nth_repeat;
+}
+export function isErrorExpr(expr: unknown): expr is ErrorExpr {
+  return expr instanceof ErrorExpr;
+}
 export const mergeTokens = (tokens: Token[]) => {
   return tokens
     .map((t) => cloneToken(t))
@@ -120,7 +129,7 @@ export const cloneText = (text: string) => {
 };
 
 export function stringifyNote(note: Note): string {
-  let retStr = '';
+  let retStr = "";
   retStr += note.pitch instanceof Rest ? note.pitch.rest.lexeme : stringifyPitch(note.pitch);
   if (note.rhythm) {
     retStr += stringifyRhythm(note.rhythm);
@@ -129,37 +138,39 @@ export function stringifyNote(note: Note): string {
 }
 
 export function stringifyPitch(pitch: Pitch) {
-  let retStr = '';
-  retStr += pitch.alteration?.lexeme || '';
-  retStr += pitch.noteLetter.lexeme || '';
-  retStr += pitch.octave?.lexeme || '';
+  let retStr = "";
+  retStr += pitch.alteration?.lexeme || "";
+  retStr += pitch.noteLetter.lexeme || "";
+  retStr += pitch.octave?.lexeme || "";
   return retStr;
 }
 
 export function stringifyRhythm(rhythm: Rhythm) {
-  let retStr = '';
-  retStr += rhythm.numerator || '';
-  retStr += rhythm.separator || '';
-  retStr += rhythm.denominator || '';
-  retStr += rhythm.broken || '';
+  let retStr = "";
+  retStr += rhythm.numerator || "";
+  retStr += rhythm.separator || "";
+  retStr += rhythm.denominator || "";
+  retStr += rhythm.broken || "";
 }
 
 export function followedByWS(expr: music_code) {
   if (expr instanceof Token) {
     return /[ \t]$/.test(expr.lexeme);
-  } else { return false; }
+  } else {
+    return false;
+  }
 }
 
 export function isBeamContents(e: unknown): e is Beam_contents {
   return (
-    e instanceof Token
-    || e instanceof YSPACER
-    || e instanceof Annotation
-    || e instanceof Decoration
-    || e instanceof Note
-    || e instanceof Grace_group
-    || e instanceof Chord
-    || e instanceof Symbol
+    e instanceof Token ||
+    e instanceof YSPACER ||
+    e instanceof Annotation ||
+    e instanceof Decoration ||
+    e instanceof Note ||
+    e instanceof Grace_group ||
+    e instanceof Chord ||
+    e instanceof Symbol
   );
 }
 
@@ -181,11 +192,13 @@ export function followedByNote(music_code: Array<Expr | Token>, index: number) {
 
 /**
  * checks whether e is WHITESPACE, EOL, EOF, or ANTISLASH_EOL
- * @param e 
- * @returns 
+ * @param e
+ * @returns
  */
 export function isWS(e: unknown) {
-  return e instanceof Token && (e.type === TokenType.WHITESPACE || e.type === TokenType.EOL || e.type === TokenType.EOF || e.type === TokenType.ANTISLASH_EOL);
+  return (
+    e instanceof Token && (e.type === TokenType.WHITESPACE || e.type === TokenType.EOL || e.type === TokenType.EOF || e.type === TokenType.ANTISLASH_EOL)
+  );
 }
 
 /**
@@ -221,21 +234,13 @@ export function beamEnd(music_code: Array<Expr | Token>, index: number) {
 }
 
 export function isRhythmInRange(range: Range, expr: Rhythm): boolean {
-  const {
-    numerator,
-    separator,
-    denominator,
-    broken,
-  } = expr;
-  const arr = [
-    numerator,
-    separator,
-    denominator,
-    broken,
-  ].filter((e): e is Token => (!!e));
-  if (arr.some(e => isTokenInRange(range, e))) {
+  const { numerator, separator, denominator, broken } = expr;
+  const arr = [numerator, separator, denominator, broken].filter((e): e is Token => !!e);
+  if (arr.some((e) => isTokenInRange(range, e))) {
     return true;
-  } else { return false; }
+  } else {
+    return false;
+  }
 }
 
 export function isTokenInRange(range: Range, expr: Token): boolean {
@@ -245,20 +250,18 @@ export function isTokenInRange(range: Range, expr: Token): boolean {
 export function isDecorationToken(token: Token) {
   const type = token.type;
   const lexeme = token.lexeme;
-  return (
-    type === TokenType.DOT ||
-    type === TokenType.TILDE ||
-    (type === TokenType.LETTER && /[RHJLMOPSTuv]/.test(lexeme))
-  );
+  return type === TokenType.DOT || type === TokenType.TILDE || (type === TokenType.LETTER && /[RHJLMOPSTuv]/.test(lexeme));
 }
 
 export function isNoteToken(token: Token) {
-  return (token.type === TokenType.FLAT ||
+  return (
+    token.type === TokenType.FLAT ||
     token.type === TokenType.FLAT_DBL ||
     token.type === TokenType.NATURAL ||
     token.type === TokenType.NOTE_LETTER ||
     token.type === TokenType.SHARP ||
-    token.type === TokenType.SHARP_DBL);
+    token.type === TokenType.SHARP_DBL
+  );
 }
 
 function isBeamBreaker(cur: Token | Expr): boolean {
@@ -269,30 +272,28 @@ function isBeamBreaker(cur: Token | Expr): boolean {
   }
 }
 
-
 export function getPitchRange(e: Pitch | Rest): Range {
   if (isRest(e)) {
     return {
       start: {
         line: e.rest.line,
-        character: e.rest.position
+        character: e.rest.position,
       },
       end: {
         line: e.rest.line,
-        character: e.rest.position + e.rest.lexeme.length
-      }
+        character: e.rest.position + e.rest.lexeme.length,
+      },
     };
   } else {
-
     let range = {
       start: {
         line: e.noteLetter.line,
-        character: e.noteLetter.position
+        character: e.noteLetter.position,
       },
       end: {
         line: e.noteLetter.line,
-        character: e.noteLetter.position + e.noteLetter.lexeme.length
-      }
+        character: e.noteLetter.position + e.noteLetter.lexeme.length,
+      },
     };
     if (e.alteration) {
       range.start.line = e.alteration.line;
@@ -307,11 +308,12 @@ export function getPitchRange(e: Pitch | Rest): Range {
 }
 
 export function exprIsInRange(control_range: Range, expr_range: Range): boolean {
-  return expr_range.start.line >= control_range.start.line
-    && expr_range.end.line <= control_range.end.line
-    && expr_range.start.character >= control_range.start.character
-    && expr_range.end.character <= control_range.end.character + 1;
-
+  return (
+    expr_range.start.line >= control_range.start.line &&
+    expr_range.end.line <= control_range.end.line &&
+    expr_range.start.character >= control_range.start.character &&
+    expr_range.end.character <= control_range.end.character + 1
+  );
 }
 export function getTokenRange(token: Token): Range {
   return {
@@ -322,67 +324,55 @@ export function getTokenRange(token: Token): Range {
     end: {
       line: token.line,
       character: token.position + token.lexeme.length,
-    }
+    },
   };
 }
 
 export const reduceRanges = (acc: Range, cur: Range, index: number, arr: Range[]): Range => {
   if (index === 0) {
     return cur;
-  };
+  }
   return {
     start: {
       line: Math.min(acc.start.line, cur.start.line),
-      character: Math.min(acc.start.character, cur.start.character)
+      character: Math.min(acc.start.character, cur.start.character),
     },
     end: {
       line: Math.max(acc.end.line, cur.end.line),
-      character: Math.max(acc.end.character, cur.end.character)
-    }
+      character: Math.max(acc.end.character, cur.end.character),
+    },
   };
 };
 
 export const isEmptyRhythm = (rhythm: Rhythm): boolean => {
-  const {
-    numerator,
-    separator,
-    denominator,
-    broken,
-  } = rhythm;
+  const { numerator, separator, denominator, broken } = rhythm;
   return !numerator && !separator && !denominator && !broken;
 };
 
-
 export function hasRestAttributes(token: Token) {
-  return (
-    token.type === TokenType.LETTER &&
-    (token.lexeme === "z" || token.lexeme === "x")
-  );
+  return token.type === TokenType.LETTER && (token.lexeme === "z" || token.lexeme === "x");
 }
 export const isRhythmToken = (pkd: Token) => {
-  return (
-    pkd.type === TokenType.SLASH ||
-    pkd.type === TokenType.NUMBER ||
-    pkd.type === TokenType.GREATER ||
-    pkd.type === TokenType.LESS
-  );
+  return pkd.type === TokenType.SLASH || pkd.type === TokenType.NUMBER || pkd.type === TokenType.GREATER || pkd.type === TokenType.LESS;
 };
 
 export const isMultiMesureRestToken = (pkd: Token) => {
-  return (
-    pkd.type === TokenType.LETTER &&
-    (pkd.lexeme === "Z" || pkd.lexeme === "X")
-  );
+  return pkd.type === TokenType.LETTER && (pkd.lexeme === "Z" || pkd.lexeme === "X");
 };
 export const isRestToken = (pkd: Token) => {
   return hasRestAttributes(pkd);
 };
 
 export function isTupletToken(pkd: Token) {
-  return pkd.type === TokenType.LEFTPAREN_NUMBER || pkd.type === TokenType.COLON_DBL || pkd.type === TokenType.NUMBER || pkd.type === TokenType.COLON_NUMBER;
+  return (
+    pkd.type === TokenType.LEFTPAREN_NUMBER || pkd.type === TokenType.COLON_DBL || pkd.type === TokenType.NUMBER || pkd.type === TokenType.COLON_NUMBER
+  );
 }
 
-export function isVoice(e: tune_body_code): e is Info_line | Inline_field {
+/**
+ * is voice marker
+ */
+export function isVoiceMarker(e: tune_body_code): e is Info_line | Inline_field {
   if (isInfo_line(e) && e.key.lexeme === "V:") {
     return true;
   } else if (isInline_field(e) && e.field.lexeme === "V:") {

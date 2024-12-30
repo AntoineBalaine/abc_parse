@@ -33,7 +33,7 @@ import {
 } from "../types/Expr";
 import { Token } from "../types/token";
 import { System, TokenType } from "../types/types";
-import { Formatter_Bar, Formatter_LineWithBars, GroupBarsInLines, convertVoiceInfoLinesToInlineInfos, splitSystemLines } from "./Formatter_helpers";
+import { Formatter_Bar, GroupBarsInLines, convertVoiceInfoLinesToInlineInfos, splitSystemLines } from "./Formatter_helpers";
 
 /**
  * A pretty printer for a score's AST.
@@ -58,9 +58,9 @@ export class AbcFormatter implements Visitor<string> {
     this.no_format = false;
     return expr.accept(this);
   }
-  stringify(expr: Expr) {
+  stringify(expr: Expr | Token) {
     this.no_format = true;
-    const fmt = expr.accept(this);
+    const fmt = isToken(expr) ? expr.lexeme : expr.accept(this);
     this.no_format = false;
     return fmt;
   }
