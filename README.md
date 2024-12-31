@@ -8,3 +8,10 @@ To call the parseFolder script, use:
 ```sh
 npm run parse-folder -- /path/to/your/abc/files
 ```
+
+TODO:
+- mark incomplete bars with a warning in the IDE.
+- group tuplets as beams in the formatter’s rules resolution step.
+- warn about incomplete line-overlay markers (ampersand + line_continuation)
+[V:1] CDEF &\
+      FEDC &    // Missing continuation
