@@ -2,7 +2,7 @@ import { assert } from "chai";
 import { Info_line, Music_code, Comment, music_code, Inline_field } from "../types/Expr";
 import { System, TokenType } from "../types/types";
 import { Token } from "../types/token";
-import { splitIntoVoices } from "../Visitors/fmt_alignVoices";
+import { splitIntoVoices } from "../Visitors/fmt/fmt_alignVoices";
 import { Scanner } from "../parsers/Scanner";
 import { Parser } from "../parsers/Parser";
 import { buildParse } from "./RhythmTransform.spec";

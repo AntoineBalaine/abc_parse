@@ -1,9 +1,9 @@
 import { match } from "assert";
-import { isToken, isVoiceMarker } from "../helpers";
-import { Expr, Info_line, Inline_field } from "../types/Expr";
-import { Token } from "../types/token";
-import { System, TokenType } from "../types/types";
-import { AbcFormatter } from "./Formatter";
+import { isToken, isVoiceMarker } from "../../helpers";
+import { Expr, Info_line, Inline_field } from "../../types/Expr";
+import { Token } from "../../types/token";
+import { System, TokenType } from "../../types/types";
+import { AbcFormatter } from "../Formatter";
 
 type GroupMarkers =
   | TokenType.EOL
@@ -24,7 +24,7 @@ const GROUPMARKERS = [
   new Token(TokenType.BAR_DIGIT, "|1", null, -1, -1),
   new Token(TokenType.BAR_RIGHTBRKT, "|]", null, -1, -1),
 ];
-type Voice = {
+export type Voice = {
   voiceType: Expr; // contains the InlineVoice or VoiceInfo_line expression
   system: System;
 };
@@ -32,20 +32,40 @@ function trimSystem(system: System): System {
   throw new Error("Function not implemented.");
 }
 
-function alignVoices(system: System) {
-  let voices = splitSystemLines(system);
+export function alignVoices(system: System) {
+  let voices = toVoices(system);
   if (voices === null) {
     return system;
   }
-  const split_voices = voices.map((voice) => splitSystem(voice.system, ...GROUPMARKERS));
+  const split_voices = voices.map((voice) =>
+    splitSystem(voice.system, ...GROUPMARKERS),
+  );
   // voice with largest number of groups
-  const groupCount = split_voices.reduce((acc, cur_groups) => Math.max(acc, cur_groups.length), 0);
+  const groupCount = split_voices.reduce(
+    (acc, cur_groups) => Math.max(acc, cur_groups.length),
+    0,
+  );
   for (let i = 0; i < groupCount; i++) {
     const columns = split_voices.map((groups) => groups[i]); // this assumes equal column count across voices
     alignColumns(columns);
   }
 }
-function splitSystemLines(system: System): Voice[] | null {
+
+/**
+ * Split a system into its constituent voices
+ * i.e.
+ * ```javascript
+ * system = "[V:1] abc [V:2] abc"
+ * ```
+ * becomes
+ * ```javascript
+ * voices = [ "[V:1] abc", "[V:2] abc"]
+ * ```
+ * @param system
+ * @returns
+ */
+
+function toVoices(system: System): Voice[] | null {
   let voices: Voice[] = [];
   let voice: System = [];
   let voiceType: Inline_field | Info_line;
@@ -89,7 +109,9 @@ function alignColumns(columns: music_column[]) {
   for (let i = 0; i < columns.length; i++) {
     const len = col_lengths[i];
     const padding_len = maxLen - len;
-    columns[i].push(new Token(TokenType.WHITESPACE, " ".repeat(padding_len), null, -1, -1));
+    columns[i].push(
+      new Token(TokenType.WHITESPACE, " ".repeat(padding_len), null, -1, -1),
+    );
   }
 }
 function getNodeLen(cur: (Expr | Token)[]): number {
@@ -98,9 +120,12 @@ function getNodeLen(cur: (Expr | Token)[]): number {
   return cur.map((node) => fmtr.stringify(node)).length;
 }
 
-function splitSystem(system: System, ...separators: (Expr | Token)[]): music_column[] {
-  let columns: music_column[] = [];
-  let column: music_column = [];
+function splitSystem(
+  system: System,
+  ...separators: (Expr | Token)[]
+): System[] {
+  let columns: System[] = [];
+  let column: System = [];
   for (let i = 0; i < system.length; i++) {
     let node = system[i];
     if (separators.some((marker) => matchNode(node, marker))) {
