@@ -3,22 +3,22 @@ import { Expr } from "../../types/Expr";
 import { Token } from "../../types/token";
 import { System } from "../../types/types";
 
-export type NodeIndex = number;
+export type NodeID = number;
 export type TimeStamp = number;
 
 class TimeMapper {
-  mapVoices(voices: System[]): Array<Map<TimeStamp, NodeIndex>>[] {
+  mapVoices(voices: System[]): Array<Map<TimeStamp, NodeID>>[] {
     return voices.map((voice) => this.mapVoice(voice));
   }
 
   /**
    * returns 1 time map per bar.
-   * So Map<TimeStamp, NodeIndex> is a list of time stamps for time-events
+   * So Map<TimeStamp, NodeID> is a list of time stamps for time-events
    * @param voice
    * @returns
    */
-  private mapVoice(voice: System): Array<Map<TimeStamp, NodeIndex>> {
-    const barMaps: Array<Map<TimeStamp, NodeIndex>> = [];
+  private mapVoice(voice: System): Array<Map<TimeStamp, NodeID>> {
+    const barMaps: Array<Map<TimeStamp, NodeID>> = [];
     let currentBar: System = [];
 
     // Split into bars and process each
@@ -40,8 +40,8 @@ class TimeMapper {
     return barMaps;
   }
 
-  private processBar(bar: System): Map<TimeStamp, NodeIndex> {
-    const timeMap = new Map<number, NodeIndex>();
+  private processBar(bar: System): Map<TimeStamp, NodeID> {
+    const timeMap = new Map<number, NodeID>();
     let currentTime = 0;
 
     bar.forEach((node, index) => {
