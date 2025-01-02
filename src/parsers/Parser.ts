@@ -156,7 +156,7 @@ export class Parser {
         throw this.error(this.peek(), "Expected a tune or file header", ParserErrorType.FILE_HEADER);
       }
     }
-    return new File_structure(file_header, tunes);
+    return new File_structure(this.ctx, file_header, tunes);
   }
 
   private file_header() {
@@ -175,7 +175,7 @@ export class Parser {
         this.advance();
       }
     }
-    return new File_header(header_text, tokens);
+    return new File_header(this.ctx, header_text, tokens);
   }
   private tune() {
     // parse a tune header
@@ -183,10 +183,10 @@ export class Parser {
     // unless the header is followed by a line break
     const tune_header = this.tune_header();
     if (this.peek().type === TokenType.EOL || this.peek().type === TokenType.EOF) {
-      return new Tune(tune_header);
+      return new Tune(this.ctx, tune_header);
     } else {
       const tune_body = this.tune_body(tune_header.voices);
-      return new Tune(tune_header, tune_body);
+      return new Tune(this.ctx, tune_header, tune_body);
     }
   }
 
@@ -201,7 +201,7 @@ export class Parser {
          */
         //find whether this is the voices legend or the actual start of the tune_body.
         if (this.peek().lexeme === "V:" && !this.isVoicesLegend() && !voices.length) {
-          return new Tune_header(info_lines, voices);
+          return new Tune_header(this.ctx, info_lines, voices);
         }
         const line = this.info_line();
         if (line.key.lexeme === "V:") {
@@ -230,7 +230,7 @@ export class Parser {
       }
     }
     this.advance();
-    return new Tune_header(info_lines, voices);
+    return new Tune_header(this.ctx, info_lines, voices);
   }
 
   private info_line() {
@@ -247,7 +247,7 @@ export class Parser {
         this.advance();
       }
     }
-    return new Info_line(info_line, this.ctx);
+    return new Info_line(this.ctx, info_line);
   }
 
   private tune_body(voices?: string[]) {
@@ -276,7 +276,7 @@ export class Parser {
 
     const elements_with_beams = this.beam(elements);
     const systems = new VoiceParser(elements_with_beams, voices).parse();
-    return new Tune_Body(systems);
+    return new Tune_Body(this.ctx, systems);
   }
 
   /**
@@ -338,7 +338,7 @@ export class Parser {
         // parse the note following the dot
         // and add the dot to the note
         if (this.isDecoration()) {
-          contents.push(new Decoration(curTokn));
+          contents.push(new Decoration(this.ctx, curTokn));
           this.advance();
         } else {
           throw this.error(this.peek(), "decorations should be followed by a note", ParserErrorType.DECORATION);
@@ -400,13 +400,13 @@ export class Parser {
         break;
       case TokenType.LETTER:
         if (curTokn.lexeme === "y") {
-          contents.push(new YSPACER(curTokn, this.peekNext().type === TokenType.NUMBER ? this.peekNext() : undefined));
+          contents.push(new YSPACER(this.ctx, curTokn, this.peekNext().type === TokenType.NUMBER ? this.peekNext() : undefined));
           this.advance();
           if (this.peek().type === TokenType.NUMBER) {
             this.advance();
           }
         } else if (this.isDecoration()) {
-          contents.push(new Decoration(curTokn));
+          contents.push(new Decoration(this.ctx, curTokn));
           this.advance();
         } else if (isMultiMesureRestToken(this.peek())) {
           contents.push(this.multiMeasureRest());
@@ -421,10 +421,10 @@ export class Parser {
         throw this.error(curTokn, "Unexpected token in music code", ParserErrorType.TUNE_BODY);
     }
 
-    return new Music_code(contents);
+    return new Music_code(this.ctx, contents);
   }
   voice_overlay(ampersands: Token[]): Voice_overlay {
-    return new Voice_overlay(ampersands);
+    return new Voice_overlay(this.ctx, ampersands);
   }
   tuplet() {
     // implement more strictly the possible contents of the tuplet
@@ -463,7 +463,7 @@ COLON_DBL NUMBER
         this.advance();
       }
     }
-    return new Tuplet(p, q, r);
+    return new Tuplet(this.ctx, p, q, r);
   }
   /**
    * iterate the music code
@@ -486,10 +486,10 @@ COLON_DBL NUMBER
         }
         if (isNote(music_code[i]) || isChord(music_code[i])) {
           beam.push(music_code[i] as Note);
-          updatedMusicCode.push(new Beam(beam));
+          updatedMusicCode.push(new Beam(this.ctx, beam));
           beam = [];
         } else {
-          updatedMusicCode.push(new Beam(beam));
+          updatedMusicCode.push(new Beam(this.ctx, beam));
           beam = [];
           if (i < music_code.length) {
             updatedMusicCode.push(music_code[i]);
@@ -503,10 +503,10 @@ COLON_DBL NUMBER
   }
 
   barline() {
-    return new BarLine(this.peek());
+    return new BarLine(this.ctx, this.peek());
   }
   annotation() {
-    return new Annotation(this.peek());
+    return new Annotation(this.ctx, this.peek());
   }
   nth_repeat() {
     // some nth repeat tokens
@@ -522,18 +522,18 @@ COLON_DBL NUMBER
         const barToken = new Token(TokenType.BARLINE, "|", null, pkd.line, pkd.position, this.ctx);
         const numberToken = new Token(TokenType.NUMBER, pkd.lexeme.substring(1), null, pkd.line, pkd.position + 1, this.ctx);
         this.advance();
-        return [new BarLine(barToken), new Nth_repeat(numberToken)];
+        return [new BarLine(this.ctx, barToken), new Nth_repeat(this.ctx, numberToken)];
         // create a COLON_BAR token
         // and a number token
       } else {
         const barToken = new Token(TokenType.COLON_BAR, ":|", null, pkd.line, pkd.position, this.ctx);
         const numberToken = new Token(TokenType.NUMBER, pkd.lexeme.substring(2), null, pkd.line, pkd.position + 2, this.ctx);
         this.advance();
-        return [new BarLine(barToken), new Nth_repeat(numberToken)];
+        return [new BarLine(this.ctx, barToken), new Nth_repeat(this.ctx, numberToken)];
       }
     } else {
       this.advance();
-      return [new Nth_repeat(this.previous())];
+      return [new Nth_repeat(this.ctx, this.previous())];
     }
   }
   private isDecoration() {
@@ -666,7 +666,7 @@ COLON_DBL NUMBER
       this.advance();
     }
 
-    return new Chord(chordContents, chordRhythm, chordTie);
+    return new Chord(this.ctx, chordContents, chordRhythm, chordTie);
   }
   inline_field() {
     // inline field is a left bracket followed by a letter followed by a colon
@@ -682,7 +682,7 @@ COLON_DBL NUMBER
     }
     // consume the right bracket
     this.consume(this.peek().type, "Expected a right bracket", ParserErrorType.INLINE_FIELD);
-    return new Inline_field(field, text);
+    return new Inline_field(this.ctx, field, text);
   }
   grace_group() {
     // parse a grace group
@@ -713,12 +713,12 @@ COLON_DBL NUMBER
     }
     this.consume(TokenType.RIGHT_BRACE, "expected a right brace", ParserErrorType.GRACE_GROUP);
     // TODO include beam in grace group
-    return new Grace_group(notes, isAccaciatura);
+    return new Grace_group(this.ctx, notes, isAccaciatura);
   }
   private symbol() {
     const symbol = this.peek();
     this.advance();
-    return new Symbol(symbol);
+    return new Symbol(this.ctx, symbol);
   }
 
   /**
@@ -754,7 +754,7 @@ COLON_DBL NUMBER
       } catch (e) {
         // If rhythm fails, treate note’s tokens as an err.
         const reTokenizer = new TokensVisitor(this.ctx);
-        reTokenizer.visitNoteExpr(new Note(note.pitchOrRest, undefined, undefined));
+        reTokenizer.visitNoteExpr(new Note(this.ctx, note.pitchOrRest, undefined, undefined));
         this.err_tokens.push(...reTokenizer.tokens);
         throw e;
       }
@@ -763,7 +763,7 @@ COLON_DBL NUMBER
       note.tie = this.peek();
       this.advance();
     }
-    return new Note(note.pitchOrRest, note.rhythm, note.tie);
+    return new Note(this.ctx, note.pitchOrRest, note.rhythm, note.tie);
   }
 
   /**
@@ -778,7 +778,7 @@ COLON_DBL NUMBER
     } else {
       throw this.error(this.peek(), "Unexpected token in rest", ParserErrorType.REST);
     }
-    return new Rest(rest);
+    return new Rest(this.ctx, rest);
   }
 
   /**
@@ -796,9 +796,9 @@ COLON_DBL NUMBER
     if (this.peek().type === TokenType.NUMBER) {
       length = this.peek();
       this.advance();
-      return new MultiMeasureRest(rest, length || undefined);
+      return new MultiMeasureRest(this.ctx, rest, length || undefined);
     }
-    return new MultiMeasureRest(rest);
+    return new MultiMeasureRest(this.ctx, rest);
   }
 
   /**
@@ -855,7 +855,7 @@ COLON_DBL NUMBER
       this.advance();
       //return new Rhythm(null, this.previous())
     }
-    return new Rhythm(numerator, separator, denominator, broken);
+    return new Rhythm(this.ctx, numerator, separator, denominator, broken);
   }
 
   private comment_line() {
@@ -870,7 +870,7 @@ COLON_DBL NUMBER
       }
     }
     token.lexeme = comment;
-    return new Comment(comment, token);
+    return new Comment(this.ctx, comment, token);
   }
   // TODO integrate in the file structure
   private lyric_section() {
@@ -878,7 +878,7 @@ COLON_DBL NUMBER
     while (!this.isAtEnd() && this.peek().type === TokenType.LETTER_COLON && this.peekNext().lexeme === "W:") {
       lyric_section.push(this.info_line());
     }
-    return new Lyric_section(lyric_section);
+    return new Lyric_section(this.ctx, lyric_section);
   }
 
   /**
@@ -899,7 +899,7 @@ COLON_DBL NUMBER
     if (this.match(TokenType.COMMA, TokenType.APOSTROPHE)) {
       octave = this.previous();
     }
-    return new Pitch({ alteration, noteLetter, octave });
+    return new Pitch(this.ctx, { alteration, noteLetter, octave });
   }
 
   /**
@@ -960,7 +960,7 @@ COLON_DBL NUMBER
       this.err_tokens.push(this.advance());
     }
 
-    const errorExpr = new ErrorExpr(this.err_tokens, undefined, message);
+    const errorExpr = new ErrorExpr(this.ctx, this.err_tokens, undefined, message);
     this.err_tokens = [];
     return errorExpr;
   }
