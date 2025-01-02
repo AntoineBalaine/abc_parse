@@ -3,14 +3,16 @@ import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Parser } from "../parsers/Parser";
 import { Scanner } from "../parsers/Scanner";
 import { tuneHeader } from "./RhythmTransform.spec";
+import { ABCContext } from "../parsers/Context";
 
 const expect = chai.expect;
 
 describe("Error Reporter", () => {
   it("Parser: retrieve errors after synchronization", () => {
     const sample = "~23 a bc\na,,";
-    const scan = new Scanner(tuneHeader(sample)).scanTokens();
-    const parser = new Parser(scan);
+    const ctx = new ABCContext();
+    const scan = new Scanner(tuneHeader(sample), ctx).scanTokens();
+    const parser = new Parser(scan, ctx);
     const parse = parser.parse();
     expect(parse).to.be.not.null;
     if (parse === null) {
@@ -21,23 +23,24 @@ describe("Error Reporter", () => {
   });
   it("Error Reporter: Scanner and Parser can share a reporter.", () => {
     const sample = "~23 a bc\na,,";
-    const abcErrorReporter = new AbcErrorReporter();
-    const tokens = new Scanner(tuneHeader(sample), abcErrorReporter).scanTokens();
-    const parser = new Parser(tokens, sample, abcErrorReporter);
+    const ctx = new ABCContext();
+    const tokens = new Scanner(tuneHeader(sample), ctx).scanTokens();
+    const parser = new Parser(tokens, ctx);
     const parse = parser.parse();
     expect(parse).to.be.not.null;
     if (parse === null) {
       return;
     }
-    const errors = abcErrorReporter.getErrors();
+    const errors = ctx.errorReporter.getErrors();
     expect(errors).to.be.not.empty;
   });
 
   it("Error Reporter: Registers Warnings for escaped chars in body", () => {
     const sample = `a \\e bc`;
     const abcErrorReporter = new AbcErrorReporter();
-    const tokens = new Scanner(tuneHeader(sample)).scanTokens();
-    const parser = new Parser(tokens, sample, abcErrorReporter);
+    const ctx = new ABCContext();
+    const tokens = new Scanner(tuneHeader(sample), ctx).scanTokens();
+    const parser = new Parser(tokens, ctx);
     const parse = parser.parse();
     expect(parse).to.be.not.null;
     if (parse === null) {

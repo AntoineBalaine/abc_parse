@@ -4,27 +4,25 @@ import path from "path";
 import { AbcError } from "../parsers/ErrorReporter";
 import { Parser } from "../parsers/Parser";
 import { Scanner } from "../parsers/Scanner";
+import { ABCContext } from "../parsers/Context";
 
 function formatError(error: AbcError, sourceContent: string): string {
   const lines = sourceContent.split("\n");
   const errorLine = lines[error.token.line];
   const position = error.token.position;
 
-  return [
-    ``,
-    errorLine,
-    " ".repeat(position) + "^",
-    " ".repeat(position) +
-      `${error.message} - line ${error.token.line + 1}:${position + 1}`,
-  ].join("\n");
+  return [``, errorLine, " ".repeat(position) + "^", " ".repeat(position) + `${error.message} - line ${error.token.line + 1}:${position + 1}`].join(
+    "\n"
+  );
 }
 
 function processFile(filePath: string, errorLog: string[]): boolean {
   try {
+    const ctx = new ABCContext();
     const content = fs.readFileSync(filePath, "utf-8");
-    const scanner = new Scanner(content);
+    const scanner = new Scanner(content, ctx);
     const tokens = scanner.scanTokens();
-    const parser = new Parser(tokens, content);
+    const parser = new Parser(tokens, ctx);
     const ast = parser.parse();
 
     if (ast === null) {

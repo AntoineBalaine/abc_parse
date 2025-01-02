@@ -1,4 +1,5 @@
 import { getTokenRange, isToken, reduceRanges } from "../helpers";
+import { ABCContext } from "../parsers/Context";
 import {
   Annotation,
   BarLine,
@@ -37,6 +38,10 @@ import { Range } from "../types/types";
  * {@link Range} being: start line and character `Position`, end line and character `Position`.
  */
 export class RangeVisitor implements Visitor<Range> {
+  ctx: ABCContext;
+  constructor(ctx: ABCContext) {
+    this.ctx = ctx;
+  }
   visitAnnotationExpr(expr: Annotation): Range {
     return getTokenRange(expr.text);
   }
@@ -61,9 +66,7 @@ export class RangeVisitor implements Visitor<Range> {
     return getTokenRange(expr.decoration);
   }
   visitFileHeaderExpr(expr: File_header): Range {
-    return expr.tokens
-      .map((e) => getTokenRange(e))
-      .reduce(reduceRanges, <Range>{});
+    return expr.tokens.map((e) => getTokenRange(e)).reduce(reduceRanges, <Range>{});
   }
   visitFileStructureExpr(expr: File_structure): Range {
     const { file_header, tune } = expr;
@@ -73,9 +76,7 @@ export class RangeVisitor implements Visitor<Range> {
       .reduce(reduceRanges, <Range>{});
   }
   visitGraceGroupExpr(expr: Grace_group): Range {
-    let res = expr.notes
-      .map((e) => e.accept(this))
-      .reduce(reduceRanges, <Range>{});
+    let res = expr.notes.map((e) => e.accept(this)).reduce(reduceRanges, <Range>{});
     /**
      * Since Grace Group's curlies are not saved in tree, accomodate for them here
      */
@@ -102,9 +103,7 @@ export class RangeVisitor implements Visitor<Range> {
       .reduce(reduceRanges, <Range>{});
   }
   visitLyricSectionExpr(expr: Lyric_section): Range {
-    return expr.info_lines
-      .map((e) => e.accept(this))
-      .reduce(reduceRanges, <Range>{});
+    return expr.info_lines.map((e) => e.accept(this)).reduce(reduceRanges, <Range>{});
   }
   visitMultiMeasureRestExpr(expr: MultiMeasureRest): Range {
     return [expr.rest]
@@ -177,19 +176,13 @@ export class RangeVisitor implements Visitor<Range> {
   }
   visitTuneExpr(expr: Tune): Range {
     const { tune_header, tune_body } = expr;
-    return [tune_header.accept(this), tune_body?.accept(this)]
-      .filter((e): e is Range => !!e)
-      .reduce(reduceRanges, <Range>{});
+    return [tune_header.accept(this), tune_body?.accept(this)].filter((e): e is Range => !!e).reduce(reduceRanges, <Range>{});
   }
   visitTuneHeaderExpr(expr: Tune_header): Range {
-    return expr.info_lines
-      .map((e) => e.accept(this))
-      .reduce(reduceRanges, <Range>{});
+    return expr.info_lines.map((e) => e.accept(this)).reduce(reduceRanges, <Range>{});
   }
   visitVoiceOverlayExpr(expr: Voice_overlay): Range {
-    return expr.contents
-      .map((e) => getTokenRange(e))
-      .reduce(reduceRanges, <Range>{});
+    return expr.contents.map((e) => getTokenRange(e)).reduce(reduceRanges, <Range>{});
   }
   visitYSpacerExpr(expr: YSPACER): Range {
     return [expr.ySpacer, expr.number]
@@ -217,8 +210,6 @@ export class RangeVisitor implements Visitor<Range> {
   }
 
   visitErrorExpr(expr: ErrorExpr) {
-    return expr.tokens
-      .map((e) => getTokenRange(e))
-      .reduce(reduceRanges, <Range>{});
+    return expr.tokens.map((e) => getTokenRange(e)).reduce(reduceRanges, <Range>{});
   }
 }

@@ -1,18 +1,13 @@
 import assert from "assert";
 import { Scanner } from "../parsers/Scanner";
 import { TokenType } from "../types/types";
-
+import { ABCContext } from "../parsers/Context";
+ABCContext;
 // create a test for each token type
 // create a test builder
-const testBuilder = (
-  tokenName: string,
-  lexeme: string,
-  tokenType: TokenType,
-  result_literal: string | number | null = null,
-  lineNumber: number = 0
-) => {
+const testBuilder = (tokenName: string, lexeme: string, tokenType: TokenType, result_literal: string | number | null = null, lineNumber: number = 0) => {
   it(`should handle case "${lexeme}" ${tokenName}`, () => {
-    let scanner = new Scanner(lexeme);
+    let scanner = new Scanner(lexeme, new ABCContext());
     const tokens = scanner.scanTokens();
     assert.equal(tokens.length, 2);
     assert.equal(tokens[0].type, tokenType);
@@ -85,7 +80,7 @@ describe("Scanner", () => {
   });
   describe("multiple tokens", () => {
     it("should handle info directive", () => {
-      let scanner = new Scanner("X:1");
+      let scanner = new Scanner("X:1", new ABCContext());
       const tokens = scanner.scanTokens();
       assert.equal(tokens.length, 3);
       assert.equal(tokens[0].type, TokenType.LETTER_COLON);
@@ -98,7 +93,7 @@ describe("Scanner", () => {
       assert.equal(tokens[1].line, 0);
     });
     it("should handle multiple tokens", () => {
-      let scanner = new Scanner("A B");
+      let scanner = new Scanner("A B", new ABCContext());
       const tokens = scanner.scanTokens();
       assert.equal(tokens.length, 4);
       assert.equal(tokens[0].type, TokenType.NOTE_LETTER);
@@ -119,7 +114,7 @@ describe("Scanner", () => {
       assert.equal(tokens[3].line, 0);
     });
     it("should handle multiple tokens with comments", () => {
-      let scanner = new Scanner("A B %comment");
+      let scanner = new Scanner("A B %comment", new ABCContext());
       const tokens = scanner.scanTokens();
       assert.equal(tokens.length, 6);
       assert.equal(tokens[0].type, TokenType.NOTE_LETTER);
@@ -144,7 +139,7 @@ describe("Scanner", () => {
       assert.equal(tokens[4].line, 0);
     });
     it("should figure out the correct position for comments", () => {
-      let scanner = new Scanner("A B\n%comment");
+      let scanner = new Scanner("A B\n%comment", new ABCContext());
       const tokens = scanner.scanTokens();
       assert.equal(tokens[4].type, TokenType.COMMENT);
       assert.equal(tokens[4].lexeme, "%comment");
@@ -153,27 +148,26 @@ describe("Scanner", () => {
       assert.equal(tokens[4].position, 0);
     });
     it("should handle colon followed by a number, twice", () => {
-      let scanner = new Scanner(":1:1");
+      let scanner = new Scanner(":1:1", new ABCContext());
       const tokens = scanner.scanTokens();
       assert.equal(tokens[0].type, TokenType.COLON_NUMBER);
       assert.equal(tokens[1].type, TokenType.COLON_NUMBER);
     });
     it("should handle double colon followed by a number", () => {
-      let scanner = new Scanner("::1");
+      let scanner = new Scanner("::1", new ABCContext());
       const tokens = scanner.scanTokens();
       assert.equal(tokens[0].type, TokenType.COLON);
       assert.equal(tokens[1].type, TokenType.COLON_NUMBER);
     });
-
   });
   describe("special cases", () => {
     it("should handle any ASCII charaters", () => {
-      let scanner = new Scanner("! ! #$&'()*+,-./0123456789:;<=>?@");
+      let scanner = new Scanner("! ! #$&'()*+,-./0123456789:;<=>?@", new ABCContext());
       const tokens = scanner.scanTokens();
       assert.equal(tokens.length, 23);
     });
     it("should handle meter", () => {
-      let scanner = new Scanner("S:Copyright 1935, Chappell & Co, Inc\nM:4/4");
+      let scanner = new Scanner("S:Copyright 1935, Chappell & Co, Inc\nM:4/4", new ABCContext());
       const tokens = scanner.scanTokens();
       assert.equal(tokens.length, 38);
     });

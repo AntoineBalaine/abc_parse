@@ -1,3 +1,4 @@
+import { ABCContext } from "../parsers/Context";
 import { Token } from "./token";
 import { System, TokenType } from "./types";
 
@@ -24,6 +25,7 @@ import { System, TokenType } from "./types";
  * - finding the location of certain tokens
  */
 export interface Visitor<R> {
+  ctx: ABCContext;
   visitAnnotationExpr(expr: Annotation): R;
   visitBarLineExpr(expr: BarLine): R;
   visitChordExpr(expr: Chord): R;
@@ -101,7 +103,7 @@ export class File_header extends Expr {
 export class Info_line extends Expr {
   key: Token;
   value: Array<Token>;
-  constructor(tokens: Array<Token>) {
+  constructor(tokens: Array<Token>, ctx: ABCContext) {
     super();
     this.key = tokens[0];
     tokens.shift();
@@ -120,7 +122,7 @@ export class Info_line extends Expr {
       return;
     }
     let value = Array<Token>();
-    value.push(new Token(TokenType.STRING, result, null, tokens[0].line, tokens[0].position));
+    value.push(new Token(TokenType.STRING, result, null, tokens[0].line, tokens[0].position, ctx));
     if (tokens[index].type === TokenType.COMMENT) {
       value.push(tokens[index]);
     }

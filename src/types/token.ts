@@ -1,3 +1,4 @@
+import { ABCContext } from "../parsers/Context";
 import { TokenType } from "./types";
 
 /**
@@ -11,20 +12,16 @@ export class Token {
   public literal: any | null;
   public line: number;
   public position: number;
+  public id: number;
   public toString = () => {
     return this.type + " " + this.lexeme + " " + this.literal;
   };
-  constructor(
-    type: TokenType,
-    lexeme: string,
-    literal: any | null,
-    line: number,
-    position: number
-  ) {
+  constructor(type: TokenType, lexeme: string, literal: any | null, line: number, position: number, ctx: ABCContext) {
     this.type = type;
     this.lexeme = lexeme;
     this.literal = literal;
     this.line = line;
     this.position = position;
+    this.id = ctx.generateId();
   }
 }

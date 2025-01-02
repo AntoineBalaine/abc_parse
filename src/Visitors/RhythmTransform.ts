@@ -1,14 +1,5 @@
-import {
-  cloneToken,
-  exprIsInRange,
-  getPitchRange,
-  getTokenRange,
-  isChord,
-  isEmptyRhythm,
-  isRhythmInRange,
-  isToken,
-  isTune_Body,
-} from "../helpers";
+import { cloneToken, exprIsInRange, getPitchRange, getTokenRange, isChord, isEmptyRhythm, isRhythmInRange, isToken, isTune_Body } from "../helpers";
+import { ABCContext } from "../parsers/Context";
 import {
   Annotation,
   BarLine,
@@ -76,10 +67,14 @@ export class RhythmVisitor implements Visitor<Expr> {
   private factor?: "*" | "/";
   private range: Range;
   private updated: Array<Expr | Token> = [];
-  rangeVisitor = new RangeVisitor();
+  ctx: ABCContext;
+  rangeVisitor: RangeVisitor;
 
-  constructor(source: Expr) {
+  constructor(source: Expr, ctx: ABCContext) {
+    this.ctx = ctx;
     this.source = source;
+
+    this.rangeVisitor = new RangeVisitor(this.ctx);
     this.range = {
       start: {
         line: 0,
@@ -106,7 +101,7 @@ export class RhythmVisitor implements Visitor<Expr> {
     }
   }
   getChanges(): string {
-    const formatter = new AbcFormatter();
+    const formatter = new AbcFormatter(this.ctx);
     return this.updated
       .map((e) => {
         if (isToken(e)) {
@@ -243,26 +238,9 @@ export class RhythmVisitor implements Visitor<Expr> {
       expr.rhythm = this.visitRhythmExpr(expr.rhythm);
     } else if (isInRange) {
       if (this.factor === "*") {
-        expr.rhythm = new Rhythm(
-          new Token(
-            TokenType.NUMBER,
-            "2",
-            null,
-            pitchRange.start.line,
-            pitchRange.end.character + 1,
-          ),
-        );
+        expr.rhythm = new Rhythm(new Token(TokenType.NUMBER, "2", null, pitchRange.start.line, pitchRange.end.character + 1, this.ctx));
       } else {
-        expr.rhythm = new Rhythm(
-          null,
-          new Token(
-            TokenType.SLASH,
-            "/",
-            null,
-            pitchRange.start.line,
-            pitchRange.end.character + 1,
-          ),
-        );
+        expr.rhythm = new Rhythm(null, new Token(TokenType.SLASH, "/", null, pitchRange.start.line, pitchRange.end.character + 1, this.ctx));
       }
     }
     if (expr.rhythm && isEmptyRhythm(expr.rhythm)) {
@@ -295,7 +273,7 @@ export class RhythmVisitor implements Visitor<Expr> {
       e.line = line;
       e.position = character + 1;
       character = character + e.lexeme.length;
-      return cloneToken(e);
+      return cloneToken(e, this.ctx);
     });
     mapped.forEach((e, index): void | Expr | Token | null | undefined => {
       if (!e || !expr.rhythm) {
@@ -442,10 +420,7 @@ export class RhythmVisitor implements Visitor<Expr> {
          * remove a separator
          * if there was only one separator, remove the token altogether
          */
-        expr.separator.lexeme = expr.separator.lexeme.substring(
-          0,
-          expr.separator.lexeme.length - 1,
-        );
+        expr.separator.lexeme = expr.separator.lexeme.substring(0, expr.separator.lexeme.length - 1);
         if (expr.separator.lexeme === "") {
           expr.separator = undefined;
         }
@@ -464,7 +439,7 @@ export class RhythmVisitor implements Visitor<Expr> {
     } else if (expr.numerator) {
       expr.numerator.lexeme = (parseInt(expr.numerator.lexeme) * 2).toString();
     } else {
-      expr.numerator = new Token(TokenType.NUMBER, "2", null, -1, -1);
+      expr.numerator = new Token(TokenType.NUMBER, "2", null, -1, -1, this.ctx);
     }
     return expr;
   }
@@ -481,13 +456,7 @@ export class RhythmVisitor implements Visitor<Expr> {
         }
         expr.separator.lexeme = `/`;
         if (count > 2) {
-          expr.denominator = new Token(
-            TokenType.NUMBER,
-            `${count}`,
-            null,
-            -1,
-            -1,
-          );
+          expr.denominator = new Token(TokenType.NUMBER, `${count}`, null, -1, -1, this.ctx);
         }
       } else {
         let denominator_int = parseInt(expr.denominator.lexeme);
@@ -504,7 +473,7 @@ export class RhythmVisitor implements Visitor<Expr> {
         expr.separator = undefined;
       }
     } else {
-      expr.separator = new Token(TokenType.SLASH, "/", null, -1, -1);
+      expr.separator = new Token(TokenType.SLASH, "/", null, -1, -1, this.ctx);
     }
     return expr;
   }

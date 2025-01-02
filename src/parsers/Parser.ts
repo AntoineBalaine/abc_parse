@@ -45,6 +45,7 @@ import {
 import { Token } from "../types/token";
 import { ParserErrorType, TokenType } from "../types/types";
 import { TokensVisitor } from "../Visitors/SemanticTokens";
+import { ABCContext } from "./Context";
 import { AbcErrorReporter } from "./ErrorReporter";
 import { VoiceParser } from "./Voices";
 
@@ -80,18 +81,18 @@ import { VoiceParser } from "./Voices";
  * The parser optionnally takes an {@link AbcErrorReporter},
  * in the case you'd like to use the same error reporter for the Scanner and the Parser.
  * ```typescript
- * const errorReporter = new AbcErrorReporter();
- * const tokens = new Scanner(source, errorReporter).scanTokens();
- * const parser = new Parser(tokens, source, errorReporter).scanTokens();
+ * const ctx.errorReporter = new AbcErrorReporter();
+ * const tokens = new Scanner(source, ctx.errorReporter).scanTokens();
+ * const parser = new Parser(tokens, source, ctx.errorReporter).scanTokens();
  * const ast = parser.parse();
- * const errors = errorReporter.getErrors();
+ * const errors = ctx.errorReporter.getErrors();
  * ```
  *
  * Otherwise, you can just retrieve the parsers's errors directly:
  * ```typescript
- * const errorReporter = new AbcErrorReporter();
- * const tokens = new Scanner(source, errorReporter).scanTokens();
- * const parser = new Parser(tokens, source, errorReporter).scanTokens();
+ * const ctx.errorReporter = new AbcErrorReporter();
+ * const tokens = new Scanner(source, ctx.errorReporter).scanTokens();
+ * const parser = new Parser(tokens, source, ctx.errorReporter).scanTokens();
  * const ast = parser.parse();
  * if (parser.hasErrors()) {
  *  const errors = parser.getErrors();
@@ -103,23 +104,15 @@ export class Parser {
   private tokens: Array<Token>;
   private err_tokens: Array<Token> = [];
   private current = 0;
-  private source = "";
-  private errorReporter: AbcErrorReporter;
   private AST: File_structure | null = null;
-  constructor(tokens: Array<Token>, source?: string, errorReporter?: AbcErrorReporter) {
+  private ctx: ABCContext;
+  constructor(tokens: Array<Token>, ctx: ABCContext) {
     this.tokens = tokens;
-    if (source) {
-      this.source = source;
-    }
-    if (errorReporter) {
-      this.errorReporter = errorReporter;
-    } else {
-      this.errorReporter = new AbcErrorReporter();
-    }
+    this.ctx = ctx;
   }
-  hasErrors = () => this.errorReporter.hasErrors();
-  resetErrors = () => this.errorReporter.resetErrors();
-  getErrors = () => this.errorReporter.getErrors();
+  hasErrors = () => this.ctx.errorReporter.hasErrors();
+  resetErrors = () => this.ctx.errorReporter.resetErrors();
+  getErrors = () => this.ctx.errorReporter.getErrors();
 
   /**
    * Parse the contents of the source file, and return an AST.
@@ -254,7 +247,7 @@ export class Parser {
         this.advance();
       }
     }
-    return new Info_line(info_line);
+    return new Info_line(info_line, this.ctx);
   }
 
   private tune_body(voices?: string[]) {
@@ -455,8 +448,8 @@ COLON_DBL NUMBER
      * TODO rewrite using this.match()
      */
     if (this.peek().type === TokenType.COLON_DBL) {
-      q = new Token(TokenType.COLON, ":", null, p.line, this.peek().position);
-      r = new Token(TokenType.COLON, ":", null, p.line, this.peek().position + 1);
+      q = new Token(TokenType.COLON, ":", null, p.line, this.peek().position, this.ctx);
+      r = new Token(TokenType.COLON, ":", null, p.line, this.peek().position + 1, this.ctx);
       this.advance();
     } else {
       /** either it will be a COLON_NUMBER once or TWICE */
@@ -526,15 +519,15 @@ COLON_DBL NUMBER
       // and a number token
       if (pkd.type === TokenType.BAR_DIGIT) {
         // TODO: move this to the tokenizer
-        const barToken = new Token(TokenType.BARLINE, "|", null, pkd.line, pkd.position);
-        const numberToken = new Token(TokenType.NUMBER, pkd.lexeme.substring(1), null, pkd.line, pkd.position + 1);
+        const barToken = new Token(TokenType.BARLINE, "|", null, pkd.line, pkd.position, this.ctx);
+        const numberToken = new Token(TokenType.NUMBER, pkd.lexeme.substring(1), null, pkd.line, pkd.position + 1, this.ctx);
         this.advance();
         return [new BarLine(barToken), new Nth_repeat(numberToken)];
         // create a COLON_BAR token
         // and a number token
       } else {
-        const barToken = new Token(TokenType.COLON_BAR, ":|", null, pkd.line, pkd.position);
-        const numberToken = new Token(TokenType.NUMBER, pkd.lexeme.substring(2), null, pkd.line, pkd.position + 2);
+        const barToken = new Token(TokenType.COLON_BAR, ":|", null, pkd.line, pkd.position, this.ctx);
+        const numberToken = new Token(TokenType.NUMBER, pkd.lexeme.substring(2), null, pkd.line, pkd.position + 2, this.ctx);
         this.advance();
         return [new BarLine(barToken), new Nth_repeat(numberToken)];
       }
@@ -662,7 +655,7 @@ COLON_DBL NUMBER
       }
     } catch (e) {
       // if note/rhythm/finding right bracket fails, treat all the other tokens as errs.
-      const reTokenizer = new TokensVisitor();
+      const reTokenizer = new TokensVisitor(this.ctx);
 
       chordContents.forEach((element) => (isNote(element) ? reTokenizer.visitNoteExpr(element) : reTokenizer.visitAnnotationExpr(element)));
       this.err_tokens.push(leftBracket, ...reTokenizer.tokens);
@@ -710,7 +703,7 @@ COLON_DBL NUMBER
         notes.push(note);
       } catch (e) {
         // if one of the notes fails, treat all the others as errs as well
-        const reTokenizer = new TokensVisitor();
+        const reTokenizer = new TokensVisitor(this.ctx);
         notes.forEach((element) => {
           reTokenizer.visitNoteExpr(element);
         });
@@ -760,7 +753,7 @@ COLON_DBL NUMBER
         note.rhythm = this.rhythm();
       } catch (e) {
         // If rhythm fails, treate note’s tokens as an err.
-        const reTokenizer = new TokensVisitor();
+        const reTokenizer = new TokensVisitor(this.ctx);
         reTokenizer.visitNoteExpr(new Note(note.pitchOrRest, undefined, undefined));
         this.err_tokens.push(...reTokenizer.tokens);
         throw e;
@@ -920,7 +913,7 @@ COLON_DBL NUMBER
   }
 
   private error(token: Token, message: string, origin: ParserErrorType): Error {
-    return new Error(this.errorReporter.parserError(token, message, origin));
+    return new Error(this.ctx.errorReporter.parserError(token, message, origin));
   }
 
   private match(...types: Array<TokenType>): boolean {

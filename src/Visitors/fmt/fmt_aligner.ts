@@ -1,3 +1,4 @@
+import { ABCContext } from "../../parsers/Context";
 import { Token } from "../../types/token";
 import { System, TokenType } from "../../types/types";
 type TimePosition = any;
@@ -39,6 +40,10 @@ interface AlignedSystem {
  * [V:2] C2        D     E
  */
 class SystemAligner {
+  ctx: ABCContext;
+  constructor(ctx: ABCContext) {
+    this.ctx = ctx;
+  }
   align(voices: AlignedSystem) {
     // 1. Find all unique time positions across voices
     const timePoints = this.collectTimePoints(voices);
@@ -95,7 +100,7 @@ class SystemAligner {
     // Add padding token to position's elements
     if (padding > 0) {
       position.elements.push({
-        expr: new Token(TokenType.WHITESPACE, " ".repeat(padding), null, -1, -1),
+        expr: new Token(TokenType.WHITESPACE, " ".repeat(padding), null, -1, -1, this.ctx),
         width: padding,
       });
     }

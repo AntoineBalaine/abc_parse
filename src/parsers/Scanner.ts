@@ -1,5 +1,6 @@
 import { Token } from "../types/token";
 import { TokenType } from "../types/types";
+import { ABCContext } from "./Context";
 import { AbcErrorReporter } from "./ErrorReporter";
 
 /**
@@ -15,13 +16,13 @@ import { AbcErrorReporter } from "./ErrorReporter";
  * The scanner optionnally takes an {@link AbcErrorReporter},
  * in the case you'd like to use the same error Reporter for the Scanner and the Parser.
  * ```typescript
- * const errorReporter = new AbcErrorReporter()
- * const scanner = new Scanner(source, errorReporter).scanTokens();
- * const errors = errorReporter.getErrors();
+ * const ctx.errorReporter = new AbcErrorReporter()
+ * const scanner = new Scanner(source, ctx.errorReporter).scanTokens();
+ * const errors = ctx.errorReporter.getErrors();
  * ```
  * Otherwise, you can just retrieve the Scanner's errors directly:
  * ```typescript
- * const scanner = new Scanner(source, errorReporter);
+ * const scanner = new Scanner(source, ctx.errorReporter);
  * const tokens = scanner.scanTokens();
  * if (scanner.hasErrors()) {
  *  const errors = scanner.getErrors();
@@ -35,20 +36,16 @@ export class Scanner {
   private start = 0;
   private current = 0;
   private line = 0;
-  private errorReporter: AbcErrorReporter;
-  constructor(source: string, errorReporter?: AbcErrorReporter) {
+  private ctx: ABCContext;
+  constructor(source: string, ctx: ABCContext) {
     this.source = String.raw`${source}`;
     // this.source = source;
-    if (errorReporter) {
-      this.errorReporter = errorReporter;
-    } else {
-      this.errorReporter = new AbcErrorReporter();
-    }
+    this.ctx = ctx;
   }
 
-  hasErrors = () => this.errorReporter.hasErrors();
-  resetErrors = () => this.errorReporter.resetErrors();
-  getErrors = () => this.errorReporter.getErrors();
+  hasErrors = () => this.ctx.errorReporter.hasErrors();
+  resetErrors = () => this.ctx.errorReporter.resetErrors();
+  getErrors = () => this.ctx.errorReporter.getErrors();
 
   /**
    * Scan all characters found in the source string into an array of tokens.
@@ -59,7 +56,7 @@ export class Scanner {
       this.start = this.current;
       this.scanToken();
     }
-    this.tokens.push(new Token(TokenType.EOF, "\n", null, this.line, this.start));
+    this.tokens.push(new Token(TokenType.EOF, "\n", null, this.line, this.start, this.ctx));
     return this.tokens;
   };
 
@@ -313,7 +310,7 @@ export class Scanner {
           this.addToken(TokenType.RESERVED_CHAR);
         } else {
           this.addToken(TokenType.INVALID);
-          this.errorReporter.ScannerError(c, this.createToken(TokenType.STRING));
+          this.ctx.errorReporter.ScannerError(c, this.createToken(TokenType.STRING));
         }
         break;
     }
@@ -335,7 +332,7 @@ export class Scanner {
       this.advance();
     }
     if (this.isAtEnd()) {
-      this.errorReporter.ScannerError("Unterminated string", this.createToken(TokenType.EOF));
+      this.ctx.errorReporter.ScannerError("Unterminated string", this.createToken(TokenType.EOF));
       return;
     }
     // the closing ".
@@ -401,7 +398,7 @@ export class Scanner {
     let lineBreak = this.line === 0 ? 0 : this.source.lastIndexOf("\n", this.start) + 1;
 
     let charPos = this.start - lineBreak;
-    const token = new Token(type, text, literal || null, this.line, charPos);
+    const token = new Token(type, text, literal || null, this.line, charPos, this.ctx);
     return token;
   }
 

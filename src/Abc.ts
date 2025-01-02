@@ -2,6 +2,7 @@ import { readFileSync } from "fs";
 import readline from "readline";
 import { Parser } from "./parsers/Parser";
 import { Scanner } from "./parsers/Scanner";
+import { ABCContext } from "./parsers/Context";
 
 const main = (args: string[]) => {
   if (args.length > 1) {
@@ -35,8 +36,9 @@ function runPrompt() {
 }
 
 function run(source: string) {
-  const scanner = new Scanner(source);
-  const parser = new Parser(scanner.scanTokens(), source);
+  const ctx = new ABCContext();
+  const scanner = new Scanner(source, ctx);
+  const parser = new Parser(scanner.scanTokens(), ctx);
   const expression = parser.parse();
 
   // const semanticTokensVisitor = new TokensVisitor();

@@ -5,6 +5,7 @@ import { RhythmVisitor } from "../Visitors/RhythmTransform";
 import { Parser } from "../parsers/Parser";
 import { Scanner } from "../parsers/Scanner";
 import { File_header, File_structure } from "../types/Expr";
+import { ABCContext } from "../parsers/Context";
 const expect = chai.expect;
 
 export function tuneHeader(testStr: string) {
@@ -15,10 +16,10 @@ export function removeTuneHeader(testStr: string) {
   return testStr.replace(`X:1\n`, "");
 }
 
-export function buildParse(source: string): File_structure {
+export function buildParse(source: string, ctx: ABCContext): File_structure {
   const fmtHeader = tuneHeader(source);
-  const scan = new Scanner(fmtHeader).scanTokens();
-  const parse = new Parser(scan, fmtHeader).parse();
+  const scan = new Scanner(fmtHeader, ctx).scanTokens();
+  const parse = new Parser(scan, ctx).parse();
   if (!parse) {
     return new File_structure(new File_header("", []), []);
   } else {
@@ -48,8 +49,9 @@ describe("Rhythms", () => {
   describe("duplicate rhythms", () => {
     duplicate.forEach(([input, expected]) => {
       it(`should duplicate ${input} to ${expected}`, () => {
-        const multiply = new RhythmVisitor(buildParse(input)).transform("*");
-        const fmt = new AbcFormatter().stringify(multiply);
+        const ctx = new ABCContext();
+        const multiply = new RhythmVisitor(buildParse(input, ctx), ctx).transform("*");
+        const fmt = new AbcFormatter(ctx).stringify(multiply);
         assert.equal(removeTuneHeader(fmt).trim(), expected);
       });
     });
@@ -58,8 +60,9 @@ describe("Rhythms", () => {
   describe("divide rhythms", () => {
     divide.forEach(([input, expected]) => {
       it(`should divide ${input} to ${expected}`, () => {
-        const multiply = new RhythmVisitor(buildParse(input)).transform("/");
-        const fmt = new AbcFormatter().stringify(multiply);
+        const ctx = new ABCContext();
+        const multiply = new RhythmVisitor(buildParse(input, ctx), ctx).transform("/");
+        const fmt = new AbcFormatter(ctx).stringify(multiply);
         assert.equal(removeTuneHeader(fmt).trim(), expected);
       });
     });
@@ -77,8 +80,9 @@ describe("Rhythms", () => {
     ];
     divide.forEach(([input, expected]) => {
       it(`should divide ${input} to ${expected}`, () => {
-        const parse = buildParse(input);
-        const rhythmVisitor = new RhythmVisitor(parse);
+        const ctx = new ABCContext();
+        const parse = buildParse(input, ctx);
+        const rhythmVisitor = new RhythmVisitor(parse, ctx);
         rhythmVisitor.transform("/", { start: { line: 1, character: 0 }, end: { line: 1, character: 1 } });
         const fmt = rhythmVisitor.getChanges();
         assert.equal(removeTuneHeader(fmt).trim(), expected);

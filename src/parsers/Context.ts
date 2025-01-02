@@ -12,7 +12,7 @@ class IdGenerator {
   }
 
   generate() {
-    return (this.nextId++).toString();
+    return this.nextId++;
   }
 }
 
@@ -29,15 +29,21 @@ type AbcContextOpts = {
  * Includes ErrorReporting, token/parseTreeNodes’ idGenerator
  */
 export class ABCContext {
+  public errorReporter: AbcErrorReporter;
   constructor(
-    public errorReporter: AbcErrorReporter,
+    errorReporter?: AbcErrorReporter,
     public options: AbcContextOpts = {
       preserveComments: true,
       formatOptions: {
         alignBarlines: true,
       },
-    },
+    }
   ) {
+    if (!errorReporter) {
+      this.errorReporter = new AbcErrorReporter();
+    } else {
+      this.errorReporter = errorReporter;
+    }
     this.idGenerator = new IdGenerator();
   }
 

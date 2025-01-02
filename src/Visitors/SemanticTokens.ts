@@ -1,4 +1,5 @@
 import { isToken, mergeTokens } from "../helpers";
+import { ABCContext } from "../parsers/Context";
 import {
   Annotation,
   BarLine,
@@ -49,6 +50,10 @@ import { TokenType } from "../types/types";
  */
 export class TokensVisitor implements Visitor<void> {
   public tokens: Array<Token> = [];
+  public ctx: ABCContext;
+  constructor(ctx: ABCContext) {
+    this.ctx = ctx;
+  }
 
   analyze(file_structure: File_structure) {
     file_structure.accept(this);
@@ -71,7 +76,7 @@ export class TokensVisitor implements Visitor<void> {
     });
   }
   visitFileHeaderExpr(file_header: File_header) {
-    this.tokens.push(mergeTokens(file_header?.tokens));
+    this.tokens.push(mergeTokens(file_header?.tokens, this.ctx));
   }
   visitTuneHeaderExpr(tune_header: Tune_header): void {
     tune_header?.info_lines.forEach((info_line) => {
@@ -128,9 +133,7 @@ export class TokensVisitor implements Visitor<void> {
   }
   visitRhythmExpr(rhythm: Rhythm) {
     const { numerator, separator, denominator, broken } = rhythm;
-    const list = [numerator, separator, denominator, broken].filter(
-      (e): e is Token => !!e,
-    );
+    const list = [numerator, separator, denominator, broken].filter((e): e is Token => !!e);
     list.forEach((element) => {
       this.tokens.push(element);
     });
@@ -147,7 +150,7 @@ export class TokensVisitor implements Visitor<void> {
   visitInfoLineExpr(element: Info_line) {
     const { key, value } = element;
     this.tokens.push(key);
-    this.tokens.push(mergeTokens(value));
+    this.tokens.push(mergeTokens(value, this.ctx));
   }
   visitCommentExpr(element: Comment) {
     this.tokens.push(element.token);

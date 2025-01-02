@@ -1,3 +1,4 @@
+import { ABCContext } from "./parsers/Context";
 import {
   Annotation,
   BarLine,
@@ -108,9 +109,9 @@ export function isNth_repeat(expr: unknown): expr is Nth_repeat {
 export function isErrorExpr(expr: unknown): expr is ErrorExpr {
   return expr instanceof ErrorExpr;
 }
-export const mergeTokens = (tokens: Token[]) => {
+export const mergeTokens = (tokens: Token[], ctx: ABCContext) => {
   return tokens
-    .map((t) => cloneToken(t))
+    .map((t) => cloneToken(t, ctx))
     .reduce((prev, cur, index) => {
       if (index === 0) {
         return prev;
@@ -120,8 +121,8 @@ export const mergeTokens = (tokens: Token[]) => {
     });
 };
 
-export const cloneToken = (token: Token) => {
-  return new Token(token.type, cloneText(token.lexeme), null, token.line, token.position);
+export const cloneToken = (token: Token, ctx: ABCContext) => {
+  return new Token(token.type, cloneText(token.lexeme), null, token.line, token.position, ctx);
 };
 
 export const cloneText = (text: string) => {

@@ -4,6 +4,7 @@ import { AbcFormatter } from "../Visitors/Formatter";
 import { System } from "../types/types";
 import { buildParse, removeTuneHeader } from "./RhythmTransform.spec";
 import { RunVoiceSystemsTest, SystemLineTest } from "./helpers.spec";
+import { ABCContext } from "../parsers/Context";
 
 const expect = chai.expect;
 
@@ -12,7 +13,8 @@ describe.skip("Format Systems", function () {
     {
       title: "format a single system",
       test: (systems: Array<System>, expected) => {
-        const formatter = new AbcFormatter();
+        const ctx = new ABCContext();
+        const formatter = new AbcFormatter(ctx);
         const fmt = formatter.formatSystem(systems[0]);
         expect(fmt).to.not.be.undefined;
         assert.equal(fmt, expected);
@@ -23,7 +25,8 @@ describe.skip("Format Systems", function () {
     {
       title: "format multiple systems",
       test: (systems: Array<System>, expected) => {
-        const formatter = new AbcFormatter();
+        const ctx = new ABCContext();
+        const formatter = new AbcFormatter(ctx);
         const fmt = systems
           .map((system) => {
             return formatter.formatSystem(system);
@@ -39,7 +42,8 @@ describe.skip("Format Systems", function () {
     {
       title: "format multiple systems with comment lines interspersed",
       test: (systems: Array<System>, expected) => {
-        const formatter = new AbcFormatter();
+        const ctx = new ABCContext();
+        const formatter = new AbcFormatter(ctx);
         const fmt = systems
           .map((system) => {
             return formatter.formatSystem(system);
@@ -55,7 +59,8 @@ describe.skip("Format Systems", function () {
     {
       title: "format multiple systems with comment lines interspersed",
       test: (systems: Array<System>, expected) => {
-        const formatter = new AbcFormatter();
+        const ctx = new ABCContext();
+        const formatter = new AbcFormatter(ctx);
         const fmt = systems
           .map((system) => {
             return formatter.formatSystem(system);
@@ -79,9 +84,10 @@ describe.skip("Format Info Lines in Tune Header", function () {
     {
       title: "format a tune header containing info lines only",
       test: (input, expected) => {
-        const parse = buildParse(input);
+        const ctx = new ABCContext();
+        const parse = buildParse(input, ctx);
         const tune_header = parse.tune[0].tune_header;
-        const formatter = new AbcFormatter();
+        const formatter = new AbcFormatter(ctx);
         const fmt = formatter.visitTuneHeaderExpr(tune_header);
         expect(fmt).to.not.be.undefined;
         assert.equal(fmt, expected);
@@ -92,9 +98,10 @@ describe.skip("Format Info Lines in Tune Header", function () {
     {
       title: "format a tune header containing comments",
       test: (input, expected) => {
-        const parse = buildParse(input);
+        const ctx = new ABCContext();
+        const parse = buildParse(input, ctx);
         const tune_header = parse.tune[0].tune_header;
-        const formatter = new AbcFormatter();
+        const formatter = new AbcFormatter(ctx);
         const fmt = formatter.visitTuneHeaderExpr(tune_header);
         expect(fmt).to.not.be.undefined;
         assert.equal(fmt, expected);
@@ -116,13 +123,14 @@ describe.skip("Format Info Lines in Tune Body", function () {
     {
       title: "format a tune header containing info lines only",
       test: (input, expected) => {
-        const parse = buildParse(input);
+        const ctx = new ABCContext();
+        const parse = buildParse(input, ctx);
         const tune_body = parse.tune[0].tune_body;
         expect(tune_body).to.not.be.undefined;
         if (!tune_body) {
           return;
         }
-        const formatter = new AbcFormatter();
+        const formatter = new AbcFormatter(ctx);
         const fmt = formatter.visitTuneBodyExpr(tune_body);
         expect(fmt).to.not.be.undefined;
         assert.equal(fmt, expected);
@@ -157,11 +165,13 @@ describe.skip("Formatter", function () {
     const expected_fmt = "[V:T1] (B2c2 d2g2) | f6e2 | (d2c2 d2)e2 | d4 c2z2 |";
 
     it("can visit the tree without modifying source", function () {
-      const fmt = new AbcFormatter().stringify(buildParse(input));
+      const ctx = new ABCContext();
+      const fmt = new AbcFormatter(ctx).stringify(buildParse(input, ctx));
       assert.equal(removeTuneHeader(fmt).trim(), expected_no_format);
     });
     it("removes useless double spaces", function () {
-      const fmt = new AbcFormatter().format(buildParse(input));
+      const ctx = new ABCContext();
+      const fmt = new AbcFormatter(ctx).format(buildParse(input, ctx));
       assert.equal(removeTuneHeader(fmt).trim(), expected_fmt);
     });
 
@@ -217,7 +227,8 @@ describe.skip("Formatter", function () {
     ];
     sample.forEach(([input, expected]) => {
       it(`should format ${input} into ${expected}`, () => {
-        const fmt = new AbcFormatter().format(buildParse(input));
+        const ctx = new ABCContext();
+        const fmt = new AbcFormatter(ctx).format(buildParse(input, ctx));
         assert.equal(removeTuneHeader(fmt).trim(), expected);
       });
     });
@@ -367,7 +378,8 @@ describe.skip("Formatter: Stringify", () => {
     ];
     sample.forEach(([input, expected]) => {
       it(`should stringify ${input} into ${expected}`, () => {
-        const fmt = new AbcFormatter().stringify(buildParse(input));
+        const ctx = new ABCContext();
+        const fmt = new AbcFormatter(ctx).stringify(buildParse(input, ctx));
         assert.equal(removeTuneHeader(fmt).trim(), expected);
       });
     });
@@ -376,7 +388,8 @@ describe.skip("Formatter: Stringify", () => {
     const sample = [["a-", "a-"]];
     sample.forEach(([input, expected]) => {
       it(`should stringify ${input} into ${expected}`, () => {
-        const fmt = new AbcFormatter().stringify(buildParse(input));
+        const ctx = new ABCContext();
+        const fmt = new AbcFormatter(ctx).stringify(buildParse(input, ctx));
         assert.equal(removeTuneHeader(fmt).trim(), expected);
       });
     });
@@ -396,8 +409,9 @@ describe.skip("Formatter: Whitespace handling", () => {
   describe.skip("using format()", () => {
     errorSamples.forEach(({ title, input, expected }) => {
       it(title, () => {
-        const formatter = new AbcFormatter();
-        const parse = buildParse(input);
+        const ctx = new ABCContext();
+        const formatter = new AbcFormatter(ctx);
+        const parse = buildParse(input, ctx);
         const result = formatter.format(parse);
         assert.equal(removeTuneHeader(result).trim(), expected);
       });
@@ -439,8 +453,9 @@ describe.skip("Formatter: Error Preservation", () => {
   describe.skip("using stringify()", () => {
     errorSamples.forEach(({ title, input, expected }) => {
       it(title, () => {
-        const formatter = new AbcFormatter();
-        const parse = buildParse(input);
+        const ctx = new ABCContext();
+        const formatter = new AbcFormatter(ctx);
+        const parse = buildParse(input, ctx);
         const result = formatter.stringify(parse);
         assert.equal(removeTuneHeader(result).trim(), expected);
       });
@@ -450,8 +465,9 @@ describe.skip("Formatter: Error Preservation", () => {
   describe.skip("using format()", () => {
     errorSamples.forEach(({ title, input, expected }) => {
       it(title, () => {
-        const formatter = new AbcFormatter();
-        const parse = buildParse(input);
+        const ctx = new ABCContext();
+        const formatter = new AbcFormatter(ctx);
+        const parse = buildParse(input, ctx);
         const result = formatter.format(parse);
         assert.equal(removeTuneHeader(result).trim(), expected);
       });
@@ -463,8 +479,9 @@ describe.skip("Formatter: Error Preservation", () => {
     const input = `[V:1]abc ~23 |\n[V:2]def \\e |\n`;
     const expected = `[V:1] abc ~23 |\n[V:2] def \\e |`;
 
-    const formatter = new AbcFormatter();
-    const parse = buildParse(input);
+    const ctx = new ABCContext();
+    const formatter = new AbcFormatter(ctx);
+    const parse = buildParse(input, ctx);
     const result = formatter.format(parse);
     assert.equal(removeTuneHeader(result).trim(), expected);
   });
@@ -474,8 +491,9 @@ describe.skip("Formatter: Error Preservation", () => {
     const input = "abc  ~23  def  |  ghi";
     const expected = "abc ~23 def | g hi"; // Assume that errors are separated from the rest
 
-    const formatter = new AbcFormatter();
-    const parse = buildParse(input);
+    const ctx = new ABCContext();
+    const formatter = new AbcFormatter(ctx);
+    const parse = buildParse(input, ctx);
     const result = formatter.format(parse);
     assert.equal(removeTuneHeader(result).trim(), expected);
   });

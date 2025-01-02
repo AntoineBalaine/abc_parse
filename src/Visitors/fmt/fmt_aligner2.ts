@@ -1,9 +1,14 @@
 import { isToken } from "../../helpers";
+import { ABCContext } from "../../parsers/Context";
 import { Token } from "../../types/token";
 import { System, TokenType } from "../../types/types";
 import { TimeStamp, NodeIndex } from "./fmt_timeMapper";
 
 class VoiceAligner {
+  ctx: ABCContext;
+  constructor(ctx: ABCContext) {
+    this.ctx = ctx;
+  }
   alignVoices(
     voices: System[],
     timeMaps: Array<Array<Map<TimeStamp, NodeIndex>>>
@@ -90,7 +95,7 @@ class VoiceAligner {
     }
 
     // Insert padding token
-    voice.splice(paddingIndex + 1, 0, new Token(TokenType.WHITESPACE, " ".repeat(padding), null, -1, -1));
+    voice.splice(paddingIndex + 1, 0, new Token(TokenType.WHITESPACE, " ".repeat(padding), null, -1, -1, this.ctx));
   }
 
   private calculateWidth(nodes: System): number {

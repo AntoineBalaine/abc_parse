@@ -1,4 +1,5 @@
 import { isBarLine, isBeam, isComment, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isToken, isVoice_overlay } from "../helpers";
+import { ABCContext } from "../parsers/Context";
 import {
   Annotation,
   BarLine,
@@ -50,6 +51,10 @@ import { Formatter_Bar, GroupBarsInLines, convertVoiceInfoLinesToInlineInfos, sp
  * ```
  */
 export class AbcFormatter implements Visitor<string> {
+  ctx: ABCContext;
+  constructor(ctx: ABCContext) {
+    this.ctx = ctx;
+  }
   /**
    * use this flag to indicate if we just want to stringify the tree, without pretty-printing
    */
@@ -280,7 +285,7 @@ export class AbcFormatter implements Visitor<string> {
     return expr.tokens.map((t) => t.lexeme).join("");
   }
 
-  formatUpsideDown(system: System) {
+  formatUpsideDown(system: System, ctx: ABCContext) {
     system = system.filter((expr) => !(expr instanceof Token && expr.type === TokenType.WHITESPACE));
     for (let idx = 0; idx < system.length; idx++) {
       const expr = system[idx];
@@ -289,7 +294,7 @@ export class AbcFormatter implements Visitor<string> {
         if (!nextExpr || (isToken(nextExpr) && nextExpr.type === TokenType.EOL)) {
           return;
         }
-        const wsToken = new Token(TokenType.WHITESPACE_FORMATTER, " ", null, -1, -1);
+        const wsToken = new Token(TokenType.WHITESPACE_FORMATTER, " ", null, -1, -1, ctx);
         system.splice(index || idx + 1, 0, wsToken);
       }
       if (isBarLine(expr)) {
@@ -339,7 +344,7 @@ export class AbcFormatter implements Visitor<string> {
         })
         .join("");
     }
-    system = this.formatUpsideDown(system);
+    system = this.formatUpsideDown(system, this.ctx);
     const convertVoiceHeaders = convertVoiceInfoLinesToInlineInfos(system);
     const lines = splitSystemLines(convertVoiceHeaders);
     const fmtLines = this.addWSToLines(lines).flat();
@@ -419,7 +424,7 @@ export class AbcFormatter implements Visitor<string> {
             let diff = longestBarAtBarIdx - curBar.str.length;
 
             for (let WScount = 0; WScount < diff; WScount++) {
-              const wsToken = new Token(TokenType.WHITESPACE_FORMATTER, " ", null, -1, -1);
+              const wsToken = new Token(TokenType.WHITESPACE_FORMATTER, " ", null, -1, -1, this.ctx);
               //Should this be replaced by a special token?
               let curBar = linesIntoBars[lineIdx][barIdx];
               if (isBarLine(curBar[curBar.length - 1])) {

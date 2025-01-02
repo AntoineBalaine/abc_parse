@@ -1,11 +1,5 @@
-import {
-  isBeam,
-  isChord,
-  isGraceGroup,
-  isNote,
-  isPitch,
-  isToken,
-} from "../helpers";
+import { isBeam, isChord, isGraceGroup, isNote, isPitch, isToken } from "../helpers";
+import { ABCContext } from "../parsers/Context";
 import {
   Annotation,
   BarLine,
@@ -46,7 +40,9 @@ import { Token } from "../types/token";
 export class Transposer implements Visitor<Expr | Token> {
   distance: number = 0;
   source: File_structure;
-  constructor(source: File_structure) {
+  ctx: ABCContext;
+  constructor(source: File_structure, ctx: ABCContext) {
+    this.ctx = ctx;
     this.source = source;
   }
   transpose(distance: number) {

@@ -2,10 +2,10 @@ import { assert } from "chai";
 import { Info_line, Music_code, Comment, music_code, Inline_field } from "../types/Expr";
 import { System, TokenType } from "../types/types";
 import { Token } from "../types/token";
-import { splitIntoVoices } from "../Visitors/fmt/fmt_alignVoices";
 import { Scanner } from "../parsers/Scanner";
 import { Parser } from "../parsers/Parser";
 import { buildParse } from "./RhythmTransform.spec";
+import { ABCContext } from "../parsers/Context";
 
 describe("splitIntoVoices", () => {
   it("splits a simple two-voice system", () => {
@@ -16,7 +16,8 @@ V:LH clef=bass
 K:C
 [V: RH]C|
 [V: LH]G|`;
-    const parse = new Parser(new Scanner(sample).scanTokens()).parse();
+    const ctx = new ABCContext();
+    const parse = new Parser(new Scanner(sample, ctx).scanTokens(), ctx).parse();
     const system: System = parse!.tune[0].tune_body!.sequence[0];
 
     const result = splitIntoVoices(system);
@@ -36,7 +37,8 @@ K:C
 
   it("handles comments in voices", () => {
     const sample = `X:1\nV:RH clef=treble\nK:C`;
-    const parse = new Parser(new Scanner(sample).scanTokens()).parse();
+    const ctx = new ABCContext();
+    const parse = new Parser(new Scanner(sample, ctx).scanTokens(), ctx).parse();
     const system: System = parse!.tune[0].tune_body!.sequence[0];
 
     const result = splitIntoVoices(system);
@@ -54,7 +56,8 @@ K:C
 [V: RH]C|
 % between voices
 [V: LH]G|`;
-    const parse = new Parser(new Scanner(sample).scanTokens()).parse();
+    const ctx = new ABCContext();
+    const parse = new Parser(new Scanner(sample, ctx).scanTokens(), ctx).parse();
     const system: System = parse!.tune[0].tune_body!.sequence[0];
 
     const result = splitIntoVoices(system);
@@ -71,7 +74,8 @@ K:C
 [V: RH]
 [V: LH]G|
 `;
-    const parse = new Parser(new Scanner(sample).scanTokens()).parse();
+    const ctx = new ABCContext();
+    const parse = new Parser(new Scanner(sample, ctx).scanTokens(), ctx).parse();
     const system: System = parse!.tune[0].tune_body!.sequence[0];
 
     const result = splitIntoVoices(system);
@@ -80,3 +84,6 @@ K:C
     assert.equal(result[0].length, 2, "First voice should have marker and EOL");
   });
 });
+function splitIntoVoices(system: System): any {
+  throw new Error("Function not implemented.");
+}

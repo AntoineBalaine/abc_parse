@@ -17,6 +17,7 @@ import {
   isTuplet,
   isYSPACER,
 } from "../../helpers";
+import { ABCContext } from "../../parsers/Context";
 import { Expr, File_structure, MultiMeasureRest, Tune, Tune_Body } from "../../types/Expr";
 import { Token } from "../../types/token";
 import { System, TokenType } from "../../types/types";
@@ -33,6 +34,10 @@ enum SpcRul {
 }
 
 export class RuleAssigner {
+  ctx: ABCContext;
+  constructor(ctx: ABCContext) {
+    this.ctx = ctx;
+  }
   collectRules(ast: File_structure) {
     // Start at tune body level
     for (const tune of ast.tune) {
@@ -97,12 +102,16 @@ export class RuleAssigner {
         const measures = node.length ? parseInt(node.length.lexeme) : 1;
 
         // Add first Z
-        expanded.push(new MultiMeasureRest(new Token(TokenType.LETTER, is_invisible_rest ? "X" : "Z", null, node.rest.line, node.rest.position)));
+        expanded.push(
+          new MultiMeasureRest(new Token(TokenType.LETTER, is_invisible_rest ? "X" : "Z", null, node.rest.line, node.rest.position, this.ctx))
+        );
 
         // Add barline and Z for remaining measures
         for (let i = 1; i < measures; i++) {
-          expanded.push(new Token(TokenType.BARLINE, "|", null, node.rest.line, node.rest.position));
-          expanded.push(new MultiMeasureRest(new Token(TokenType.LETTER, is_invisible_rest ? "X" : "Z", null, node.rest.line, node.rest.position)));
+          expanded.push(new Token(TokenType.BARLINE, "|", null, node.rest.line, node.rest.position, this.ctx));
+          expanded.push(
+            new MultiMeasureRest(new Token(TokenType.LETTER, is_invisible_rest ? "X" : "Z", null, node.rest.line, node.rest.position, this.ctx))
+          );
         }
       } else {
         expanded.push(node);
@@ -123,7 +132,7 @@ export class RuleAssigner {
         const node = system[i];
         const decision = spacingDecisions.get(node);
         if (decision === TokenType.WHITESPACE) {
-          tuneBody.sequence[s].splice(i, 0, new Token(TokenType.WHITESPACE, " ", null, -1, -1));
+          tuneBody.sequence[s].splice(i, 0, new Token(TokenType.WHITESPACE, " ", null, -1, -1, this.ctx));
           i += 1;
         }
       }
