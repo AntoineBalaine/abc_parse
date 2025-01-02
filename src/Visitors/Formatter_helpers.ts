@@ -1,4 +1,5 @@
 import { isBarLine, isInfo_line, isToken, isWS } from "../helpers";
+import { ABCContext } from "../parsers/Context";
 import { Comment, Expr, Info_line, Inline_field, music_code } from "../types/Expr";
 import { Token } from "../types/token";
 import { System, TokenType } from "../types/types";
@@ -54,7 +55,7 @@ export function splitSystemLines(system: System) {
  * In a voice-system, convert every Info line that represents a voice (`V:1\nabc`)
  * into an inline info (`[V:1]abc`)
  */
-export function convertVoiceInfoLinesToInlineInfos(system: System): System {
+export function convertVoiceInfoLinesToInlineInfos(system: System, ctx: ABCContext): System {
   /**
    * iterate entries in System
    * if entry is a voice info line
@@ -65,7 +66,7 @@ export function convertVoiceInfoLinesToInlineInfos(system: System): System {
   for (let i = 0; i < system.length; i++) {
     const entry = system[i];
     if (isInfo_line(entry) && entry.key.lexeme === "V:") {
-      const newInlineinfo = new Inline_field(entry.key, entry.value);
+      const newInlineinfo = new Inline_field(ctx, entry.key, entry.value);
       rv.push(newInlineinfo);
       i++;
     } else {

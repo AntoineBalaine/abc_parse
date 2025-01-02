@@ -46,7 +46,8 @@ const voiceInfoLineConversionTests: SystemLineTest[] = [
   {
     title: "should convert a voice info line to inline info",
     test: (systems: Array<System>) => {
-      const firstSystem = convertVoiceInfoLinesToInlineInfos(systems[0]);
+      const ctx = new ABCContext();
+      const firstSystem = convertVoiceInfoLinesToInlineInfos(systems[0], ctx);
       const splitLines = splitSystemLines(firstSystem);
       expect(splitLines).to.not.be.undefined;
       expect(splitLines).to.be.lengthOf(2);

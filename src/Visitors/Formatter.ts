@@ -345,7 +345,7 @@ export class AbcFormatter implements Visitor<string> {
         .join("");
     }
     system = this.formatUpsideDown(system, this.ctx);
-    const convertVoiceHeaders = convertVoiceInfoLinesToInlineInfos(system);
+    const convertVoiceHeaders = convertVoiceInfoLinesToInlineInfos(system, this.ctx);
     const lines = splitSystemLines(convertVoiceHeaders);
     const fmtLines = this.addWSToLines(lines).flat();
     return fmtLines
