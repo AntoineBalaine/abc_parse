@@ -1,7 +1,6 @@
 import { Token } from "../../types/token";
 import { System, TokenType } from "../../types/types";
-import { TimePosition } from "./fmt_time";
-
+type TimePosition = any;
 interface AlignedSystem {
   voices: {
     voice: System; // Original voice content
@@ -73,14 +72,13 @@ class SystemAligner {
     return timePoints;
   }
 
-  private getPositionsAtTime(
-    time: number,
-    voices: AlignedSystem,
-  ): TimePosition[] {
+  private getPositionsAtTime(time: number, voices: AlignedSystem): TimePosition[] {
     const positions: TimePosition[] = [];
     for (const voice of voices.voices) {
       const pos = voice.timeMap.get(time);
-      if (pos) positions.push(pos);
+      if (pos) {
+        positions.push(pos);
+      }
     }
     return positions;
   }
@@ -90,20 +88,14 @@ class SystemAligner {
   }
 
   private getVisualWidth(position: TimePosition): number {
-    return position.elements.reduce((total, el) => total + el.width, 0);
+    return position.elements.reduce((total: any, el: any) => total + el.width, 0);
   }
 
   private addPadding(position: TimePosition, padding: number) {
     // Add padding token to position's elements
     if (padding > 0) {
       position.elements.push({
-        expr: new Token(
-          TokenType.WHITESPACE,
-          " ".repeat(padding),
-          null,
-          -1,
-          -1,
-        ),
+        expr: new Token(TokenType.WHITESPACE, " ".repeat(padding), null, -1, -1),
         width: padding,
       });
     }
@@ -115,7 +107,7 @@ class SystemAligner {
       const alignedVoice: System = [];
       for (const position of voice.timeMap.values()) {
         for (const element of position.elements) {
-          alignedVoice.push(element.expr);
+          alignedVoice.push(element.expr as Token);
         }
       }
       return alignedVoice;
