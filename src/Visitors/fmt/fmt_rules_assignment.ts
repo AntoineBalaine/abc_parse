@@ -103,14 +103,17 @@ export class RuleAssigner {
 
         // Add first Z
         expanded.push(
-          new MultiMeasureRest(new Token(TokenType.LETTER, is_invisible_rest ? "X" : "Z", null, node.rest.line, node.rest.position, this.ctx))
+          new MultiMeasureRest(this.ctx, new Token(TokenType.LETTER, is_invisible_rest ? "X" : "Z", null, node.rest.line, node.rest.position, this.ctx))
         );
 
         // Add barline and Z for remaining measures
         for (let i = 1; i < measures; i++) {
           expanded.push(new Token(TokenType.BARLINE, "|", null, node.rest.line, node.rest.position, this.ctx));
           expanded.push(
-            new MultiMeasureRest(new Token(TokenType.LETTER, is_invisible_rest ? "X" : "Z", null, node.rest.line, node.rest.position, this.ctx))
+            new MultiMeasureRest(
+              this.ctx,
+              new Token(TokenType.LETTER, is_invisible_rest ? "X" : "Z", null, node.rest.line, node.rest.position, this.ctx)
+            )
           );
         }
       } else {

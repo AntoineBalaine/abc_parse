@@ -238,9 +238,9 @@ export class RhythmVisitor implements Visitor<Expr> {
       expr.rhythm = this.visitRhythmExpr(expr.rhythm);
     } else if (isInRange) {
       if (this.factor === "*") {
-        expr.rhythm = new Rhythm(new Token(TokenType.NUMBER, "2", null, pitchRange.start.line, pitchRange.end.character + 1, this.ctx));
+        expr.rhythm = new Rhythm(this.ctx, new Token(TokenType.NUMBER, "2", null, pitchRange.start.line, pitchRange.end.character + 1, this.ctx));
       } else {
-        expr.rhythm = new Rhythm(null, new Token(TokenType.SLASH, "/", null, pitchRange.start.line, pitchRange.end.character + 1, this.ctx));
+        expr.rhythm = new Rhythm(this.ctx, null, new Token(TokenType.SLASH, "/", null, pitchRange.start.line, pitchRange.end.character + 1, this.ctx));
       }
     }
     if (expr.rhythm && isEmptyRhythm(expr.rhythm)) {
