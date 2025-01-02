@@ -21,7 +21,7 @@ export function buildParse(source: string, ctx: ABCContext): File_structure {
   const scan = new Scanner(fmtHeader, ctx).scanTokens();
   const parse = new Parser(scan, ctx).parse();
   if (!parse) {
-    return new File_structure(new File_header("", []), []);
+    return new File_structure(ctx, new File_header(ctx, "", []), []);
   } else {
     return parse;
   }

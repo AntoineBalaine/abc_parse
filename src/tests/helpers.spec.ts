@@ -1,7 +1,8 @@
 import chai from "chai";
-import { convertVoiceInfoLinesToInlineInfos, splitSystemLines } from '../Visitors/Formatter_helpers';
+import { convertVoiceInfoLinesToInlineInfos, splitSystemLines } from "../Visitors/Formatter_helpers";
 import { System } from "../types/types";
 import { buildParse } from "./RhythmTransform.spec";
+import { ABCContext } from "../parsers/Context";
 const expect = chai.expect;
 
 export type SystemLineTest = {
@@ -38,7 +39,7 @@ const SystemLineTests: SystemLineTest[] = [
       expect(splitLines).to.be.lengthOf(3);
     },
     input: `V:1\nV:2\n[V:1]ab\n%surprise!\n[V:2]cd\n`,
-  }
+  },
 ];
 
 const voiceInfoLineConversionTests: SystemLineTest[] = [
@@ -61,22 +62,21 @@ describe("Voice-System helpers", () => {
     });
   });
   describe("convert voice info line to inline info", () => {
-
     voiceInfoLineConversionTests.forEach(({ title, test, input, expected }) => {
       it(title, RunVoiceSystemsTest(input, test));
     });
   });
-
-
 });
 
 export function RunVoiceSystemsTest(input: string, test: (...args: any[]) => void, expected: string = ""): Mocha.Func | undefined {
   return () => {
-    const parse = buildParse(input);
+    const ctx = new ABCContext();
+    const parse = buildParse(input, ctx);
     const systems = parse.tune[0].tune_body?.sequence;
     expect(systems).to.not.be.undefined;
-    if (!systems) { return; }
+    if (!systems) {
+      return;
+    }
     test(systems, expected);
   };
 }
-
