@@ -37,7 +37,6 @@ describe("Error Reporter", () => {
 
   it("Error Reporter: Registers Warnings for escaped chars in body", () => {
     const sample = `a \\e bc`;
-    const abcErrorReporter = new AbcErrorReporter();
     const ctx = new ABCContext();
     const tokens = new Scanner(tuneHeader(sample), ctx).scanTokens();
     const parser = new Parser(tokens, ctx);
@@ -46,7 +45,7 @@ describe("Error Reporter", () => {
     if (parse === null) {
       return;
     }
-    const errors = abcErrorReporter.getErrors();
+    const errors = ctx.errorReporter.getErrors();
     expect(errors).to.be.not.empty;
   });
 });
