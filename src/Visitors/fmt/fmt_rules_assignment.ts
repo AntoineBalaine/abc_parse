@@ -18,12 +18,19 @@ import {
   isYSPACER,
 } from "../../helpers";
 import { ABCContext } from "../../parsers/Context";
-import { Expr, File_structure, MultiMeasureRest, Tune, Tune_Body } from "../../types/Expr";
+import {
+  BarLine,
+  Expr,
+  File_structure,
+  MultiMeasureRest,
+  Tune,
+  Tune_Body,
+} from "../../types/Expr";
 import { Token } from "../../types/token";
 import { System, TokenType } from "../../types/types";
 
 // Types for rules assignment
-enum SpcRul {
+export enum SpcRul {
   SURROUND_SPC,
   FOLLOW_SPC,
   PRECEDE_SPC,
@@ -43,24 +50,52 @@ export function resolveRules(ast: File_structure, ctx: ABCContext) {
   }
   return ast;
 }
-
-export function assignTuneBodyRules(tune: Tune, ctx: ABCContext): Map<Expr | Token, SpcRul[]> {
+/**
+ * Strip WS tokens and - if it’s a multi-voice tune - expand multi-measure rests in tune.
+ * @param tune
+ * @param ctx
+ * @returns
+ */
+export function preprocessTune(tune: Tune, ctx: ABCContext): Tune {
   const tuneBody = tune.tune_body!;
   const is_multivoice = tune.tune_header.voices.length > 1;
-  let ruleMap = new Map<Expr | Token, SpcRul[]>();
-  // Process each system
-  for (let system of tuneBody.sequence) {
+
+  tuneBody.sequence = tuneBody.sequence.map((system) => {
     if (is_multivoice) {
       system = expandMultiMeasureRests(system, ctx);
     }
-    system = system.filter((expr) => !(expr instanceof Token && expr.type === TokenType.WHITESPACE));
+    return system.filter(
+      (node) => !(isToken(node) && node.type === TokenType.WHITESPACE),
+    );
+  });
+
+  return tune;
+}
+
+export function assignTuneBodyRules(
+  tune: Tune,
+  ctx: ABCContext,
+): Map<Expr | Token, SpcRul[]> {
+  const tuneBody = tune.tune_body!;
+  let ruleMap = new Map<Expr | Token, SpcRul[]>();
+  // Process each system
+  for (let system of tuneBody.sequence) {
     for (const node of system) {
-      if (isComment(node) || isTuplet(node) || isDecoration(node) || isGrace_group(node) || isSymbol(node)) {
+      if (
+        isComment(node) ||
+        isTuplet(node) ||
+        isDecoration(node) ||
+        isGrace_group(node) ||
+        isSymbol(node)
+      ) {
         ruleMap.set(node, [SpcRul.PRECEDE_SPC]);
       } else if (
         isYSPACER(node) ||
         (isToken(node) &&
-          (node.type === TokenType.RIGHT_PAREN || node.type === TokenType.LEFTPAREN || node.type === TokenType.EOL || node.type === TokenType.EOF))
+          (node.type === TokenType.RIGHT_PAREN ||
+            node.type === TokenType.LEFTPAREN ||
+            node.type === TokenType.EOL ||
+            node.type === TokenType.EOF))
       ) {
         ruleMap.set(node, [SpcRul.NO_SPC]);
       } else if (
@@ -87,7 +122,11 @@ export function assignTuneBodyRules(tune: Tune, ctx: ABCContext): Map<Expr | Tok
 /**
  * Updates the parse tree in place
  */
-export function resolveTuneBody(tuneBody: Tune_Body, ruleMap: Map<Expr | Token, SpcRul[]>, ctx: ABCContext) {
+export function resolveTuneBody(
+  tuneBody: Tune_Body,
+  ruleMap: Map<Expr | Token, SpcRul[]>,
+  ctx: ABCContext,
+) {
   for (let s = 0; s < tuneBody.sequence.length; s++) {
     let system = tuneBody.sequence[s];
     const spacingDecisions = resolveSystem(ruleMap, system);
@@ -95,7 +134,11 @@ export function resolveTuneBody(tuneBody: Tune_Body, ruleMap: Map<Expr | Token, 
       const node = system[i];
       const decision = spacingDecisions.get(node);
       if (decision === TokenType.WHITESPACE) {
-        tuneBody.sequence[s].splice(i, 0, new Token(TokenType.WHITESPACE, " ", null, -1, -1, ctx));
+        tuneBody.sequence[s].splice(
+          i,
+          0,
+          new Token(TokenType.WHITESPACE, " ", null, -1, -1, ctx),
+        );
         i += 1;
       }
     }
@@ -108,7 +151,10 @@ export function resolveTuneBody(tuneBody: Tune_Body, ruleMap: Map<Expr | Token, 
  * @param system
  * @returns
  */
-export function expandMultiMeasureRests(system: System, ctx: ABCContext): System {
+export function expandMultiMeasureRests(
+  system: System,
+  ctx: ABCContext,
+): System {
   const expanded: System = [];
 
   for (const node of system) {
@@ -118,14 +164,46 @@ export function expandMultiMeasureRests(system: System, ctx: ABCContext): System
 
       // Add first Z
       expanded.push(
-        new MultiMeasureRest(ctx, new Token(TokenType.LETTER, is_invisible_rest ? "X" : "Z", null, node.rest.line, node.rest.position, ctx))
+        new MultiMeasureRest(
+          ctx,
+          new Token(
+            TokenType.LETTER,
+            is_invisible_rest ? "X" : "Z",
+            null,
+            node.rest.line,
+            node.rest.position,
+            ctx,
+          ),
+        ),
       );
 
       // Add barline and Z for remaining measures
       for (let i = 1; i < measures; i++) {
-        expanded.push(new Token(TokenType.BARLINE, "|", null, node.rest.line, node.rest.position, ctx));
         expanded.push(
-          new MultiMeasureRest(ctx, new Token(TokenType.LETTER, is_invisible_rest ? "X" : "Z", null, node.rest.line, node.rest.position, ctx))
+          new BarLine(
+            ctx,
+            new Token(
+              TokenType.BARLINE,
+              "|",
+              null,
+              node.rest.line,
+              node.rest.position,
+              ctx,
+            ),
+          ),
+        );
+        expanded.push(
+          new MultiMeasureRest(
+            ctx,
+            new Token(
+              TokenType.LETTER,
+              is_invisible_rest ? "X" : "Z",
+              null,
+              node.rest.line,
+              node.rest.position,
+              ctx,
+            ),
+          ),
         );
       }
     } else {
@@ -136,7 +214,10 @@ export function expandMultiMeasureRests(system: System, ctx: ABCContext): System
   return expanded;
 }
 
-export function resolveSystem(ruleMap: Map<Expr | Token, SpcRul[]>, system: System) {
+export function resolveSystem(
+  ruleMap: Map<Expr | Token, SpcRul[]>,
+  system: System,
+) {
   // Will hold final spacing decisions
   const spacingDecisions = new Map<Expr | Token, TokenType | null>();
 
