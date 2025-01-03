@@ -108,6 +108,22 @@ describe("Parser", () => {
           expect(infoLine2.value[0].lexeme).to.equal("Some info here\n+:More info");
         }
       });
+      it("parse correct number of voices", () => {
+        const ctx = new ABCContext();
+        const result = buildParse(
+          `X:1
+P:1
+V:RH clef=treble
+V:LH clef=bass
+V:RH
+Z4|
+V:LH 
+CDEF|GABC|CDEF|GABC|
+            `,
+          ctx
+        );
+        expect(result?.tune[0].tune_header.voices.length).to.equal(2);
+      });
     });
   });
   describe("Tune body", () => {

@@ -192,7 +192,7 @@ export class Parser {
 
   private tune_header() {
     const info_lines = [];
-    const voices = [];
+    const voices: Array<string> = [];
     while (!this.isAtEnd()) {
       if (this.peek().type === TokenType.LETTER_COLON) {
         /**
@@ -213,6 +213,10 @@ export class Parser {
             .join("")
             .trim()
             .replace(/\s.*/, "");
+
+          if (voices.includes(legend)) {
+            break;
+          }
           voices.push(legend);
         }
         info_lines.push(line);
