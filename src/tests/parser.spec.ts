@@ -1,4 +1,4 @@
-import assert from "assert";
+import { assert } from "chai";
 import chai from "chai";
 import { Parser } from "../parsers/Parser";
 import { Scanner } from "../parsers/Scanner";

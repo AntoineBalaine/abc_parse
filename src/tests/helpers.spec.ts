@@ -52,7 +52,7 @@ const voiceInfoLineConversionTests: SystemLineTest[] = [
       expect(splitLines).to.not.be.undefined;
       expect(splitLines).to.be.lengthOf(2);
     },
-    input: `V:1\nV:2\n[V:1]ab\nV:2\ncd\n`,
+    input: `V:1\nV:2\nV:1\nab\nV:2\ncd\n`,
   },
 ];
 

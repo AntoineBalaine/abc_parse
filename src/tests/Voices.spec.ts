@@ -2,6 +2,7 @@ import chai from "chai";
 import { Parser } from "../parsers/Parser";
 import { Scanner } from "../parsers/Scanner";
 import { ABCContext } from "../parsers/Context";
+import { isInfo_line } from "../helpers";
 const expect = chai.expect;
 
 const two_voices = `X:1
@@ -73,7 +74,29 @@ z16|`;
     const systems = parse.tune[0].tune_body?.sequence;
     expect(systems).to.have.lengthOf(2);
   });
-  it("should find multiple voices with custom names", () => {
+  it("should find multiple info line voices with custom names", () => {
+    const sample = `X:1
+K:C
+V:RH clef=treble
+V:LH clef=bass
+V:RH 
+C|
+V:LH 
+G| 
+V:RH 
+D|
+V:LH 
+A| 
+`;
+    const ctx = new ABCContext();
+    const scan = new Scanner(sample, ctx).scanTokens();
+    const parse = new Parser(scan, ctx).parse();
+    expect(parse!.tune[0].tune_header.voices).to.have.lengthOf(2);
+    expect(parse!.tune[0].tune_body!.sequence).to.have.lengthOf(2);
+    const tok0 = parse!.tune[0].tune_body!.sequence[0][0];
+    expect(isInfo_line(tok0) && tok0.value[0].lexeme.trim() === "RH").to.be.true;
+  });
+  it("should find multiple inline voices with custom names", () => {
     const sample = `X:1
 V:RH clef=treble
 V:LH clef=bass

@@ -200,7 +200,7 @@ export class Parser {
          * then stringify the tokens in the value, and add to the array of voice names.
          */
         //find whether this is the voices legend or the actual start of the tune_body.
-        if (this.peek().lexeme === "V:" && !this.isVoicesLegend() && !voices.length) {
+        if (this.peek().lexeme === "V:" && !this.isVoicesLegend(voices)) {
           return new Tune_header(this.ctx, info_lines, voices);
         }
         const line = this.info_line();
@@ -214,9 +214,6 @@ export class Parser {
             .trim()
             .replace(/\s.*/, "");
 
-          if (voices.includes(legend)) {
-            break;
-          }
           voices.push(legend);
         }
         info_lines.push(line);
@@ -574,10 +571,19 @@ COLON_DBL NUMBER
    *
    * else return false
    * */
-  private isVoicesLegend() {
+  private isVoicesLegend(voices: Array<string>) {
     let i = this.current;
+    let voice_tokens: Array<Token> = [];
     while (i < this.tokens.length && this.tokens[i].type !== TokenType.EOL) {
       i++;
+      voice_tokens.push(this.tokens[i]);
+    }
+    const voice_legend = voice_tokens
+      .map((token) => token.lexeme)
+      .join("")
+      .split(" ")[0];
+    if (voices.includes(voice_legend)) {
+      return false;
     }
     while (i < this.tokens.length) {
       i++;
