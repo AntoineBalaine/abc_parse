@@ -27,7 +27,7 @@ describe("Rules Assignment", () => {
     it("assigns SURROUND_SPC to notes and barlines in single voice", () => {
       let tune = buildTune(`X:1\nC D E|F G A|`);
       tune = preprocessTune(tune, ctx);
-      const ruleMap = assignTuneBodyRules(tune, ctx);
+      const ruleMap = assignTuneBodyRules(tune);
 
       tune.tune_body!.sequence[0].forEach((node) => {
         if (isNote(node) || isBarLine(node)) {
@@ -48,7 +48,7 @@ CDEF|GABC|CDEF|GABC|
             `);
 
       tune = preprocessTune(tune, ctx);
-      const ruleMap = assignTuneBodyRules(tune, ctx);
+      const ruleMap = assignTuneBodyRules(tune);
 
       // Find expanded multi-measure rest
       const firstSystem = tune.tune_body!.sequence[0];
@@ -65,7 +65,7 @@ CDEF|GABC|CDEF|GABC|
       let tune = buildTune(`X:1\n(ABC)|`);
 
       tune = preprocessTune(tune, ctx);
-      const ruleMap = assignTuneBodyRules(tune, ctx);
+      const ruleMap = assignTuneBodyRules(tune);
 
       tune.tune_body!.sequence[0].forEach((node) => {
         if (isToken(node) && (node.type === TokenType.LEFTPAREN || node.type === TokenType.RIGHT_PAREN)) {
@@ -79,7 +79,7 @@ CDEF|GABC|CDEF|GABC|
       let tune = buildTune(`X:1\n!p!C D E|`);
 
       tune = preprocessTune(tune, ctx);
-      const ruleMap = assignTuneBodyRules(tune, ctx);
+      const ruleMap = assignTuneBodyRules(tune);
 
       tune.tune_body!.sequence[0].forEach((node) => {
         if (node.constructor.name === "Decoration") {
@@ -93,7 +93,7 @@ CDEF|GABC|CDEF|GABC|
       let tune = buildTune(`X:1\n[K:C]C D E|`);
 
       tune = preprocessTune(tune, ctx);
-      const ruleMap = assignTuneBodyRules(tune, ctx);
+      const ruleMap = assignTuneBodyRules(tune);
 
       tune.tune_body!.sequence[0].forEach((node) => {
         if (node.constructor.name === "Inline_field") {
@@ -107,7 +107,7 @@ CDEF|GABC|CDEF|GABC|
       let tune = buildTune(`X:1\nCDEF GABC|`);
 
       tune = preprocessTune(tune, ctx);
-      const ruleMap = assignTuneBodyRules(tune, ctx);
+      const ruleMap = assignTuneBodyRules(tune);
 
       tune.tune_body!.sequence[0].forEach((node) => {
         if (node.constructor.name === "Beam") {
@@ -121,7 +121,7 @@ CDEF|GABC|CDEF|GABC|
       let tune = buildTune(`X:1\n{ag}f2|`);
 
       tune = preprocessTune(tune, ctx);
-      const ruleMap = assignTuneBodyRules(tune, ctx);
+      const ruleMap = assignTuneBodyRules(tune);
 
       tune.tune_body!.sequence[0].forEach((node) => {
         if (node.constructor.name === "Grace_group") {

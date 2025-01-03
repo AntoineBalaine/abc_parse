@@ -1,29 +1,13 @@
 import { isToken } from "../../helpers";
 import { ABCContext } from "../../parsers/Context";
+import { Tune, Tune_Body } from "../../types/Expr";
 import { Token } from "../../types/token";
 import { System, TokenType } from "../../types/types";
 import { AbcFormatter } from "../Formatter";
 import { TimeStamp, NodeID, TimeMapper } from "./fmt_timeMapper";
 import { mapTimePoints } from "./fmt_tmPts";
 export type Location = { voiceIdx: number; nodeID: number };
-type BarArray<T> = Array<T>;
-type VoicesArray<T> = Array<T>;
-type NoFmtLine = System;
-type VoiceUnion =
-  | BarArray<{ startNodeId: NodeID; map: Map<TimeStamp, NodeID> }>
-  | NoFmtLine; // (i.e. just a System)
 
-interface VoiceLocation {
-  voiceIdx: number;
-  nodeId: NodeID;
-}
-type voiceIdx = number;
-type startNodeId = number;
-type TimeMap<T, U> = Map<T, U>;
-type BarMap = {
-  startNodes: Map<voiceIdx, Array<startNodeId>>;
-  map: TimeMap<TimeStamp, Array<VoiceLocation>>;
-};
 /**
  * collect the time points for each bar, create a map of locations. Locations means: VoiceIndex and NodeID.
  *
@@ -46,19 +30,32 @@ interface BarAlignment {
   map: Map<TimeStamp, Array<Location>>;
 }
 
-class SystemAligner {
+export class SystemAligner {
   constructor(
     private ctx: ABCContext,
-    private stringifyVisitor: AbcFormatter,
+    private stringifyVisitor: AbcFormatter
   ) {}
 
-  align(systems: System[]) {
+  /**
+   * Add alignment padding to multi-voice tunes.
+   * Does nothing if tune is single-voice.
+   */
+  alignTune(tune: Tune): Tune {
+    if (tune.tune_body && tune.tune_header.voices.length > 1) {
+      tune.tune_body.sequence = this.align(tune.tune_body.sequence);
+    }
+    return tune;
+  }
+
+  private align(systems: Tune_Body["sequence"]): Tune_Body["sequence"] {
     for (const system of systems) {
       // Split system into voices/noformat lines
       const voiceSplits: Array<VoiceSplit> = new TimeMapper().mapVoices(system);
 
       // Skip if no formattable content
-      if (!this.hasFormattableContent(voiceSplits)) continue;
+      if (!this.hasFormattableContent(voiceSplits)) {
+        continue;
+      }
 
       // Get bar-based alignment points
       const barArray = mapTimePoints(voiceSplits);
@@ -68,6 +65,7 @@ class SystemAligner {
         this.alignBar(voiceSplits, bar);
       }
     }
+    return systems;
   }
 
   private alignBar(voiceSplits: VoiceSplit[], bar: BarAlignment) {
@@ -103,64 +101,45 @@ class SystemAligner {
           const voice = this.getFormattedVoice(voiceSplits[loc.voiceIdx]);
 
           // Find insertion point
-          const insertAt = this.findPaddingInsertionPoint(
-            voice,
-            loc.nodeID,
-            loc.startNode,
-          );
+          const insertAt = this.findPaddingInsertionPoint(voice, loc.nodeID, loc.startNode);
 
           // Insert padding
           if (insertAt !== -1) {
-            voice.splice(
-              insertAt + 1,
-              0,
-              new Token(
-                TokenType.WHITESPACE,
-                " ".repeat(padding),
-                null,
-                -1,
-                -1,
-                this.ctx,
-              ),
-            );
+            voice.splice(insertAt + 1, 0, new Token(TokenType.WHITESPACE, " ".repeat(padding), null, -1, -1, this.ctx));
           }
         }
       }
     }
   }
 
-  private getStringBetweenNodes(
-    voice: System,
-    startId: NodeID,
-    endId: NodeID,
-  ): string {
+  private getStringBetweenNodes(voice: System, startId: NodeID, endId: NodeID): string {
     const startIdx = voice.findIndex((node) => node.id === startId);
     const endIdx = voice.findIndex((node) => node.id === endId);
 
-    if (startIdx === -1 || endIdx === -1) return "";
+    if (startIdx === -1 || endIdx === -1) {
+      return "";
+    }
 
     const segment = voice.slice(startIdx, endIdx + 1);
-    return segment
-      .map((node) => this.stringifyVisitor.stringify(node))
-      .join("");
+    return segment.map((node) => this.stringifyVisitor.stringify(node)).join("");
   }
 
-  private findPaddingInsertionPoint(
-    voice: System,
-    nodeId: NodeID,
-    startNodeId: NodeID,
-  ): number {
-    const nodeIdx = voice.findIndex(
-      (node) => "id" in node && node.id === nodeId,
-    );
+  private findPaddingInsertionPoint(voice: System, nodeId: NodeID, startNodeId: NodeID): number {
+    const nodeIdx = voice.findIndex((node) => "id" in node && node.id === nodeId);
 
-    if (nodeIdx === -1) return -1;
+    if (nodeIdx === -1) {
+      return -1;
+    }
 
     let idx = nodeIdx;
     while (idx > 0) {
       const node = voice[idx];
-      if ("id" in node && node.id === startNodeId) break;
-      if (isToken(node) && node.type === TokenType.WHITESPACE) break;
+      if (node.id === startNodeId) {
+        break;
+      }
+      if (isToken(node) && node.type === TokenType.WHITESPACE) {
+        break;
+      }
       idx--;
     }
 

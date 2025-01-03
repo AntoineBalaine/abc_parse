@@ -2,7 +2,7 @@ import { isBarLine, isBeam, isMultiMeasureRest, isNote } from "../../helpers";
 import { Comment, Expr, Info_line, music_code } from "../../types/Expr";
 import { Token } from "../../types/token";
 import { System } from "../../types/types";
-import { BarTimeMap, Location, VoiceSplit } from "./fmt_aligner2";
+import { BarTimeMap, Location, VoiceSplit } from "./fmt_aligner";
 import { NodeID, TimeStamp } from "./fmt_timeMapper";
 
 interface BarAlignment {
@@ -12,16 +12,10 @@ interface BarAlignment {
 
 export function mapTimePoints(voiceSplits: VoiceSplit[]): BarAlignment[] {
   // Get formatted voices and their indices
-  const formattedVoices = voiceSplits
-    .map((split, idx) => ({ split, idx }))
-    .filter(({ split }) => split.type === "formatted");
+  const formattedVoices = voiceSplits.map((split, idx) => ({ split, idx })).filter(({ split }) => split.type === "formatted");
 
   // Get maximum bar count
-  const barCount = Math.max(
-    ...formattedVoices.map(
-      ({ split }) => split.content.filter((node) => isBarLine(node)).length + 1,
-    ),
-  );
+  const barCount = Math.max(...formattedVoices.map(({ split }) => split.content.filter((node) => isBarLine(node)).length + 1));
 
   const barAlignments: BarAlignment[] = [];
 
