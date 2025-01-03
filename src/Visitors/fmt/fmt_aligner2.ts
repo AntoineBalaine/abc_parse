@@ -2,13 +2,28 @@ import { isToken } from "../../helpers";
 import { ABCContext } from "../../parsers/Context";
 import { Token } from "../../types/token";
 import { System, TokenType } from "../../types/types";
-import { TimeStamp, NodeID } from "./fmt_timeMapper";
+import { AbcFormatter } from "../Formatter";
+import { TimeStamp, NodeID, TimeMapper } from "./fmt_timeMapper";
+import { mapTimePoints } from "./fmt_tmPts";
+export type Location = { voiceIdx: number; nodeID: number };
+type BarArray<T> = Array<T>;
+type VoicesArray<T> = Array<T>;
+type NoFmtLine = System;
+type VoiceUnion =
+  | BarArray<{ startNodeId: NodeID; map: Map<TimeStamp, NodeID> }>
+  | NoFmtLine; // (i.e. just a System)
 
 interface VoiceLocation {
   voiceIdx: number;
   nodeId: NodeID;
 }
-
+type voiceIdx = number;
+type startNodeId = number;
+type TimeMap<T, U> = Map<T, U>;
+type BarMap = {
+  startNodes: Map<voiceIdx, Array<startNodeId>>;
+  map: TimeMap<TimeStamp, Array<VoiceLocation>>;
+};
 /**
  * collect the time points for each bar, create a map of locations. Locations means: VoiceIndex and NodeID.
  *
@@ -16,145 +31,147 @@ interface VoiceLocation {
  *
  * `mapTimePoints() => BarArray<TimeMap<TimeStamp, Array<{ VoiceIdx, NodeID }>> >`
  */
-function mapTimePoints(timeMaps: Array<Array<Map<TimeStamp, NodeID>>>): Array<Map<TimeStamp, VoiceLocation[]>> {
-  const barCount = Math.max(...timeMaps.map((voice) => voice.length));
-  const barsTimePoints: Array<Map<TimeStamp, VoiceLocation[]>> = [];
-
-  // For each bar
-  for (let barIdx = 0; barIdx < barCount; barIdx++) {
-    const barTimePoints = new Map<TimeStamp, VoiceLocation[]>();
-
-    // For each voice
-    timeMaps.forEach((voiceBars, voiceIdx) => {
-      // Skip if voice doesn't have this bar
-      if (barIdx >= voiceBars.length) {
-        return;
-      }
-
-      const barMap = voiceBars[barIdx];
-
-      // For each time point in this voice's bar
-      barMap.forEach((nodeId, timeStamp) => {
-        let locations = barTimePoints.get(timeStamp);
-        if (!locations) {
-          locations = [];
-          barTimePoints.set(timeStamp, locations);
-        }
-
-        locations.push({
-          voiceIdx,
-          nodeId,
-        });
-      });
-    });
-
-    barsTimePoints.push(barTimePoints);
-  }
-
-  return barsTimePoints;
+export interface VoiceSplit {
+  type: "formatted" | "noformat";
+  content: System;
 }
 
-class VoiceAligner {
-  ctx: ABCContext;
-  constructor(ctx: ABCContext) {
-    this.ctx = ctx;
+export interface BarTimeMap {
+  startNodeId: NodeID;
+  map: Map<TimeStamp, NodeID>;
+}
+
+interface BarAlignment {
+  startNodes: Map<number, NodeID>; // voiceIdx -> startNodeId
+  map: Map<TimeStamp, Array<Location>>;
+}
+
+class SystemAligner {
+  constructor(
+    private ctx: ABCContext,
+    private stringifyVisitor: AbcFormatter,
+  ) {}
+
+  align(systems: System[]) {
+    for (const system of systems) {
+      // Split system into voices/noformat lines
+      const voiceSplits: Array<VoiceSplit> = new TimeMapper().mapVoices(system);
+
+      // Skip if no formattable content
+      if (!this.hasFormattableContent(voiceSplits)) continue;
+
+      // Get bar-based alignment points
+      const barArray = mapTimePoints(voiceSplits);
+
+      // Process each bar
+      for (const bar of barArray) {
+        this.alignBar(voiceSplits, bar);
+      }
+    }
   }
-  /**
-  Iterate the maxBars count per System and collect the time points,
-  For each bar, sort the time points, then iterate them:
-  At each time point, calculate the width of each of the voices
-    for each voice that is shorter than the longest one
-      padding_length = maxWidthAtTime - voiceWidthAtTime
-      insert padding after the first whitespace position that precedes the alignment point - i.e. between the WS and the first non-WS node.
-  This requires flipping the data struct:
-  */
-  alignVoices(
-    voices: System[],
-    timeMaps: Array<Array<Map<TimeStamp, NodeID>>>
-    //        ^     ^     ^
-    //        voices
-    //              bars
-    //                    timeMap
-  ) {
-    // Get bar-based time points
-    const barTimeMaps = mapTimePoints(timeMaps);
 
-    // Process each bar
-    barTimeMaps.forEach((barTimeMap, barIndex) => {
-      // Get sorted time points for this bar
-      const timePoints = Array.from(barTimeMap.keys()).sort((a, b) => a - b);
+  private alignBar(voiceSplits: VoiceSplit[], bar: BarAlignment) {
+    // Get sorted timestamps
+    const timeStamps = Array.from(bar.map.keys()).sort((a, b) => a - b);
 
-      // Process each time segment (between time points)
-      for (let i = 0; i < timePoints.length - 1; i++) {
-        const currentTime = timePoints[i];
-        const nextTime = timePoints[i + 1];
+    // Process each time point
+    for (const timeStamp of timeStamps) {
+      const locations = bar.map.get(timeStamp)!;
 
-        // Get nodes at current time point
-        const currentLocations = barTimeMap.get(currentTime) || [];
-        const nextLocations = barTimeMap.get(nextTime) || [];
+      // Calculate strings and lengths for each location
+      const locsWithStrings = locations.map((loc) => {
+        const startNode = bar.startNodes.get(loc.voiceIdx)!;
+        const voice = this.getFormattedVoice(voiceSplits[loc.voiceIdx]);
 
-        // Calculate width for each voice between these time points
-        const widths = new Map<number, number>(); // voiceIdx -> width
+        // Get string representation between start and current
+        const str = this.getStringBetweenNodes(voice, startNode, loc.nodeID);
 
-        currentLocations.forEach(({ voiceIdx, nodeId }) => {
-          const voice = voices[voiceIdx];
-          const nextNodeId = nextLocations.find((loc) => loc.voiceIdx === voiceIdx)?.nodeId;
+        return {
+          str,
+          startNode,
+          ...loc,
+        };
+      });
 
-          // Find nodes in voice by ID
-          const startIdx = voice.findIndex((node) => node.id === nodeId);
-          const endIdx = nextNodeId ? voice.findIndex((node) => node.id === nextNodeId) : undefined;
+      // Find maximum length
+      const maxLen = Math.max(...locsWithStrings.map((l) => l.str.length));
 
-          // Calculate width of this segment
-          const width = this.calculateWidth(voice.slice(startIdx, endIdx));
-          widths.set(voiceIdx, width);
-        });
+      // Add padding where needed
+      for (const loc of locsWithStrings) {
+        if (loc.str.length < maxLen) {
+          const padding = maxLen - loc.str.length;
+          const voice = this.getFormattedVoice(voiceSplits[loc.voiceIdx]);
 
-        // Find maximum width
-        const maxWidth = Math.max(...widths.values());
+          // Find insertion point
+          const insertAt = this.findPaddingInsertionPoint(
+            voice,
+            loc.nodeID,
+            loc.startNode,
+          );
 
-        // Add padding where needed
-        currentLocations.forEach(({ voiceIdx, nodeId }) => {
-          const voice = voices[voiceIdx];
-          const currentWidth = widths.get(voiceIdx) || 0;
-
-          if (currentWidth < maxWidth) {
-            const padding = maxWidth - currentWidth;
-
-            // Find node in voice by ID
-            const nodeIdx = voice.findIndex((node) => node.id === nodeId);
-
-            if (nodeIdx !== -1) {
-              this.insertPadding(voice, nodeIdx, padding);
-            }
+          // Insert padding
+          if (insertAt !== -1) {
+            voice.splice(
+              insertAt + 1,
+              0,
+              new Token(
+                TokenType.WHITESPACE,
+                " ".repeat(padding),
+                null,
+                -1,
+                -1,
+                this.ctx,
+              ),
+            );
           }
-        });
+        }
       }
-    });
+    }
   }
 
-  private insertPadding(voice: System, afterIndex: number, padding: number) {
-    // Find first WS after index
-    let paddingIndex = afterIndex;
-    while (paddingIndex < voice.length) {
-      const node = voice[paddingIndex];
-      if (isToken(node) && node.type === TokenType.WHITESPACE) {
-        break;
-      }
-      paddingIndex++;
+  private getStringBetweenNodes(
+    voice: System,
+    startId: NodeID,
+    endId: NodeID,
+  ): string {
+    const startIdx = voice.findIndex((node) => node.id === startId);
+    const endIdx = voice.findIndex((node) => node.id === endId);
+
+    if (startIdx === -1 || endIdx === -1) return "";
+
+    const segment = voice.slice(startIdx, endIdx + 1);
+    return segment
+      .map((node) => this.stringifyVisitor.stringify(node))
+      .join("");
+  }
+
+  private findPaddingInsertionPoint(
+    voice: System,
+    nodeId: NodeID,
+    startNodeId: NodeID,
+  ): number {
+    const nodeIdx = voice.findIndex(
+      (node) => "id" in node && node.id === nodeId,
+    );
+
+    if (nodeIdx === -1) return -1;
+
+    let idx = nodeIdx;
+    while (idx > 0) {
+      const node = voice[idx];
+      if ("id" in node && node.id === startNodeId) break;
+      if (isToken(node) && node.type === TokenType.WHITESPACE) break;
+      idx--;
     }
 
-    // Insert padding token
-    voice.splice(paddingIndex + 1, 0, new Token(TokenType.WHITESPACE, " ".repeat(padding), null, -1, -1, this.ctx));
+    return idx;
   }
 
-  private calculateWidth(nodes: System): number {
-    // Sum up visual width of nodes
-    return nodes.reduce((total, node) => {
-      if (isToken(node) && node.type === TokenType.WHITESPACE) {
-        return total + node.lexeme.length;
-      }
-      // Add other width calculations
-      return total;
-    }, 0);
+  private getFormattedVoice(split: VoiceSplit): System {
+    return split.type === "formatted" ? split.content : [];
+  }
+
+  private hasFormattableContent(splits: VoiceSplit[]): boolean {
+    return splits.some((split) => split.type === "formatted");
   }
 }
