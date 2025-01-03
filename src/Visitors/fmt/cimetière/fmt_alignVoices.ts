@@ -1,9 +1,9 @@
 import { match } from "assert";
-import { isToken, isVoiceMarker } from "../../helpers";
-import { Expr, Info_line, Inline_field } from "../../types/Expr";
-import { Token } from "../../types/token";
-import { System, TokenType } from "../../types/types";
-import { AbcFormatter } from "../Formatter";
+import { isToken, isVoiceMarker } from "../../../helpers";
+import { Expr, Info_line, Inline_field } from "../../../types/Expr";
+import { Token } from "../../../types/token";
+import { System, TokenType } from "../../../types/types";
+import { AbcFormatter } from "../../Formatter";
 
 type GroupMarkers =
   | TokenType.EOL

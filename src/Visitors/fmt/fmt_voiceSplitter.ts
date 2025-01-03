@@ -61,6 +61,7 @@ class VoiceSplitter {
     return this.current >= this.system.length;
   }
 
+  // TODO: include this expression in the parser.
   private isVoiceOverlayMarker(): boolean {
     const current = this.peek();
     const next = this.peekNext();
