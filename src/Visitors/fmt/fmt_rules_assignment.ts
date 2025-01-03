@@ -100,7 +100,7 @@ export function assignTuneBodyRules(tune: Tune): Map<Expr | Token, SpcRul[]> {
 }
 
 /**
- * Return a new parse tree, containing WS where necessary.
+ * Updates the parse tree in place
  */
 export function resolveTuneBody(tuneBody: Tune_Body, ruleMap: Map<Expr | Token, SpcRul[]>, ctx: ABCContext) {
   for (let s = 0; s < tuneBody.sequence.length; s++) {
@@ -169,12 +169,21 @@ export function resolveSystem(ruleMap: Map<Expr | Token, SpcRul[]>, system: Syst
 
     // Resolve spacing between current and next node
     if (currentRules.includes(SpcRul.SURROUND_SPC)) {
+      // Check previous node
+      const prevNode = i > 0 ? system[i - 1] : null;
+      const isStartOrAfterEOL = !prevNode || (isToken(prevNode) && prevNode.type === TokenType.EOL);
+
       // Handle surround space cases
       if (nextRules && nextRules.includes(SpcRul.NO_SPC)) {
         // No space after if next wants none
-        spacingDecisions.set(node, TokenType.WHITESPACE);
+        if (!isStartOrAfterEOL) {
+          spacingDecisions.set(node, TokenType.WHITESPACE);
+        }
       } else {
-        spacingDecisions.set(node, TokenType.WHITESPACE);
+        // Regular surround space case
+        if (!isStartOrAfterEOL) {
+          spacingDecisions.set(node, TokenType.WHITESPACE);
+        }
       }
     } else if (currentRules.includes(SpcRul.FOLLOW_SPC)) {
       spacingDecisions.set(node, TokenType.WHITESPACE);
