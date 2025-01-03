@@ -1,4 +1,4 @@
-import { isBarLine, isBeam, isComment, isInline_field, isMultiMeasureRest, isNote, isNthRepeat, isToken, isVoice_overlay } from "../helpers";
+import { isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import {
   Annotation,
@@ -29,12 +29,11 @@ import {
   Visitor,
   Voice_overlay,
   YSPACER,
-  music_code,
   ErrorExpr,
 } from "../types/Expr";
 import { Token } from "../types/token";
-import { System, TokenType } from "../types/types";
-import { Formatter_Bar, GroupBarsInLines, convertVoiceInfoLinesToInlineInfos, splitSystemLines } from "./Formatter_helpers";
+import { SystemAligner } from "./fmt/fmt_aligner";
+import { resolveRules } from "./fmt/fmt_rules_assignment";
 
 /**
  * A pretty printer for a score's AST.
@@ -59,10 +58,18 @@ export class AbcFormatter implements Visitor<string> {
    * use this flag to indicate if we just want to stringify the tree, without pretty-printing
    */
   no_format: boolean = false;
-  format(expr: Expr) {
+  format(ast: File_structure): string {
     this.no_format = false;
-    return expr.accept(this);
+    // 1. Rules resolution phase
+    let withRules = resolveRules(ast, this.ctx);
+
+    // 2. align multi-voices tunes
+    withRules.tune = withRules.tune.map((tune) => new SystemAligner(this.ctx, this).alignTune(tune));
+
+    // 3. Print using visitor
+    return this.stringify(withRules);
   }
+
   stringify(expr: Expr | Token) {
     this.no_format = true;
     const fmt = isToken(expr) ? expr.lexeme : expr.accept(this);
@@ -242,7 +249,7 @@ export class AbcFormatter implements Visitor<string> {
   visitTuneBodyExpr(expr: Tune_Body): string {
     return expr.sequence
       .map((system) => {
-        return this.formatSystem(system);
+        return system.map((node) => (isToken(node) ? node.lexeme : node.accept(this))).join("");
       })
       .join("");
   }
@@ -283,189 +290,5 @@ export class AbcFormatter implements Visitor<string> {
   visitErrorExpr(expr: ErrorExpr): string {
     // Preserve the original text of error nodes
     return expr.tokens.map((t) => t.lexeme).join("");
-  }
-
-  formatUpsideDown(system: System, ctx: ABCContext) {
-    system = system.filter((expr) => !(expr instanceof Token && expr.type === TokenType.WHITESPACE));
-    for (let idx = 0; idx < system.length; idx++) {
-      const expr = system[idx];
-      function insertWS_FRMTR(index?: number) {
-        const nextExpr = system[index || idx + 1];
-        if (!nextExpr || (isToken(nextExpr) && nextExpr.type === TokenType.EOL)) {
-          return;
-        }
-        const wsToken = new Token(TokenType.WHITESPACE_FORMATTER, " ", null, -1, -1, ctx);
-        system.splice(index || idx + 1, 0, wsToken);
-      }
-      if (isBarLine(expr)) {
-        insertWS_FRMTR();
-      } else if (isInline_field(expr)) {
-        insertWS_FRMTR();
-      } else if (isMultiMeasureRest(expr)) {
-        insertWS_FRMTR();
-      } else if (isNote(expr)) {
-        insertWS_FRMTR();
-      } else if (isNthRepeat(expr)) {
-        insertWS_FRMTR();
-      } else if (isBeam(expr)) {
-        insertWS_FRMTR();
-      } else if (isVoice_overlay(expr)) {
-        insertWS_FRMTR();
-      } else if (isToken(expr) && expr.type === TokenType.WHITESPACE_FORMATTER) {
-        continue;
-      } else {
-        continue;
-      }
-      // Levaing the other cases here for now, in case they need to be revisited later
-      /*
-      else if (isChord(expr)) { }
-      if (isAnnotation(expr)) { }
-            else if (isComment(expr)) { }
-            else if (isDecoration(expr)) { }
-            else if (isGraceGroup(expr)) { }
-            else if (isInfo_line(expr)) { }
-            // else if (isLyricSection(expr)){}
-            else if (isSymbol(expr)) { }
-            else if (isYSPACER(expr)) { }
-            else if (isToken(expr) && isTupletToken(expr)) { }
-      */
-    }
-    return system;
-  }
-  /**
-   * ensure every bar is the same length,
-   * and that every line starts at the same char after the inline voice indication
-   * */
-  formatSystem(system: System) {
-    if (this.no_format) {
-      return system
-        .map((expr, idx, arr) => {
-          return isToken(expr) ? expr.lexeme : expr.accept(this);
-        })
-        .join("");
-    }
-    system = this.formatUpsideDown(system, this.ctx);
-    const convertVoiceHeaders = convertVoiceInfoLinesToInlineInfos(system, this.ctx);
-    const lines = splitSystemLines(convertVoiceHeaders);
-    const fmtLines = this.addWSToLines(lines).flat();
-    return fmtLines
-      .map((expr, idx, arr) => {
-        /**
-         * if we're just printing as is, return the lexeme of the token
-         */
-        return isToken(expr) ? expr.lexeme : expr.accept(this);
-      })
-      .join("");
-  }
-
-  /**
-   * find all the inline voice indicators `[V:1]`
-   * stringify them and find the longest string.
-   *
-   * Then, iterate the array of lines:
-   * at each time you encounter an inlineVoice,
-   * if it's shorter that the longest string,
-   * insert as many WS as the diff btw longestSring and lengthOfInlineVoice;
-   * */
-  addWSToLines(lines: Array<Array<Comment | Info_line | music_code>>) {
-    const linesIntoBars = lines.map(GroupBarsInLines);
-
-    const linesWithStr: Array<Formatter_LineWithBars> = linesIntoBars.map((line) => {
-      return line.map((bar) => {
-        const str = bar
-          .map((expr) => {
-            if (isToken(expr)) {
-              return expr.lexeme;
-            } else {
-              return expr.accept(this);
-            }
-          })
-          .join("")
-          .replace(/[|]/g, "")
-          .trim();
-        return {
-          str,
-          bar,
-        };
-      });
-    });
-    let largestBarCount = linesWithStr.reduce((acc, bars) => {
-      if (isComment(bars[0].bar[0])) {
-        return acc;
-      }
-      if (bars.length > acc) {
-        acc = bars.length;
-      }
-      return acc;
-    }, 0);
-
-    for (let barIdx = 0; barIdx < largestBarCount; barIdx++) {
-      /**
-       * Get each line's bar at BarIdx, and find the longest one.
-       */
-      const longestBarAtBarIdx = linesWithStr.reduce((longestBar, curLine) => {
-        const curBar = curLine[barIdx];
-        if (curBar && !isComment(curBar.bar[0])) {
-          if (curBar.str.length > longestBar) {
-            longestBar = curBar.str.length;
-          }
-        }
-        return longestBar;
-      }, 0);
-
-      /**
-       * insert WS tokens at every line at every bar that is shorter than longestBarAtBarIdx
-       */
-      for (let lineIdx = 0; lineIdx < linesWithStr.length; lineIdx++) {
-        const curLine = linesWithStr[lineIdx];
-        const curBar = curLine[barIdx];
-        if (curBar) {
-          if (!isComment(curBar.bar[0]) && curBar.str.length < longestBarAtBarIdx) {
-            let diff = longestBarAtBarIdx - curBar.str.length;
-
-            for (let WScount = 0; WScount < diff; WScount++) {
-              const wsToken = new Token(TokenType.WHITESPACE_FORMATTER, " ", null, -1, -1, this.ctx);
-              //Should this be replaced by a special token?
-              let curBar = linesIntoBars[lineIdx][barIdx];
-              if (isBarLine(curBar[curBar.length - 1])) {
-                linesIntoBars[lineIdx][barIdx].splice(curBar.length - 1, 0, wsToken);
-              } else {
-                linesIntoBars[lineIdx][barIdx].push(wsToken);
-              }
-            }
-          }
-        }
-      }
-    }
-    return linesIntoBars.flat();
-  }
-
-  /**
-   * Add the stringified version of a bar
-   * structure goes:
-   * Lines
-   *  Bars
-   *   Expr
-   */
-  stringifyBarsInLines(line: Array<Array<Expr | Token>>): Array<Formatter_Bar> {
-    return line.map((bar) => {
-      const str = bar
-        .map((expr) => {
-          if (isToken(expr)) {
-            if (expr.type === TokenType.WHITESPACE) {
-              return "";
-            } else {
-              return expr.lexeme;
-            }
-          } else {
-            return expr.accept(this);
-          }
-        })
-        .join("");
-      return {
-        str,
-        bar,
-      };
-    });
   }
 }

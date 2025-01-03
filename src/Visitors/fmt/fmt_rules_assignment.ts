@@ -24,13 +24,13 @@ import { System, TokenType } from "../../types/types";
 
 // Types for rules assignment
 export enum SpcRul {
-  SURROUND_SPC,
-  FOLLOW_SPC,
-  PRECEDE_SPC,
-  NO_SPC,
-  SURROUND_LN,
   FOLLOW_LN,
+  FOLLOW_SPC,
+  NO_SPC,
   PRECEDE_LN,
+  PRECEDE_SPC,
+  SURROUND_LN,
+  SURROUND_SPC,
 }
 
 export function resolveRules(ast: File_structure, ctx: ABCContext) {
@@ -64,20 +64,20 @@ export function preprocessTune(tune: Tune, ctx: ABCContext): Tune {
   return tune;
 }
 
-export function assignTuneBodyRules(tune: Tune): Map<Expr | Token, SpcRul[]> {
+export function assignTuneBodyRules(tune: Tune): Map<Expr | Token, SpcRul> {
   const tuneBody = tune.tune_body!;
-  let ruleMap = new Map<Expr | Token, SpcRul[]>();
+  let ruleMap = new Map<Expr | Token, SpcRul>();
   // Process each system
   for (let system of tuneBody.sequence) {
     for (const node of system) {
       if (isComment(node) || isTuplet(node) || isDecoration(node) || isGrace_group(node) || isSymbol(node)) {
-        ruleMap.set(node, [SpcRul.PRECEDE_SPC]);
+        ruleMap.set(node, SpcRul.PRECEDE_SPC);
       } else if (
         isYSPACER(node) ||
         (isToken(node) &&
           (node.type === TokenType.RIGHT_PAREN || node.type === TokenType.LEFTPAREN || node.type === TokenType.EOL || node.type === TokenType.EOF))
       ) {
-        ruleMap.set(node, [SpcRul.NO_SPC]);
+        ruleMap.set(node, SpcRul.NO_SPC);
       } else if (
         isAnnotation(node) ||
         isBarLine(node) ||
@@ -90,9 +90,9 @@ export function assignTuneBodyRules(tune: Tune): Map<Expr | Token, SpcRul[]> {
         isMultiMeasureRest(node) ||
         isToken(node)
       ) {
-        ruleMap.set(node, [SpcRul.SURROUND_SPC]);
+        ruleMap.set(node, SpcRul.SURROUND_SPC);
       } else if (isInline_field(node)) {
-        ruleMap.set(node, [SpcRul.FOLLOW_SPC]);
+        ruleMap.set(node, SpcRul.FOLLOW_SPC);
       }
     }
   }
@@ -102,7 +102,7 @@ export function assignTuneBodyRules(tune: Tune): Map<Expr | Token, SpcRul[]> {
 /**
  * Updates the parse tree in place
  */
-export function resolveTuneBody(tuneBody: Tune_Body, ruleMap: Map<Expr | Token, SpcRul[]>, ctx: ABCContext) {
+export function resolveTuneBody(tuneBody: Tune_Body, ruleMap: Map<Expr | Token, SpcRul>, ctx: ABCContext) {
   for (let s = 0; s < tuneBody.sequence.length; s++) {
     let system = tuneBody.sequence[s];
     const spacingDecisions = resolveSystem(ruleMap, system);
@@ -152,52 +152,47 @@ export function expandMultiMeasureRests(system: System, ctx: ABCContext): System
   return expanded;
 }
 
-export function resolveSystem(ruleMap: Map<Expr | Token, SpcRul[]>, system: System) {
+export function resolveSystem(ruleMap: Map<Expr | Token, SpcRul>, system: System) {
   // Will hold final spacing decisions
   const spacingDecisions = new Map<Expr | Token, TokenType | null>();
 
   for (let i = 0; i < system.length; i++) {
     const node = system[i];
-    const currentRules = ruleMap.get(node);
+    const currentRules: SpcRul | undefined = ruleMap.get(node);
     if (!currentRules) {
       continue;
     }
 
-    // Look ahead to next node's rules
-    const nextNode = system[i + 1];
-    const nextRules = nextNode ? ruleMap.get(nextNode) : null;
-
     // Resolve spacing between current and next node
-    if (currentRules.includes(SpcRul.SURROUND_SPC)) {
-      // Check previous node
-      const prevNode = i > 0 ? system[i - 1] : null;
-      const isStartOrAfterEOL = !prevNode || (isToken(prevNode) && prevNode.type === TokenType.EOL);
+    switch (currentRules) {
+      case SpcRul.SURROUND_SPC: {
+        const prevNode = i > 0 ? system[i - 1] : null;
+        const isStartOrAfterEOL = !prevNode || (isToken(prevNode) && prevNode.type === TokenType.EOL);
 
-      // Handle surround space cases
-      if (nextRules && nextRules.includes(SpcRul.NO_SPC)) {
-        // No space after if next wants none
         if (!isStartOrAfterEOL) {
           spacingDecisions.set(node, TokenType.WHITESPACE);
         }
-      } else {
-        // Regular surround space case
-        if (!isStartOrAfterEOL) {
-          spacingDecisions.set(node, TokenType.WHITESPACE);
-        }
+        break;
       }
-    } else if (currentRules.includes(SpcRul.FOLLOW_SPC)) {
-      spacingDecisions.set(node, TokenType.WHITESPACE);
-    } else if (currentRules.includes(SpcRul.PRECEDE_SPC)) {
-      // Only add space if previous didn't already add one
-      const prevNode = i === 0 ? null : system[i - 1];
-      if (prevNode) {
-        const prevDecision = spacingDecisions.get(prevNode);
-        if (prevDecision !== TokenType.WHITESPACE) {
-          spacingDecisions.set(prevNode, TokenType.WHITESPACE);
-        }
+      case SpcRul.FOLLOW_SPC: {
+        spacingDecisions.set(node, TokenType.WHITESPACE);
+        break;
       }
-    } else if (currentRules.includes(SpcRul.NO_SPC)) {
-      spacingDecisions.set(node, null);
+      case SpcRul.PRECEDE_SPC: {
+        // Only add space if previous didn't already add one
+        const prevNode = i === 0 ? null : system[i - 1];
+        if (prevNode) {
+          const prevDecision = spacingDecisions.get(prevNode);
+          if (prevDecision !== TokenType.WHITESPACE) {
+            spacingDecisions.set(prevNode, TokenType.WHITESPACE);
+          }
+        }
+        break;
+      }
+      case SpcRul.NO_SPC: {
+        spacingDecisions.set(node, null);
+        break;
+      }
     }
   }
 
