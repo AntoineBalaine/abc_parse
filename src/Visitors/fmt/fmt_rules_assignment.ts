@@ -1,22 +1,4 @@
-import {
-  isAnnotation,
-  isBarLine,
-  isBeam,
-  isChord,
-  isComment,
-  isDecoration,
-  isErrorExpr,
-  isGrace_group,
-  isInfo_line,
-  isInline_field,
-  isMultiMeasureRest,
-  isNote,
-  isNth_repeat,
-  isSymbol,
-  isToken,
-  isTuplet,
-  isYSPACER,
-} from "../../helpers";
+import { isBeam, isDecoration, isMultiMeasureRest, isNote, isToken, isYSPACER } from "../../helpers";
 import { ABCContext } from "../../parsers/Context";
 import { BarLine, Expr, File_structure, MultiMeasureRest, Tune, Tune_Body } from "../../types/Expr";
 import { Token } from "../../types/token";
@@ -24,12 +6,9 @@ import { System, TokenType } from "../../types/types";
 
 // Types for rules assignment
 export enum SpcRul {
-  FOLLOW_LN,
   FOLLOW_SPC,
   NO_SPC,
-  PRECEDE_LN,
   PRECEDE_SPC,
-  SURROUND_LN,
   SURROUND_SPC,
 }
 
@@ -70,29 +49,14 @@ export function assignTuneBodyRules(tune: Tune): Map<Expr | Token, SpcRul> {
   // Process each system
   for (let system of tuneBody.sequence) {
     for (const node of system) {
-      if (isComment(node) || isTuplet(node) || isDecoration(node) || isGrace_group(node) || isSymbol(node)) {
-        ruleMap.set(node, SpcRul.PRECEDE_SPC);
-      } else if (
+      if (
         isYSPACER(node) ||
         (isToken(node) &&
           (node.type === TokenType.RIGHT_PAREN || node.type === TokenType.LEFTPAREN || node.type === TokenType.EOL || node.type === TokenType.EOF))
       ) {
         ruleMap.set(node, SpcRul.NO_SPC);
-      } else if (
-        isAnnotation(node) ||
-        isBarLine(node) ||
-        isBeam(node) ||
-        isInfo_line(node) ||
-        isNote(node) ||
-        isChord(node) ||
-        isErrorExpr(node) ||
-        isNth_repeat(node) ||
-        isMultiMeasureRest(node) ||
-        isToken(node)
-      ) {
-        ruleMap.set(node, SpcRul.SURROUND_SPC);
-      } else if (isInline_field(node)) {
-        ruleMap.set(node, SpcRul.FOLLOW_SPC);
+      } else {
+        ruleMap.set(node, SpcRul.PRECEDE_SPC);
       }
     }
   }
@@ -165,31 +129,17 @@ export function resolveSystem(ruleMap: Map<Expr | Token, SpcRul>, system: System
 
     // Resolve spacing between current and next node
     switch (currentRules) {
-      case SpcRul.SURROUND_SPC: {
+      case SpcRul.SURROUND_SPC:
+      case SpcRul.PRECEDE_SPC: {
         const prevNode = i > 0 ? system[i - 1] : null;
-        const isStartOrAfterEOL = !prevNode || (isToken(prevNode) && prevNode.type === TokenType.EOL);
 
-        if (!isStartOrAfterEOL) {
+        if (!noPrev(prevNode, node)) {
           spacingDecisions.set(node, TokenType.WHITESPACE);
         }
         break;
       }
-      case SpcRul.FOLLOW_SPC: {
-        spacingDecisions.set(node, TokenType.WHITESPACE);
-        break;
-      }
-      case SpcRul.PRECEDE_SPC: {
-        // Only add space if previous didn't already add one
-        const prevNode = i === 0 ? null : system[i - 1];
-        if (prevNode) {
-          const prevDecision = spacingDecisions.get(prevNode);
-          if (prevDecision !== TokenType.WHITESPACE) {
-            spacingDecisions.set(prevNode, TokenType.WHITESPACE);
-          }
-        }
-        break;
-      }
-      case SpcRul.NO_SPC: {
+      case SpcRul.NO_SPC:
+      default: {
         spacingDecisions.set(node, null);
         break;
       }
@@ -197,4 +147,14 @@ export function resolveSystem(ruleMap: Map<Expr | Token, SpcRul>, system: System
   }
 
   return spacingDecisions;
+}
+
+function noPrev(prev: Expr | Token | null, cur: Expr | Token): boolean {
+  return (
+    !prev || // start of input
+    (isToken(prev) && prev.type === TokenType.EOL) || // start of line
+    (isDecoration(prev) && isNote(cur)) ||
+    (isDecoration(prev) && isDecoration(cur)) ||
+    (isDecoration(prev) && isBeam(cur))
+  );
 }

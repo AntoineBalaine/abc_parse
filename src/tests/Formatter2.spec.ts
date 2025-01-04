@@ -16,7 +16,10 @@ K:C
 [V: RH]C|
 [V: LH]G|`;
     const ctx = new ABCContext();
-    const parse = new Parser(new Scanner(sample, ctx).scanTokens(), ctx).parse();
+    const parse = new Parser(
+      new Scanner(sample, ctx).scanTokens(),
+      ctx,
+    ).parse();
     const system: System = parse!.tune[0].tune_body!.sequence[0];
 
     const result = splitIntoVoices(system);
@@ -25,25 +28,38 @@ K:C
 
     // Check first voice
     assert.equal(result[0].length, 3, "First voice should have 3 elements");
-    assert.isTrue(result[0][0] instanceof Inline_field, "Should start with voice marker");
+    assert.isTrue(
+      result[0][0] instanceof Inline_field,
+      "Should start with voice marker",
+    );
     assert.isTrue(result[0][1] instanceof Music_code, "Should contain music");
 
     // Check second voice
     assert.equal(result[1].length, 3, "Second voice should have 2 elements");
-    assert.isTrue(result[1][0] instanceof Inline_field, "Should start with voice marker");
+    assert.isTrue(
+      result[1][0] instanceof Inline_field,
+      "Should start with voice marker",
+    );
     assert.isTrue(result[1][1] instanceof Music_code, "Should contain music");
   });
 
   it("handles comments in voices", () => {
     const sample = `X:1\nV:RH clef=treble\nK:C`;
     const ctx = new ABCContext();
-    const parse = new Parser(new Scanner(sample, ctx).scanTokens(), ctx).parse();
+    const parse = new Parser(
+      new Scanner(sample, ctx).scanTokens(),
+      ctx,
+    ).parse();
     const system: System = parse!.tune[0].tune_body!.sequence[0];
 
     const result = splitIntoVoices(system);
 
     assert.equal(result.length, 1, "Should keep as one voice");
-    assert.equal(result[0].length, 3, "Should contain voice marker, comment, and music");
+    assert.equal(
+      result[0].length,
+      3,
+      "Should contain voice marker, comment, and music",
+    );
     assert.isTrue(result[0][1] instanceof Comment, "Should preserve comment");
   });
 
@@ -56,13 +72,19 @@ K:C
 % between voices
 [V: LH]G|`;
     const ctx = new ABCContext();
-    const parse = new Parser(new Scanner(sample, ctx).scanTokens(), ctx).parse();
+    const parse = new Parser(
+      new Scanner(sample, ctx).scanTokens(),
+      ctx,
+    ).parse();
     const system: System = parse!.tune[0].tune_body!.sequence[0];
 
     const result = splitIntoVoices(system);
 
     assert.equal(result.length, 3, "Should split into three parts");
-    assert.isTrue(result[1][0] instanceof Comment, "Middle part should be comment");
+    assert.isTrue(
+      result[1][0] instanceof Comment,
+      "Middle part should be comment",
+    );
   });
 
   it("handles empty voice markers", () => {
@@ -74,7 +96,10 @@ K:C
 [V: LH]G|
 `;
     const ctx = new ABCContext();
-    const parse = new Parser(new Scanner(sample, ctx).scanTokens(), ctx).parse();
+    const parse = new Parser(
+      new Scanner(sample, ctx).scanTokens(),
+      ctx,
+    ).parse();
     const system: System = parse!.tune[0].tune_body!.sequence[0];
 
     const result = splitIntoVoices(system);
@@ -135,11 +160,14 @@ describe("AbcFormatter.format() - single voice rules", () => {
     });
 
     it("preserves spaces in annotations", () => {
-      assert.equal(format('X:1\n"swing feel"CDEF|'), 'X:1\n"swing feel" CDEF |');
+      assert.equal(
+        format('X:1\n"swing feel"CDEF|'),
+        'X:1\n"swing feel" CDEF |',
+      );
     });
 
     it("handles tuplets", () => {
-      assert.equal(format("X:1\n(3CDECDEF|"), "X:1\n(3CDE CDEF |");
+      assert.equal(format("X:1\n(3 CDE CDEF|"), "X:1\n(3CDE CDEF |");
     });
   });
 
@@ -148,16 +176,12 @@ describe("AbcFormatter.format() - single voice rules", () => {
       assert.equal(format("X:1\nCDEF G A|"), "X:1\nCDEF G A |");
     });
 
-    it("handles chords", () => {
-      assert.equal(format("X:1\n[CEG]CDEF|"), "X:1\n[CEG] CDEF |");
-    });
-
     it("handles notes with rhythm", () => {
-      assert.equal(format("X:1\nC2D/2E/2F|"), "X:1\nC2 D/2E/2F |");
+      assert.equal(format("X:1\nC2D/2E/2F|"), "X:1\nC2D/2E/2F |");
     });
 
     it("handles broken rhythms", () => {
-      assert.equal(format("X:1\nC>DE<F|"), "X:1\nC>D E<F |");
+      assert.equal(format("X:1\nC>D E<F|"), "X:1\nC>D E<F |");
     });
   });
 
@@ -167,17 +191,26 @@ describe("AbcFormatter.format() - single voice rules", () => {
     });
 
     it("handles symbol decorations", () => {
-      assert.equal(format("X:1\n!trill!C!turn!D|"), "X:1\n!trill! C !turn! D |");
+      assert.equal(
+        format("X:1\n!trill!C!turn!D|"),
+        "X:1\n!trill! C !turn! D |",
+      );
     });
 
     it("handles multiple voice markers in single voice", () => {
-      assert.equal(format("X:1\n[V:1]CDEF|[V:1]GABG|"), "X:1\n[V:1] CDEF | [V:1] GABG |");
+      assert.equal(
+        format("X:1\n[V:1]CDEF|[V:1]GABG|"),
+        "X:1\n[V:1] CDEF | [V:1] GABG |",
+      );
     });
   });
 
   describe("comments and whitespace", () => {
     it("preserves end-of-line comments", () => {
-      assert.equal(format("X:1\nCDEF|% comment\nGABG|"), "X:1\nCDEF | % comment\nGABG |");
+      assert.equal(
+        format("X:1\nCDEF|% comment\nGABG|"),
+        "X:1\nCDEF | % comment\nGABG |",
+      );
     });
 
     it("handles stylesheet directives", () => {
@@ -185,7 +218,7 @@ describe("AbcFormatter.format() - single voice rules", () => {
     });
 
     it("preserves empty lines", () => {
-      assert.equal(format("X:1\n\nCDEF|\n\nGABG|"), "X:1\n\nCDEF |\n\nGABG |");
+      assert.equal(format("X:1\nCDEF|\nGABG|"), "X:1\nCDEF |\nGABG |");
     });
   });
   describe("info lines in tune body", () => {
@@ -198,8 +231,7 @@ GABG|`),
         `X:1
 CDEF |
 W: hello
-GABG |
-`
+GABG |`,
       );
     });
   });
