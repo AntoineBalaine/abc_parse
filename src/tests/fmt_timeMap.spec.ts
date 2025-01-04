@@ -3,10 +3,10 @@ import { ABCContext } from "../parsers/Context";
 import { Parser } from "../parsers/Parser";
 import { Scanner } from "../parsers/Scanner";
 import { System } from "../types/types";
-import { TimeMapper } from "../Visitors/fmt/fmt_timeMapper";
-import { mapTimePoints } from "../Visitors/fmt/fmt_tmPts";
+import { mapTimePoints } from "../Visitors/fmt/fmt_timeMap";
 import { VoiceSplit } from "../Visitors/fmt/fmt_aligner";
 import { preprocessTune } from "../Visitors/fmt/fmt_rules_assignment";
+import { mapVoices } from "../Visitors/fmt/fmt_timeMapHelpers";
 
 describe("TimeMapper", () => {
   let ctx: ABCContext;
@@ -30,7 +30,7 @@ describe("TimeMapper", () => {
 
   function mapTime(input: string) {
     const system = parseSystem(input);
-    const voices: Array<VoiceSplit> = new TimeMapper().mapVoices(system);
+    const voices: Array<VoiceSplit> = mapVoices(system);
     return mapTimePoints(voices);
   }
 

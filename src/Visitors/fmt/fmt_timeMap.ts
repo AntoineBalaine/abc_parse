@@ -1,9 +1,9 @@
-import { isBarLine, isBeam, isChord, isMultiMeasureRest, isNote, isRest, isTuplet } from "../../helpers";
-import { Beam, Chord, Comment, Expr, Info_line, MultiMeasureRest, music_code, Note, Rest, Rhythm, Tuplet } from "../../types/Expr";
+import { isBarLine, isBeam, isChord, isMultiMeasureRest, isNote, isTuplet } from "../../helpers";
+import { Beam, Chord, Expr, MultiMeasureRest, Note, Rhythm, Tuplet } from "../../types/Expr";
 import { Token } from "../../types/token";
 import { System, TokenType } from "../../types/types";
 import { BarTimeMap, Location, VoiceSplit } from "./fmt_aligner";
-import { NodeID, TimeStamp } from "./fmt_timeMapper";
+import { NodeID, TimeStamp } from "./fmt_timeMapHelpers";
 
 interface BarAlignment {
   startNodes: Map<number, NodeID>; // voiceIdx -> startNodeId

@@ -4,8 +4,8 @@ import { Tune, Tune_Body } from "../../types/Expr";
 import { Token } from "../../types/token";
 import { System, TokenType } from "../../types/types";
 import { AbcFormatter } from "../Formatter";
-import { TimeStamp, NodeID, TimeMapper } from "./fmt_timeMapper";
-import { mapTimePoints } from "./fmt_tmPts";
+import { TimeStamp, NodeID, mapVoices } from "./fmt_timeMapHelpers";
+import { mapTimePoints } from "./fmt_timeMap";
 export type Location = { voiceIdx: number; nodeID: number };
 
 /**
@@ -50,7 +50,7 @@ export class SystemAligner {
   private align(systems: Tune_Body["sequence"]): Tune_Body["sequence"] {
     for (const system of systems) {
       // Split system into voices/noformat lines
-      const voiceSplits: Array<VoiceSplit> = new TimeMapper().mapVoices(system);
+      const voiceSplits: Array<VoiceSplit> = mapVoices(system);
 
       // Skip if no formattable content
       if (!this.hasFormattableContent(voiceSplits)) {

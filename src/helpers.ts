@@ -373,12 +373,6 @@ export function isTupletToken(pkd: Token) {
 /**
  * is voice marker
  */
-export function isVoiceMarker(e: tune_body_code): e is Info_line | Inline_field {
-  if (isInfo_line(e) && e.key.lexeme === "V:") {
-    return true;
-  } else if (isInline_field(e) && e.field.lexeme === "V:") {
-    return true;
-  } else {
-    return false;
-  }
+export function isVoiceMarker(node: Expr | Token): node is Info_line | Inline_field {
+  return (isInline_field(node) && node.field.lexeme === "V:") || (isInfo_line(node) && node.key.lexeme === "V:");
 }
