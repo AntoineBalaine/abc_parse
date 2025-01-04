@@ -34,49 +34,49 @@ export function isMusicCode(expr: Expr | Token): expr is Music_code {
   return expr instanceof Music_code;
 }
 
-export const isBeam = (expr: Expr | undefined | Token): expr is Beam => {
+export const isBeam = (expr: unknown): expr is Beam => {
   return expr instanceof Beam;
 };
-export const isNote = (expr: Expr | undefined | Token): expr is Note => {
+export const isNote = (expr: unknown): expr is Note => {
   return expr instanceof Note;
 };
-export const isBarLine = (expr: Expr | undefined | Token): expr is BarLine => {
+export const isBarLine = (expr: unknown): expr is BarLine => {
   return expr instanceof BarLine;
 };
-export const isAnnotation = (expr: Expr | undefined | Token): expr is Annotation => {
+export const isAnnotation = (expr: unknown): expr is Annotation => {
   return expr instanceof Annotation;
 };
-export const isGraceGroup = (expr: Expr | undefined | Token): expr is Grace_group => {
+export const isGraceGroup = (expr: unknown): expr is Grace_group => {
   return expr instanceof Grace_group;
 };
-export const isNthRepeat = (expr: Expr | undefined | Token): expr is Nth_repeat => {
+export const isNthRepeat = (expr: unknown): expr is Nth_repeat => {
   return expr instanceof Nth_repeat;
 };
-export const isInline_field = (expr: Expr | undefined | Token): expr is Inline_field => {
+export const isInline_field = (expr: unknown): expr is Inline_field => {
   return expr instanceof Inline_field;
 };
-export const isChord = (expr: Expr | undefined | Token): expr is Chord => {
+export const isChord = (expr: unknown): expr is Chord => {
   return expr instanceof Chord;
 };
-export const isSymbol = (expr: Expr | undefined | Token): expr is Symbol => {
+export const isSymbol = (expr: unknown): expr is Symbol => {
   return expr instanceof Symbol;
 };
-export const isMultiMeasureRest = (expr: Expr | undefined | Token): expr is MultiMeasureRest => {
+export const isMultiMeasureRest = (expr: unknown): expr is MultiMeasureRest => {
   return expr instanceof MultiMeasureRest;
 };
-export const isComment = (expr: Expr | undefined | Token): expr is Comment => {
+export const isComment = (expr: unknown): expr is Comment => {
   return expr instanceof Comment;
 };
-export const isPitch = (expr: Expr | undefined | Token): expr is Pitch => {
+export const isPitch = (expr: unknown): expr is Pitch => {
   return expr instanceof Pitch;
 };
-export const isRhythm = (expr: Expr | undefined | Token): expr is Rhythm => {
+export const isRhythm = (expr: unknown): expr is Rhythm => {
   return expr instanceof Rhythm;
 };
-export const isRest = (expr: Expr | undefined | Token): expr is Rest => {
+export const isRest = (expr: unknown): expr is Rest => {
   return expr instanceof Rest;
 };
-export const isToken = (expr: Expr | undefined | Token): expr is Token => {
+export const isToken = (expr: unknown): expr is Token => {
   return expr instanceof Token;
 };
 export const isInfo_line = (expr: unknown): expr is Info_line => {
