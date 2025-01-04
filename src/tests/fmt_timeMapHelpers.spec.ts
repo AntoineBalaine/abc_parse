@@ -44,11 +44,15 @@ GABC|`);
   it("splits at EOL tokens", () => {
     const system = parseSystem(`
 X:1
+V:1
+V:2
+V:1
 CDEF|
+V:2
 GABC|`);
 
     const result = splitLines(system);
-    assert.equal(result.length, 2, "Should split into two lines");
+    assert.equal(result.length, 4, "Should split into two lines");
   });
 
   it("splits at comments", () => {

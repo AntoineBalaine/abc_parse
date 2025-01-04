@@ -9,7 +9,7 @@ interface VoiceSplit {
   content: System;
 }
 
-export function mapVoices(system: System): VoiceSplit[] {
+export function findFmtblLines(system: System): VoiceSplit[] {
   const splits = splitLines(system);
   return splits.map((split) => {
     if (isFormattableLine(split)) {
@@ -39,8 +39,9 @@ export function splitLines(system: System): System[] {
       currentSplit.push(node);
       splits.push(currentSplit);
       currentSplit = [];
+    } else {
+      currentSplit.push(node);
     }
-    currentSplit.push(node);
   }
 
   if (currentSplit.length > 0) {

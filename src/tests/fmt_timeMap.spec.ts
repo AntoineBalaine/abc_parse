@@ -6,7 +6,7 @@ import { System } from "../types/types";
 import { mapTimePoints } from "../Visitors/fmt/fmt_timeMap";
 import { VoiceSplit } from "../Visitors/fmt/fmt_aligner";
 import { preprocessTune } from "../Visitors/fmt/fmt_rules_assignment";
-import { mapVoices } from "../Visitors/fmt/fmt_timeMapHelpers";
+import { findFmtblLines } from "../Visitors/fmt/fmt_timeMapHelpers";
 
 describe("TimeMapper", () => {
   let ctx: ABCContext;
@@ -30,7 +30,7 @@ describe("TimeMapper", () => {
 
   function mapTime(input: string) {
     const system = parseSystem(input);
-    const voices: Array<VoiceSplit> = mapVoices(system);
+    const voices: Array<VoiceSplit> = findFmtblLines(system);
     return mapTimePoints(voices);
   }
 

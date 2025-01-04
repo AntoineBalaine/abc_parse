@@ -21,9 +21,6 @@ export function reconstructSystem(voiceSplits: VoiceSplit[]): System {
 
   return newSystem;
 }
-export function getFormattedVoice(split: VoiceSplit): System {
-  return split.type === "formatted" ? split.content : [];
-}
 
 export function findPaddingInsertionPoint(voice: System, nodeId: NodeID, startNodeId: NodeID): number {
   const nodeIdx = voice.findIndex((node) => "id" in node && node.id === nodeId);

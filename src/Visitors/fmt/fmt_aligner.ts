@@ -4,9 +4,9 @@ import { Tune, Tune_Body } from "../../types/Expr";
 import { Token } from "../../types/token";
 import { System, TokenType } from "../../types/types";
 import { AbcFormatter } from "../Formatter";
-import { TimeStamp, NodeID, mapVoices } from "./fmt_timeMapHelpers";
+import { TimeStamp, NodeID, findFmtblLines } from "./fmt_timeMapHelpers";
 import { mapTimePoints } from "./fmt_timeMap";
-import { getFormattedVoice } from "./fmt_alignerHelpers";
+
 export type Location = { voiceIdx: number; nodeID: number };
 
 /**
@@ -51,7 +51,7 @@ export class SystemAligner {
   private align(systems: Tune_Body["sequence"]): Tune_Body["sequence"] {
     return systems.map((system) => {
       // Split system into voices/noformat lines
-      const voiceSplits: Array<VoiceSplit> = mapVoices(system);
+      let voiceSplits: Array<VoiceSplit> = findFmtblLines(system);
 
       // Skip if no formattable content
 
@@ -60,33 +60,34 @@ export class SystemAligner {
       }
 
       // Get bar-based alignment points
-      const barArray = mapTimePoints(voiceSplits);
+      const barTimeMaps = mapTimePoints(voiceSplits);
 
       // Process each bar
-      for (const bar of barArray) {
-        this.alignBar(voiceSplits, bar);
+      for (const barTimeMap of barTimeMaps) {
+        voiceSplits = this.alignBar(voiceSplits, barTimeMap);
       }
 
       // Reconstruct system from aligned voices
-      return this.reconstructSystem(voiceSplits);
+
+      return voiceSplits.flatMap((split) => split.content);
     });
   }
 
-  private alignBar(voiceSplits: VoiceSplit[], bar: BarAlignment) {
+  private alignBar(voiceSplits: VoiceSplit[], barTimeMap: BarAlignment): VoiceSplit[] {
     // Get sorted timestamps
-    const timeStamps = Array.from(bar.map.keys()).sort((a, b) => a - b);
+    const timeStamps = Array.from(barTimeMap.map.keys()).sort((a, b) => a - b);
 
     // Process each time point
     for (const timeStamp of timeStamps) {
-      const locations = bar.map.get(timeStamp)!;
+      const locations = barTimeMap.map.get(timeStamp)!;
 
       // new map with locations, start node and stringified content between startNode and current node
       const locsWithStrings = locations.map((loc) => {
-        const startNode = bar.startNodes.get(loc.voiceIdx)!;
-        const voice = getFormattedVoice(voiceSplits[loc.voiceIdx]);
+        const startNode = barTimeMap.startNodes.get(loc.voiceIdx)!;
+        const voice = voiceSplits[loc.voiceIdx].content;
 
         // Get string representation between start and current
-        const str = this.getStringBetweenNodes(voice, startNode, loc.nodeID);
+        const str = this.stringifyVoiceSlice(voice, startNode, loc.nodeID);
 
         return {
           str,
@@ -102,39 +103,21 @@ export class SystemAligner {
       for (const location of locsWithStrings) {
         if (location.str.length < maxLen) {
           const padding = maxLen - location.str.length;
-          const voice = getFormattedVoice(voiceSplits[location.voiceIdx]);
 
           // Find insertion point
-          const insertAt = this.findPaddingInsertionPoint(voice, location.nodeID, location.startNode);
+          const insertIdx = this.findPaddingInsertionPoint(voiceSplits[location.voiceIdx].content, location.nodeID, location.startNode);
 
           // Insert padding
-          if (insertAt !== -1) {
-            voice.splice(insertAt + 1, 0, new Token(TokenType.WHITESPACE, " ".repeat(padding), null, -1, -1, this.ctx));
+          if (insertIdx !== -1) {
+            voiceSplits[location.voiceIdx].content.splice(insertIdx, 0, new Token(TokenType.WHITESPACE, " ".repeat(padding), null, -1, -1, this.ctx));
           }
         }
       }
     }
-  }
-  private reconstructSystem(voiceSplits: VoiceSplit[]): System {
-    const newSystem: System = [];
-
-    for (const split of voiceSplits) {
-      switch (split.type) {
-        case "formatted":
-          // Add aligned voice content
-          newSystem.push(...split.content);
-          break;
-        case "noformat":
-          // Preserve unformatted lines as-is
-          newSystem.push(...split.content);
-          break;
-      }
-    }
-
-    return newSystem;
+    return voiceSplits;
   }
 
-  private getStringBetweenNodes(voice: System, startId: NodeID, endId: NodeID): string {
+  private stringifyVoiceSlice(voice: System, startId: NodeID, endId: NodeID): string {
     const startIdx = voice.findIndex((node) => node.id === startId);
     const endIdx = voice.findIndex((node) => node.id === endId);
 
