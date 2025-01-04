@@ -305,9 +305,9 @@ X:1
 V:1
 V:2
 V:1
-!p!C{ag}D | GABC |
+!p! C{ag}D | GABC |
 V:2
-CDEF      | GABC |`
+    CDEF   | GABC |`
       );
     });
 
@@ -353,7 +353,7 @@ V:2
 V:1
 (3CDECDEF | GABC |
 V:2
-CDEF      | GABC |`
+  CDEF    | GABC |`
       );
     });
   });
@@ -390,9 +390,9 @@ X:1
 V:1
 V:2
 V:1
-CDEF||GABC|
+CDEF| |GABC|
 V:2
-CDEF||GABC|`);
+CDEF| |GABC|`);
 
       assert.equal(
         result,
@@ -412,6 +412,7 @@ CDEF | | GABC |`
 X:1
 V:1
 V:2
+V:3
 V:1
 CDEF|GABC|
 V:2
@@ -425,6 +426,7 @@ CDEF|`);
 X:1
 V:1
 V:2
+V:3
 V:1
 CDEF | GABC |
 V:2
@@ -476,9 +478,9 @@ X:1
 V:1
 V:2
 V:1
-CDEF GABC | CDEF |
+CDEF  GABC | CDEF |
 V:2
-CD EF GA  | CDEF |`
+CD EF GA   | CDEF |`
       );
     });
   });
