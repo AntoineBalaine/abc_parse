@@ -6,6 +6,7 @@ import { System, TokenType } from "../../types/types";
 import { AbcFormatter } from "../Formatter";
 import { TimeStamp, NodeID, mapVoices } from "./fmt_timeMapHelpers";
 import { mapTimePoints } from "./fmt_timeMap";
+import { getFormattedVoice } from "./fmt_alignerHelpers";
 export type Location = { voiceIdx: number; nodeID: number };
 
 /**
@@ -53,7 +54,8 @@ export class SystemAligner {
       const voiceSplits: Array<VoiceSplit> = mapVoices(system);
 
       // Skip if no formattable content
-      if (!this.hasFormattableContent(voiceSplits)) {
+
+      if (!voiceSplits.some((split) => split.type === "formatted")) {
         return system;
       }
 
@@ -81,7 +83,7 @@ export class SystemAligner {
       // new map with locations, start node and stringified content between startNode and current node
       const locsWithStrings = locations.map((loc) => {
         const startNode = bar.startNodes.get(loc.voiceIdx)!;
-        const voice = this.getFormattedVoice(voiceSplits[loc.voiceIdx]);
+        const voice = getFormattedVoice(voiceSplits[loc.voiceIdx]);
 
         // Get string representation between start and current
         const str = this.getStringBetweenNodes(voice, startNode, loc.nodeID);
@@ -100,7 +102,7 @@ export class SystemAligner {
       for (const location of locsWithStrings) {
         if (location.str.length < maxLen) {
           const padding = maxLen - location.str.length;
-          const voice = this.getFormattedVoice(voiceSplits[location.voiceIdx]);
+          const voice = getFormattedVoice(voiceSplits[location.voiceIdx]);
 
           // Find insertion point
           const insertAt = this.findPaddingInsertionPoint(voice, location.nodeID, location.startNode);
@@ -164,13 +166,5 @@ export class SystemAligner {
     }
 
     return idx;
-  }
-
-  private getFormattedVoice(split: VoiceSplit): System {
-    return split.type === "formatted" ? split.content : [];
-  }
-
-  private hasFormattableContent(splits: VoiceSplit[]): boolean {
-    return splits.some((split) => split.type === "formatted");
   }
 }

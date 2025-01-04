@@ -1,5 +1,5 @@
-import { isBarLine, isBeam, isComment, isInfo_line, isNote, isVoiceMarker } from "../../helpers";
-import { System } from "../../types/types";
+import { isBarLine, isBeam, isChord, isComment, isInfo_line, isMultiMeasureRest, isNote, isToken, isVoiceMarker } from "../../helpers";
+import { System, TokenType } from "../../types/types";
 
 export type NodeID = number;
 export type TimeStamp = number;
@@ -10,7 +10,7 @@ interface VoiceSplit {
 }
 
 export function mapVoices(system: System): VoiceSplit[] {
-  const splits = splitSystem(system);
+  const splits = splitLines(system);
   return splits.map((split) => {
     if (isFormattableLine(split)) {
       return {
@@ -26,16 +26,19 @@ export function mapVoices(system: System): VoiceSplit[] {
   });
 }
 
-function splitSystem(system: System): System[] {
+export function splitLines(system: System): System[] {
   const splits: System[] = [];
   let currentSplit: System = [];
 
   for (const node of system) {
-    if (isVoiceMarker(node) || isInfo_line(node) || isComment(node)) {
-      if (currentSplit.length > 0) {
-        splits.push(currentSplit);
-        currentSplit = [];
-      }
+    if (
+      // isInfo_line(node) ||
+      isToken(node) &&
+      node.type === TokenType.EOL
+    ) {
+      currentSplit.push(node);
+      splits.push(currentSplit);
+      currentSplit = [];
     }
     currentSplit.push(node);
   }
@@ -46,8 +49,7 @@ function splitSystem(system: System): System[] {
 
   return splits;
 }
-
 function isFormattableLine(line: System): boolean {
   // Check if line contains music content that needs formatting
-  return line.some((node) => isNote(node) || isBeam(node) || isBarLine(node));
+  return line.some((node) => isNote(node) || isBeam(node) || isBarLine(node) || isMultiMeasureRest(node) || isChord(node));
 }
