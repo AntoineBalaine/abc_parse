@@ -1,12 +1,4 @@
-import {
-  isBarLine,
-  isBeam,
-  isComment,
-  isInfo_line,
-  isInline_field,
-  isMultiMeasureRest,
-  isNote,
-} from "../../helpers";
+import { isBarLine, isBeam, isComment, isInfo_line, isInline_field, isMultiMeasureRest, isNote } from "../../helpers";
 import { Beam, Expr, MultiMeasureRest, Note, Rhythm } from "../../types/Expr";
 import { Token } from "../../types/token";
 import { System, TokenType } from "../../types/types";
@@ -31,7 +23,8 @@ export class TimeMapper {
       if (this.isFormattableLine(split)) {
         return {
           type: "formatted",
-          content: this.mapFormattedVoice(split),
+          content: split,
+          // content: this.mapFormattedVoice(split),
         };
       } else {
         return {
@@ -159,10 +152,7 @@ export class TimeMapper {
       duration /= parseInt(rhythm.denominator.lexeme);
     }
     if (rhythm.broken) {
-      duration =
-        rhythm.broken.type === TokenType.GREATER
-          ? duration * 1.5
-          : duration * 0.5;
+      duration = rhythm.broken.type === TokenType.GREATER ? duration * 1.5 : duration * 0.5;
     }
 
     return duration;
@@ -175,10 +165,7 @@ export class TimeMapper {
   }
 
   private isVoiceMarker(node: Expr | Token): boolean {
-    return (
-      (isInline_field(node) && node.field.lexeme === "V:") ||
-      (isInfo_line(node) && node.key.lexeme === "V:")
-    );
+    return (isInline_field(node) && node.field.lexeme === "V:") || (isInfo_line(node) && node.key.lexeme === "V:");
   }
 
   private isInfoLine(node: Expr | Token): boolean {
