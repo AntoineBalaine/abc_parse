@@ -126,6 +126,9 @@ export class Info_line extends Expr {
       this.value = [];
       return;
     }
+    if (this.key.lexeme.trim() === "V:") {
+      result = result.trim().split(" ")[0];
+    }
     let value = Array<Token>();
     value.push(new Token(TokenType.STRING, result, null, tokens[0].line, tokens[0].position, ctx));
     if (tokens[index].type === TokenType.COMMENT) {

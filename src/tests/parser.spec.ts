@@ -108,12 +108,31 @@ describe("Parser", () => {
           expect(infoLine2.value[0].lexeme).to.equal("Some info here\n+:More info");
         }
       });
-      it("parse correct number of voices", () => {
+
+      it("parse correct number of voices - numbered voice labels", () => {
+        const ctx = new ABCContext();
+        const source = `
+X:1
+V:1
+V:2
+V:1
+CDEF|GABC|
+V:2
+CDEF|GABC|`;
+
+        // const fmtHeader = tuneHeader(source);
+        const scan = new Scanner(source, ctx).scanTokens();
+        const parse = new Parser(scan, ctx).parse();
+        if (!parse) {
+          throw new Error("failed multi voice parse");
+        }
+        expect(parse!.tune[0].tune_header.voices.length).to.equal(2);
+        expect(isInfo_line(parse!.tune[0].tune_body!.sequence[0][0])).to.be.true;
+      });
+      it("parse correct number of voices - custom voice labels", () => {
         const ctx = new ABCContext();
         const result = buildParse(
-          `X:1
-P:1
-V:RH clef=treble
+          `V:RH clef=treble
 V:LH clef=bass
 V:RH
 Z4|

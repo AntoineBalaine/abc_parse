@@ -572,11 +572,11 @@ COLON_DBL NUMBER
    * else return false
    * */
   private isVoicesLegend(voices: Array<string>) {
-    let i = this.current;
+    let i = this.current + 1;
     let voice_tokens: Array<Token> = [];
     while (i < this.tokens.length && this.tokens[i].type !== TokenType.EOL) {
-      i++;
       voice_tokens.push(this.tokens[i]);
+      i++;
     }
     const voice_legend = voice_tokens
       .map((token) => token.lexeme)
