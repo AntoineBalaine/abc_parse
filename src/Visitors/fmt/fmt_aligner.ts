@@ -48,13 +48,13 @@ export class SystemAligner {
   }
 
   private align(systems: Tune_Body["sequence"]): Tune_Body["sequence"] {
-    for (const system of systems) {
+    return systems.map((system) => {
       // Split system into voices/noformat lines
       const voiceSplits: Array<VoiceSplit> = mapVoices(system);
 
       // Skip if no formattable content
       if (!this.hasFormattableContent(voiceSplits)) {
-        continue;
+        return system;
       }
 
       // Get bar-based alignment points
@@ -64,8 +64,10 @@ export class SystemAligner {
       for (const bar of barArray) {
         this.alignBar(voiceSplits, bar);
       }
-    }
-    return systems;
+
+      // Reconstruct system from aligned voices
+      return this.reconstructSystem(voiceSplits);
+    });
   }
 
   private alignBar(voiceSplits: VoiceSplit[], bar: BarAlignment) {
@@ -76,7 +78,7 @@ export class SystemAligner {
     for (const timeStamp of timeStamps) {
       const locations = bar.map.get(timeStamp)!;
 
-      // Calculate strings and lengths for each location
+      // new map with locations, start node and stringified content between startNode and current node
       const locsWithStrings = locations.map((loc) => {
         const startNode = bar.startNodes.get(loc.voiceIdx)!;
         const voice = this.getFormattedVoice(voiceSplits[loc.voiceIdx]);
@@ -95,13 +97,13 @@ export class SystemAligner {
       const maxLen = Math.max(...locsWithStrings.map((l) => l.str.length));
 
       // Add padding where needed
-      for (const loc of locsWithStrings) {
-        if (loc.str.length < maxLen) {
-          const padding = maxLen - loc.str.length;
-          const voice = this.getFormattedVoice(voiceSplits[loc.voiceIdx]);
+      for (const location of locsWithStrings) {
+        if (location.str.length < maxLen) {
+          const padding = maxLen - location.str.length;
+          const voice = this.getFormattedVoice(voiceSplits[location.voiceIdx]);
 
           // Find insertion point
-          const insertAt = this.findPaddingInsertionPoint(voice, loc.nodeID, loc.startNode);
+          const insertAt = this.findPaddingInsertionPoint(voice, location.nodeID, location.startNode);
 
           // Insert padding
           if (insertAt !== -1) {
@@ -110,6 +112,24 @@ export class SystemAligner {
         }
       }
     }
+  }
+  private reconstructSystem(voiceSplits: VoiceSplit[]): System {
+    const newSystem: System = [];
+
+    for (const split of voiceSplits) {
+      switch (split.type) {
+        case "formatted":
+          // Add aligned voice content
+          newSystem.push(...split.content);
+          break;
+        case "noformat":
+          // Preserve unformatted lines as-is
+          newSystem.push(...split.content);
+          break;
+      }
+    }
+
+    return newSystem;
   }
 
   private getStringBetweenNodes(voice: System, startId: NodeID, endId: NodeID): string {
