@@ -9,7 +9,6 @@ export enum SpcRul {
   FOLLOW_SPC,
   NO_SPC,
   PRECEDE_SPC,
-  SURROUND_SPC,
 }
 
 export function resolveRules(ast: File_structure, ctx: ABCContext) {
@@ -129,7 +128,6 @@ export function resolveSystem(ruleMap: Map<Expr | Token, SpcRul>, system: System
 
     // Resolve spacing between current and next node
     switch (currentRules) {
-      case SpcRul.SURROUND_SPC:
       case SpcRul.PRECEDE_SPC: {
         const prevNode = i > 0 ? system[i - 1] : null;
 

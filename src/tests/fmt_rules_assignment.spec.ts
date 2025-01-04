@@ -16,7 +16,7 @@ function buildTune(input: string) {
   return ast!.tune[0];
 }
 
-describe.skip("Rules Assignment", () => {
+describe("Rules Assignment", () => {
   let ctx: ABCContext;
 
   beforeEach(() => {
@@ -32,7 +32,7 @@ describe.skip("Rules Assignment", () => {
       tune.tune_body!.sequence[0].forEach((node) => {
         if (isNote(node) || isBarLine(node)) {
           const rules = ruleMap.get(node);
-          assert.isTrue(!!rules && rules === SpcRul.SURROUND_SPC);
+          assert.isTrue(!!rules && rules === SpcRul.PRECEDE_SPC);
         }
       });
     });
@@ -57,7 +57,7 @@ CDEF|GABC|CDEF|GABC|
       assert.isAbove(rests.length, 1, "Multi-measure rest should be expanded");
       rests.forEach((rest) => {
         const rules = ruleMap.get(rest);
-        assert.isTrue(!!rules && rules === SpcRul.SURROUND_SPC);
+        assert.isTrue(!!rules && rules === SpcRul.PRECEDE_SPC);
       });
     });
 
@@ -70,7 +70,7 @@ CDEF|GABC|CDEF|GABC|
       tune.tune_body!.sequence[0].forEach((node) => {
         if (isToken(node) && (node.type === TokenType.LEFTPAREN || node.type === TokenType.RIGHT_PAREN)) {
           const rules = ruleMap.get(node);
-          assert.isTrue(!!rules && rules === SpcRul.SURROUND_SPC);
+          assert.isTrue(!!rules && rules === SpcRul.NO_SPC);
         }
       });
     });
@@ -84,7 +84,7 @@ CDEF|GABC|CDEF|GABC|
       tune.tune_body!.sequence[0].forEach((node) => {
         if (node.constructor.name === "Decoration") {
           const rules = ruleMap.get(node);
-          assert.isTrue(!!rules && rules === SpcRul.SURROUND_SPC);
+          assert.isTrue(!!rules && rules === SpcRul.PRECEDE_SPC);
         }
       });
     });
@@ -98,7 +98,7 @@ CDEF|GABC|CDEF|GABC|
       tune.tune_body!.sequence[0].forEach((node) => {
         if (node.constructor.name === "Inline_field") {
           const rules = ruleMap.get(node);
-          assert.isTrue(!!rules && rules === SpcRul.SURROUND_SPC);
+          assert.isTrue(!!rules && rules === SpcRul.PRECEDE_SPC);
         }
       });
     });
@@ -112,7 +112,7 @@ CDEF|GABC|CDEF|GABC|
       tune.tune_body!.sequence[0].forEach((node) => {
         if (node.constructor.name === "Beam") {
           const rules = ruleMap.get(node);
-          assert.isTrue(!!rules && rules === SpcRul.SURROUND_SPC);
+          assert.isTrue(!!rules && rules === SpcRul.PRECEDE_SPC);
         }
       });
     });
@@ -126,7 +126,7 @@ CDEF|GABC|CDEF|GABC|
       tune.tune_body!.sequence[0].forEach((node) => {
         if (node.constructor.name === "Grace_group") {
           const rules = ruleMap.get(node);
-          assert.isTrue(!!rules && rules === SpcRul.SURROUND_SPC);
+          assert.isTrue(!!rules && rules === SpcRul.PRECEDE_SPC);
         }
       });
     });
