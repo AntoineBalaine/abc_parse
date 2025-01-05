@@ -7,6 +7,7 @@ import { mapTimePoints } from "../Visitors/fmt/fmt_timeMap";
 import { VoiceSplit } from "../Visitors/fmt/fmt_aligner";
 import { preprocessTune } from "../Visitors/fmt/fmt_rules_assignment";
 import { findFmtblLines } from "../Visitors/fmt/fmt_timeMapHelpers";
+import { isBeam, isNote } from "../helpers";
 
 describe("TimeMapper", () => {
   let ctx: ABCContext;
@@ -204,6 +205,40 @@ CD EF GA|CDEF|`);
       // First and last points should align between voices
       assert.equal(bar1.map.get(timePoints[0])!.length, 2, "Start should align");
       assert.equal(bar1.map.get(timePoints[timePoints.length - 1])!.length, 2, "End should align");
+    });
+  });
+
+  it("correctly maps time points when bar starts with annotation", () => {
+    const system = parseSystem(`
+X:1
+V:1
+V:2
+V:1
+"hello" CDEF | GABC |
+V:2
+CDEF | GABC |`);
+
+    // Split into formatted/non-formatted content
+    const voiceSplits = findFmtblLines(system);
+
+    // Map to bar-based time points
+    const barTimePoints = mapTimePoints(voiceSplits);
+
+    // Check first bar
+    const firstBar = barTimePoints[0];
+    const timePoints = Array.from(firstBar.map.keys()).sort();
+
+    assert.equal(timePoints.length, 1, "Should have one time point for first bar");
+
+    // Get locations at this time point
+    const locations = firstBar.map.get(timePoints[0])!;
+    assert.equal(locations.length, 2, "Both voices should have a time point");
+
+    // Verify we've mapped the first notes (CDEF) in each voice
+    locations.forEach((loc) => {
+      const voice = voiceSplits[loc.voiceIdx].content;
+      const node = voice.find((n) => n.id === loc.nodeID);
+      assert.isTrue(isNote(node) || isBeam(node), "Should be the note/beam containing CDEF");
     });
   });
 });

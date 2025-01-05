@@ -100,9 +100,6 @@ export function isDecoration(expr: unknown): expr is Decoration {
 export function isTuplet(expr: unknown): expr is Tuplet {
   return expr instanceof Tuplet;
 }
-export function isGrace_group(expr: unknown): expr is Grace_group {
-  return expr instanceof Grace_group;
-}
 export function isNth_repeat(expr: unknown): expr is Nth_repeat {
   return expr instanceof Nth_repeat;
 }

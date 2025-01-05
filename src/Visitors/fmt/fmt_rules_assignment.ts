@@ -1,4 +1,4 @@
-import { isBeam, isDecoration, isMultiMeasureRest, isNote, isToken, isYSPACER } from "../../helpers";
+import { isBeam, isChord, isDecoration, isGraceGroup, isMultiMeasureRest, isNote, isToken, isYSPACER } from "../../helpers";
 import { ABCContext } from "../../parsers/Context";
 import { BarLine, Expr, File_structure, MultiMeasureRest, Tune, Tune_Body } from "../../types/Expr";
 import { Token } from "../../types/token";
@@ -152,7 +152,11 @@ function noPrev(prev: Expr | Token | null, cur: Expr | Token): boolean {
     !prev || // start of input
     (isToken(prev) && prev.type === TokenType.EOL) || // start of line
     (isDecoration(prev) && isNote(cur)) ||
+    (isDecoration(prev) && isChord(cur)) ||
     (isDecoration(prev) && isDecoration(cur)) ||
-    (isDecoration(prev) && isBeam(cur))
+    (isDecoration(prev) && isBeam(cur)) ||
+    (isGraceGroup(prev) && isNote(cur)) ||
+    (isGraceGroup(prev) && isBeam(cur)) ||
+    (isGraceGroup(prev) && isChord(cur))
   );
 }
