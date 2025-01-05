@@ -130,32 +130,48 @@ function getBarMap(voiceSplits: VoiceSplit[]): Map<number, BarLocation[]> {
 export function equalizeBarLengths(voiceSplits: Array<VoiceSplit>, ctx: ABCContext, stringifyVisitor: AbcFormatter): Array<VoiceSplit> {
   const barMap = getBarMap(voiceSplits);
 
-  barMap.forEach((locations, barNum) => {
-    // Get string length for each voice's bar
-    const barLengths = locations.map((loc) => {
-      const voice = voiceSplits[loc.voiceIdx].content;
-      const barContent = voice
-        .slice(loc.startIdx + 1, loc.endIdx + 1)
-        // Filter out EOL tokens before calculating length
-        .filter((node) => !(isToken(node) && node.type === TokenType.EOL));
-      return {
-        ...loc,
-        length: barContent.map((node) => stringifyVisitor.stringify(node)).join("").length,
-      };
-    });
-
-    // Find maximum length
-    const maxLen = Math.max(...barLengths.map((b) => b.length));
-
-    // Add padding where needed
-    barLengths.forEach(({ voiceIdx, endIdx, length }) => {
-      if (length < maxLen) {
-        const paddingLen = maxLen - length;
-        // Insert padding before bar end
-        const padding = new Token(TokenType.WHITESPACE, " ".repeat(paddingLen), null, -1, -1, ctx);
-        voiceSplits[voiceIdx].content.splice(endIdx, 0, padding);
-      }
-    });
+  // Get last bar number for each voice
+  const lastBarsPerVoice = new Map<number, number>();
+  voiceSplits.forEach((split, voiceIdx) => {
+    if (split.type === "formatted") {
+      const barIndexes = getBarsIndexes(split.content);
+      lastBarsPerVoice.set(voiceIdx, barIndexes.length - 1);
+    }
   });
+
+  // Process bars in reverse order
+  Array.from(barMap.keys())
+    .sort((a, b) => b - a)
+    .forEach((barNum) => {
+      const locations = barMap.get(barNum)!;
+
+      const barLengths = locations.map((loc) => {
+        // Skip if this is the last bar for this voice
+        if (lastBarsPerVoice.get(loc.voiceIdx) === barNum) {
+          return { ...loc, length: 0, isLastBar: true };
+        }
+
+        const voice = voiceSplits[loc.voiceIdx].content;
+        const barContent = voice.slice(loc.startIdx + 1, loc.endIdx + 1).filter((node) => !(isToken(node) && node.type === TokenType.EOL));
+        return {
+          ...loc,
+          length: barContent.map((node) => stringifyVisitor.stringify(node)).join("").length,
+          isLastBar: false,
+        };
+      });
+
+      // Only consider lengths of non-last bars for max length
+      const maxLen = Math.max(...barLengths.filter((b) => !b.isLastBar).map((b) => b.length));
+
+      // Add padding where needed (skip last bars)
+      barLengths.forEach(({ voiceIdx, endIdx, length, isLastBar }) => {
+        if (!isLastBar && length < maxLen) {
+          const paddingLen = maxLen - length;
+          const padding = new Token(TokenType.WHITESPACE, " ".repeat(paddingLen), null, -1, -1, ctx);
+          voiceSplits[voiceIdx].content.splice(endIdx, 0, padding);
+        }
+      });
+    });
+
   return voiceSplits;
 }

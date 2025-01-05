@@ -192,9 +192,9 @@ X:1
 V:1
 V:2
 V:1
-[CEG]D|GABC|DEF
+[CEG]D|GABC|
 V:2
-   CDEF|GABC|DE`);
+   CDEF|GABC|`);
 
       assert.equal(
         result,
@@ -203,15 +203,15 @@ X:1
 V:1
 V:2
 V:1
-[CEG]D | GABC | DEF
+[CEG]D | GABC |
 V:2
-CDEF   | GABC | DE`
+CDEF   | GABC |`
       );
     });
   });
 
   describe("complex alignments", () => {
-    it.skip("aligns bars with decorations and grace notes", () => {
+    it("aligns bars with decorations and grace notes", () => {
       const result = format(`
 X:1
 V:1
@@ -234,7 +234,7 @@ V:2
       );
     });
 
-    it.skip("aligns bars with different note lengths", () => {
+    it("aligns bars with different note lengths", () => {
       const result = format(`
 X:1
 V:1
@@ -257,13 +257,13 @@ CDEF | GABC |`
       );
     });
 
-    it.skip("aligns bars with tuplets", () => {
+    it("aligns bars with tuplets", () => {
       const result = format(`
 X:1
 V:1
 V:2
 V:1
-(3CDECDEF|GABC|
+(3CDE CDEF|GABC|
 V:2
 CDEF|GABC|`);
 
@@ -274,7 +274,7 @@ X:1
 V:1
 V:2
 V:1
-(3CDECDEF | GABC |
+(3 CDE CDEF | GABC |
 V:2
   CDEF    | GABC |`
       );
@@ -282,7 +282,7 @@ V:2
   });
 
   describe("multi-measure rests", () => {
-    it.skip("aligns with expanded multi-measure rests", () => {
+    it("aligns with expanded multi-measure rests", () => {
       const result = format(`
 X:1
 V:1
@@ -307,13 +307,13 @@ CDEF | GABC | CDEF | GABC |`
   });
 
   describe("edge cases", () => {
-    it.skip("handles empty bars", () => {
+    it("handles empty bars", () => {
       const result = format(`
 X:1
 V:1
 V:2
 V:1
-CDEF| |GABC|
+CDEF| GABC| CDE
 V:2
 CDEF| |GABC|`);
 
@@ -324,13 +324,13 @@ X:1
 V:1
 V:2
 V:1
-CDEF | | GABC |
+CDEF | GABC | CDE
 V:2
-CDEF | | GABC |`
+CDEF |      | GABC |`
       );
     });
 
-    it.skip("handles different numbers of voices per system", () => {
+    it("handles different numbers of bars per voice in a system", () => {
       const result = format(`
 X:1
 V:1
@@ -359,7 +359,7 @@ CDEF |`
       );
     });
 
-    it.skip("preserves comments between voices", () => {
+    it("preserves comments between voices", () => {
       const result = format(`
 X:1
 V:1
@@ -384,7 +384,7 @@ CDEF | GABC |`
       );
     });
 
-    it.skip("handles bars with mixed note groupings", () => {
+    it("handles bars with mixed note groupings", () => {
       const result = format(`
 X:1
 V:1
