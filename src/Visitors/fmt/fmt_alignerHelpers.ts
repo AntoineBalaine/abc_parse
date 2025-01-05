@@ -93,10 +93,6 @@ interface BarLocation {
   voiceIdx: number;
 }
 
-interface BarMap {
-  [barNumber: number]: BarLocation[];
-}
-
 /** returns a map of KVs where the K is a bar number,
  * and the V is the location of the bar start node:
  * start idx, end idx, voice idx.
@@ -138,7 +134,10 @@ export function equalizeBarLengths(voiceSplits: Array<VoiceSplit>, ctx: ABCConte
     // Get string length for each voice's bar
     const barLengths = locations.map((loc) => {
       const voice = voiceSplits[loc.voiceIdx].content;
-      const barContent = voice.slice(loc.startIdx + 1, loc.endIdx + 1);
+      const barContent = voice
+        .slice(loc.startIdx + 1, loc.endIdx + 1)
+        // Filter out EOL tokens before calculating length
+        .filter((node) => !(isToken(node) && node.type === TokenType.EOL));
       return {
         ...loc,
         length: barContent.map((node) => stringifyVisitor.stringify(node)).join("").length,
