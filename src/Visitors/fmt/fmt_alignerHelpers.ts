@@ -1,6 +1,9 @@
-import { isToken } from "../../helpers";
+import { isBarLine, isToken } from "../../helpers";
+import { ABCContext } from "../../parsers/Context";
+import { Token } from "../../types/token";
 import { System, TokenType } from "../../types/types";
-import { VoiceSplit } from "./fmt_aligner";
+import { AbcFormatter } from "../Formatter";
+import { BarAlignment, Location, VoiceSplit } from "./fmt_aligner";
 import { NodeID } from "./fmt_timeMapHelpers";
 
 export function reconstructSystem(voiceSplits: VoiceSplit[]): System {
@@ -42,4 +45,118 @@ export function findPaddingInsertionPoint(voice: System, nodeId: NodeID, startNo
   }
 
   return idx;
+}
+/**
+ * Returns a fn for use in map() that creates a location object with stringified content between start and current node.
+ */
+export function createLocationMapper(voiceSplits: VoiceSplit[], barTimeMap: BarAlignment, stringifyVisitor: AbcFormatter) {
+  return (loc: Location) => {
+    const startNode = barTimeMap.startNodes.get(loc.voiceIdx)!;
+    const voice = voiceSplits[loc.voiceIdx].content;
+
+    // Get string representation between start and current
+    const str = stringifyVoiceSlice(voice, startNode, loc.nodeID, stringifyVisitor);
+
+    return {
+      str,
+      startNode,
+      ...loc,
+    };
+  };
+}
+export function stringifyVoiceSlice(voice: System, startId: NodeID, endId: NodeID, stringifyVisitor: AbcFormatter): string {
+  const startIdx = voice.findIndex((node) => node.id === startId);
+  const endIdx = voice.findIndex((node) => node.id === endId);
+
+  if (startIdx === -1 || endIdx === -1) {
+    return "";
+  }
+
+  const segment = voice.slice(startIdx, endIdx);
+  return segment.map((node) => stringifyVisitor.stringify(node)).join("");
+}
+
+function getBarsIndexes(voice: System): number[] {
+  const bars: Array<number> = [-1];
+
+  voice.forEach((node, idx) => {
+    if (isBarLine(node)) {
+      bars.push(idx);
+    }
+  });
+  return bars;
+}
+
+interface BarLocation {
+  startIdx: number;
+  endIdx: number;
+  voiceIdx: number;
+}
+
+interface BarMap {
+  [barNumber: number]: BarLocation[];
+}
+
+/** returns a map of KVs where the K is a bar number,
+ * and the V is the location of the bar start node:
+ * start idx, end idx, voice idx.
+ */
+function getBarMap(voiceSplits: VoiceSplit[]): Map<number, BarLocation[]> {
+  const barMap = new Map<number, BarLocation[]>();
+
+  voiceSplits.forEach((split, voiceIdx) => {
+    if (split.type !== "formatted") {
+      return;
+    }
+
+    const barIndexes = getBarsIndexes(split.content);
+
+    // For each bar
+    for (let barNum = 0; barNum < barIndexes.length; barNum++) {
+      const startIdx = barIndexes[barNum];
+      const endIdx = barIndexes[barNum + 1] ?? split.content.length;
+
+      if (!barMap.has(barNum)) {
+        barMap.set(barNum, []);
+      }
+
+      barMap.get(barNum)!.push({
+        startIdx,
+        endIdx,
+        voiceIdx,
+      });
+    }
+  });
+
+  return barMap;
+}
+
+export function equalizeBarLengths(voiceSplits: Array<VoiceSplit>, ctx: ABCContext, stringifyVisitor: AbcFormatter): Array<VoiceSplit> {
+  const barMap = getBarMap(voiceSplits);
+
+  barMap.forEach((locations, barNum) => {
+    // Get string length for each voice's bar
+    const barLengths = locations.map((loc) => {
+      const voice = voiceSplits[loc.voiceIdx].content;
+      const barContent = voice.slice(loc.startIdx + 1, loc.endIdx + 1);
+      return {
+        ...loc,
+        length: barContent.map((node) => stringifyVisitor.stringify(node)).join("").length,
+      };
+    });
+
+    // Find maximum length
+    const maxLen = Math.max(...barLengths.map((b) => b.length));
+
+    // Add padding where needed
+    barLengths.forEach(({ voiceIdx, endIdx, length }) => {
+      if (length < maxLen) {
+        const paddingLen = maxLen - length;
+        // Insert padding before bar end
+        const padding = new Token(TokenType.WHITESPACE, " ".repeat(paddingLen), null, -1, -1, ctx);
+        voiceSplits[voiceIdx].content.splice(endIdx, 0, padding);
+      }
+    });
+  });
+  return voiceSplits;
 }
