@@ -148,9 +148,12 @@ export class TokensVisitor implements Visitor<void> {
     }
   }
   visitInfoLineExpr(element: Info_line) {
-    const { key, value } = element;
+    const { key, value, metadata } = element;
     this.tokens.push(key);
     this.tokens.push(mergeTokens(value, this.ctx));
+    if (metadata) {
+      this.tokens.push(mergeTokens(value, this.ctx));
+    }
   }
   visitCommentExpr(element: Comment) {
     this.tokens.push(element.token);
