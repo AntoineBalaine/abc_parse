@@ -108,6 +108,113 @@ describe("Parser", () => {
           expect(infoLine2.value[0].lexeme).to.equal("Some info here\n+:More info");
         }
       });
+      describe("Info_line - voice line parsing", () => {
+        let ctx: ABCContext;
+
+        beforeEach(() => {
+          ctx = new ABCContext();
+        });
+
+        function createVoiceLine(input: string): Info_line {
+          const scanner = new Scanner(input, ctx);
+          const tokens = scanner.scanTokens();
+          return new Info_line(ctx, tokens);
+        }
+
+        describe("basic voice names", () => {
+          it("parses simple voice name", () => {
+            const line = createVoiceLine("V:RH");
+            assert.equal(line.key.lexeme, "V:");
+            assert.equal(line.value[0].lexeme, "RH");
+            assert.isUndefined(line.metadata);
+          });
+
+          it("handles voice name with spaces", () => {
+            const line = createVoiceLine("V:VoiceOne");
+            assert.equal(line.value[0].lexeme, "VoiceOne");
+            assert.isUndefined(line.metadata);
+          });
+
+          it("handles voice name with hyphens", () => {
+            const line = createVoiceLine("V:Voice-1");
+            assert.equal(line.value[0].lexeme, "Voice-1");
+            assert.isUndefined(line.metadata);
+          });
+        });
+
+        describe("metadata handling", () => {
+          it("parses voice with single metadata", () => {
+            const line = createVoiceLine("V:RH clef=treble");
+            assert.equal(line.value[0].lexeme, "RH");
+            assert.equal(line.metadata![0], "clef=treble");
+          });
+
+          it("parses voice with multiple metadata items", () => {
+            const line = createVoiceLine("V:RH clef=treble octave=4");
+            assert.equal(line.value[0].lexeme, "RH");
+            assert.equal(line.metadata![0], "clef=treble octave=4");
+          });
+
+          it("handles metadata with spaces", () => {
+            const line = createVoiceLine("V:Voice1 name=Right Hand");
+            assert.equal(line.value[0].lexeme, "Voice1");
+            assert.equal(line.metadata![0], "name=Right Hand");
+          });
+        });
+
+        describe("whitespace handling", () => {
+          it("handles leading whitespace", () => {
+            const line = createVoiceLine("V:  RH");
+            assert.equal(line.value[0].lexeme, "RH");
+            assert.isUndefined(line.metadata);
+          });
+
+          it("handles multiple spaces between voice and metadata", () => {
+            const line = createVoiceLine("V:RH    clef=treble");
+            assert.equal(line.value[0].lexeme, "RH");
+            assert.equal(line.metadata![0], "clef=treble");
+          });
+        });
+
+        describe("comment handling", () => {
+          it("preserves comments after voice name", () => {
+            const line = createVoiceLine("V:RH % comment");
+            assert.equal(line.value[0].lexeme, "RH");
+            const metadata = line.metadata!;
+            const token = metadata[0];
+            assert(isToken(token) && token.type === TokenType.COMMENT && token.lexeme === "% comment");
+          });
+
+          it("preserves comments after metadata", () => {
+            const line = createVoiceLine("V:RH clef=treble % comment");
+            assert.equal(line.value[0].lexeme, "RH");
+            const metadata = line.metadata!;
+            assert.equal(metadata[0], "clef=treble");
+            const token = metadata[1];
+            assert(isToken(token) && token.type === TokenType.COMMENT && token.lexeme === "% comment");
+          });
+        });
+
+        describe("edge cases", () => {
+          it("handles empty voice line", () => {
+            const line = createVoiceLine("V:");
+            assert.isEmpty(line.value);
+            assert.isUndefined(line.metadata);
+          });
+
+          it("handles voice line with only whitespace", () => {
+            const line = createVoiceLine("V:   ");
+            assert.isEmpty(line.value);
+            assert.isUndefined(line.metadata);
+          });
+
+          it("handles complex voice names", () => {
+            const line = createVoiceLine("V:Voice-1_Bass_Clef");
+            assert.equal(line.value[0].lexeme, "Voice-1_Bass_Clef");
+            assert.isUndefined(line.metadata);
+          });
+        });
+      });
 
       it("parse correct number of voices - numbered voice labels", () => {
         const ctx = new ABCContext();
@@ -136,7 +243,7 @@ CDEF|GABC|`;
 V:LH clef=bass
 V:RH
 Z4|
-V:LH 
+V:LH
 CDEF|GABC|CDEF|GABC|
             `,
           ctx

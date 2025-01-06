@@ -109,7 +109,7 @@ export class File_header extends Expr {
 export class Info_line extends Expr {
   key: Token;
   value: Array<Token>;
-  metadata?: string;
+  metadata?: Array<string | Token>;
 
   constructor(ctx: ABCContext, tokens: Array<Token>) {
     super(ctx.generateId());
@@ -442,26 +442,33 @@ export class ErrorExpr extends Expr {
 }
 interface InfoLineFields {
   value: Token[];
-  metadata?: string;
+  metadata?: (string | Token)[]; // Can contain strings and comment tokens
 }
 
 function parseVoiceLine(tokens: Token[], ctx: ABCContext): InfoLineFields {
-  let value = Array<Token>();
+  let value: Token[] = [];
   let voiceNameTokens: string[] = [];
-  let metadataTokens: string[] = [];
+  let metadata: (string | Token)[] = [];
   let inMetadata = false;
+  let currentMetadataText = "";
   let index = 0;
 
   // Skip leading whitespace
-  while (index < tokens.length && isToken(tokens[index]) && tokens[index].type === TokenType.WHITESPACE) {
+  while (index < tokens.length && isToken(tokens[index]) && tokens[index].lexeme.trim() === "") {
     index++;
   }
 
-  // Process tokens until comment or end
+  // Process tokens until end
   while (index < tokens.length) {
     const token = tokens[index];
 
     if (token.type === TokenType.COMMENT) {
+      // If we have accumulated metadata text, push it first
+      if (currentMetadataText.trim()) {
+        metadata.push(currentMetadataText.trim());
+        currentMetadataText = "";
+      }
+      metadata.push(token);
       break;
     }
 
@@ -474,7 +481,7 @@ function parseVoiceLine(tokens: Token[], ctx: ABCContext): InfoLineFields {
         voiceNameTokens.push(token.lexeme);
       }
     } else {
-      metadataTokens.push(token.lexeme);
+      currentMetadataText += token.lexeme;
     }
 
     index++;
@@ -485,14 +492,14 @@ function parseVoiceLine(tokens: Token[], ctx: ABCContext): InfoLineFields {
     value.push(new Token(TokenType.STRING, voiceNameTokens.join(""), null, tokens[0].line, tokens[0].position, ctx));
   }
 
-  // Add comment if present
-  if (index < tokens.length && tokens[index].type === TokenType.COMMENT) {
-    value.push(tokens[index]);
+  // Add any remaining metadata text
+  if (currentMetadataText.trim()) {
+    metadata.push(currentMetadataText.trim());
   }
 
   return {
     value,
-    metadata: metadataTokens.join("").trim() || undefined,
+    metadata: metadata.length > 0 ? metadata : undefined,
   };
 }
 function parseRegularInfoLine(tokens: Token[], ctx: ABCContext): InfoLineFields {
@@ -516,5 +523,6 @@ function parseRegularInfoLine(tokens: Token[], ctx: ABCContext): InfoLineFields 
 
   return {
     value,
+    metadata: undefined,
   };
 }

@@ -138,6 +138,97 @@ describe("AbcFormatter multi-voice alignment", () => {
     }
     return formatter.format(ast);
   }
+  describe("AbcFormatter - voice lines with metadata", () => {
+    let formatter: AbcFormatter;
+    let ctx: ABCContext;
+
+    beforeEach(() => {
+      ctx = new ABCContext();
+      formatter = new AbcFormatter(ctx);
+    });
+
+    function format(input: string): string {
+      const scanner = new Scanner(input, ctx);
+      const tokens = scanner.scanTokens();
+      const parser = new Parser(tokens, ctx);
+      const ast = parser.parse();
+      if (!ast) {
+        throw new Error("Failed to parse");
+      }
+      return formatter.format(ast);
+    }
+
+    describe("voice lines with metadata", () => {
+      it("preserves metadata in voice declaration", () => {
+        const result = format(`
+X:1
+V:1 clef=treble
+V:2 clef=bass
+V:1
+CDEF|GABC|
+V:2
+CDEF|GABC|`);
+
+        assert.equal(
+          result,
+          `
+X:1
+V:1 clef=treble
+V:2 clef=bass
+V:1
+CDEF | GABC |
+V:2
+CDEF | GABC |`
+        );
+      });
+
+      it("preserves complex metadata and comments", () => {
+        const result = format(`
+X:1
+V:RH clef=treble octave=4 % right hand
+V:LH clef=bass octave=3 % left hand
+V:RH
+CDEF|GABC|
+V:LH
+C,D,E,F,|G,A,B,C,|`);
+
+        assert.equal(
+          result,
+          `
+X:1
+V:RH clef=treble octave=4 % right hand
+V:LH clef=bass octave=3 % left hand
+V:RH
+CDEF | GABC |
+V:LH
+C,D,E,F, | G,A,B,C, |`
+        );
+      });
+
+      it("handles voice names with spaces and metadata", () => {
+        const result = format(`
+X:1
+V:Right Hand clef=treble % treble staff
+V:Left Hand clef=bass % bass staff
+V:Right Hand
+CDEF|GABC|
+V:Left Hand
+CDEF|GABC|`);
+
+        assert.equal(
+          result,
+          `
+X:1
+V:Right Hand clef=treble % treble staff
+V:Left Hand clef=bass % bass staff
+V:Right Hand
+CDEF | GABC |
+V:Left Hand
+CDEF | GABC |`
+        );
+      });
+    });
+  });
 
   describe("basic bar alignment", () => {
     it("aligns simple bars of equal length", () => {
