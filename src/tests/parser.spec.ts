@@ -146,19 +146,22 @@ describe("Parser", () => {
           it("parses voice with single metadata", () => {
             const line = createVoiceLine("V:RH clef=treble");
             assert.equal(line.value[0].lexeme, "RH");
-            assert.equal(line.metadata![0], "clef=treble");
+            const meta = line.metadata![0];
+            assert(isToken(meta) && meta.lexeme === "clef=treble");
           });
 
           it("parses voice with multiple metadata items", () => {
             const line = createVoiceLine("V:RH clef=treble octave=4");
             assert.equal(line.value[0].lexeme, "RH");
-            assert.equal(line.metadata![0], "clef=treble octave=4");
+            const meta = line.metadata![0];
+            assert(isToken(meta) && meta.lexeme === "clef=treble octave=4");
           });
 
           it("handles metadata with spaces", () => {
             const line = createVoiceLine("V:Voice1 name=Right Hand");
             assert.equal(line.value[0].lexeme, "Voice1");
-            assert.equal(line.metadata![0], "name=Right Hand");
+            const meta = line.metadata![0];
+            assert(isToken(meta) && meta.lexeme === "name=Right Hand");
           });
         });
 
@@ -172,7 +175,8 @@ describe("Parser", () => {
           it("handles multiple spaces between voice and metadata", () => {
             const line = createVoiceLine("V:RH    clef=treble");
             assert.equal(line.value[0].lexeme, "RH");
-            assert.equal(line.metadata![0], "clef=treble");
+            const meta = line.metadata![0];
+            assert(isToken(meta) && meta.lexeme === "clef=treble");
           });
         });
 
@@ -189,7 +193,8 @@ describe("Parser", () => {
             const line = createVoiceLine("V:RH clef=treble % comment");
             assert.equal(line.value[0].lexeme, "RH");
             const metadata = line.metadata!;
-            assert.equal(metadata[0], "clef=treble");
+            const meta = line.metadata![0];
+            assert(isToken(meta) && meta.lexeme === "clef=treble");
             const token = metadata[1];
             assert(isToken(token) && token.type === TokenType.COMMENT && token.lexeme === "% comment");
           });

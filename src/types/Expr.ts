@@ -109,7 +109,7 @@ export class File_header extends Expr {
 export class Info_line extends Expr {
   key: Token;
   value: Array<Token>;
-  metadata?: Array<string | Token>;
+  metadata?: Array<Token>;
 
   constructor(ctx: ABCContext, tokens: Array<Token>) {
     super(ctx.generateId());
@@ -442,33 +442,32 @@ export class ErrorExpr extends Expr {
 }
 interface InfoLineFields {
   value: Token[];
-  metadata?: (string | Token)[]; // Can contain strings and comment tokens
+  metadata?: Token[]; // Now an array of tokens
 }
 
 function parseVoiceLine(tokens: Token[], ctx: ABCContext): InfoLineFields {
-  let value: Token[] = [];
+  let value = Array<Token>();
   let voiceNameTokens: string[] = [];
-  let metadata: (string | Token)[] = [];
+  let metadataStr = "";
   let inMetadata = false;
-  let currentMetadataText = "";
   let index = 0;
+  let metadataStartLine = 0;
+  let metadataStartPos = 0;
 
   // Skip leading whitespace
   while (index < tokens.length && isToken(tokens[index]) && tokens[index].lexeme.trim() === "") {
     index++;
   }
 
-  // Process tokens until end
+  // Get start position for voice name
+  const startLine = tokens[index]?.line ?? 0;
+  const startPos = tokens[index]?.position ?? 0;
+
+  // Process tokens until comment or end
   while (index < tokens.length) {
     const token = tokens[index];
 
     if (token.type === TokenType.COMMENT) {
-      // If we have accumulated metadata text, push it first
-      if (currentMetadataText.trim()) {
-        metadata.push(currentMetadataText.trim());
-        currentMetadataText = "";
-      }
-      metadata.push(token);
       break;
     }
 
@@ -476,12 +475,14 @@ function parseVoiceLine(tokens: Token[], ctx: ABCContext): InfoLineFields {
       if (token.lexeme.trim() === "") {
         // Significant whitespace found - switch to metadata
         inMetadata = true;
+        metadataStartLine = token.line;
+        metadataStartPos = token.position;
       } else {
         // Still in voice name
         voiceNameTokens.push(token.lexeme);
       }
     } else {
-      currentMetadataText += token.lexeme;
+      metadataStr += token.lexeme;
     }
 
     index++;
@@ -489,12 +490,16 @@ function parseVoiceLine(tokens: Token[], ctx: ABCContext): InfoLineFields {
 
   // Create value token with complete voice name
   if (voiceNameTokens.length > 0) {
-    value.push(new Token(TokenType.STRING, voiceNameTokens.join(""), null, tokens[0].line, tokens[0].position, ctx));
+    value.push(new Token(TokenType.STRING, voiceNameTokens.join(""), null, startLine, startPos, ctx));
   }
 
-  // Add any remaining metadata text
-  if (currentMetadataText.trim()) {
-    metadata.push(currentMetadataText.trim());
+  // Create metadata array with string token and optional comment
+  const metadata: Token[] = [];
+  if (metadataStr.trim()) {
+    metadata.push(new Token(TokenType.STRING, metadataStr.trim(), null, metadataStartLine, metadataStartPos, ctx));
+  }
+  if (index < tokens.length && tokens[index].type === TokenType.COMMENT) {
+    metadata.push(tokens[index]); // Just push the comment token
   }
 
   return {
@@ -502,6 +507,7 @@ function parseVoiceLine(tokens: Token[], ctx: ABCContext): InfoLineFields {
     metadata: metadata.length > 0 ? metadata : undefined,
   };
 }
+
 function parseRegularInfoLine(tokens: Token[], ctx: ABCContext): InfoLineFields {
   let result = "";
   let index = -1;
