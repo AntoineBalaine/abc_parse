@@ -57,8 +57,8 @@ describe("AbcFormatter.format() - single voice rules", () => {
       assert.equal(format('X:1\n"swing feel"CDEF|'), 'X:1\n"swing feel" CDEF |');
     });
 
-    it.skip("handles tuplets", () => {
-      assert.equal(format("X:1\n(3 CDE CDEF|"), "X:1\n(3CDE CDEF |");
+    it("handles tuplets", () => {
+      assert.equal(format("X:1\n(3CDE CDEF|"), "X:1\n(3 CDE CDEF |");
     });
   });
 
@@ -276,7 +276,7 @@ V:2
 V:1
 (3 CDE CDEF | GABC |
 V:2
-  CDEF    | GABC |`
+   CDEF     | GABC |`
       );
     });
     it("aligns bars that start with annotations", () => {

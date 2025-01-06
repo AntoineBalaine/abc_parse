@@ -135,7 +135,7 @@ function processBar(bar: System, startNodeId: NodeID): BarTimeMap {
   };
 }
 
-function isTimeEvent(node: Expr | Token): node is Note | Beam | MultiMeasureRest | Chord {
+function isTimeEvent(node: unknown): node is Note | Beam | MultiMeasureRest | Chord {
   return isNote(node) || isBeam(node) || isMultiMeasureRest(node) || isChord(node);
 }
 

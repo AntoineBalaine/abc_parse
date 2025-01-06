@@ -67,6 +67,7 @@ export class SystemAligner {
       for (const barTimeMap of barTimeMaps) {
         voiceSplits = this.alignBar(voiceSplits, barTimeMap);
       }
+      voiceSplits = equalizeBarLengths(voiceSplits, this.ctx, this.stringifyVisitor);
 
       // Reconstruct system from aligned voices
 
@@ -106,13 +107,18 @@ export class SystemAligner {
           // Insert padding
           if (insertIdx !== -1) {
             const padding = new Token(TokenType.WHITESPACE, " ".repeat(paddingLen), null, -1, -1, this.ctx);
-            voiceSplits[location.voiceIdx].content.splice(insertIdx + 1, 0, padding);
+            voiceSplits[location.voiceIdx].content.splice(insertIdx, 0, padding);
+
+            const startNodeIdx = voiceSplits[location.voiceIdx].content.findIndex((node) => node.id === location.startNode);
+            if (insertIdx < startNodeIdx) {
+              barTimeMap.startNodes.set(location.voiceIdx, padding.id);
+            }
           }
         }
       });
     });
 
-    return equalizeBarLengths(voiceSplits, this.ctx, this.stringifyVisitor);
+    return voiceSplits;
   }
 
   /**

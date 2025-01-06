@@ -152,14 +152,16 @@ export function equalizeBarLengths(voiceSplits: Array<VoiceSplit>, ctx: ABCConte
         }
 
         const voice = voiceSplits[loc.voiceIdx].content;
-        const barContent = voice.slice(loc.startIdx + 1, loc.endIdx + 1).filter((node) => !(isToken(node) && node.type === TokenType.EOL));
+        const barContent = voice.slice(loc.startIdx + 1, loc.endIdx).filter((node) => !(isToken(node) && node.type === TokenType.EOL));
         return {
           ...loc,
           length: barContent.map((node) => stringifyVisitor.stringify(node)).join("").length,
           isLastBar: false,
         };
       });
-
+      if (barLengths.every((bar) => bar.isLastBar)) {
+        return;
+      }
       // Only consider lengths of non-last bars for max length
       const maxLen = Math.max(...barLengths.filter((b) => !b.isLastBar).map((b) => b.length));
 
