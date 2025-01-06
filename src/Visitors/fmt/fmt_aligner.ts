@@ -1,4 +1,4 @@
-import { isInfo_line, isToken } from "../../helpers";
+import { isInfo_line } from "../../helpers";
 import { ABCContext } from "../../parsers/Context";
 import { Tune, Tune_Body } from "../../types/Expr";
 import { Token } from "../../types/token";
@@ -6,7 +6,7 @@ import { System, TokenType } from "../../types/types";
 import { AbcFormatter } from "../Formatter";
 import { TimeStamp, NodeID, findFmtblLines } from "./fmt_timeMapHelpers";
 import { mapTimePoints } from "./fmt_timeMap";
-import { createLocationMapper, equalizeBarLengths } from "./fmt_alignerHelpers";
+import { createLocationMapper, equalizeBarLengths, findPaddingInsertionPoint } from "./fmt_alignerHelpers";
 
 export type Location = { voiceIdx: number; nodeID: number };
 
@@ -65,7 +65,7 @@ export class SystemAligner {
 
       // Process each bar
       for (const barTimeMap of barTimeMaps) {
-        voiceSplits = this.alignBar(voiceSplits, barTimeMap);
+        voiceSplits = alignBars(voiceSplits, barTimeMap, this.stringifyVisitor, this.ctx);
       }
       voiceSplits = equalizeBarLengths(voiceSplits, this.ctx, this.stringifyVisitor);
 
@@ -74,75 +74,50 @@ export class SystemAligner {
       return voiceSplits.flatMap((split) => split.content);
     });
   }
+}
 
-  /**
-   * At each time stamp, compare where there are nodes in each voice which land at that time stamp.
-   * Then, compare the lengths of the stringified segments up to those nodes in each voice.
-   * and insert some padding to make the strings the same length.
-   * The padding is inserted at the first whitespace token before the node in the voice.
-   * Lastly, compare the whole bars’ lengths and add padding to the end of the shorter bars.
-   */
-  private alignBar(voiceSplits: VoiceSplit[], barTimeMap: BarAlignment): VoiceSplit[] {
-    // Get sorted timestamps
-    const timeStamps = Array.from(barTimeMap.map.keys()).sort((a, b) => a - b);
+/**
+ * At each time stamp, compare where there are nodes in each voice which land at that time stamp.
+ * Then, compare the lengths of the stringified segments up to those nodes in each voice.
+ * and insert some padding to make the strings the same length.
+ * The padding is inserted at the first whitespace token before the node in the voice.
+ * Lastly, compare the whole bars’ lengths and add padding to the end of the shorter bars.
+ */
+export function alignBars(voiceSplits: VoiceSplit[], barTimeMap: BarAlignment, stringifyVisitor: AbcFormatter, ctx: ABCContext): VoiceSplit[] {
+  // Get sorted timestamps
+  const timeStamps = Array.from(barTimeMap.map.keys()).sort((a, b) => a - b);
 
-    // Process each time point
-    timeStamps.forEach((timeStamp) => {
-      const locations = barTimeMap.map.get(timeStamp)!;
+  // Process each time point
+  timeStamps.forEach((timeStamp) => {
+    const locations = barTimeMap.map.get(timeStamp)!;
 
-      // new map with locations, start node and stringified content between startNode and current node
-      const locsWithStrings = locations.map(createLocationMapper(voiceSplits, barTimeMap, this.stringifyVisitor));
+    // new map with locations, start node and stringified content between startNode and current node
+    const locsWithStrings = locations.map(createLocationMapper(voiceSplits, barTimeMap, stringifyVisitor));
 
-      // Find maximum length
-      const maxLen = Math.max(...locsWithStrings.map((l) => l.str.length));
+    // Find maximum length
+    const maxLen = Math.max(...locsWithStrings.map((l) => l.str.length));
 
-      // Add padding where needed
-      locsWithStrings.forEach((location) => {
-        if (location.str.length < maxLen) {
-          const paddingLen = maxLen - location.str.length;
+    // Add padding where needed
+    locsWithStrings.forEach((location) => {
+      if (location.str.length < maxLen) {
+        const paddingLen = maxLen - location.str.length;
 
-          // Find insertion point
-          const insertIdx = this.findPaddingInsertionPoint(voiceSplits[location.voiceIdx].content, location.nodeID, location.startNode);
+        // Find insertion point
+        const insertIdx = findPaddingInsertionPoint(voiceSplits[location.voiceIdx].content, location.nodeID, location.startNode);
 
-          // Insert padding
-          if (insertIdx !== -1) {
-            const padding = new Token(TokenType.WHITESPACE, " ".repeat(paddingLen), null, -1, -1, this.ctx);
-            voiceSplits[location.voiceIdx].content.splice(insertIdx, 0, padding);
+        // Insert padding
+        if (insertIdx !== -1) {
+          const padding = new Token(TokenType.WHITESPACE, " ".repeat(paddingLen), null, -1, -1, ctx);
+          voiceSplits[location.voiceIdx].content.splice(insertIdx, 0, padding);
 
-            const startNodeIdx = voiceSplits[location.voiceIdx].content.findIndex((node) => node.id === location.startNode);
-            if (insertIdx < startNodeIdx) {
-              barTimeMap.startNodes.set(location.voiceIdx, padding.id);
-            }
+          const startNodeIdx = voiceSplits[location.voiceIdx].content.findIndex((node) => node.id === location.startNode);
+          if (insertIdx < startNodeIdx) {
+            barTimeMap.startNodes.set(location.voiceIdx, padding.id);
           }
         }
-      });
+      }
     });
+  });
 
-    return voiceSplits;
-  }
-
-  /**
-   * Find first WS position before `nodeId` - or use `startNodeId`.
-   */
-  private findPaddingInsertionPoint(voice: System, nodeId: NodeID, startNodeId: NodeID): number {
-    const nodeIdx = voice.findIndex((node) => node.id === nodeId);
-
-    if (nodeIdx === -1) {
-      return -1;
-    }
-
-    let idx = nodeIdx;
-    while (idx > 0) {
-      const node = voice[idx];
-      if (node.id === startNodeId) {
-        break;
-      }
-      if (isToken(node) && node.type === TokenType.WHITESPACE) {
-        break;
-      }
-      idx--;
-    }
-
-    return idx;
-  }
+  return voiceSplits;
 }

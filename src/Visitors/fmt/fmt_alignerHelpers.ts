@@ -25,27 +25,6 @@ export function reconstructSystem(voiceSplits: VoiceSplit[]): System {
   return newSystem;
 }
 
-export function findPaddingInsertionPoint(voice: System, nodeId: NodeID, startNodeId: NodeID): number {
-  const nodeIdx = voice.findIndex((node) => "id" in node && node.id === nodeId);
-
-  if (nodeIdx === -1) {
-    return -1;
-  }
-
-  let idx = nodeIdx;
-  while (idx > 0) {
-    const node = voice[idx];
-    if (node.id === startNodeId) {
-      break;
-    }
-    if (isToken(node) && node.type === TokenType.WHITESPACE) {
-      break;
-    }
-    idx--;
-  }
-
-  return idx;
-}
 /**
  * Returns a fn for use in map() that creates a location object with stringified content between start and current node.
  */
@@ -176,4 +155,28 @@ export function equalizeBarLengths(voiceSplits: Array<VoiceSplit>, ctx: ABCConte
     });
 
   return voiceSplits;
+}
+/**
+ * Find first WS position before `nodeId` - or use `startNodeId`.
+ */
+export function findPaddingInsertionPoint(voice: System, nodeId: NodeID, startNodeId: NodeID): number {
+  const nodeIdx = voice.findIndex((node) => node.id === nodeId);
+
+  if (nodeIdx === -1) {
+    return -1;
+  }
+
+  let idx = nodeIdx;
+  while (idx > 0) {
+    const node = voice[idx];
+    if (node.id === startNodeId) {
+      break;
+    }
+    if (isToken(node) && node.type === TokenType.WHITESPACE) {
+      break;
+    }
+    idx--;
+  }
+
+  return idx;
 }
