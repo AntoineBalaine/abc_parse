@@ -46,7 +46,7 @@ describe("AbcFormatter.format() - single voice rules", () => {
     });
 
     it("handles grace notes", () => {
-      assert.equal(format("X:1\n{ag}CDEF|"), "X:1\n{ag} CDEF |");
+      assert.equal(format("X:1\n{ag}CDEF|"), "X:1\n{ag}CDEF |");
     });
 
     it("handles inline fields", () => {
@@ -217,9 +217,9 @@ X:1
 V:1
 V:2
 V:1
-!p!C{ag}D|GABC|
+!p!C {ag}D|GABC|
 V:2
-CDEF|GABC|`);
+C DEF|GABC|`);
 
       assert.equal(
         result,
@@ -228,9 +228,9 @@ X:1
 V:1
 V:2
 V:1
-!p! C{ag}D | GABC |
+!p! C {ag}D   | GABC |
 V:2
-    CDEF   | GABC |`
+    C     DEF | GABC |`
       );
     });
 
@@ -277,6 +277,28 @@ V:1
 (3 CDE CDEF | GABC |
 V:2
   CDEF    | GABC |`
+      );
+    });
+    it("aligns bars that start with annotations", () => {
+      const result = format(`
+X:1
+V:1
+V:2
+V:1
+"hello"CDEF|GABC|"again" DE
+V:2
+CDEF|"world"GABC|DE`);
+
+      assert.equal(
+        result,
+        `
+X:1
+V:1
+V:2
+V:1
+"hello" CDEF |         GABC | "again" DE
+V:2
+        CDEF | "world" GABC |         DE`
       );
     });
   });
