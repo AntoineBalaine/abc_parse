@@ -149,9 +149,10 @@ export class AbcFormatter implements Visitor<string> {
     }
   }
   visitInfoLineExpr(expr: Info_line) {
-    const { key, value } = expr;
+    const { key, value, metadata } = expr;
     const formattedVal = value.map((val) => val.lexeme).join("");
-    return `${key.lexeme}${formattedVal}`;
+
+    return `${key.lexeme}${formattedVal}${metadata ?? ""}`;
   }
   visitInlineFieldExpr(expr: Inline_field) {
     // TODO fix Inline_field parsing (numbers causing issue)

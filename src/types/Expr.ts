@@ -1,3 +1,4 @@
+import { isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token } from "./token";
 import { System, TokenType } from "./types";
@@ -108,34 +109,25 @@ export class File_header extends Expr {
 export class Info_line extends Expr {
   key: Token;
   value: Array<Token>;
+  metadata?: string;
+
   constructor(ctx: ABCContext, tokens: Array<Token>) {
     super(ctx.generateId());
+
     this.key = tokens[0];
-    tokens.shift();
-    // merge the tokens into a string token, and push them into the value
-    let result = "";
-    let index = -1;
-    while (index < tokens.length - 1) {
-      index += 1;
-      if (tokens[index].type === TokenType.COMMENT) {
-        break;
-      }
-      result += tokens[index].lexeme;
-    }
-    if (!tokens.length) {
+    const remainingTokens = tokens.slice(1);
+
+    if (!remainingTokens.length) {
       this.value = [];
       return;
     }
-    if (this.key.lexeme.trim() === "V:") {
-      result = result.trim().split(" ")[0];
-    }
-    let value = Array<Token>();
-    value.push(new Token(TokenType.STRING, result, null, tokens[0].line, tokens[0].position, ctx));
-    if (tokens[index].type === TokenType.COMMENT) {
-      value.push(tokens[index]);
-    }
-    this.value = value;
+
+    const fields = this.key.lexeme.trim() === "V:" ? parseVoiceLine(remainingTokens, ctx) : parseRegularInfoLine(remainingTokens, ctx);
+
+    this.value = fields.value;
+    this.metadata = fields.metadata;
   }
+
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitInfoLineExpr(this);
   }
@@ -447,4 +439,82 @@ export class ErrorExpr extends Expr {
   accept<T>(visitor: Visitor<T>): T {
     return visitor.visitErrorExpr(this);
   }
+}
+interface InfoLineFields {
+  value: Token[];
+  metadata?: string;
+}
+
+function parseVoiceLine(tokens: Token[], ctx: ABCContext): InfoLineFields {
+  let value = Array<Token>();
+  let voiceNameTokens: string[] = [];
+  let metadataTokens: string[] = [];
+  let inMetadata = false;
+  let index = 0;
+
+  // Skip leading whitespace
+  while (index < tokens.length && isToken(tokens[index]) && tokens[index].type === TokenType.WHITESPACE) {
+    index++;
+  }
+
+  // Process tokens until comment or end
+  while (index < tokens.length) {
+    const token = tokens[index];
+
+    if (token.type === TokenType.COMMENT) {
+      break;
+    }
+
+    if (!inMetadata) {
+      if (token.lexeme.trim() === "") {
+        // Significant whitespace found - switch to metadata
+        inMetadata = true;
+      } else {
+        // Still in voice name
+        voiceNameTokens.push(token.lexeme);
+      }
+    } else {
+      metadataTokens.push(token.lexeme);
+    }
+
+    index++;
+  }
+
+  // Create value token with complete voice name
+  if (voiceNameTokens.length > 0) {
+    value.push(new Token(TokenType.STRING, voiceNameTokens.join(""), null, tokens[0].line, tokens[0].position, ctx));
+  }
+
+  // Add comment if present
+  if (index < tokens.length && tokens[index].type === TokenType.COMMENT) {
+    value.push(tokens[index]);
+  }
+
+  return {
+    value,
+    metadata: metadataTokens.join("").trim() || undefined,
+  };
+}
+function parseRegularInfoLine(tokens: Token[], ctx: ABCContext): InfoLineFields {
+  let result = "";
+  let index = -1;
+
+  while (index < tokens.length - 1) {
+    index += 1;
+    if (tokens[index].type === TokenType.COMMENT) {
+      break;
+    }
+    result += tokens[index].lexeme;
+  }
+
+  let value = Array<Token>();
+  value.push(new Token(TokenType.STRING, result, null, tokens[0].line, tokens[0].position, ctx));
+
+  if (tokens[index] && tokens[index].type === TokenType.COMMENT) {
+    value.push(tokens[index]);
+  }
+
+  return {
+    value,
+  };
 }
