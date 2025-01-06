@@ -38,7 +38,7 @@ export class VoiceParser {
   }
 
   parse() {
-    if (this.voices.length === 0) {
+    if (this.voices.length < 2) {
       return this.parseNoVoices();
     } else {
       return this.parseVoices();
@@ -72,6 +72,32 @@ export class VoiceParser {
   }
 
   parseVoices() {
+    // let foundFirstVoice = false;
+    // while (!this.isAtEnd() && this.peek() !== undefined && !foundFirstVoice) {
+    //   const expr = this.peek();
+    //   if (isVoiceMarker(expr)) {
+    //     foundFirstVoice = true;
+    //     if (this.curSystem) {
+    //       this.systems.push(this.curSystem);
+    //     }
+    //     this.curSystem = [];
+    //     // this.lastVoice = this.stringifyVoice(expr);
+    //   } else if (isToken(expr) && expr.type === TokenType.EOL) {
+    //     // If we have a current line, push it as its own system
+    //     if (this.curSystem && this.curSystem.length) {
+    //       this.systems.push(this.curSystem);
+    //       this.curSystem = [];
+    //     }
+    //     this.advance();
+    //   } else {
+    //     // Start collecting a new line if needed
+    //     if (!this.curSystem) {
+    //       this.curSystem = [];
+    //     }
+    //     this.curSystem.push(expr);
+    //     this.advance();
+    //   }
+    // }
     while (!this.isAtEnd() && this.peek() !== undefined) {
       const expr = this.peek();
       if (isVoiceMarker(expr)) {
@@ -100,8 +126,8 @@ export class VoiceParser {
    * Check whether this is a new system.
    * If we start a new system, update this.lastVoice to the current voice.
    *
-   * How the check is made: 
-   * Check the voice of the last entry in the current system. 
+   * How the check is made:
+   * Check the voice of the last entry in the current system.
    if the current voice is not after the index of the last voice in this.voices, start a new system.
   */
   private isNewSystem() {
