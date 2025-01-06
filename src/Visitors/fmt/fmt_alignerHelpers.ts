@@ -180,3 +180,57 @@ export function findPaddingInsertionPoint(voice: System, nodeId: NodeID, startNo
 
   return idx;
 }
+
+export function equalizer(voiceSplits: Array<VoiceSplit>, ctx: ABCContext, stringifyVisitor: AbcFormatter): Array<VoiceSplit> {
+  let voices = voiceSplits.map((split) => ({
+    ...split,
+    cursor: 0,
+    stringified: "",
+  }));
+
+  while (voices.some((voice) => voice.type === "formatted")) {
+    // Update cursor and stringified content for each voice
+    voices.forEach((voice) => {
+      if (voice.type !== "formatted") return;
+
+      // Find next barline
+      const nextBarIndex = voice.content.findIndex((node, idx) => idx > voice.cursor && isBarLine(node));
+
+      // If no more bars or hit EOL/EOF, mark as noformat
+      if (nextBarIndex === -1) {
+        voice.type = "noformat";
+        return;
+      } else {
+        // Update cursor and get stringified content
+        voice.cursor = nextBarIndex;
+        voice.stringified = voice.content
+          .slice(0, voice.cursor)
+          .map((node) => stringifyVisitor.stringify(node))
+          .join("");
+      }
+    });
+
+    // Check if we still have formatted voices
+    if (!voices.some((voice) => voice.type === "formatted")) break;
+
+    // Find max length and add padding where needed
+    const maxLen = Math.max(...voices.filter((voice) => voice.type === "formatted").map((voice) => voice.stringified.length));
+
+    voices.forEach((voice) => {
+      if (voice.type !== "formatted") return;
+
+      if (voice.stringified.length < maxLen) {
+        const paddingLen = maxLen - voice.stringified.length;
+        const insertIdx = findPaddingInsertionPoint(voice.content, voice.content[voice.cursor].id, voice.content[0].id);
+
+        if (insertIdx !== -1) {
+          const padding = new Token(TokenType.WHITESPACE, " ".repeat(paddingLen), null, -1, -1, ctx);
+          voice.content.splice(insertIdx + 1, 0, padding);
+          voice.cursor++;
+        }
+      }
+    });
+  }
+
+  return voices;
+}

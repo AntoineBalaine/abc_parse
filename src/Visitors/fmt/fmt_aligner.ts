@@ -6,7 +6,7 @@ import { System, TokenType } from "../../types/types";
 import { AbcFormatter } from "../Formatter";
 import { TimeStamp, NodeID, findFmtblLines } from "./fmt_timeMapHelpers";
 import { mapTimePoints } from "./fmt_timeMap";
-import { createLocationMapper, equalizeBarLengths, findPaddingInsertionPoint } from "./fmt_alignerHelpers";
+import { createLocationMapper, equalizeBarLengths, equalizer, findPaddingInsertionPoint } from "./fmt_alignerHelpers";
 
 export type Location = { voiceIdx: number; nodeID: number };
 
@@ -67,8 +67,8 @@ export class SystemAligner {
       for (const barTimeMap of barTimeMaps) {
         voiceSplits = alignBars(voiceSplits, barTimeMap, this.stringifyVisitor, this.ctx);
       }
-      voiceSplits = equalizeBarLengths(voiceSplits, this.ctx, this.stringifyVisitor);
-
+      // voiceSplits = equalizeBarLengths(voiceSplits, this.ctx, this.stringifyVisitor);
+      voiceSplits = equalizer(voiceSplits, this.ctx, this.stringifyVisitor);
       // Reconstruct system from aligned voices
 
       return voiceSplits.flatMap((split) => split.content);

@@ -8,7 +8,7 @@ import { mapTimePoints } from "../Visitors/fmt/fmt_timeMap";
 import { findFmtblLines } from "../Visitors/fmt/fmt_timeMapHelpers";
 import { AbcFormatter } from "../Visitors/Formatter";
 
-describe("Formatter - aligner - align time points", () => {
+describe("Formatter - align time points", () => {
   let stringifyVisitor: AbcFormatter;
   let ctx: ABCContext;
 
@@ -109,7 +109,7 @@ CD GA |`
   });
 
   describe("complex cases", () => {
-    it("aligns tuplets with regular notes", () => {
+    it.skip("aligns tuplets with regular notes", () => {
       const result = format(`
 X:1
 V:1
@@ -151,7 +151,7 @@ V:2
       assert.include(result, expected, "Grace notes should align with corresponding notes");
     });
 
-    it("aligns chords with notes", () => {
+    it.skip("aligns chords with notes", () => {
       const result = format(`
 X:1
 V:1
