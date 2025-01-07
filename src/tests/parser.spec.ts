@@ -618,3 +618,106 @@ D4`;
     });
   });
 });
+describe("Parser - tuplet parsing", () => {
+  let ctx: ABCContext;
+
+  beforeEach(() => {
+    ctx = new ABCContext();
+  });
+
+  function parse(input: string) {
+    const scanner = new Scanner(input, ctx);
+    const tokens = scanner.scanTokens();
+    const parser = new Parser(tokens, ctx);
+    const ast = parser.parse();
+    if (!ast) throw new Error("Failed to parse");
+    return ast;
+  }
+
+  describe("extended tuplet syntax", () => {
+    it("parses basic tuplet with notes", () => {
+      const ast = parse("X:1\n(3abc");
+      // Verify p value only
+      const tuplet = findFirstTuplet(ast);
+      assert.equal(tuplet.p.lexeme, "(3");
+      assert.isUndefined(tuplet.q);
+      assert.isUndefined(tuplet.r);
+    });
+    it("parses (p:q form", () => {
+      const ast = parse("X:1\n(3:2abc");
+      const tuplet = findFirstTuplet(ast);
+      assert.equal(tuplet.p.lexeme, "(3");
+      assert.equal(tuplet.q?.lexeme, ":2");
+      assert.isUndefined(tuplet.r);
+    });
+
+    it("parses (p:: form", () => {
+      const ast = parse("X:1\n(3::abc");
+      const tuplet = findFirstTuplet(ast);
+      assert.equal(tuplet.p.lexeme, "(3");
+      assert.equal(tuplet.q?.lexeme, ":");
+      assert.equal(tuplet.r?.lexeme, ":");
+    });
+
+    it("parses (p::r form", () => {
+      const ast = parse("X:1\n(3::2abc");
+      const tuplet = findFirstTuplet(ast);
+      assert.equal(tuplet.p.lexeme, "(3");
+      assert.equal(tuplet.q?.lexeme, ":");
+      assert.equal(tuplet.r?.lexeme, ":2");
+    });
+
+    it("parses (p:q:r form", () => {
+      const ast = parse("X:1\n(3:2:2abc");
+      const tuplet = findFirstTuplet(ast);
+      assert.equal(tuplet.p.lexeme, "(3");
+      assert.equal(tuplet.q?.lexeme, ":2");
+      assert.equal(tuplet.r?.lexeme, ":2");
+    });
+  });
+
+  describe("tuplet with valid prefixes", () => {
+    it("accepts whitespace after tuplet", () => {
+      const ast = parse("X:1\n(3 abc");
+      assert.isDefined(findFirstTuplet(ast));
+    });
+
+    it("accepts grace notes after tuplet", () => {
+      const ast = parse("X:1\n(3{d}abc");
+      assert.isDefined(findFirstTuplet(ast));
+    });
+
+    it("accepts decorations after tuplet", () => {
+      const ast = parse("X:1\n(3!p!abc");
+      assert.isDefined(findFirstTuplet(ast));
+    });
+
+    it("accepts annotations after tuplet", () => {
+      const ast = parse('X:1\n(3"text"abc');
+      assert.isDefined(findFirstTuplet(ast));
+    });
+
+    it("accepts chords after tuplet", () => {
+      const ast = parse("X:1\n(3[CEG]");
+      assert.isDefined(findFirstTuplet(ast));
+    });
+  });
+});
+
+// Helper function to find first tuplet in AST
+function findFirstTuplet(ast: File_structure): Tuplet {
+  let firstTuplet: Tuplet | undefined;
+
+  // Navigate to first tuplet in music content
+  const tuneBody = ast.tune[0].tune_body;
+  if (!tuneBody) throw new Error("No tune body found");
+
+  tuneBody.sequence[0].forEach((expr) => {
+    if (expr instanceof Tuplet && !firstTuplet) {
+      firstTuplet = expr;
+    }
+  });
+
+  if (!firstTuplet) throw new Error("No tuplet found");
+  return firstTuplet;
+}

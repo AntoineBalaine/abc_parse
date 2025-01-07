@@ -148,14 +148,7 @@ export class Scanner {
           }
         } else if (nextChar === ":") {
           this.advance(); // consume second :
-          if (/[0-9]/.test(this.peek())) {
-            // ::2
-            this.advance(); // consume number
-            this.addToken(TokenType.COLON_DBL); // represents ::
-            this.addToken(TokenType.NUMBER); // separate number token
-          } else {
-            this.addToken(TokenType.COLON_DBL); // just ::
-          }
+          this.addToken(TokenType.COLON_DBL); // just ::
         } else if (/[0-9]/.test(nextChar)) {
           this.advance(); // consume number
           this.addToken(TokenType.COLON_NUMBER); // :2

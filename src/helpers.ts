@@ -387,27 +387,55 @@ export function foundMusic(tokens: Token[], startIndex: number): boolean {
   while (i < tokens.length) {
     const token = tokens[i];
 
-    // Skip valid prefixes
-    if (
-      // Whitespace
-      token.type === TokenType.WHITESPACE ||
-      // Decorations
-      token.type === TokenType.DOT ||
-      token.type === TokenType.TILDE ||
-      isDecorationToken(token) ||
-      // Grace notes opening
-      token.type === TokenType.LEFT_BRACE ||
-      // Annotations
-      token.type === TokenType.STRING ||
-      token.lexeme === '"' ||
-      // Tuplet syntax
-      token.type === TokenType.COLON_DBL ||
-      token.type === TokenType.COLON_NUMBER ||
-      token.type === TokenType.NUMBER ||
-      // Grouping
-      token.type === TokenType.LEFTPAREN
-    ) {
+    // Skip whitespace
+    if (token.type === TokenType.WHITESPACE) {
       i++;
+      continue;
+    }
+
+    // Handle grace notes group
+    if (token.type === TokenType.LEFT_BRACE) {
+      i++;
+      // Find matching right brace
+      let braceCount = 1;
+      while (i < tokens.length && braceCount > 0) {
+        if (tokens[i].type === TokenType.LEFT_BRACE) braceCount++;
+        if (tokens[i].type === TokenType.RIGHT_BRACE) braceCount--;
+        i++;
+      }
+      if (braceCount > 0) return false; // Unclosed grace group
+      continue;
+    }
+
+    // Handle annotations (already come as complete STRING tokens)
+    if (token.type === TokenType.STRING) {
+      i++;
+      continue;
+    }
+
+    // Handle tuplet syntax
+    if (token.type === TokenType.COLON_DBL || token.type === TokenType.COLON_NUMBER || token.type === TokenType.NUMBER) {
+      i++;
+      continue;
+    }
+
+    // Handle decorations (including symbols)
+    if (token.type === TokenType.DOT || token.type === TokenType.TILDE || token.type === TokenType.SYMBOL || isDecorationToken(token)) {
+      i++;
+      continue;
+    }
+
+    // Handle nested grouping
+    if (token.type === TokenType.LEFTPAREN) {
+      i++;
+      // Find matching right paren
+      let parenCount = 1;
+      while (i < tokens.length && parenCount > 0) {
+        if (tokens[i].type === TokenType.LEFTPAREN) parenCount++;
+        if (tokens[i].type === TokenType.RIGHT_PAREN) parenCount--;
+        i++;
+      }
+      if (parenCount > 0) return false; // Unclosed grouping
       continue;
     }
 
@@ -417,7 +445,7 @@ export function foundMusic(tokens: Token[], startIndex: number): boolean {
       isNoteToken(token) ||
       // Rest
       isRestToken(token) ||
-      // Chord (left bracket not followed by letter-colon)
+      // Start of chord
       (token.type === TokenType.LEFTBRKT && (i + 1 >= tokens.length || tokens[i + 1].type !== TokenType.LETTER_COLON))
     ) {
       return true;
