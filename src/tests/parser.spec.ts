@@ -721,3 +721,56 @@ function findFirstTuplet(ast: File_structure): Tuplet {
   if (!firstTuplet) throw new Error("No tuplet found");
   return firstTuplet;
 }
+describe("Parser - decoration sequences", () => {
+  let ctx: ABCContext;
+
+  beforeEach(() => {
+    ctx = new ABCContext();
+  });
+
+  function parse(input: string) {
+    const scanner = new Scanner(input, ctx);
+    const tokens = scanner.scanTokens();
+    const parser = new Parser(tokens, ctx);
+    const ast = parser.parse();
+    if (!ast) throw new Error("Failed to parse");
+    return ast;
+  }
+
+  describe("multiple decorations before note", () => {
+    it("handles annotation, symbol and decoration before note", () => {
+      const ast = parse('X:1\n"C"TL!tenuto!.c');
+
+      // Navigate to the music content
+      const musicContent = ast.tune[0].tune_body!.sequence[0];
+
+      // Get the sequence of elements
+      const elements = musicContent.filter((el) => el instanceof Annotation || el instanceof Decoration || el instanceof Note);
+
+      // Verify sequence
+      assert.equal(elements.length, 5);
+      assert.isTrue(elements[0] instanceof Annotation); // "C"
+      assert.isTrue(elements[1] instanceof Decoration); // T
+      assert.isTrue(elements[2] instanceof Decoration); // L
+      assert.isTrue(elements[3] instanceof Decoration); // !tenuto!.
+      assert.isTrue(elements[4] instanceof Note); // c
+    });
+
+    it("handles multiple decorations in different orders", () => {
+      const samples = ["X:1\n.!tenuto!c", 'X:1\n"text"!tenuto!.c', "X:1\nH!tenuto!.c", "X:1\n~!tenuto!.c", "X:1\nT.!tenuto!c"];
+
+      samples.forEach((sample) => {
+        assert.doesNotThrow(() => parse(sample));
+      });
+    });
+
+    it("handles decorations before chord", () => {
+      const ast = parse('X:1\n"C"TL!tenuto!.[CEG]');
+      const musicContent = ast.tune[0].tune_body!.sequence[0];
+
+      const elements = musicContent.filter((el) => el instanceof Annotation || el instanceof Decoration || el instanceof Chord);
+
+      assert.isTrue(elements[elements.length - 1] instanceof Chord);
+    });
+  });
+});

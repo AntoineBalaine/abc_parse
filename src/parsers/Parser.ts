@@ -548,28 +548,38 @@ export class Parser {
       return [new Nth_repeat(this.ctx, this.previous())];
     }
   }
-  private isDecoration() {
-    const pkd = this.peek();
-    const lexeme = pkd.lexeme;
-    const type = this.peek().type;
-    const nxtType = this.peekNext();
-    if (isDecorationToken(pkd) && (isNoteToken(nxtType) || hasRestAttributes(nxtType) || nxtType.type === TokenType.LEFTBRKT)) {
-      return true;
-    } else if (isDecorationToken(pkd)) {
-      let i = this.current;
-      while (i < this.tokens.length) {
-        i++;
-        const cur = this.tokens[i];
-        if (!isDecorationToken(cur) && !isNoteToken(cur) && !hasRestAttributes(cur)) {
-          return false;
-        } else if (isNoteToken(cur)) {
-          return true;
-        }
-      }
-      return false;
-    } else {
+
+  /**
+   * Check if current token is part of a decoration sequence.
+   * A decoration sequence is one or more decorations followed by a note, rest, or chord.
+   * Valid decorations: ., ~, H, L, M, O, P, S, T, u, v, symbols (!xxx!)
+   */
+  private isDecoration(): boolean {
+    let i = this.current;
+
+    // First token must be a decoration
+    if (!isDecorationToken(this.tokens[i])) {
       return false;
     }
+
+    // Look ahead until we find a note/rest/chord or invalid token
+    while (i < this.tokens.length) {
+      const token = this.tokens[i];
+
+      // Found target - success
+      if (isNoteToken(token) || hasRestAttributes(token) || token.type === TokenType.LEFTBRKT) {
+        return true;
+      }
+
+      // If not a decoration, string, or symbol, fail
+      if (!isDecorationToken(token) && token.type !== TokenType.STRING && token.type !== TokenType.SYMBOL) {
+        return false;
+      }
+
+      i++;
+    }
+
+    return false;
   }
 
   /**
