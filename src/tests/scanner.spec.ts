@@ -79,6 +79,7 @@ describe("Scanner", () => {
     testBuilder("SYMBOL", "![a-zA-Z]!", TokenType.SYMBOL);
     testBuilder("TILDE", "~", TokenType.TILDE);
     testBuilder("WHITESPACE", " ", TokenType.WHITESPACE);
+    testBuilder("BACKTICK", "`", TokenType.BACKTICK);
   });
   describe("multiple tokens", () => {
     it("should handle info directive", () => {

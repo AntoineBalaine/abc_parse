@@ -5,6 +5,7 @@ import {
   hasRestAttributes,
   isChord,
   isDecorationToken,
+  isInvalidBacktick,
   isMultiMesureRestToken,
   isNote,
   isNoteToken,
@@ -300,6 +301,16 @@ export class Parser {
     const curTokn = this.peek();
 
     switch (curTokn.type) {
+      case TokenType.BACKTICK:
+        if (this.current === this.tokens.length - 1) {
+          throw this.error(curTokn, "backticks should be inside a beam", ParserErrorType.BACKTICK);
+        } else if (!isInvalidBacktick(contents, this.tokens.slice(this.current + 1))) {
+          contents.push(new Decoration(this.ctx, curTokn));
+          this.advance();
+        } else {
+          throw this.error(curTokn, "backticks should be inside a beam", ParserErrorType.BACKTICK);
+        }
+        break;
       case TokenType.EOL:
       case TokenType.DOLLAR:
       case TokenType.RESERVED_CHAR:

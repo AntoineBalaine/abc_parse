@@ -63,6 +63,9 @@ export class Scanner {
   private scanToken() {
     let c = this.advance();
     switch (c) {
+      case "`":
+        this.addToken(TokenType.BACKTICK);
+        break;
       case "\\":
         if (/\s*\n/.test(this.source.substring(this.current)) || (this.peek() === "\n" && !this.isAtEnd())) {
           while (this.peek() !== "\n" && !this.isAtEnd()) {

@@ -161,7 +161,7 @@ export function followedByWS(expr: music_code) {
 
 export function isBeamContents(e: unknown): e is Beam_contents {
   return (
-    e instanceof Token ||
+    (isToken(e) && !isWS(e)) ||
     e instanceof YSPACER ||
     e instanceof Annotation ||
     e instanceof Decoration ||
@@ -216,6 +216,37 @@ export function foundBeam(music_code: Array<Expr | Token>, index: number) {
   } else {
     return false;
   }
+}
+
+function precededByNoteBeforBeamBreaker(prev: Array<Expr | Token>) {
+  let i = prev.length;
+  while (i > 0) {
+    i--;
+    const last = prev[i];
+    if (isBeamBreaker(last)) {
+      return false;
+    } else if (isNote(last) || isChord(last)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function isInvalidBacktick(prev: Array<Expr | Token>, follow: Array<Token>): boolean {
+  if (!precededByNoteBeforBeamBreaker(prev)) {
+    return false;
+  } else {
+    let i = prev.length;
+    while (i < follow.length) {
+      const last = follow[i];
+      if (isBeamBreaker(last)) {
+        return false;
+      } else if (isNoteToken(last)) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 /**

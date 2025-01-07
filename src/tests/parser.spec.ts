@@ -261,6 +261,11 @@ describe("Parser", () => {
             expect(musicCode.contents[2]).to.be.an.instanceof(Token);
           }
         });
+        it("should parse beam containing backticks", () => {
+          const ctx = new ABCContext();
+          const musicCode = buildParse("C`A,`B", ctx).tune[0].tune_body?.sequence[0][0];
+          expect(musicCode).to.be.an.instanceof(Beam);
+        });
 
         it("should parse multiple beams spanning parens", () => {
           const ctx = new ABCContext();

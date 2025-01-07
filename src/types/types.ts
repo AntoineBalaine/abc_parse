@@ -12,6 +12,7 @@ export enum TokenType {
   APOSTROPHE,
   ANTISLASH_EOL,
   AMPERSAND, // &
+  BACKTICK, // `
   BARLINE, //|
   BAR_COLON, // |:
   BAR_DBL, // ||
@@ -114,6 +115,7 @@ export type Range = {
  * The origin of an error, used by the {@link Parser}.
  */
 export enum ParserErrorType {
+  BACKTICK = "BACKTICK",
   CHORD = "CHORD",
   DECORATION = "DECORATION",
   FILE_HEADER = "FILE_HEADER",
