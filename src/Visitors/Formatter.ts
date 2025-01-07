@@ -276,8 +276,8 @@ export class AbcFormatter implements Visitor<string> {
   }
   visitYSpacerExpr(expr: YSPACER) {
     let formatted = expr.ySpacer.lexeme;
-    if (expr.number) {
-      formatted += expr.number.lexeme;
+    if (expr.rhythm) {
+      formatted += expr.rhythm.accept(this);
     }
     return formatted;
   }

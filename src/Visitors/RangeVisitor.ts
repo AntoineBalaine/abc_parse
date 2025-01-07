@@ -185,7 +185,7 @@ export class RangeVisitor implements Visitor<Range> {
     return expr.contents.map((e) => getTokenRange(e)).reduce(reduceRanges, <Range>{});
   }
   visitYSpacerExpr(expr: YSPACER): Range {
-    return [expr.ySpacer, expr.number]
+    return [expr.ySpacer, expr.rhythm]
       .filter((e): e is Token => !!e)
       .map((e) => getTokenRange(e))
       .reduce(reduceRanges, <Range>{});

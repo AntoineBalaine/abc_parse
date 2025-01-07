@@ -399,11 +399,16 @@ export class Parser {
         break;
       case TokenType.LETTER:
         if (curTokn.lexeme === "y") {
-          contents.push(new YSPACER(this.ctx, curTokn, this.peekNext().type === TokenType.NUMBER ? this.peekNext() : undefined));
+          const ySpacer = curTokn;
           this.advance();
-          if (this.peek().type === TokenType.NUMBER) {
-            this.advance();
+
+          // Check for optional rhythm
+          let rhythm: Rhythm | undefined;
+          if (isRhythmToken(this.peek())) {
+            rhythm = this.rhythm();
           }
+
+          contents.push(new YSPACER(this.ctx, ySpacer, rhythm));
         } else if (this.isDecoration()) {
           contents.push(new Decoration(this.ctx, curTokn));
           this.advance();

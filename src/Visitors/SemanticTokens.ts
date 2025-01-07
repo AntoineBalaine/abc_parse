@@ -223,7 +223,7 @@ export class TokensVisitor implements Visitor<void> {
   }
   visitYSpacerExpr(e: YSPACER) {
     this.tokens.push(e.ySpacer);
-    e.number && this.tokens.push(e.number);
+    e.rhythm && e.rhythm.accept(this);
   }
 
   visitTupletExpr(expr: Tuplet) {

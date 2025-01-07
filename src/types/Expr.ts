@@ -409,15 +409,15 @@ export class Decoration extends Expr {
   }
 }
 export class YSPACER extends Expr {
-  number?: Token | null;
   ySpacer: Token;
-  constructor(ctx: ABCContext, ySpacer: Token, number?: Token) {
+  rhythm?: Rhythm;
+
+  constructor(ctx: ABCContext, ySpacer: Token, rhythm?: Rhythm) {
     super(ctx.generateId());
     this.ySpacer = ySpacer;
-    if (number) {
-      this.number = number;
-    }
+    this.rhythm = rhythm;
   }
+
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitYSpacerExpr(this);
   }
