@@ -373,3 +373,60 @@ export function isTupletToken(pkd: Token) {
 export function isVoiceMarker(node: Expr | Token): node is Info_line | Inline_field {
   return (isInline_field(node) && node.field.lexeme === "V:") || (isInfo_line(node) && node.key.lexeme === "V:");
 }
+
+/**
+ * Check if a tuplet marker is followed by valid music content (notes, rests, chords)
+ * Allows for decorations, grace notes, annotations etc. before the music content
+ * @param tokens Array of tokens to check
+ * @param startIndex Current position (at tuplet marker)
+ * @returns boolean indicating if valid music content was found
+ */
+export function foundMusic(tokens: Token[], startIndex: number): boolean {
+  let i = startIndex;
+
+  while (i < tokens.length) {
+    const token = tokens[i];
+
+    // Skip valid prefixes
+    if (
+      // Whitespace
+      token.type === TokenType.WHITESPACE ||
+      // Decorations
+      token.type === TokenType.DOT ||
+      token.type === TokenType.TILDE ||
+      isDecorationToken(token) ||
+      // Grace notes opening
+      token.type === TokenType.LEFT_BRACE ||
+      // Annotations
+      token.type === TokenType.STRING ||
+      token.lexeme === '"' ||
+      // Tuplet syntax
+      token.type === TokenType.COLON_DBL ||
+      token.type === TokenType.COLON_NUMBER ||
+      token.type === TokenType.NUMBER ||
+      // Grouping
+      token.type === TokenType.LEFTPAREN
+    ) {
+      i++;
+      continue;
+    }
+
+    // Found valid music content
+    if (
+      // Note
+      isNoteToken(token) ||
+      // Rest
+      isRestToken(token) ||
+      // Chord (left bracket not followed by letter-colon)
+      (token.type === TokenType.LEFTBRKT && (i + 1 >= tokens.length || tokens[i + 1].type !== TokenType.LETTER_COLON))
+    ) {
+      return true;
+    }
+
+    // Invalid token found
+    return false;
+  }
+
+  // Reached end without finding music
+  return false;
+}

@@ -1,6 +1,7 @@
 import {
   beamEnd,
   foundBeam,
+  foundMusic,
   hasRestAttributes,
   isChord,
   isDecorationToken,
@@ -387,7 +388,7 @@ export class Parser {
         this.advance();
         break;
       case TokenType.LEFTPAREN_NUMBER:
-        if (this.isTuplet()) {
+        if (foundMusic(this.tokens, this.current + 1)) {
           contents.push(this.tuplet());
         } else {
           throw this.error(curTokn, "Tuplet markers should be followed by a note", ParserErrorType.TUPLET);
