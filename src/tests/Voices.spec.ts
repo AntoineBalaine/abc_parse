@@ -261,6 +261,24 @@ CDEF|GABC|CDEF|GABC|
     expect(result?.tune[0].tune_header.voices.length).to.equal(2);
   });
 
+  it("it formats all voices in a 3-voice system", () => {
+    const ctx = new ABCContext();
+    const result = buildParse(
+      `X:1
+V:1 name="soprano" clef=treble   middle=B
+V:2 name="tenor"   clef=treble-8 middle=B,
+V:3 name="bass"    clef=bass     middle=D,
+%
+[V:1] | CDEF GABc | cdef gabc' |
+[V:2] | C,D,E,F, G,A,B,C | CDEF GABc |
+[V:3] | C,,D,,E,,F,, G,,A,,B,,C, | C,D,E,F, G,A,B,C |`,
+      ctx
+    );
+
+    expect(result?.tune[0].tune_header.voices.length).to.equal(3);
+    expect(result?.tune[0].tune_body?.sequence.length).to.equal(1);
+  });
+
   describe("Voice Inline markers", () => {
     let ctx: ABCContext;
 

@@ -72,53 +72,68 @@ export class VoiceParser {
   }
 
   parseVoices() {
-    // let foundFirstVoice = false;
-    // while (!this.isAtEnd() && this.peek() !== undefined && !foundFirstVoice) {
-    //   const expr = this.peek();
-    //   if (isVoiceMarker(expr)) {
-    //     foundFirstVoice = true;
-    //     if (this.curSystem) {
-    //       this.systems.push(this.curSystem);
-    //     }
-    //     this.curSystem = [];
-    //     // this.lastVoice = this.stringifyVoice(expr);
-    //   } else if (isToken(expr) && expr.type === TokenType.EOL) {
-    //     // If we have a current line, push it as its own system
-    //     if (this.curSystem && this.curSystem.length) {
-    //       this.systems.push(this.curSystem);
-    //       this.curSystem = [];
-    //     }
-    //     this.advance();
-    //   } else {
-    //     // Start collecting a new line if needed
-    //     if (!this.curSystem) {
-    //       this.curSystem = [];
-    //     }
-    //     this.curSystem.push(expr);
-    //     this.advance();
-    //   }
-    // }
+    let foundFirstVoice = false;
+
     while (!this.isAtEnd() && this.peek() !== undefined) {
       const expr = this.peek();
+
+      // Handle content before first voice marker
+      if (!foundFirstVoice) {
+        if (isVoiceMarker(expr)) {
+          // End of pre-voice content
+          foundFirstVoice = true;
+          if (this.curSystem && this.curSystem.length) {
+            this.systems.push(this.curSystem);
+          }
+          this.curSystem = [];
+          this.lastVoice = this.stringifyVoice(expr);
+          this.curSystem.push(expr);
+          this.advance();
+        } else if (isToken(expr) && expr.type === TokenType.EOL) {
+          // End of current unmarked line
+          if (this.curSystem && this.curSystem.length) {
+            this.curSystem.push(expr);
+            this.systems.push(this.curSystem);
+            this.curSystem = [];
+          }
+          this.advance();
+        } else {
+          // Collect content in current unmarked line
+          if (!this.curSystem) {
+            this.curSystem = [];
+          }
+          this.curSystem.push(expr);
+          this.advance();
+        }
+        continue; // Important! Skip the voice-based processing
+      }
+
+      // Handle content after first voice marker
       if (isVoiceMarker(expr)) {
         if (this.isNewSystem()) {
-          /**
-           * create new system
-           */
           if (this.curSystem) {
             this.systems.push(this.curSystem);
           }
           this.curSystem = [];
+          this.lastVoice = this.stringifyVoice(expr);
         } else {
           this.lastVoice = this.stringifyVoice(expr);
         }
       }
-      this.curSystem && this.curSystem.push(this.peek());
+
+      if (this.curSystem) {
+        this.curSystem.push(expr);
+      } else {
+        this.curSystem = [expr];
+      }
       this.advance();
     }
+
+    // Don't forget last system
     if (this.curSystem && this.curSystem.length) {
       this.systems.push(this.curSystem);
     }
+
     return this.systems;
   }
 
