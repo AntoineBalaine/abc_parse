@@ -208,12 +208,7 @@ export class Parser {
           /**
            * trim the space in the value line, and remove any trailing comments after the legend
            */
-          const legend = line.value
-            .map((token) => token.lexeme)
-            .join("")
-            .trim()
-            .replace(/\s.*/, "");
-
+          const legend = line.value[0].lexeme;
           voices.push(legend);
         }
         info_lines.push(line);
@@ -562,14 +557,12 @@ COLON_DBL NUMBER
   }
 
   /**
-   * parse all tokens entil EOL.
-   * Then, if the next line is a voice, return true
-   *
-   * if it's a comment, skip it and continue
-   *
-   * if it's an info line, return true
-   *
-   * else return false
+   * Pretty awful.
+   * Check if the voice line is already in nomenclature
+   * else, peek at the next line - ignoring comment/stylesheet lines:
+   * info lines => true
+   * voice marker => true
+   * music code => false
    * */
   private isVoicesLegend(voices: Array<string>) {
     let i = this.current + 1;
@@ -578,21 +571,20 @@ COLON_DBL NUMBER
       voice_tokens.push(this.tokens[i]);
       i++;
     }
-    const voice_legend = voice_tokens
-      .map((token) => token.lexeme)
-      .join("")
-      .split(" ")[0];
+
+    const info_line = new Info_line(this.ctx, [this.tokens[this.current], ...voice_tokens]);
+    const voice_legend = info_line.value[0].lexeme;
     if (voices.includes(voice_legend)) {
       return false;
     }
+    // peek at the next line, ignoring comment/stylesheet lines
     while (i < this.tokens.length) {
       i++;
       const cur = this.tokens[i];
       if (cur.type === TokenType.COMMENT || cur.type === TokenType.STYLESHEET_DIRECTIVE) {
         continue;
-      } else if (cur.type === TokenType.LETTER_COLON) {
-        return true;
-      } else if (cur.type === TokenType.EOF) {
+        // true if followed by another info line or a voice marker
+      } else if (cur.type === TokenType.LETTER_COLON || cur.type === TokenType.EOF || this.isVoiceMarker(i)) {
         return true;
       } else {
         return false;
@@ -600,6 +592,29 @@ COLON_DBL NUMBER
     }
     return false;
   }
+
+  // returns the voice name of the voice marker, or null
+  private isVoiceMarker(i: number): string | null {
+    if (
+      // fmt
+      this.tokens[i].type === TokenType.LEFTBRKT &&
+      this.tokens[i + 1].type === TokenType.LETTER_COLON &&
+      this.tokens[i + 1].lexeme === "V:"
+    ) {
+      let tokens: Array<Token> = [];
+      i = i++;
+      while (i < this.tokens.length && this.tokens[i].type !== TokenType.EOL && this.tokens[i].type !== TokenType.RIGHT_BRKT) {
+        i++;
+        tokens.push(this.peek());
+      }
+      return tokens
+        .map((t) => t.lexeme)
+        .join("")
+        .trim();
+    }
+    return null;
+  }
+
   private isTuplet() {
     /**
      * start at next token
