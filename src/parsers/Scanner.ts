@@ -136,29 +136,31 @@ export class Scanner {
        * TODO implement backticks in beams
        */
       case ":": {
-        const pkd = this.peek();
-        if ((pkd === "|" || pkd === ":" || /[0-9]/.test(pkd)) && !this.isAtEnd()) {
-          this.advance();
-          if (pkd === "|") {
-            if (/[0-9]/.test(this.peek())) {
-              this.advance();
-              this.addToken(TokenType.COLON_BAR_DIGIT);
-            } else {
-              this.addToken(TokenType.COLON_BAR);
-            }
-          } else if (pkd === ":") {
-            if (/[0-9]/.test(this.peek())) {
-              this.addToken(TokenType.COLON);
-              const col = this.advance();
-              this.addToken(TokenType.COLON_NUMBER);
-            } else {
-              this.addToken(TokenType.COLON_DBL);
-            }
+        const nextChar = this.peek();
+
+        if (nextChar === "|") {
+          this.advance(); // consume |
+          if (/[0-9]/.test(this.peek())) {
+            this.advance(); // consume number
+            this.addToken(TokenType.COLON_BAR_DIGIT);
           } else {
-            this.addToken(TokenType.COLON_NUMBER);
+            this.addToken(TokenType.COLON_BAR);
           }
+        } else if (nextChar === ":") {
+          this.advance(); // consume second :
+          if (/[0-9]/.test(this.peek())) {
+            // ::2
+            this.advance(); // consume number
+            this.addToken(TokenType.COLON_DBL); // represents ::
+            this.addToken(TokenType.NUMBER); // separate number token
+          } else {
+            this.addToken(TokenType.COLON_DBL); // just ::
+          }
+        } else if (/[0-9]/.test(nextChar)) {
+          this.advance(); // consume number
+          this.addToken(TokenType.COLON_NUMBER); // :2
         } else {
-          this.addToken(TokenType.COLON);
+          this.addToken(TokenType.COLON); // just :
         }
         break;
       }

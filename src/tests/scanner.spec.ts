@@ -158,8 +158,8 @@ describe("Scanner", () => {
     it("should handle double colon followed by a number", () => {
       let scanner = new Scanner("::1", new ABCContext());
       const tokens = scanner.scanTokens();
-      assert.equal(tokens[0].type, TokenType.COLON);
-      assert.equal(tokens[1].type, TokenType.COLON_NUMBER);
+      assert.equal(tokens[0].type, TokenType.COLON_DBL);
+      assert.equal(tokens[1].type, TokenType.NUMBER);
     });
   });
   describe("special cases", () => {

@@ -424,45 +424,58 @@ export class Parser {
   voice_overlay(ampersands: Token[]): Voice_overlay {
     return new Voice_overlay(this.ctx, ampersands);
   }
-  tuplet() {
-    // implement more strictly the possible contents of the tuplet
-    // which is a leftparen_number followed by
-    /**
-     * find end of expression
-     * (leftparen_number, :[0-9], :[0-9]
-     * opt WS
-     * NOTE
-     *
-COLON NUMBER (opt *2)
-COLON_DBL NUMBER
-     */
-    let p: Token;
-    let q: Token | undefined = undefined;
-    let r: Token | undefined = undefined;
-    // find if followed by note
-    p = this.peek();
-    this.advance();
-    /**
-     * TODO rewrite using this.match()
-     */
-    if (this.peek().type === TokenType.COLON_DBL) {
-      q = new Token(TokenType.COLON, ":", null, p.line, this.peek().position, this.ctx);
-      r = new Token(TokenType.COLON, ":", null, p.line, this.peek().position + 1, this.ctx);
-      this.advance();
-    } else {
-      /** either it will be a COLON_NUMBER once or TWICE */
-      if (this.peek().type === TokenType.COLON_NUMBER) {
-        q = this.peek();
-        this.advance();
+  /**
+   * Parse a tuplet expression.
+   * Syntax can be either:
+   * - Simple form: (n where n is 2-9
+   * - Extended form: (p:q:r where:
+   *   p = number of notes
+   *   q = time value (optional)
+   *   r = number of notes affected (optional, defaults to p)
+   *
+   * Examples:
+   * (3    -> (3:2:3  (triplet)
+   * (3::  -> (3:2:3  (same)
+   * (3:2  -> (3:2:3  (same)
+   * (3::2 -> (3:2:2  (triplet affecting 2 notes)
+   */
+  private tuplet(): Tuplet {
+    // Get the opening (n token
+    const p = this.consume(TokenType.LEFTPAREN_NUMBER, "Expected tuplet marker", ParserErrorType.TUPLET);
+
+    // Check for extended syntax with colons
+    if (this.match(TokenType.COLON_NUMBER)) {
+      // (p:q form
+      const q = this.previous();
+
+      if (this.match(TokenType.COLON_NUMBER)) {
+        // (p:q:r form
+        const r = this.previous();
+        return new Tuplet(this.ctx, p, q, r);
       }
-      /**second time */
-      if (this.peek().type === TokenType.COLON_NUMBER) {
-        q = this.peek();
-        this.advance();
-      }
+
+      return new Tuplet(this.ctx, p, q);
     }
-    return new Tuplet(this.ctx, p, q, r);
+
+    if (this.match(TokenType.COLON_DBL)) {
+      // (p:: form
+      const colon_dbl = this.previous();
+      const q = new Token(TokenType.COLON, ":", null, p.line, colon_dbl.position, this.ctx);
+      const r = new Token(TokenType.COLON, ":", null, p.line, colon_dbl.position + 1, this.ctx);
+
+      if (this.match(TokenType.NUMBER)) {
+        // (p::2 form - only modify r
+        r.lexeme = ":" + this.previous().lexeme;
+        r.type = TokenType.COLON_NUMBER;
+      }
+
+      return new Tuplet(this.ctx, p, q, r);
+    }
+
+    // Simple form (n - just the p token
+    return new Tuplet(this.ctx, p);
   }
+
   /**
    * iterate the music code
    *
@@ -647,7 +660,12 @@ COLON_DBL NUMBER
         cur.type !== TokenType.NUMBER
       ) {
         return false;
-      } else if (isNoteToken(cur) || isRestToken(cur)) {
+      } else if (
+        isNoteToken(cur) ||
+        isRestToken(cur) ||
+        // is chord
+        (cur.type === TokenType.LEFTBRKT && this.tokens[i + 1].type !== TokenType.LETTER_COLON)
+      ) {
         return true;
       }
     }
