@@ -364,9 +364,12 @@ describe("Parser", () => {
         const ctx = new ABCContext();
         const tune_body = buildParse("K:C\nabc\nT:Title %surprise", ctx).tune[0].tune_body;
         const info_line = tune_body?.sequence[1][0];
-        const comment = tune_body?.sequence[1][1];
-        expect(info_line).to.be.an.instanceof(Info_line);
-        expect(comment).to.be.an.instanceof(Comment);
+        expect(isInfo_line(info_line)).to.be.true;
+        if (isInfo_line(info_line)) {
+          const len = info_line.value.length;
+          const last = info_line.value[len - 1];
+          expect(last.type).to.equal(TokenType.COMMENT);
+        }
       });
       it("should parse info_line in body", () => {
         const ctx = new ABCContext();

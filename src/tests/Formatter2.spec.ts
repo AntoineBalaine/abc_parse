@@ -199,7 +199,7 @@ X:1
 V:RH clef=treble octave=4 % right hand
 V:LH clef=bass octave=3 % left hand
 V:RH
-CDEF | GABC |
+CDEF     | GABC     |
 V:LH
 C,D,E,F, | G,A,B,C, |`
         );
@@ -519,5 +519,77 @@ V:2
 CD EF GA   | CDEF |`
       );
     });
+  });
+});
+
+describe("AbcFormatter - unmarked lines in multi-voice tunes", () => {
+  let formatter: AbcFormatter;
+  let ctx: ABCContext;
+
+  beforeEach(() => {
+    ctx = new ABCContext();
+    formatter = new AbcFormatter(ctx);
+  });
+
+  function format(input: string): string {
+    const scanner = new Scanner(input, ctx);
+    const tokens = scanner.scanTokens();
+    const parser = new Parser(tokens, ctx);
+    const ast = parser.parse();
+    if (!ast) {
+      throw new Error("Failed to parse");
+    }
+    return formatter.format(ast);
+  }
+
+  it("preserves unmarked lines before voiced content", () => {
+    const result = format(`
+X:1
+% setup comment
+This is some text
+K:C
+% another comment
+V:1 name=voice1
+V:2 name=voice2
+CDEF|GABC|
+EDC2|GFE2|
+V:2
+CDEF|GABC|`);
+
+    assert.equal(
+      result,
+      `
+X:1
+% setup comment
+This is some text
+K:C
+% another comment
+V:1 name=voice1
+V:2 name=voice2
+CDEF | GABC |
+EDC2 | GFE2 |
+V:2
+CDEF | GABC |`
+    );
+  });
+  it("preserves unmarked lines and line breaks", () => {
+    const result = format(`
+X:1
+V:SnareDrum stem=up
+V:2 stem=up
+K:C clef=perc stafflines=1
+B8 z8 | 
+BA`);
+
+    assert.equal(
+      result,
+      `
+X:1
+V:SnareDrum stem=up
+V:2 stem=up
+K:C clef=perc stafflines=1
+B8 z8 |
+BA`
+    );
   });
 });

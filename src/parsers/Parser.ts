@@ -232,7 +232,7 @@ export class Parser {
   private info_line() {
     const info_line = [];
     while (!this.isAtEnd()) {
-      if ((this.peek().type === TokenType.EOL && !(this.peekNext().type === TokenType.PLUS_COLON)) || this.peek().type === TokenType.COMMENT) {
+      if (this.peek().type === TokenType.EOL && !(this.peekNext().type === TokenType.PLUS_COLON)) {
         break;
       } else {
         if (this.peek().type === TokenType.EOL) {
@@ -582,6 +582,9 @@ COLON_DBL NUMBER
       i++;
       const cur = this.tokens[i];
       if (cur.type === TokenType.COMMENT || cur.type === TokenType.STYLESHEET_DIRECTIVE) {
+        if (this.tokens[i + 1].type === TokenType.EOL) {
+          i++;
+        }
         continue;
         // true if followed by another info line or a voice marker
       } else if (cur.type === TokenType.LETTER_COLON || cur.type === TokenType.EOF || this.isVoiceMarker(i)) {
