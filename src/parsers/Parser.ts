@@ -572,7 +572,12 @@ export class Parser {
       const token = this.tokens[i];
 
       // Found target - success
-      if (isNoteToken(token) || hasRestAttributes(token) || token.type === TokenType.LEFTBRKT) {
+      if (
+        isNoteToken(token) ||
+        hasRestAttributes(token) ||
+        token.type === TokenType.LEFTBRKT ||
+        (token.type === TokenType.LETTER && token.lexeme === "y")
+      ) {
         return true;
       }
 

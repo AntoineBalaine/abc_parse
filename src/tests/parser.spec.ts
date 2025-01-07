@@ -477,12 +477,15 @@ describe("Parser", () => {
       });
       it("should parse y spacer", () => {
         const ctx = new ABCContext();
-        const musicCode = buildParse("y/2", ctx).tune[0].tune_body?.sequence[0][0];
-        if (musicCode) {
-          expect(musicCode).to.be.an.instanceof(YSPACER);
-          if (isYSPACER(musicCode)) {
-            expect(musicCode.ySpacer.lexeme).to.equal("y");
-            expect(musicCode.rhythm).to.not.be.undefined;
+        const music_cd = buildParse(".y/2", ctx).tune[0].tune_body?.sequence[0];
+        const decoration = music_cd![0];
+        const ySpacer = music_cd![1];
+        if (ySpacer) {
+          expect(decoration).to.be.an.instanceof(Decoration);
+          expect(ySpacer).to.be.an.instanceof(YSPACER);
+          if (isYSPACER(ySpacer)) {
+            expect(ySpacer.ySpacer.lexeme).to.equal("y");
+            expect(ySpacer.rhythm).to.not.be.undefined;
           }
         }
       });
