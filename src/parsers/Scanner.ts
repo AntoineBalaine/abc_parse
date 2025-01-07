@@ -122,7 +122,15 @@ export class Scanner {
       }
       // is caret always a sharp?
       case "^":
-        this.addToken(this.match("^") ? TokenType.SHARP_DBL : TokenType.SHARP);
+        if (this.peek() === "^") {
+          this.advance();
+          this.addToken(TokenType.SHARP_DBL);
+        } else if (this.peek() === "/") {
+          this.advance();
+          this.addToken(TokenType.SHARP_HALF);
+        } else {
+          this.addToken(TokenType.SHARP);
+        }
         break;
       /**
        * TODO implement backticks in beams
@@ -178,6 +186,9 @@ export class Scanner {
         if (this.peek() === "_") {
           this.advance();
           this.addToken(TokenType.FLAT_DBL);
+        } else if (this.peek() === "/") {
+          this.advance();
+          this.addToken(TokenType.FLAT_HALF);
         } else {
           this.addToken(TokenType.FLAT);
         }

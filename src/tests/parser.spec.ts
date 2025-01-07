@@ -155,13 +155,15 @@ describe("Parser", () => {
           }
         });
         it("should parse alteration", () => {
-          const ctx = new ABCContext();
-          const musicCode = buildParse("^C", ctx).tune[0].tune_body?.sequence[0][0];
-          expect(musicCode).to.be.an.instanceof(Note);
-          if (isNote(musicCode) && isPitch(musicCode.pitch)) {
-            expect(musicCode.pitch.alteration).to.exist;
-            expect(musicCode.pitch.alteration?.lexeme).to.equal("^");
-          }
+          ["^C", "_C", "=C", "^/C", "_/C"].forEach((input) => {
+            const ctx = new ABCContext();
+            const musicCode = buildParse(input, ctx).tune[0].tune_body?.sequence[0][0];
+            expect(musicCode).to.be.an.instanceof(Note);
+            if (isNote(musicCode) && isPitch(musicCode.pitch)) {
+              expect(musicCode.pitch.alteration).to.exist;
+              expect(musicCode.pitch.alteration?.lexeme).to.equal(input.substring(0, input.length - 1));
+            }
+          });
         });
         describe("rhythm", () => {
           it("should parse single slash", () => {

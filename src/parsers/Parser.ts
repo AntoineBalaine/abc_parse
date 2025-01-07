@@ -341,6 +341,8 @@ export class Parser {
         }
         break;
       case TokenType.FLAT:
+      case TokenType.FLAT_HALF:
+      case TokenType.SHARP_HALF:
       case TokenType.FLAT_DBL:
       case TokenType.NATURAL:
       case TokenType.NOTE_LETTER:
@@ -766,6 +768,8 @@ COLON_DBL NUMBER
       pkd.type === TokenType.FLAT ||
       pkd.type === TokenType.SHARP_DBL ||
       pkd.type === TokenType.FLAT_DBL ||
+      pkd.type === TokenType.SHARP_HALF ||
+      pkd.type === TokenType.FLAT_HALF ||
       pkd.type === TokenType.NATURAL ||
       pkd.type === TokenType.NOTE_LETTER
     ) {
@@ -914,7 +918,9 @@ COLON_DBL NUMBER
    */
   private pitch() {
     let alteration, noteLetter, octave;
-    if (this.match(TokenType.SHARP, TokenType.SHARP_DBL, TokenType.FLAT, TokenType.FLAT_DBL, TokenType.NATURAL)) {
+    if (
+      this.match(TokenType.SHARP, TokenType.SHARP_DBL, TokenType.FLAT, TokenType.FLAT_DBL, TokenType.NATURAL, TokenType.SHARP_HALF, TokenType.FLAT_HALF)
+    ) {
       //new Alteration
       alteration = this.previous();
     }

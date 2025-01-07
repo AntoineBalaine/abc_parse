@@ -37,6 +37,7 @@ describe("Scanner", () => {
     testBuilder("COMMENT", "%this is a comment", TokenType.COMMENT);
     testBuilder("DOT", ".", TokenType.DOT);
     testBuilder("EOL", "\n", TokenType.EOL, null, 0);
+    testBuilder("FLAT_HALF", "_/", TokenType.FLAT_HALF);
     testBuilder("FLAT", "_", TokenType.FLAT);
     testBuilder("FLAT_DBL", "__", TokenType.FLAT_DBL);
     testBuilder("GREATER", ">>>>", TokenType.GREATER);
@@ -57,6 +58,7 @@ describe("Scanner", () => {
     testBuilder("RIGHT_BRACE", "}", TokenType.RIGHT_BRACE);
     testBuilder("RIGHT_BRKT", "]", TokenType.RIGHT_BRKT);
     testBuilder("RIGHT_PAREN", ")", TokenType.RIGHT_PAREN);
+    testBuilder("SHARP_HALF", "^/", TokenType.SHARP_HALF);
     testBuilder("SHARP", "^", TokenType.SHARP);
     //testBuilder("SHARP", "♯", TokenType.SHARP)
     testBuilder("SHARP_DBL", "^^", TokenType.SHARP_DBL);

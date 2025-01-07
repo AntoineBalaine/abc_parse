@@ -29,6 +29,7 @@ export enum TokenType {
   EOF,
   EOL,
   ESCAPED_CHAR,
+  FLAT_HALF, // quarter tone flat
   FLAT, // ♭
   FLAT_DBL, // 𝄫
   GREATER, //>>>>>
@@ -51,6 +52,7 @@ export enum TokenType {
   RIGHT_BRACE, // }
   RIGHT_BRKT,
   RIGHT_PAREN, // )
+  SHARP_HALF, // quarter tone sharp
   SHARP, // ♯
   SHARP_DBL, // 𝄪
   SLASH, // ////
