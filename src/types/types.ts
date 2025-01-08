@@ -123,6 +123,7 @@ export enum ParserErrorType {
   UNKNOWN = "UNKNOWN",
   SCANNER = "SCANNER",
   REPEAT_NUMBER = "REPEAT_NUMBER",
+  SYMBOL = "SYMBOL",
 }
 
 /**

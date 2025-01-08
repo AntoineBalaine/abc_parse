@@ -297,6 +297,29 @@ export class Parser {
     const curTokn = this.peek();
 
     switch (curTokn.type) {
+      case TokenType.PLUS:
+        var symbol_contents: Token[] = [];
+        symbol_contents.push(this.advance());
+        while (!this.isAtEnd() && !this.check(TokenType.PLUS) && !this.check(TokenType.EOL)) {
+          symbol_contents.push(this.advance());
+        }
+        if (!this.check(TokenType.PLUS)) {
+          throw this.error(curTokn, "Expected closing plus sign", ParserErrorType.SYMBOL);
+        } else {
+          symbol_contents.push(this.advance());
+          const new_tok = new Token(
+            TokenType.SYMBOL,
+            // fmt
+            symbol_contents.map((e) => e.lexeme).join(""),
+            null,
+            symbol_contents[0].line,
+            symbol_contents[0].position,
+            this.ctx
+          );
+
+          contents.push(new Symbol(this.ctx, new_tok));
+        }
+        break;
       case TokenType.BACKTICK:
         if (this.current === this.tokens.length - 1) {
           throw this.error(curTokn, "backticks should be inside a beam", ParserErrorType.BACKTICK);

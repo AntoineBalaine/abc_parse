@@ -430,6 +430,15 @@ describe("Parser", () => {
           expect(musicCode.symbol.lexeme).to.equal("!fff!");
         }
       });
+
+      it("should parse deprecated `+` symbol syntax", () => {
+        const ctx = new ABCContext();
+        const musicCode = buildParse("+fff+", ctx).tune[0].tune_body?.sequence[0][0];
+        expect(musicCode).to.be.an.instanceof(Symbol);
+        if (isSymbol(musicCode)) {
+          expect(musicCode.symbol.lexeme).to.equal("+fff+");
+        }
+      });
       it("should parse basic rests", () => {
         const ctx = new ABCContext();
         const musicCode = buildParse("z4", ctx).tune[0].tune_body?.sequence[0][0];
