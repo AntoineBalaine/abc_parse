@@ -17,7 +17,6 @@ import {
   MultiMeasureRest,
   Music_code,
   Note,
-  Nth_repeat,
   Pitch,
   Rest,
   Rhythm,
@@ -140,9 +139,6 @@ export class RangeVisitor implements Visitor<Range> {
         }
       })
       .reduce(reduceRanges, <Range>{});
-  }
-  visitNthRepeatExpr(expr: Nth_repeat): Range {
-    return getTokenRange(expr.repeat);
   }
   visitPitchExpr(expr: Pitch): Range {
     const { alteration, noteLetter, octave } = expr;

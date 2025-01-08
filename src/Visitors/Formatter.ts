@@ -17,7 +17,6 @@ import {
   MultiMeasureRest,
   Music_code,
   Note,
-  Nth_repeat,
   Pitch,
   Rest,
   Rhythm,
@@ -195,9 +194,6 @@ export class AbcFormatter implements Visitor<string> {
       formattedNote += expr.tie.lexeme;
     }
     return formattedNote;
-  }
-  visitNthRepeatExpr(expr: Nth_repeat) {
-    return expr.repeat.lexeme;
   }
   visitPitchExpr(expr: Pitch) {
     let formatted = "";

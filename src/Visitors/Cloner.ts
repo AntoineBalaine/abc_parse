@@ -18,7 +18,6 @@ import {
   MultiMeasureRest,
   Music_code,
   Note,
-  Nth_repeat,
   Pitch,
   Rest,
   Rhythm,
@@ -132,9 +131,6 @@ export class Cloner implements Visitor<Expr | Token> {
     let newRhythm = expr.rhythm?.accept(this) as Rhythm | undefined;
     let newTie = expr.tie;
     return new Note(this.ctx, newPitch, newRhythm, newTie);
-  }
-  visitNthRepeatExpr(expr: Nth_repeat): Nth_repeat {
-    return new Nth_repeat(this.ctx, cloneToken(expr.repeat, this.ctx));
   }
   visitPitchExpr(expr: Pitch): Pitch {
     let newAlteration: Token | undefined = expr.alteration ? cloneToken(expr.alteration, this.ctx) : undefined;

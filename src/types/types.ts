@@ -14,15 +14,7 @@ export enum TokenType {
   AMPERSAND, // &
   BACKTICK, // `
   BARLINE, //|
-  // BAR_COLON, // |:
-  // BAR_DBL, // ||
-  // BAR_DIGIT, // |1
-  // BAR_RIGHTBRKT, // |]
   COLON, // :
-  // COLON_BAR, // :|
-  // COLON_BAR_DIGIT, // :|1
-  // COLON_DBL, // ::
-  // COLON_NUMBER, // :1
   COMMA, //,,,,,,
   COMMENT,
   DOLLAR, //$
@@ -34,8 +26,6 @@ export enum TokenType {
   FLAT, // ♭
   FLAT_DBL, // 𝄫
   GREATER, //>>>>>
-  // LEFTBRKT_BAR, // [|
-  // LEFTBRKT_NUMBER, // [number
   LEFT_BRACE, // {
   LEFTBRKT, // [
   LEFTPAREN, // (

@@ -15,7 +15,6 @@ import {
   MultiMeasureRest,
   Music_code,
   Note,
-  Nth_repeat,
   Pitch,
   Rest,
   Rhythm,
@@ -48,9 +47,6 @@ export const isAnnotation = (expr: unknown): expr is Annotation => {
 };
 export const isGraceGroup = (expr: unknown): expr is Grace_group => {
   return expr instanceof Grace_group;
-};
-export const isNthRepeat = (expr: unknown): expr is Nth_repeat => {
-  return expr instanceof Nth_repeat;
 };
 export const isInline_field = (expr: unknown): expr is Inline_field => {
   return expr instanceof Inline_field;
@@ -99,9 +95,6 @@ export function isDecoration(expr: unknown): expr is Decoration {
 }
 export function isTuplet(expr: unknown): expr is Tuplet {
   return expr instanceof Tuplet;
-}
-export function isNth_repeat(expr: unknown): expr is Nth_repeat {
-  return expr instanceof Nth_repeat;
 }
 export function isErrorExpr(expr: unknown): expr is ErrorExpr {
   return expr instanceof ErrorExpr;

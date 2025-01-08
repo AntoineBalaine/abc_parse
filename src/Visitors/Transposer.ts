@@ -18,7 +18,6 @@ import {
   MultiMeasureRest,
   Music_code,
   Note,
-  Nth_repeat,
   Pitch,
   Rest,
   Rhythm,
@@ -128,9 +127,6 @@ export class Transposer implements Visitor<Expr | Token> {
     if (isPitch(expr.pitch)) {
       expr.pitch = this.visitPitchExpr(expr.pitch);
     }
-    return expr;
-  }
-  visitNthRepeatExpr(expr: Nth_repeat): Nth_repeat {
     return expr;
   }
   visitPitchExpr(expr: Pitch): Pitch {

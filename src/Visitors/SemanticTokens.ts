@@ -16,7 +16,6 @@ import {
   MultiMeasureRest,
   Music_code,
   Note,
-  Nth_repeat,
   Pitch,
   Rest,
   Rhythm,
@@ -203,9 +202,6 @@ export class TokensVisitor implements Visitor<void> {
   visitMultiMeasureRestExpr(e: MultiMeasureRest) {
     this.tokens.push(e.rest);
     e.length && this.tokens.push(e.length);
-  }
-  visitNthRepeatExpr(e: Nth_repeat) {
-    this.tokens.push(e.repeat);
   }
   visitRestExpr(e: Rest) {
     this.tokens.push(e.rest);

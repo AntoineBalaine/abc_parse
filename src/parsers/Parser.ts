@@ -29,7 +29,6 @@ import {
   MultiMeasureRest,
   Music_code,
   Note,
-  Nth_repeat,
   Pitch,
   Rest,
   Rhythm,
@@ -288,7 +287,6 @@ export class Parser {
       | Annotation
       | Note
       | Grace_group
-      | Nth_repeat
       | Inline_field
       | Chord
       | Symbol

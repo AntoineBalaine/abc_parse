@@ -41,7 +41,6 @@ export interface Visitor<R> {
   visitMultiMeasureRestExpr(expr: MultiMeasureRest): R;
   visitMusicCodeExpr(expr: Music_code): R;
   visitNoteExpr(expr: Note): R;
-  visitNthRepeatExpr(expr: Nth_repeat): R;
   visitPitchExpr(expr: Pitch): R;
   visitRestExpr(expr: Rest): R;
   visitRhythmExpr(expr: Rhythm): R;
@@ -314,17 +313,6 @@ export class Chord extends Expr {
   }
 }
 
-export class Nth_repeat extends Expr {
-  repeat: Token;
-  constructor(ctx: ABCContext, repeat: Token) {
-    super(ctx.generateId());
-    this.repeat = repeat;
-  }
-  accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitNthRepeatExpr(this);
-  }
-}
-
 export class Tune_Body extends Expr {
   sequence: Array<System>;
   constructor(ctx: ABCContext, sequence: Array<System>) {
@@ -369,7 +357,6 @@ export type music_code =
   | Decoration
   | Note
   | Grace_group
-  | Nth_repeat
   | Inline_field
   | Chord
   | Symbol

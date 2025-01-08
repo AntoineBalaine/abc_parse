@@ -18,7 +18,6 @@ import {
   MultiMeasureRest,
   Music_code,
   Note,
-  Nth_repeat,
   Pitch,
   Rest,
   Rhythm,
@@ -293,12 +292,6 @@ export class RhythmVisitor implements Visitor<Expr> {
     return expr;
   }
 
-  visitNthRepeatExpr(expr: Nth_repeat): Nth_repeat {
-    if (this.isInRange(expr)) {
-      this.updateChanges([expr]);
-    }
-    return expr;
-  }
   visitPitchExpr(expr: Pitch): Pitch {
     return expr;
   }
