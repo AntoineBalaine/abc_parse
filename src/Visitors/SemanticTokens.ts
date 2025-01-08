@@ -112,8 +112,11 @@ export class TokensVisitor implements Visitor<void> {
       }
     });
   }
-  visitBarLineExpr(content: BarLine) {
-    this.tokens.push(content.barline);
+  visitBarLineExpr(expr: BarLine) {
+    return [expr.barline, expr.repeatNumbers]
+      .filter((e): e is Token[] => !!e)
+      .flatMap((e) => e)
+      .forEach((e) => this.tokens.push(e));
   }
   visitAnnotationExpr(content: Annotation) {
     this.tokens.push(content.text);

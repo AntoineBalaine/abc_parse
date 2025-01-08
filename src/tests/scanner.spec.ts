@@ -25,14 +25,14 @@ describe("Scanner", () => {
     testBuilder("ESCAPED_CHAR", "\\e", TokenType.ESCAPED_CHAR);
     testBuilder("AMPERSAND", "&", TokenType.AMPERSAND);
     testBuilder("BARLINE", "|", TokenType.BARLINE);
-    testBuilder("BAR_COLON", "|:", TokenType.BAR_COLON);
-    testBuilder("BAR_DBL", "||", TokenType.BAR_DBL);
-    testBuilder("BAR_DIGIT", "|1", TokenType.BAR_DIGIT);
+    // testBuilder("BAR_COLON", "|:", TokenType.BAR_COLON);
+    // testBuilder("BAR_DBL", "||", TokenType.BAR_DBL);
+    // testBuilder("BAR_DIGIT", "|1", TokenType.BAR_DIGIT);
     testBuilder("COLON", ":", TokenType.COLON);
-    testBuilder("COLON_BAR", ":|", TokenType.COLON_BAR);
-    testBuilder("COLON_BAR_DIGIT", ":|2", TokenType.COLON_BAR_DIGIT, null);
-    testBuilder("COLON_DBL", "::", TokenType.COLON_DBL);
-    testBuilder("COLON_NUMBER", ":1", TokenType.COLON_NUMBER);
+    // testBuilder("COLON_BAR", ":|", TokenType.COLON_BAR);
+    // testBuilder("COLON_BAR_DIGIT", ":|2", TokenType.COLON_BAR_DIGIT, null);
+    // testBuilder("COLON_DBL", "::", TokenType.COLON_DBL);
+    // testBuilder("COLON_NUMBER", ":1", TokenType.COLON_NUMBER);
     testBuilder("COMMA", ",", TokenType.COMMA);
     testBuilder("COMMENT", "%this is a comment", TokenType.COMMENT);
     testBuilder("DOT", ".", TokenType.DOT);
@@ -41,8 +41,8 @@ describe("Scanner", () => {
     testBuilder("FLAT", "_", TokenType.FLAT);
     testBuilder("FLAT_DBL", "__", TokenType.FLAT_DBL);
     testBuilder("GREATER", ">>>>", TokenType.GREATER);
-    testBuilder("LEFTBRKT_BAR", "[|", TokenType.LEFTBRKT_BAR);
-    testBuilder("LEFTBRKT_NUMBER", "[2", TokenType.LEFTBRKT_NUMBER);
+    // testBuilder("LEFTBRKT_BAR", "[|", TokenType.LEFTBRKT_BAR);
+    // testBuilder("LEFTBRKT_NUMBER", "[2", TokenType.LEFTBRKT_NUMBER);
     testBuilder("LEFT_BRACE", "{", TokenType.LEFT_BRACE);
     testBuilder("LEFTBRKT", "[", TokenType.LEFTBRKT);
     testBuilder("LEFTPAREN", "(", TokenType.LEFTPAREN);
@@ -153,14 +153,17 @@ describe("Scanner", () => {
     it("should handle colon followed by a number, twice", () => {
       let scanner = new Scanner(":1:1", new ABCContext());
       const tokens = scanner.scanTokens();
-      assert.equal(tokens[0].type, TokenType.COLON_NUMBER);
-      assert.equal(tokens[1].type, TokenType.COLON_NUMBER);
+      assert.equal(tokens[0].type, TokenType.COLON);
+      assert.equal(tokens[1].type, TokenType.NUMBER);
+      assert.equal(tokens[2].type, TokenType.COLON);
+      assert.equal(tokens[3].type, TokenType.NUMBER);
     });
     it("should handle double colon followed by a number", () => {
       let scanner = new Scanner("::1", new ABCContext());
       const tokens = scanner.scanTokens();
-      assert.equal(tokens[0].type, TokenType.COLON_DBL);
-      assert.equal(tokens[1].type, TokenType.NUMBER);
+      assert.equal(tokens[0].type, TokenType.COLON);
+      assert.equal(tokens[1].type, TokenType.COLON);
+      assert.equal(tokens[2].type, TokenType.NUMBER);
     });
   });
   describe("special cases", () => {

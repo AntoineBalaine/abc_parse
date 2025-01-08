@@ -102,7 +102,7 @@ export function expandMultiMeasureRests(system: System, ctx: ABCContext): System
 
       // Add barline and Z for remaining measures
       for (let i = 1; i < measures; i++) {
-        expanded.push(new BarLine(ctx, new Token(TokenType.BARLINE, "|", null, node.rest.line, node.rest.position, ctx)));
+        expanded.push(new BarLine(ctx, [new Token(TokenType.BARLINE, "|", null, node.rest.line, node.rest.position, ctx)]));
         expanded.push(
           new MultiMeasureRest(ctx, new Token(TokenType.LETTER, is_invisible_rest ? "X" : "Z", null, node.rest.line, node.rest.position, ctx))
         );

@@ -46,8 +46,13 @@ export class RangeVisitor implements Visitor<Range> {
     return getTokenRange(expr.text);
   }
   visitBarLineExpr(expr: BarLine): Range {
-    return getTokenRange(expr.barline);
+    return [expr.barline, expr.repeatNumbers]
+      .filter((e): e is Token[] => !!e)
+      .flatMap((e) => e)
+      .map((e) => getTokenRange(e))
+      .reduce(reduceRanges, <Range>{});
   }
+
   visitChordExpr(expr: Chord): Range {
     return expr.contents
       .map((e) => {

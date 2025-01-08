@@ -80,7 +80,11 @@ export class AbcFormatter implements Visitor<string> {
     return expr.text.lexeme;
   }
   visitBarLineExpr(expr: BarLine) {
-    return expr.barline.lexeme;
+    return [expr.barline, expr.repeatNumbers]
+      .filter((e): e is Token[] => !!e)
+      .flatMap((e) => e)
+      .map((e) => e.lexeme)
+      .join("");
   }
   visitBeamExpr(expr: Beam): string {
     let fmt = expr.contents

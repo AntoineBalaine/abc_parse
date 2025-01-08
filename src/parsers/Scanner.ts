@@ -96,31 +96,7 @@ export class Scanner {
         break;
       case "|": {
         const pkd = this.peek();
-        if (
-          // TODO for now, only allow one digit after barline
-          (pkd === ":" || pkd === "|" || pkd === "]" || /[0-9]/.test(pkd)) &&
-          !this.isAtEnd()
-        ) {
-          this.advance();
-          switch (pkd) {
-            case ":":
-              this.addToken(TokenType.BAR_COLON);
-              break;
-            case "|":
-              this.addToken(TokenType.BAR_DBL);
-              break;
-            case "]":
-              this.addToken(TokenType.BAR_RIGHTBRKT);
-              break;
-            default: {
-              if (/[0-9]/.test(pkd)) {
-                this.addToken(TokenType.BAR_DIGIT);
-              }
-            }
-          }
-        } else {
-          this.addToken(TokenType.BARLINE);
-        }
+        this.addToken(TokenType.BARLINE);
         break;
       }
       // is caret always a sharp?
@@ -139,25 +115,7 @@ export class Scanner {
        * TODO implement backticks in beams
        */
       case ":": {
-        const nextChar = this.peek();
-
-        if (nextChar === "|") {
-          this.advance(); // consume |
-          if (/[0-9]/.test(this.peek())) {
-            this.advance(); // consume number
-            this.addToken(TokenType.COLON_BAR_DIGIT);
-          } else {
-            this.addToken(TokenType.COLON_BAR);
-          }
-        } else if (nextChar === ":") {
-          this.advance(); // consume second :
-          this.addToken(TokenType.COLON_DBL); // just ::
-        } else if (/[0-9]/.test(nextChar)) {
-          this.advance(); // consume number
-          this.addToken(TokenType.COLON_NUMBER); // :2
-        } else {
-          this.addToken(TokenType.COLON); // just :
-        }
+        this.addToken(TokenType.COLON); // just :
         break;
       }
       case ",":
@@ -204,18 +162,7 @@ export class Scanner {
         this.addToken(TokenType.GREATER);
         break;
       case "[": {
-        const pkd = this.peek();
-        if (pkd === "|") {
-          this.advance();
-          this.addToken(TokenType.LEFTBRKT_BAR);
-        } else if (this.isDigit(pkd)) {
-          while (this.isDigit(this.peek())) {
-            this.advance();
-          }
-          this.addToken(TokenType.LEFTBRKT_NUMBER);
-        } else {
-          this.addToken(TokenType.LEFTBRKT);
-        }
+        this.addToken(TokenType.LEFTBRKT);
         break;
       }
       case "{":

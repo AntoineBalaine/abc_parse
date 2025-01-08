@@ -251,10 +251,23 @@ function parseTuplet(tuplet: Tuplet): TupletContext {
   const p = parseInt(tuplet.p.lexeme);
 
   // If q is specified, use it, otherwise get default
-  const q = tuplet.q ? parseInt(tuplet.q.lexeme) : getTupletDefaults(p)[0];
 
+  const q_num = tuplet.q
+    ? tuplet.q
+        ?.filter((t) => t.type === TokenType.NUMBER)
+        .map((t) => t.lexeme)
+        .join("")
+    : undefined;
+  const q = q_num && q_num.length > 0 ? parseInt(q_num) : getTupletDefaults(p)[0];
+
+  const r_num = tuplet.q
+    ? tuplet.q
+        ?.filter((t) => t.type === TokenType.NUMBER)
+        .map((t) => t.lexeme)
+        .join("")
+    : undefined;
   // If r is specified, use it, otherwise use p
-  const r = tuplet.r ? parseInt(tuplet.r.lexeme) : p;
+  const r = r_num && r_num.length > 0 ? parseInt(r_num) : p;
 
   return {
     p,

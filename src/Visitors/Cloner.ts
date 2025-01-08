@@ -49,7 +49,11 @@ export class Cloner implements Visitor<Expr | Token> {
     return new Annotation(this.ctx, cloneToken(expr.text, this.ctx));
   }
   visitBarLineExpr(expr: BarLine): Expr {
-    return new BarLine(this.ctx, cloneToken(expr.barline, this.ctx));
+    return new BarLine(
+      this.ctx,
+      expr.barline.map((e) => cloneToken(e, this.ctx)),
+      expr.repeatNumbers ? expr.repeatNumbers.map((e) => cloneToken(e, this.ctx)) : undefined
+    );
   }
   visitChordExpr(expr: Chord): Chord {
     const newContents = expr.contents.map((content) => {
@@ -181,9 +185,10 @@ export class Cloner implements Visitor<Expr | Token> {
     return new Voice_overlay(this.ctx, newAmpersands);
   }
   visitYSpacerExpr(expr: YSPACER): YSPACER {
-    let newNumber: Token | undefined = expr.number ? cloneToken(expr.number, this.ctx) : undefined;
+    const rhythm = expr.rhythm;
+    let newRhythm = rhythm ? rhythm.accept(this) : undefined;
     let newYSpacer: Token = cloneToken(expr.ySpacer, this.ctx);
-    return new YSPACER(this.ctx, newYSpacer, newNumber);
+    return new YSPACER(this.ctx, newYSpacer, newRhythm);
   }
   visitBeamExpr(expr: Beam): Beam {
     let newContents: Array<Beam_contents> = expr.contents.map((e) => {
@@ -196,16 +201,18 @@ export class Cloner implements Visitor<Expr | Token> {
     return new Beam(this.ctx, newContents);
   }
   visitTupletExpr(expr: Tuplet): Tuplet {
-    let p = cloneToken(expr.p, this.ctx);
-    let q: Token | undefined;
-    let r: Token | undefined;
-    if (expr.q) {
-      q = cloneToken(expr.q, this.ctx);
+    let new_p = cloneToken(expr.p, this.ctx);
+    let new_q: Array<Token> | undefined;
+    let new_r: Array<Token> | undefined;
+    const q = expr.q;
+    if (q) {
+      new_q = q.map((t) => cloneToken(t, this.ctx));
     }
-    if (expr.r) {
-      r = cloneToken(expr.r, this.ctx);
+    const r = expr.r;
+    if (r) {
+      new_r = r.map((t) => cloneToken(t, this.ctx));
     }
-    return new Tuplet(this.ctx, p, q, r);
+    return new Tuplet(this.ctx, new_p, new_q, new_r);
   }
   visitErrorExpr(expr: ErrorExpr): ErrorExpr {
     const tokens = expr.tokens.map((e) => cloneToken(e, this.ctx));

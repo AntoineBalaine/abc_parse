@@ -214,9 +214,9 @@ export class Voice_overlay extends Expr {
  */
 export class Tuplet extends Expr {
   p: Token;
-  q?: Token;
-  r?: Token;
-  constructor(ctx: ABCContext, p: Token, q?: Token, r?: Token) {
+  q?: Array<Token>;
+  r?: Array<Token>;
+  constructor(ctx: ABCContext, p: Token, q?: Array<Token>, r?: Array<Token>) {
     super(ctx.generateId());
     this.p = p;
     this.q = q;
@@ -348,10 +348,13 @@ export class Annotation extends Expr {
 }
 
 export class BarLine extends Expr {
-  barline: Token;
-  constructor(ctx: ABCContext, barline: Token) {
+  barline: Array<Token>;
+  repeatNumbers?: Token[]; // Optional repeat numbers
+
+  constructor(ctx: ABCContext, barline: Array<Token>, repeatNumbers?: Array<Token>) {
     super(ctx.generateId());
     this.barline = barline;
+    this.repeatNumbers = repeatNumbers;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitBarLineExpr(this);

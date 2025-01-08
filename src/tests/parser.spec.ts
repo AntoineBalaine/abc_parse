@@ -287,7 +287,7 @@ describe("Parser", () => {
         const musicCode = buildParse("|", ctx).tune[0].tune_body?.sequence[0][0];
         expect(musicCode).to.be.an.instanceof(BarLine);
         if (isBarLine(musicCode)) {
-          expect(musicCode.barline.lexeme).to.equal("|");
+          expect(musicCode.barline[0].lexeme).to.equal("|");
         }
       });
       it("should parse annotation", () => {
@@ -314,49 +314,42 @@ describe("Parser", () => {
           expect(musicCode.isAccacciatura).to.be.true;
         }
       });
-      it("should parse repeat barline", () => {
-        const ctx = new ABCContext();
-        const result = buildParse(":|1", ctx);
-        const barline = result.tune[0].tune_body?.sequence[0][0];
-        if (barline) {
-          expect(barline).to.be.an.instanceof(BarLine);
-          if (isBarLine(barline)) {
-            expect(barline.barline.lexeme).to.equal(":|");
+      describe("Barlines", () => {
+        it("should parse repeat barline", () => {
+          const ctx = new ABCContext();
+          const result = buildParse(":|1", ctx);
+          const barline = result.tune[0].tune_body?.sequence[0][0];
+          if (barline) {
+            expect(barline).to.be.an.instanceof(BarLine);
+            if (isBarLine(barline)) {
+              expect(barline.barline.map((t) => t.lexeme).join("")).to.equal(":|");
+              expect(barline.repeatNumbers).to.exist;
+              expect(barline.repeatNumbers![0].lexeme).to.equal("1");
+            }
           }
-        }
-        const repeat = result.tune[0].tune_body?.sequence[0][1];
-        if (repeat) {
-          expect(repeat).to.be.an.instanceof(Nth_repeat);
-          if (isNthRepeat(repeat)) {
-            expect(repeat.repeat.lexeme).to.equal("1");
+        });
+        it("should parse repeat barline with number", () => {
+          const ctx = new ABCContext();
+          const result = buildParse("|2", ctx);
+          const barline = result.tune[0].tune_body?.sequence[0][0];
+          if (barline) {
+            expect(barline).to.be.an.instanceof(BarLine);
+            if (isBarLine(barline)) {
+              expect(barline.barline[0].lexeme).to.equal("|");
+              expect(barline.repeatNumbers).to.exist;
+              expect(barline.repeatNumbers![0].lexeme).to.equal("2");
+            }
           }
-        }
-      });
-      it("should parse repeat barline with number", () => {
-        const ctx = new ABCContext();
-        const result = buildParse("|2", ctx);
-        const barline = result.tune[0].tune_body?.sequence[0][0];
-        if (barline) {
-          expect(barline).to.be.an.instanceof(BarLine);
-          if (isBarLine(barline)) {
-            expect(barline.barline.lexeme).to.equal("|");
+        });
+        it("should parse Nth repeat", () => {
+          const ctx = new ABCContext();
+          const musicCode = buildParse("[1", ctx).tune[0].tune_body?.sequence[0][0];
+          expect(musicCode).to.be.an.instanceof(BarLine);
+          if (isBarLine(musicCode)) {
+            const fmt = [musicCode.barline, musicCode.repeatNumbers].flatMap((e) => e?.map((t) => t.lexeme)).join("");
+            expect(fmt).to.equal("[1");
           }
-        }
-        const repeat = result?.tune[0].tune_body?.sequence[0][1];
-        if (repeat) {
-          expect(repeat).to.be.an.instanceof(Nth_repeat);
-          if (isNthRepeat(repeat)) {
-            expect(repeat.repeat.lexeme).to.equal("2");
-          }
-        }
-      });
-      it("should parse Nth repeat", () => {
-        const ctx = new ABCContext();
-        const musicCode = buildParse("[1", ctx).tune[0].tune_body?.sequence[0][0];
-        expect(musicCode).to.be.an.instanceof(Nth_repeat);
-        if (isNthRepeat(musicCode)) {
-          expect(musicCode.repeat.lexeme).to.equal("[1");
-        }
+        });
       });
       it("should parse inline field", () => {
         const ctx = new ABCContext();
@@ -655,7 +648,8 @@ describe("Parser - tuplet parsing", () => {
       const ast = parse("X:1\n(3:2abc");
       const tuplet = findFirstTuplet(ast);
       assert.equal(tuplet.p.lexeme, "(3");
-      assert.equal(tuplet.q?.lexeme, ":2");
+
+      assert.equal(tuplet.q?.map((q) => q.lexeme).join(""), ":2");
       assert.isUndefined(tuplet.r);
     });
 
@@ -663,24 +657,24 @@ describe("Parser - tuplet parsing", () => {
       const ast = parse("X:1\n(3::abc");
       const tuplet = findFirstTuplet(ast);
       assert.equal(tuplet.p.lexeme, "(3");
-      assert.equal(tuplet.q?.lexeme, ":");
-      assert.equal(tuplet.r?.lexeme, ":");
+      assert.equal(tuplet.q?.map((q) => q.lexeme).join(""), ":");
+      assert.equal(tuplet.r?.map((q) => q.lexeme).join(""), ":");
     });
 
     it("parses (p::r form", () => {
       const ast = parse("X:1\n(3::2abc");
       const tuplet = findFirstTuplet(ast);
       assert.equal(tuplet.p.lexeme, "(3");
-      assert.equal(tuplet.q?.lexeme, ":");
-      assert.equal(tuplet.r?.lexeme, ":2");
+      assert.equal(tuplet.q?.map((q) => q.lexeme).join(""), ":");
+      assert.equal(tuplet.r?.map((q) => q.lexeme).join(""), ":2");
     });
 
     it("parses (p:q:r form", () => {
       const ast = parse("X:1\n(3:2:2abc");
       const tuplet = findFirstTuplet(ast);
       assert.equal(tuplet.p.lexeme, "(3");
-      assert.equal(tuplet.q?.lexeme, ":2");
-      assert.equal(tuplet.r?.lexeme, ":2");
+      assert.equal(tuplet.q?.map((q) => q.lexeme).join(""), ":2");
+      assert.equal(tuplet.r?.map((q) => q.lexeme).join(""), ":2");
     });
   });
 

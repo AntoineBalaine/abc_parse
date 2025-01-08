@@ -11,7 +11,6 @@ import {
   isNoteToken,
   isRestToken,
   isRhythmToken,
-  isTupletToken,
 } from "../helpers";
 import {
   Annotation,
@@ -327,16 +326,31 @@ export class Parser {
         }
         contents.push(this.voice_overlay(ampersands));
         break;
-      case TokenType.BARLINE:
-      case TokenType.BAR_COLON:
-      case TokenType.BAR_DBL:
-      case TokenType.BAR_RIGHTBRKT:
-      case TokenType.COLON_BAR:
-      case TokenType.COLON_DBL:
-      case TokenType.LEFTBRKT_BAR:
-        contents.push(this.barline());
-        this.advance();
+
+      case TokenType.LEFTBRKT:
+        if (this.peekNext().type === TokenType.LETTER_COLON) {
+          contents.push(this.inline_field());
+        } else if (this.peekNext().type === TokenType.BARLINE || this.peekNext().type === TokenType.NUMBER) {
+          contents.push(this.parseBarLine());
+        } else {
+          contents.push(this.chord());
+        }
         break;
+      case TokenType.BARLINE:
+      case TokenType.COLON:
+        contents.push(this.parseBarLine());
+        break;
+      // // TODO accomodate cases of
+      // // nth repeat containing a barline
+      // // parse a nth repeat
+      // const nthRepeat = this.nth_repeat();
+      // if (nthRepeat.length === 2) {
+      //   contents.push(nthRepeat[0]);
+      //   contents.push(nthRepeat[1]);
+      // } else if (nthRepeat.length === 1) {
+      //   contents.push(nthRepeat[0]);
+      // }
+      // break;
       case TokenType.STRING:
         contents.push(this.annotation());
         this.advance();
@@ -369,27 +383,7 @@ export class Parser {
       case TokenType.LEFT_BRACE:
         contents.push(this.grace_group());
         break;
-      case TokenType.BAR_DIGIT:
-      case TokenType.COLON_BAR_DIGIT:
-      case TokenType.LEFTBRKT_NUMBER:
-        // TODO accomodate cases of
-        // nth repeat containing a barline
-        // parse a nth repeat
-        const nthRepeat = this.nth_repeat();
-        if (nthRepeat.length === 2) {
-          contents.push(nthRepeat[0]);
-          contents.push(nthRepeat[1]);
-        } else if (nthRepeat.length === 1) {
-          contents.push(nthRepeat[0]);
-        }
-        break;
-      case TokenType.LEFTBRKT:
-        if (this.peekNext().type === TokenType.LETTER_COLON) {
-          contents.push(this.inline_field());
-        } else {
-          contents.push(this.chord());
-        }
-        break;
+
       case TokenType.LEFTPAREN:
         contents.push(curTokn);
         this.advance();
@@ -459,34 +453,41 @@ export class Parser {
   private tuplet(): Tuplet {
     // Get the opening (n token
     const p = this.consume(TokenType.LEFTPAREN_NUMBER, "Expected tuplet marker", ParserErrorType.TUPLET);
-
     // Check for extended syntax with colons
-    if (this.match(TokenType.COLON_NUMBER)) {
-      // (p:q form
-      const q = this.previous();
+    if (this.match(TokenType.COLON)) {
+      const firstColon = this.previous();
 
-      if (this.match(TokenType.COLON_NUMBER)) {
-        // (p:q:r form
-        const r = this.previous();
+      if (this.match(TokenType.NUMBER)) {
+        // (p:q form
+        const q = [firstColon, this.previous()];
+
+        if (this.match(TokenType.COLON)) {
+          const col = this.previous();
+          if (this.match(TokenType.NUMBER)) {
+            // (p:q:r form
+            const r = [col, this.previous()];
+            return new Tuplet(this.ctx, p, q, r);
+          }
+        }
+        return new Tuplet(this.ctx, p, q);
+      }
+
+      if (this.match(TokenType.COLON)) {
+        // (p:: form
+        const q = [firstColon]; // First colon
+        const r = [this.previous()]; // Second colon
+
+        if (this.match(TokenType.NUMBER)) {
+          // (p::2 form
+          r.push(this.previous());
+          return new Tuplet(this.ctx, p, q, r);
+        }
+
         return new Tuplet(this.ctx, p, q, r);
       }
 
-      return new Tuplet(this.ctx, p, q);
-    }
-
-    if (this.match(TokenType.COLON_DBL)) {
-      // (p:: form
-      const colon_dbl = this.previous();
-      const q = new Token(TokenType.COLON, ":", null, p.line, colon_dbl.position, this.ctx);
-      const r = new Token(TokenType.COLON, ":", null, p.line, colon_dbl.position + 1, this.ctx);
-
-      if (this.match(TokenType.NUMBER)) {
-        // (p::2 form - only modify r
-        r.lexeme = ":" + this.previous().lexeme;
-        r.type = TokenType.COLON_NUMBER;
-      }
-
-      return new Tuplet(this.ctx, p, q, r);
+      // (p: form (just one colon)
+      return new Tuplet(this.ctx, p, [firstColon]);
     }
 
     // Simple form (n - just the p token
@@ -530,39 +531,177 @@ export class Parser {
     return updatedMusicCode;
   }
 
-  barline() {
-    return new BarLine(this.ctx, this.peek());
-  }
   annotation() {
     return new Annotation(this.ctx, this.peek());
   }
-  nth_repeat() {
-    // some nth repeat tokens
-    // contain the bar line
-    // and the repeat number
-    // it's necessary to separate them.
-    const pkd = this.peek();
-    if (pkd.type === TokenType.BAR_DIGIT || pkd.type === TokenType.COLON_BAR_DIGIT) {
-      // create a bar token
-      // and a number token
-      if (pkd.type === TokenType.BAR_DIGIT) {
-        // TODO: move this to the tokenizer
-        const barToken = new Token(TokenType.BARLINE, "|", null, pkd.line, pkd.position, this.ctx);
-        const numberToken = new Token(TokenType.NUMBER, pkd.lexeme.substring(1), null, pkd.line, pkd.position + 1, this.ctx);
-        this.advance();
-        return [new BarLine(this.ctx, barToken), new Nth_repeat(this.ctx, numberToken)];
-        // create a COLON_BAR token
-        // and a number token
-      } else {
-        const barToken = new Token(TokenType.COLON_BAR, ":|", null, pkd.line, pkd.position, this.ctx);
-        const numberToken = new Token(TokenType.NUMBER, pkd.lexeme.substring(2), null, pkd.line, pkd.position + 2, this.ctx);
-        this.advance();
-        return [new BarLine(this.ctx, barToken), new Nth_repeat(this.ctx, numberToken)];
-      }
-    } else {
-      this.advance();
-      return [new Nth_repeat(this.ctx, this.previous())];
+
+  /**
+  *
+  * Writing down the rules as a grammar that resembles a regex:
+  * ```
+  * <colon>+(<barline>+(<WS>?<RBrkt>))?
+  * <barline>+(<colon>+|(<WS>?(<RBrkt>|(<LBrkt><REPEAT_NUMBERS>))))?
+  * <LBrkt>(<REPEAT_NUMBERS>|(<barline>(<colon>+)?)|<RBrkt>)
+  ```
+  */
+  private parseBarLine(): BarLine {
+    switch (this.peek().type) {
+      case TokenType.COLON:
+        return this.parseColonStart();
+      case TokenType.BARLINE:
+        return this.parseBarlineStart();
+      case TokenType.LEFTBRKT:
+        return this.parseLeftBracketStart();
+      default:
+        throw this.error(this.peek(), "Unexpected token in barline", ParserErrorType.TUNE_BODY);
     }
+  }
+  /**
+   * Parse repeat numbers when current token is first number
+   * Valid syntax:
+   * - Single number: 1
+   * - Number list: 1,2,3
+   * - Range: 1-3
+   * - Mixed: 1,3,5-7,9
+   * - X notation: 1x2,3 or 1,2x2,3
+   */
+  private parseRepeatNumbers(): Token[] {
+    const numbers: Token[] = [];
+    // Must start with a number
+    numbers.push(this.advance());
+    while (!this.isAtEnd()) {
+      if (this.match(TokenType.COMMA)) {
+        // After comma must be number
+        numbers.push(this.previous()); // Keep comma
+        numbers.push(this.consume(TokenType.NUMBER, "Expected number after comma", ParserErrorType.REPEAT_NUMBER));
+      } else if (this.match(TokenType.MINUS)) {
+        // After dash must be number
+        numbers.push(this.previous()); // Keep dash
+        numbers.push(this.consume(TokenType.NUMBER, "Expected number after dash", ParserErrorType.REPEAT_NUMBER));
+      } else if (this.match(TokenType.LETTER)) {
+        // Handle x notation
+        if (this.previous().lexeme !== "x") {
+          throw this.error(this.previous(), "letters other than x not allowed in repeats", ParserErrorType.REPEAT_NUMBER);
+        } else if (this.peek().type !== TokenType.NUMBER) {
+          throw this.error(this.previous(), "letters other than x not allowed in repeats", ParserErrorType.REPEAT_NUMBER);
+        } else {
+          numbers.push(this.previous());
+          numbers.push(this.advance());
+        }
+      }
+    }
+    return numbers;
+  }
+
+  /**
+  * <LBrkt>(<REPEAT_NUMBERS>|(<barline>(<colon>+|RBrkt)?)|<RBrkt>)
+  ```
+  */
+  private parseLeftBracketStart(): BarLine {
+    const parts: Token[] = [];
+    parts.push(this.advance()); // consume [
+
+    // After [, expect either number, barline, or right bracket
+    switch (this.peek().type) {
+      case TokenType.NUMBER:
+        // [1,2,3 etc
+        const repeatNumbers = this.parseRepeatNumbers();
+        return new BarLine(this.ctx, parts, repeatNumbers);
+      case TokenType.BARLINE:
+        // [| possibly followed by : or ]
+        parts.push(this.advance()); // consume |
+        if (this.peek().type === TokenType.COLON) {
+          do {
+            parts.push(this.previous());
+          } while (this.match(TokenType.COLON));
+        } else if (this.peek().type === TokenType.RIGHT_BRKT) {
+          parts.push(this.advance());
+        }
+        return new BarLine(this.ctx, parts);
+      default:
+        return new BarLine(this.ctx, parts);
+    }
+  }
+
+  /**
+   * <barline>+(<colon>+|(<WS>?(<RBrkt>|(<LBrkt><REPEAT_NUMBERS>))))?
+   */
+  private parseBarlineStart(): BarLine {
+    const parts: Array<Token> = [];
+    // add initial barlines
+    do {
+      parts.push(this.advance());
+    } while (this.match(TokenType.BARLINE));
+
+    switch (this.peek().type) {
+      case TokenType.NUMBER:
+        const repeatNumbers = this.parseRepeatNumbers();
+        return new BarLine(this.ctx, parts, repeatNumbers);
+      case TokenType.COLON:
+        do {
+          parts.push(this.advance());
+        } while (this.match(TokenType.COLON));
+        return new BarLine(this.ctx, parts);
+      case TokenType.LEFTBRKT:
+        if (this.peekNext().type === TokenType.NUMBER) {
+          parts.push(this.advance());
+          const repeatNumbers = this.parseRepeatNumbers();
+          return new BarLine(this.ctx, parts, repeatNumbers);
+        } else {
+          return new BarLine(this.ctx, parts);
+        }
+      case TokenType.RIGHT_BRKT:
+        parts.push(this.advance());
+        return new BarLine(this.ctx, parts);
+      case TokenType.WHITESPACE:
+        if (this.peekNext().type === TokenType.RIGHT_BRKT) {
+          parts.push(this.advance());
+          parts.push(this.advance());
+          return new BarLine(this.ctx, parts);
+          break;
+        } else if (this.peekNext().type === TokenType.LEFTBRKT && this.tokens[this.current + 2].type === TokenType.NUMBER) {
+          parts.push(this.advance());
+          const repeatNumbers = this.parseRepeatNumbers();
+          return new BarLine(this.ctx, parts);
+        } else {
+          return new BarLine(this.ctx, parts);
+        }
+      default:
+        return new BarLine(this.ctx, parts);
+    }
+  }
+
+  /**
+  * <colon>+(<barline>+(<WS>?<RBrkt>))?
+  ```
+  */
+  private parseColonStart(): BarLine {
+    const parts: Token[] = [];
+
+    // Consume one or more colons
+    do {
+      parts.push(this.advance()); // consume COLON
+    } while (this.match(TokenType.COLON));
+
+    // Optional barlines sequence with optional right bracket
+    if (this.match(TokenType.BARLINE)) {
+      do {
+        parts.push(this.previous()); // add BARLINE
+      } while (this.match(TokenType.BARLINE));
+
+      // Optional whitespace and right bracket
+      if (this.peek().type === TokenType.WHITESPACE && this.peekNext().type === TokenType.RIGHT_BRKT) {
+        parts.push(this.previous());
+        parts.push(this.previous());
+      } else if (this.peekNext().type === TokenType.RIGHT_BRKT) {
+        parts.push(this.previous());
+      } else if (this.peek().type === TokenType.NUMBER) {
+        // if the barline is followed by a number, then it's a repeat number
+        const repeatNumbers = this.parseRepeatNumbers();
+        return new BarLine(this.ctx, parts, repeatNumbers);
+      }
+    }
+    return new BarLine(this.ctx, parts);
   }
 
   /**
@@ -665,44 +804,6 @@ export class Parser {
     return null;
   }
 
-  private isTuplet() {
-    /**
-     * start at next token
-     * if is anything other than a note token, a decoration, or a ws,
-     * or <annotations> or <decorations>
-     * or colondouble followed by number
-     */
-    let i = this.current;
-    while (i < this.tokens.length) {
-      i++;
-      const cur = this.tokens[i];
-
-      /**
-       * TODO rewrite using this.match()
-       */
-      if (
-        !isDecorationToken(cur) &&
-        !isNoteToken(cur) &&
-        !isTupletToken(cur) &&
-        !isRestToken(cur) &&
-        cur.type !== TokenType.STRING &&
-        cur.lexeme !== '"' &&
-        cur.type !== TokenType.WHITESPACE &&
-        cur.type !== TokenType.COLON_DBL &&
-        cur.type !== TokenType.NUMBER
-      ) {
-        return false;
-      } else if (
-        isNoteToken(cur) ||
-        isRestToken(cur) ||
-        // is chord
-        (cur.type === TokenType.LEFTBRKT && this.tokens[i + 1].type !== TokenType.LETTER_COLON)
-      ) {
-        return true;
-      }
-    }
-    return false;
-  }
   chord() {
     // parse a chord
     // a left bracket followed by
@@ -1055,12 +1156,12 @@ export class Parser {
     return (
       type === TokenType.EOL ||
       type === TokenType.BARLINE ||
-      type === TokenType.BAR_COLON || // |:
-      type === TokenType.BAR_DBL || // ||
-      type === TokenType.BAR_DIGIT || // |1
-      type === TokenType.BAR_RIGHTBRKT || // |]
-      type === TokenType.COLON_BAR || // :|
-      type === TokenType.COLON_BAR_DIGIT || // :|1
+      // type === TokenType.BAR_COLON || // |:
+      // type === TokenType.BAR_DBL || // ||
+      // type === TokenType.BAR_DIGIT || // |1
+      // type === TokenType.BAR_RIGHTBRKT || // |]
+      // type === TokenType.COLON_BAR || // :|
+      // type === TokenType.COLON_BAR_DIGIT || // :|1
       false
     );
   }

@@ -392,12 +392,6 @@ export const isRestToken = (pkd: Token) => {
   return hasRestAttributes(pkd);
 };
 
-export function isTupletToken(pkd: Token) {
-  return (
-    pkd.type === TokenType.LEFTPAREN_NUMBER || pkd.type === TokenType.COLON_DBL || pkd.type === TokenType.NUMBER || pkd.type === TokenType.COLON_NUMBER
-  );
-}
-
 /**
  * is voice marker
  */
@@ -444,8 +438,12 @@ export function foundMusic(tokens: Token[], startIndex: number): boolean {
       continue;
     }
 
+    if (token.type === TokenType.COLON && (tokens[i + 1].type === TokenType.COLON || tokens[i + 1].type === TokenType.NUMBER)) {
+      i += 2;
+      continue;
+    }
     // Handle tuplet syntax
-    if (token.type === TokenType.COLON_DBL || token.type === TokenType.COLON_NUMBER || token.type === TokenType.NUMBER) {
+    if (token.type === TokenType.NUMBER) {
       i++;
       continue;
     }
