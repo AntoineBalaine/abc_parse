@@ -19,6 +19,7 @@ import {
   isRhythm,
   isSymbol,
   isToken,
+  isTuplet,
   isVoice_overlay,
   isYSPACER,
 } from "../helpers";
@@ -712,6 +713,14 @@ describe("Parser - tuplet parsing", () => {
     it("accepts chords after tuplet", () => {
       const ast = parse("X:1\n(3[CEG]");
       assert.isDefined(findFirstTuplet(ast));
+    });
+  });
+  describe("nested tuplets", () => {
+    it("parses nested tuplets", () => {
+      const ast = parse("X:1\n(7:8:8(3A/A/A/ A/A/A/A/A/");
+      const seq = ast.tune[0].tune_body!.sequence[0];
+      expect(isTuplet(seq[0])).to.be.true;
+      expect(isTuplet(seq[1])).to.be.true;
     });
   });
 });

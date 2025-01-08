@@ -447,6 +447,10 @@ export function foundMusic(tokens: Token[], startIndex: number): boolean {
       continue;
     }
 
+    if (token.type === TokenType.LEFTPAREN_NUMBER) {
+      return foundMusic(tokens, i + 1);
+    }
+
     // Handle nested grouping
     if (token.type === TokenType.RIGHT_PAREN || token.type === TokenType.LEFTPAREN) {
       i++;
