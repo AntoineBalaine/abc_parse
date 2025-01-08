@@ -489,7 +489,7 @@ describe("Parser", () => {
     describe("comments", () => {
       it("should parse comment", () => {
         const ctx = new ABCContext();
-        const comment = buildParse("%comment", ctx).tune[0].tune_body?.sequence[0][0];
+        const comment = buildParse("%comment", ctx).tune[0].tune_header.info_lines[1];
         if (isComment(comment)) {
           expect(comment.text).to.equal("%comment");
         }
@@ -771,6 +771,126 @@ describe("Parser - decoration sequences", () => {
       const elements = musicContent.filter((el) => el instanceof Annotation || el instanceof Decoration || el instanceof Chord);
 
       assert.isTrue(elements[elements.length - 1] instanceof Chord);
+    });
+  });
+});
+
+describe("Parser - barlines", () => {
+  let ctx: ABCContext;
+
+  beforeEach(() => {
+    ctx = new ABCContext();
+  });
+
+  function parseBarLine(input: string): BarLine {
+    const scanner = new Scanner(`X:1\n${input}`, ctx);
+    const tokens = scanner.scanTokens();
+    const parser = new Parser(tokens, ctx);
+    const ast = parser.parse();
+    if (!ast) throw new Error("Failed to parse");
+    const expr = ast.tune[0].tune_body!.sequence[0][0];
+    assert(isBarLine(expr));
+    return expr;
+  }
+
+  describe("colon-based barlines", () => {
+    it("parses double colon", () => {
+      const barline = parseBarLine("::");
+      assert.deepEqual(
+        barline.barline.map((t) => t.type),
+        [TokenType.COLON, TokenType.COLON]
+      );
+    });
+
+    it("parses colon sequence with bar", () => {
+      const barline = parseBarLine("::::|");
+      assert.deepEqual(
+        barline.barline.map((t) => t.type),
+        [TokenType.COLON, TokenType.COLON, TokenType.COLON, TokenType.COLON, TokenType.BARLINE]
+      );
+    });
+
+    it("parses colon-bar combinations", () => {
+      const tests = ["::|", ":|", ":||"];
+
+      tests.forEach((test) => {
+        const barline = parseBarLine(test);
+        assert.isTrue(barline.barline.length >= 2, `${test} should have at least 2 tokens`);
+        assert.equal(barline.barline[0].type, TokenType.COLON);
+        assert.equal(barline.barline[barline.barline.length - 1].type, TokenType.BARLINE);
+      });
+    });
+  });
+
+  describe("repeat numbers", () => {
+    it("parses colon-bar with numbers", () => {
+      const tests = [":|2,4", ":|[2,4", "|1,3", "|1-3", "|[1,3", "|[1-3"];
+
+      tests.forEach((test) => {
+        const barline = parseBarLine(test);
+        assert.exists(barline.repeatNumbers, `${test} should have repeat numbers`);
+        assert.isTrue(barline.repeatNumbers!.length >= 1);
+      });
+    });
+
+    it("parses x-notation in repeat numbers", () => {
+      const tests = ["| [1,2x2,3", "| [1x2,2,3", "| [1x2,2,3 "];
+
+      tests.forEach((test) => {
+        const barline = parseBarLine(test);
+        assert.exists(barline.repeatNumbers);
+        assert.isTrue(
+          barline.repeatNumbers!.some((t) => t.type === TokenType.LETTER && t.lexeme === "x"),
+          `${test} should contain 'x' token`
+        );
+      });
+    });
+  });
+
+  describe("bracket-based barlines", () => {
+    it("parses bracket combinations", () => {
+      const tests = ["[|", "[|:", "[|]", "| ]"];
+
+      tests.forEach((test) => {
+        const barline = parseBarLine(test);
+        assert.isTrue(
+          barline.barline.some((t) => t.type === TokenType.RIGHT_BRKT || t.type === TokenType.LEFTBRKT),
+          `${test} should contain brackets`
+        );
+      });
+    });
+  });
+
+  describe("multiple barlines", () => {
+    it("parses sequences that should be two barlines", () => {
+      const tests = [":|][|:", ":|]|:", ":||::"];
+
+      tests.forEach((test) => {
+        const scanner = new Scanner(`X:1\n${test}`, ctx);
+        const tokens = scanner.scanTokens();
+        const parser = new Parser(tokens, ctx);
+        const ast = parser.parse();
+        if (!ast) throw new Error("Failed to parse");
+        const sequence = ast.tune[0].tune_body!.sequence;
+
+        assert.equal(sequence[0].length, 2, `${test} should parse as two separate barlines`);
+        assert.isTrue(
+          sequence[0].every((expr) => isBarLine(expr)),
+          `${test} both expressions should be barlines`
+        );
+      });
+    });
+  });
+
+  describe("bar variations", () => {
+    it("parses multiple bar combinations", () => {
+      const tests = ["|:", "|::", "|:::", "|::::", "||", "||:", "||]"];
+
+      tests.forEach((test) => {
+        const barline = parseBarLine(test);
+        assert.isTrue(barline.barline.length >= 1);
+        assert.equal(barline.barline[0].type, TokenType.BARLINE);
+      });
     });
   });
 });

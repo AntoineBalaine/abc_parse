@@ -165,7 +165,7 @@ export class Parser {
     let header_text = "";
     let tokens: Token[] = [];
     while (!this.isAtEnd()) {
-      if (this.peek().type === TokenType.EOL && this.peekNext().type === TokenType.EOL) {
+      if (this.check(TokenType.EOL) && this.checkNext(TokenType.EOL)) {
         this.consume(TokenType.EOL, "Expected a line break", ParserErrorType.FILE_HEADER);
       } else if (this.peek().lexeme === "X:") {
         break;
@@ -182,7 +182,7 @@ export class Parser {
     // then try to parse a tune body
     // unless the header is followed by a line break
     const tune_header = this.tune_header();
-    if (this.peek().type === TokenType.EOL || this.peek().type === TokenType.EOF) {
+    if (this.check(TokenType.EOL) || this.check(TokenType.EOF)) {
       return new Tune(this.ctx, tune_header);
     } else {
       const tune_body = this.tune_body(tune_header.voices);
@@ -194,7 +194,7 @@ export class Parser {
     const info_lines = [];
     const voices: Array<string> = [];
     while (!this.isAtEnd()) {
-      if (this.peek().type === TokenType.LETTER_COLON) {
+      if (this.check(TokenType.LETTER_COLON)) {
         /**
          * read the info line: if it's a VOICE line (V: key)
          * then stringify the tokens in the value, and add to the array of voice names.
@@ -212,13 +212,11 @@ export class Parser {
           voices.push(legend);
         }
         info_lines.push(line);
-      } else if (this.peek().type === TokenType.COMMENT || this.peek().type === TokenType.STYLESHEET_DIRECTIVE) {
+      } else if (this.check(TokenType.COMMENT) || this.check(TokenType.STYLESHEET_DIRECTIVE)) {
         info_lines.push(this.comment_line());
       } else if (
-        this.peek().type === TokenType.EOL &&
-        (this.peekNext().type === TokenType.LETTER_COLON ||
-          this.peekNext().type === TokenType.COMMENT ||
-          this.peekNext().type === TokenType.STYLESHEET_DIRECTIVE)
+        this.check(TokenType.EOL) &&
+        (this.checkNext(TokenType.LETTER_COLON) || this.checkNext(TokenType.COMMENT) || this.checkNext(TokenType.STYLESHEET_DIRECTIVE))
       ) {
         this.advance();
       } else {
@@ -232,10 +230,10 @@ export class Parser {
   private info_line() {
     const info_line = [];
     while (!this.isAtEnd()) {
-      if (this.peek().type === TokenType.EOL && !(this.peekNext().type === TokenType.PLUS_COLON)) {
+      if (this.check(TokenType.EOL) && !this.checkNext(TokenType.PLUS_COLON)) {
         break;
       } else {
-        if (this.peek().type === TokenType.EOL) {
+        if (this.check(TokenType.EOL)) {
           info_line.push(this.peek());
           this.advance();
         }
@@ -254,14 +252,14 @@ export class Parser {
       // check for info line
       // check for music_code
       try {
-        if (this.peek().type === TokenType.COMMENT || this.peek().type === TokenType.STYLESHEET_DIRECTIVE) {
+        if (this.check(TokenType.COMMENT) || this.check(TokenType.STYLESHEET_DIRECTIVE)) {
           elements.push(this.comment_line());
-        } else if (this.peek().type === TokenType.LETTER_COLON) {
+        } else if (this.check(TokenType.LETTER_COLON)) {
           const info_line = this.info_line();
           elements.push(info_line);
-        } else if (!(this.peek().type === TokenType.EOL && this.peekNext().type === TokenType.EOL)) {
+        } else if (!(this.check(TokenType.EOL) && this.checkNext(TokenType.EOL))) {
           elements = elements.concat(this.music_content().contents);
-        } else if (this.peek().type === TokenType.EOL) {
+        } else if (this.check(TokenType.EOL)) {
           break;
         }
       } catch (err: any) {
@@ -318,7 +316,7 @@ export class Parser {
         break;
       case TokenType.AMPERSAND:
         let ampersands = [];
-        while (this.peek().type === TokenType.AMPERSAND) {
+        while (this.check(TokenType.AMPERSAND)) {
           ampersands.push(this.peek());
           this.advance();
         }
@@ -326,9 +324,9 @@ export class Parser {
         break;
 
       case TokenType.LEFTBRKT:
-        if (this.peekNext().type === TokenType.LETTER_COLON) {
+        if (this.checkNext(TokenType.LETTER_COLON)) {
           contents.push(this.inline_field());
-        } else if (this.peekNext().type === TokenType.BARLINE || this.peekNext().type === TokenType.NUMBER) {
+        } else if (this.checkNext(TokenType.BARLINE) || this.checkNext(TokenType.NUMBER)) {
           contents.push(this.parseBarLine());
         } else {
           contents.push(this.chord());
@@ -580,12 +578,14 @@ export class Parser {
         // Handle x notation
         if (this.previous().lexeme !== "x") {
           throw this.error(this.previous(), "letters other than x not allowed in repeats", ParserErrorType.REPEAT_NUMBER);
-        } else if (this.peek().type !== TokenType.NUMBER) {
+        } else if (!this.check(TokenType.NUMBER)) {
           throw this.error(this.previous(), "letters other than x not allowed in repeats", ParserErrorType.REPEAT_NUMBER);
         } else {
           numbers.push(this.previous());
           numbers.push(this.advance());
         }
+      } else {
+        break;
       }
     }
     return numbers;
@@ -608,11 +608,11 @@ export class Parser {
       case TokenType.BARLINE:
         // [| possibly followed by : or ]
         parts.push(this.advance()); // consume |
-        if (this.peek().type === TokenType.COLON) {
-          do {
+        if (this.check(TokenType.COLON)) {
+          while (this.match(TokenType.COLON)) {
             parts.push(this.previous());
-          } while (this.match(TokenType.COLON));
-        } else if (this.peek().type === TokenType.RIGHT_BRKT) {
+          }
+        } else if (this.check(TokenType.RIGHT_BRKT)) {
           parts.push(this.advance());
         }
         return new BarLine(this.ctx, parts);
@@ -631,6 +631,9 @@ export class Parser {
       parts.push(this.advance());
     } while (this.match(TokenType.BARLINE));
 
+    if (this.isAtEnd()) {
+      return new BarLine(this.ctx, parts);
+    }
     switch (this.peek().type) {
       case TokenType.NUMBER:
         const repeatNumbers = this.parseRepeatNumbers();
@@ -641,7 +644,7 @@ export class Parser {
         } while (this.match(TokenType.COLON));
         return new BarLine(this.ctx, parts);
       case TokenType.LEFTBRKT:
-        if (this.peekNext().type === TokenType.NUMBER) {
+        if (this.checkNext(TokenType.NUMBER)) {
           parts.push(this.advance());
           const repeatNumbers = this.parseRepeatNumbers();
           return new BarLine(this.ctx, parts, repeatNumbers);
@@ -652,15 +655,20 @@ export class Parser {
         parts.push(this.advance());
         return new BarLine(this.ctx, parts);
       case TokenType.WHITESPACE:
-        if (this.peekNext().type === TokenType.RIGHT_BRKT) {
+        if (this.checkNext(TokenType.RIGHT_BRKT)) {
           parts.push(this.advance());
           parts.push(this.advance());
           return new BarLine(this.ctx, parts);
           break;
-        } else if (this.peekNext().type === TokenType.LEFTBRKT && this.tokens[this.current + 2].type === TokenType.NUMBER) {
+        } else if (
+          this.checkNext(TokenType.LEFTBRKT) &&
+          this.current + 2 < this.tokens.length &&
+          this.tokens[this.current + 2].type === TokenType.NUMBER
+        ) {
+          parts.push(this.advance());
           parts.push(this.advance());
           const repeatNumbers = this.parseRepeatNumbers();
-          return new BarLine(this.ctx, parts);
+          return new BarLine(this.ctx, parts, repeatNumbers);
         } else {
           return new BarLine(this.ctx, parts);
         }
@@ -677,23 +685,30 @@ export class Parser {
     const parts: Token[] = [];
 
     // Consume one or more colons
-    do {
-      parts.push(this.advance()); // consume COLON
-    } while (this.match(TokenType.COLON));
+    while (this.match(TokenType.COLON)) {
+      // while (this.peek()===TokenType.COLON) {
+      parts.push(this.previous()); // consume COLON
+    }
 
     // Optional barlines sequence with optional right bracket
     if (this.match(TokenType.BARLINE)) {
-      do {
+      parts.push(this.previous()); // add BARLINE
+      while (this.match(TokenType.BARLINE)) {
         parts.push(this.previous()); // add BARLINE
-      } while (this.match(TokenType.BARLINE));
+      }
 
       // Optional whitespace and right bracket
-      if (this.peek().type === TokenType.WHITESPACE && this.peekNext().type === TokenType.RIGHT_BRKT) {
-        parts.push(this.previous());
-        parts.push(this.previous());
-      } else if (this.peekNext().type === TokenType.RIGHT_BRKT) {
-        parts.push(this.previous());
-      } else if (this.peek().type === TokenType.NUMBER) {
+      if (this.check(TokenType.WHITESPACE) && this.checkNext(TokenType.RIGHT_BRKT)) {
+        parts.push(this.advance());
+        parts.push(this.advance());
+      } else if (this.check(TokenType.RIGHT_BRKT)) {
+        parts.push(this.advance());
+        return new BarLine(this.ctx, parts);
+      } else if (this.check(TokenType.LEFTBRKT) && this.checkNext(TokenType.NUMBER)) {
+        parts.push(this.advance());
+        const repeatNumbers = this.parseRepeatNumbers();
+        return new BarLine(this.ctx, parts, repeatNumbers);
+      } else if (this.check(TokenType.NUMBER)) {
         // if the barline is followed by a number, then it's a repeat number
         const repeatNumbers = this.parseRepeatNumbers();
         return new BarLine(this.ctx, parts, repeatNumbers);
@@ -815,10 +830,10 @@ export class Parser {
     const leftBracket = this.advance();
 
     try {
-      while (!this.isAtEnd() && !(this.peek().type === TokenType.RIGHT_BRKT)) {
+      while (!this.isAtEnd() && !this.check(TokenType.RIGHT_BRKT)) {
         // parse string
         // or parse a note
-        if (this.peek().type === TokenType.STRING) {
+        if (this.check(TokenType.STRING)) {
           chordContents.push(this.annotation());
           //chordContents.push(this.peek())
           this.advance();
@@ -840,7 +855,7 @@ export class Parser {
       this.err_tokens.push(leftBracket, ...reTokenizer.tokens);
       throw e;
     }
-    if (!this.isAtEnd() && this.peek().type === TokenType.MINUS) {
+    if (!this.isAtEnd() && this.check(TokenType.MINUS)) {
       chordTie = this.peek();
       this.advance();
     }
@@ -872,7 +887,7 @@ export class Parser {
     let isAccaciatura = false;
     let notes: Array<Note> = [];
     this.advance();
-    if (!this.isAtEnd() && this.peek().type === TokenType.SLASH) {
+    if (!this.isAtEnd() && this.check(TokenType.SLASH)) {
       isAccaciatura = true;
       this.advance();
     }
@@ -940,7 +955,7 @@ export class Parser {
         throw e;
       }
     }
-    if (!this.isAtEnd() && this.peek().type === TokenType.MINUS) {
+    if (!this.isAtEnd() && this.check(TokenType.MINUS)) {
       note.tie = this.peek();
       this.advance();
     }
@@ -974,7 +989,7 @@ export class Parser {
     } else {
       throw this.error(this.peek(), "Unexpected token in multi measure rest", ParserErrorType.MULTI_MEASURE_REST);
     }
-    if (this.peek().type === TokenType.NUMBER) {
+    if (this.check(TokenType.NUMBER)) {
       length = this.peek();
       this.advance();
       return new MultiMeasureRest(this.ctx, rest, length || undefined);
@@ -992,8 +1007,8 @@ export class Parser {
     let broken: Token | null = null;
 
     // slash optionnally followed by a number
-    if (this.peek().type === TokenType.SLASH) {
-      if (this.peekNext().type === TokenType.NUMBER) {
+    if (this.check(TokenType.SLASH)) {
+      if (this.checkNext(TokenType.NUMBER)) {
         separator = this.peek();
         denominator = this.peekNext();
         this.advance();
@@ -1005,11 +1020,11 @@ export class Parser {
         //return new Rhythm(null, this.previous())
       }
       // number optionnally followed by a ( slash|greater|less ) and a number
-    } else if (this.peek().type === TokenType.NUMBER) {
+    } else if (this.check(TokenType.NUMBER)) {
       numerator = this.peek();
       this.advance();
-      if (this.peek().type === TokenType.SLASH) {
-        if (this.peekNext().type === TokenType.NUMBER) {
+      if (this.check(TokenType.SLASH)) {
+        if (this.checkNext(TokenType.NUMBER)) {
           separator = this.peek();
           denominator = this.peekNext();
           //const rhythm = new Rhythm(firstNum, this.peek(), this.peekNext())
@@ -1027,11 +1042,11 @@ export class Parser {
         return new Rhythm(firstNum)
       } */
       // broken rhythm
-    } else if (!(this.peek().type === TokenType.GREATER || this.peek().type === TokenType.LESS)) {
+    } else if (!(this.check(TokenType.GREATER) || this.check(TokenType.LESS))) {
       throw this.error(this.peek(), "Unexpected token in rhythm", ParserErrorType.RHYTHM);
     }
 
-    if (this.peek().type === TokenType.GREATER || this.peek().type === TokenType.LESS) {
+    if (this.check(TokenType.GREATER) || this.check(TokenType.LESS)) {
       broken = this.peek();
       this.advance();
       //return new Rhythm(null, this.previous())
@@ -1043,7 +1058,7 @@ export class Parser {
     let comment = "";
     let token = this.peek();
     while (!this.isAtEnd()) {
-      if (this.peek().type === TokenType.EOL) {
+      if (this.check(TokenType.EOL)) {
         break;
       } else {
         comment += this.peek().lexeme;
@@ -1056,7 +1071,7 @@ export class Parser {
   // TODO integrate in the file structure
   private lyric_section() {
     const lyric_section = [];
-    while (!this.isAtEnd() && this.peek().type === TokenType.LETTER_COLON && this.peekNext().lexeme === "W:") {
+    while (!this.isAtEnd() && this.check(TokenType.LETTER_COLON) && this.peekNext().lexeme === "W:") {
       lyric_section.push(this.info_line());
     }
     return new Lyric_section(this.ctx, lyric_section);
@@ -1113,6 +1128,12 @@ export class Parser {
       return false;
     }
     return this.peek().type === type;
+  }
+  private checkNext(type: TokenType) {
+    if (this.current + 1 >= this.tokens.length) {
+      return false;
+    }
+    return this.peekNext().type === type;
   }
   private advance(): Token {
     if (!this.isAtEnd()) {
