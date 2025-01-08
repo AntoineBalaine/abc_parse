@@ -1,4 +1,4 @@
-import { isToken } from "../helpers";
+import { isNote, isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import {
   Annotation,
@@ -141,7 +141,11 @@ export class AbcFormatter implements Visitor<string> {
   visitGraceGroupExpr(expr: Grace_group): string {
     const fmt = expr.notes
       .map((note) => {
-        return note.accept(this);
+        if (isNote(note)) {
+          return note.accept(this);
+        } else {
+          return note.lexeme;
+        }
       })
       .join("");
     // TODO implement accaciatura formatting

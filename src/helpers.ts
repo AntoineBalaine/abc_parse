@@ -448,16 +448,9 @@ export function foundMusic(tokens: Token[], startIndex: number): boolean {
     }
 
     // Handle nested grouping
-    if (token.type === TokenType.LEFTPAREN) {
+    if (token.type === TokenType.RIGHT_PAREN || token.type === TokenType.LEFTPAREN) {
       i++;
       // Find matching right paren
-      let parenCount = 1;
-      while (i < tokens.length && parenCount > 0) {
-        if (tokens[i].type === TokenType.LEFTPAREN) parenCount++;
-        if (tokens[i].type === TokenType.RIGHT_PAREN) parenCount--;
-        i++;
-      }
-      if (parenCount > 0) return false; // Unclosed grouping
       continue;
     }
 

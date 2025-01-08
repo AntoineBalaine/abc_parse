@@ -1,4 +1,4 @@
-import { getTokenRange, isToken, reduceRanges } from "../helpers";
+import { getTokenRange, isNote, isToken, reduceRanges } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import {
   Annotation,
@@ -80,7 +80,15 @@ export class RangeVisitor implements Visitor<Range> {
       .reduce(reduceRanges, <Range>{});
   }
   visitGraceGroupExpr(expr: Grace_group): Range {
-    let res = expr.notes.map((e) => e.accept(this)).reduce(reduceRanges, <Range>{});
+    let res = expr.notes
+      .map((e) => {
+        if (isNote(e)) {
+          return e.accept(this);
+        } else {
+          return getTokenRange(e);
+        }
+      })
+      .reduce(reduceRanges, <Range>{});
     /**
      * Since Grace Group's curlies are not saved in tree, accomodate for them here
      */

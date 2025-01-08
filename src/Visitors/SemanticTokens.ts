@@ -1,4 +1,4 @@
-import { isToken, mergeTokens } from "../helpers";
+import { isNote, isToken, mergeTokens } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import {
   Annotation,
@@ -180,7 +180,11 @@ export class TokensVisitor implements Visitor<void> {
   }
   visitGraceGroupExpr(e: Grace_group) {
     e.notes.forEach((e) => {
-      e.accept(this);
+      if (isNote(e)) {
+        e.accept(this);
+      } else {
+        this.tokens.push(e);
+      }
     });
   }
   visitInlineFieldExpr(e: Inline_field) {

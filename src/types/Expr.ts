@@ -274,9 +274,9 @@ export class Symbol extends Expr {
   }
 }
 export class Grace_group extends Expr {
-  notes: Array<Note>;
+  notes: Array<Note | Token>;
   isAccacciatura?: boolean;
-  constructor(ctx: ABCContext, notes: Array<Note>, isAccacciatura?: boolean) {
+  constructor(ctx: ABCContext, notes: Array<Note | Token>, isAccacciatura?: boolean) {
     super(ctx.generateId());
     this.notes = notes;
     this.isAccacciatura = isAccacciatura;

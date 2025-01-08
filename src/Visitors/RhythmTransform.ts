@@ -1,4 +1,15 @@
-import { cloneToken, exprIsInRange, getPitchRange, getTokenRange, isChord, isEmptyRhythm, isRhythmInRange, isToken, isTune_Body } from "../helpers";
+import {
+  cloneToken,
+  exprIsInRange,
+  getPitchRange,
+  getTokenRange,
+  isChord,
+  isEmptyRhythm,
+  isNote,
+  isRhythmInRange,
+  isToken,
+  isTune_Body,
+} from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import {
   Annotation,
@@ -178,8 +189,12 @@ export class RhythmVisitor implements Visitor<Expr> {
   }
   visitGraceGroupExpr(expr: Grace_group): Grace_group {
     expr.notes = expr.notes.map((e) => {
-      return e.accept(this);
-    }) as Note[];
+      if (isNote(e)) {
+        return e.accept(this) as Note;
+      } else {
+        return e;
+      }
+    });
     if (this.isInRange(expr)) {
       this.updateChanges([expr]);
     }

@@ -304,6 +304,18 @@ describe("Parser", () => {
           expect(musicCode.notes[0]).to.be.an.instanceof(Note);
         }
       });
+      it("should allow parens in grace groups", () => {
+        const ctx = new ABCContext();
+        const seq = buildParse("(a{g)a}", ctx).tune[0].tune_body?.sequence[0]!;
+        expect(isNote(seq[1])).to.be.true;
+        const seq_1 = seq[2];
+        expect(isGraceGroup(seq_1)).to.be.true;
+        if (isGraceGroup(seq_1)) {
+          expect(isNote(seq_1.notes[0])).to.be.true;
+          const paren_tok = seq_1.notes[1];
+          expect(isToken(paren_tok) && paren_tok.type === TokenType.RIGHT_PAREN).to.be.true;
+        }
+      });
       it("should parse accaciatura", () => {
         const ctx = new ABCContext();
         const musicCode = buildParse("{/ac}", ctx).tune[0].tune_body?.sequence[0][0];

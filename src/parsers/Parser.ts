@@ -3,6 +3,7 @@ import {
   foundBeam,
   foundMusic,
   hasRestAttributes,
+  isAnnotation,
   isChord,
   isDecorationToken,
   isInvalidBacktick,
@@ -824,7 +825,7 @@ export class Parser {
     // or notes
     // followed by a right bracket
     // optionally followed by a rhythm
-    const chordContents: Array<Note | Annotation> = [];
+    const chordContents: Array<Note | Annotation | Token> = [];
     let chordRhythm: Rhythm | undefined = undefined;
     let chordTie: Token | undefined = undefined;
     const leftBracket = this.advance();
@@ -837,6 +838,8 @@ export class Parser {
           chordContents.push(this.annotation());
           //chordContents.push(this.peek())
           this.advance();
+        } else if (this.match(TokenType.LEFTPAREN, TokenType.RIGHT_PAREN)) {
+          chordContents.push(this.previous());
         } else {
           chordContents.push(this.parse_note());
         }
@@ -851,7 +854,15 @@ export class Parser {
       // if note/rhythm/finding right bracket fails, treat all the other tokens as errs.
       const reTokenizer = new TokensVisitor(this.ctx);
 
-      chordContents.forEach((element) => (isNote(element) ? reTokenizer.visitNoteExpr(element) : reTokenizer.visitAnnotationExpr(element)));
+      chordContents.forEach((element) => {
+        if (isNote(element)) {
+          reTokenizer.visitNoteExpr(element);
+        } else if (isAnnotation(element)) {
+          reTokenizer.visitAnnotationExpr(element);
+        } else {
+          reTokenizer.tokens.push(element);
+        }
+      });
       this.err_tokens.push(leftBracket, ...reTokenizer.tokens);
       throw e;
     }
@@ -885,13 +896,17 @@ export class Parser {
     // followed by a multiple pitch
     // followed by a right brace
     let isAccaciatura = false;
-    let notes: Array<Note> = [];
+    let notes: Array<Note | Token> = [];
     this.advance();
     if (!this.isAtEnd() && this.check(TokenType.SLASH)) {
       isAccaciatura = true;
       this.advance();
     }
-    while (!this.isAtEnd() && this.peek().type !== TokenType.RIGHT_BRACE) {
+    while (!this.isAtEnd() && !this.check(TokenType.RIGHT_BRACE)) {
+      if (this.match(TokenType.LEFTPAREN, TokenType.RIGHT_PAREN)) {
+        notes.push(this.previous());
+        continue;
+      }
       try {
         const note = this.parse_note();
         notes.push(note);
@@ -899,7 +914,11 @@ export class Parser {
         // if one of the notes fails, treat all the others as errs as well
         const reTokenizer = new TokensVisitor(this.ctx);
         notes.forEach((element) => {
-          reTokenizer.visitNoteExpr(element);
+          if (isNote(element)) {
+            reTokenizer.visitNoteExpr(element);
+          } else {
+            reTokenizer.tokens.push(element);
+          }
         });
         this.err_tokens.push(...reTokenizer.tokens);
         throw e;
