@@ -29,7 +29,6 @@ export class Ctx {
   push(tokenType: TT) {
     this.tokens.push(new Token(tokenType, this));
     this.start = this.current;
-    this.current += 1;
   }
 
   report(msg: string) {
@@ -52,9 +51,9 @@ const pWS = /\s+/;
 const pEOL = "\n";
 const pInfoLine = /\s*[a-zA-Z]\s*:/;
 const pTuneHeadStrt = /\s*X:/;
-const pDuration = /\d*\/\d*/;
+const pDuration = /(\/+)|(([1-9][0-9]*)?\/[1-9][0-9]*)|([1-9][0-9]*)|([>]+|[<]+)/;
 const pSectionBrk = /\n[\n]+/;
-const pPitch = /[\\^=_][a-zA-G][,']*/;
+const pPitch = /[\\^=_]?[a-zA-G][,']*/;
 const pNumber = /[1-9][0-9]*/;
 const pRest = /[zZxX]/;
 const pString = /"[^\n]*"/;
@@ -102,10 +101,13 @@ export function note(ctx: Ctx): boolean {
   return true;
 }
 
-export function tie(ctx: Ctx) {
+export function tie(ctx: Ctx): boolean {
   if (ctx.test("-")) {
+    advance(ctx);
     ctx.push(TT.TIE);
-  }
+
+    return true;
+  } else return false;
 }
 
 export function music_scan(ctx: Ctx) {
@@ -174,17 +176,27 @@ export function rhythm(ctx: Ctx): boolean {
   if (!ctx.test(pDuration)) return false;
   let parsed = false;
   if (ctx.test(pNumber)) {
+    advance(ctx);
+    while (ctx.test(pNumber)) {
+      advance(ctx);
+    }
     ctx.push(TT.RHY_NUMER);
     parsed = true;
   }
   if (ctx.test("/")) {
+    advance(ctx);
     ctx.push(TT.RHY_SEP);
     if (ctx.test(pNumber)) {
+      advance(ctx);
+      while (ctx.test(pNumber)) {
+        advance(ctx);
+      }
       ctx.push(TT.RHY_DENOM);
     }
     parsed = true;
   }
   if (ctx.test(/^[><]+/)) {
+    advance(ctx);
     ctx.push(TT.RHY_BRKN);
     parsed = true;
   }
@@ -193,12 +205,12 @@ export function rhythm(ctx: Ctx): boolean {
 
 export function pitch(ctx: Ctx): boolean {
   accidental(ctx);
-  if (!ctx.test(/^[a-gA-g]/)) {
+  if (!ctx.test(/[a-gA-g]/)) {
     ctx.report("Expected pitch");
     return false;
   }
+  advance(ctx);
   ctx.push(TT.NOTE_LETTER);
-
   const mtch = /^[',]+/.exec(ctx.source.substring(ctx.current));
   if (mtch) {
     ctx.current = ctx.start + mtch[0].length;
@@ -216,6 +228,7 @@ export function accidental(ctx: Ctx): boolean {
     case "__":
     case "_/":
     case "^/":
+      advance(ctx);
       ctx.push(TT.ACCIDENTAL);
       return true;
     default:
@@ -241,21 +254,26 @@ export function y_spacer(ctx: Ctx): boolean {
 export function info_line(ctx: Ctx): boolean {
   if (!ctx.test(pInfoLine)) return false;
   advance(ctx, 2);
-  ctx.push(TT.INF_LN_HDR);
+  ctx.push(TT.INF_HDR);
   while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
-    if (comment(ctx)) {
+    if (ctx.test("%")) {
       break;
     } else {
       advance(ctx);
     }
   }
-  ctx.push(TT.STRING);
+  ctx.push(TT.INFO_STR);
+  comment(ctx);
   return true;
 }
 
 export function rest(ctx: Ctx): boolean {
   if (!ctx.test(pRest)) return false;
+
+  advance(ctx);
+
   ctx.push(TT.REST);
+  advance(ctx);
   rhythm(ctx);
   return true;
 }
@@ -283,7 +301,7 @@ export function chord(ctx: Ctx): boolean {
 inline field is a left bracket, followed by a letter, followed by a colon
 followed by any text, followed by a right bracket
 */
-const pInlineField = /\\[\s*[a-zA-Z]\s*:\s*[a-zA-Z]*\s*\\]/;
+const pInlineField = /\[\s*[a-zA-Z]\s*:\s*[a-zA-Z]*\s*\]/;
 /**
   parse a grace group
   starts with a left brace
@@ -291,10 +309,16 @@ const pInlineField = /\\[\s*[a-zA-Z]\s*:\s*[a-zA-Z]*\s*\\]/;
   followed by a multiple pitch
   followed by a right brace
  */
-const pGraceGrp = new RegExp(`{\/?${pPitch.source}+}`);
+
+const pGraceGrp = new RegExp(`{\/?(${pPitch.source})+}`);
 export function grace_grp(ctx: Ctx): boolean {
   if (!ctx.test(pGraceGrp)) return false;
+  advance(ctx);
   ctx.push(TT.GRC_GRP_LEFT_BRACE);
+  if (ctx.test("/")) {
+    advance(ctx);
+    ctx.push(TT.GRC_GRP_SLSH);
+  }
   while (!isAtEnd(ctx) && !ctx.test("}")) {
     if (note(ctx)) {
       continue;
@@ -306,16 +330,25 @@ export function grace_grp(ctx: Ctx): boolean {
       return false;
     }
   }
+  advance(ctx);
   ctx.push(TT.GRC_GRP_RGHT_BRACE);
   return true;
 }
 
 export function inline_field(ctx: Ctx): boolean {
   if (!ctx.test(pInlineField)) return false;
+  advance(ctx);
   ctx.push(TT.INLN_FLD_LFT_BRKT);
+  while (!isAtEnd(ctx) && !ctx.test(":")) {
+    advance(ctx);
+  }
+  advance(ctx);
+  ctx.push(TT.INF_HDR);
   while (!isAtEnd(ctx) && !ctx.test("]")) {
     advance(ctx);
   }
+  ctx.push(TT.INF_TXT);
+  advance(ctx);
   ctx.push(TT.INLN_FLD_RGT_BRKT);
   return true;
 }
@@ -355,7 +388,10 @@ export function isAtEnd(ctx: Ctx) {
 }
 
 export enum TT {
-  INF_LN_HDR,
+  GRC_GRP_SLSH,
+  INFO_STR,
+  INF_HDR,
+  INF_TXT,
   Y_SPC,
   REST,
   GRC_GRP_RGHT_BRACE,
