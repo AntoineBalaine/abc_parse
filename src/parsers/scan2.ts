@@ -47,18 +47,22 @@ export function Scanner2(source: string, errorReporter?: AbcErrorReporter): Arra
 }
 
 const pLETTER_COLON = /[a-zA-Z]:/;
-const pWS = /\s+/;
 const pEOL = "\n";
 const pInfoLine = /\s*[a-zA-Z]\s*:/;
 const pTuneHeadStrt = /\s*X:/;
 const pDuration = /(\/+)|(([1-9][0-9]*)?\/[1-9][0-9]*)|([1-9][0-9]*)|([>]+|[<]+)/;
-const pSectionBrk = /\n[\n]+/;
-const pPitch = /[\\^=_]?[a-zA-G][,']*/;
+const pSectionBrk = /\n(\s*\n)+/;
+const pPitch = /[\^=_]?[a-zA-G][,']*/;
 const pNumber = /[1-9][0-9]*/;
 const pRest = /[zZxX]/;
 const pString = /"[^\n]*"/;
 const pChord = new RegExp(`\\[${pString.source}|${pPitch.source}\\]`);
 const pDeco = /[~\.HLMOPSTuv]/;
+
+const pTuplet = new RegExp(`\\(${pNumber.source}`);
+const pNote = new RegExp(`-?${pDeco.source}?${pPitch.source}${pDuration.source}?-?`);
+const pRestFull = new RegExp(`${pRest.source}${pDuration.source}?`);
+const pBrLn = /(\[\|)|(\|\])|(\|\|)|(\|)/;
 
 export function fileStructure(ctx: Ctx) {
   while (!isAtEnd(ctx)) {
@@ -113,12 +117,7 @@ export function tie(ctx: Ctx): boolean {
 export function music_scan(ctx: Ctx) {
   switch (peek(ctx)) {
     case "&": {
-      if (ctx.test(/\&\n/)) {
-        advance(ctx, 2);
-        ctx.push(TT.VOICE_CNTD);
-      } else {
-        ctx.push(TT.VOICE);
-      }
+      ampersand(ctx);
       break;
     }
     case ".":
@@ -127,6 +126,31 @@ export function music_scan(ctx: Ctx) {
       break;
     }
   }
+}
+
+export function ampersand(ctx: Ctx): boolean {
+  if (!ctx.test("&")) return false;
+  if (ctx.test(/\&\n/)) {
+    advance(ctx, 2);
+    ctx.push(TT.VOICE_OVRLAY);
+    return true;
+  } else {
+    advance(ctx);
+    ctx.push(TT.VOICE);
+    return true;
+  }
+}
+
+export function tuplet(ctx: Ctx): boolean {
+  if (!ctx.test(pTuplet)) return false;
+  // Advance past the opening parenthesis and the number
+  const match = pTuplet.exec(ctx.source.substring(ctx.current));
+  if (match) {
+    ctx.current += match[0].length;
+    ctx.push(TT.TUPLET);
+    return true;
+  }
+  return false;
 }
 
 export function stylesheet_directive(ctx: Ctx): boolean {
@@ -236,18 +260,35 @@ export function accidental(ctx: Ctx): boolean {
   }
 }
 
-// TODO: implement
-export function tuplet(ctx: Ctx): boolean {
-  return false;
-}
 export function barline(ctx: Ctx): boolean {
+  const mtch = pBrLn.exec(ctx.source.substring(ctx.start));
+  if (mtch) {
+    ctx.current = ctx.start + mtch[0].length;
+    ctx.push(TT.BARLINE);
+    return true;
+  }
   return false;
 }
+
+export function bcktck_spc(ctx: Ctx): boolean {
+  if (!ctx.test("`")) return false;
+  advance(ctx);
+  ctx.push(TT.BCKTCK_SPC);
+  return true;
+}
+
 export function y_spacer(ctx: Ctx): boolean {
   if (!ctx.test("y")) return false;
   advance(ctx);
   ctx.push(TT.Y_SPC);
   rhythm(ctx);
+  return true;
+}
+
+export function slur(ctx: Ctx): boolean {
+  if (!ctx.test(/[()]/)) return false;
+  advance(ctx);
+  ctx.push(TT.SLUR);
   return true;
 }
 
@@ -364,7 +405,7 @@ export function string(ctx: Ctx): boolean {
     advance(ctx);
   }
   advance(ctx);
-  ctx.push(TT.STRING);
+  ctx.push(TT.ANNOTATION);
   return true;
 }
 
@@ -388,84 +429,44 @@ export function isAtEnd(ctx: Ctx) {
 }
 
 export enum TT {
+  ACCIDENTAL,
+  AMPERSAND, // &
+  ANNOTATION,
+  BARLINE, //|
+  BCKTCK_SPC,
+  CHRD_LEFT_BRKT,
+  CHRD_RIGHT_BRKT,
+  COMMENT,
+  DECORATION,
+  EOF,
+  EOL,
+  ESCAPED_CHAR,
+  GRC_GRP_LEFT_BRACE,
+  GRC_GRP_RGHT_BRACE,
   GRC_GRP_SLSH,
   INFO_STR,
   INF_HDR,
   INF_TXT,
-  Y_SPC,
-  REST,
-  GRC_GRP_RGHT_BRACE,
-  GRC_GRP_LEFT_BRACE,
-  INLN_FLD_RGT_BRKT,
   INLN_FLD_LFT_BRKT,
-  CHRD_LEFT_BRKT,
-  CHRD_RIGHT_BRKT,
-  RHY_NUMER,
+  INLN_FLD_RGT_BRKT,
+  NOTE_LETTER,
+  OCTAVE,
+  RESERVED_CHAR,
+  REST,
   RHY_BRKN,
   RHY_DENOM,
+  RHY_NUMER,
   RHY_SEP,
-  ACCIDENTAL,
-  TIE,
-  OCTAVE,
   SCT_BRK,
-  NOTE_LETTER,
-  VOICE_CNTD,
-  VOICE,
-  DECORATION,
-
-  APOSTROPHE,
-  ANTISLASH_EOL,
-  AMPERSAND, // &
-  BARLINE, //|
-  BAR_COLON, // |:
-  BAR_DBL, // ||
-  BAR_DIGIT, // |1
-  BAR_RIGHTBRKT, // |]
-  COLON, // :
-  COLON_BAR, // :|
-  COLON_BAR_DIGIT, // :|1
-  COLON_DBL, // ::
-  COLON_NUMBER, // :1
-  COMMA, //,,,,,,
-  COMMENT,
-  DOLLAR, //$
-  DOT,
-  EOF,
-  EOL,
-  ESCAPED_CHAR,
-  FLAT, // ♭
-  FLAT_DBL, // 𝄫
-  GREATER, //>>>>>
-  LEFTBRKT_BAR, // [|
-  LEFTBRKT_NUMBER, // [number
-  LEFT_BRACE, // {
-  LEFTBRKT, // [
-  LEFTPAREN, // (
-  LEFTPAREN_NUMBER, // (1
-  LESS, // <<<<<
-  LETTER,
-  LETTER_COLON,
-  MINUS, //-
-  NATURAL, // ♮
-  NUMBER,
-  PLUS, //+
-  PLUS_COLON, //+: - extending info line
-  RESERVED_CHAR,
-  RIGHT_BRACE, // }
-  RIGHT_BRKT,
-  RIGHT_PAREN, // )
-  SHARP, // ♯
-  SHARP_DBL, // 𝄪
-  SLASH, // ////
-  STRING, // any un-categorizable text
+  SLUR,
   STYLESHEET_DIRECTIVE, // %%
   SYMBOL, // ![a-zA-Z]!
-  TILDE, // ~
-  /**
-   * # * ; ? @ are reserved symbols, treated as ws
-   */
-  WHITESPACE,
-  WHITESPACE_FORMATTER, // THIS IS NOT USED IN THE LEXER OR THE PARSER, only in the formatter
+  TIE,
+  TUPLET,
+  VOICE,
+  VOICE_OVRLAY,
+  WS,
+  Y_SPC,
 }
 
 export class Token {

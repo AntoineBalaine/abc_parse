@@ -23,6 +23,9 @@ import {
   barline,
   advance,
   isAtEnd,
+  ampersand,
+  bcktck_spc,
+  slur,
 } from "../parsers/scan2";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 
@@ -325,7 +328,7 @@ describe("scan2", () => {
       const result = string(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens.length, 1);
-      assert.equal(ctx.tokens[0].type, TT.STRING);
+      assert.equal(ctx.tokens[0].type, TT.ANNOTATION);
       assert.equal(ctx.tokens[0].lexeme, '"text"');
     });
 
@@ -334,7 +337,7 @@ describe("scan2", () => {
       const result = string(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens.length, 1);
-      assert.equal(ctx.tokens[0].type, TT.STRING);
+      assert.equal(ctx.tokens[0].type, TT.ANNOTATION);
     });
 
     it("should report an error for unterminated string", () => {
@@ -501,23 +504,147 @@ describe("scan2", () => {
     });
   });
 
+  describe("ampersand", () => {
+    it("should parse a simple ampersand", () => {
+      const ctx = createCtx("&");
+      const result = ampersand(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.VOICE);
+      assert.equal(ctx.tokens[0].lexeme, "&");
+    });
+
+    it("should parse an ampersand with newline", () => {
+      const ctx = createCtx("&\n");
+      const result = ampersand(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.VOICE_OVRLAY);
+      assert.equal(ctx.tokens[0].lexeme, "&\n");
+    });
+
+    it("should return false for non-ampersand", () => {
+      const ctx = createCtx("A");
+      const result = ampersand(ctx);
+      assert.equal(result, false);
+      assert.equal(ctx.tokens.length, 0);
+    });
+  });
+
+  describe("bcktck_spc", () => {
+    it("should parse a backtick", () => {
+      const ctx = createCtx("`");
+      const result = bcktck_spc(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.BCKTCK_SPC);
+      assert.equal(ctx.tokens[0].lexeme, "`");
+    });
+
+    it("should return false for non-backtick", () => {
+      const ctx = createCtx("A");
+      const result = bcktck_spc(ctx);
+      assert.equal(result, false);
+      assert.equal(ctx.tokens.length, 0);
+    });
+  });
+
+  describe("slur", () => {
+    it("should parse an opening parenthesis", () => {
+      const ctx = createCtx("(");
+      const result = slur(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.SLUR);
+      assert.equal(ctx.tokens[0].lexeme, "(");
+    });
+
+    it("should parse a closing parenthesis", () => {
+      const ctx = createCtx(")");
+      const result = slur(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.SLUR);
+      assert.equal(ctx.tokens[0].lexeme, ")");
+    });
+
+    it("should return false for non-parenthesis", () => {
+      const ctx = createCtx("A");
+      const result = slur(ctx);
+      assert.equal(result, false);
+      assert.equal(ctx.tokens.length, 0);
+    });
+  });
+
   describe("tuplet", () => {
-    it("should handle tuplet function", () => {
+    it("should parse a simple tuplet", () => {
       const ctx = createCtx("(3");
       const result = tuplet(ctx);
-      // Since the function is marked as TODO and returns false,
-      // we just check that it doesn't throw an error
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.TUPLET);
+      assert.equal(ctx.tokens[0].lexeme, "(3");
+    });
+
+    it("should parse a tuplet with a larger number", () => {
+      const ctx = createCtx("(5");
+      const result = tuplet(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.TUPLET);
+      assert.equal(ctx.tokens[0].lexeme, "(5");
+    });
+
+    it("should return false for non-tuplet", () => {
+      const ctx = createCtx("(A");
+      const result = tuplet(ctx);
       assert.equal(result, false);
+      assert.equal(ctx.tokens.length, 0);
     });
   });
 
   describe("barline", () => {
-    it("should handle barline function", () => {
+    it("should parse a simple barline", () => {
       const ctx = createCtx("|");
       const result = barline(ctx);
-      // Since the function is marked as TODO and returns false,
-      // we just check that it doesn't throw an error
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.BARLINE);
+      assert.equal(ctx.tokens[0].lexeme, "|");
+    });
+
+    it("should parse a double barline", () => {
+      const ctx = createCtx("||");
+      const result = barline(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.BARLINE);
+      assert.equal(ctx.tokens[0].lexeme, "||");
+    });
+
+    it("should parse a left repeat barline", () => {
+      const ctx = createCtx("[|");
+      const result = barline(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.BARLINE);
+      assert.equal(ctx.tokens[0].lexeme, "[|");
+    });
+
+    it("should parse a right repeat barline", () => {
+      const ctx = createCtx("|]");
+      const result = barline(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.BARLINE);
+      assert.equal(ctx.tokens[0].lexeme, "|]");
+    });
+
+    it("should return false for non-barline", () => {
+      const ctx = createCtx("A");
+      const result = barline(ctx);
       assert.equal(result, false);
+      assert.equal(ctx.tokens.length, 0);
     });
   });
 });
