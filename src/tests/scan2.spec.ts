@@ -16,7 +16,7 @@ import {
   chord,
   grace_grp,
   inline_field,
-  string,
+  annotation,
   info_line,
   y_spacer,
   tuplet,
@@ -325,7 +325,7 @@ describe("scan2", () => {
   describe("string", () => {
     it("should parse a simple string", () => {
       const ctx = createCtx('"text"');
-      const result = string(ctx);
+      const result = annotation(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.ANNOTATION);
@@ -334,7 +334,7 @@ describe("scan2", () => {
 
     it("should parse a string with special characters", () => {
       const ctx = createCtx('"text with spaces and !@#$%^&*()"');
-      const result = string(ctx);
+      const result = annotation(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.ANNOTATION);
@@ -342,7 +342,7 @@ describe("scan2", () => {
 
     it("should report an error for unterminated string", () => {
       const ctx = createCtx('"unterminated\n');
-      const result = string(ctx);
+      const result = annotation(ctx);
       assert.equal(result, false);
       // Check that an error was reported
       assert.equal(ctx.errorReporter?.hasErrors(), true);
@@ -350,7 +350,7 @@ describe("scan2", () => {
 
     it("should return false for non-string", () => {
       const ctx = createCtx("not a string");
-      const result = string(ctx);
+      const result = annotation(ctx);
       assert.equal(result, false);
       assert.equal(ctx.tokens.length, 0);
     });

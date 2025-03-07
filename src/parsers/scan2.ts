@@ -52,17 +52,17 @@ const pInfoLine = /\s*[a-zA-Z]\s*:/;
 const pTuneHeadStrt = /\s*X:/;
 const pDuration = /(\/+)|(([1-9][0-9]*)?\/[1-9][0-9]*)|([1-9][0-9]*)|([>]+|[<]+)/;
 const pSectionBrk = /\n(\s*\n)+/;
-const pPitch = /[\^=_]?[a-zA-G][,']*/;
 const pNumber = /[1-9][0-9]*/;
 const pRest = /[zZxX]/;
+const pPitch = /[\^=_]?[a-zA-G][,']*/;
 const pString = /"[^\n]*"/;
-const pChord = new RegExp(`\\[${pString.source}|${pPitch.source}\\]`);
+const pChord = new RegExp(`\\[((${pString.source})+|(${pPitch.source})+)\\]`);
 const pDeco = /[~\.HLMOPSTuv]/;
 
 const pTuplet = new RegExp(`\\(${pNumber.source}`);
 const pNote = new RegExp(`-?${pDeco.source}?${pPitch.source}${pDuration.source}?-?`);
 const pRestFull = new RegExp(`${pRest.source}${pDuration.source}?`);
-const pBrLn = /(\[\|)|(\|\])|(\|\|)|(\|)/;
+const pBrLn = /((\[\|)|(\|\])|(\|\|)|(\|))/;
 
 export function fileStructure(ctx: Ctx) {
   while (!isAtEnd(ctx)) {
@@ -92,8 +92,53 @@ export function scanTune(ctx: Ctx) {
   }
 }
 export function scanTuneHeadLine(ctx: Ctx) {}
-export function scanTuneBody(ctx: Ctx) {}
+export function scanTuneBody(ctx: Ctx) {
+  while (!isAtEnd(ctx) && !ctx.test(pSectionBrk)) {
+    ctx.start = ctx.current;
+    // Try each tokenizer function in order of precedence
+    if (stylesheet_directive(ctx)) continue;
+    if (comment(ctx)) continue;
+    if (info_line(ctx)) continue;
+    if (annotation(ctx)) continue;
+    if (inline_field(ctx)) continue;
+    if (barline(ctx)) continue;
+    if (tuplet(ctx)) continue;
+    if (slur(ctx)) continue;
+    if (grace_grp(ctx)) continue;
+    if (chord(ctx)) continue;
+    if (note(ctx)) continue;
+    if (rest(ctx)) continue;
+    if (y_spacer(ctx)) continue;
+    if (symbol(ctx)) continue;
+    if (ampersand(ctx)) continue;
+    if (bcktck_spc(ctx)) continue;
+    if (WS(ctx)) continue;
+    if (EOL(ctx)) continue;
+    // If no match is found, report an error and advance
+    ctx.report(`Unexpected character: ${peek(ctx)}`);
+    advance(ctx);
+  }
+}
 
+export function WS(ctx: Ctx): boolean {
+  // Handle whitespace and newlines
+  if (ctx.test(/ /)) {
+    advance(ctx);
+    ctx.push(TT.WS);
+    return true;
+  }
+  return false;
+}
+
+export function EOL(ctx: Ctx): boolean {
+  if (ctx.test(pEOL)) {
+    advance(ctx);
+    ctx.push(TT.EOL);
+    ctx.line++;
+    return true;
+  }
+  return false;
+}
 export function note(ctx: Ctx): boolean {
   tie(ctx);
   if (!pitch(ctx)) {
@@ -141,6 +186,9 @@ export function ampersand(ctx: Ctx): boolean {
   }
 }
 
+/**
+ * TODO: complex cases (3:2:3
+ */
 export function tuplet(ctx: Ctx): boolean {
   if (!ctx.test(pTuplet)) return false;
   // Advance past the opening parenthesis and the number
@@ -261,7 +309,7 @@ export function accidental(ctx: Ctx): boolean {
 }
 
 export function barline(ctx: Ctx): boolean {
-  const mtch = pBrLn.exec(ctx.source.substring(ctx.start));
+  const mtch = new RegExp(`^${pBrLn.source}`).exec(ctx.source.substring(ctx.start));
   if (mtch) {
     ctx.current = ctx.start + mtch[0].length;
     ctx.push(TT.BARLINE);
@@ -325,7 +373,7 @@ export function chord(ctx: Ctx): boolean {
   advance(ctx);
   while (!isAtEnd(ctx) && !ctx.test("]")) {
     if (ctx.test(pString)) {
-      string(ctx);
+      annotation(ctx);
       continue;
     } else {
       note(ctx);
@@ -342,7 +390,7 @@ export function chord(ctx: Ctx): boolean {
 inline field is a left bracket, followed by a letter, followed by a colon
 followed by any text, followed by a right bracket
 */
-const pInlineField = /\[\s*[a-zA-Z]\s*:\s*[a-zA-Z]*\s*\]/;
+const pInlineField = /\[\s*[a-zA-Z]\s*:[^\]]*\]/;
 /**
   parse a grace group
   starts with a left brace
@@ -394,7 +442,7 @@ export function inline_field(ctx: Ctx): boolean {
   return true;
 }
 
-export function string(ctx: Ctx): boolean {
+export function annotation(ctx: Ctx): boolean {
   if (!ctx.test('"')) return false;
   advance(ctx);
   while (!ctx.test('"')) {
