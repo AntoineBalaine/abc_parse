@@ -47,18 +47,19 @@ export function Scanner2(source: string, errorReporter?: AbcErrorReporter): Arra
   return ctx.tokens;
 }
 
-export const pLETTER_COLON = /[a-zA-Z]:/;
-export const pWS = /\s+/;
-export const pEOL = "\n";
-export const pInfoLine = /\s*[a-zA-Z]:/;
-export const pTuneHeadStrt = /\s*X:/;
-export const pDuration = /\d*\/\d*/;
-export const pSectionBrk = /\n[\n]+/;
-export const pPitch = /[\\^=_][a-zA-G][,']*/;
-export const pNumber = /[1-9][0-9]*/;
-export const pRest = /[zZxX]/;
-
-export const pDeco = /[~\.HLMOPSTuv]/;
+const pLETTER_COLON = /[a-zA-Z]:/;
+const pWS = /\s+/;
+const pEOL = "\n";
+const pInfoLine = /\s*[a-zA-Z]\s*:/;
+const pTuneHeadStrt = /\s*X:/;
+const pDuration = /\d*\/\d*/;
+const pSectionBrk = /\n[\n]+/;
+const pPitch = /[\\^=_][a-zA-G][,']*/;
+const pNumber = /[1-9][0-9]*/;
+const pRest = /[zZxX]/;
+const pString = /"[^\n]*"/;
+const pChord = new RegExp(`\\[${pString.source}|${pPitch.source}\\]`);
+const pDeco = /[~\.HLMOPSTuv]/;
 
 export function fileStructure(ctx: Ctx) {
   while (!isAtEnd(ctx)) {
@@ -90,13 +91,15 @@ export function scanTune(ctx: Ctx) {
 export function scanTuneHeadLine(ctx: Ctx) {}
 export function scanTuneBody(ctx: Ctx) {}
 
-export function note(ctx: Ctx) {
+export function note(ctx: Ctx): boolean {
   tie(ctx);
-  pitch(ctx);
-  if (ctx.test(pDuration)) {
-    rhythm(ctx);
+  if (!pitch(ctx)) {
+    ctx.report("Expected pitch");
+    return false;
   }
+  rhythm(ctx);
   tie(ctx);
+  return true;
 }
 
 export function tie(ctx: Ctx) {
@@ -168,6 +171,7 @@ export function symbol(ctx: Ctx): boolean {
 }
 
 export function rhythm(ctx: Ctx): boolean {
+  if (!ctx.test(pDuration)) return false;
   let parsed = false;
   if (ctx.test(pNumber)) {
     ctx.push(TT.RHY_NUMER);
@@ -219,6 +223,103 @@ export function accidental(ctx: Ctx): boolean {
   }
 }
 
+// TODO: implement
+export function tuplet(ctx: Ctx): boolean {
+  return false;
+}
+export function barline(ctx: Ctx): boolean {
+  return false;
+}
+export function y_spacer(ctx: Ctx): boolean {
+  if (!ctx.test("y")) return false;
+  advance(ctx);
+  ctx.push(TT.Y_SPC);
+  rhythm(ctx);
+  return true;
+}
+
+export function info_line(ctx: Ctx): boolean {
+  if (!ctx.test(pInfoLine)) return false;
+  advance(ctx, 2);
+  ctx.push(TT.INF_LN_HDR);
+  while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
+    if (comment(ctx)) {
+      break;
+    } else {
+      advance(ctx);
+    }
+  }
+  ctx.push(TT.STRING);
+  return true;
+}
+
+export function rest(ctx: Ctx): boolean {
+  if (!ctx.test(pRest)) return false;
+  ctx.push(TT.REST);
+  rhythm(ctx);
+  return true;
+}
+
+export function chord(ctx: Ctx): boolean {
+  if (!ctx.test(pChord)) return false;
+  ctx.push(TT.CHRD_LEFT_BRKT);
+  advance(ctx);
+  while (!isAtEnd(ctx) && !ctx.test("]")) {
+    if (ctx.test(pString)) {
+      string(ctx);
+      continue;
+    } else {
+      note(ctx);
+      continue;
+    }
+  }
+  advance(ctx);
+  tie(ctx);
+  ctx.push(TT.CHRD_RIGHT_BRKT);
+  return true;
+}
+
+/**
+inline field is a left bracket, followed by a letter, followed by a colon
+followed by any text, followed by a right bracket
+*/
+const pInlineField = /\\[\s*[a-zA-Z]\s*:\s*[a-zA-Z]*\s*\\]/;
+/**
+  parse a grace group
+  starts with a left brace
+  optionally followed by a slash
+  followed by a multiple pitch
+  followed by a right brace
+ */
+const pGraceGrp = new RegExp(`{\/?${pPitch.source}+}`);
+export function grace_grp(ctx: Ctx): boolean {
+  if (!ctx.test(pGraceGrp)) return false;
+  ctx.push(TT.GRC_GRP_LEFT_BRACE);
+  while (!isAtEnd(ctx) && !ctx.test("}")) {
+    if (note(ctx)) {
+      continue;
+    } else if (ctx.test(/\s/)) {
+      advance(ctx);
+      continue;
+    } else {
+      ctx.report("Expected pitch or whitespace");
+      return false;
+    }
+  }
+  ctx.push(TT.GRC_GRP_RGHT_BRACE);
+  return true;
+}
+
+export function inline_field(ctx: Ctx): boolean {
+  if (!ctx.test(pInlineField)) return false;
+  ctx.push(TT.INLN_FLD_LFT_BRKT);
+  while (!isAtEnd(ctx) && !ctx.test("]")) {
+    advance(ctx);
+  }
+  ctx.push(TT.INLN_FLD_RGT_BRKT);
+  return true;
+}
+
 export function string(ctx: Ctx): boolean {
   if (!ctx.test('"')) return false;
   advance(ctx);
@@ -254,6 +355,15 @@ export function isAtEnd(ctx: Ctx) {
 }
 
 export enum TT {
+  INF_LN_HDR,
+  Y_SPC,
+  REST,
+  GRC_GRP_RGHT_BRACE,
+  GRC_GRP_LEFT_BRACE,
+  INLN_FLD_RGT_BRKT,
+  INLN_FLD_LFT_BRKT,
+  CHRD_LEFT_BRKT,
+  CHRD_RIGHT_BRKT,
   RHY_NUMER,
   RHY_BRKN,
   RHY_DENOM,
