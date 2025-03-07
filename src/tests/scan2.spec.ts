@@ -381,41 +381,42 @@ describe("scan2", () => {
     });
   });
 
-  // describe("chord", () => {
-  //   it("should parse a simple chord", () => {
-  //     const ctx = createCtx("[A]");
-  //     const result = chord(ctx);
-  //     assert.equal(result, true);
-  //     assert.equal(ctx.tokens.length, 2);
-  //     assert.equal(ctx.tokens[0].type, TT.CHRD_LEFT_BRKT);
-  //     assert.equal(ctx.tokens[1].type, TT.CHRD_RIGHT_BRKT);
-  //   });
+  describe("chord", () => {
+    it("should parse a simple chord", () => {
+      const ctx = createCtx("[A]");
+      const result = chord(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 3);
+      assert.equal(ctx.tokens[0].type, TT.CHRD_LEFT_BRKT);
+      assert.equal(ctx.tokens[1].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[2].type, TT.CHRD_RIGHT_BRKT);
+    });
 
-  //   it("should parse a chord with multiple notes", () => {
-  //     const ctx = createCtx("[ABC]");
-  //     const result = chord(ctx);
-  //     assert.equal(result, true);
-  //     // The exact number of tokens depends on the implementation details
-  //     assert.equal(ctx.tokens[0].type, TT.CHRD_LEFT_BRKT);
-  //     assert.equal(ctx.tokens[ctx.tokens.length - 1].type, TT.CHRD_RIGHT_BRKT);
-  //   });
+    it("should parse a chord with multiple notes", () => {
+      const ctx = createCtx("[ABC]");
+      const result = chord(ctx);
+      assert.equal(result, true);
+      // The exact number of tokens depends on the implementation details
+      assert.equal(ctx.tokens[0].type, TT.CHRD_LEFT_BRKT);
+      assert.equal(ctx.tokens[ctx.tokens.length - 1].type, TT.CHRD_RIGHT_BRKT);
+    });
 
-  //   it("should parse a chord with string", () => {
-  //     const ctx = createCtx('["text"]');
-  //     const result = chord(ctx);
-  //     assert.equal(result, true);
-  //     assert.equal(ctx.tokens[0].type, TT.CHRD_LEFT_BRKT);
-  //     // There should be a STRING token in the middle
-  //     assert.equal(ctx.tokens[ctx.tokens.length - 1].type, TT.CHRD_RIGHT_BRKT);
-  //   });
+    it("should parse a chord with string", () => {
+      const ctx = createCtx('["text"]');
+      const result = chord(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.CHRD_LEFT_BRKT);
+      // There should be a STRING token in the middle
+      assert.equal(ctx.tokens[ctx.tokens.length - 1].type, TT.CHRD_RIGHT_BRKT);
+    });
 
-  //   it("should return false for non-chord", () => {
-  //     const ctx = createCtx("A");
-  //     const result = chord(ctx);
-  //     assert.equal(result, false);
-  //     assert.equal(ctx.tokens.length, 0);
-  //   });
-  // });
+    it("should return false for non-chord", () => {
+      const ctx = createCtx("A");
+      const result = chord(ctx);
+      assert.equal(result, false);
+      assert.equal(ctx.tokens.length, 0);
+    });
+  });
 
   describe("grace_grp", () => {
     it("should parse a simple grace group", () => {
