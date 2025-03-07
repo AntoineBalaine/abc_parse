@@ -1,9 +1,7 @@
 import assert from "assert";
 import { describe, it } from "mocha";
+import { Ctx, Token, TT, advance, isAtEnd } from "../parsers/scan2";
 import {
-  Ctx,
-  Token,
-  TT,
   stylesheet_directive,
   comment,
   decoration,
@@ -21,12 +19,10 @@ import {
   y_spacer,
   tuplet,
   barline,
-  advance,
-  isAtEnd,
   ampersand,
   bcktck_spc,
   slur,
-} from "../parsers/scan2";
+} from "../parsers/scan_tunebody";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 
 // Helper function to create a Ctx object for testing
