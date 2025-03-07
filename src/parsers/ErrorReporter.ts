@@ -1,5 +1,6 @@
 import { Token } from "../types/token";
 import { ParserErrorType, TokenType } from "../types/types";
+import { Ctx } from "./scan2";
 
 export type AbcError = { message: string; token: Token; origin: ParserErrorType };
 
@@ -52,6 +53,10 @@ export class AbcErrorReporter {
   };
 
   parserError = (token: Token, message: string, origin: ParserErrorType) => this.report(message, token, origin);
+
+  Scanner2Error = (ctx: Ctx, messag: string) => {
+    // this.report(messag, new Token(TokenType.AMPERSAND, "", null, -1, -1), ParserErrorType.BACKTICK);
+  };
 
   private stringifyError({ message, token, origin }: AbcError) {
     const where = `at pos.${token.position} - '${token.lexeme}'`;

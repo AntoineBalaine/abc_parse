@@ -1,15 +1,15 @@
 import { File_header, File_structure, Tune } from "../types/Expr";
 import { AbcErrorReporter } from "./ErrorReporter";
 
-class Ctx {
+export class Ctx {
   public source: string;
   public tokens: Array<Token>;
   public start: number;
   public current: number;
   public line: number;
-  public errorReporter?: AbcErrorReporter
+  public errorReporter?: AbcErrorReporter;
 
-  constructor(source: string, errorReporter: AbcErrorReporter) {
+  constructor(source: string, errorReporter?: AbcErrorReporter) {
     this.source = source;
     this.tokens = [];
     this.start = 0;
@@ -21,9 +21,9 @@ class Ctx {
     if (pattern instanceof RegExp) {
       return new RegExp(`^${pattern.source}`).test(this.source.substring(this.current));
     } else {
-      return this.source.charAt(offset ?? this.current) == pattern;
+      offset = offset ?? this.current;
+      return this.source.substring(offset, offset + pattern.length) == pattern;
     }
-
   }
 
   push(tokenType: TT) {
@@ -33,11 +33,10 @@ class Ctx {
   }
 
   report(msg: string) {
-    this.errorReporter?.ScannerError(this, msg);
+    this.errorReporter?.Scanner2Error(this, msg);
   }
 }
-function Scanner2(source: string, errorReporter?: AbcErrorReporter): Array<Token> {
-
+export function Scanner2(source: string, errorReporter?: AbcErrorReporter): Array<Token> {
   const ctx = new Ctx(String.raw`${source}`, errorReporter ?? new AbcErrorReporter());
   while (!isAtEnd(ctx)) {
     ctx.start = ctx.current;
@@ -48,21 +47,20 @@ function Scanner2(source: string, errorReporter?: AbcErrorReporter): Array<Token
   return ctx.tokens;
 }
 
-const pLETTER_COLON = /[a-zA-Z]:/;
-const pWS = /\s+/;
-const pEOL = "\n";
-const pInfoLine = /\s*[a-zA-Z]:/;
-const pTuneHeadStrt = /\s*X:/;
-const pDuration = /\d*\/\d*/;
-const pSectionBrk = /\n[\n]+/;
-const pPitch = /[\\^=_][a-zA-G][,']*/
-const pNumber = /[1-9][0-9]+/;
-const pRest = /[zZxX]/
+export const pLETTER_COLON = /[a-zA-Z]:/;
+export const pWS = /\s+/;
+export const pEOL = "\n";
+export const pInfoLine = /\s*[a-zA-Z]:/;
+export const pTuneHeadStrt = /\s*X:/;
+export const pDuration = /\d*\/\d*/;
+export const pSectionBrk = /\n[\n]+/;
+export const pPitch = /[\\^=_][a-zA-G][,']*/;
+export const pNumber = /[1-9][0-9]*/;
+export const pRest = /[zZxX]/;
 
-const pDeco = /[~\.HLMOPSTuv]/;
+export const pDeco = /[~\.HLMOPSTuv]/;
 
-function fileStructure(ctx: Ctx) {
-
+export function fileStructure(ctx: Ctx) {
   while (!isAtEnd(ctx)) {
     if (ctx.current === 0 && !ctx.test(pTuneHeadStrt)) {
       fileHeader(ctx);
@@ -72,12 +70,12 @@ function fileStructure(ctx: Ctx) {
   }
   return ctx.tokens;
 }
-function fileHeader(ctx: Ctx): File_header | null {
+export function fileHeader(ctx: Ctx): File_header | null {
   return null;
-};
-function scanHead(ctx: Ctx) { }
+}
+export function scanHead(ctx: Ctx) {}
 
-function scanTune(ctx: Ctx) {
+export function scanTune(ctx: Ctx) {
   while (!isAtEnd(ctx) && !ctx.test(pSectionBrk)) {
     scanTuneHeadLine(ctx);
   }
@@ -89,10 +87,10 @@ function scanTune(ctx: Ctx) {
     scanTuneBody(ctx);
   }
 }
-function scanTuneHeadLine(ctx: Ctx) { }
-function scanTuneBody(ctx: Ctx) { }
+export function scanTuneHeadLine(ctx: Ctx) {}
+export function scanTuneBody(ctx: Ctx) {}
 
-function note(ctx: Ctx) {
+export function note(ctx: Ctx) {
   tie(ctx);
   pitch(ctx);
   if (ctx.test(pDuration)) {
@@ -101,20 +99,20 @@ function note(ctx: Ctx) {
   tie(ctx);
 }
 
-function tie(ctx: Ctx) {
+export function tie(ctx: Ctx) {
   if (ctx.test("-")) {
     ctx.push(TT.TIE);
   }
 }
 
-function music_scan(ctx: Ctx) {
+export function music_scan(ctx: Ctx) {
   switch (peek(ctx)) {
     case "&": {
       if (ctx.test(/\&\n/)) {
         advance(ctx, 2);
-        ctx.push(TT.VOICE_CNTD)
+        ctx.push(TT.VOICE_CNTD);
       } else {
-        ctx.push(TT.VOICE)
+        ctx.push(TT.VOICE);
       }
       break;
     }
@@ -124,10 +122,9 @@ function music_scan(ctx: Ctx) {
       break;
     }
   }
-
 }
 
-function stylesheet_directive(ctx: Ctx): boolean {
+export function stylesheet_directive(ctx: Ctx): boolean {
   if (!ctx.test("%%")) return false;
   advance(ctx, 2);
   while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
@@ -137,7 +134,7 @@ function stylesheet_directive(ctx: Ctx): boolean {
   return true;
 }
 
-function comment(ctx: Ctx): boolean {
+export function comment(ctx: Ctx): boolean {
   if (!ctx.test("%")) return false;
   advance(ctx);
   while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
@@ -147,8 +144,8 @@ function comment(ctx: Ctx): boolean {
   return true;
 }
 
-function decoration(ctx: Ctx): boolean {
-  // FIXME: \zs is not valid regex, that’s vim regex
+export function decoration(ctx: Ctx): boolean {
+  // FIXME: \zs is not valid regex, that's vim regex
   const ptrn = new RegExp(`${pDeco.source}+\zs(${pPitch.source}|${pRest.source})`);
   const mtch = ptrn.exec(ctx.source.substring(ctx.start));
   if (mtch) {
@@ -159,8 +156,9 @@ function decoration(ctx: Ctx): boolean {
   return false;
 }
 
-function symbol(ctx: Ctx): boolean {
+export function symbol(ctx: Ctx): boolean {
   if (!ctx.test("!")) return false;
+  advance(ctx);
   while (!ctx.test("!")) {
     advance(ctx);
   }
@@ -169,7 +167,7 @@ function symbol(ctx: Ctx): boolean {
   return true;
 }
 
-function rhythm(ctx: Ctx): boolean {
+export function rhythm(ctx: Ctx): boolean {
   let parsed = false;
   if (ctx.test(pNumber)) {
     ctx.push(TT.RHY_NUMER);
@@ -186,10 +184,10 @@ function rhythm(ctx: Ctx): boolean {
     ctx.push(TT.RHY_BRKN);
     parsed = true;
   }
-  return true;
+  return parsed;
 }
 
-function pitch(ctx: Ctx): boolean {
+export function pitch(ctx: Ctx): boolean {
   accidental(ctx);
   if (!ctx.test(/^[a-gA-g]/)) {
     ctx.report("Expected pitch");
@@ -205,7 +203,7 @@ function pitch(ctx: Ctx): boolean {
   return true;
 }
 
-function accidental(ctx: Ctx): boolean {
+export function accidental(ctx: Ctx): boolean {
   switch (peek(ctx)) {
     case "^":
     case "_":
@@ -217,33 +215,45 @@ function accidental(ctx: Ctx): boolean {
       ctx.push(TT.ACCIDENTAL);
       return true;
     default:
-      return false
+      return false;
   }
 }
 
-function advance(ctx: Ctx, count?: number) {
-  if (
-    isAtEnd(ctx)
-  ) return;
+export function string(ctx: Ctx): boolean {
+  if (!ctx.test('"')) return false;
+  advance(ctx);
+  while (!ctx.test('"')) {
+    if (ctx.test(pEOL)) {
+      ctx.report("Unterminated string");
+      return false;
+    }
+    advance(ctx);
+  }
+  advance(ctx);
+  ctx.push(TT.STRING);
+  return true;
+}
+
+export function advance(ctx: Ctx, count?: number) {
+  if (isAtEnd(ctx)) return;
   if (!count) {
     count = 1;
   }
   ctx.current += count;
 }
 
-function peek(ctx: Ctx) {
+export function peek(ctx: Ctx) {
   if (isAtEnd(ctx)) {
     return "\0";
   }
   return ctx.source.charAt(ctx.current);
 }
 
-function isAtEnd(ctx: Ctx) {
+export function isAtEnd(ctx: Ctx) {
   return ctx.current >= ctx.source.length;
 }
 
-
-enum TT {
+export enum TT {
   RHY_NUMER,
   RHY_BRKN,
   RHY_DENOM,
@@ -321,10 +331,7 @@ export class Token {
   public toString = () => {
     return this.type + " " + this.lexeme + " " + this.literal;
   };
-  constructor(
-    type: TT,
-    ctx: Ctx
-  ) {
+  constructor(type: TT, ctx: Ctx) {
     this.type = type;
     this.lexeme = ctx.source.slice(ctx.start, ctx.current);
     this.line = ctx.line;
