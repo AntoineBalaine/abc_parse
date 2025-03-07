@@ -1,6 +1,6 @@
 import { File_header, File_structure, Tune } from "../types/Expr";
 import { AbcErrorReporter } from "./ErrorReporter";
-import { pEOL, pInfoLine, pSectionBrk, pTuneHeadStrt, scanTuneBody } from "./scan_tunebody";
+import { comment, pEOL, pInfoLine, pSectionBrk, pTuneHeadStrt, scanTuneBody } from "./scan_tunebody";
 
 export class Ctx {
   public source: string;
@@ -51,8 +51,10 @@ export function fileStructure(ctx: Ctx) {
   while (!isAtEnd(ctx)) {
     if (ctx.current === 0 && !ctx.test(pTuneHeadStrt)) {
       fileHeader(ctx);
-    } else if (ctx.test(pInfoLine)) {
+    } else if (ctx.test(pTuneHeadStrt)) {
       scanTune(ctx);
+    } else {
+      freeText(ctx);
     }
   }
   return ctx.tokens;
@@ -60,21 +62,33 @@ export function fileStructure(ctx: Ctx) {
 export function fileHeader(ctx: Ctx): File_header | null {
   return null;
 }
-export function scanHead(ctx: Ctx) {}
 export function scanTune(ctx: Ctx) {
   while (!isAtEnd(ctx) && !ctx.test(pSectionBrk)) {
-    scanTuneHeadLine(ctx);
+    scanTuneHeader(ctx);
   }
   if (ctx.test(pSectionBrk)) {
     advance(ctx);
     ctx.push(TT.SCT_BRK);
+    return;
   }
-  if (ctx.test(pTuneHeadStrt)) {
-    scanTuneBody(ctx);
-  }
+
+  // TODO: check for start of tune body
+  scanTuneBody(ctx);
 }
 
-export function scanTuneHeadLine(ctx: Ctx) {}
+export function scanTuneHeader(ctx: Ctx) {
+  /**
+   * contains info lines, comment lines and stylesheet directives
+   */
+}
+
+export function freeText(ctx: Ctx) {
+  while (!isAtEnd(ctx) && !ctx.test(pSectionBrk)) {
+    advance(ctx);
+  }
+  ctx.push(TT.FREE_TXT);
+  return;
+}
 
 export function WS(ctx: Ctx): boolean {
   // Handle whitespace and newlines
@@ -127,6 +141,7 @@ export enum TT {
   EOF,
   EOL,
   ESCAPED_CHAR,
+  FREE_TXT,
   GRC_GRP_LEFT_BRACE,
   GRC_GRP_RGHT_BRACE,
   GRC_GRP_SLSH,
@@ -170,4 +185,28 @@ export class Token {
     this.line = ctx.line;
     this.position = ctx.start;
   }
+}
+export function stylesheet_directive(ctx: Ctx): boolean {
+  if (!ctx.test("%%")) return false;
+  advance(ctx, 2);
+  while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
+    advance(ctx);
+  }
+  ctx.push(TT.STYLESHEET_DIRECTIVE);
+  return true;
+}
+export function info_line(ctx: Ctx): boolean {
+  if (!ctx.test(pInfoLine)) return false;
+  advance(ctx, 2);
+  ctx.push(TT.INF_HDR);
+  while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
+    if (ctx.test("%")) {
+      break;
+    } else {
+      advance(ctx);
+    }
+  }
+  ctx.push(TT.INFO_STR);
+  comment(ctx);
+  return true;
 }

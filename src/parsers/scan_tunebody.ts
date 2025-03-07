@@ -1,4 +1,4 @@
-import { Ctx, advance, TT, peek, isAtEnd, EOL, WS } from "./scan2";
+import { Ctx, advance, TT, peek, isAtEnd, EOL, WS, stylesheet_directive, info_line } from "./scan2";
 
 export function note(ctx: Ctx): boolean {
   tie(ctx);
@@ -60,16 +60,6 @@ export function tuplet(ctx: Ctx): boolean {
     return true;
   }
   return false;
-}
-
-export function stylesheet_directive(ctx: Ctx): boolean {
-  if (!ctx.test("%%")) return false;
-  advance(ctx, 2);
-  while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
-    advance(ctx);
-  }
-  ctx.push(TT.STYLESHEET_DIRECTIVE);
-  return true;
 }
 
 export function comment(ctx: Ctx): boolean {
@@ -198,22 +188,6 @@ export function slur(ctx: Ctx): boolean {
   if (!ctx.test(/[()]/)) return false;
   advance(ctx);
   ctx.push(TT.SLUR);
-  return true;
-}
-
-export function info_line(ctx: Ctx): boolean {
-  if (!ctx.test(pInfoLine)) return false;
-  advance(ctx, 2);
-  ctx.push(TT.INF_HDR);
-  while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
-    if (ctx.test("%")) {
-      break;
-    } else {
-      advance(ctx);
-    }
-  }
-  ctx.push(TT.INFO_STR);
-  comment(ctx);
   return true;
 }
 
