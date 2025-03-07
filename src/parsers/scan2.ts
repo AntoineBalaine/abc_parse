@@ -195,7 +195,7 @@ export function rhythm(ctx: Ctx): boolean {
     }
     parsed = true;
   }
-  if (ctx.test(/^[><]+/)) {
+  if (ctx.test(/([>]+)|([<]+)/)) {
     advance(ctx);
     ctx.push(TT.RHY_BRKN);
     parsed = true;
