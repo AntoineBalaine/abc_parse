@@ -59,8 +59,40 @@ export function fileStructure(ctx: Ctx) {
   }
   return ctx.tokens;
 }
-export function fileHeader(ctx: Ctx): File_header | null {
-  return null;
+export function fileHeader(ctx: Ctx) {
+  /**
+   * contains info lines, comment lines and stylesheet directives
+   * any info line that starts with a pTuneHeadStrt should be considered the end of the file header
+   * and return immediately
+   */
+  while (!isAtEnd(ctx)) {
+    ctx.start = ctx.current;
+
+    // Check if we've reached a tune header start (X:)
+    if (ctx.test(pTuneHeadStrt)) {
+      return ctx.tokens;
+    }
+
+    // Try each tokenizer function in order of precedence
+    if (stylesheet_directive(ctx)) continue;
+    if (comment(ctx)) continue;
+    if (info_line(ctx)) continue;
+    if (EOL(ctx)) continue;
+    if (WS(ctx)) continue;
+
+    // If no match is found, treat as free text line
+    freeTextLine(ctx);
+  }
+
+  return ctx.tokens;
+}
+
+export function freeTextLine(ctx: Ctx) {
+  while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
+    advance(ctx);
+  }
+  ctx.push(TT.FREE_TXT);
+  return;
 }
 export function scanTune(ctx: Ctx) {
   while (!isAtEnd(ctx) && !ctx.test(pSectionBrk)) {
@@ -80,6 +112,19 @@ export function scanTuneHeader(ctx: Ctx) {
   /**
    * contains info lines, comment lines and stylesheet directives
    */
+  while (!isAtEnd(ctx) && !ctx.test(pSectionBrk)) {
+    ctx.start = ctx.current;
+
+    // Try each tokenizer function in order of precedence
+    if (stylesheet_directive(ctx)) continue;
+    if (comment(ctx)) continue;
+    if (info_line(ctx)) continue;
+    if (EOL(ctx)) continue;
+    if (WS(ctx)) continue;
+    // If we reach here, we've found something that's not part of the tune header
+    // So we should return and let scanTune continue with the tune body
+    else return;
+  }
 }
 
 export function freeText(ctx: Ctx) {
