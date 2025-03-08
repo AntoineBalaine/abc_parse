@@ -279,8 +279,8 @@ export function annotation(ctx: Ctx): boolean {
 }
 const pLETTER_COLON = /[a-zA-Z]:/;
 export const pEOL = "\n";
-export const pInfoLine = /\s*[a-zA-Z]\s*:/;
-export const pTuneHeadStrt = /\s*X:/;
+export const pInfoLine = / *[a-zA-Z] *:/;
+export const pTuneHeadStrt = / *X:/;
 export const pDuration = /(\/+)|(([1-9][0-9]*)?\/[1-9][0-9]*)|([1-9][0-9]*)|([>]+|[<]+)/;
 export const pSectionBrk = /\n(\s*\n)+/;
 export const pNumber = /[1-9][0-9]*/;

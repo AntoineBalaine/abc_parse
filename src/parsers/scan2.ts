@@ -242,7 +242,15 @@ export function stylesheet_directive(ctx: Ctx): boolean {
 }
 export function info_line(ctx: Ctx): boolean {
   if (!ctx.test(pInfoLine)) return false;
-  advance(ctx, 2);
+
+  // Find the colon position
+  let colonPos = ctx.current;
+  while (colonPos < ctx.source.length && ctx.source[colonPos] !== ":") {
+    colonPos++;
+  }
+
+  // Advance to the colon and push the header token
+  advance(ctx, colonPos - ctx.current + 1);
   ctx.push(TT.INF_HDR);
   while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
     if (ctx.test("%")) {

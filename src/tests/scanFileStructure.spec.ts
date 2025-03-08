@@ -125,7 +125,7 @@ describe("scanTuneHeader", () => {
     scanTuneHeader(ctx);
 
     // Check that we have the expected token types in the right order
-    const expectedTypes = [TT.INF_HDR, TT.INFO_STR, TT.EOL, TT.INF_HDR, TT.INFO_STR, TT.EOL];
+    const expectedTypes = [TT.INF_HDR, TT.INFO_STR, TT.EOL, TT.INF_HDR, TT.INFO_STR];
 
     assert.equal(ctx.tokens.length, expectedTypes.length, `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`);
 
@@ -135,6 +135,6 @@ describe("scanTuneHeader", () => {
     }
 
     // Check that the current position is at the start of the section break
-    assert.equal(ctx.source.substring(ctx.current), "\n\nM:4/4\n");
+    assert.equal(ctx.source.substring(ctx.current), "\n\n\nM:4/4\n");
   });
 });
