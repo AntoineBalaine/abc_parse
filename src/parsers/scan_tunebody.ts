@@ -297,6 +297,83 @@ export function annotation(ctx: Ctx): boolean {
   ctx.push(TT.ANNOTATION);
   return true;
 }
+
+/**
+ * Parse repeat numbers when current token is a number
+ * - Single number: 1
+ * - Number list: 1,2,3
+ * - Range: 1-3
+ * - Mixed: 1,3,5-7,9
+ * - X notation: 1x2,3 or 1,2x2,3
+ */
+export function parseRepeatNumbers(ctx: Ctx): boolean {
+  // Must start with a number
+  if (!ctx.test(/[1-9]/)) {
+    return false;
+  }
+
+  // Parse the first number
+  while (ctx.test(/[0-9]/)) {
+    advance(ctx);
+  }
+  ctx.push(TT.REPEAT_NUMBER);
+
+  // Continue parsing until we don't find valid repeat number syntax
+  while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
+    if (ctx.test(",")) {
+      // Handle comma separator
+      advance(ctx);
+      ctx.push(TT.REPEAT_COMMA);
+
+      // Must have a number after comma
+      if (!ctx.test(/[1-9]/)) {
+        ctx.report("Expected number after comma in repeat");
+        return true; // Still return true as we parsed at least one number
+      }
+
+      while (ctx.test(/[0-9]/)) {
+        advance(ctx);
+      }
+      ctx.push(TT.REPEAT_NUMBER);
+    } else if (ctx.test("-")) {
+      // Handle range dash
+      advance(ctx);
+      ctx.push(TT.REPEAT_DASH);
+
+      // Must have a number after dash
+      if (!ctx.test(/[1-9]/)) {
+        ctx.report("Expected number after dash in repeat range");
+        return true; // Still return true as we parsed at least one number
+      }
+
+      while (ctx.test(/[0-9]/)) {
+        advance(ctx);
+      }
+      ctx.push(TT.REPEAT_NUMBER);
+    } else if (ctx.test(/[xX]/)) {
+      // Handle x notation
+      advance(ctx);
+      ctx.push(TT.REPEAT_X);
+
+      // Must have a number after x
+      if (!ctx.test(/[1-9]/)) {
+        ctx.report("Expected number after x in repeat");
+        return true; // Still return true as we parsed at least one number
+      }
+
+      while (ctx.test(/[0-9]/)) {
+        advance(ctx);
+      }
+      ctx.push(TT.REPEAT_NUMBER);
+    } else {
+      // No more valid repeat number syntax
+      break;
+    }
+  }
+
+  return true; // Successfully parsed repeat numbers
+}
+
 export function scanTuneBody(ctx: Ctx) {
   while (!isAtEnd(ctx) && !ctx.test(pSectionBrk)) {
     ctx.start = ctx.current;
@@ -323,4 +400,66 @@ export function scanTuneBody(ctx: Ctx) {
     ctx.report(`Unexpected character: ${peek(ctx)}`);
     advance(ctx);
   }
+}
+
+/**
+ * Writing down the rules as regular expressions:
+ * ```
+ * (:+)(\\|+\\s*\\])?                    # Colon start rule
+ * \\|+((:+)|(\\s*(\\]|(\\[\\d+))))?     # Barline start rule
+ * \\[(\\d+|(\\|(:+)?)|\\])              # Left bracket start rule
+ * ```
+ *
+ * <colon>+(<barline>+(<WS>?<RBrkt>))?
+ * <barline>+(<colon>+|(<WS>?(<RBrkt>|(<LBrkt><REPEAT_NUMBERS>))))?
+ * <LBrkt>(<REPEAT_NUMBERS>|(<barline>(<colon>+)?)|<RBrkt>)
+ */
+export function barline2(ctx: Ctx): boolean {
+  const pColon = /(:+)(\|+\s*\])?/; // FIXME: doesn't account for repeat numbers
+  const pBarln = /\|+((:+)|(\s*(\]|(\[\d+))))?/;
+  const pLftBrkt = /\[(\d+|(\|(:+)?)|\])/;
+  if (ctx.test(pColon)) return parseColonStart(ctx);
+  if (ctx.test(pBarln)) return parseBarlineStart(ctx);
+  if (ctx.test(pLftBrkt)) return parseLeftBracketStart(ctx);
+
+  return false;
+}
+
+/**
+ * <colon>+(<barline>+(<WS>?<RBrkt>))?
+ */
+function parseColonStart(ctx: Ctx): boolean {
+  while (ctx.test(":")) {
+    advance(ctx);
+  }
+  if (ctx.test("|")) {
+    advance(ctx);
+    while (ctx.test("|")) {
+      advance(ctx);
+    }
+
+    const rgt_brkt = new RegExp(`^\s*\]`);
+    const lft_brkt = new RegExp(`^\s*\[\d*`);
+    const pRptNumber = /[1-9][0-9]*/;
+
+    const rgx_arr = [rgt_brkt, lft_brkt, pRptNumber];
+    let match: RegExpExecArray | null = null;
+    for (let i = 0; i < rgx_arr.length; i++) {
+      match = rgt_brkt.exec(ctx.source.substring(ctx.current));
+      if (match) {
+        ctx.current = ctx.start + match[0].length;
+        break;
+      }
+    }
+  }
+  ctx.push(TT.BARLINE);
+  return true;
+}
+
+function parseBarlineStart(ctx: Ctx): boolean {
+  throw new Error("Function not implemented.");
+}
+
+function parseLeftBracketStart(ctx: Ctx): boolean {
+  throw new Error("Function not implemented.");
 }

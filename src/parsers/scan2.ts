@@ -213,6 +213,10 @@ export enum TT {
   VOICE_OVRLAY,
   WS,
   Y_SPC,
+  REPEAT_NUMBER, // For repeat numbers (1, 2, 3, etc.)
+  REPEAT_COMMA, // For commas separating numbers (1,2,3)
+  REPEAT_DASH, // For dashes in ranges (1-3)
+  REPEAT_X, // For 'x' notation (1x2)
 }
 
 export class Token {
