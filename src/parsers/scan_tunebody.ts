@@ -1,5 +1,29 @@
 import { Ctx, advance, TT, peek, isAtEnd, EOL, WS, stylesheet_directive, info_line } from "./scan2";
 
+const pLETTER_COLON = /[a-zA-Z]:/;
+export const pEOL = "\n";
+export const pInfoLine = / *[a-zA-Z] *:/;
+export const pTuneHeadStrt = / *X:/;
+export const pDuration = /(\/+)|(([1-9][0-9]*)?\/[1-9][0-9]*)|([1-9][0-9]*)|([>]+|[<]+)/;
+export const pSectionBrk = /\n(\s*\n)+/;
+export const pNumber = /[1-9][0-9]*/;
+export const pRest = /[zZxX]/;
+export const pPitch = /[\^=_]?[a-zA-G][,']*/;
+export const pString = /"[^\n]*"/;
+export const pChord = new RegExp(`\\[((${pString.source})+|(${pPitch.source})+)\\]`);
+export const pDeco = /[~\.HLMOPSTuv]/;
+
+export const pTuplet = new RegExp(`\\(${pNumber.source}(:(${pNumber.source})?)?(:(${pNumber.source})?)?`);
+const pNote = new RegExp(`-?${pDeco.source}?${pPitch.source}${pDuration.source}?-?`);
+const pRestFull = new RegExp(`${pRest.source}${pDuration.source}?`);
+export const pBrLn = /((\[\|)|(\|\])|(\|\|)|(\|))/;
+/**
+inline field is a left bracket, followed by a letter, followed by a colon
+followed by any text, followed by a right bracket
+*/
+export const pInlineField = /\[\s*[a-zA-Z]\s*:[^\]]*\]/;
+export const pGraceGrp = new RegExp(`{\/?(${pPitch.source})+}`);
+
 export function note(ctx: Ctx): boolean {
   tie(ctx);
   if (!pitch(ctx)) {
@@ -46,20 +70,16 @@ export function ampersand(ctx: Ctx): boolean {
     return true;
   }
 }
-/**
- * TODO: complex cases (3:2:3
- */
 
 export function tuplet(ctx: Ctx): boolean {
-  if (!ctx.test(pTuplet)) return false;
-  // Advance past the opening parenthesis and the number
-  const match = pTuplet.exec(ctx.source.substring(ctx.current));
-  if (match) {
-    ctx.current += match[0].length;
-    ctx.push(TT.TUPLET);
-    return true;
-  }
-  return false;
+  const match = new RegExp(`^${pTuplet.source}`).exec(ctx.source.substring(ctx.current));
+  if (!match) return false;
+
+  ctx.current += match[0].length;
+  // Extract the tuplet numbers (p:q:r notation)
+  const [p, q, r] = [match[1], match[3], match[5]].map((n) => (n ? parseInt(n) : undefined));
+  ctx.push(TT.TUPLET);
+  return true;
 }
 
 export function comment(ctx: Ctx): boolean {
@@ -277,30 +297,6 @@ export function annotation(ctx: Ctx): boolean {
   ctx.push(TT.ANNOTATION);
   return true;
 }
-const pLETTER_COLON = /[a-zA-Z]:/;
-export const pEOL = "\n";
-export const pInfoLine = / *[a-zA-Z] *:/;
-export const pTuneHeadStrt = / *X:/;
-export const pDuration = /(\/+)|(([1-9][0-9]*)?\/[1-9][0-9]*)|([1-9][0-9]*)|([>]+|[<]+)/;
-export const pSectionBrk = /\n(\s*\n)+/;
-export const pNumber = /[1-9][0-9]*/;
-export const pRest = /[zZxX]/;
-export const pPitch = /[\^=_]?[a-zA-G][,']*/;
-export const pString = /"[^\n]*"/;
-export const pChord = new RegExp(`\\[((${pString.source})+|(${pPitch.source})+)\\]`);
-export const pDeco = /[~\.HLMOPSTuv]/;
-
-export const pTuplet = new RegExp(`\\(${pNumber.source}`);
-const pNote = new RegExp(`-?${pDeco.source}?${pPitch.source}${pDuration.source}?-?`);
-const pRestFull = new RegExp(`${pRest.source}${pDuration.source}?`);
-export const pBrLn = /((\[\|)|(\|\])|(\|\|)|(\|))/;
-/**
-inline field is a left bracket, followed by a letter, followed by a colon
-followed by any text, followed by a right bracket
-*/
-export const pInlineField = /\[\s*[a-zA-Z]\s*:[^\]]*\]/;
-export const pGraceGrp = new RegExp(`{\/?(${pPitch.source})+}`);
-
 export function scanTuneBody(ctx: Ctx) {
   while (!isAtEnd(ctx) && !ctx.test(pSectionBrk)) {
     ctx.start = ctx.current;
