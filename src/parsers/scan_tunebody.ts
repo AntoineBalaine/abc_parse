@@ -466,53 +466,42 @@ export function parseColonStart(ctx: Ctx): boolean {
  * Parses barlines that start with one or more barline characters.
  * Handles optional colons, whitespace, brackets, and repeat numbers.
  */
-function parseBarlineStart(ctx: Ctx): boolean {
-  // Push initial token position
-  const startPos = ctx.current;
+export function parseBarlineStart(ctx: Ctx): boolean {
+  if (!ctx.test(/\|+((:+)|( *(\]|\[)))?/)) return false;
 
-  // Consume one or more barlines
-  let barlineCount = 0;
   while (ctx.test("|")) {
     advance(ctx);
-    barlineCount++;
   }
-
-  // If no barlines were found, this isn't a barline-start
-  if (barlineCount === 0) {
-    return false;
-  }
-
-  // Check for various patterns after barlines
 
   // Case 1: Colons
   if (ctx.test(":")) {
     while (ctx.test(":")) {
       advance(ctx);
     }
-  }
-  // Case 2: Number (repeat numbers)
-  else if (ctx.test(/[1-9]/)) {
+    ctx.push(TT.BARLINE);
+    return true;
+  } else if (ctx.test(/\s*[1-9]/)) {
+    while (ctx.test(" ")) {
+      advance(ctx);
+    }
+    ctx.push(TT.BARLINE);
     parseRepeatNumbers(ctx);
-  }
-  // Case 3: Left bracket followed by number
-  else if (ctx.test(/\[/) && ctx.test(/[1-9]/, ctx.current + 1)) {
+    return true;
+  } else if (ctx.test(/\s*\[/)) {
+    while (ctx.test(" ")) {
+      advance(ctx);
+    }
     advance(ctx); // Consume left bracket
+    ctx.push(TT.BARLINE);
     parseRepeatNumbers(ctx);
-  }
-  // Case 4: Right bracket
-  else if (ctx.test(/\]/)) {
-    advance(ctx);
-  }
-  // Case 5: Whitespace followed by right bracket
-  else if (ctx.test(/\s/) && ctx.test(/\]/, ctx.current + 1)) {
-    advance(ctx); // Whitespace
+    return true;
+  } else if (ctx.test(/\s*\]/)) {
+    while (ctx.test(" ")) {
+      advance(ctx);
+    }
     advance(ctx); // Right bracket
-  }
-  // Case 6: Whitespace followed by left bracket and number
-  else if (ctx.test(/\s/) && ctx.test(/\[/, ctx.current + 1) && ctx.current + 2 < ctx.source.length && /[1-9]/.test(ctx.source[ctx.current + 2])) {
-    advance(ctx); // Whitespace
-    advance(ctx); // Left bracket
-    parseRepeatNumbers(ctx);
+    ctx.push(TT.BARLINE);
+    return true;
   }
 
   // Push the barline token with the entire matched text

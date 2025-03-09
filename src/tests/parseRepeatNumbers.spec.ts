@@ -1,7 +1,7 @@
 import assert from "assert";
 import { describe, it } from "mocha";
 import { Ctx, Token, TT } from "../parsers/scan2";
-import { parseRepeatNumbers, barline2, parseColonStart } from "../parsers/scan_tunebody";
+import { parseRepeatNumbers, barline2, parseColonStart, parseBarlineStart } from "../parsers/scan_tunebody";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 
 // Helper function to create a Ctx object for testing
@@ -142,7 +142,7 @@ describe("parseRepeatNumbers", () => {
 
 describe("barline2", () => {
   // Tests for parseColonStart through barline2
-  describe.only("colon-start barlines", () => {
+  describe("colon-start barlines", () => {
     type T = {
       name: string;
       src: string;
@@ -236,7 +236,7 @@ describe("barline2", () => {
   describe("barline-start barlines", () => {
     it("should parse a single barline", () => {
       const ctx = createCtx("|");
-      const result = barline2(ctx);
+      const result = parseBarlineStart(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.BARLINE);
       assert.equal(ctx.tokens[0].lexeme, "|");
@@ -244,7 +244,7 @@ describe("barline2", () => {
 
     it("should parse multiple barlines", () => {
       const ctx = createCtx("|||");
-      const result = barline2(ctx);
+      const result = parseBarlineStart(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.BARLINE);
       assert.equal(ctx.tokens[0].lexeme, "|||");
@@ -252,7 +252,7 @@ describe("barline2", () => {
 
     it("should parse barlines followed by colons", () => {
       const ctx = createCtx("|:");
-      const result = barline2(ctx);
+      const result = parseBarlineStart(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.BARLINE);
       assert.equal(ctx.tokens[0].lexeme, "|:");
@@ -260,7 +260,7 @@ describe("barline2", () => {
 
     it("should parse barlines and right bracket", () => {
       const ctx = createCtx("|]");
-      const result = barline2(ctx);
+      const result = parseBarlineStart(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.BARLINE);
       assert.equal(ctx.tokens[0].lexeme, "|]");
@@ -268,7 +268,7 @@ describe("barline2", () => {
 
     it("should parse barlines, whitespace, and right bracket", () => {
       const ctx = createCtx("| ]");
-      const result = barline2(ctx);
+      const result = parseBarlineStart(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.BARLINE);
       assert.equal(ctx.tokens[0].lexeme, "| ]");
@@ -276,7 +276,7 @@ describe("barline2", () => {
 
     it("should parse barlines and repeat numbers", () => {
       const ctx = createCtx("|1");
-      const result = barline2(ctx);
+      const result = parseBarlineStart(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.BARLINE);
       assert.equal(ctx.tokens[1].type, TT.REPEAT_NUMBER);
@@ -284,7 +284,7 @@ describe("barline2", () => {
 
     it("should parse barlines, left bracket, and repeat numbers", () => {
       const ctx = createCtx("|[1");
-      const result = barline2(ctx);
+      const result = parseBarlineStart(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.BARLINE);
       assert.equal(ctx.tokens[1].type, TT.REPEAT_NUMBER);
@@ -292,7 +292,7 @@ describe("barline2", () => {
 
     it("should parse barlines, whitespace, left bracket, and repeat numbers", () => {
       const ctx = createCtx("| [1");
-      const result = barline2(ctx);
+      const result = parseBarlineStart(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.BARLINE);
       assert.equal(ctx.tokens[1].type, TT.REPEAT_NUMBER);
@@ -300,7 +300,7 @@ describe("barline2", () => {
   });
 
   // Tests for parseLeftBracketStart through barline2
-  describe("left-bracket-start barlines", () => {
+  describe.only("left-bracket-start barlines", () => {
     it("should parse a left bracket", () => {
       const ctx = createCtx("[");
       const result = barline2(ctx);
