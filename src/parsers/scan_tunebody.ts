@@ -308,12 +308,12 @@ export function annotation(ctx: Ctx): boolean {
  */
 export function parseRepeatNumbers(ctx: Ctx): boolean {
   // Must start with a number
-  if (!ctx.test(/[1-9]/)) {
+  if (!ctx.test(/\s*[1-9]/)) {
     return false;
   }
 
   // Parse the first number
-  while (ctx.test(/[0-9]/)) {
+  while (ctx.test(/\s*[0-9]/)) {
     advance(ctx);
   }
   ctx.push(TT.REPEAT_NUMBER);
@@ -415,20 +415,20 @@ export function scanTuneBody(ctx: Ctx) {
  * <LBrkt>(<REPEAT_NUMBERS>|(<barline>(<colon>+)?)|<RBrkt>)
  */
 export function barline2(ctx: Ctx): boolean {
-  const pColon = /(:+)(\|+\s*\])?/; // FIXME: doesn't account for repeat numbers
-  const pBarln = /\|+((:+)|(\s*(\]|(\[\d+))))?/;
-  const pLftBrkt = /\[(\d+|(\|(:+)?)|\])/;
-  if (ctx.test(pColon)) return parseColonStart(ctx);
-  if (ctx.test(pBarln)) return parseBarlineStart(ctx);
-  if (ctx.test(pLftBrkt)) return parseLeftBracketStart(ctx);
+  if (ctx.test(":")) return parseColonStart(ctx);
+  if (ctx.test("|")) return parseBarlineStart(ctx);
+  if (ctx.test("[")) return parseLeftBracketStart(ctx);
 
   return false;
 }
 
 /**
  * <colon>+(<barline>+(<WS>?<RBrkt>))?
+ *
+ * Parses barlines that start with one or more colons.
+ * Handles optional barlines, whitespace, right brackets, and repeat numbers.
  */
-function parseColonStart(ctx: Ctx): boolean {
+export function parseColonStart(ctx: Ctx): boolean {
   while (ctx.test(":")) {
     advance(ctx);
   }
@@ -438,28 +438,131 @@ function parseColonStart(ctx: Ctx): boolean {
       advance(ctx);
     }
 
-    const rgt_brkt = new RegExp(`^\s*\]`);
-    const lft_brkt = new RegExp(`^\s*\[\d*`);
-    const pRptNumber = /[1-9][0-9]*/;
-
-    const rgx_arr = [rgt_brkt, lft_brkt, pRptNumber];
     let match: RegExpExecArray | null = null;
-    for (let i = 0; i < rgx_arr.length; i++) {
-      match = rgt_brkt.exec(ctx.source.substring(ctx.current));
-      if (match) {
-        ctx.current = ctx.start + match[0].length;
-        break;
-      }
+    const rgt_brkt = /^\s*\]/;
+    const lft_brkt = /^\s*\[/;
+    const cur = ctx.source.substring(ctx.current);
+
+    if (rgt_brkt.test(cur)) {
+      match = rgt_brkt.exec(cur);
+    } else if (lft_brkt.test(cur)) {
+      match = lft_brkt.exec(cur);
     }
+    if (match) {
+      ctx.current = ctx.current + match[0].length;
+    }
+
+    ctx.push(TT.BARLINE);
+    parseRepeatNumbers(ctx);
+    return true;
   }
   ctx.push(TT.BARLINE);
   return true;
 }
 
+/**
+ * <barline>+(<colon>+|(<WS>?(<RBrkt>|(<LBrkt><REPEAT_NUMBERS>))))?
+ *
+ * Parses barlines that start with one or more barline characters.
+ * Handles optional colons, whitespace, brackets, and repeat numbers.
+ */
 function parseBarlineStart(ctx: Ctx): boolean {
-  throw new Error("Function not implemented.");
+  // Push initial token position
+  const startPos = ctx.current;
+
+  // Consume one or more barlines
+  let barlineCount = 0;
+  while (ctx.test("|")) {
+    advance(ctx);
+    barlineCount++;
+  }
+
+  // If no barlines were found, this isn't a barline-start
+  if (barlineCount === 0) {
+    return false;
+  }
+
+  // Check for various patterns after barlines
+
+  // Case 1: Colons
+  if (ctx.test(":")) {
+    while (ctx.test(":")) {
+      advance(ctx);
+    }
+  }
+  // Case 2: Number (repeat numbers)
+  else if (ctx.test(/[1-9]/)) {
+    parseRepeatNumbers(ctx);
+  }
+  // Case 3: Left bracket followed by number
+  else if (ctx.test(/\[/) && ctx.test(/[1-9]/, ctx.current + 1)) {
+    advance(ctx); // Consume left bracket
+    parseRepeatNumbers(ctx);
+  }
+  // Case 4: Right bracket
+  else if (ctx.test(/\]/)) {
+    advance(ctx);
+  }
+  // Case 5: Whitespace followed by right bracket
+  else if (ctx.test(/\s/) && ctx.test(/\]/, ctx.current + 1)) {
+    advance(ctx); // Whitespace
+    advance(ctx); // Right bracket
+  }
+  // Case 6: Whitespace followed by left bracket and number
+  else if (ctx.test(/\s/) && ctx.test(/\[/, ctx.current + 1) && ctx.current + 2 < ctx.source.length && /[1-9]/.test(ctx.source[ctx.current + 2])) {
+    advance(ctx); // Whitespace
+    advance(ctx); // Left bracket
+    parseRepeatNumbers(ctx);
+  }
+
+  // Push the barline token with the entire matched text
+  ctx.push(TT.BARLINE);
+  return true;
 }
 
+/**
+ * <LBrkt>(<REPEAT_NUMBERS>|(<barline>(<colon>+)?)|<RBrkt>)
+ *
+ * Parses barlines that start with a left bracket.
+ * Handles repeat numbers, barlines with optional colons, and right brackets.
+ */
 function parseLeftBracketStart(ctx: Ctx): boolean {
-  throw new Error("Function not implemented.");
+  // Push initial token position
+  const startPos = ctx.current;
+
+  // Consume the left bracket
+  if (!ctx.test(/\[/)) {
+    return false;
+  }
+  advance(ctx);
+
+  // Check for various patterns after left bracket
+
+  // Case 1: Number (repeat numbers)
+  if (ctx.test(/[1-9]/)) {
+    parseRepeatNumbers(ctx);
+  }
+  // Case 2: Barline possibly followed by colons or right bracket
+  else if (ctx.test(/\|/)) {
+    advance(ctx); // Consume barline
+
+    // Optional colons
+    if (ctx.test(":")) {
+      while (ctx.test(":")) {
+        advance(ctx);
+      }
+    }
+    // Optional right bracket
+    else if (ctx.test(/\]/)) {
+      advance(ctx);
+    }
+  }
+  // Case 3: Right bracket (empty brackets)
+  else if (ctx.test(/\]/)) {
+    advance(ctx);
+  }
+
+  // Push the barline token with the entire matched text
+  ctx.push(TT.BARLINE);
+  return true;
 }
