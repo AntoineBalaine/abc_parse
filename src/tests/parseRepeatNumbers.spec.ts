@@ -1,7 +1,7 @@
 import assert from "assert";
 import { describe, it } from "mocha";
 import { Ctx, Token, TT } from "../parsers/scan2";
-import { parseRepeatNumbers, barline2, parseColonStart, parseBarlineStart } from "../parsers/scan_tunebody";
+import { parseRepeatNumbers, barline2, parseColonStart, parseBarlineStart, parseLeftBracketStart } from "../parsers/scan_tunebody";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 
 // Helper function to create a Ctx object for testing
@@ -303,7 +303,7 @@ describe("barline2", () => {
   describe.only("left-bracket-start barlines", () => {
     it("should parse a left bracket", () => {
       const ctx = createCtx("[");
-      const result = barline2(ctx);
+      const result = parseLeftBracketStart(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.BARLINE);
       assert.equal(ctx.tokens[0].lexeme, "[");
@@ -311,7 +311,7 @@ describe("barline2", () => {
 
     it("should parse left bracket and repeat numbers", () => {
       const ctx = createCtx("[1");
-      const result = barline2(ctx);
+      const result = parseLeftBracketStart(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.BARLINE);
       assert.equal(ctx.tokens[1].type, TT.REPEAT_NUMBER);
@@ -319,7 +319,7 @@ describe("barline2", () => {
 
     it("should parse left bracket, barline", () => {
       const ctx = createCtx("[|");
-      const result = barline2(ctx);
+      const result = parseLeftBracketStart(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.BARLINE);
       assert.equal(ctx.tokens[0].lexeme, "[|");
@@ -327,7 +327,7 @@ describe("barline2", () => {
 
     it("should parse left bracket, barline, colons", () => {
       const ctx = createCtx("[|:");
-      const result = barline2(ctx);
+      const result = parseLeftBracketStart(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.BARLINE);
       assert.equal(ctx.tokens[0].lexeme, "[|:");
@@ -335,7 +335,7 @@ describe("barline2", () => {
 
     it("should parse left bracket, barline, right bracket", () => {
       const ctx = createCtx("[|]");
-      const result = barline2(ctx);
+      const result = parseLeftBracketStart(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.BARLINE);
       assert.equal(ctx.tokens[0].lexeme, "[|]");
@@ -343,7 +343,7 @@ describe("barline2", () => {
 
     it("should parse left bracket, right bracket (empty brackets)", () => {
       const ctx = createCtx("[]");
-      const result = barline2(ctx);
+      const result = parseLeftBracketStart(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.BARLINE);
       assert.equal(ctx.tokens[0].lexeme, "[]");

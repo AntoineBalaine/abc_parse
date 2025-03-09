@@ -515,24 +515,16 @@ export function parseBarlineStart(ctx: Ctx): boolean {
  * Parses barlines that start with a left bracket.
  * Handles repeat numbers, barlines with optional colons, and right brackets.
  */
-function parseLeftBracketStart(ctx: Ctx): boolean {
-  // Push initial token position
-  const startPos = ctx.current;
+export function parseLeftBracketStart(ctx: Ctx): boolean {
+  if (!ctx.test(/\[(( *[0-9])|(\|:+)?|\])/)) return false;
 
-  // Consume the left bracket
-  if (!ctx.test(/\[/)) {
-    return false;
-  }
-  advance(ctx);
+  advance(ctx); // Consume left brkt 
 
-  // Check for various patterns after left bracket
-
-  // Case 1: Number (repeat numbers)
-  if (ctx.test(/[1-9]/)) {
+  if (ctx.test(/[1-9]/)) {// repeat numbers
+    ctx.push(TT.BARLINE);
     parseRepeatNumbers(ctx);
-  }
-  // Case 2: Barline possibly followed by colons or right bracket
-  else if (ctx.test(/\|/)) {
+    return true;
+  } else if (ctx.test(/\|/)) { //Barline possibly followed by colons or right bracket
     advance(ctx); // Consume barline
 
     // Optional colons
@@ -540,14 +532,10 @@ function parseLeftBracketStart(ctx: Ctx): boolean {
       while (ctx.test(":")) {
         advance(ctx);
       }
-    }
-    // Optional right bracket
-    else if (ctx.test(/\]/)) {
+    } else if (ctx.test(/\]/)) { // Optional right bracket
       advance(ctx);
     }
-  }
-  // Case 3: Right bracket (empty brackets)
-  else if (ctx.test(/\]/)) {
+  } else if (ctx.test(/\]/)) { // Right bracket (empty brackets)
     advance(ctx);
   }
 
