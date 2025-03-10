@@ -276,6 +276,25 @@ describe("scan2", () => {
       assert.equal(result, true);
       assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.ACCIDENTAL);
+      assert.equal(ctx.tokens[0].lexeme, "^");
+    });
+
+    it("should parse a double sharp", () => {
+      const ctx = createCtx("^^");
+      const result = accidental(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.ACCIDENTAL);
+      assert.equal(ctx.tokens[0].lexeme, "^^");
+    });
+
+    it("should parse a half sharp", () => {
+      const ctx = createCtx("^/");
+      const result = accidental(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.ACCIDENTAL);
+      assert.equal(ctx.tokens[0].lexeme, "^/");
     });
 
     it("should parse a flat", () => {
@@ -284,6 +303,25 @@ describe("scan2", () => {
       assert.equal(result, true);
       assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.ACCIDENTAL);
+      assert.equal(ctx.tokens[0].lexeme, "_");
+    });
+
+    it("should parse a double flat", () => {
+      const ctx = createCtx("__");
+      const result = accidental(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.ACCIDENTAL);
+      assert.equal(ctx.tokens[0].lexeme, "__");
+    });
+
+    it("should parse a half flat", () => {
+      const ctx = createCtx("_/");
+      const result = accidental(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.ACCIDENTAL);
+      assert.equal(ctx.tokens[0].lexeme, "_/");
     });
 
     it("should parse a natural", () => {
@@ -292,6 +330,7 @@ describe("scan2", () => {
       assert.equal(result, true);
       assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.ACCIDENTAL);
+      assert.equal(ctx.tokens[0].lexeme, "=");
     });
 
     it("should return false for non-accidental", () => {
@@ -299,6 +338,32 @@ describe("scan2", () => {
       const result = accidental(ctx);
       assert.equal(result, false);
       assert.equal(ctx.tokens.length, 0);
+    });
+
+    it("should correctly advance the current position", () => {
+      const ctx = createCtx("^A");
+      const result = accidental(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.current, 1); // Should have advanced by 1 character
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.ACCIDENTAL);
+    });
+
+    it("should correctly advance the current position for multi-character accidentals", () => {
+      const ctx = createCtx("^^A");
+      const result = accidental(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.current, 2); // Should have advanced by 2 characters
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.ACCIDENTAL);
+    });
+
+    it("should work within the context of scanTune for a note with accidental", () => {
+      const ctx = createCtx("^A");
+      scanTune(ctx);
+      assert.equal(ctx.tokens.length, 2);
+      assert.equal(ctx.tokens[0].type, TT.ACCIDENTAL);
+      assert.equal(ctx.tokens[1].type, TT.NOTE_LETTER);
     });
   });
 

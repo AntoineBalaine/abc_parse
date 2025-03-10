@@ -12,6 +12,7 @@ export const pPitch = /[\^=_]?[a-zA-G][,']*/;
 export const pString = /"[^\n]*"/;
 export const pChord = new RegExp(`\\[((${pString.source})+|(${pPitch.source})+)\\]`);
 export const pDeco = /[\~\.HLMOPSTuv]/;
+const pAccidental = /^((\^[\^\/]?)|(_[_\/]?)|=)/;
 
 export const pTuplet = new RegExp(`\\(${pNumber.source}(:(${pNumber.source})?)?(:(${pNumber.source})?)?`);
 const pNote = new RegExp(`-?${pDeco.source}?${pPitch.source}${pDuration.source}?-?`);
@@ -154,20 +155,13 @@ export function pitch(ctx: Ctx): boolean {
 }
 
 export function accidental(ctx: Ctx): boolean {
-  switch (peek(ctx)) {
-    case "^":
-    case "_":
-    case "=":
-    case "^^":
-    case "__":
-    case "_/":
-    case "^/":
-      advance(ctx);
-      ctx.push(TT.ACCIDENTAL);
-      return true;
-    default:
-      return false;
-  }
+  const match = pAccidental.exec(ctx.source.substring(ctx.current));
+  if (!match) return false;
+
+  ctx.current += match[0].length;
+
+  ctx.push(TT.ACCIDENTAL);
+  return true;
 }
 
 export function barline(ctx: Ctx): boolean {
