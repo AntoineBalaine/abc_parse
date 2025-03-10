@@ -1,7 +1,7 @@
 import assert from "assert";
 import { describe, it } from "mocha";
 import { Ctx, TT } from "../parsers/scan2";
-import { scanTuneBody } from "../parsers/scan_tunebody";
+import { scanTune } from "../parsers/scan_tunebody";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 
 // Helper function to create a Ctx object for testing
@@ -12,7 +12,7 @@ function createCtx(source: string): Ctx {
 describe("scanTuneBody", () => {
   it("should tokenize a simple music pattern", () => {
     const ctx = createCtx("A2 B");
-    scanTuneBody(ctx);
+    scanTune(ctx);
 
     // Check that we have the expected token types in the right order
     const expectedTypes = [TT.NOTE_LETTER, TT.RHY_NUMER, TT.WS, TT.NOTE_LETTER];
@@ -27,7 +27,7 @@ describe("scanTuneBody", () => {
 
   it("should tokenize a line with chords and annotations", () => {
     const ctx = createCtx('[CEG] "Cmaj" [FAC] "Fmaj"');
-    scanTuneBody(ctx);
+    scanTune(ctx);
 
     const expectedTypes = [
       TT.CHRD_LEFT_BRKT,
@@ -56,7 +56,7 @@ describe("scanTuneBody", () => {
 
   it("should tokenize a line with grace notes and tuplets", () => {
     const ctx = createCtx("{/AC} (3DEF G2");
-    scanTuneBody(ctx);
+    scanTune(ctx);
 
     const expectedTypes = [
       TT.GRC_GRP_LEFT_BRACE,
@@ -83,7 +83,7 @@ describe("scanTuneBody", () => {
 
   it("should tokenize a line with barlines and inline fields", () => {
     const ctx = createCtx("| [M:3/4] A B C |");
-    scanTuneBody(ctx);
+    scanTune(ctx);
 
     const expectedTypes = [
       TT.BARLINE,
@@ -111,7 +111,7 @@ describe("scanTuneBody", () => {
 
   it("should tokenize a line with comments and directives", () => {
     const ctx = createCtx("A B C %comment\n%%directive");
-    scanTuneBody(ctx);
+    scanTune(ctx);
 
     const expectedTypes = [TT.NOTE_LETTER, TT.WS, TT.NOTE_LETTER, TT.WS, TT.NOTE_LETTER, TT.WS, TT.COMMENT, TT.EOL, TT.STYLESHEET_DIRECTIVE];
 
@@ -124,7 +124,7 @@ describe("scanTuneBody", () => {
 
   it("should tokenize a line with slurs and ties", () => {
     const ctx = createCtx("(A-B) C-D");
-    scanTuneBody(ctx);
+    scanTune(ctx);
 
     const expectedTypes = [TT.SLUR, TT.NOTE_LETTER, TT.TIE, TT.NOTE_LETTER, TT.SLUR, TT.WS, TT.NOTE_LETTER, TT.TIE, TT.NOTE_LETTER];
 

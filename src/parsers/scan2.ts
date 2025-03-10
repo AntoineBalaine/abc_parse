@@ -1,6 +1,6 @@
 import { File_header, File_structure, Tune } from "../types/Expr";
 import { AbcErrorReporter } from "./ErrorReporter";
-import { comment, pEOL, pInfoLine, pSectionBrk, pTuneHeadStrt, scanTuneBody } from "./scan_tunebody";
+import { comment, pEOL, pInfoLine, pSectionBrk, pTuneHeadStrt, scanTune } from "./scan_tunebody";
 
 export class Ctx {
   public source: string;
@@ -53,6 +53,7 @@ export function fileStructure(ctx: Ctx) {
       fileHeader(ctx);
     } else if (ctx.test(pTuneHeadStrt)) {
       scanTune(ctx);
+      sectionBreak(ctx);
     } else {
       freeText(ctx);
     }
@@ -94,37 +95,13 @@ export function freeTextLine(ctx: Ctx) {
   ctx.push(TT.FREE_TXT);
   return;
 }
-export function scanTune(ctx: Ctx) {
-  while (!isAtEnd(ctx) && !ctx.test(pSectionBrk)) {
-    scanTuneHeader(ctx);
-  }
-  if (ctx.test(pSectionBrk)) {
-    advance(ctx);
-    ctx.push(TT.SCT_BRK);
-    return;
-  }
 
-  // TODO: check for start of tune body
-  scanTuneBody(ctx);
-}
-
-export function scanTuneHeader(ctx: Ctx) {
-  /**
-   * contains info lines, comment lines and stylesheet directives
-   */
-  while (!isAtEnd(ctx) && !ctx.test(pSectionBrk)) {
-    ctx.start = ctx.current;
-
-    // Try each tokenizer function in order of precedence
-    if (stylesheet_directive(ctx)) continue;
-    if (comment(ctx)) continue;
-    if (info_line(ctx)) continue;
-    if (EOL(ctx)) continue;
-    if (WS(ctx)) continue;
-    // If we reach here, we've found something that's not part of the tune header
-    // So we should return and let scanTune continue with the tune body
-    else return;
-  }
+export function sectionBreak(ctx: Ctx): boolean {
+  const match = pSectionBrk.exec(ctx.source.substring(ctx.current));
+  if (!match) return false;
+  ctx.current += match[0].length;
+  ctx.push(TT.SCT_BRK);
+  return true;
 }
 
 export function freeText(ctx: Ctx) {

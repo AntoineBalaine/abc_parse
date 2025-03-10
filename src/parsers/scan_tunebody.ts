@@ -374,7 +374,7 @@ export function parseRepeatNumbers(ctx: Ctx): boolean {
   return true; // Successfully parsed repeat numbers
 }
 
-export function scanTuneBody(ctx: Ctx) {
+export function scanTune(ctx: Ctx) {
   while (!isAtEnd(ctx) && !ctx.test(pSectionBrk)) {
     ctx.start = ctx.current;
     // Try each tokenizer function in order of precedence
