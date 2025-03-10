@@ -228,6 +228,7 @@ export function chord(ctx: Ctx): boolean {
   advance(ctx);
   tie(ctx);
   ctx.push(TT.CHRD_RIGHT_BRKT);
+  rhythm(ctx);
   return true;
 }
 

@@ -484,6 +484,19 @@ describe("scan2", () => {
       assert.equal(result, false);
       assert.equal(ctx.tokens.length, 0);
     });
+    it("should parse chord with rhythm", () => {
+      const ctx = createCtx("[CE^F]4");
+      const result = chord(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 7);
+      assert.equal(ctx.tokens[0].type, TT.CHRD_LEFT_BRKT);
+      assert.equal(ctx.tokens[1].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[2].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[3].type, TT.ACCIDENTAL);
+      assert.equal(ctx.tokens[4].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[5].type, TT.CHRD_RIGHT_BRKT);
+      assert.equal(ctx.tokens[6].type, TT.RHY_NUMER);
+    });
   });
 
   describe("grace_grp", () => {
