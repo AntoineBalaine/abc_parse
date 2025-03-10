@@ -11,7 +11,7 @@ export const pRest = /[zZxX]/;
 export const pPitch = /[\^=_]?[a-zA-G][,']*/;
 export const pString = /"[^\n]*"/;
 export const pChord = new RegExp(`\\[((${pString.source})+|(${pPitch.source})+)\\]`);
-export const pDeco = /[~\.HLMOPSTuv]/;
+export const pDeco = /[\~\.HLMOPSTuv]/;
 
 export const pTuplet = new RegExp(`\\(${pNumber.source}(:(${pNumber.source})?)?(:(${pNumber.source})?)?`);
 const pNote = new RegExp(`-?${pDeco.source}?${pPitch.source}${pDuration.source}?-?`);
@@ -42,20 +42,6 @@ export function tie(ctx: Ctx): boolean {
 
     return true;
   } else return false;
-}
-
-export function music_scan(ctx: Ctx) {
-  switch (peek(ctx)) {
-    case "&": {
-      ampersand(ctx);
-      break;
-    }
-    case ".":
-    case "~": {
-      ctx.push(TT.DECORATION);
-      break;
-    }
-  }
 }
 
 export function ampersand(ctx: Ctx): boolean {
@@ -93,8 +79,7 @@ export function comment(ctx: Ctx): boolean {
 }
 
 export function decoration(ctx: Ctx): boolean {
-  // FIXME: \zs is not valid regex, that's vim regex
-  const ptrn = new RegExp(`${pDeco.source}+\zs(${pPitch.source}|${pRest.source})`);
+  const ptrn = new RegExp(`^${pDeco.source}+(?=(${pPitch.source}|${pRest.source}))`);
   const mtch = ptrn.exec(ctx.source.substring(ctx.start));
   if (mtch) {
     ctx.current = ctx.start + mtch[0].length;
@@ -393,6 +378,7 @@ export function scanTune(ctx: Ctx) {
     if (grace_grp(ctx)) continue;
     if (chord(ctx)) continue;
     if (barline2(ctx)) continue;
+    if (decoration(ctx)) continue;
     if (note(ctx)) continue;
     if (rest(ctx)) continue;
     if (y_spacer(ctx)) continue;

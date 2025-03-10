@@ -81,28 +81,78 @@ describe("scan2", () => {
   });
 
   describe("decoration", () => {
-    // Note: The decoration function has a bug with the vim regex \zs
-    // These tests might fail until that's fixed
-    it("should parse a decoration", () => {
+    it("should parse a single decoration followed by a pitch", () => {
       const ctx = createCtx(".A");
-      // Manually advance past the decoration character since the regex is broken
-      advance(ctx);
-      ctx.start = 0; // Reset start to include the decoration in the lexeme
-      ctx.tokens.push(new Token(TT.DECORATION, ctx));
+      const result = decoration(ctx);
+      assert.equal(result, true);
       assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.DECORATION);
+      assert.equal(ctx.tokens[0].lexeme, ".");
+      // Verify that the pitch is not included in the match
+      assert.equal(ctx.current, 1); // Only the '.' should be consumed
     });
 
-    it("should handle multiple decoration characters", () => {
+    it("should parse multiple decoration characters followed by a pitch", () => {
       const ctx = createCtx("~.HA");
-      // Manually advance past the decoration characters since the regex is broken
-      advance(ctx);
-      advance(ctx);
-      advance(ctx);
-      ctx.start = 0; // Reset start to include the decorations in the lexeme
-      ctx.tokens.push(new Token(TT.DECORATION, ctx));
+      const result = decoration(ctx);
+      assert.equal(result, true);
       assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.DECORATION);
+      assert.equal(ctx.tokens[0].lexeme, "~.H");
+      // Verify that the pitch is not included in the match
+      assert.equal(ctx.current, 3); // Only '~.H' should be consumed
+    });
+
+    it("should parse a decoration followed by a rest", () => {
+      const ctx = createCtx(".z");
+      const result = decoration(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.DECORATION);
+      assert.equal(ctx.tokens[0].lexeme, ".");
+      // Verify that the rest is not included in the match
+      assert.equal(ctx.current, 1); // Only the '.' should be consumed
+    });
+
+    it("should parse multiple decorations followed by a rest", () => {
+      const ctx = createCtx("~.z");
+      const result = decoration(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.DECORATION);
+      assert.equal(ctx.tokens[0].lexeme, "~.");
+      // Verify that the rest is not included in the match
+      assert.equal(ctx.current, 2); // Only '~.' should be consumed
+    });
+
+    it("should return false for decoration not followed by pitch or rest", () => {
+      const ctx = createCtx(".%");
+      const result = decoration(ctx);
+      assert.equal(result, false);
+      assert.equal(ctx.tokens.length, 0);
+    });
+
+    it("should return false for standalone decoration", () => {
+      const ctx = createCtx(".");
+      const result = decoration(ctx);
+      assert.equal(result, false);
+      assert.equal(ctx.tokens.length, 0);
+    });
+
+    it("should work with scanTune for a decoration followed by a pitch", () => {
+      const ctx = createCtx(".A");
+      scanTune(ctx);
+      assert.equal(ctx.tokens.length, 2);
+      assert.equal(ctx.tokens[0].type, TT.DECORATION);
+      assert.equal(ctx.tokens[1].type, TT.NOTE_LETTER);
+    });
+
+    it("should work with scanTune for a decoration followed by a rest", () => {
+      const ctx = createCtx(".z");
+      scanTune(ctx);
+      assert.equal(ctx.tokens.length, 2);
+      assert.equal(ctx.tokens[0].type, TT.DECORATION);
+      assert.equal(ctx.tokens[1].type, TT.REST);
     });
   });
 
