@@ -127,7 +127,9 @@ export function rhythm(ctx: Ctx): boolean {
     parsed = true;
   }
   if (ctx.test("/")) {
-    advance(ctx);
+    while (ctx.test("/")) {
+      advance(ctx);
+    }
     ctx.push(TT.RHY_SEP);
     if (ctx.test(pNumber)) {
       advance(ctx);

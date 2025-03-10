@@ -146,6 +146,7 @@ describe("scan2", () => {
       assert.equal(result, true);
       assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.RHY_SEP);
+      assert.equal(ctx.tokens[0].lexeme.length, 3);
     });
 
     it("should parse a full rhythm", () => {
