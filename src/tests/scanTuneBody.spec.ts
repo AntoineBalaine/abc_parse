@@ -1,6 +1,6 @@
 import assert from "assert";
 import { describe, it } from "mocha";
-import { Ctx, TT } from "../parsers/scan2";
+import { Ctx, Scanner2, TT } from "../parsers/scan2";
 import { scanTune } from "../parsers/scan_tunebody";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 
@@ -23,6 +23,60 @@ describe("scanTuneBody", () => {
     for (let i = 0; i < expectedTypes.length; i++) {
       assert.equal(ctx.tokens[i].type, expectedTypes[i], `Token at index ${i} should be ${expectedTypes[i]} but was ${ctx.tokens[i].type}`);
     }
+  });
+
+  it("should tokenize two consecutive tunes separated by a section break", () => {
+    // Create a string with two simple tunes separated by \n\n
+    const input = "X:1\nA B C\n\nX:2\nD E F";
+
+    // Tokenize the input
+    const tokens = Scanner2(input);
+
+    // Expected tokens in order with both type and lexeme
+    const expectedTokens = [
+      // First tune
+      { type: TT.INF_HDR, lexeme: "X:" },
+      { type: TT.INFO_STR, lexeme: "1" },
+      { type: TT.EOL, lexeme: "\n" },
+      { type: TT.NOTE_LETTER, lexeme: "A" },
+      { type: TT.WS, lexeme: " " },
+      { type: TT.NOTE_LETTER, lexeme: "B" },
+      { type: TT.WS, lexeme: " " },
+      { type: TT.NOTE_LETTER, lexeme: "C" },
+
+      // Section break
+      { type: TT.SCT_BRK, lexeme: "\n\n" },
+
+      // Second tune - Note: X:2 is tokenized as X (NOTE_LETTER) and : (BARLINE)
+      { type: TT.INF_HDR, lexeme: "X:" },
+      { type: TT.INFO_STR, lexeme: "2" },
+      { type: TT.EOL, lexeme: "\n" },
+      { type: TT.NOTE_LETTER, lexeme: "D" },
+      { type: TT.WS, lexeme: " " },
+      { type: TT.NOTE_LETTER, lexeme: "E" },
+      { type: TT.WS, lexeme: " " },
+      { type: TT.NOTE_LETTER, lexeme: "F" },
+
+      // EOF token
+      { type: TT.EOF, lexeme: "" },
+    ];
+
+    // Verify the token count
+    assert.equal(tokens.length, expectedTokens.length, `Expected ${expectedTokens.length} tokens but got ${tokens.length}`);
+
+    // Check each token type and lexeme
+    for (let i = 0; i < expectedTokens.length; i++) {
+      assert.equal(tokens[i].type, expectedTokens[i].type, `Token at index ${i} should be ${TT[expectedTokens[i].type]} but was ${TT[tokens[i].type]}`);
+      assert.equal(
+        tokens[i].lexeme,
+        expectedTokens[i].lexeme,
+        `Token at index ${i} should have lexeme "${expectedTokens[i].lexeme}" but had "${tokens[i].lexeme}"`
+      );
+    }
+
+    // Verify that a section break token exists
+    const sectionBreakIndex = tokens.findIndex((token) => token.type === TT.SCT_BRK);
+    assert.notEqual(sectionBreakIndex, -1, "Section break token not found");
   });
 
   it("should tokenize a line with chords and annotations", () => {

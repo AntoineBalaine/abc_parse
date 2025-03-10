@@ -236,7 +236,7 @@ function precededBy(ctx: Ctx, needles: Set<TT>, ignoreTokens: Set<TT>): boolean 
 }
 
 export function info_line(ctx: Ctx): boolean {
-  if (!(ctx.test(pInfoLine) && precededBy(ctx, new Set([TT.EOL]), new Set([TT.WS])))) return false;
+  if (!(ctx.test(pInfoLine) && precededBy(ctx, new Set([TT.EOL, TT.SCT_BRK]), new Set([TT.WS])))) return false;
 
   // Find the colon position
   let colonPos = ctx.current;
