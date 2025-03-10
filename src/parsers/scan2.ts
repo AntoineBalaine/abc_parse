@@ -223,8 +223,20 @@ export function stylesheet_directive(ctx: Ctx): boolean {
   ctx.push(TT.STYLESHEET_DIRECTIVE);
   return true;
 }
+
+function precededBy(ctx: Ctx, needles: Set<TT>, ignoreTokens: Set<TT>): boolean {
+  // backtrack through the context’s tokens, until you find one of the
+  for (let i = ctx.tokens.length - 1; i > 0; i--) {
+    const cur = ctx.tokens[i];
+    if (needles.has(cur.type)) return true;
+    else if (ignoreTokens.has(cur.type)) continue;
+    else return false;
+  }
+  return true;
+}
+
 export function info_line(ctx: Ctx): boolean {
-  if (!ctx.test(pInfoLine)) return false;
+  if (!(ctx.test(pInfoLine) && precededBy(ctx, new Set([TT.EOL]), new Set([TT.WS])))) return false;
 
   // Find the colon position
   let colonPos = ctx.current;
