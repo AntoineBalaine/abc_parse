@@ -238,15 +238,11 @@ function precededBy(ctx: Ctx, needles: Set<TT>, ignoreTokens: Set<TT>): boolean 
 export function info_line(ctx: Ctx): boolean {
   if (!(ctx.test(pInfoLine) && precededBy(ctx, new Set([TT.EOL, TT.SCT_BRK]), new Set([TT.WS])))) return false;
 
-  // Find the colon position
-  let colonPos = ctx.current;
-  while (colonPos < ctx.source.length && ctx.source[colonPos] !== ":") {
-    colonPos++;
-  }
-
-  // Advance to the colon and push the header token
-  advance(ctx, colonPos - ctx.current + 1);
+  const match = new RegExp(`^${pInfoLine.source}`).exec(ctx.source.substring(ctx.current));
+  if (!match) return false;
+  ctx.current += match[0].length;
   ctx.push(TT.INF_HDR);
+
   while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
     if (ctx.test("%")) {
       break;
