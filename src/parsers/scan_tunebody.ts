@@ -138,8 +138,10 @@ export function rhythm(ctx: Ctx): boolean {
     }
     parsed = true;
   }
-  if (ctx.test(/([>]+)|([<]+)/)) {
-    advance(ctx);
+
+  const mtch = /^([>]+)|([<]+)/.exec(ctx.source.substring(ctx.start));
+  if (mtch) {
+    ctx.current = ctx.start + mtch[0].length;
     ctx.push(TT.RHY_BRKN);
     parsed = true;
   }

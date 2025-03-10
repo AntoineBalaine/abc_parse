@@ -167,6 +167,17 @@ describe("scan2", () => {
       assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.RHY_BRKN);
     });
+    it("should parse broken rhythm between notes", () => {
+      const ctx = createCtx("G>>A");
+      const result1 = note(ctx);
+      const result2 = note(ctx);
+      assert.equal(result1, true);
+      assert.equal(result2, true);
+      assert.equal(ctx.tokens.length, 3);
+      assert.equal(ctx.tokens[0].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[1].type, TT.RHY_BRKN);
+      assert.equal(ctx.tokens[2].type, TT.NOTE_LETTER);
+    });
   });
 
   describe("pitch", () => {
@@ -246,6 +257,23 @@ describe("scan2", () => {
       assert.equal(result, true);
       assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.NOTE_LETTER);
+    });
+
+    it("should parse two consecutive notes", () => {
+      const ctx = createCtx("G2G2");
+      const res1 = note(ctx);
+      const res2 = note(ctx);
+      assert.equal(res1, true);
+      assert.equal(res2, true);
+      assert.equal(ctx.tokens.length, 4);
+      assert.equal(ctx.tokens[0].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[0].lexeme, "G");
+      assert.equal(ctx.tokens[1].type, TT.RHY_NUMER);
+      assert.equal(ctx.tokens[1].lexeme, "2");
+      assert.equal(ctx.tokens[2].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[2].lexeme, "G");
+      assert.equal(ctx.tokens[3].type, TT.RHY_NUMER);
+      assert.equal(ctx.tokens[3].lexeme, "2");
     });
 
     it("should parse a note with accidental", () => {
