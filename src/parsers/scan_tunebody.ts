@@ -139,11 +139,13 @@ export function rhythm(ctx: Ctx): boolean {
     parsed = true;
   }
 
-  const mtch = /^([>]+)|([<]+)/.exec(ctx.source.substring(ctx.start));
-  if (mtch) {
-    ctx.current = ctx.start + mtch[0].length;
-    ctx.push(TT.RHY_BRKN);
-    parsed = true;
+  if (ctx.test(/[><]/)) {
+    const mtch = /^([>]+|[<]+)/.exec(ctx.source.substring(ctx.current));
+    if (mtch) {
+      ctx.current = ctx.current + mtch[0].length;
+      ctx.push(TT.RHY_BRKN);
+      parsed = true;
+    }
   }
   return parsed;
 }
