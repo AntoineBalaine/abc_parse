@@ -217,7 +217,6 @@ export function rest(ctx: Ctx): boolean {
   advance(ctx);
 
   ctx.push(TT.REST);
-  advance(ctx);
   rhythm(ctx);
   return true;
 }

@@ -20,6 +20,7 @@ import {
   ampersand,
   bcktck_spc,
   slur,
+  scanTune,
 } from "../parsers/scan_tunebody";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 
@@ -133,6 +134,14 @@ describe("scan2", () => {
 
     it("should parse a separator", () => {
       const ctx = createCtx("/");
+      const result = rhythm(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.RHY_SEP);
+    });
+
+    it("should parse a long separator", () => {
+      const ctx = createCtx("///");
       const result = rhythm(ctx);
       assert.equal(result, true);
       assert.equal(ctx.tokens.length, 1);
@@ -272,9 +281,9 @@ describe("scan2", () => {
       const ctx = createCtx("z2");
       const result = rest(ctx);
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens.length, 2);
       assert.equal(ctx.tokens[0].type, TT.REST);
-      // Note: The rhythm tokens would be added by the rhythm function
+      assert.equal(ctx.tokens[1].type, TT.RHY_NUMER);
     });
 
     it("should parse different rest types", () => {
@@ -290,6 +299,14 @@ describe("scan2", () => {
       const result = rest(ctx);
       assert.equal(result, false);
       assert.equal(ctx.tokens.length, 0);
+    });
+    it("should parse multiple rests in succession", () => {
+      const ctx = createCtx("zzz");
+      scanTune(ctx);
+      assert.equal(ctx.tokens.length, 3);
+      assert.equal(ctx.tokens[0].type, TT.REST);
+      assert.equal(ctx.tokens[1].type, TT.REST);
+      assert.equal(ctx.tokens[2].type, TT.REST);
     });
   });
 
