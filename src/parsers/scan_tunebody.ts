@@ -105,7 +105,7 @@ export function rhythm(ctx: Ctx): boolean {
   let parsed = false;
   if (ctx.test(pNumber)) {
     advance(ctx);
-    while (ctx.test(pNumber)) {
+    while (ctx.test(/[0-9]/)) {
       advance(ctx);
     }
     ctx.push(TT.RHY_NUMER);
@@ -118,7 +118,7 @@ export function rhythm(ctx: Ctx): boolean {
     ctx.push(TT.RHY_SEP);
     if (ctx.test(pNumber)) {
       advance(ctx);
-      while (ctx.test(pNumber)) {
+      while (ctx.test(/[0-9]/)) {
         advance(ctx);
       }
       ctx.push(TT.RHY_DENOM);
