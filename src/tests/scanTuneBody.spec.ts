@@ -30,7 +30,13 @@ describe("scanTuneBody", () => {
     const input = "X:1\nA B C\n\nX:2\nD E F";
 
     // Tokenize the input
-    const tokens = Scanner2(input);
+    const tokens = Scanner2(input, new AbcErrorReporter());
+
+    // Debug: Print out all tokens for inspection
+    console.log("Actual tokens generated:");
+    tokens.forEach((token, i) => {
+      console.log(`${i}: ${TT[token.type]} - "${token.lexeme}"`);
+    });
 
     // Expected tokens in order with both type and lexeme
     const expectedTokens = [
@@ -47,7 +53,7 @@ describe("scanTuneBody", () => {
       // Section break
       { type: TT.SCT_BRK, lexeme: "\n\n" },
 
-      // Second tune - Note: X:2 is tokenized as X (NOTE_LETTER) and : (BARLINE)
+      // Second tune
       { type: TT.INF_HDR, lexeme: "X:" },
       { type: TT.INFO_STR, lexeme: "2" },
       { type: TT.EOL, lexeme: "\n" },
@@ -73,10 +79,6 @@ describe("scanTuneBody", () => {
         `Token at index ${i} should have lexeme "${expectedTokens[i].lexeme}" but had "${tokens[i].lexeme}"`
       );
     }
-
-    // Verify that a section break token exists
-    const sectionBreakIndex = tokens.findIndex((token) => token.type === TT.SCT_BRK);
-    assert.notEqual(sectionBreakIndex, -1, "Section break token not found");
   });
 
   it("should tokenize a line with chords and annotations", () => {

@@ -101,6 +101,7 @@ export function sectionBreak(ctx: Ctx): boolean {
   if (!match) return false;
   ctx.current += match[0].length;
   ctx.push(TT.SCT_BRK);
+  ctx.line += 2;
   return true;
 }
 
@@ -250,7 +251,9 @@ export function info_line(ctx: Ctx): boolean {
       advance(ctx);
     }
   }
-  ctx.push(TT.INFO_STR);
+  if (ctx.current !== ctx.start) {
+    ctx.push(TT.INFO_STR);
+  }
   comment(ctx);
   return true;
 }
