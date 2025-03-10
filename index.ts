@@ -9,4 +9,4 @@ export * from "./src/parsers/Voices";
 export * from "./src/types/Expr";
 export * from "./src/types/token";
 export * from "./src/types/types";
-
+export { Scanner2, Token as Token2, TT } from "./src/parsers/scan2";
