@@ -5,7 +5,7 @@ export const pEOL = "\n";
 export const pInfoLine = / *[a-zA-Z] *:/;
 export const pTuneHeadStrt = / *X:/;
 export const pDuration = /(\/+)|(([1-9][0-9]*)?\/[1-9][0-9]*)|([1-9][0-9]*)|([>]+|[<]+)/;
-export const pSectionBrk = /\n(\s*\n)+/;
+export const pSectionBrk = /\n([ \t]*\n)+/;
 export const pNumber = /[1-9][0-9]*/;
 export const pRest = /[zZxX]/;
 export const pPitch = /[\^=_]?[a-zA-G][,']*/;
@@ -22,7 +22,7 @@ export const pBrLn = /((\[\|)|(\|\])|(\|\|)|(\|))/;
 inline field is a left bracket, followed by a letter, followed by a colon
 followed by any text, followed by a right bracket
 */
-export const pInlineField = /\[\s*[a-zA-Z]\s*:[^\]]*\]/;
+export const pInlineField = /\[[ \t]*[a-zA-Z][ \t]*:[^\]]*\]/;
 export const pGraceGrp = new RegExp(`{\/?(${pPitch.source})+}`);
 
 export function note(ctx: Ctx): boolean {
@@ -237,7 +237,7 @@ export function grace_grp(ctx: Ctx): boolean {
   while (!isAtEnd(ctx) && !ctx.test("}")) {
     if (note(ctx)) {
       continue;
-    } else if (ctx.test(/\s/)) {
+    } else if (ctx.test(/[ \t]/)) {
       advance(ctx);
       continue;
     } else {
@@ -293,12 +293,12 @@ export function annotation(ctx: Ctx): boolean {
  */
 export function parseRepeatNumbers(ctx: Ctx): boolean {
   // Must start with a number
-  if (!ctx.test(/\s*[1-9]/)) {
+  if (!ctx.test(/[ \t]*[1-9]/)) {
     return false;
   }
 
   // Parse the first number
-  while (ctx.test(/\s*[0-9]/)) {
+  while (ctx.test(/[ \t]*[0-9]/)) {
     advance(ctx);
   }
   ctx.push(TT.REPEAT_NUMBER);
@@ -391,8 +391,8 @@ export function scanTune(ctx: Ctx) {
 /**
  * Writing down the rules as regular expressions:
  * ```
- * (:+)(\\|+\\s*\\])?                    # Colon start rule
- * \\|+((:+)|(\\s*(\\]|(\\[\\d+))))?     # Barline start rule
+ * (:+)(\\|+\[ \t]*\\])?                    # Colon start rule
+ * \\|+((:+)|(\[ \t]*(\\]|(\\[\\d+))))?     # Barline start rule
  * \\[(\\d+|(\\|(:+)?)|\\])              # Left bracket start rule
  * ```
  *
@@ -425,8 +425,8 @@ export function parseColonStart(ctx: Ctx): boolean {
     }
 
     let match: RegExpExecArray | null = null;
-    const rgt_brkt = /^\s*\]/;
-    const lft_brkt = /^\s*\[/;
+    const rgt_brkt = /^[ \t]*\]/;
+    const lft_brkt = /^[ \t]*\[/;
     const cur = ctx.source.substring(ctx.current);
 
     if (rgt_brkt.test(cur)) {
@@ -466,14 +466,14 @@ export function parseBarlineStart(ctx: Ctx): boolean {
     }
     ctx.push(TT.BARLINE);
     return true;
-  } else if (ctx.test(/\s*[1-9]/)) {
+  } else if (ctx.test(/[ \t]*[1-9]/)) {
     while (ctx.test(" ")) {
       advance(ctx);
     }
     ctx.push(TT.BARLINE);
     parseRepeatNumbers(ctx);
     return true;
-  } else if (ctx.test(/\s*\[\s*[1-9]/)) {
+  } else if (ctx.test(/[ \t]*\[[ \t]*[1-9]/)) {
     while (ctx.test(" ")) {
       advance(ctx);
     }
@@ -481,7 +481,7 @@ export function parseBarlineStart(ctx: Ctx): boolean {
     ctx.push(TT.BARLINE);
     parseRepeatNumbers(ctx);
     return true;
-  } else if (ctx.test(/\s*\]/)) {
+  } else if (ctx.test(/[ \t]*\]/)) {
     while (ctx.test(" ")) {
       advance(ctx);
     }
