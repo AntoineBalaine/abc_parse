@@ -284,7 +284,7 @@ export function inline_field(ctx: Ctx): boolean {
 }
 
 export function annotation(ctx: Ctx): boolean {
-  if (!ctx.test('"')) return false;
+  if (!ctx.test(/"[^"\n]*"/)) return false;
   advance(ctx);
   while (!ctx.test('"')) {
     if (ctx.test(pEOL)) {
@@ -383,11 +383,11 @@ export function scanTuneBody(ctx: Ctx) {
     if (info_line(ctx)) continue;
     if (annotation(ctx)) continue;
     if (inline_field(ctx)) continue;
-    if (barline(ctx)) continue;
     if (tuplet(ctx)) continue;
     if (slur(ctx)) continue;
     if (grace_grp(ctx)) continue;
     if (chord(ctx)) continue;
+    if (barline2(ctx)) continue;
     if (note(ctx)) continue;
     if (rest(ctx)) continue;
     if (y_spacer(ctx)) continue;
@@ -487,7 +487,7 @@ export function parseBarlineStart(ctx: Ctx): boolean {
     ctx.push(TT.BARLINE);
     parseRepeatNumbers(ctx);
     return true;
-  } else if (ctx.test(/\s*\[/)) {
+  } else if (ctx.test(/\s*\[\s*[1-9]/)) {
     while (ctx.test(" ")) {
       advance(ctx);
     }
@@ -518,13 +518,15 @@ export function parseBarlineStart(ctx: Ctx): boolean {
 export function parseLeftBracketStart(ctx: Ctx): boolean {
   if (!ctx.test(/\[(( *[0-9])|(\|:+)?|\])/)) return false;
 
-  advance(ctx); // Consume left brkt 
+  advance(ctx); // Consume left brkt
 
-  if (ctx.test(/[1-9]/)) {// repeat numbers
+  if (ctx.test(/[1-9]/)) {
+    // repeat numbers
     ctx.push(TT.BARLINE);
     parseRepeatNumbers(ctx);
     return true;
-  } else if (ctx.test(/\|/)) { //Barline possibly followed by colons or right bracket
+  } else if (ctx.test(/\|/)) {
+    //Barline possibly followed by colons or right bracket
     advance(ctx); // Consume barline
 
     // Optional colons
@@ -532,10 +534,12 @@ export function parseLeftBracketStart(ctx: Ctx): boolean {
       while (ctx.test(":")) {
         advance(ctx);
       }
-    } else if (ctx.test(/\]/)) { // Optional right bracket
+    } else if (ctx.test(/\]/)) {
+      // Optional right bracket
       advance(ctx);
     }
-  } else if (ctx.test(/\]/)) { // Right bracket (empty brackets)
+  } else if (ctx.test(/\]/)) {
+    // Right bracket (empty brackets)
     advance(ctx);
   }
 

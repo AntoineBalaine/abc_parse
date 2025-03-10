@@ -300,7 +300,7 @@ describe("barline2", () => {
   });
 
   // Tests for parseLeftBracketStart through barline2
-  describe.only("left-bracket-start barlines", () => {
+  describe("left-bracket-start barlines", () => {
     it("should parse a left bracket", () => {
       const ctx = createCtx("[");
       const result = parseLeftBracketStart(ctx);

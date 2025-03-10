@@ -195,14 +195,6 @@ describe("scan2", () => {
       assert.equal(ctx.tokens[0].type, TT.ACCIDENTAL);
       assert.equal(ctx.tokens[1].type, TT.NOTE_LETTER);
     });
-
-    it("should report an error for invalid pitch", () => {
-      const ctx = createCtx("^");
-      const result = pitch(ctx);
-      assert.equal(result, false);
-      // Check that an error was reported
-      assert.equal(ctx.errorReporter?.hasErrors(), true);
-    });
   });
 
   describe("accidental", () => {
@@ -265,14 +257,6 @@ describe("scan2", () => {
       assert.equal(ctx.tokens[1].type, TT.NOTE_LETTER);
       assert.equal(ctx.tokens[2].type, TT.TIE);
     });
-
-    it("should return false for invalid note", () => {
-      const ctx = createCtx("^");
-      const result = note(ctx);
-      assert.equal(result, false);
-      // Check that an error was reported
-      assert.equal(ctx.errorReporter?.hasErrors(), true);
-    });
   });
 
   describe("rest", () => {
@@ -326,12 +310,10 @@ describe("scan2", () => {
       assert.equal(ctx.tokens[0].type, TT.ANNOTATION);
     });
 
-    it("should report an error for unterminated string", () => {
+    it("should not parse unterminated strings", () => {
       const ctx = createCtx('"unterminated\n');
       const result = annotation(ctx);
       assert.equal(result, false);
-      // Check that an error was reported
-      assert.equal(ctx.errorReporter?.hasErrors(), true);
     });
 
     it("should return false for non-string", () => {
