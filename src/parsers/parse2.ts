@@ -184,6 +184,7 @@ export function prcssBms(elmnts: Array<Expr | Token>, abcContext: ABCContext): A
     const cur = beamCtx.peek();
     if (prsBeam(beamCtx, rv)) continue;
     rv.push(cur);
+    beamCtx.advance();
   }
   return rv;
 }
@@ -539,10 +540,11 @@ export function prsBeam(ctx: BeamCtx, prnt_arr?: Array<Expr | Token>): Beam | Ex
   }
 
   let beam: Array<Expr | Token> = [];
-  const expr = ctx.peek();
+  let expr = ctx.peek();
   while (!ctx.isAtEnd() && !isBeamBreaker(expr)) {
     beam.push(expr);
     ctx.advance();
+    expr = ctx.peek();
   }
   if (beam.length === 1) {
     if (prnt_arr) prnt_arr.push(beam[0]);

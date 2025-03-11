@@ -16,17 +16,17 @@ import {
 } from "./types/Expr2";
 
 // Check if an element is a note
-export function isNote(element: music_code): element is Note {
+export function isNote(element: Expr | Token): element is Note {
   return element instanceof Note;
 }
 
 // Check if an element is a chord
-export function isChord(element: music_code): element is Chord {
+export function isChord(element: Expr | Token): element is Chord {
   return element instanceof Chord;
 }
 
 // Check if an element is a whitespace token
-export function isWS(element: music_code): boolean {
+export function isWS(element: Expr | Token): boolean {
   return element instanceof Token && (element.type === TT.WS || element.type === TT.EOL);
 }
 
@@ -54,7 +54,7 @@ export function isBeamBreaker(element: Expr | Token): boolean {
 }
 
 // Check if there's a note following the current element before a beam breaker
-export function followedByNote(elements: Array<music_code>, index: number): boolean {
+export function followedByNote(elements: Array<Expr | Token>, index: number): boolean {
   for (let i = index; i < elements.length; i++) {
     if (!isBeamContents(elements[i]) || isWS(elements[i])) {
       return false;
@@ -66,7 +66,7 @@ export function followedByNote(elements: Array<music_code>, index: number): bool
 }
 
 // Check if the current element is the start of a beam
-export function foundBeam(elements: Array<music_code>, index: number): boolean {
+export function foundBeam(elements: Array<Expr | Token>, index: number): boolean {
   if ((isNote(elements[index]) || isChord(elements[index])) && index + 1 < elements.length && !isWS(elements[index + 1])) {
     return followedByNote(elements, index + 1);
   }
@@ -74,7 +74,7 @@ export function foundBeam(elements: Array<music_code>, index: number): boolean {
 }
 
 // Check if the current element is the end of a beam
-export function beamEnd(elements: Array<music_code>, index: number): boolean {
+export function beamEnd(elements: Array<Expr | Token>, index: number): boolean {
   const current = elements[index];
   const next = index + 1 < elements.length ? elements[index + 1] : null;
 
