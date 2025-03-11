@@ -64,7 +64,7 @@ export class ParseCtx {
   }
 
   isAtEnd(): boolean {
-    return this.current >= this.tokens.length;
+    return this.current >= this.tokens.length || this.tokens[this.current].type == TT.EOF;
   }
 
   report(message: string): void {
