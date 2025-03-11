@@ -15,3 +15,15 @@ TODO:
 - warn about incomplete line-overlay markers (ampersand + line_continuation)
 [V:1] CDEF &\
       FEDC &    // Missing continuation
+
+# scan2 TODOs:
+- redefinable symbols `U:`
+- macros `m:`
+- `I: decoration`
+- `H: history` and free text
+- `%%begintext` free text til `%%endtext`
+- directive followed by `X:<number>` counts as new tune - or at least should be parsed.
+
+# parse2 TODOs: 
+- remove regex matching from tuplet parsing case 
+- add new source of error reporting instead of using Scanner2 errors.
