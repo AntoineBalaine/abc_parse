@@ -170,6 +170,18 @@ export function prsBody(ctx: ParseCtx): Tune_Body | null {
 
     elmnts.push(ctx.advance());
   }
+
+  let beamed_elements: Array<Expr | Token> = [];
+  const beamCtx = new BeamCtx(elmnts, ctx.abcContext);
+  while (!beamCtx.isAtEnd()) {
+    const cur = beamCtx.peek();
+    if (isBeamBreaker(cur)) {
+      beamed_elements.push(cur);
+      beamCtx.advance();
+      continue;
+    }
+    prsBeam(beamCtx, beamed_elements);
+  }
   return new Tune_Body(ctx.abcContext.generateId(), prsSystems(elmnts));
 }
 
@@ -479,7 +491,7 @@ export class BeamCtx {
   current: number = 0;
   abcContext: ABCContext;
 
-  constructor(tokens: Token[], abcContext: ABCContext) {
+  constructor(tokens: Array<Expr | Token>, abcContext: ABCContext) {
     this.tokens = tokens;
     this.abcContext = abcContext;
   }
@@ -525,14 +537,17 @@ export function prsBeam(ctx: BeamCtx, prnt_arr?: Array<Expr | Token>): Beam | Ex
     beam.push(expr);
     ctx.advance();
   }
-  if (beam.length === 0) return null;
   if (beam.length === 1) {
     if (prnt_arr) prnt_arr.push(beam[0]);
     return beam[0];
   }
-  const beam_expr = new Beam(ctx.abcContext.generateId(), beam as Array<Beam_contents>);
-  if (prnt_arr) prnt_arr.push(beam_expr);
-  return beam_expr;
+  if (beam.length > 1) {
+    const beam_expr = new Beam(ctx.abcContext.generateId(), beam as Array<Beam_contents>);
+    if (prnt_arr) prnt_arr.push(beam_expr);
+    return beam_expr;
+  }
+
+  return null;
 }
 
 // Parse rhythm (common to notes, rests, etc.)
