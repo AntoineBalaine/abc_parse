@@ -24,7 +24,7 @@ import {
   tune_body_code,
   Beam_contents,
 } from "../types/Expr2";
-import { isBeamBreaker } from "../helpers2";
+import { isBeamBreaker, foundBeam } from "../helpers2";
 
 // Parse Context
 export class ParseCtx {
@@ -171,18 +171,21 @@ export function prsBody(ctx: ParseCtx): Tune_Body | null {
     elmnts.push(ctx.advance());
   }
 
-  let beamed_elements: Array<Expr | Token> = [];
-  const beamCtx = new BeamCtx(elmnts, ctx.abcContext);
+  // Process beams in the elements array
+  const processedElements = prcssBms(elmnts, ctx.abcContext);
+
+  return new Tune_Body(ctx.abcContext.generateId(), prsSystems(processedElements as tune_body_code[]));
+}
+
+export function prcssBms(elmnts: Array<Expr | Token>, abcContext: ABCContext): Array<Expr | Token> {
+  let rv: Array<Expr | Token> = [];
+  const beamCtx = new BeamCtx(elmnts, abcContext);
   while (!beamCtx.isAtEnd()) {
     const cur = beamCtx.peek();
-    if (isBeamBreaker(cur)) {
-      beamed_elements.push(cur);
-      beamCtx.advance();
-      continue;
-    }
-    prsBeam(beamCtx, beamed_elements);
+    if (prsBeam(beamCtx, rv)) continue;
+    rv.push(cur);
   }
-  return new Tune_Body(ctx.abcContext.generateId(), prsSystems(elmnts));
+  return rv;
 }
 
 // Parse music code
@@ -531,6 +534,10 @@ export class BeamCtx {
 }
 
 export function prsBeam(ctx: BeamCtx, prnt_arr?: Array<Expr | Token>): Beam | Expr | Token | null {
+  if (!foundBeam(ctx.tokens, ctx.current)) {
+    return null;
+  }
+
   let beam: Array<Expr | Token> = [];
   const expr = ctx.peek();
   while (!ctx.isAtEnd() && !isBeamBreaker(expr)) {
