@@ -56,6 +56,7 @@ export function fileStructure(ctx: Ctx) {
       sectionBreak(ctx);
     } else {
       freeText(ctx);
+      sectionBreak(ctx);
     }
   }
   return ctx.tokens;

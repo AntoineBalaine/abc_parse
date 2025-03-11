@@ -91,7 +91,7 @@ export function decoration(ctx: Ctx): boolean {
 }
 
 export function symbol(ctx: Ctx): boolean {
-  if (!ctx.test("!")) return false;
+  if (!ctx.test(/![^\n!]*!/)) return false;
   advance(ctx);
   while (!ctx.test("!")) {
     advance(ctx);
