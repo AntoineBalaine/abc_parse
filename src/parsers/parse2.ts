@@ -84,7 +84,7 @@ export class ParseCtx {
   }
 }
 
-// Main parser function
+// Main parser export function
 export function parseTune(tokens: Token[], abcContext: ABCContext): Tune {
   const ctx = new ParseCtx(tokens, abcContext);
 
@@ -96,7 +96,7 @@ export function parseTune(tokens: Token[], abcContext: ABCContext): Tune {
   return new Tune(ctx.abcContext.generateId(), tuneHeader, tuneBody);
 }
 
-function prsTuneHdr(ctx: ParseCtx): Tune_header {
+export function prsTuneHdr(ctx: ParseCtx): Tune_header {
   const infoLines: Array<Info_line | Comment> = [];
   const voices: string[] = [];
   while (!ctx.isAtEnd() && !ctx.check(TT.SCT_BRK)) {
@@ -118,7 +118,7 @@ function prsTuneHdr(ctx: ParseCtx): Tune_header {
   }
   return new Tune_header(ctx.abcContext.generateId(), infoLines, voices);
 }
-function prsComment(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Comment | null {
+export function prsComment(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Comment | null {
   if (ctx.match(TT.COMMENT)) {
     const rv = new Comment(ctx.abcContext.generateId(), ctx.previous());
     prnt_arr && prnt_arr.push(rv);
@@ -127,7 +127,7 @@ function prsComment(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Comment | nu
   return null;
 }
 
-function prsInfoLine(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Info_line | null {
+export function prsInfoLine(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Info_line | null {
   if (ctx.match(TT.INF_HDR)) {
     const field = ctx.previous();
     const tokens: Token[] = [field];
@@ -146,7 +146,7 @@ function prsInfoLine(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Info_line |
 }
 
 // Check if a token is part of the tune header
-function isHeaderToken(token: Token): boolean {
+export function isHeaderToken(token: Token): boolean {
   return (
     token.type === TT.INF_HDR ||
     token.type === TT.INF_TXT ||
@@ -159,7 +159,7 @@ function isHeaderToken(token: Token): boolean {
 
 // Process beams within a Music_code instance
 
-function prsBody(ctx: ParseCtx): Tune_Body | null {
+export function prsBody(ctx: ParseCtx): Tune_Body | null {
   const elmnts: Array<tune_body_code> = [];
 
   // Parse until end of file or section break
@@ -174,7 +174,7 @@ function prsBody(ctx: ParseCtx): Tune_Body | null {
 }
 
 // Parse music code
-function parseMusicCode(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Array<Expr | Token> | null {
+export function parseMusicCode(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Array<Expr | Token> | null {
   const elements: Array<Expr | Token> = prnt_arr ?? [];
 
   while (!ctx.isAtEnd() && !ctx.check(TT.EOL) && !ctx.check(TT.COMMENT) && !ctx.check(TT.INF_HDR) && !ctx.check(TT.SCT_BRK)) {
@@ -202,7 +202,7 @@ function parseMusicCode(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Array<Ex
 }
 
 // Parse a barline
-function parseBarline(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): BarLine | null {
+export function parseBarline(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): BarLine | null {
   if (!ctx.check(TT.BARLINE)) {
     return null;
   }
@@ -222,7 +222,7 @@ function parseBarline(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): BarLine | 
 }
 
 // Parse repeat numbers
-function parseRepeatNumbers(ctx: ParseCtx): Token[] {
+export function parseRepeatNumbers(ctx: ParseCtx): Token[] {
   const numbers: Token[] = [];
 
   while (ctx.check(TT.REPEAT_NUMBER) || ctx.check(TT.REPEAT_COMMA) || ctx.check(TT.REPEAT_DASH) || ctx.check(TT.REPEAT_X)) {
@@ -233,7 +233,7 @@ function parseRepeatNumbers(ctx: ParseCtx): Token[] {
 }
 
 // Parse a note
-function parseNote(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Note | null {
+export function parseNote(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Note | null {
   // Check for tie at start
   let startTie: Token | undefined;
   if (ctx.match(TT.TIE)) {
@@ -268,7 +268,7 @@ function parseNote(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Note | null {
 }
 
 // Parse a pitch
-function parsePitch(ctx: ParseCtx): Pitch | null {
+export function parsePitch(ctx: ParseCtx): Pitch | null {
   let alteration: Token | undefined;
   let noteLetter: Token;
   let octave: Token | undefined;
@@ -298,7 +298,7 @@ function parsePitch(ctx: ParseCtx): Pitch | null {
 }
 
 // Parse a rest
-function parseRest(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Rest | null {
+export function parseRest(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Rest | null {
   if (!ctx.match(TT.REST)) {
     return null;
   }
@@ -309,7 +309,7 @@ function parseRest(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Rest | null {
 }
 
 // Parse a chord
-function parseChord(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Chord | null {
+export function parseChord(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Chord | null {
   if (!ctx.match(TT.CHRD_LEFT_BRKT)) {
     return null;
   }
@@ -356,7 +356,7 @@ function parseChord(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Chord | null
 }
 
 // Parse a grace note group
-function parseGraceGroup(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Grace_group | null {
+export function parseGraceGroup(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Grace_group | null {
   if (!ctx.match(TT.GRC_GRP_LEFT_BRACE)) {
     return null;
   }
@@ -399,7 +399,7 @@ function parseGraceGroup(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Grace_g
 }
 
 // Parse a tuplet
-function parseTuplet(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Tuplet | null {
+export function parseTuplet(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Tuplet | null {
   if (!ctx.match(TT.TUPLET)) {
     return null;
   }
@@ -425,7 +425,7 @@ function parseTuplet(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Tuplet | nu
 }
 
 // Parse a Y spacer
-function parseYSpacer(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): YSPACER | null {
+export function parseYSpacer(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): YSPACER | null {
   if (!ctx.match(TT.Y_SPC)) {
     return null;
   }
@@ -441,7 +441,7 @@ function parseYSpacer(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): YSPACER | 
 }
 
 // Parse a symbol
-function parseSymbol(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Symbol | null {
+export function parseSymbol(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Symbol | null {
   if (!ctx.match(TT.SYMBOL)) {
     return null;
   }
@@ -453,7 +453,7 @@ function parseSymbol(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Symbol | nu
 }
 
 // Parse an annotation
-function parseAnnotation(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Annotation | null {
+export function parseAnnotation(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Annotation | null {
   if (!ctx.match(TT.ANNOTATION)) {
     return null;
   }
@@ -464,7 +464,7 @@ function parseAnnotation(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Annotat
 }
 
 // Parse a decoration
-function parseDecoration(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Decoration | null {
+export function parseDecoration(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Decoration | null {
   if (!ctx.match(TT.DECORATION)) {
     return null;
   }
@@ -518,7 +518,7 @@ export class BeamCtx {
   }
 }
 
-function prsBeam(ctx: BeamCtx, prnt_arr?: Array<Expr | Token>): Beam | Expr | Token | null {
+export function prsBeam(ctx: BeamCtx, prnt_arr?: Array<Expr | Token>): Beam | Expr | Token | null {
   let beam: Array<Expr | Token> = [];
   const expr = ctx.peek();
   while (!ctx.isAtEnd() && !isBeamBreaker(expr)) {
@@ -536,7 +536,7 @@ function prsBeam(ctx: BeamCtx, prnt_arr?: Array<Expr | Token>): Beam | Expr | To
 }
 
 // Parse rhythm (common to notes, rests, etc.)
-function parseRhythm(ctx: ParseCtx): Rhythm | undefined {
+export function parseRhythm(ctx: ParseCtx): Rhythm | undefined {
   let numerator: Token | null = null;
   let separator: Token | undefined;
   let denominator: Token | null = null;
@@ -567,6 +567,6 @@ function parseRhythm(ctx: ParseCtx): Rhythm | undefined {
 
   return hasRhythm ? new Rhythm(ctx.abcContext.generateId(), numerator, separator, denominator, broken) : undefined;
 }
-function prsSystems(musicElements: tune_body_code[]): System[] {
-  throw new Error("Function not implemented.");
+export function prsSystems(musicElements: tune_body_code[]): System[] {
+  throw new Error("export function not implemented.");
 }
