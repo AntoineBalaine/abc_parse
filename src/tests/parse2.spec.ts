@@ -727,6 +727,303 @@ describe("parse2.ts", () => {
       const ctx = createParseCtx(tokens);
 
       const result = parsePitch(ctx);
+
+      assert.isNotNull(result);
+      assert.instanceOf(result, Pitch);
+      assert.equal(result?.noteLetter.lexeme, "C");
+      assert.equal(result?.alteration?.lexeme, "^");
+      assert.equal(result?.octave?.lexeme, "'");
+    });
+
+    it("should return null for non-note tokens", () => {
+      const tokens = [createToken(TT.BARLINE, "|")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parsePitch(ctx);
+
+      assert.isNull(result);
+      assert.equal(ctx.current, 0); // Should not advance the current position
+    });
+
+    it("should rewind if an accidental is found but no note letter follows", () => {
+      const tokens = [createToken(TT.ACCIDENTAL, "^"), createToken(TT.BARLINE, "|")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parsePitch(ctx);
+
+      assert.isNull(result);
+      assert.equal(ctx.current, 0); // Should rewind to the start
+    });
+  });
+
+  describe("parseRhythm", () => {
+    it("should parse a numerator only", () => {
+      const tokens = [createToken(TT.RHY_NUMER, "2")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRhythm(ctx);
+
+      assert.isDefined(result);
+      assert.instanceOf(result, Rhythm);
+      assert.equal(result?.numerator?.lexeme, "2");
+      assert.isUndefined(result?.separator);
+      assert.isNull(result?.denominator);
+      assert.isNull(result?.broken);
+    });
+
+    it("should parse a separator only", () => {
+      const tokens = [createToken(TT.RHY_SEP, "/")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRhythm(ctx);
+
+      assert.isDefined(result);
+      assert.instanceOf(result, Rhythm);
+      assert.isNull(result?.numerator);
+      assert.equal(result?.separator?.lexeme, "/");
+      assert.isNull(result?.denominator);
+      assert.isNull(result?.broken);
+    });
+
+    it("should parse a separator and denominator", () => {
+      const tokens = [createToken(TT.RHY_SEP, "/"), createToken(TT.RHY_DENOM, "2")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRhythm(ctx);
+
+      assert.isDefined(result);
+      assert.instanceOf(result, Rhythm);
+      assert.isNull(result?.numerator);
+      assert.equal(result?.separator?.lexeme, "/");
+      assert.equal(result?.denominator?.lexeme, "2");
+      assert.isNull(result?.broken);
+    });
+
+    it("should parse a numerator, separator, and denominator", () => {
+      const tokens = [createToken(TT.RHY_NUMER, "3"), createToken(TT.RHY_SEP, "/"), createToken(TT.RHY_DENOM, "2")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRhythm(ctx);
+
+      assert.isDefined(result);
+      assert.instanceOf(result, Rhythm);
+      assert.equal(result?.numerator?.lexeme, "3");
+      assert.equal(result?.separator?.lexeme, "/");
+      assert.equal(result?.denominator?.lexeme, "2");
+      assert.isNull(result?.broken);
+    });
+
+    it("should parse a broken rhythm (>)", () => {
+      const tokens = [createToken(TT.RHY_BRKN, ">")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRhythm(ctx);
+
+      assert.isDefined(result);
+      assert.instanceOf(result, Rhythm);
+      assert.isNull(result?.numerator);
+      assert.isUndefined(result?.separator);
+      assert.isNull(result?.denominator);
+      assert.equal(result?.broken?.lexeme, ">");
+    });
+
+    it("should parse a broken rhythm (<)", () => {
+      const tokens = [createToken(TT.RHY_BRKN, "<")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRhythm(ctx);
+
+      assert.isDefined(result);
+      assert.instanceOf(result, Rhythm);
+      assert.isNull(result?.numerator);
+      assert.isUndefined(result?.separator);
+      assert.isNull(result?.denominator);
+      assert.equal(result?.broken?.lexeme, "<");
+    });
+
+    it("should parse a double broken rhythm (>>)", () => {
+      const tokens = [createToken(TT.RHY_BRKN, ">>")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRhythm(ctx);
+
+      assert.isDefined(result);
+      assert.instanceOf(result, Rhythm);
+      assert.isNull(result?.numerator);
+      assert.isUndefined(result?.separator);
+      assert.isNull(result?.denominator);
+      assert.equal(result?.broken?.lexeme, ">>");
+    });
+
+    it("should parse a numerator with broken rhythm", () => {
+      const tokens = [createToken(TT.RHY_NUMER, "2"), createToken(TT.RHY_BRKN, ">")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRhythm(ctx);
+
+      assert.isDefined(result);
+      assert.instanceOf(result, Rhythm);
+      assert.equal(result?.numerator?.lexeme, "2");
+      assert.isUndefined(result?.separator);
+      assert.isNull(result?.denominator);
+      assert.equal(result?.broken?.lexeme, ">");
+    });
+
+    it("should parse a complex rhythm with all components", () => {
+      const tokens = [createToken(TT.RHY_NUMER, "3"), createToken(TT.RHY_SEP, "/"), createToken(TT.RHY_DENOM, "2"), createToken(TT.RHY_BRKN, ">")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRhythm(ctx);
+
+      assert.isDefined(result);
+      assert.instanceOf(result, Rhythm);
+      assert.equal(result?.numerator?.lexeme, "3");
+      assert.equal(result?.separator?.lexeme, "/");
+      assert.equal(result?.denominator?.lexeme, "2");
+      assert.equal(result?.broken?.lexeme, ">");
+    });
+
+    it("should return undefined when no rhythm components are present", () => {
+      const tokens = [createToken(TT.NOTE_LETTER, "C")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRhythm(ctx);
+
+      assert.isUndefined(result);
+      assert.equal(ctx.current, 0); // Should not advance the current position
+    });
+  });
+
+  describe("parseRepeatNumbers", () => {
+    it("should parse a single repeat number", () => {
+      const tokens = [createToken(TT.REPEAT_NUMBER, "1")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRepeatNumbers(ctx);
+
+      assert.isArray(result);
+      assert.equal(result.length, 1);
+      assert.equal(result[0].type, TT.REPEAT_NUMBER);
+      assert.equal(result[0].lexeme, "1");
+    });
+
+    it("should parse multiple repeat numbers with commas", () => {
+      const tokens = [createToken(TT.REPEAT_NUMBER, "1"), createToken(TT.REPEAT_COMMA, ","), createToken(TT.REPEAT_NUMBER, "2")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRepeatNumbers(ctx);
+
+      assert.isArray(result);
+      assert.equal(result.length, 3);
+      assert.equal(result[0].type, TT.REPEAT_NUMBER);
+      assert.equal(result[0].lexeme, "1");
+      assert.equal(result[1].type, TT.REPEAT_COMMA);
+      assert.equal(result[1].lexeme, ",");
+      assert.equal(result[2].type, TT.REPEAT_NUMBER);
+      assert.equal(result[2].lexeme, "2");
+    });
+
+    it("should parse a number range with dash", () => {
+      const tokens = [createToken(TT.REPEAT_NUMBER, "1"), createToken(TT.REPEAT_DASH, "-"), createToken(TT.REPEAT_NUMBER, "3")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRepeatNumbers(ctx);
+
+      assert.isArray(result);
+      assert.equal(result.length, 3);
+      assert.equal(result[0].type, TT.REPEAT_NUMBER);
+      assert.equal(result[0].lexeme, "1");
+      assert.equal(result[1].type, TT.REPEAT_DASH);
+      assert.equal(result[1].lexeme, "-");
+      assert.equal(result[2].type, TT.REPEAT_NUMBER);
+      assert.equal(result[2].lexeme, "3");
+    });
+
+    it("should parse x notation", () => {
+      const tokens = [createToken(TT.REPEAT_NUMBER, "1"), createToken(TT.REPEAT_X, "x"), createToken(TT.REPEAT_NUMBER, "2")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRepeatNumbers(ctx);
+
+      assert.isArray(result);
+      assert.equal(result.length, 3);
+      assert.equal(result[0].type, TT.REPEAT_NUMBER);
+      assert.equal(result[0].lexeme, "1");
+      assert.equal(result[1].type, TT.REPEAT_X);
+      assert.equal(result[1].lexeme, "x");
+      assert.equal(result[2].type, TT.REPEAT_NUMBER);
+      assert.equal(result[2].lexeme, "2");
+    });
+
+    it("should parse complex combinations of repeat numbers", () => {
+      const tokens = [
+        createToken(TT.REPEAT_NUMBER, "1"),
+        createToken(TT.REPEAT_COMMA, ","),
+        createToken(TT.REPEAT_NUMBER, "2"),
+        createToken(TT.REPEAT_DASH, "-"),
+        createToken(TT.REPEAT_NUMBER, "4"),
+        createToken(TT.REPEAT_COMMA, ","),
+        createToken(TT.REPEAT_NUMBER, "5"),
+        createToken(TT.REPEAT_X, "x"),
+        createToken(TT.REPEAT_NUMBER, "2"),
+      ];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRepeatNumbers(ctx);
+
+      assert.isArray(result);
+      assert.equal(result.length, 9);
+
+      // Check first part: "1,"
+      assert.equal(result[0].type, TT.REPEAT_NUMBER);
+      assert.equal(result[0].lexeme, "1");
+      assert.equal(result[1].type, TT.REPEAT_COMMA);
+      assert.equal(result[1].lexeme, ",");
+
+      // Check second part: "2-4,"
+      assert.equal(result[2].type, TT.REPEAT_NUMBER);
+      assert.equal(result[2].lexeme, "2");
+      assert.equal(result[3].type, TT.REPEAT_DASH);
+      assert.equal(result[3].lexeme, "-");
+      assert.equal(result[4].type, TT.REPEAT_NUMBER);
+      assert.equal(result[4].lexeme, "4");
+      assert.equal(result[5].type, TT.REPEAT_COMMA);
+      assert.equal(result[5].lexeme, ",");
+
+      // Check third part: "5x2"
+      assert.equal(result[6].type, TT.REPEAT_NUMBER);
+      assert.equal(result[6].lexeme, "5");
+      assert.equal(result[7].type, TT.REPEAT_X);
+      assert.equal(result[7].lexeme, "x");
+      assert.equal(result[8].type, TT.REPEAT_NUMBER);
+      assert.equal(result[8].lexeme, "2");
+    });
+
+    it("should stop parsing at non-repeat tokens", () => {
+      const tokens = [
+        createToken(TT.REPEAT_NUMBER, "1"),
+        createToken(TT.REPEAT_COMMA, ","),
+        createToken(TT.REPEAT_NUMBER, "2"),
+        createToken(TT.NOTE_LETTER, "C"),
+      ];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRepeatNumbers(ctx);
+
+      assert.isArray(result);
+      assert.equal(result.length, 3);
+      assert.equal(ctx.current, 3); // Should stop at the NOTE_LETTER token
+    });
+
+    it("should return an empty array if no repeat numbers are present", () => {
+      const tokens = [createToken(TT.NOTE_LETTER, "C")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRepeatNumbers(ctx);
+
+      assert.isArray(result);
+      assert.equal(result.length, 0);
+      assert.equal(ctx.current, 0); // Should not advance the current position
     });
   });
 });
