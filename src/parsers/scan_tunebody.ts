@@ -2,7 +2,8 @@ import { Ctx, advance, TT, peek, isAtEnd, EOL, WS, stylesheet_directive, info_li
 
 const pLETTER_COLON = /[a-zA-Z]:/;
 export const pEOL = "\n";
-export const pInfoLine = / *[a-zA-Z] *:/;
+export const pInfoLine = /[ \t]*[a-zA-Z][ \t]*:/;
+export const pInfoLnCtd = /[ \t]*\+:[ \t]*/;
 export const pTuneHeadStrt = / *X:/;
 export const pDuration = /(\/+)|(([1-9][0-9]*)?\/[1-9][0-9]*)|([1-9][0-9]*)|([>]+|[<]+)/;
 export const pSectionBrk = /\n([ \t]*\n)+/;
