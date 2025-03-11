@@ -3,13 +3,13 @@ import { ABCContext } from "./Context";
 import {
   Annotation,
   BarLine,
+  Beam,
   Chord,
   Comment,
   Decoration,
   Expr,
   Grace_group,
   Info_line,
-  Music_code,
   Note,
   Pitch,
   Rest,
@@ -22,10 +22,12 @@ import {
   Tuplet,
   YSPACER,
   tune_body_code,
+  Beam_contents,
 } from "../types/Expr2";
+import { isBeamBreaker } from "../helpers2";
 
 // Parse Context
-class ParseCtx {
+export class ParseCtx {
   tokens: Token[];
   current: number = 0;
   abcContext: ABCContext;
@@ -179,26 +181,20 @@ function parseMusicCode(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Array<Ex
     // Try each element parser in order
     const element =
       parseBarline(ctx, elements) ||
-      parseNote(ctx, elements) ||
-      parseRest(ctx, elements) ||
       parseChord(ctx, elements) ||
       parseGraceGroup(ctx, elements) ||
+      parseRest(ctx, elements) ||
+      parseNote(ctx, elements) ||
       parseTuplet(ctx, elements) ||
       parseYSpacer(ctx, elements) ||
       parseSymbol(ctx, elements) ||
       parseAnnotation(ctx, elements) ||
       parseDecoration(ctx, elements);
-
-    // Skip whitespace
-    if (ctx.match(TT.WS)) {
-      elements.push(ctx.previous());
-      continue;
-    }
+    if (element) continue;
 
     // If we couldn't parse any element, skip the token
     if (!ctx.isAtEnd()) {
       ctx.report(`Unexpected token in music code: ${ctx.peek().type}`);
-      elements.push(ctx.advance());
     }
   }
 
@@ -478,6 +474,67 @@ function parseDecoration(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Decorat
   return deco;
 }
 
+export class BeamCtx {
+  tokens: Array<Expr | Token>;
+  current: number = 0;
+  abcContext: ABCContext;
+
+  constructor(tokens: Token[], abcContext: ABCContext) {
+    this.tokens = tokens;
+    this.abcContext = abcContext;
+  }
+
+  peek(): Token | Expr {
+    return this.tokens[this.current];
+  }
+
+  previous(): Token | Expr {
+    return this.tokens[this.current - 1];
+  }
+
+  advance(): Token | Expr {
+    if (!this.isAtEnd()) this.current++;
+    return this.previous();
+  }
+
+  isAtEnd(): boolean {
+    return this.current >= this.tokens.length;
+  }
+
+  report(message: string): void {
+    this.abcContext.errorReporter.Scanner2Error(
+      {
+        source: "",
+        tokens: [],
+        start: 0,
+        current: 0,
+        line: 0,
+        report: () => {},
+        push: () => {},
+        test: () => false,
+      },
+      message
+    );
+  }
+}
+
+function prsBeam(ctx: BeamCtx, prnt_arr?: Array<Expr | Token>): Beam | Expr | Token | null {
+  let beam: Array<Expr | Token> = [];
+  const expr = ctx.peek();
+  while (!ctx.isAtEnd() && !isBeamBreaker(expr)) {
+    beam.push(expr);
+    ctx.advance();
+  }
+  if (beam.length === 0) return null;
+  if (beam.length === 1) {
+    if (prnt_arr) prnt_arr.push(beam[0]);
+    return beam[0];
+  }
+  const beam_expr = new Beam(ctx.abcContext.generateId(), beam as Array<Beam_contents>);
+  if (prnt_arr) prnt_arr.push(beam_expr);
+  return beam_expr;
+}
+
 // Parse rhythm (common to notes, rests, etc.)
 function parseRhythm(ctx: ParseCtx): Rhythm | undefined {
   let numerator: Token | null = null;
@@ -511,9 +568,5 @@ function parseRhythm(ctx: ParseCtx): Rhythm | undefined {
   return hasRhythm ? new Rhythm(ctx.abcContext.generateId(), numerator, separator, denominator, broken) : undefined;
 }
 function prsSystems(musicElements: tune_body_code[]): System[] {
-  throw new Error("Function not implemented.");
-}
-
-function processBeamsInMusicCode(musicCode: Music_code): tune_body_code {
   throw new Error("Function not implemented.");
 }

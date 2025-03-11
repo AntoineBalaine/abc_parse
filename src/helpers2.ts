@@ -1,5 +1,19 @@
 import { Token, TT } from "./parsers/scan2";
-import { Annotation, BarLine, Beam, Beam_contents, Chord, Decoration, Grace_group, Music_code, Note, Symbol, YSPACER, music_code } from "./types/Expr2";
+import {
+  Annotation,
+  BarLine,
+  Beam,
+  Beam_contents,
+  Chord,
+  Decoration,
+  Expr,
+  Grace_group,
+  Music_code,
+  Note,
+  Symbol,
+  YSPACER,
+  music_code,
+} from "./types/Expr2";
 
 // Check if an element is a note
 export function isNote(element: music_code): element is Note {
@@ -17,7 +31,7 @@ export function isWS(element: music_code): boolean {
 }
 
 // Check if an element can be part of a beam
-export function isBeamContents(element: music_code): element is Beam_contents {
+export function isBeamContents(element: Expr | Token): element is Beam_contents {
   return (
     (element instanceof Token && !isWS(element)) ||
     element instanceof YSPACER ||
@@ -31,7 +45,7 @@ export function isBeamContents(element: music_code): element is Beam_contents {
 }
 
 // Check if an element breaks a beam
-export function isBeamBreaker(element: music_code): boolean {
+export function isBeamBreaker(element: Expr | Token): boolean {
   if (element instanceof Token) {
     return isWS(element);
   } else {
