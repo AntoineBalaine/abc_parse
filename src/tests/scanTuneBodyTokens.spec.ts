@@ -157,6 +157,13 @@ describe("scan2", () => {
   });
 
   describe("symbol", () => {
+    it("should parse a `+` symbol", () => {
+      const ctx = createCtx("+symbol+");
+      const result = symbol(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.SYMBOL);
+    });
     it("should parse a symbol", () => {
       const ctx = createCtx("!symbol!");
       const result = symbol(ctx);

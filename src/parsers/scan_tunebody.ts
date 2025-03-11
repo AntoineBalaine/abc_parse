@@ -91,9 +91,10 @@ export function decoration(ctx: Ctx): boolean {
 }
 
 export function symbol(ctx: Ctx): boolean {
-  if (!ctx.test(/![^\n!]*!/)) return false;
+  if (!(ctx.test(/![^\n!]*!/) || ctx.test(/\+[^\n\+]*\+/))) return false;
+  var is_plus_symbol = ctx.test("+");
   advance(ctx);
-  while (!ctx.test("!")) {
+  while (!ctx.test(is_plus_symbol ? "+" : "!")) {
     advance(ctx);
   }
   advance(ctx);
