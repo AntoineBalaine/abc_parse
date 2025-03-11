@@ -151,10 +151,10 @@ export type System = Array<tune_body_code>;
 export class Tune extends Expr {
   tune_header: Tune_header;
   tune_body?: Tune_Body;
-  constructor(id: number, tune_header: Tune_header, tune_body?: Tune_Body) {
+  constructor(id: number, tune_header: Tune_header, tune_body: Tune_Body | null) {
     super(id);
     this.tune_header = tune_header;
-    this.tune_body = tune_body;
+    this.tune_body = tune_body || undefined;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitTuneExpr(this);

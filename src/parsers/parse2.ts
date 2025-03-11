@@ -3,17 +3,12 @@ import { ABCContext } from "./Context";
 import {
   Annotation,
   BarLine,
-  Beam,
-  Beam_contents,
   Chord,
   Comment,
   Decoration,
-  ErrorExpr,
-  File_structure,
+  Expr,
   Grace_group,
   Info_line,
-  Inline_field,
-  MultiMeasureRest,
   Music_code,
   Note,
   Pitch,
@@ -26,10 +21,8 @@ import {
   Tune_header,
   Tuplet,
   YSPACER,
-  music_code,
   tune_body_code,
 } from "../types/Expr2";
-import { foundBeam, beamEnd, isBeamContents } from "../helpers2";
 
 // Parse Context
 class ParseCtx {
@@ -94,67 +87,60 @@ export function parseTune(tokens: Token[], abcContext: ABCContext): Tune {
   const ctx = new ParseCtx(tokens, abcContext);
 
   // Parse header information
-  const tuneHeader = parseTuneHeader(ctx);
-
+  const tuneHeader = prsTuneHdr(ctx);
   // Parse body (music sections)
-  const tuneBody = parseTuneBody(ctx);
+  const tuneBody = prsBody(ctx);
 
   return new Tune(ctx.abcContext.generateId(), tuneHeader, tuneBody);
 }
 
-// Parse tune header (X:, T:, etc.)
-function parseTuneHeader(ctx: ParseCtx): Tune_header {
+function prsTuneHdr(ctx: ParseCtx): Tune_header {
   const infoLines: Array<Info_line | Comment> = [];
   const voices: string[] = [];
-
-  while (!ctx.isAtEnd() && isHeaderToken(ctx.peek())) {
-    if (ctx.match(TT.COMMENT)) {
-      // Directly use the comment token without additional parsing
-      infoLines.push(new Comment(ctx.abcContext.generateId(), ctx.previous()));
+  while (!ctx.isAtEnd() && !ctx.check(TT.SCT_BRK)) {
+    const cmnt = prsComment(ctx);
+    if (cmnt) {
+      infoLines.push(cmnt);
       continue;
     }
-
-    if (ctx.match(TT.INF_HDR)) {
-      const field = ctx.previous();
-      const infoLine = parseInfoLine(ctx, field);
-      infoLines.push(infoLine);
-
-      // Check if this is a voice definition
-      if (field.lexeme === "V:") {
-        const voiceName = infoLine.value[0].lexeme.trim();
+    const info_line = prsInfoLine(ctx);
+    if (info_line) {
+      infoLines.push(info_line);
+      if (info_line.key.lexeme === "V:") {
+        const voiceName = info_line.value[0].lexeme.trim();
         if (voiceName && !voices.includes(voiceName)) {
           voices.push(voiceName);
         }
       }
-
-      continue;
     }
-
-    // Skip any other header tokens
-    ctx.advance();
   }
-
   return new Tune_header(ctx.abcContext.generateId(), infoLines, voices);
 }
-
-// Parse an info line
-function parseInfoLine(ctx: ParseCtx, field: Token): Info_line {
-  const tokens: Token[] = [field];
-
-  if (ctx.match(TT.INFO_STR) || ctx.match(TT.INF_TXT)) {
-    tokens.push(ctx.previous());
+function prsComment(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Comment | null {
+  if (ctx.match(TT.COMMENT)) {
+    const rv = new Comment(ctx.abcContext.generateId(), ctx.previous());
+    prnt_arr && prnt_arr.push(rv);
+    return rv;
   }
+  return null;
+}
 
-  // Skip to end of line
-  while (!ctx.isAtEnd() && !ctx.check(TT.EOL)) {
-    tokens.push(ctx.advance());
+function prsInfoLine(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Info_line | null {
+  if (ctx.match(TT.INF_HDR)) {
+    const field = ctx.previous();
+    const tokens: Token[] = [field];
+    if (ctx.match(TT.INFO_STR) || ctx.match(TT.INF_TXT)) {
+      // is it really needed?
+      tokens.push(ctx.previous());
+    }
+    while (!ctx.isAtEnd() && !ctx.check(TT.EOL)) {
+      tokens.push(ctx.advance());
+    }
+    const rv = new Info_line(ctx.abcContext.generateId(), tokens);
+    prnt_arr && prnt_arr.push(rv);
+    return rv;
   }
-
-  if (ctx.match(TT.EOL)) {
-    tokens.push(ctx.previous());
-  }
-
-  return new Info_line(ctx.abcContext.generateId(), tokens);
+  return null;
 }
 
 // Check if a token is part of the tune header
@@ -170,116 +156,38 @@ function isHeaderToken(token: Token): boolean {
 }
 
 // Process beams within a Music_code instance
-function processBeamsInMusicCode(musicCode: Music_code): Music_code {
-  const contents = musicCode.contents;
-  const processedContents: Array<music_code> = [];
-  let beam: Array<Beam_contents> = [];
-  let i = 0;
 
-  while (i < contents.length) {
-    // Check if this is the start of a beam
-    if (foundBeam(contents, i)) {
-      // Collect all elements in the beam
-      while (i < contents.length && !beamEnd(contents, i)) {
-        beam.push(contents[i] as Beam_contents);
-        i++;
-      }
-
-      // Add the last element (which ends the beam)
-      if (i < contents.length) {
-        beam.push(contents[i] as Beam_contents);
-        i++;
-      }
-
-      // Create a new Beam and add it to the processed contents
-      processedContents.push(new Beam(musicCode.id, beam));
-      beam = [];
-    } else {
-      // Not part of a beam, add directly to processed contents
-      processedContents.push(contents[i]);
-      i++;
-    }
-  }
-
-  return new Music_code(musicCode.id, processedContents);
-}
-
-// Parse the tune body
-function parseTuneBody(ctx: ParseCtx): Tune_Body {
-  const musicElements: Array<tune_body_code> = [];
+function prsBody(ctx: ParseCtx): Tune_Body | null {
+  const elmnts: Array<tune_body_code> = [];
 
   // Parse until end of file or section break
   while (!ctx.isAtEnd() && !ctx.check(TT.SCT_BRK)) {
-    // Skip whitespace and line breaks
-    if (ctx.match(TT.WS) || ctx.match(TT.EOL)) {
-      continue;
-    }
+    if (prsComment(ctx, elmnts)) continue;
+    if (prsInfoLine(ctx, elmnts)) continue;
+    if (parseMusicCode(ctx, elmnts)) continue;
 
-    // Parse comments
-    if (ctx.match(TT.COMMENT)) {
-      // Directly use the comment token without additional parsing
-      musicElements.push(new Comment(ctx.abcContext.generateId(), ctx.previous()));
-      continue;
-    }
-
-    // Parse info lines
-    if (ctx.match(TT.INF_HDR)) {
-      musicElements.push(parseInfoLine(ctx, ctx.previous()));
-      continue;
-    }
-
-    // Parse music code
-    const musicCode = parseMusicCode(ctx);
-    if (musicCode) {
-      // Process beams within the music code before adding it
-      const processedMusicCode = processBeamsInMusicCode(musicCode);
-      musicElements.push(processedMusicCode);
-      continue;
-    }
-
-    // If we couldn't parse any music element, skip the token
-    if (!ctx.isAtEnd()) {
-      ctx.report(`Unexpected token in tune body: ${ctx.peek().type}`);
-      ctx.advance();
-    }
+    elmnts.push(ctx.advance());
   }
-
-  // Skip the section break if present
-  if (ctx.check(TT.SCT_BRK)) {
-    ctx.advance();
-  }
-
-  // Create systems from the music elements
-  // For simplicity, we'll put all elements in a single system for now
-  const systems: Array<System> = [musicElements];
-
-  return new Tune_Body(ctx.abcContext.generateId(), systems);
+  return new Tune_Body(ctx.abcContext.generateId(), prsSystems(elmnts));
 }
 
 // Parse music code
-function parseMusicCode(ctx: ParseCtx): Music_code | null {
-  const elements: Array<music_code> = [];
-
-  let startPos = ctx.current;
+function parseMusicCode(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Array<Expr | Token> | null {
+  const elements: Array<Expr | Token> = prnt_arr ?? [];
 
   while (!ctx.isAtEnd() && !ctx.check(TT.EOL) && !ctx.check(TT.COMMENT) && !ctx.check(TT.INF_HDR) && !ctx.check(TT.SCT_BRK)) {
     // Try each element parser in order
     const element =
-      parseBarline(ctx) ||
-      parseNote(ctx) ||
-      parseRest(ctx) ||
-      parseChord(ctx) ||
-      parseGraceGroup(ctx) ||
-      parseTuplet(ctx) ||
-      parseYSpacer(ctx) ||
-      parseSymbol(ctx) ||
-      parseAnnotation(ctx) ||
-      parseDecoration(ctx);
-
-    if (element) {
-      elements.push(element);
-      continue;
-    }
+      parseBarline(ctx, elements) ||
+      parseNote(ctx, elements) ||
+      parseRest(ctx, elements) ||
+      parseChord(ctx, elements) ||
+      parseGraceGroup(ctx, elements) ||
+      parseTuplet(ctx, elements) ||
+      parseYSpacer(ctx, elements) ||
+      parseSymbol(ctx, elements) ||
+      parseAnnotation(ctx, elements) ||
+      parseDecoration(ctx, elements);
 
     // Skip whitespace
     if (ctx.match(TT.WS)) {
@@ -294,16 +202,11 @@ function parseMusicCode(ctx: ParseCtx): Music_code | null {
     }
   }
 
-  // If we didn't parse any elements, return null
-  if (ctx.current === startPos) {
-    return null;
-  }
-
-  return new Music_code(ctx.abcContext.generateId(), elements);
+  return elements;
 }
 
 // Parse a barline
-function parseBarline(ctx: ParseCtx): BarLine | null {
+function parseBarline(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): BarLine | null {
   if (!ctx.check(TT.BARLINE)) {
     return null;
   }
@@ -317,7 +220,9 @@ function parseBarline(ctx: ParseCtx): BarLine | null {
     repeatNumbers = parseRepeatNumbers(ctx);
   }
 
-  return new BarLine(ctx.abcContext.generateId(), barlineTokens, repeatNumbers);
+  const barline = new BarLine(ctx.abcContext.generateId(), barlineTokens, repeatNumbers);
+  prnt_arr && prnt_arr.push(barline);
+  return barline;
 }
 
 // Parse repeat numbers
@@ -332,7 +237,7 @@ function parseRepeatNumbers(ctx: ParseCtx): Token[] {
 }
 
 // Parse a note
-function parseNote(ctx: ParseCtx): Note | null {
+function parseNote(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Note | null {
   // Check for tie at start
   let startTie: Token | undefined;
   if (ctx.match(TT.TIE)) {
@@ -361,7 +266,9 @@ function parseNote(ctx: ParseCtx): Note | null {
   // Use the last tie found (end tie takes precedence)
   const tie = endTie || startTie;
 
-  return new Note(ctx.abcContext.generateId(), pitch, rhythm, tie);
+  const note = new Note(ctx.abcContext.generateId(), pitch, rhythm, tie);
+  prnt_arr && prnt_arr.push(note);
+  return note;
 }
 
 // Parse a pitch
@@ -395,18 +302,18 @@ function parsePitch(ctx: ParseCtx): Pitch | null {
 }
 
 // Parse a rest
-function parseRest(ctx: ParseCtx): Rest | null {
+function parseRest(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Rest | null {
   if (!ctx.match(TT.REST)) {
     return null;
   }
 
   const rest = new Rest(ctx.abcContext.generateId(), ctx.previous());
-
+  prnt_arr && prnt_arr.push(rest);
   return rest;
 }
 
 // Parse a chord
-function parseChord(ctx: ParseCtx): Chord | null {
+function parseChord(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Chord | null {
   if (!ctx.match(TT.CHRD_LEFT_BRKT)) {
     return null;
   }
@@ -447,11 +354,13 @@ function parseChord(ctx: ParseCtx): Chord | null {
     tie = ctx.previous();
   }
 
-  return new Chord(ctx.abcContext.generateId(), contents, rhythm, tie);
+  const chord = new Chord(ctx.abcContext.generateId(), contents, rhythm, tie);
+  prnt_arr && prnt_arr.push(chord);
+  return chord;
 }
 
 // Parse a grace note group
-function parseGraceGroup(ctx: ParseCtx): Grace_group | null {
+function parseGraceGroup(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Grace_group | null {
   if (!ctx.match(TT.GRC_GRP_LEFT_BRACE)) {
     return null;
   }
@@ -488,11 +397,13 @@ function parseGraceGroup(ctx: ParseCtx): Grace_group | null {
     ctx.report("Unterminated grace group - expected '}'");
   }
 
-  return new Grace_group(ctx.abcContext.generateId(), notes, isAccacciatura);
+  const grace_grp = new Grace_group(ctx.abcContext.generateId(), notes, isAccacciatura);
+  prnt_arr && prnt_arr.push(grace_grp);
+  return grace_grp;
 }
 
 // Parse a tuplet
-function parseTuplet(ctx: ParseCtx): Tuplet | null {
+function parseTuplet(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Tuplet | null {
   if (!ctx.match(TT.TUPLET)) {
     return null;
   }
@@ -507,17 +418,18 @@ function parseTuplet(ctx: ParseCtx): Tuplet | null {
   }
 
   const p = ctx.previous(); // The entire tuplet token
+  // FIXME: q and r are not getting parsed
   let q: Token[] | undefined;
   let r: Token[] | undefined;
 
-  // For simplicity, we're not parsing the q and r parts separately
-  // In a real implementation, you would create separate tokens for these
+  const tuplet = new Tuplet(ctx.abcContext.generateId(), p, q, r);
+  prnt_arr && prnt_arr.push(tuplet);
 
-  return new Tuplet(ctx.abcContext.generateId(), p, q, r);
+  return tuplet;
 }
 
 // Parse a Y spacer
-function parseYSpacer(ctx: ParseCtx): YSPACER | null {
+function parseYSpacer(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): YSPACER | null {
   if (!ctx.match(TT.Y_SPC)) {
     return null;
   }
@@ -527,34 +439,43 @@ function parseYSpacer(ctx: ParseCtx): YSPACER | null {
   // Parse optional rhythm
   const rhythm = parseRhythm(ctx);
 
-  return new YSPACER(ctx.abcContext.generateId(), ySpacer, rhythm);
+  const yspacer = new YSPACER(ctx.abcContext.generateId(), ySpacer, rhythm);
+  prnt_arr && prnt_arr.push(yspacer);
+  return yspacer;
 }
 
 // Parse a symbol
-function parseSymbol(ctx: ParseCtx): Symbol | null {
+function parseSymbol(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Symbol | null {
   if (!ctx.match(TT.SYMBOL)) {
     return null;
   }
 
-  return new Symbol(ctx.abcContext.generateId(), ctx.previous());
+  const symbol = new Symbol(ctx.abcContext.generateId(), ctx.previous());
+  prnt_arr && prnt_arr.push(symbol);
+
+  return symbol;
 }
 
 // Parse an annotation
-function parseAnnotation(ctx: ParseCtx): Annotation | null {
+function parseAnnotation(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Annotation | null {
   if (!ctx.match(TT.ANNOTATION)) {
     return null;
   }
 
-  return new Annotation(ctx.abcContext.generateId(), ctx.previous());
+  const annotation = new Annotation(ctx.abcContext.generateId(), ctx.previous());
+  prnt_arr && prnt_arr.push(annotation);
+  return annotation;
 }
 
 // Parse a decoration
-function parseDecoration(ctx: ParseCtx): Decoration | null {
+function parseDecoration(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Decoration | null {
   if (!ctx.match(TT.DECORATION)) {
     return null;
   }
 
-  return new Decoration(ctx.abcContext.generateId(), ctx.previous());
+  const deco = new Decoration(ctx.abcContext.generateId(), ctx.previous());
+  prnt_arr && prnt_arr.push(deco);
+  return deco;
 }
 
 // Parse rhythm (common to notes, rests, etc.)
@@ -588,4 +509,11 @@ function parseRhythm(ctx: ParseCtx): Rhythm | undefined {
   }
 
   return hasRhythm ? new Rhythm(ctx.abcContext.generateId(), numerator, separator, denominator, broken) : undefined;
+}
+function prsSystems(musicElements: tune_body_code[]): System[] {
+  throw new Error("Function not implemented.");
+}
+
+function processBeamsInMusicCode(musicCode: Music_code): tune_body_code {
+  throw new Error("Function not implemented.");
 }
