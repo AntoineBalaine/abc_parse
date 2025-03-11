@@ -3,6 +3,8 @@ import { ABCContext } from "./Context";
 import {
   Annotation,
   BarLine,
+  Beam,
+  Beam_contents,
   Chord,
   Comment,
   Decoration,
@@ -27,6 +29,7 @@ import {
   music_code,
   tune_body_code,
 } from "../types/Expr2";
+import { foundBeam, beamEnd, isBeamContents } from "../helpers2";
 
 // Parse Context
 class ParseCtx {
@@ -96,7 +99,7 @@ export function parseTune(tokens: Token[], abcContext: ABCContext): Tune {
   // Parse body (music sections)
   const tuneBody = parseTuneBody(ctx);
 
-  return new Tune(ctx.abcContext, tuneHeader, tuneBody);
+  return new Tune(ctx.abcContext.generateId(), tuneHeader, tuneBody);
 }
 
 // Parse tune header (X:, T:, etc.)
@@ -107,7 +110,7 @@ function parseTuneHeader(ctx: ParseCtx): Tune_header {
   while (!ctx.isAtEnd() && isHeaderToken(ctx.peek())) {
     if (ctx.match(TT.COMMENT)) {
       // Directly use the comment token without additional parsing
-      infoLines.push(new Comment(ctx.abcContext, ctx.previous()));
+      infoLines.push(new Comment(ctx.abcContext.generateId(), ctx.previous()));
       continue;
     }
 
@@ -131,7 +134,7 @@ function parseTuneHeader(ctx: ParseCtx): Tune_header {
     ctx.advance();
   }
 
-  return new Tune_header(ctx.abcContext, infoLines, voices);
+  return new Tune_header(ctx.abcContext.generateId(), infoLines, voices);
 }
 
 // Parse an info line
@@ -151,7 +154,7 @@ function parseInfoLine(ctx: ParseCtx, field: Token): Info_line {
     tokens.push(ctx.previous());
   }
 
-  return new Info_line(ctx.abcContext, tokens);
+  return new Info_line(ctx.abcContext.generateId(), tokens);
 }
 
 // Check if a token is part of the tune header
@@ -164,6 +167,41 @@ function isHeaderToken(token: Token): boolean {
     token.type === TT.EOL ||
     token.type === TT.WS
   );
+}
+
+// Process beams within a Music_code instance
+function processBeamsInMusicCode(musicCode: Music_code): Music_code {
+  const contents = musicCode.contents;
+  const processedContents: Array<music_code> = [];
+  let beam: Array<Beam_contents> = [];
+  let i = 0;
+
+  while (i < contents.length) {
+    // Check if this is the start of a beam
+    if (foundBeam(contents, i)) {
+      // Collect all elements in the beam
+      while (i < contents.length && !beamEnd(contents, i)) {
+        beam.push(contents[i] as Beam_contents);
+        i++;
+      }
+
+      // Add the last element (which ends the beam)
+      if (i < contents.length) {
+        beam.push(contents[i] as Beam_contents);
+        i++;
+      }
+
+      // Create a new Beam and add it to the processed contents
+      processedContents.push(new Beam(musicCode.id, beam));
+      beam = [];
+    } else {
+      // Not part of a beam, add directly to processed contents
+      processedContents.push(contents[i]);
+      i++;
+    }
+  }
+
+  return new Music_code(musicCode.id, processedContents);
 }
 
 // Parse the tune body
@@ -180,7 +218,7 @@ function parseTuneBody(ctx: ParseCtx): Tune_Body {
     // Parse comments
     if (ctx.match(TT.COMMENT)) {
       // Directly use the comment token without additional parsing
-      musicElements.push(new Comment(ctx.abcContext, ctx.previous()));
+      musicElements.push(new Comment(ctx.abcContext.generateId(), ctx.previous()));
       continue;
     }
 
@@ -193,7 +231,9 @@ function parseTuneBody(ctx: ParseCtx): Tune_Body {
     // Parse music code
     const musicCode = parseMusicCode(ctx);
     if (musicCode) {
-      musicElements.push(musicCode);
+      // Process beams within the music code before adding it
+      const processedMusicCode = processBeamsInMusicCode(musicCode);
+      musicElements.push(processedMusicCode);
       continue;
     }
 
@@ -213,7 +253,7 @@ function parseTuneBody(ctx: ParseCtx): Tune_Body {
   // For simplicity, we'll put all elements in a single system for now
   const systems: Array<System> = [musicElements];
 
-  return new Tune_Body(ctx.abcContext, systems);
+  return new Tune_Body(ctx.abcContext.generateId(), systems);
 }
 
 // Parse music code
@@ -259,7 +299,7 @@ function parseMusicCode(ctx: ParseCtx): Music_code | null {
     return null;
   }
 
-  return new Music_code(ctx.abcContext, elements);
+  return new Music_code(ctx.abcContext.generateId(), elements);
 }
 
 // Parse a barline
@@ -277,7 +317,7 @@ function parseBarline(ctx: ParseCtx): BarLine | null {
     repeatNumbers = parseRepeatNumbers(ctx);
   }
 
-  return new BarLine(ctx.abcContext, barlineTokens, repeatNumbers);
+  return new BarLine(ctx.abcContext.generateId(), barlineTokens, repeatNumbers);
 }
 
 // Parse repeat numbers
@@ -321,7 +361,7 @@ function parseNote(ctx: ParseCtx): Note | null {
   // Use the last tie found (end tie takes precedence)
   const tie = endTie || startTie;
 
-  return new Note(ctx.abcContext, pitch, rhythm, tie);
+  return new Note(ctx.abcContext.generateId(), pitch, rhythm, tie);
 }
 
 // Parse a pitch
@@ -351,7 +391,7 @@ function parsePitch(ctx: ParseCtx): Pitch | null {
     octave = ctx.previous();
   }
 
-  return new Pitch(ctx.abcContext, { alteration, noteLetter, octave });
+  return new Pitch(ctx.abcContext.generateId(), { alteration, noteLetter, octave });
 }
 
 // Parse a rest
@@ -360,7 +400,7 @@ function parseRest(ctx: ParseCtx): Rest | null {
     return null;
   }
 
-  const rest = new Rest(ctx.abcContext, ctx.previous());
+  const rest = new Rest(ctx.abcContext.generateId(), ctx.previous());
 
   return rest;
 }
@@ -384,7 +424,7 @@ function parseChord(ctx: ParseCtx): Chord | null {
 
     // Try to parse an annotation
     if (ctx.check(TT.ANNOTATION)) {
-      contents.push(new Annotation(ctx.abcContext, ctx.advance()));
+      contents.push(new Annotation(ctx.abcContext.generateId(), ctx.advance()));
       continue;
     }
 
@@ -407,7 +447,7 @@ function parseChord(ctx: ParseCtx): Chord | null {
     tie = ctx.previous();
   }
 
-  return new Chord(ctx.abcContext, contents, rhythm, tie);
+  return new Chord(ctx.abcContext.generateId(), contents, rhythm, tie);
 }
 
 // Parse a grace note group
@@ -448,7 +488,7 @@ function parseGraceGroup(ctx: ParseCtx): Grace_group | null {
     ctx.report("Unterminated grace group - expected '}'");
   }
 
-  return new Grace_group(ctx.abcContext, notes, isAccacciatura);
+  return new Grace_group(ctx.abcContext.generateId(), notes, isAccacciatura);
 }
 
 // Parse a tuplet
@@ -473,7 +513,7 @@ function parseTuplet(ctx: ParseCtx): Tuplet | null {
   // For simplicity, we're not parsing the q and r parts separately
   // In a real implementation, you would create separate tokens for these
 
-  return new Tuplet(ctx.abcContext, p, q, r);
+  return new Tuplet(ctx.abcContext.generateId(), p, q, r);
 }
 
 // Parse a Y spacer
@@ -487,7 +527,7 @@ function parseYSpacer(ctx: ParseCtx): YSPACER | null {
   // Parse optional rhythm
   const rhythm = parseRhythm(ctx);
 
-  return new YSPACER(ctx.abcContext, ySpacer, rhythm);
+  return new YSPACER(ctx.abcContext.generateId(), ySpacer, rhythm);
 }
 
 // Parse a symbol
@@ -496,7 +536,7 @@ function parseSymbol(ctx: ParseCtx): Symbol | null {
     return null;
   }
 
-  return new Symbol(ctx.abcContext, ctx.previous());
+  return new Symbol(ctx.abcContext.generateId(), ctx.previous());
 }
 
 // Parse an annotation
@@ -505,7 +545,7 @@ function parseAnnotation(ctx: ParseCtx): Annotation | null {
     return null;
   }
 
-  return new Annotation(ctx.abcContext, ctx.previous());
+  return new Annotation(ctx.abcContext.generateId(), ctx.previous());
 }
 
 // Parse a decoration
@@ -514,7 +554,7 @@ function parseDecoration(ctx: ParseCtx): Decoration | null {
     return null;
   }
 
-  return new Decoration(ctx.abcContext, ctx.previous());
+  return new Decoration(ctx.abcContext.generateId(), ctx.previous());
 }
 
 // Parse rhythm (common to notes, rests, etc.)
@@ -547,5 +587,5 @@ function parseRhythm(ctx: ParseCtx): Rhythm | undefined {
     hasRhythm = true;
   }
 
-  return hasRhythm ? new Rhythm(ctx.abcContext, numerator, separator, denominator, broken) : undefined;
+  return hasRhythm ? new Rhythm(ctx.abcContext.generateId(), numerator, separator, denominator, broken) : undefined;
 }

@@ -47,8 +47,8 @@ export abstract class Expr {
 export class File_structure extends Expr {
   file_header: File_header | null;
   tune: Array<Tune>;
-  constructor(ctx: ABCContext, file_header: File_header | null, tune: Array<Tune>) {
-    super(ctx.generateId());
+  constructor(id: number, file_header: File_header | null, tune: Array<Tune>) {
+    super(id);
     this.file_header = file_header;
     this.tune = tune;
   }
@@ -61,8 +61,8 @@ export class Pitch extends Expr {
   alteration?: Token;
   noteLetter: Token;
   octave?: Token;
-  constructor(ctx: ABCContext, { alteration, noteLetter, octave }: { alteration?: Token; noteLetter: Token; octave?: Token }) {
-    super(ctx.generateId());
+  constructor(id: number, { alteration, noteLetter, octave }: { alteration?: Token; noteLetter: Token; octave?: Token }) {
+    super(id);
     this.alteration = alteration;
     this.noteLetter = noteLetter;
     this.octave = octave;
@@ -75,8 +75,8 @@ export class Pitch extends Expr {
 export class File_header extends Expr {
   text: string;
   tokens: Array<Token>;
-  constructor(ctx: ABCContext, text: string, tokens: Array<Token>) {
-    super(ctx.generateId());
+  constructor(id: number, text: string, tokens: Array<Token>) {
+    super(id);
     this.text = text;
     this.tokens = tokens;
   }
@@ -90,8 +90,8 @@ export class Info_line extends Expr {
   value: Array<Token>;
   metadata?: Array<Token>;
 
-  constructor(ctx: ABCContext, tokens: Array<Token>) {
-    super(ctx.generateId());
+  constructor(id: number, tokens: Array<Token>) {
+    super(id);
 
     this.key = tokens[0];
     const remainingTokens = tokens.slice(1);
@@ -112,8 +112,8 @@ export class Info_line extends Expr {
 
 export class Lyric_section extends Expr {
   info_lines: Array<Info_line>;
-  constructor(ctx: ABCContext, info_lines: Array<Info_line>) {
-    super(ctx.generateId());
+  constructor(id: number, info_lines: Array<Info_line>) {
+    super(id);
     this.info_lines = info_lines;
   }
   accept<R>(visitor: Visitor<R>): R {
@@ -124,8 +124,8 @@ export class Lyric_section extends Expr {
 export class Tune_header extends Expr {
   info_lines: Array<Info_line | Comment>;
   voices: Array<string>;
-  constructor(ctx: ABCContext, info_lines: Array<Info_line | Comment>, voices?: Array<string>) {
-    super(ctx.generateId());
+  constructor(id: number, info_lines: Array<Info_line | Comment>, voices?: Array<string>) {
+    super(id);
     this.info_lines = info_lines;
     this.voices = voices || [];
   }
@@ -136,8 +136,8 @@ export class Tune_header extends Expr {
 
 export class Comment extends Expr {
   token: Token;
-  constructor(ctx: ABCContext, token: Token) {
-    super(ctx.generateId());
+  constructor(id: number, token: Token) {
+    super(id);
     this.token = token;
   }
   accept<R>(visitor: Visitor<R>): R {
@@ -151,8 +151,8 @@ export type System = Array<tune_body_code>;
 export class Tune extends Expr {
   tune_header: Tune_header;
   tune_body?: Tune_Body;
-  constructor(ctx: ABCContext, tune_header: Tune_header, tune_body?: Tune_Body) {
-    super(ctx.generateId());
+  constructor(id: number, tune_header: Tune_header, tune_body?: Tune_Body) {
+    super(id);
     this.tune_header = tune_header;
     this.tune_body = tune_body;
   }
@@ -166,8 +166,8 @@ export class Rhythm extends Expr {
   separator?: Token;
   denominator?: Token | null;
   broken?: Token | null;
-  constructor(ctx: ABCContext, numerator: Token | null, separator?: Token, denominator?: Token | null, broken?: Token | null) {
-    super(ctx.generateId());
+  constructor(id: number, numerator: Token | null, separator?: Token, denominator?: Token | null, broken?: Token | null) {
+    super(id);
     this.numerator = numerator;
     this.separator = separator;
     this.denominator = denominator;
@@ -180,8 +180,8 @@ export class Rhythm extends Expr {
 
 export class Voice_overlay extends Expr {
   contents: Array<Token>;
-  constructor(ctx: ABCContext, contents: Array<Token>) {
-    super(ctx.generateId());
+  constructor(id: number, contents: Array<Token>) {
+    super(id);
     this.contents = contents;
   }
   accept<R>(visitor: Visitor<R>): R {
@@ -197,8 +197,8 @@ export class Tuplet extends Expr {
   p: Token;
   q?: Array<Token>;
   r?: Array<Token>;
-  constructor(ctx: ABCContext, p: Token, q?: Array<Token>, r?: Array<Token>) {
-    super(ctx.generateId());
+  constructor(id: number, p: Token, q?: Array<Token>, r?: Array<Token>) {
+    super(id);
     this.p = p;
     this.q = q;
     this.r = r;
@@ -210,8 +210,8 @@ export class Tuplet extends Expr {
 
 export class Rest extends Expr {
   rest: Token;
-  constructor(ctx: ABCContext, rest: Token) {
-    super(ctx.generateId());
+  constructor(id: number, rest: Token) {
+    super(id);
     this.rest = rest;
   }
   accept<R>(visitor: Visitor<R>): R {
@@ -223,8 +223,8 @@ export class Note extends Expr {
   pitch: Pitch | Rest;
   rhythm?: Rhythm;
   tie?: Token;
-  constructor(ctx: ABCContext, pitch: Pitch | Rest, rhythm?: Rhythm, tie?: Token) {
-    super(ctx.generateId());
+  constructor(id: number, pitch: Pitch | Rest, rhythm?: Rhythm, tie?: Token) {
+    super(id);
     this.pitch = pitch;
     this.rhythm = rhythm;
     this.tie = tie;
@@ -237,8 +237,8 @@ export class Note extends Expr {
 export class MultiMeasureRest extends Expr {
   rest: Token;
   length?: Token;
-  constructor(ctx: ABCContext, rest: Token, length?: Token) {
-    super(ctx.generateId());
+  constructor(id: number, rest: Token, length?: Token) {
+    super(id);
     this.rest = rest;
     this.length = length;
   }
@@ -249,8 +249,8 @@ export class MultiMeasureRest extends Expr {
 
 export class Symbol extends Expr {
   symbol: Token;
-  constructor(ctx: ABCContext, symbol: Token) {
-    super(ctx.generateId());
+  constructor(id: number, symbol: Token) {
+    super(id);
     this.symbol = symbol;
   }
   accept<R>(visitor: Visitor<R>): R {
@@ -261,8 +261,8 @@ export class Symbol extends Expr {
 export class Grace_group extends Expr {
   notes: Array<Note | Token>;
   isAccacciatura?: boolean;
-  constructor(ctx: ABCContext, notes: Array<Note | Token>, isAccacciatura?: boolean) {
-    super(ctx.generateId());
+  constructor(id: number, notes: Array<Note | Token>, isAccacciatura?: boolean) {
+    super(id);
     this.notes = notes;
     this.isAccacciatura = isAccacciatura;
   }
@@ -274,8 +274,8 @@ export class Grace_group extends Expr {
 export class Inline_field extends Expr {
   field: Token;
   text: Array<Token>;
-  constructor(ctx: ABCContext, field: Token, text: Array<Token>) {
-    super(ctx.generateId());
+  constructor(id: number, field: Token, text: Array<Token>) {
+    super(id);
     this.field = field;
     this.text = text;
   }
@@ -288,8 +288,8 @@ export class Chord extends Expr {
   contents: Array<Note | Token | Annotation>;
   rhythm?: Rhythm;
   tie?: Token;
-  constructor(ctx: ABCContext, contents: Array<Note | Token | Annotation>, rhythm?: Rhythm, tie?: Token) {
-    super(ctx.generateId());
+  constructor(id: number, contents: Array<Note | Token | Annotation>, rhythm?: Rhythm, tie?: Token) {
+    super(id);
     this.contents = contents;
     this.rhythm = rhythm;
     this.tie = tie;
@@ -301,8 +301,8 @@ export class Chord extends Expr {
 
 export class Tune_Body extends Expr {
   sequence: Array<System>;
-  constructor(ctx: ABCContext, sequence: Array<System>) {
-    super(ctx.generateId());
+  constructor(id: number, sequence: Array<System>) {
+    super(id);
     this.sequence = sequence;
   }
   accept<R>(visitor: Visitor<R>): R {
@@ -312,8 +312,8 @@ export class Tune_Body extends Expr {
 
 export class Annotation extends Expr {
   text: Token;
-  constructor(ctx: ABCContext, text: Token) {
-    super(ctx.generateId());
+  constructor(id: number, text: Token) {
+    super(id);
     this.text = text;
   }
   accept<R>(visitor: Visitor<R>): R {
@@ -325,8 +325,8 @@ export class BarLine extends Expr {
   barline: Array<Token>;
   repeatNumbers?: Token[]; // Optional repeat numbers
 
-  constructor(ctx: ABCContext, barline: Array<Token>, repeatNumbers?: Array<Token>) {
-    super(ctx.generateId());
+  constructor(id: number, barline: Array<Token>, repeatNumbers?: Array<Token>) {
+    super(id);
     this.barline = barline;
     this.repeatNumbers = repeatNumbers;
   }
@@ -353,8 +353,8 @@ export type music_code =
 
 export class Music_code extends Expr {
   contents: Array<music_code>;
-  constructor(ctx: ABCContext, contents: Array<music_code>) {
-    super(ctx.generateId());
+  constructor(id: number, contents: Array<music_code>) {
+    super(id);
     this.contents = contents;
   }
   accept<R>(visitor: Visitor<R>): R {
@@ -379,8 +379,8 @@ export type Beam_contents =
 
 export class Beam extends Expr {
   contents: Array<Beam_contents>;
-  constructor(ctx: ABCContext, contents: Array<Beam_contents>) {
-    super(ctx.generateId());
+  constructor(id: number, contents: Array<Beam_contents>) {
+    super(id);
     this.contents = contents;
   }
   accept<R>(visitor: Visitor<R>): R {
@@ -390,8 +390,8 @@ export class Beam extends Expr {
 
 export class Decoration extends Expr {
   decoration: Token;
-  constructor(ctx: ABCContext, decoration: Token) {
-    super(ctx.generateId());
+  constructor(id: number, decoration: Token) {
+    super(id);
     this.decoration = decoration;
   }
   accept<R>(visitor: Visitor<R>): R {
@@ -403,8 +403,8 @@ export class YSPACER extends Expr {
   ySpacer: Token;
   rhythm?: Rhythm;
 
-  constructor(ctx: ABCContext, ySpacer: Token, rhythm?: Rhythm) {
-    super(ctx.generateId());
+  constructor(id: number, ySpacer: Token, rhythm?: Rhythm) {
+    super(id);
     this.ySpacer = ySpacer;
     this.rhythm = rhythm;
   }
@@ -416,12 +416,12 @@ export class YSPACER extends Expr {
 
 export class ErrorExpr extends Expr {
   constructor(
-    ctx: ABCContext,
+    id: number,
     public tokens: Token[], // The problematic tokens
     public expectedType?: TT,
     public errorMessage?: string
   ) {
-    super(ctx.generateId());
+    super(id);
     this.tokens = tokens;
     this.expectedType = expectedType;
     this.errorMessage = errorMessage;
