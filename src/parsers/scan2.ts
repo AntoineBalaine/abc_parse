@@ -1,4 +1,3 @@
-import { File_header, File_structure, Tune } from "../types/Expr";
 import { AbcErrorReporter } from "./ErrorReporter";
 import { comment, pEOL, pInfoLine, pSectionBrk, pTuneHeadStrt, scanTune } from "./scan_tunebody";
 
@@ -116,7 +115,7 @@ export function freeText(ctx: Ctx) {
 
 export function WS(ctx: Ctx): boolean {
   // Handle whitespace and newlines
-  if (ctx.test(/ /)) {
+  while (ctx.test(/[ \t]+/)) {
     advance(ctx);
     ctx.push(TT.WS);
     return true;
