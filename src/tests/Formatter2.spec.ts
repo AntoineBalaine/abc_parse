@@ -124,7 +124,8 @@ describe("AbcFormatter2", () => {
       });
 
       it("handles stylesheet directives", () => {
-        assert.equal(format("X:1\n%%score 1\nCDEF|", ctx, formatter), "X:1\n%%score 1\nCDEF |");
+        const fmt = format("X:1\n%%score 1\nCDEF|", ctx, formatter);
+        assert.equal(fmt, "X:1\n%%score 1\nCDEF |");
       });
 
       it("preserves empty lines", () => {
@@ -733,8 +734,8 @@ K:C
 describe("Formatter2", function () {
   describe("formats text", function () {
     const input = "X:1\n[V:T1] (B2c2 d2g2)   | f6e2   |   (d2c2 d2)e2 | d4 c2z2 |";
-    const expected_no_format = (" " + input).slice(1);
-    const expected_fmt = "[V:T1] (B2c2 d2g2) | f6e2 | (d2c2 d2)e2 | d4 c2z2 |";
+    const expected_no_format = "[V:T1] (B2c2 d2g2)   | f6e2   |   (d2c2 d2)e2 | d4 c2z2 |";
+    const expected_fmt = "[V:T1] (B2c2 d2g2) | f6e2 | (d2c2 d2)e2 | d4 c2 z2 |";
 
     it("can visit the tree without modifying source", function () {
       const ctx = new ABCContext();
@@ -866,7 +867,7 @@ describe("Formatter2: Error Preservation", () => {
       input: "X:1\nab | \\   ",
       expected: "ab | \\",
     },
-    { title: "error at end of input", input: "abcî", expected: "abc î" },
+    { title: "error at end of input", input: "X:1\nabcî", expected: "abc î" },
   ];
 
   // Test both stringify and format methods

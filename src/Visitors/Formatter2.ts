@@ -7,11 +7,17 @@ import {
   Chord,
   Comment,
   Decoration,
+  Directive,
+  ErrorExpr,
   Expr,
+  File_header,
+  File_structure,
   Grace_group,
   Info_line,
   Inline_field,
+  Lyric_section,
   MultiMeasureRest,
+  Music_code,
   Note,
   Pitch,
   Rest,
@@ -22,6 +28,8 @@ import {
   Tune_Body,
   Tune_header,
   Tuplet,
+  Visitor,
+  Voice_overlay,
   YSPACER,
   tune_body_code,
 } from "../types/Expr2";
@@ -43,7 +51,7 @@ import { resolveRules } from "./fmt2/fmt_rules_assignment";
  * const fmt: string = new AbcFormatter2(new ABCContext()).format(ast);
  * ```
  */
-export class AbcFormatter2 {
+export class AbcFormatter2 implements Visitor<string> {
   ctx: ABCContext;
   constructor(ctx: ABCContext) {
     this.ctx = ctx;
@@ -66,60 +74,53 @@ export class AbcFormatter2 {
 
   stringify(expr: Expr | Token): string {
     this.no_format = true;
-    let fmt = "";
-    if (isToken(expr)) {
-      fmt = expr.lexeme;
-    } else {
-      fmt = this.visitExpr(expr);
-    }
+
+    const fmt = isToken(expr) ? expr.lexeme : expr.accept(this);
     this.no_format = false;
     return fmt;
   }
 
-  visitExpr(expr: Expr): string {
-    if (expr instanceof Annotation) {
-      return this.visitAnnotationExpr(expr);
-    } else if (expr instanceof BarLine) {
-      return this.visitBarLineExpr(expr);
-    } else if (expr instanceof Beam) {
-      return this.visitBeamExpr(expr);
-    } else if (expr instanceof Chord) {
-      return this.visitChordExpr(expr);
-    } else if (expr instanceof Comment) {
-      return this.visitCommentExpr(expr);
-    } else if (expr instanceof Decoration) {
-      return this.visitDecorationExpr(expr);
-    } else if (expr instanceof Grace_group) {
-      return this.visitGraceGroupExpr(expr);
-    } else if (expr instanceof Info_line) {
-      return this.visitInfoLineExpr(expr);
-    } else if (expr instanceof Inline_field) {
-      return this.visitInlineFieldExpr(expr);
-    } else if (expr instanceof MultiMeasureRest) {
-      return this.visitMultiMeasureRestExpr(expr);
-    } else if (expr instanceof Note) {
-      return this.visitNoteExpr(expr);
-    } else if (expr instanceof Pitch) {
-      return this.visitPitchExpr(expr);
-    } else if (expr instanceof Rest) {
-      return this.visitRestExpr(expr);
-    } else if (expr instanceof Rhythm) {
-      return this.visitRhythmExpr(expr);
-    } else if (expr instanceof Symbol) {
-      return this.visitSymbolExpr(expr);
-    } else if (expr instanceof Tune_Body) {
-      return this.visitTuneBodyExpr(expr);
-    } else if (expr instanceof Tune) {
-      return this.visitTuneExpr(expr);
-    } else if (expr instanceof Tune_header) {
-      return this.visitTuneHeaderExpr(expr);
-    } else if (expr instanceof Tuplet) {
-      return this.visitTupletExpr(expr);
-    } else if (expr instanceof YSPACER) {
-      return this.visitYSpacerExpr(expr);
-    } else {
-      return ""; // Default case
+  visitLyricSectionExpr(expr: Lyric_section) {
+    return expr.info_lines
+      .map((info_line): string => {
+        return info_line.accept(this);
+      })
+      .join("\n");
+  }
+  visitFileStructureExpr(expr: File_structure) {
+    let formattedFile = "";
+    if (expr.file_header) {
+      formattedFile += expr.file_header.accept(this);
     }
+    const formattedTunes = expr.tune.map((tune): string => {
+      return tune.accept(this);
+    });
+    return formattedFile + formattedTunes.join(formattedFile.length > 0 ? "\n" : "");
+  }
+
+  visitFileHeaderExpr(expr: File_header) {
+    //TODO should I return tokens here as well?
+    return expr.text;
+  }
+
+  visitDirectiveExpr(expr: Directive): string {
+    return expr.token.lexeme;
+  }
+
+  visitVoiceOverlayExpr(expr: Voice_overlay) {
+    return expr.contents.map((token): string => token.lexeme).join("");
+  }
+
+  visitMusicCodeExpr(expr: Music_code): string {
+    return expr.contents
+      .map((content) => {
+        if (content instanceof Token) {
+          return content.lexeme;
+        } else {
+          return content.accept(this);
+        }
+      })
+      .join("");
   }
 
   visitAnnotationExpr(expr: Annotation): string {
@@ -140,7 +141,7 @@ export class AbcFormatter2 {
         if (isToken(content)) {
           return content.lexeme;
         } else {
-          return this.visitExpr(content);
+          return content.accept(this);
         }
       })
       .join("");
@@ -244,7 +245,11 @@ export class AbcFormatter2 {
   }
 
   visitRestExpr(expr: Rest): string {
-    return expr.rest.lexeme;
+    let rv = expr.rest.lexeme;
+    if (expr.rhythm) {
+      rv += this.visitRhythmExpr(expr.rhythm);
+    }
+    return rv;
   }
 
   visitRhythmExpr(expr: Rhythm): string {
@@ -294,7 +299,7 @@ export class AbcFormatter2 {
             if (isToken(node)) {
               return node.lexeme;
             } else {
-              return this.visitExpr(node);
+              return node.accept(this);
             }
           })
           .join("");
@@ -314,13 +319,7 @@ export class AbcFormatter2 {
   visitTuneHeaderExpr(expr: Tune_header): string {
     const info_lines = expr.info_lines.map((infoLine): string => {
       let rv = "";
-      if (infoLine instanceof Comment) {
-        rv = this.visitCommentExpr(infoLine);
-      } else if (infoLine instanceof Info_line) {
-        rv = this.visitInfoLineExpr(infoLine);
-      } else {
-        rv = this.visitExpr(infoLine);
-      }
+      rv = infoLine.accept(this);
       rv += "\n";
       return rv;
     });
@@ -337,5 +336,9 @@ export class AbcFormatter2 {
 
   visitTupletExpr(expr: Tuplet): string {
     return expr.p.lexeme;
+  }
+
+  visitErrorExpr(expr: ErrorExpr): string {
+    return expr.tokens.map((token) => token.lexeme).join("");
   }
 }
