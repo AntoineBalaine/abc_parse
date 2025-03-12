@@ -1,6 +1,7 @@
 import { isChord, isNote } from "../../helpers2";
 import { Token, TT } from "../../parsers/scan2";
 import { BarLine, Beam, Comment, Expr, Info_line, MultiMeasureRest, System, tune_body_code } from "../../types/Expr2";
+import { toVoices } from "./fmt_voiceSplitter";
 
 export type NodeID = number;
 export type TimeStamp = number;
@@ -41,20 +42,41 @@ export function hashToken(token: Token): number {
 }
 
 export function findFmtblLines(system: System): VoiceSplit[] {
-  const splits = splitLines(system);
-  return splits.map((split) => {
-    if (isFormattableLine(split)) {
-      return {
-        type: "formatted",
-        content: split,
-      };
-    } else {
-      return {
-        type: "noformat",
-        content: split,
-      };
-    }
-  });
+  // First, try to split by voice overlays
+  const voiceSplits = toVoices(system);
+
+  if (voiceSplits) {
+    // If we have voice overlays, process each voice
+    return voiceSplits.map((voice) => {
+      if (isFormattableLine(voice)) {
+        return {
+          type: "formatted",
+          content: voice,
+        };
+      } else {
+        return {
+          type: "noformat",
+          content: voice,
+        };
+      }
+    });
+  } else {
+    // Otherwise, split by lines
+    const splits = splitLines(system);
+    return splits.map((split) => {
+      if (isFormattableLine(split)) {
+        return {
+          type: "formatted",
+          content: split,
+        };
+      } else {
+        return {
+          type: "noformat",
+          content: split,
+        };
+      }
+    });
+  }
 }
 
 // Helper functions for type checking

@@ -27,7 +27,7 @@ import {
 } from "../types/Expr2";
 import { Token } from "../parsers/scan2";
 import { SystemAligner2 } from "./fmt2/fmt_aligner";
-import { resolveRules } from "./fmt/fmt_rules_assignment";
+import { resolveRules } from "./fmt2/fmt_rules_assignment";
 
 /**
  * A pretty printer for a score's AST.
@@ -55,11 +55,10 @@ export class AbcFormatter2 {
   format(ast: Tune): string {
     this.no_format = false;
     // 1. Rules resolution phase
-    // TODO: Implement rules resolution for the new parser
-    // let withRules = resolveRules(ast, this.ctx);
+    let withRules = resolveRules(ast, this.ctx);
 
     // 2. align multi-voices tunes
-    let alignedTune = new SystemAligner2(this.ctx, this).alignTune(ast);
+    let alignedTune = new SystemAligner2(this.ctx, this).alignTune(withRules);
 
     // 3. Print using visitor
     return this.stringify(alignedTune);
