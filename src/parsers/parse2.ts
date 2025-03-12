@@ -26,6 +26,7 @@ import {
   Beam_contents,
   Directive,
   Inline_field,
+  MultiMeasureRest,
 } from "../types/Expr2";
 import { isBeamBreaker, foundBeam, followedBy } from "../helpers2";
 
@@ -349,16 +350,35 @@ export function parsePitch(ctx: ParseCtx): Pitch | null {
 }
 
 // Parse a rest
-export function parseRest(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Rest | null {
+export function parseRest(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Rest | MultiMeasureRest | null {
   if (!ctx.match(TT.REST)) {
     return null;
   }
 
   const rest_token = ctx.previous();
   const rhythm = parseRhythm(ctx);
-  const rest = new Rest(ctx.abcContext.generateId(), rest_token, rhythm);
-  prnt_arr && prnt_arr.push(rest);
-  return rest;
+
+  // Check if this is a multi-measure rest (uppercase Z or X)
+  const isMultiMeasureRest = /^[ZX]$/.test(rest_token.lexeme);
+
+  if (isMultiMeasureRest) {
+    // For multi-measure rests, only the numerator should be used as the length
+    let length = rhythm?.numerator || null;
+
+    // Report an error if the rhythm contains other tokens
+    if (rhythm && (rhythm.separator || rhythm.denominator || rhythm.broken)) {
+      ctx.report("Multi-measure rest should only have a numerator for length");
+    }
+
+    const mmRest = new MultiMeasureRest(ctx.abcContext.generateId(), rest_token, length || undefined);
+    prnt_arr && prnt_arr.push(mmRest);
+    return mmRest;
+  } else {
+    // Regular rest
+    const rest = new Rest(ctx.abcContext.generateId(), rest_token, rhythm);
+    prnt_arr && prnt_arr.push(rest);
+    return rest;
+  }
 }
 
 // Parse a chord

@@ -43,6 +43,7 @@ import {
   Info_line,
   Comment,
   Directive,
+  MultiMeasureRest,
 } from "../types/Expr2";
 
 // Helper function to create a token with the given type and lexeme
@@ -318,6 +319,83 @@ describe("parse2.ts", () => {
       assert.isNotNull(result);
       assert.instanceOf(result, Rest);
       assert.equal(result?.rest.lexeme, "z");
+    });
+
+    it("should parse a rest with rhythm", () => {
+      const tokens = [createToken(TT.REST, "z"), createToken(TT.RHY_NUMER, "2")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRest(ctx);
+
+      assert.isNotNull(result);
+      assert.instanceOf(result, Rest);
+      assert.equal(result?.rest.lexeme, "z");
+      assert.instanceOf(result?.rhythm, Rhythm);
+      assert.equal(result?.rhythm?.numerator?.lexeme, "2");
+    });
+
+    it("should parse a multi-measure rest (uppercase Z)", () => {
+      const tokens = [createToken(TT.REST, "Z"), createToken(TT.RHY_NUMER, "4")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRest(ctx);
+
+      assert.isNotNull(result);
+      assert.instanceOf(result, MultiMeasureRest);
+      assert.equal(result?.rest.lexeme, "Z");
+      assert.isDefined(result?.length);
+      assert.equal(result?.length?.lexeme, "4");
+    });
+
+    it("should parse an invisible multi-measure rest (uppercase X)", () => {
+      const tokens = [createToken(TT.REST, "X"), createToken(TT.RHY_NUMER, "4")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRest(ctx);
+
+      assert.isNotNull(result);
+      assert.instanceOf(result, MultiMeasureRest);
+      assert.equal(result?.rest.lexeme, "X");
+      assert.isDefined(result?.length);
+      assert.equal(result?.length?.lexeme, "4");
+    });
+
+    it("should parse a multi-measure rest without length", () => {
+      const tokens = [createToken(TT.REST, "Z")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRest(ctx);
+
+      assert.isNotNull(result);
+      assert.instanceOf(result, MultiMeasureRest);
+      assert.equal(result?.rest.lexeme, "Z");
+      assert.isUndefined(result?.length);
+    });
+
+    it("should parse a multi-measure rest with length", () => {
+      const tokens = [createToken(TT.REST, "Z"), createToken(TT.RHY_NUMER, "2")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRest(ctx);
+
+      assert.isNotNull(result);
+      assert.instanceOf(result, MultiMeasureRest);
+      assert.equal(result?.rest.lexeme, "Z");
+      assert.isDefined(result?.length);
+      assert.equal(result?.length.lexeme, "2");
+    });
+
+    it("should report an error for multi-measure rest with complex rhythm", () => {
+      const tokens = [createToken(TT.REST, "Z"), createToken(TT.RHY_NUMER, "3"), createToken(TT.RHY_SEP, "/"), createToken(TT.RHY_DENOM, "2")];
+      const ctx = createParseCtx(tokens);
+
+      const result = parseRest(ctx);
+
+      assert.isNotNull(result);
+      assert.instanceOf(result, MultiMeasureRest);
+      assert.equal(result?.rest.lexeme, "Z");
+      assert.isDefined(result?.length);
+      assert.equal(result?.length?.lexeme, "3");
     });
 
     it("should return null for non-rest tokens", () => {
