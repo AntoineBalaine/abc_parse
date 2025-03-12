@@ -96,7 +96,7 @@ export function expandMultiMeasureRests(system: System, ctx: ABCContext): System
       // Add first Z
       const firstRestCtx = new Ctx(is_invisible_rest ? "X" : "Z");
       firstRestCtx.current = firstRestCtx.source.length;
-      const firstRest = new Token(TT.NOTE_LETTER, firstRestCtx);
+      const firstRest = new Token(TT.REST, firstRestCtx);
       expanded.push(new MultiMeasureRest(node.id, firstRest));
 
       // Add barline and Z for remaining measures
@@ -108,7 +108,7 @@ export function expandMultiMeasureRests(system: System, ctx: ABCContext): System
 
         const restCtx = new Ctx(is_invisible_rest ? "X" : "Z");
         restCtx.current = restCtx.source.length;
-        const restToken = new Token(TT.NOTE_LETTER, restCtx);
+        const restToken = new Token(TT.REST, restCtx);
         expanded.push(new MultiMeasureRest(node.id + i * 1000 + 1, restToken));
       }
     } else {
