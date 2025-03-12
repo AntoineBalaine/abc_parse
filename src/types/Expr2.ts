@@ -221,9 +221,11 @@ export class Tuplet extends Expr {
 
 export class Rest extends Expr {
   rest: Token;
-  constructor(id: number, rest: Token) {
+  rhythm?: Rhythm;
+  constructor(id: number, rest: Token, rhythm?: Rhythm) {
     super(id);
     this.rest = rest;
+    this.rhythm = rhythm;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitRestExpr(this);

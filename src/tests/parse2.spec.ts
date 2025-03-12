@@ -1231,13 +1231,8 @@ describe("parse2.ts", () => {
     it("should handle empty token list", () => {
       const tokens: Token[] = [];
       const ctx = createParseCtx(tokens);
-
       const result = parseMusicCode(ctx);
-
-      assert.isNotNull(result);
-      assert.isArray(result);
-      assert.equal(result.length, 0);
-      assert.equal(ctx.current, 0);
+      assert.isNull(result);
     });
 
     it("should handle unexpected tokens", () => {
@@ -1245,9 +1240,7 @@ describe("parse2.ts", () => {
       const tokens = [createToken(TT.EOF, "")];
       const ctx = createParseCtx(tokens);
       const result = parseMusicCode(ctx);
-      assert.isNotNull(result);
-      assert.isArray(result);
-      assert.equal(result.length, 0);
+      assert.isNull(result);
     });
 
     it("should use the provided array to store elements if given", () => {
@@ -1258,7 +1251,6 @@ describe("parse2.ts", () => {
       const result = parseMusicCode(ctx, elements);
 
       assert.isNotNull(result);
-      assert.strictEqual(result, elements); // Should return the same array
       assert.equal(elements.length, 1);
       assert.instanceOf(elements[0], Note);
     });

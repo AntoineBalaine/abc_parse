@@ -205,7 +205,7 @@ export function prcssBms(elmnts: Array<Expr | Token>, abcContext: ABCContext): A
 
 // Parse music code
 export function parseMusicCode(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Array<Expr | Token> | null {
-  const elements: Array<Expr | Token> = prnt_arr ?? [];
+  const elements: Array<Expr | Token> = [];
 
   while (!ctx.isAtEnd() && !ctx.check(TT.EOL) && !ctx.check(TT.COMMENT) && !ctx.check(TT.INF_HDR) && !ctx.check(TT.SCT_BRK)) {
     // Try each element parser in order
@@ -222,13 +222,15 @@ export function parseMusicCode(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): A
       parseDecoration(ctx, elements);
     if (element) continue;
 
-    // If we couldn't parse any element, skip the token
-    if (!ctx.isAtEnd()) {
-      ctx.report(`Unexpected token in music code: ${ctx.peek().type}`);
-    }
+    break;
   }
-
-  return elements;
+  if (elements.length > 0) {
+    if (prnt_arr) {
+      elements.forEach((e) => prnt_arr.push(e));
+    }
+    return elements;
+  }
+  return null;
 }
 
 // Parse a barline
@@ -333,7 +335,9 @@ export function parseRest(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Rest |
     return null;
   }
 
-  const rest = new Rest(ctx.abcContext.generateId(), ctx.previous());
+  const rest_token = ctx.previous();
+  const rhythm = parseRhythm(ctx);
+  const rest = new Rest(ctx.abcContext.generateId(), rest_token, rhythm);
   prnt_arr && prnt_arr.push(rest);
   return rest;
 }
