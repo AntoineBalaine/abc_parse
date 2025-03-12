@@ -16,6 +16,11 @@ import {
   music_code,
 } from "./types/Expr2";
 
+// Check if an element is a token
+export function isToken(element: Expr | Token): element is Token {
+  return element instanceof Token;
+}
+
 // Check if an element is a note
 export function isNote(element: Expr | Token): element is Note {
   return element instanceof Note;

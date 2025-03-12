@@ -1,0 +1,101 @@
+import { isChord, isNote } from "../../helpers2";
+import { Token, TT } from "../../parsers/scan2";
+import { BarLine, Beam, Comment, Expr, Info_line, MultiMeasureRest, System, tune_body_code } from "../../types/Expr2";
+
+export type NodeID = number;
+export type TimeStamp = number;
+
+export interface VoiceSplit {
+  type: "formatted" | "noformat";
+  content: System;
+}
+
+export interface Location {
+  voiceIdx: number;
+  nodeID: number;
+}
+
+export interface BarTimeMap {
+  startNodeId: NodeID;
+  map: Map<TimeStamp, NodeID>;
+}
+
+export interface BarAlignment {
+  startNodes: Map<number, NodeID>; // voiceIdx -> startNodeId
+  map: Map<TimeStamp, Array<Location>>;
+}
+
+// Helper function to safely get the ID of an expression or token
+export function getNodeId(node: Expr | Token): NodeID {
+  if (node instanceof Expr) {
+    return node.id;
+  }
+  // For tokens, we'll use a hash of their properties as an ID
+  return hashToken(node);
+}
+
+// Simple hash function for tokens
+export function hashToken(token: Token): number {
+  // Use line, position, and type as a simple hash
+  return token.line * 10000 + token.position * 100 + token.type;
+}
+
+export function findFmtblLines(system: System): VoiceSplit[] {
+  const splits = splitLines(system);
+  return splits.map((split) => {
+    if (isFormattableLine(split)) {
+      return {
+        type: "formatted",
+        content: split,
+      };
+    } else {
+      return {
+        type: "noformat",
+        content: split,
+      };
+    }
+  });
+}
+
+// Helper functions for type checking
+export function isToken(element: Expr | Token): element is Token {
+  return element instanceof Token;
+}
+
+export function isBarLine(element: Expr | Token): element is BarLine {
+  return element instanceof BarLine;
+}
+
+export function isBeam(element: Expr | Token): element is Beam {
+  return element instanceof Beam;
+}
+
+export function isMultiMeasureRest(element: Expr | Token): element is MultiMeasureRest {
+  return element instanceof MultiMeasureRest;
+}
+
+export function splitLines(system: System): System[] {
+  const splits: System[] = [];
+  let currentSplit: System = [];
+
+  for (const node of system) {
+    if (isToken(node) && node.type === TT.EOL) {
+      currentSplit.push(node);
+      splits.push(currentSplit);
+      currentSplit = [];
+    } else {
+      currentSplit.push(node);
+    }
+  }
+
+  if (currentSplit.length > 0) {
+    splits.push(currentSplit);
+  }
+
+  return splits;
+}
+
+function isFormattableLine(line: System): boolean {
+  // Check if line contains music content that needs formatting
+  return line.some((node) => isNote(node) || isBeam(node) || isBarLine(node) || isMultiMeasureRest(node) || isChord(node));
+}
