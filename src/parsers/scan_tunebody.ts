@@ -142,7 +142,7 @@ export function rhythm(ctx: Ctx): boolean {
 
 export function pitch(ctx: Ctx): boolean {
   accidental(ctx);
-  if (!ctx.test(/[a-gA-g]/)) {
+  if (!ctx.test(/[a-gA-G]/)) {
     ctx.report("Expected pitch");
     return false;
   }
