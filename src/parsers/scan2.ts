@@ -172,6 +172,7 @@ export enum TT {
   INF_HDR,
   INLN_FLD_LFT_BRKT,
   INLN_FLD_RGT_BRKT,
+  INVALID, // For invalid tokens that should be preserved
   NOTE_LETTER,
   OCTAVE,
   RESERVED_CHAR,

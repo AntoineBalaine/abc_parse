@@ -27,6 +27,7 @@ import {
   Directive,
   Inline_field,
   MultiMeasureRest,
+  ErrorExpr,
 } from "../types/Expr2";
 import { isBeamBreaker, foundBeam, followedBy } from "../helpers2";
 
@@ -227,7 +228,7 @@ export function parseMusicCode(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): A
   const elements: Array<Expr | Token> = [];
 
   while (!ctx.isAtEnd() && !ctx.check(TT.EOL) && !ctx.check(TT.COMMENT) && !ctx.check(TT.INF_HDR) && !ctx.check(TT.SCT_BRK)) {
-    // Try each element parser in order
+    // Try each element parser in order of precedence
     const element =
       parseAnnotation(ctx, elements) ||
       parseBarline(ctx, elements) ||
@@ -239,7 +240,8 @@ export function parseMusicCode(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): A
       parseRest(ctx, elements) ||
       parseSymbol(ctx, elements) ||
       parseTuplet(ctx, elements) ||
-      parseYSpacer(ctx, elements);
+      parseYSpacer(ctx, elements) ||
+      parseInvalidToken(ctx, elements); // Add handling for invalid tokens
     if (element) continue;
 
     break;
@@ -251,6 +253,19 @@ export function parseMusicCode(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): A
     return elements;
   }
   return null;
+}
+
+// Parse an invalid token into an ErrorExpr
+export function parseInvalidToken(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): ErrorExpr | null {
+  if (!ctx.check(TT.INVALID)) {
+    return null;
+  }
+
+  const token = ctx.advance();
+  const errorExpr = new ErrorExpr(ctx.abcContext.generateId(), [token], undefined, `Invalid token: ${token.lexeme}`);
+
+  prnt_arr && prnt_arr.push(errorExpr);
+  return errorExpr;
 }
 
 // Parse a barline

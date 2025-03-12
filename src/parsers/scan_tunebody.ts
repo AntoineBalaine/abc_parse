@@ -384,10 +384,44 @@ export function scanTune(ctx: Ctx) {
     if (bcktck_spc(ctx)) continue;
     if (WS(ctx)) continue;
     if (EOL(ctx)) continue;
-    // If no match is found, report an error and advance
-    ctx.report(`Unexpected character: ${peek(ctx)}`);
+    // If no match is found, collect invalid characters into a token
+    collectInvalidToken(ctx);
+  }
+}
+
+// Collect invalid characters into a token
+export function collectInvalidToken(ctx: Ctx): boolean {
+  // Store the starting position to ensure we capture all characters
+  const startPos = ctx.current;
+
+  // Advance until we find a character that could start a valid token
+  // or until we reach the end of the line or input
+  while (!isAtEnd(ctx) && !ctx.test(pEOL) && !isRecoveryPoint(ctx)) {
     advance(ctx);
   }
+
+  // If we collected any characters, create an INVALID token
+  if (ctx.current > startPos) {
+    // Make sure we set the start position to the beginning of the invalid token
+    ctx.start = startPos;
+    ctx.report(`Invalid token: ${ctx.source.slice(ctx.start, ctx.current)}`);
+    ctx.push(TT.INVALID);
+    return true;
+  }
+
+  // If we didn't collect any characters (shouldn't happen), just advance
+  advance(ctx);
+  return false;
+}
+
+// Check if the current character could start a valid token
+function isRecoveryPoint(ctx: Ctx): boolean {
+  // Check for characters that could start valid tokens
+  return (
+    ctx.test(pEOL) || // stylesheet directive
+    ctx.test(/[ \t]/) ||
+    ctx.test(pBrLn) // comment
+  );
 }
 
 /**
