@@ -57,7 +57,7 @@ export function stringifyVoiceSlice(voice: System, startId: NodeID, endId: NodeI
 function getBarsIndexes(voice: System): number[] {
   const bars: Array<number> = [-1];
 
-  voice.forEach((node: tune_body_code, idx: number) => {
+  voice.forEach((node, idx) => {
     if (isBarLine(node)) {
       bars.push(idx);
     }
@@ -130,7 +130,7 @@ export function equalizeBarLengths(voiceSplits: Array<VoiceSplit>, ctx: ABCConte
         }
 
         const voice = voiceSplits[loc.voiceIdx].content;
-        const barContent = voice.slice(loc.startIdx + 1, loc.endIdx).filter((node: tune_body_code) => !(isToken(node) && node.type === TT.EOL));
+        const barContent = voice.slice(loc.startIdx + 1, loc.endIdx).filter((node) => !(isToken(node) && node.type === TT.EOL));
         return {
           ...loc,
           length: barContent.map((node) => stringifyVisitor.stringify(node)).join("").length,
@@ -196,7 +196,7 @@ export function equalizer(voiceSplits: Array<VoiceSplit>, ctx: ABCContext, strin
       if (voice.type !== "formatted") return;
 
       // Find next barline
-      const nextBarIndex = voice.content.findIndex((node: tune_body_code, idx: number) => idx > voice.cursor && isBarLine(node));
+      const nextBarIndex = voice.content.findIndex((node, idx) => idx > voice.cursor && isBarLine(node));
 
       // If no more bars or hit EOL/EOF, mark as noformat
       if (nextBarIndex === -1) {

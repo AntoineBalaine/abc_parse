@@ -3,6 +3,7 @@ import { ABCContext } from "../../parsers/Context";
 import { Token, TT } from "../../parsers/scan2";
 import { BarLine, Beam, Decoration, Expr, Grace_group, MultiMeasureRest, System, Tune, Tune_Body, YSPACER, tune_body_code } from "../../types/Expr2";
 import { Ctx } from "../../parsers/scan2";
+import { isMultiMeasureRest } from "./fmt_timeMapHelpers";
 
 // Types for rules assignment
 export enum SpcRul {
@@ -86,7 +87,7 @@ export function expandMultiMeasureRests(system: System, ctx: ABCContext): System
   const expanded: System = [];
 
   for (const node of system) {
-    if (node instanceof MultiMeasureRest && node.length) {
+    if (isMultiMeasureRest(node) && node.length) {
       const is_invisible_rest = node.rest.lexeme === "X";
       const measures = node.length ? parseInt(node.length.lexeme) : 1;
 
@@ -94,19 +95,19 @@ export function expandMultiMeasureRests(system: System, ctx: ABCContext): System
       const firstRestCtx = new Ctx(is_invisible_rest ? "X" : "Z");
       firstRestCtx.current = firstRestCtx.source.length;
       const firstRest = new Token(TT.REST, firstRestCtx);
-      expanded.push(new MultiMeasureRest(node.id, firstRest));
+      expanded.push(new MultiMeasureRest(ctx.generateId(), firstRest));
 
       // Add barline and Z for remaining measures
       for (let i = 1; i < measures; i++) {
         const barCtx = new Ctx("|");
         barCtx.current = barCtx.source.length;
         const barToken = new Token(TT.BARLINE, barCtx);
-        expanded.push(new BarLine(node.id + i * 1000, [barToken]));
+        expanded.push(new BarLine(ctx.generateId(), [barToken]));
 
         const restCtx = new Ctx(is_invisible_rest ? "X" : "Z");
         restCtx.current = restCtx.source.length;
         const restToken = new Token(TT.REST, restCtx);
-        expanded.push(new MultiMeasureRest(node.id + i * 1000 + 1, restToken));
+        expanded.push(new MultiMeasureRest(ctx.generateId(), restToken));
       }
     } else {
       expanded.push(node);
@@ -154,7 +155,7 @@ function noPrev(prev: tune_body_code | null, cur: tune_body_code): boolean {
     (isToken(prev) && prev.type === TT.EOL) || // start of line
     (prev instanceof Decoration && isNote(cur)) ||
     (prev instanceof Decoration && isChord(cur)) ||
-    (prev instanceof Decoration && prev instanceof Decoration) ||
+    (prev instanceof Decoration && cur instanceof Decoration) ||
     (prev instanceof Decoration && cur instanceof Beam) ||
     (prev instanceof Grace_group && isNote(cur)) ||
     (prev instanceof Grace_group && cur instanceof Beam) ||

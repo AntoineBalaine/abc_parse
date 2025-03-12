@@ -1,4 +1,4 @@
-import { assert } from "chai";
+import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { parseTune } from "../parsers/parse2";
 import { Scanner2 } from "../parsers/scan2";
@@ -69,16 +69,13 @@ CDEF GABC|
 V:2
 EFGA    BCDE|`);
 
-      assert.equal(
-        result,
-        `X:1
+      expect(result).to.equal(`X:1
 V:1
 V:2
 V:1
 CDEF GABC |
 V:2
-EFGA BCDE |`
-      );
+EFGA BCDE |`);
     });
 
     it("handles different note lengths", () => {
@@ -91,21 +88,18 @@ C2 GABC|
 V:2
 CD GA|`);
 
-      assert.equal(
-        result,
-        `X:1
+      expect(result).to.equal(`X:1
 V:1
 V:2
 V:1
 C2 GABC |
 V:2
-CD GA |`
-      );
+CD GA |`);
     });
   });
 
   describe("complex cases", () => {
-    it.skip("aligns tuplets with regular notes", () => {
+    it("aligns tuplets with regular notes", () => {
       const result = format(`
 X:1
 V:1
@@ -122,7 +116,7 @@ V:1
 (3CDE F |
 V:2
   C2  F |`;
-      assert.include(result, expected, "Tuplet group should align with corresponding notes");
+      expect(result).to.equal(expected, "Tuplet group should align with corresponding notes");
     });
 
     it("aligns grace notes with regular notes", () => {
@@ -142,10 +136,10 @@ V:1
 {ag}F2   |
 V:2
     C2 F |`;
-      assert.include(result, expected, "Grace notes should align with corresponding notes");
+      expect(result).to.equal(expected, "Grace notes should align with corresponding notes");
     });
 
-    it.skip("aligns chords with notes", () => {
+    it("aligns chords with notes", () => {
       const result = format(`
 X:1
 V:1
@@ -161,7 +155,7 @@ V:1
 [CEG]F |
 V:2
 C2 E |`;
-      assert.include(result, "[CEG]F|\nC2   E|", "Chords should align with corresponding notes");
+      expect(result).to.equal("[CEG]F|\nC2   E|", "Chords should align with corresponding notes");
     });
   });
 });

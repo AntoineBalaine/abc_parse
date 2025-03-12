@@ -72,8 +72,8 @@ function getBars(voice: System): BarTimeMap[] {
 
   for (const node of voice) {
     if (isBarLine(node)) {
-      if (currentBar.length > 0 && currentStartId !== undefined) {
-        bars.push(processBar(currentBar, currentStartId));
+      if (currentBar.length > 0) {
+        bars.push(processBar(currentBar, currentStartId!));
       }
       currentBar = [node];
       currentStartId = getNodeId(node);
@@ -86,8 +86,8 @@ function getBars(voice: System): BarTimeMap[] {
   }
 
   // Handle last bar
-  if (currentBar.length > 0 && currentStartId !== undefined) {
-    bars.push(processBar(currentBar, currentStartId));
+  if (currentBar.length > 0) {
+    bars.push(processBar(currentBar, currentStartId!));
   }
 
   return bars;
