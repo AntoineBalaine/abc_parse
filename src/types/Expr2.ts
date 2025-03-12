@@ -11,6 +11,7 @@ export interface Visitor<R> {
   visitBarLineExpr(expr: BarLine): R;
   visitChordExpr(expr: Chord): R;
   visitCommentExpr(expr: Comment): R;
+  visitDirectiveExpr(expr: Directive): R;
   visitDecorationExpr(expr: Decoration): R;
   visitFileHeaderExpr(expr: File_header): R;
   visitFileStructureExpr(expr: File_structure): R;
@@ -134,6 +135,16 @@ export class Tune_header extends Expr {
   }
 }
 
+export class Directive extends Expr {
+  token: Token;
+  constructor(id: number, token: Token) {
+    super(id);
+    this.token = token;
+  }
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitDirectiveExpr(this);
+  }
+}
 export class Comment extends Expr {
   token: Token;
   constructor(id: number, token: Token) {

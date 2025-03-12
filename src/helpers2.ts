@@ -1,3 +1,4 @@
+import { ParseCtx } from "./parsers/parse2";
 import { Token, TT } from "./parsers/scan2";
 import {
   Annotation,
@@ -51,6 +52,18 @@ export function isBeamBreaker(element: Expr | Token): boolean {
   } else {
     return !isBeamContents(element) || element instanceof BarLine;
   }
+}
+
+export function followedBy(ctx: ParseCtx, needle: TT[], ignoreTokens: TT[]): boolean {
+  let i = ctx.current + 1;
+  while (i < ctx.tokens.length) {
+    if (ignoreTokens.includes(ctx.tokens[i].type)) {
+      i++;
+    } else {
+      return needle.includes(ctx.tokens[i].type);
+    }
+  }
+  return false;
 }
 
 // Check if there's a note following the current element before a beam breaker

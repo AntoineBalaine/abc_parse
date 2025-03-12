@@ -18,10 +18,32 @@ import {
   parseMusicCode,
   prcssBms,
   BeamCtx,
+  prsTuneHdr,
+  prsInfoLine,
+  prsComment,
+  prsDirective,
 } from "../parsers/parse2";
 import { Token, TT } from "../parsers/scan2";
 import { ABCContext } from "../parsers/Context";
-import { BarLine, Chord, Grace_group, Rest, Note, Pitch, Rhythm, Symbol, YSPACER, Annotation, Decoration, Tuplet, Beam } from "../types/Expr2";
+import {
+  BarLine,
+  Chord,
+  Grace_group,
+  Rest,
+  Note,
+  Pitch,
+  Rhythm,
+  Symbol,
+  YSPACER,
+  Annotation,
+  Decoration,
+  Tuplet,
+  Beam,
+  Tune_header,
+  Info_line,
+  Comment,
+  Directive,
+} from "../types/Expr2";
 
 // Helper function to create a token with the given type and lexeme
 function createToken(type: TT, lexeme: string, line: number = 0, position: number = 0): Token {
@@ -1239,6 +1261,246 @@ describe("parse2.ts", () => {
       assert.strictEqual(result, elements); // Should return the same array
       assert.equal(elements.length, 1);
       assert.instanceOf(elements[0], Note);
+    });
+  });
+
+  describe("prsTuneHdr", () => {
+    it("should parse a basic tune header", () => {
+      const tokens = [
+        createToken(TT.INF_HDR, "X:"),
+        createToken(TT.INFO_STR, "1"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "T:"),
+        createToken(TT.INFO_STR, "Test Tune"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "M:"),
+        createToken(TT.INFO_STR, "4/4"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "K:"),
+        createToken(TT.INFO_STR, "C"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.SCT_BRK, "\n\n"),
+      ];
+      const ctx = createParseCtx(tokens);
+
+      const result = prsTuneHdr(ctx);
+
+      assert.isNotNull(result);
+      assert.instanceOf(result, Tune_header);
+      assert.equal(result.info_lines.length, 4);
+      assert.equal(result.voices.length, 0);
+
+      // Check that all info lines were parsed correctly
+      assert.equal((result.info_lines[0] as Info_line).key.lexeme, "X:");
+      assert.equal((result.info_lines[0] as Info_line).value[0].lexeme, "1");
+      assert.equal((result.info_lines[1] as Info_line).key.lexeme, "T:");
+      assert.equal((result.info_lines[1] as Info_line).value[0].lexeme, "Test Tune");
+      assert.equal((result.info_lines[2] as Info_line).key.lexeme, "M:");
+      assert.equal((result.info_lines[2] as Info_line).value[0].lexeme, "4/4");
+      assert.equal((result.info_lines[3] as Info_line).key.lexeme, "K:");
+      assert.equal((result.info_lines[3] as Info_line).value[0].lexeme, "C");
+    });
+
+    it("should detect and collect voice names", () => {
+      const tokens = [
+        createToken(TT.INF_HDR, "X:"),
+        createToken(TT.INFO_STR, "1"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "T:"),
+        createToken(TT.INFO_STR, "Test Tune"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "V:"),
+        createToken(TT.INFO_STR, "Soprano"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "K:"),
+        createToken(TT.INFO_STR, "C"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.SCT_BRK, "\n\n"),
+      ];
+      const ctx = createParseCtx(tokens);
+
+      const result = prsTuneHdr(ctx);
+
+      assert.isNotNull(result);
+      assert.instanceOf(result, Tune_header);
+      assert.equal(result.info_lines.length, 4);
+      assert.equal(result.voices.length, 1);
+      assert.equal(result.voices[0], "Soprano");
+    });
+
+    it("should handle multiple voice definitions", () => {
+      const tokens = [
+        createToken(TT.INF_HDR, "X:"),
+        createToken(TT.INFO_STR, "1"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "V:"),
+        createToken(TT.INFO_STR, "Soprano"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "V:"),
+        createToken(TT.INFO_STR, "Alto"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "V:"),
+        createToken(TT.INFO_STR, "Tenor"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "K:"),
+        createToken(TT.INFO_STR, "C"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.SCT_BRK, "\n\n"),
+      ];
+      const ctx = createParseCtx(tokens);
+
+      const result = prsTuneHdr(ctx);
+
+      assert.isNotNull(result);
+      assert.instanceOf(result, Tune_header);
+      assert.equal(result.info_lines.length, 5);
+      assert.equal(result.voices.length, 3);
+      assert.equal(result.voices[0], "Soprano");
+      assert.equal(result.voices[1], "Alto");
+      assert.equal(result.voices[2], "Tenor");
+    });
+
+    it("should not add duplicate voice names", () => {
+      const tokens = [
+        createToken(TT.INF_HDR, "X:"),
+        createToken(TT.INFO_STR, "1"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "V:"),
+        createToken(TT.INFO_STR, "Soprano"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "V:"),
+        createToken(TT.INFO_STR, "Alto"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "V:"),
+        createToken(TT.INFO_STR, "Soprano"), // Duplicate voice name
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "K:"),
+        createToken(TT.INFO_STR, "C"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.SCT_BRK, "\n\n"),
+      ];
+      const ctx = createParseCtx(tokens);
+
+      const result = prsTuneHdr(ctx);
+
+      assert.isNotNull(result);
+      assert.instanceOf(result, Tune_header);
+      assert.equal(result.info_lines.length, 5);
+      assert.equal(result.voices.length, 2); // Only unique voice names
+      assert.equal(result.voices[0], "Soprano");
+      assert.equal(result.voices[1], "Alto");
+    });
+
+    it("should handle comments in the header", () => {
+      const tokens = [
+        createToken(TT.INF_HDR, "X:"),
+        createToken(TT.INFO_STR, "1"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.COMMENT, "% This is a comment"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "T:"),
+        createToken(TT.INFO_STR, "Test Tune"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "K:"),
+        createToken(TT.INFO_STR, "C"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.SCT_BRK, "\n\n"),
+      ];
+      const ctx = createParseCtx(tokens);
+
+      const result = prsTuneHdr(ctx);
+
+      assert.isNotNull(result);
+      assert.instanceOf(result, Tune_header);
+      assert.equal(result.info_lines.length, 4); // 3 info lines + 1 comment
+      assert.instanceOf(result.info_lines[0], Info_line);
+      assert.instanceOf(result.info_lines[1], Comment);
+      assert.equal((result.info_lines[1] as Comment).token.lexeme, "% This is a comment");
+    });
+
+    it("should handle directives in the header", () => {
+      const tokens = [
+        createToken(TT.INF_HDR, "X:"),
+        createToken(TT.INFO_STR, "1"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.STYLESHEET_DIRECTIVE, "%%pagewidth 21cm"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "T:"),
+        createToken(TT.INFO_STR, "Test Tune"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "K:"),
+        createToken(TT.INFO_STR, "C"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.SCT_BRK, "\n\n"),
+      ];
+      const ctx = createParseCtx(tokens);
+
+      const result = prsTuneHdr(ctx);
+
+      assert.isNotNull(result);
+      assert.instanceOf(result, Tune_header);
+      assert.equal(result.info_lines.length, 4); // 3 info lines + 1 directive
+      assert.instanceOf(result.info_lines[0], Info_line);
+      assert.instanceOf(result.info_lines[1], Directive);
+      assert.equal((result.info_lines[1] as Directive).token.lexeme, "%%pagewidth 21cm");
+    });
+
+    it("should handle a minimal header with just X:", () => {
+      const tokens = [createToken(TT.INF_HDR, "X:"), createToken(TT.INFO_STR, "1"), createToken(TT.EOL, "\n"), createToken(TT.SCT_BRK, "\n\n")];
+      const ctx = createParseCtx(tokens);
+
+      const result = prsTuneHdr(ctx);
+
+      assert.isNotNull(result);
+      assert.instanceOf(result, Tune_header);
+      assert.equal(result.info_lines.length, 1);
+      assert.equal(result.voices.length, 0);
+      assert.equal((result.info_lines[0] as Info_line).key.lexeme, "X:");
+      assert.equal((result.info_lines[0] as Info_line).value[0].lexeme, "1");
+    });
+
+    it("should stop parsing at the end of the header section", () => {
+      const tokens = [
+        createToken(TT.INF_HDR, "X:"),
+        createToken(TT.INFO_STR, "1"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "K:"),
+        createToken(TT.INFO_STR, "C"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.SCT_BRK, "\n\n"),
+        createToken(TT.NOTE_LETTER, "C"), // Music content after header
+      ];
+      const ctx = createParseCtx(tokens);
+
+      const result = prsTuneHdr(ctx);
+
+      assert.isNotNull(result);
+      assert.instanceOf(result, Tune_header);
+      assert.equal(result.info_lines.length, 2);
+    });
+
+    it("should handle voice info with additional parameters", () => {
+      const tokens = [
+        createToken(TT.INF_HDR, "X:"),
+        createToken(TT.INFO_STR, "1"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "V:"),
+        createToken(TT.INFO_STR, 'Soprano clef=treble name="Soprano"'),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.INF_HDR, "K:"),
+        createToken(TT.INFO_STR, "C"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.SCT_BRK, "\n\n"),
+      ];
+      const ctx = createParseCtx(tokens);
+
+      const result = prsTuneHdr(ctx);
+
+      assert.isNotNull(result);
+      assert.instanceOf(result, Tune_header);
+      assert.equal(result.info_lines.length, 3);
+      assert.equal(result.voices.length, 1);
+      assert.equal(result.voices[0], 'Soprano clef=treble name="Soprano"'); // Extracts the entire voice field value
     });
   });
 

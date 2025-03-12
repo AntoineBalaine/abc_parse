@@ -23,8 +23,9 @@ import {
   YSPACER,
   tune_body_code,
   Beam_contents,
+  Directive,
 } from "../types/Expr2";
-import { isBeamBreaker, foundBeam } from "../helpers2";
+import { isBeamBreaker, foundBeam, followedBy } from "../helpers2";
 
 // Parse Context
 export class ParseCtx {
@@ -97,26 +98,38 @@ export function parseTune(tokens: Token[], abcContext: ABCContext): Tune {
 }
 
 export function prsTuneHdr(ctx: ParseCtx): Tune_header {
-  const infoLines: Array<Info_line | Comment> = [];
+  const infoLines: Array<Expr> = [];
   const voices: string[] = [];
   while (!ctx.isAtEnd() && !ctx.check(TT.SCT_BRK)) {
-    const cmnt = prsComment(ctx);
-    if (cmnt) {
-      infoLines.push(cmnt);
-      continue;
-    }
-    const info_line = prsInfoLine(ctx);
-    if (info_line) {
-      infoLines.push(info_line);
-      if (info_line.key.lexeme === "V:") {
+    if (prsComment(ctx, infoLines)) continue;
+    if (prsDirective(ctx, infoLines)) continue;
+    if (prsInfoLine(ctx, infoLines)) {
+      const info_line = infoLines[infoLines.length - 1] as Info_line;
+      if (info_line.key.lexeme.trim() === "V:") {
         const voiceName = info_line.value[0].lexeme.trim();
         if (voiceName && !voices.includes(voiceName)) {
           voices.push(voiceName);
         }
       }
+      continue;
     }
+    if (ctx.check(TT.EOL) && followedBy(ctx, [TT.INF_HDR, TT.COMMENT, TT.STYLESHEET_DIRECTIVE], [TT.WS])) {
+      ctx.advance();
+      continue;
+    }
+    break;
   }
-  return new Tune_header(ctx.abcContext.generateId(), infoLines, voices);
+  ctx.advance();
+  return new Tune_header(ctx.abcContext.generateId(), infoLines as Array<Info_line | Comment>, voices);
+}
+
+export function prsDirective(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Directive | null {
+  if (ctx.match(TT.STYLESHEET_DIRECTIVE)) {
+    const rv = new Directive(ctx.abcContext.generateId(), ctx.previous());
+    prnt_arr && prnt_arr.push(rv);
+    return rv;
+  }
+  return null;
 }
 export function prsComment(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Comment | null {
   if (ctx.match(TT.COMMENT)) {
