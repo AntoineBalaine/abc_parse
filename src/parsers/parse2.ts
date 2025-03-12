@@ -1,3 +1,4 @@
+import { parseSystemsWithVoices } from "./voices2";
 import { Token, TT } from "./scan2";
 import { ABCContext } from "./Context";
 import {
@@ -91,8 +92,8 @@ export function parseTune(tokens: Token[], abcContext: ABCContext): Tune {
 
   // Parse header information
   const tuneHeader = prsTuneHdr(ctx);
-  // Parse body (music sections)
-  const tuneBody = prsBody(ctx);
+  // Parse body (music sections) with voices from the header
+  const tuneBody = prsBody(ctx, tuneHeader.voices);
 
   return new Tune(ctx.abcContext.generateId(), tuneHeader, tuneBody);
 }
@@ -172,7 +173,7 @@ export function isHeaderToken(token: Token): boolean {
 
 // Process beams within a Music_code instance
 
-export function prsBody(ctx: ParseCtx): Tune_Body | null {
+export function prsBody(ctx: ParseCtx, voices: string[] = []): Tune_Body | null {
   const elmnts: Array<tune_body_code> = [];
 
   // Parse until end of file or section break
@@ -187,7 +188,7 @@ export function prsBody(ctx: ParseCtx): Tune_Body | null {
   // Process beams in the elements array
   const processedElements = prcssBms(elmnts, ctx.abcContext);
 
-  return new Tune_Body(ctx.abcContext.generateId(), prsSystems(processedElements as tune_body_code[]));
+  return new Tune_Body(ctx.abcContext.generateId(), prsSystems(processedElements as tune_body_code[], voices));
 }
 
 export function prcssBms(elmnts: Array<Expr | Token>, abcContext: ABCContext): Array<Expr | Token> {
@@ -604,6 +605,6 @@ export function parseRhythm(ctx: ParseCtx): Rhythm | undefined {
 
   return hasRhythm ? new Rhythm(ctx.abcContext.generateId(), numerator, separator, denominator, broken) : undefined;
 }
-export function prsSystems(musicElements: tune_body_code[]): System[] {
-  throw new Error("export function not implemented.");
+export function prsSystems(musicElements: tune_body_code[], voices: string[] = []): System[] {
+  return parseSystemsWithVoices(musicElements, voices);
 }
