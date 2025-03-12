@@ -71,14 +71,13 @@ EFGA    BCDE|`);
 
       assert.equal(
         result,
-        `
-X:1
+        `X:1
 V:1
 V:2
 V:1
-CDEF GABC|
+CDEF GABC |
 V:2
-EFGA BCDE|`
+EFGA BCDE |`
       );
     });
 
@@ -94,14 +93,13 @@ CD GA|`);
 
       assert.equal(
         result,
-        `
-X:1
+        `X:1
 V:1
 V:2
 V:1
-C2 GABC|
+C2 GABC |
 V:2
-CD GA|`
+CD GA |`
       );
     });
   });
@@ -117,14 +115,13 @@ V:1
 V:2
 C2   F|`);
 
-      const expected = `
-X:1
+      const expected = `X:1
 V:1
 V:2
 V:1
-(3CDE F|
+(3CDE F |
 V:2
-  C2  F|`;
+  C2  F |`;
       assert.include(result, expected, "Tuplet group should align with corresponding notes");
     });
 
@@ -138,14 +135,13 @@ V:1
 V:2
 C2  F|`);
 
-      const expected = `
-X:1
+      const expected = `X:1
 V:1
 V:2
 V:1
-{ag}F2|
+{ag}F2   |
 V:2
-    C2 F|`;
+    C2 F |`;
       assert.include(result, expected, "Grace notes should align with corresponding notes");
     });
 
@@ -158,14 +154,13 @@ V:1
 [CEG]F|
 V:2
 C2   E|`);
-      const expected = `
-X:1
+      const expected = `X:1
 V:1
 V:2
 V:1
-[CEG]F|
+[CEG]F |
 V:2
-C2 E|`;
+C2 E |`;
       assert.include(result, "[CEG]F|\nC2   E|", "Chords should align with corresponding notes");
     });
   });

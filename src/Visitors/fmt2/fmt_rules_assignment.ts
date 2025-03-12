@@ -24,9 +24,6 @@ export function resolveRules(ast: Tune, ctx: ABCContext): Tune {
 
 /**
  * Strip WS tokens and - if it's a multi-voice tune - expand multi-measure rests in tune.
- * @param tune
- * @param ctx
- * @returns
  */
 export function preprocessTune(tune: Tune, ctx: ABCContext): Tune {
   const tuneBody = tune.tune_body!;
@@ -36,7 +33,7 @@ export function preprocessTune(tune: Tune, ctx: ABCContext): Tune {
     if (is_multivoice) {
       system = expandMultiMeasureRests(system, ctx);
     }
-    return system.filter((node) => !(isToken(node) && (node.type === TT.WS || node.type === TT.EOL)));
+    return system.filter((node) => !(isToken(node) && node.type === TT.WS));
   });
 
   return tune;
