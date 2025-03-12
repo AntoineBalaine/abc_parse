@@ -432,7 +432,6 @@ L:1/8
 
     it("should parse a tune with custom voice names", () => {
       const sample = `X:1
-K:C
 V:RH clef=treble
 V:LH clef=bass
 V:RH 

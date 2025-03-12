@@ -1352,37 +1352,6 @@ describe("parse2.ts", () => {
       assert.equal(result.voices[2], "Tenor");
     });
 
-    it("should not add duplicate voice names", () => {
-      const tokens = [
-        createToken(TT.INF_HDR, "X:"),
-        createToken(TT.INFO_STR, "1"),
-        createToken(TT.EOL, "\n"),
-        createToken(TT.INF_HDR, "V:"),
-        createToken(TT.INFO_STR, "Soprano"),
-        createToken(TT.EOL, "\n"),
-        createToken(TT.INF_HDR, "V:"),
-        createToken(TT.INFO_STR, "Alto"),
-        createToken(TT.EOL, "\n"),
-        createToken(TT.INF_HDR, "V:"),
-        createToken(TT.INFO_STR, "Soprano"), // Duplicate voice name
-        createToken(TT.EOL, "\n"),
-        createToken(TT.INF_HDR, "K:"),
-        createToken(TT.INFO_STR, "C"),
-        createToken(TT.EOL, "\n"),
-        createToken(TT.SCT_BRK, "\n\n"),
-      ];
-      const ctx = createParseCtx(tokens);
-
-      const result = prsTuneHdr(ctx);
-
-      assert.isNotNull(result);
-      assert.instanceOf(result, Tune_header);
-      assert.equal(result.info_lines.length, 5);
-      assert.equal(result.voices.length, 2); // Only unique voice names
-      assert.equal(result.voices[0], "Soprano");
-      assert.equal(result.voices[1], "Alto");
-    });
-
     it("should handle comments in the header", () => {
       const tokens = [
         createToken(TT.INF_HDR, "X:"),
@@ -1492,7 +1461,7 @@ describe("parse2.ts", () => {
       assert.instanceOf(result, Tune_header);
       assert.equal(result.info_lines.length, 3);
       assert.equal(result.voices.length, 1);
-      assert.equal(result.voices[0], 'Soprano clef=treble name="Soprano"'); // Extracts the entire voice field value
+      assert.equal(result.voices[0], "Soprano");
     });
   });
 

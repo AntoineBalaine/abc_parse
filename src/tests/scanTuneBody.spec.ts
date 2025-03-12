@@ -146,7 +146,7 @@ describe("scanTuneBody", () => {
       TT.WS,
       TT.INLN_FLD_LFT_BRKT,
       TT.INF_HDR,
-      TT.INF_TXT,
+      TT.INFO_STR,
       TT.INLN_FLD_RGT_BRKT,
       TT.WS,
       TT.NOTE_LETTER,

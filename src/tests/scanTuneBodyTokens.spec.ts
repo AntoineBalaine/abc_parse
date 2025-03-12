@@ -617,7 +617,7 @@ describe("scan2", () => {
       assert.equal(ctx.tokens.length, 4);
       assert.equal(ctx.tokens[0].type, TT.INLN_FLD_LFT_BRKT);
       assert.equal(ctx.tokens[1].type, TT.INF_HDR);
-      assert.equal(ctx.tokens[2].type, TT.INF_TXT);
+      assert.equal(ctx.tokens[2].type, TT.INFO_STR);
       assert.equal(ctx.tokens[3].type, TT.INLN_FLD_RGT_BRKT);
     });
 

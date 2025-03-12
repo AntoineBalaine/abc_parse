@@ -264,7 +264,7 @@ export function inline_field(ctx: Ctx): boolean {
   while (!isAtEnd(ctx) && !ctx.test("]")) {
     advance(ctx);
   }
-  ctx.push(TT.INF_TXT);
+  ctx.push(TT.INFO_STR);
   advance(ctx);
   ctx.push(TT.INLN_FLD_RGT_BRKT);
   return true;

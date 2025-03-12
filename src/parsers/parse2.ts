@@ -25,6 +25,7 @@ import {
   tune_body_code,
   Beam_contents,
   Directive,
+  Inline_field,
 } from "../types/Expr2";
 import { isBeamBreaker, foundBeam, followedBy } from "../helpers2";
 
@@ -104,16 +105,20 @@ export function prsTuneHdr(ctx: ParseCtx): Tune_header {
   while (!ctx.isAtEnd() && !ctx.check(TT.SCT_BRK)) {
     if (prsComment(ctx, infoLines)) continue;
     if (prsDirective(ctx, infoLines)) continue;
+    if (alreadyHasVoice(ctx, voices)) {
+      return new Tune_header(ctx.abcContext.generateId(), infoLines as Array<Info_line | Comment>, voices);
+    }
     if (prsInfoLine(ctx, infoLines)) {
       const info_line = infoLines[infoLines.length - 1] as Info_line;
       if (info_line.key.lexeme.trim() === "V:") {
-        const voiceName = info_line.value[0].lexeme.trim();
+        const voiceName = info_line.value[0].lexeme.trim().split(" ")[0];
         if (voiceName && !voices.includes(voiceName)) {
           voices.push(voiceName);
         }
       }
       continue;
     }
+
     if (ctx.check(TT.EOL) && followedBy(ctx, [TT.INF_HDR, TT.COMMENT, TT.STYLESHEET_DIRECTIVE], [TT.WS])) {
       ctx.advance();
       continue;
@@ -122,6 +127,26 @@ export function prsTuneHdr(ctx: ParseCtx): Tune_header {
   }
   ctx.advance();
   return new Tune_header(ctx.abcContext.generateId(), infoLines as Array<Info_line | Comment>, voices);
+}
+
+export function alreadyHasVoice(ctx: ParseCtx, voices?: Array<string>): boolean {
+  if (!voices) {
+    return false;
+  }
+  var pkd = ctx.peek();
+  if (pkd.type === TT.INF_HDR && pkd.lexeme.trim() === "V:") {
+    let i = ctx.current + 1;
+    while (i < ctx.tokens.length && ctx.tokens[i].type !== TT.INFO_STR) {
+      if (ctx.tokens[i].type === TT.EOL) {
+        return false;
+      }
+      i++;
+    }
+    let info_txt = ctx.tokens[i];
+    const voiceName = info_txt.lexeme.trim().split(" ")[0];
+    return !!voiceName && voices.includes(voiceName);
+  }
+  return false;
 }
 
 export function prsDirective(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Directive | null {
@@ -145,7 +170,7 @@ export function prsInfoLine(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Info
   if (ctx.match(TT.INF_HDR)) {
     const field = ctx.previous();
     const tokens: Token[] = [field];
-    if (ctx.match(TT.INFO_STR) || ctx.match(TT.INF_TXT)) {
+    if (ctx.match(TT.INFO_STR)) {
       // is it really needed?
       tokens.push(ctx.previous());
     }
@@ -161,14 +186,7 @@ export function prsInfoLine(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Info
 
 // Check if a token is part of the tune header
 export function isHeaderToken(token: Token): boolean {
-  return (
-    token.type === TT.INF_HDR ||
-    token.type === TT.INF_TXT ||
-    token.type === TT.INFO_STR ||
-    token.type === TT.COMMENT ||
-    token.type === TT.EOL ||
-    token.type === TT.WS
-  );
+  return token.type === TT.INF_HDR || token.type === TT.INFO_STR || token.type === TT.COMMENT || token.type === TT.EOL || token.type === TT.WS;
 }
 
 // Process beams within a Music_code instance
@@ -210,16 +228,17 @@ export function parseMusicCode(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): A
   while (!ctx.isAtEnd() && !ctx.check(TT.EOL) && !ctx.check(TT.COMMENT) && !ctx.check(TT.INF_HDR) && !ctx.check(TT.SCT_BRK)) {
     // Try each element parser in order
     const element =
+      parseAnnotation(ctx, elements) ||
       parseBarline(ctx, elements) ||
       parseChord(ctx, elements) ||
+      parseDecoration(ctx, elements) ||
       parseGraceGroup(ctx, elements) ||
-      parseRest(ctx, elements) ||
+      parseInlineField(ctx, elements) ||
       parseNote(ctx, elements) ||
-      parseTuplet(ctx, elements) ||
-      parseYSpacer(ctx, elements) ||
+      parseRest(ctx, elements) ||
       parseSymbol(ctx, elements) ||
-      parseAnnotation(ctx, elements) ||
-      parseDecoration(ctx, elements);
+      parseTuplet(ctx, elements) ||
+      parseYSpacer(ctx, elements);
     if (element) continue;
 
     break;
@@ -484,6 +503,22 @@ export function parseSymbol(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Symb
   prnt_arr && prnt_arr.push(symbol);
 
   return symbol;
+}
+
+function parseInlineField(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Inline_field | null {
+  if (!ctx.match(TT.INLN_FLD_LFT_BRKT)) {
+    return null;
+  }
+
+  const field = ctx.advance();
+  const text: Array<Token> = [];
+  while (!ctx.isAtEnd() && ctx.peek().type !== TT.INLN_FLD_RGT_BRKT) {
+    text.push(ctx.advance());
+  }
+  ctx.advance();
+  const result = new Inline_field(ctx.abcContext.generateId(), field, text);
+  if (prnt_arr) prnt_arr.push(result);
+  return result;
 }
 
 // Parse an annotation

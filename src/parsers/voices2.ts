@@ -85,8 +85,13 @@ export function stringifyVoice(expr: Info_line | Inline_field): string {
 }
 
 /**
- * Check if the current element should start a new system
- */
+ * Check whether this is a new system.
+ * If we start a new system, update this.lastVoice to the current voice.
+ *
+ * How the check is made:
+ * Check the voice of the last entry in the current system.
+ if the current voice is not after the index of the last voice in this.voices, start a new system.
+*/
 export function isNewSystem(ctx: VoiceCtx): boolean {
   let result = false;
   const current = ctx.peek();
@@ -102,6 +107,9 @@ export function isNewSystem(ctx: VoiceCtx): boolean {
       if (lastVoiceIndex > currentVoiceIndex) {
         result = true;
       }
+    }
+    if (result) {
+      ctx.lastVoice = voice;
     }
   }
 
