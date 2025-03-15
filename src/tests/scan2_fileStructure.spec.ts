@@ -1,7 +1,7 @@
 import assert from "assert";
 import { describe, it } from "mocha";
 import { TT, fileHeader } from "../parsers/scan2";
-import { createCtx } from "./scanTuneBodyTokens.spec";
+import { createCtx } from "./scan2_tuneBodyTokens.spec";
 import { scanTune } from "../parsers/scan_tunebody";
 
 describe("fileHeader", () => {

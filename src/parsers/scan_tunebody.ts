@@ -4,7 +4,9 @@ const pLETTER_COLON = /[a-zA-Z]:/;
 export const pEOL = "\n";
 export const pInfoLine = /[ \t]*[a-zA-Z][ \t]*:/;
 export const pInfoLnCtd = /[ \t]*\+:[ \t]*/;
+
 export const pTuneHeadStrt = / *X:/;
+export const pTuneStart = new RegExp(`^(?:(?!\n[ \t]*\n).)*${pTuneHeadStrt.source}`, "s");
 export const pDuration = /(\/+)|(([1-9][0-9]*)?\/[1-9][0-9]*)|([1-9][0-9]*)|([>]+|[<]+)/;
 export const pSectionBrk = /\n([ \t]*\n)+/;
 export const pNumber = /[1-9][0-9]*/;
@@ -361,7 +363,8 @@ export function parseRepeatNumbers(ctx: Ctx): boolean {
   return true; // Successfully parsed repeat numbers
 }
 
-export function scanTune(ctx: Ctx) {
+export function scanTune(ctx: Ctx): boolean {
+  // if (!ctx.test(pTuneStart)) return false;
   while (!isAtEnd(ctx) && !ctx.test(pSectionBrk)) {
     ctx.start = ctx.current;
     // Try each tokenizer function in order of precedence
@@ -387,6 +390,7 @@ export function scanTune(ctx: Ctx) {
     // If no match is found, collect invalid characters into a token
     collectInvalidToken(ctx);
   }
+  return true;
 }
 
 // Collect invalid characters into a token

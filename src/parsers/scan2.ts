@@ -1,5 +1,5 @@
 import { AbcErrorReporter } from "./ErrorReporter";
-import { comment, pEOL, pInfoLine, pSectionBrk, pTuneHeadStrt, scanTune } from "./scan_tunebody";
+import { comment, pEOL, pInfoLine, pSectionBrk, pTuneHeadStrt, pTuneStart, scanTune } from "./scan_tunebody";
 
 export class Ctx {
   public source: string;
@@ -22,7 +22,7 @@ export class Ctx {
       return new RegExp(`^${pattern.source}`).test(this.source.substring(this.current));
     } else {
       offset = offset ?? this.current;
-      return this.source.substring(offset, offset + pattern.length) == pattern;
+      return this.source.substring(offset, offset + pattern.length) === pattern;
     }
   }
 
@@ -48,19 +48,17 @@ export function Scanner2(source: string, errorReporter?: AbcErrorReporter): Arra
 
 export function fileStructure(ctx: Ctx) {
   while (!isAtEnd(ctx)) {
-    if (ctx.current === 0 && !ctx.test(pTuneHeadStrt)) {
-      fileHeader(ctx);
-    } else if (ctx.test(pTuneHeadStrt)) {
-      scanTune(ctx);
-      sectionBreak(ctx);
-    } else {
-      freeText(ctx);
-      sectionBreak(ctx);
-    }
+    if (sectionBreak(ctx)) continue;
+    if (scanTune(ctx)) continue;
+    if (fileHeader(ctx)) continue;
+    freeText(ctx);
   }
   return ctx.tokens;
 }
 export function fileHeader(ctx: Ctx) {
+  if (ctx.current === 0 && ctx.test(pTuneStart)) {
+    return false;
+  }
   /**
    * contains info lines, comment lines and stylesheet directives
    * any info line that starts with a pTuneHeadStrt should be considered the end of the file header
@@ -85,7 +83,7 @@ export function fileHeader(ctx: Ctx) {
     freeTextLine(ctx);
   }
 
-  return ctx.tokens;
+  return true;
 }
 
 export function freeTextLine(ctx: Ctx) {
@@ -93,11 +91,10 @@ export function freeTextLine(ctx: Ctx) {
     advance(ctx);
   }
   ctx.push(TT.FREE_TXT);
-  return;
 }
 
 export function sectionBreak(ctx: Ctx): boolean {
-  const match = pSectionBrk.exec(ctx.source.substring(ctx.current));
+  const match = new RegExp(`^${pSectionBrk.source}`).exec(ctx.source.substring(ctx.current));
   if (!match) return false;
   ctx.current += match[0].length;
   ctx.push(TT.SCT_BRK);
@@ -110,17 +107,16 @@ export function freeText(ctx: Ctx) {
     advance(ctx);
   }
   ctx.push(TT.FREE_TXT);
-  return;
 }
 
 export function WS(ctx: Ctx): boolean {
   // Handle whitespace and newlines
-  while (ctx.test(/[ \t]+/)) {
-    advance(ctx);
-    ctx.push(TT.WS);
-    return true;
-  }
-  return false;
+
+  const match = /^[ \t]+/.exec(ctx.source.substring(ctx.current));
+  if (!match) return false;
+  ctx.current += match[0].length;
+  ctx.push(TT.WS);
+  return true;
 }
 
 export function EOL(ctx: Ctx): boolean {
@@ -200,11 +196,10 @@ export enum TT {
 export class Token {
   public type: TT;
   public lexeme: string;
-  public literal: any | null;
   public line: number;
   public position: number;
   public toString = () => {
-    return this.type + " " + this.lexeme + " " + this.literal;
+    return this.type + " " + this.lexeme;
   };
   constructor(type: TT, ctx: Ctx) {
     this.type = type;

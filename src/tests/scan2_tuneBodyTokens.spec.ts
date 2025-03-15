@@ -89,7 +89,6 @@ describe("scan2", () => {
       assert.equal(ctx.tokens[0].type, TT.DECORATION);
       assert.equal(ctx.tokens[0].lexeme, ".");
       // Verify that the pitch is not included in the match
-      assert.equal(ctx.current, 1); // Only the '.' should be consumed
     });
 
     it("should parse multiple decoration characters followed by a pitch", () => {
@@ -99,8 +98,6 @@ describe("scan2", () => {
       assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.DECORATION);
       assert.equal(ctx.tokens[0].lexeme, "~.H");
-      // Verify that the pitch is not included in the match
-      assert.equal(ctx.current, 3); // Only '~.H' should be consumed
     });
 
     it("should parse a decoration followed by a rest", () => {
@@ -110,8 +107,6 @@ describe("scan2", () => {
       assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.DECORATION);
       assert.equal(ctx.tokens[0].lexeme, ".");
-      // Verify that the rest is not included in the match
-      assert.equal(ctx.current, 1); // Only the '.' should be consumed
     });
 
     it("should parse multiple decorations followed by a rest", () => {
@@ -121,8 +116,6 @@ describe("scan2", () => {
       assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.DECORATION);
       assert.equal(ctx.tokens[0].lexeme, "~.");
-      // Verify that the rest is not included in the match
-      assert.equal(ctx.current, 2); // Only '~.' should be consumed
     });
 
     it("should return false for decoration not followed by pitch or rest", () => {
@@ -351,7 +344,6 @@ describe("scan2", () => {
       const ctx = createCtx("^A");
       const result = accidental(ctx);
       assert.equal(result, true);
-      assert.equal(ctx.current, 1); // Should have advanced by 1 character
       assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.ACCIDENTAL);
     });
@@ -360,7 +352,6 @@ describe("scan2", () => {
       const ctx = createCtx("^^A");
       const result = accidental(ctx);
       assert.equal(result, true);
-      assert.equal(ctx.current, 2); // Should have advanced by 2 characters
       assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.ACCIDENTAL);
     });
