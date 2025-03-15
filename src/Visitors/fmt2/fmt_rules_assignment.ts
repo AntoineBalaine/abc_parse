@@ -1,9 +1,22 @@
 import { isChord, isNote, isToken, isWS } from "../../helpers2";
 import { ABCContext } from "../../parsers/Context";
 import { Token, TT } from "../../parsers/scan2";
-import { BarLine, Beam, Decoration, Expr, Grace_group, MultiMeasureRest, System, Tune, Tune_Body, YSPACER, tune_body_code } from "../../types/Expr2";
+import {
+  BarLine,
+  Beam,
+  Decoration,
+  Expr,
+  Grace_group,
+  MultiMeasureRest,
+  System,
+  Tune,
+  Tune_Body,
+  Tuplet,
+  YSPACER,
+  tune_body_code,
+} from "../../types/Expr2";
 import { Ctx } from "../../parsers/scan2";
-import { isMultiMeasureRest } from "./fmt_timeMapHelpers";
+import { isBeam, isMultiMeasureRest } from "./fmt_timeMapHelpers";
 
 // Types for rules assignment
 export enum SpcRul {
@@ -39,14 +52,45 @@ export function preprocessTune(tune: Tune, ctx: ABCContext): Tune {
 
   return tune;
 }
+function isSlur(expr: Expr | Token) {
+  return isToken(expr) && expr.type === TT.SLUR;
+}
+function isMusic(cur: Expr | Token) {
+  return isNote(cur) || isChord(cur) || isBeam(cur);
+}
 
+function slurAfterNote(ruleMap: Map<Expr | Token, SpcRul>, prev: Expr | Token, cur: Expr | Token): boolean {
+  if (!(isMusic(prev) && isSlur(cur))) return false;
+  ruleMap.set(cur, SpcRul.NO_SPC);
+  return true;
+}
+function noteAfterSlur(ruleMap: Map<Expr | Token, SpcRul>, prev: Expr | Token, cur: Expr | Token): boolean {
+  if (!(isSlur(prev) && isMusic(cur))) return false;
+  ruleMap.set(cur, SpcRul.NO_SPC);
+  return true;
+}
+function noteAfterTuplet(ruleMap: Map<Expr | Token, SpcRul>, prev: Expr | Token, cur: Expr | Token): boolean {
+  if (!(prev instanceof Tuplet && isMusic(cur))) return false;
+  ruleMap.set(cur, SpcRul.NO_SPC);
+  return true;
+}
 export function assignTuneBodyRules(tune: Tune): Map<Expr | Token, SpcRul> {
   const tuneBody = tune.tune_body!;
   let ruleMap = new Map<Expr | Token, SpcRul>();
   // Process each system
   for (let system of tuneBody.sequence) {
-    for (const node of system) {
-      if (node instanceof YSPACER || (isToken(node) && (node.type === TT.SLUR || node.type === TT.EOL || node.type === TT.EOF))) {
+    for (let i = 1; i < system.length; i++) {
+      const prev = system[i - 1];
+      const node = system[i];
+      if (noteAfterSlur(ruleMap, prev, node)) continue;
+      if (slurAfterNote(ruleMap, prev, node)) continue;
+      if (noteAfterTuplet(ruleMap, prev, node)) continue;
+      if (
+        node instanceof YSPACER ||
+        (isToken(node) &&
+          // node.type === TT.SLUR  ||
+          (node.type === TT.EOL || node.type === TT.EOF))
+      ) {
         ruleMap.set(node, SpcRul.NO_SPC);
       } else {
         ruleMap.set(node, SpcRul.PRECEDE_SPC);
