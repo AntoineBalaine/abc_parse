@@ -295,7 +295,7 @@ export function annotation(ctx: Ctx): boolean {
  * - Mixed: 1,3,5-7,9
  * - X notation: 1x2,3 or 1,2x2,3
  */
-export function parseRepeatNumbers(ctx: Ctx): boolean {
+export function scanRepeatNumbers(ctx: Ctx): boolean {
   // Must start with a number
   if (!ctx.test(/[ \t]*[1-9]/)) {
     return false;
@@ -479,7 +479,7 @@ export function parseColonStart(ctx: Ctx): boolean {
     }
 
     ctx.push(TT.BARLINE);
-    parseRepeatNumbers(ctx);
+    scanRepeatNumbers(ctx);
     return true;
   }
   ctx.push(TT.BARLINE);
@@ -511,7 +511,7 @@ export function parseBarlineStart(ctx: Ctx): boolean {
       advance(ctx);
     }
     ctx.push(TT.BARLINE);
-    parseRepeatNumbers(ctx);
+    scanRepeatNumbers(ctx);
     return true;
   } else if (ctx.test(/[ \t]*\[[ \t]*[1-9]/)) {
     while (ctx.test(" ")) {
@@ -519,7 +519,7 @@ export function parseBarlineStart(ctx: Ctx): boolean {
     }
     advance(ctx); // Consume left bracket
     ctx.push(TT.BARLINE);
-    parseRepeatNumbers(ctx);
+    scanRepeatNumbers(ctx);
     return true;
   } else if (ctx.test(/[ \t]*\]/)) {
     while (ctx.test(" ")) {
@@ -549,7 +549,7 @@ export function parseLeftBracketStart(ctx: Ctx): boolean {
   if (ctx.test(/[1-9]/)) {
     // repeat numbers
     ctx.push(TT.BARLINE);
-    parseRepeatNumbers(ctx);
+    scanRepeatNumbers(ctx);
     return true;
   } else if (ctx.test(/\|/)) {
     //Barline possibly followed by colons or right bracket
