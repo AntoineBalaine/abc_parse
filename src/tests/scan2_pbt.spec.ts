@@ -1,6 +1,7 @@
 import * as fc from "fast-check";
-import { Scanner2, TT } from "../parsers/scan2";
+import { Ctx, Scanner2, Token, TT } from "../parsers/scan2";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
+import { scanTune } from "../parsers/scan_tunebody";
 
 describe("Scanner Property Tests", () => {
   // Arbitrary generators for ABC notation components
@@ -106,6 +107,136 @@ describe("Scanner Property Tests", () => {
           return false;
         }
       })
+    );
+  });
+});
+
+describe.skip("Scanner Round-trip Tests", () => {
+  // Basic token generators
+  const genNoteLetter = fc
+    .constantFrom("A", "B", "C", "D", "E", "F", "G", "a", "b", "c", "d", "e", "f", "g")
+    .map((letter) => ({ type: TT.NOTE_LETTER, lexeme: letter }));
+
+  const genOctave = fc.constantFrom("'", "''", ",", ",,").map((oct) => ({ type: TT.OCTAVE, lexeme: oct }));
+
+  const genAccidental = fc.constantFrom("^", "^^", "_", "__", "=").map((acc) => ({ type: TT.ACCIDENTAL, lexeme: acc }));
+
+  const genRest = fc.constantFrom("z", "x", "Z", "X").map((rest) => ({ type: TT.REST, lexeme: rest }));
+
+  // Fixed barline generator that matches scanner behavior
+  const genBarline = fc.constantFrom("|", "||", "[|", "|]", ":|", "|:", "::").map((bar) => ({ type: TT.BARLINE, lexeme: bar }));
+
+  // Separate generator for repeat numbers (to match how scanner tokenizes them)
+  const genBarlineWithNumber = fc
+    .tuple(
+      fc.constantFrom({ type: TT.BARLINE, lexeme: "[" }),
+      fc.constantFrom({ type: TT.REPEAT_NUMBER, lexeme: "1" }, { type: TT.REPEAT_NUMBER, lexeme: "2" })
+    )
+    .map((tokens) => tokens);
+
+  const genRhythm = fc.nat(16).chain((n) =>
+    fc.constantFrom(
+      { type: TT.RHY_NUMER, lexeme: n.toString() }
+      // { type: TT.RHY_SEP, lexeme: "/" },
+      // { type: TT.RHY_DENOM, lexeme: (2 ** n).toString() }
+    )
+  );
+
+  // Composite token generators
+  const genPitch = fc.tuple(fc.option(genAccidental), genNoteLetter, fc.option(genOctave)).map(([acc, note, oct]) => {
+    const tokens = [];
+    if (acc) tokens.push(acc);
+    tokens.push(note);
+    if (oct) tokens.push(oct);
+    return tokens;
+  });
+
+  const genNote = fc.tuple(genPitch, fc.option(genRhythm)).map(([pitch, rhythm]) => {
+    return [...pitch, ...(rhythm ? [rhythm] : [])];
+  });
+
+  // Main token sequence generator
+  const genTokenSequence = fc.array(fc.oneof(genNote, genRest, genBarline)).map((tokens) => {
+    // Filter out consecutive barlines
+    const result = [];
+    let prevIsBarline = false;
+
+    for (const token of tokens) {
+      const isBarline = (token as Token).type === TT.BARLINE;
+
+      if (!(prevIsBarline && isBarline)) {
+        result.push(token);
+      }
+
+      prevIsBarline = isBarline;
+    }
+
+    return result;
+  });
+
+  it("should produce equivalent tokens when rescanning concatenated lexemes", () => {
+    fc.assert(
+      fc.property(genTokenSequence, (originalTokens) => {
+        // Define interfaces for token types
+        interface TokenLike {
+          type: number;
+          lexeme: string;
+        }
+
+        interface NormalizedToken {
+          type: number;
+          lexeme: string;
+        }
+
+        // Concatenate lexemes
+        const input = originalTokens.map((t) => (t as TokenLike).lexeme).join("");
+
+        // Rescan
+        const errorReporter = new AbcErrorReporter();
+        let ctx = new Ctx(input);
+        scanTune(ctx);
+        const rescannedTokens = ctx.tokens;
+
+        // Skip position-related properties in comparison
+        const normalizeToken = (token: TokenLike): NormalizedToken => ({
+          type: token.type,
+          lexeme: token.lexeme,
+        });
+
+        // Compare token sequences
+        const normalizedOriginal = originalTokens.map((t) => normalizeToken(t as TokenLike));
+        const normalizedRescanned = rescannedTokens
+          .filter((t) => t.type !== TT.EOF) // Exclude EOF token
+          .map(normalizeToken);
+
+        if (normalizedOriginal.length !== normalizedRescanned.length) {
+          console.log("Token count mismatch:", {
+            input,
+            original: normalizedOriginal,
+            rescanned: normalizedRescanned,
+          });
+          return false;
+        }
+
+        const isEqual = normalizedOriginal.every((orig, i) => {
+          const rescanned = normalizedRescanned[i];
+          return orig.type === rescanned.type && orig.lexeme === rescanned.lexeme;
+        });
+
+        if (!isEqual) {
+          console.log("Token mismatch:", {
+            input,
+            original: normalizedOriginal,
+            rescanned: normalizedRescanned,
+          });
+        }
+
+        return isEqual && errorReporter.getErrors().length === 0;
+      }),
+      {
+        verbose: true,
+        numRuns: 100,
+      }
     );
   });
 });
