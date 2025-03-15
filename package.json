@@ -64,6 +64,7 @@
     "report-dir": "coverage"
   },
   "dependencies": {
-    "@typescript-eslint/parser": "^6.11.0"
+    "@typescript-eslint/parser": "^6.11.0",
+    "fast-check": "^4.0.0"
   }
 }

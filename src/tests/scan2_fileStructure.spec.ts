@@ -3,6 +3,7 @@ import { describe, it } from "mocha";
 import { TT, fileHeader } from "../parsers/scan2";
 import { createCtx } from "./scan2_tuneBodyTokens.spec";
 import { scanTune } from "../parsers/scan_tunebody";
+import { expect } from "chai";
 
 describe("fileHeader", () => {
   it("should parse a file header with info lines, comments, and stylesheet directives", () => {
@@ -10,13 +11,29 @@ describe("fileHeader", () => {
     fileHeader(ctx);
 
     // Check that we have the expected token types in the right order
-    const expectedTypes = [TT.STYLESHEET_DIRECTIVE, TT.EOL, TT.COMMENT, TT.EOL, TT.INF_HDR, TT.INFO_STR, TT.EOL];
+    const expectedTypes = [
+      TT.STYLESHEET_DIRECTIVE,
+      TT.EOL,
+      TT.COMMENT,
+      TT.EOL,
+      TT.INF_HDR,
+      TT.INFO_STR,
+      TT.EOL,
+    ];
 
-    assert.equal(ctx.tokens.length, expectedTypes.length, `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`);
+    assert.equal(
+      ctx.tokens.length,
+      expectedTypes.length,
+      `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`,
+    );
 
     // Check the token types to make sure they match what we expect
     for (let i = 0; i < expectedTypes.length; i++) {
-      assert.equal(ctx.tokens[i].type, expectedTypes[i], `Token at index ${i} should be ${expectedTypes[i]} but was ${ctx.tokens[i].type}`);
+      assert.equal(
+        ctx.tokens[i].type,
+        expectedTypes[i],
+        `Token at index ${i} should be ${expectedTypes[i]} but was ${ctx.tokens[i].type}`,
+      );
     }
   });
 
@@ -27,11 +44,19 @@ describe("fileHeader", () => {
     // Check that we have the expected token types in the right order
     const expectedTypes = [TT.STYLESHEET_DIRECTIVE, TT.EOL, TT.COMMENT, TT.EOL];
 
-    assert.equal(ctx.tokens.length, expectedTypes.length, `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`);
+    assert.equal(
+      ctx.tokens.length,
+      expectedTypes.length,
+      `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`,
+    );
 
     // Check the token types to make sure they match what we expect
     for (let i = 0; i < expectedTypes.length; i++) {
-      assert.equal(ctx.tokens[i].type, expectedTypes[i], `Token at index ${i} should be ${expectedTypes[i]} but was ${ctx.tokens[i].type}`);
+      assert.equal(
+        ctx.tokens[i].type,
+        expectedTypes[i],
+        `Token at index ${i} should be ${expectedTypes[i]} but was ${ctx.tokens[i].type}`,
+      );
     }
 
     // Check that the current position is at the start of the tune header
@@ -43,13 +68,26 @@ describe("fileHeader", () => {
     fileHeader(ctx);
 
     // Check that we have the expected token types in the right order
-    const expectedTypes = [TT.FREE_TXT, TT.EOL, TT.STYLESHEET_DIRECTIVE, TT.EOL];
+    const expectedTypes = [
+      TT.FREE_TXT,
+      TT.EOL,
+      TT.STYLESHEET_DIRECTIVE,
+      TT.EOL,
+    ];
 
-    assert.equal(ctx.tokens.length, expectedTypes.length, `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`);
+    assert.equal(
+      ctx.tokens.length,
+      expectedTypes.length,
+      `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`,
+    );
 
     // Check the token types to make sure they match what we expect
     for (let i = 0; i < expectedTypes.length; i++) {
-      assert.equal(ctx.tokens[i].type, expectedTypes[i], `Token at index ${i} should be ${expectedTypes[i]} but was ${ctx.tokens[i].type}`);
+      assert.equal(
+        ctx.tokens[i].type,
+        expectedTypes[i],
+        `Token at index ${i} should be ${expectedTypes[i]} but was ${ctx.tokens[i].type}`,
+      );
     }
 
     // Check the lexeme of the free text token
@@ -82,11 +120,19 @@ describe("scan tune", () => {
       TT.EOL,
     ];
 
-    assert.equal(ctx.tokens.length, expectedTypes.length, `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`);
+    assert.equal(
+      ctx.tokens.length,
+      expectedTypes.length,
+      `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`,
+    );
 
     // Check the token types to make sure they match what we expect
     for (let i = 0; i < expectedTypes.length; i++) {
-      assert.equal(ctx.tokens[i].type, expectedTypes[i], `Token at index ${i} should be ${expectedTypes[i]} but was ${ctx.tokens[i].type}`);
+      assert.equal(
+        ctx.tokens[i].type,
+        expectedTypes[i],
+        `Token at index ${i} should be ${expectedTypes[i]} but was ${ctx.tokens[i].type}`,
+      );
     }
   });
 
@@ -123,11 +169,19 @@ describe("scan tune", () => {
 
     const expectedTypes = [...headerTokenTypes, ...bodyTokenTypes];
 
-    assert.equal(ctx.tokens.length, expectedTypes.length, `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`);
+    assert.equal(
+      ctx.tokens.length,
+      expectedTypes.length,
+      `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`,
+    );
 
     // Check the token types to make sure they match what we expect
     for (let i = 0; i < expectedTypes.length; i++) {
-      assert.equal(ctx.tokens[i].type, expectedTypes[i], `Token at index ${i} should be ${expectedTypes[i]} but was ${ctx.tokens[i].type}`);
+      assert.equal(
+        ctx.tokens[i].type,
+        expectedTypes[i],
+        `Token at index ${i} should be ${expectedTypes[i]} but was ${ctx.tokens[i].type}`,
+      );
     }
   });
 
@@ -158,11 +212,19 @@ describe("scan tune", () => {
       // TT.SCT_BRK, // \n\n
     ];
 
-    assert.equal(ctx.tokens.length, expectedTypes.length, `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`);
+    assert.equal(
+      ctx.tokens.length,
+      expectedTypes.length,
+      `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`,
+    );
 
     // Check the token types to make sure they match what we expect
     for (let i = 0; i < expectedTypes.length; i++) {
-      assert.equal(ctx.tokens[i].type, expectedTypes[i], `Token at index ${i} should be ${expectedTypes[i]} but was ${ctx.tokens[i].type}`);
+      assert.equal(
+        ctx.tokens[i].type,
+        expectedTypes[i],
+        `Token at index ${i} should be ${expectedTypes[i]} but was ${ctx.tokens[i].type}`,
+      );
     }
   });
 });

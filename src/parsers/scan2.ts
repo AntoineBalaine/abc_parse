@@ -68,7 +68,7 @@ export function fileHeader(ctx: Ctx) {
     ctx.start = ctx.current;
 
     // Check if we've reached a tune header start (X:)
-    if (ctx.test(pTuneHeadStrt)) {
+    if (ctx.test(pTuneHeadStrt) || ctx.test(pSectionBrk)) {
       return ctx.tokens;
     }
 
