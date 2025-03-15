@@ -43,7 +43,8 @@
     "file": "ts-node src/Abc.ts /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/all/lazy_river.abc",
     "lint": "eslint src --ext ts",
     "parse-folder": "ts-node src/tests/parseFolder.ts",
-    "parse-file": "ts-node src/tests/parseFile.ts"
+    "parse-file": "ts-node src/tests/parseFile.ts",
+    "parse-folder:stringify": "ts-node src/tests/fmt2_parseFolder_stringify.ts"
   },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",
