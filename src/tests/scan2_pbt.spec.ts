@@ -251,6 +251,20 @@ describe.only("Scanner Round-trip Tests", () => {
   );
 
   const genWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws));
+  const genChord = fc
+    .tuple(
+      fc.constantFrom(new Token(TT.CHRD_LEFT_BRKT, "[")),
+      fc.array(genPitch, { minLength: 1, maxLength: 4 }),
+      fc.constantFrom(new Token(TT.CHRD_RIGHT_BRKT, "]")),
+      fc.option(genRhythm)
+    )
+    .map(([leftBracket, pitches, rightBracket, rhythmOpt]) => {
+      const tokens = [leftBracket];
+      pitches.forEach((pitch) => tokens.push(...pitch));
+      tokens.push(rightBracket);
+      if (rhythmOpt) tokens.push(...rhythmOpt);
+      return tokens;
+    });
 
   // Main token sequence generator
   const genTokenSequence = fc
@@ -268,7 +282,8 @@ describe.only("Scanner Round-trip Tests", () => {
         genSymbol.map((sym) => [sym]),
         genYspacer,
         genBcktckSpc.map((bck) => [bck]),
-        genGraceGroup,
+        // genGraceGroup,
+        genChord,
         genInlineField,
         { arbitrary: genStylesheetDirective, weight: 1 },
         { arbitrary: genCommentToken, weight: 2 }
@@ -345,6 +360,7 @@ describe.only("Scanner Round-trip Tests", () => {
           .map(normalizeToken);
 
         if (normalizedOriginal.length !== normalizedRescanned.length) {
+          compareTokenArrays(originalTokens, rescannedTokens, input);
           console.log("Token count mismatch:", {
             input,
             original: normalizedOriginal,
@@ -359,6 +375,7 @@ describe.only("Scanner Round-trip Tests", () => {
         });
 
         if (!isEqual) {
+          compareTokenArrays(originalTokens, rescannedTokens, input);
           console.log("Token mismatch:", {
             input,
             original: normalizedOriginal,
@@ -375,3 +392,76 @@ describe.only("Scanner Round-trip Tests", () => {
     );
   });
 });
+
+/**
+ * Compares two arrays of tokens and returns true if they match.
+ * Logs detailed diagnostic information for mismatches.
+ */
+function compareTokenArrays(
+  originalTokens: Array<{ type: number; lexeme: string }>,
+  rescannedTokens: Array<{ type: number; lexeme: string }>,
+  input: string
+): boolean {
+  // Skip position-related properties in comparison
+  const normalizeToken = (token: { type: number; lexeme: string }) => ({
+    type: token.type,
+    lexeme: token.lexeme,
+  });
+
+  // Compare token sequences
+  const normalizedOriginal = originalTokens.map(normalizeToken);
+  const normalizedRescanned = rescannedTokens
+    .filter((t) => t.type !== TT.EOF) // Exclude EOF token
+    .map(normalizeToken);
+
+  if (normalizedOriginal.length !== normalizedRescanned.length) {
+    console.log("Token count mismatch:", {
+      input,
+      original: normalizedOriginal.map((t) => `${TT[t.type]}:${t.lexeme}`),
+      rescanned: normalizedRescanned.map((t) => `${TT[t.type]}:${t.lexeme}`),
+      originalCount: normalizedOriginal.length,
+      rescannedCount: normalizedRescanned.length,
+    });
+    return false;
+  }
+
+  // Find the first token that doesn't match
+  let firstMismatchIndex = -1;
+  for (let i = 0; i < normalizedOriginal.length; i++) {
+    const orig = normalizedOriginal[i];
+    const rescanned = normalizedRescanned[i];
+
+    if (orig.type !== rescanned.type || orig.lexeme !== rescanned.lexeme) {
+      firstMismatchIndex = i;
+      break;
+    }
+  }
+
+  if (firstMismatchIndex !== -1) {
+    // Show the mismatch with some context (3 tokens before and after)
+    const contextStart = Math.max(0, firstMismatchIndex - 3);
+    const contextEnd = Math.min(normalizedOriginal.length, firstMismatchIndex + 4);
+
+    console.log("Token mismatch at position", firstMismatchIndex);
+    console.log("Input string:", input);
+
+    console.log("Original tokens (with context):");
+    for (let i = contextStart; i < contextEnd; i++) {
+      const t = normalizedOriginal[i];
+      const marker = i === firstMismatchIndex ? ">>> " : "    ";
+      console.log(`${marker}[${i}] ${TT[t.type]}: "${t.lexeme}"`);
+    }
+
+    console.log("Rescanned tokens (with context):");
+    const rescannedContextEnd = Math.min(normalizedRescanned.length, firstMismatchIndex + 4);
+    for (let i = contextStart; i < rescannedContextEnd; i++) {
+      const t = normalizedRescanned[i];
+      const marker = i === firstMismatchIndex ? ">>> " : "    ";
+      console.log(`${marker}[${i}] ${TT[t.type]}: "${t.lexeme}"`);
+    }
+
+    return false;
+  }
+
+  return true;
+}

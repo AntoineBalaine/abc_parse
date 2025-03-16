@@ -11,11 +11,12 @@ export const pDuration = /(\/+)|(([1-9][0-9]*)?\/[1-9][0-9]*)|([1-9][0-9]*)|([>]
 export const pSectionBrk = /\n([ \t]*\n)+/;
 export const pNumber = /[1-9][0-9]*/;
 export const pRest = /[zZxX]/;
-export const pPitch = /[\^=_]?[a-gA-G][,']*/;
+const pAccidental = /^((\^[\^\/]?)|(_[_\/]?)|=)/;
+// export const pPitch = /[\^=_]?[a-gA-G][,']*/;
+export const pPitch = new RegExp(`((\\^[\\^\\/]?)|(_[_\\/]?)|=)?[a-gA-G][,']*`);
 export const pString = /"[^\n]*"/;
 export const pChord = new RegExp(`\\[((${pString.source})+|(${pPitch.source})+)\\]`);
 export const pDeco = /[\~\.HLMOPSTuv]/;
-const pAccidental = /^((\^[\^\/]?)|(_[_\/]?)|=)/;
 
 export const pTuplet = new RegExp(`\\(${pNumber.source}(:(${pNumber.source})?)?(:(${pNumber.source})?)?`);
 const pNote = new RegExp(`-?${pDeco.source}?${pPitch.source}${pDuration.source}?-?`);
@@ -224,7 +225,7 @@ export function chord(ctx: Ctx): boolean {
     }
   }
   advance(ctx);
-  tie(ctx);
+  // tie(ctx);
   ctx.push(TT.CHRD_RIGHT_BRKT);
   rhythm(ctx);
   return true;

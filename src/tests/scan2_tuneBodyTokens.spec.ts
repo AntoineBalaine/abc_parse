@@ -1,6 +1,6 @@
 import assert from "assert";
 import { describe, it } from "mocha";
-import { Ctx, Token, TT, advance, stylesheet_directive, info_line } from "../parsers/scan2";
+import { Ctx, TT, stylesheet_directive, info_line } from "../parsers/scan2";
 import {
   comment,
   decoration,
@@ -564,6 +564,30 @@ describe("scan2", () => {
       assert.equal(ctx.tokens[4].type, TT.NOTE_LETTER);
       assert.equal(ctx.tokens[5].type, TT.CHRD_RIGHT_BRKT);
       assert.equal(ctx.tokens[6].type, TT.RHY_NUMER);
+    });
+
+    it("should correctly parse chord with accidental", () => {
+      // Arrange
+      const input = "[^/a]";
+      const ctx = new Ctx(input);
+      const errorReporter = new AbcErrorReporter();
+      ctx.errorReporter = errorReporter;
+
+      // Act
+      const result = chord(ctx);
+
+      // Assert
+      assert.equal(result, true);
+      assert.equal(errorReporter.getErrors().length, 0);
+      assert.equal(ctx.tokens.length, 4);
+      assert.equal(ctx.tokens[0].type, TT.CHRD_LEFT_BRKT);
+      assert.equal(ctx.tokens[0].lexeme, "[");
+      assert.equal(ctx.tokens[1].type, TT.ACCIDENTAL);
+      assert.equal(ctx.tokens[1].lexeme, "^/");
+      assert.equal(ctx.tokens[2].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[2].lexeme, "a");
+      assert.equal(ctx.tokens[3].type, TT.CHRD_RIGHT_BRKT);
+      assert.equal(ctx.tokens[3].lexeme, "]");
     });
   });
 
