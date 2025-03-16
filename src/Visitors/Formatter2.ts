@@ -271,8 +271,8 @@ export class AbcFormatter2 implements Visitor<string> {
           count = count * 2;
         }
         formatted += `/${count}`;
-      } else if (expr.separator.lexeme === "/" && expr.denominator && expr.denominator.lexeme === "2") {
-        formatted += "/";
+      } else if (expr.separator.lexeme === "/" && expr.denominator?.lexeme === "2") {
+        return formatted + "/";
       } else {
         // for now, don't handle mix of multiple slashes and a denominator
         formatted += expr.separator.lexeme;

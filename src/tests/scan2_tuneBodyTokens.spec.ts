@@ -81,6 +81,11 @@ describe("scan2", () => {
   });
 
   describe("decoration", () => {
+    it("shoul fail to parse misplaced decoration", () => {
+      const ctx = createCtx("This");
+      const result = decoration(ctx);
+      assert.equal(result, false);
+    });
     it("should parse a single decoration followed by a pitch", () => {
       const ctx = createCtx(".A");
       const result = decoration(ctx);

@@ -201,13 +201,20 @@ export class Token {
   public toString = () => {
     return this.type + " " + this.lexeme;
   };
-  constructor(type: TT, ctx: Ctx) {
-    this.type = type;
-    this.lexeme = ctx.source.slice(ctx.start, ctx.current);
-    this.line = ctx.line;
-    // Calculate position relative to the start of the line
-    const lineBreak = ctx.line === 0 ? 0 : ctx.source.lastIndexOf("\n", ctx.start) + 1;
-    this.position = ctx.start - lineBreak;
+  constructor(type: TT, ctx: Ctx | string) {
+    if (ctx instanceof Ctx) {
+      this.type = type;
+      this.lexeme = ctx.source.slice(ctx.start, ctx.current);
+      this.line = ctx.line;
+      // Calculate position relative to the start of the line
+      const lineBreak = ctx.line === 0 ? 0 : ctx.source.lastIndexOf("\n", ctx.start) + 1;
+      this.position = ctx.start - lineBreak;
+    } else {
+      this.type = type;
+      this.lexeme = ctx;
+      this.line = 0;
+      this.position = 0;
+    }
   }
 }
 export function stylesheet_directive(ctx: Ctx): boolean {

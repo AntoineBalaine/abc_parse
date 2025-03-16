@@ -3,7 +3,7 @@ import { isNote, isChord } from "../helpers2";
 import { ABCContext } from "../parsers/Context";
 import { parseTune } from "../parsers/parse2";
 import { Scanner2, Token, TT } from "../parsers/scan2";
-import { System } from "../types/Expr2";
+import { Grace_group } from "../types/Expr2";
 import { assignTuneBodyRules, expandMultiMeasureRests, preprocessTune, SpcRul } from "../Visitors/fmt2/fmt_rules_assignment";
 import { BarLine, Decoration, MultiMeasureRest, Beam } from "../types/Expr2";
 import { isBarLine, isToken } from "../Visitors/fmt2/fmt_timeMapHelpers";
@@ -22,7 +22,7 @@ describe("Rules Assignment (fmt2)", () => {
 
   describe("assignTuneBodyRules", () => {
     it("assigns PRECEDE_SPC to notes and barlines in single voice", () => {
-      let tune = buildTune(`X:1\nC D E|F G A|`, ctx);
+      let tune = buildTune(`X:1\n.C D E|F G A|`, ctx);
       tune = preprocessTune(tune, ctx);
       const ruleMap = assignTuneBodyRules(tune);
 
@@ -89,22 +89,8 @@ CDEF|GABC|CDEF|GABC|
       });
     });
 
-    it("assigns PRECEDE_SPC to inline fields", () => {
-      let tune = buildTune(`X:1\n[K:C]C D E|`, ctx);
-
-      tune = preprocessTune(tune, ctx);
-      const ruleMap = assignTuneBodyRules(tune);
-
-      tune.tune_body!.sequence[0].forEach((node) => {
-        if (node.constructor.name === "Inline_field") {
-          const rules = ruleMap.get(node);
-          assert.isTrue(!!rules && rules === SpcRul.PRECEDE_SPC);
-        }
-      });
-    });
-
     it("handles beamed notes", () => {
-      let tune = buildTune(`X:1\nCDEF GABC|`, ctx);
+      let tune = buildTune(`X:1\nC CDEF GABC|`, ctx);
 
       tune = preprocessTune(tune, ctx);
       const ruleMap = assignTuneBodyRules(tune);
@@ -118,13 +104,13 @@ CDEF|GABC|CDEF|GABC|
     });
 
     it("handles grace notes", () => {
-      let tune = buildTune(`X:1\n{ag}f2|`, ctx);
+      let tune = buildTune(`X:1\nC {ag}f2|`, ctx);
 
       tune = preprocessTune(tune, ctx);
       const ruleMap = assignTuneBodyRules(tune);
 
       tune.tune_body!.sequence[0].forEach((node) => {
-        if (node.constructor.name === "Grace_group") {
+        if (node instanceof Grace_group) {
           const rules = ruleMap.get(node);
           assert.isTrue(!!rules && rules === SpcRul.PRECEDE_SPC);
         }

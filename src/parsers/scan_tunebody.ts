@@ -11,7 +11,7 @@ export const pDuration = /(\/+)|(([1-9][0-9]*)?\/[1-9][0-9]*)|([1-9][0-9]*)|([>]
 export const pSectionBrk = /\n([ \t]*\n)+/;
 export const pNumber = /[1-9][0-9]*/;
 export const pRest = /[zZxX]/;
-export const pPitch = /[\^=_]?[a-zA-G][,']*/;
+export const pPitch = /[\^=_]?[a-gA-G][,']*/;
 export const pString = /"[^\n]*"/;
 export const pChord = new RegExp(`\\[((${pString.source})+|(${pPitch.source})+)\\]`);
 export const pDeco = /[\~\.HLMOPSTuv]/;
