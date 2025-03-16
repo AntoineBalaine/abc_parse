@@ -5,7 +5,7 @@ export const pEOL = "\n";
 export const pInfoLine = /[ \t]*[a-zA-Z][ \t]*:/;
 export const pInfoLnCtd = /[ \t]*\+:[ \t]*/;
 
-export const pTuneHeadStrt = / *X:/;
+export const pTuneHeadStrt = /[ \t]*X:/;
 export const pTuneStart = new RegExp(`^(?:(?!\n[ \t]*\n).)*${pTuneHeadStrt.source}`, "s");
 export const pDuration = /(\/+)|(([1-9][0-9]*)?\/[1-9][0-9]*)|([1-9][0-9]*)|([>]+|[<]+)/;
 export const pSectionBrk = /\n([ \t]*\n)+/;

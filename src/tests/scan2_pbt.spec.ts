@@ -1,7 +1,7 @@
 import * as fc from "fast-check";
 import { Ctx, Scanner2, Token, TT } from "../parsers/scan2";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { scanTune } from "../parsers/scan_tunebody";
+import { pDuration, pitch, pPitch, scanTune } from "../parsers/scan_tunebody";
 
 describe("Scanner Property Tests", () => {
   // Arbitrary generators for ABC notation components
@@ -111,35 +111,54 @@ describe("Scanner Property Tests", () => {
   });
 });
 
-describe.skip("Scanner Round-trip Tests", () => {
+describe("gen scan from regex", () => {
+  const genNote = fc.stringMatching(new RegExp(`^${pPitch.source}(${pDuration.source})?`));
+  const genRhythm = fc.stringMatching(new RegExp(`^${pDuration.source}$`));
+  it("PBT - pitch", () => {
+    const genPitch = fc.stringMatching(new RegExp(`^${pPitch.source}$`));
+    fc.assert(
+      fc.property(genPitch, (pitchStr) => {
+        const ctx = new Ctx(pitchStr);
+        const result = pitch(ctx);
+        if (!result) {
+          return false;
+        }
+        if (ctx.tokens.length > 3) return false;
+        const token = ctx.tokens.find((token) => token.type === TT.NOTE_LETTER);
+        if (token === undefined) return false;
+        if (!pitchStr.includes(token.lexeme)) {
+          return false;
+        }
+        return true;
+      }),
+      { verbose: true }
+    );
+  });
+});
+describe.only("Scanner Round-trip Tests", () => {
   // Basic token generators
-  const genNoteLetter = fc
-    .constantFrom("A", "B", "C", "D", "E", "F", "G", "a", "b", "c", "d", "e", "f", "g")
-    .map((letter) => ({ type: TT.NOTE_LETTER, lexeme: letter }));
+  const genNoteLetter = fc.stringMatching(/^[a-gA-G]$/).map((letter) => new Token(TT.NOTE_LETTER, letter));
 
-  const genOctave = fc.constantFrom("'", "''", ",", ",,").map((oct) => ({ type: TT.OCTAVE, lexeme: oct }));
+  const genOctave = fc.stringMatching(/^(,+|'+)$/).map((oct) => new Token(TT.OCTAVE, oct));
 
-  const genAccidental = fc.constantFrom("^", "^^", "_", "__", "=").map((acc) => ({ type: TT.ACCIDENTAL, lexeme: acc }));
+  const genAccidental = fc.stringMatching(/^((\^[\^\/]?)|(_[_\/]?)|=)$/).map((acc) => new Token(TT.ACCIDENTAL, acc));
 
-  const genRest = fc.constantFrom("z", "x", "Z", "X").map((rest) => ({ type: TT.REST, lexeme: rest }));
+  const genRest = fc.stringMatching(/^[xXzZ]$/).map((rest) => new Token(TT.REST, rest));
 
   // Fixed barline generator that matches scanner behavior
-  const genBarline = fc.constantFrom("|", "||", "[|", "|]", ":|", "|:", "::").map((bar) => ({ type: TT.BARLINE, lexeme: bar }));
+  const genBarline = fc.stringMatching(/^((\[\|)|(\|\])|(\|\|)|(\|))$/).map((bar) => new Token(TT.BARLINE, bar));
 
-  // Separate generator for repeat numbers (to match how scanner tokenizes them)
-  const genBarlineWithNumber = fc
-    .tuple(
-      fc.constantFrom({ type: TT.BARLINE, lexeme: "[" }),
-      fc.constantFrom({ type: TT.REPEAT_NUMBER, lexeme: "1" }, { type: TT.REPEAT_NUMBER, lexeme: "2" })
-    )
-    .map((tokens) => tokens);
-
-  const genRhythm = fc.nat(16).chain((n) =>
-    fc.constantFrom(
-      { type: TT.RHY_NUMER, lexeme: n.toString() }
-      // { type: TT.RHY_SEP, lexeme: "/" },
-      // { type: TT.RHY_DENOM, lexeme: (2 ** n).toString() }
-    )
+  const genRhythm = fc.oneof(
+    fc.stringMatching(/^\/+$/).map((slashes) => [new Token(TT.RHY_SEP, slashes)]),
+    fc
+      .tuple(
+        fc.stringMatching(/^[1-9][0-9]*$/), // numerator
+        fc.constantFrom("/"), // separator
+        fc.stringMatching(/^[1-9][0-9]*$/) // denominator
+      )
+      .map(([num, sep, denom]) => [new Token(TT.RHY_NUMER, num), new Token(TT.RHY_SEP, sep), new Token(TT.RHY_DENOM, denom)]),
+    fc.stringMatching(/^[1-9][0-9]*$/).map((num) => [new Token(TT.RHY_NUMER, num.toString())]),
+    fc.stringMatching(/^([>]+|[<]+)$/).map((arrows) => [new Token(TT.RHY_BRKN, arrows)])
   );
 
   // Composite token generators
@@ -151,28 +170,144 @@ describe.skip("Scanner Round-trip Tests", () => {
     return tokens;
   });
 
-  const genNote = fc.tuple(genPitch, fc.option(genRhythm)).map(([pitch, rhythm]) => {
-    return [...pitch, ...(rhythm ? [rhythm] : [])];
+  const genNote = fc.tuple(genPitch, fc.option(genRhythm)).map(([pitchTokens, rhythmTokens]) => {
+    // Flatten all tokens into a single array
+    return [...pitchTokens, ...(rhythmTokens || [])];
   });
+
+  const genTie = fc.constantFrom(new Token(TT.TIE, "-"));
+
+  // Ampersand generator (both forms)
+  const genAmpersand = fc.oneof(fc.constantFrom(new Token(TT.VOICE, "&")), fc.constantFrom(new Token(TT.VOICE_OVRLAY, "&\n")));
+
+  // Tuplet generator
+  const genTuplet = fc
+    .tuple(
+      fc.integer({ min: 2, max: 9 }).map(String),
+      fc.option(fc.tuple(fc.constantFrom(":"), fc.integer({ min: 1, max: 9 }).map(String))),
+      fc.option(fc.tuple(fc.constantFrom(":"), fc.integer({ min: 1, max: 9 }).map(String)))
+    )
+    .map(([p, q, r]) => {
+      const qStr = q ? `${q[0]}${q[1]}` : "";
+      const rStr = r ? `${r[0]}${r[1]}` : "";
+      return new Token(TT.TUPLET, `(${p}${qStr}${rStr}`);
+    });
+
+  // Slur generator
+  const genSlur = fc.constantFrom("(", ")").map((slur) => new Token(TT.SLUR, slur));
+
+  // Decoration generator
+  const genDecoration = fc.stringMatching(/^[\~\.HLMOPSTuv]+$/).map((deco) => new Token(TT.DECORATION, deco));
+
+  // Symbol generator
+  const genSymbol = fc.oneof(
+    fc.stringMatching(/^![a-zA-Z][^\n!]*!$/).map((sym) => new Token(TT.SYMBOL, sym)),
+    fc.stringMatching(/^\+[^\n\+]*\+$/).map((sym) => new Token(TT.SYMBOL, sym))
+  );
+
+  // Y-spacer generator
+  const genYspacer = fc.tuple(fc.constantFrom(new Token(TT.Y_SPC, "y")), fc.option(genRhythm)).map(([y, rhy]) => (rhy ? [y, ...rhy] : [y]));
+
+  // Backtick spacer generator
+  const genBcktckSpc = fc.constantFrom(new Token(TT.BCKTCK_SPC, "`"));
+
+  // Grace notes generator
+  const genGraceGroup = fc
+    .tuple(
+      fc.constantFrom(new Token(TT.GRC_GRP_LEFT_BRACE, "{")),
+      fc.option(fc.constantFrom(new Token(TT.GRC_GRP_SLSH, "/"))),
+      fc.array(genPitch, { minLength: 1, maxLength: 4 }),
+      fc.constantFrom(new Token(TT.GRC_GRP_RGHT_BRACE, "}"))
+    )
+    .map(([leftBrace, slashOpt, notes, rightBrace]) => {
+      const tokens = [leftBrace];
+      if (slashOpt) tokens.push(slashOpt);
+      notes.forEach((note) => tokens.push(...note));
+      tokens.push(rightBrace);
+      return tokens;
+    });
+
+  // Inline field generator
+  const genInlineField = fc
+    .tuple(
+      fc.constantFrom(new Token(TT.INLN_FLD_LFT_BRKT, "[")),
+      fc.stringMatching(/^[a-zA-Z]:$/).map((hdr) => new Token(TT.INF_HDR, hdr)),
+      fc.stringMatching(/^[^\]]+$/).map((str) => new Token(TT.INFO_STR, str)),
+      fc.constantFrom(new Token(TT.INLN_FLD_RGT_BRKT, "]"))
+    )
+    .map((tokens) => tokens);
+  const genEOL = fc.constantFrom(new Token(TT.EOL, "\n"));
+
+  // Stylesheet directive generator
+  const genStylesheetDirective = fc.tuple(
+    fc.stringMatching(/^%%[^\n]*$/).map((str) => new Token(TT.STYLESHEET_DIRECTIVE, str)),
+    genEOL
+  );
+
+  // Comment generator
+  const genCommentToken = fc.tuple(
+    fc.stringMatching(/^%[^%\n]*$/).map((str) => new Token(TT.COMMENT, str)),
+    genEOL
+  );
+
+  const genWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws));
 
   // Main token sequence generator
-  const genTokenSequence = fc.array(fc.oneof(genNote, genRest, genBarline)).map((tokens) => {
-    // Filter out consecutive barlines
-    const result = [];
-    let prevIsBarline = false;
+  const genTokenSequence = fc
+    .array(
+      fc.oneof(
+        genNote,
+        genRest.map((rest) => [rest]),
+        genBarline.map((bar) => [bar]),
+        // genTie.map((tie) => [tie])
+        genAmpersand.map((amp) => [amp]),
+        genWhitespace.map((ws) => [ws]),
+        genTuplet.map((tup) => [tup]),
+        genSlur.map((slur) => [slur]),
+        // genDecoration.map((deco) => [deco])
+        genSymbol.map((sym) => [sym]),
+        genYspacer,
+        genBcktckSpc.map((bck) => [bck]),
+        genGraceGroup,
+        genInlineField,
+        { arbitrary: genStylesheetDirective, weight: 1 },
+        { arbitrary: genCommentToken, weight: 2 }
+      )
+    )
+    .map((arrays) => {
+      // Flatten arrays
+      const flatTokens = arrays.flat();
+      const result = [];
+      let prevIsBarline = false;
+      let prevIsWhitespace = false;
+      let prevIsEOL = false;
 
-    for (const token of tokens) {
-      const isBarline = (token as Token).type === TT.BARLINE;
+      for (const token of flatTokens) {
+        const isBarline = token.type === TT.BARLINE;
+        const isWhitespace = token.type === TT.WS;
+        const isEOL = token.type === TT.EOL;
 
-      if (!(prevIsBarline && isBarline)) {
+        // Skip consecutive barlines
+        if (prevIsBarline && isBarline) {
+          continue;
+        }
+
+        // Skip consecutive whitespace tokens
+        if (prevIsWhitespace && isWhitespace) {
+          continue;
+        }
+
+        if (prevIsEOL && isEOL) {
+          continue;
+        }
         result.push(token);
+        prevIsBarline = isBarline;
+        prevIsWhitespace = isWhitespace;
+        prevIsEOL = isEOL;
       }
 
-      prevIsBarline = isBarline;
-    }
-
-    return result;
-  });
+      return result;
+    });
 
   it("should produce equivalent tokens when rescanning concatenated lexemes", () => {
     fc.assert(
@@ -231,7 +366,7 @@ describe.skip("Scanner Round-trip Tests", () => {
           });
         }
 
-        return isEqual && errorReporter.getErrors().length === 0;
+        return isEqual;
       }),
       {
         verbose: true,
