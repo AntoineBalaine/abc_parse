@@ -68,7 +68,7 @@ function parseABC(abc: string): Token[] {
   return Scanner2(abc, ctx.errorReporter);
 }
 
-describe.skip("voices2.ts", () => {
+describe("voices2.ts", () => {
   describe("VoiceCtx class", () => {
     it("should initialize with the provided elements and voices", () => {
       const elements: tune_body_code[] = [
