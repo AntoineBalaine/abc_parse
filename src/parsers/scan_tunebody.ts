@@ -212,8 +212,8 @@ export function rest(ctx: Ctx): boolean {
 
 export function chord(ctx: Ctx): boolean {
   if (!ctx.test(pChord)) return false;
-  ctx.push(TT.CHRD_LEFT_BRKT);
   advance(ctx);
+  ctx.push(TT.CHRD_LEFT_BRKT);
   while (!isAtEnd(ctx) && !ctx.test("]")) {
     if (ctx.test(pString)) {
       annotation(ctx);

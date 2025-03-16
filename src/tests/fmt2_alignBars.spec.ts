@@ -154,8 +154,8 @@ V:2
 V:1
 [CEG]F |
 V:2
-C2 E |`;
-      expect(result).to.equal("[CEG]F|\nC2   E|", "Chords should align with corresponding notes");
+C2 E   |`;
+      expect(result).to.equal(expected, "Chords should align with corresponding notes");
     });
   });
 });
