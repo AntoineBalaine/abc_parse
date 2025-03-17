@@ -84,7 +84,7 @@ export function comment(ctx: Ctx): boolean {
 }
 
 export function decoration(ctx: Ctx): boolean {
-  const ptrn = new RegExp(`^${pDeco.source}+(?=(${pPitch.source}|${pRest.source}))`);
+  const ptrn = new RegExp(`^${pDeco.source}+(?=(${pPitch.source}|${pRest.source}|${pChord.source}))`);
   const mtch = ptrn.exec(ctx.source.substring(ctx.start));
   if (mtch) {
     ctx.current = ctx.start + mtch[0].length;

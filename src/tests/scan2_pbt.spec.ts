@@ -135,7 +135,7 @@ describe("gen scan from regex", () => {
     );
   });
 });
-describe.only("Scanner Round-trip Tests", () => {
+describe("Scanner Round-trip Tests", () => {
   // Basic token generators
   const genNoteLetter = fc.stringMatching(/^[a-gA-G]$/).map((letter) => new Token(TT.NOTE_LETTER, letter));
 
@@ -266,6 +266,66 @@ describe.only("Scanner Round-trip Tests", () => {
       return tokens;
     });
 
+  const genGraceGroupWithFollower = fc
+    .tuple(
+      // The grace group
+      fc.tuple(
+        fc.constantFrom(new Token(TT.GRC_GRP_LEFT_BRACE, "{")),
+        fc.option(fc.constantFrom(new Token(TT.GRC_GRP_SLSH, "/"))),
+        fc.array(genPitch, { minLength: 1, maxLength: 4 }),
+        fc.constantFrom(new Token(TT.GRC_GRP_RGHT_BRACE, "}"))
+      ),
+      // The follower - either a pitch or a chord (you'll need to create a chord generator)
+      fc.oneof(genNote, genChord)
+    )
+    .map(([graceGroupTuple, follower]) => {
+      // Extract grace group components
+      const [leftBrace, slashOpt, pitches, rightBrace] = graceGroupTuple;
+
+      // Combine into tokens array
+      const tokens = [leftBrace];
+      if (slashOpt) tokens.push(slashOpt);
+      pitches.forEach((pitch) => tokens.push(...pitch));
+      tokens.push(rightBrace);
+
+      // Add the follower tokens
+      return [...tokens, ...follower];
+    });
+
+  const genDecorationWithFollower = fc
+    .tuple(
+      // The decoration
+      fc.stringMatching(/^[\~\.HLMOPSTuv]+$/).map((deco) => new Token(TT.DECORATION, deco)),
+
+      // The follower - either a note or a chord
+      fc.oneof(
+        genNote,
+        genChord // Use your chord generator here
+      )
+    )
+    .map(([decoration, follower]) => {
+      // Return decoration followed by the note or chord
+      return [decoration, ...follower];
+    });
+
+  const genAnnotation = fc
+    .stringMatching(/^[^"\n]*$/) // String without quotes or newlines
+    .map((text) => {
+      // Create the complete quoted annotation
+      const quotedText = `"${text}"`;
+      return new Token(TT.ANNOTATION, quotedText);
+    });
+
+  const genInfoLine = fc
+    .tuple(
+      genWhitespace,
+      genEOL,
+      fc.stringMatching(/^[a-zA-Z]:$/).map((header) => new Token(TT.INF_HDR, header)),
+      fc.stringMatching(/^[^\n%]+$/).map((content) => new Token(TT.INFO_STR, content))
+      // genEOL
+    )
+    .map((tokens) => tokens);
+
   // Main token sequence generator
   const genTokenSequence = fc
     .array(
@@ -278,13 +338,13 @@ describe.only("Scanner Round-trip Tests", () => {
         genWhitespace.map((ws) => [ws]),
         genTuplet.map((tup) => [tup]),
         genSlur.map((slur) => [slur]),
-        // genDecoration.map((deco) => [deco])
+        genDecorationWithFollower,
         genSymbol.map((sym) => [sym]),
         genYspacer,
         genBcktckSpc.map((bck) => [bck]),
-        // genGraceGroup,
+        genGraceGroupWithFollower,
         genChord,
-        genInlineField,
+        // { arbitrary: genInfoLine, weight: 1 }, // Good luck with fitting this in
         { arbitrary: genStylesheetDirective, weight: 1 },
         { arbitrary: genCommentToken, weight: 2 }
       )
@@ -297,7 +357,8 @@ describe.only("Scanner Round-trip Tests", () => {
       let prevIsWhitespace = false;
       let prevIsEOL = false;
 
-      for (const token of flatTokens) {
+      outer: for (let i = 0; i < flatTokens.length; i++) {
+        const token = flatTokens[i];
         const isBarline = token.type === TT.BARLINE;
         const isWhitespace = token.type === TT.WS;
         const isEOL = token.type === TT.EOL;
