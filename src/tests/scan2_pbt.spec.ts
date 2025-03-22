@@ -177,9 +177,6 @@ describe("Scanner Round-trip Tests", () => {
 
   const genTie = fc.constantFrom(new Token(TT.TIE, "-"));
 
-  // Ampersand generator (both forms)
-  const genAmpersand = fc.oneof(fc.constantFrom(new Token(TT.VOICE, "&")), fc.constantFrom(new Token(TT.VOICE_OVRLAY, "&\n")));
-
   // Tuplet generator - creates tokens for (p:q:r format
   const genTuplet = fc
     .tuple(
@@ -267,6 +264,9 @@ describe("Scanner Round-trip Tests", () => {
   );
 
   const genWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws));
+  // Ampersand generator (both forms)
+  const genAmpersand = fc.tuple(fc.constantFrom(new Token(TT.VOICE, "&")), genWhitespace);
+  const genVoiceOvrlay = fc.constantFrom(new Token(TT.VOICE_OVRLAY, "&\n"));
   const genChord = fc
     .tuple(
       fc.constantFrom(new Token(TT.CHRD_LEFT_BRKT, "[")),
@@ -334,11 +334,11 @@ describe("Scanner Round-trip Tests", () => {
 
   const genInfoLine = fc
     .tuple(
-      genWhitespace,
+      // genWhitespace,
       genEOL,
-      fc.stringMatching(/^[a-zA-Z]:$/).map((header) => new Token(TT.INF_HDR, header)),
-      fc.stringMatching(/^[^\n%]+$/).map((content) => new Token(TT.INFO_STR, content))
-      // genEOL
+      fc.stringMatching(/^[a-wA-W]:$/).map((header) => new Token(TT.INF_HDR, header)),
+      fc.stringMatching(/^[^&\s%]+$/).map((content) => new Token(TT.INFO_STR, content)),
+      genEOL
     )
     .map((tokens) => tokens);
 
@@ -350,7 +350,8 @@ describe("Scanner Round-trip Tests", () => {
         genRest.map((rest) => [rest]),
         genBarline.map((bar) => [bar]),
         // genTie.map((tie) => [tie])
-        genAmpersand.map((amp) => [amp]),
+        genAmpersand.map((amp) => amp),
+        genVoiceOvrlay.map((ovrlay) => [ovrlay]),
         genWhitespace.map((ws) => [ws]),
         genTuplet, // Now returns an array of tokens directly
         genSlur.map((slur) => [slur]),
@@ -360,7 +361,8 @@ describe("Scanner Round-trip Tests", () => {
         genBcktckSpc.map((bck) => [bck]),
         genGraceGroupWithFollower,
         genChord,
-        // { arbitrary: genInfoLine, weight: 1 }, // Good luck with fitting this in
+        genAnnotation,
+        { arbitrary: genInfoLine, weight: 1 },
         { arbitrary: genStylesheetDirective, weight: 1 },
         { arbitrary: genCommentToken, weight: 2 }
       )
@@ -376,10 +378,28 @@ describe("Scanner Round-trip Tests", () => {
 
       for (let i = 1; i < flatTokens.length; i++) {
         const cur = flatTokens[i];
-        // const test = (tok: Token, type: TT) => tok.type === type;
         const prev = flatTokens[i - 1];
+        const next = flatTokens[i + 1];
+        const test = (tok: Token, type: TT) => tok.type === type;
         const both = (type: TT) => cur.type == type && prev.type === type;
-        if (both(TT.EOL) || both(TT.WS) || both(TT.BARLINE)) {
+        const rewind = (type: TT, strt: number, ignores?: Array<TT>): boolean => {
+          let j = strt - 1; // Start from the previous token
+          while (j >= 0) {
+            let token = flatTokens[j];
+            if (test(token, type)) return true;
+            if (ignores && ignores.includes(token.type)) {
+              j--; // Only decrement if we're ignoring this token
+              continue;
+            }
+            break;
+          }
+          return false;
+        };
+
+        if (test(cur, TT.VOICE) && next && test(next, TT.EOL)) continue;
+        if (test(cur, TT.INF_HDR) && !rewind(TT.EOL, i)) continue;
+        if (test(cur, TT.INFO_STR) && test(result[result.length - 1], TT.INF_HDR) && !(next && test(next, TT.EOL))) continue;
+        if ((test(cur, TT.EOL) && rewind(TT.EOL, i, [TT.WS])) || both(TT.WS) || both(TT.BARLINE)) {
           continue;
         }
         result.push(cur);
@@ -451,7 +471,7 @@ describe("Scanner Round-trip Tests", () => {
       }),
       {
         verbose: true,
-        numRuns: 100,
+        numRuns: 10000,
       }
     );
   });

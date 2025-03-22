@@ -11,17 +11,13 @@ This file tracks time spent on tasks for the ABC Parser project, which is a full
 |--------------+-----------------------------------------------------+----------------+---------------+-------+-----------+----------|
 | IDE Features | Mark incomplete bars with a warning                 |            2.5 |           2.5 |   0.0 |       2.5 |     0.00 |
 | Formatter    | Group tuplets as beams in rules resolution          |            4.0 |           4.0 |   0.0 |       4.0 |     0.00 |
-| IDE Features | Warn about incomplete line-overlay markers          |            1.5 |           1.5 |   0.0 |       1.5 |     0.00 |
-| Scanner      | Implement redefinable symbols (U:)                  |            3.0 |           3.0 |   0.0 |       3.0 |     0.00 |
-| Scanner      | Implement macros (m:)                               |            3.5 |           3.5 |   0.0 |       3.5 |     0.00 |
-| Scanner      | Implement decoration (I:)                           |            2.0 |           2.0 |   0.0 |       2.0 |     0.00 |
-| Scanner      | Implement history and free text (H:)                |            2.5 |           2.5 |   0.0 |       2.5 |     0.00 |
-| Scanner      | Implement begintext/endtext                         |            1.5 |           1.5 |   0.0 |       1.5 |     0.00 |
 | Scanner      | Handle directive followed by X:<number> as new tune |            3.0 |           3.0 |   0.0 |       3.0 |     0.00 |
 | Parser       | Remove regex matching from tuplet parsing           |            2.0 |           2.0 |   1.0 |       1.0 |     2.00 |
+| scanner      | include info lines in scan2 pbt roundtrip           |            2.0 |           2.0 |   2.0 |       0.0 |     1.00 |
+| parser       | setup PBT tests                                     |            4.0 |           4.0 |   0.0 |       4.0 |     0.00 |
 | Parser       | Add new source of error reporting                   |            4.5 |           4.5 |   0.0 |       4.5 |     0.00 |
 |--------------+-----------------------------------------------------+----------------+---------------+-------+-----------+----------|
-| TOTAL        |                                                     |           30.0 |          30.0 |   1.0 |      29.0 |    30.00 |
+| TOTAL        |                                                     |           22.0 |          22.0 |   3.0 |      19.0 |     7.33 |
 #+TBLFM: @>$3=vsum(@2..@-1);%.1f::@>$4=vsum(@2..@-1);%.1f::@>$5=vsum(@2..@-1);%.1f::@>$6=vsum(@2..@-1);%.1f::$6=$4-$5;%.1f::$7=if($5>0, $4/$5, "N/A");%.2f::@>$7=if(@>$5>0, @>$4/@>$5, "N/A");%.2f
 
 * How to Use This File
@@ -50,14 +46,14 @@ The "Average Velocity" in the summary section shows the overall project velocity
 * Additional Calculations
 
 #+NAME: summary
-| Metric                | Value |
-|-----------------------+-------|
-| Total Original Est.   |  30.0 |
-| Total Current Est.    |  30.0 |
-| Total Time Spent      |   0.0 |
-| Total Remaining       |  30.0 |
-| Completion Percentage |   0.0 |
-| Average Velocity      |   N/A |
+| Metric                | Value  |
+|-----------------------+--------|
+| Total Original Est.   | #ERROR |
+| Total Current Est.    | #ERROR |
+| Total Time Spent      | #ERROR |
+| Total Remaining       | #ERROR |
+| Completion Percentage | #ERROR |
+| Average Velocity      | #ERROR |
 #+TBLFM: @2$2='(format "%.1f" (org-sbe "tasks" (row 12) (col 3)));N::@3$2='(format "%.1f" (org-sbe "tasks" (row 12) (col 4)));N::@4$2='(format "%.1f" (org-sbe "tasks" (row 12) (col 5)));N::@5$2='(format "%.1f" (org-sbe "tasks" (row 12) (col 6)));N::@6$2='(format "%.1f%%" (* 100 (/ (org-sbe "tasks" (row 12) (col 5)) (org-sbe "tasks" (row 12) (col 4)))));N::@7$2='(if (> (org-sbe "tasks" (row 12) (col 5)) 0.0) (format "%.2f" (/ (org-sbe "tasks" (row 12) (col 4)) (org-sbe "tasks" (row 12) (col 5)))) "N/A")
 
 * Progress Chart
