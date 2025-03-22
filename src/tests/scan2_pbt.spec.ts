@@ -369,33 +369,20 @@ describe("Scanner Round-trip Tests", () => {
       // Flatten arrays
       const flatTokens = arrays.flat();
       const result = [];
-      let prevIsBarline = false;
-      let prevIsWhitespace = false;
-      let prevIsEOL = false;
 
-      outer: for (let i = 0; i < flatTokens.length; i++) {
-        const token = flatTokens[i];
-        const isBarline = token.type === TT.BARLINE;
-        const isWhitespace = token.type === TT.WS;
-        const isEOL = token.type === TT.EOL;
+      if (flatTokens.length > 0) {
+        result.push(flatTokens[0]);
+      }
 
-        // Skip consecutive barlines
-        if (prevIsBarline && isBarline) {
+      for (let i = 1; i < flatTokens.length; i++) {
+        const cur = flatTokens[i];
+        // const test = (tok: Token, type: TT) => tok.type === type;
+        const prev = flatTokens[i - 1];
+        const both = (type: TT) => cur.type == type && prev.type === type;
+        if (both(TT.EOL) || both(TT.WS) || both(TT.BARLINE)) {
           continue;
         }
-
-        // Skip consecutive whitespace tokens
-        if (prevIsWhitespace && isWhitespace) {
-          continue;
-        }
-
-        if (prevIsEOL && isEOL) {
-          continue;
-        }
-        result.push(token);
-        prevIsBarline = isBarline;
-        prevIsWhitespace = isWhitespace;
-        prevIsEOL = isEOL;
+        result.push(cur);
       }
 
       return result;
