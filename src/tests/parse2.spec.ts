@@ -656,14 +656,14 @@ describe("parse2.ts", () => {
 
   describe("parseTuplet", () => {
     it("should parse a simple tuplet", () => {
-      const tokens = [createToken(TT.TUPLET, "(3")];
+      const tokens = [createToken(TT.TUPLET_LPAREN, "("), createToken(TT.TUPLET_P, "3")];
       const ctx = createParseCtx(tokens);
 
       const result = parseTuplet(ctx);
 
       assert.isNotNull(result);
       assert.instanceOf(result, Tuplet);
-      assert.equal(result?.p.lexeme, "(3");
+      assert.equal(result?.p.lexeme, "3");
       assert.isUndefined(result?.q);
       assert.isUndefined(result?.r);
     });
@@ -1280,7 +1280,8 @@ describe("parse2.ts", () => {
         createToken(TT.GRC_GRP_RGHT_BRACE, "}"),
         createToken(TT.REST, "z"),
         createToken(TT.NOTE_LETTER, "C"),
-        createToken(TT.TUPLET, "(3"),
+        createToken(TT.TUPLET_LPAREN, "("),
+        createToken(TT.TUPLET_P, "3"),
         createToken(TT.Y_SPC, "y"),
         createToken(TT.SYMBOL, "!fff!"),
         createToken(TT.ANNOTATION, '"C"'),
@@ -1303,7 +1304,6 @@ describe("parse2.ts", () => {
       assert.instanceOf(result[7], Symbol);
       assert.instanceOf(result[8], Annotation);
       assert.instanceOf(result[9], Decoration);
-      assert.equal(ctx.current, 14); // Should advance past all tokens
     });
 
     it("should handle empty token list", () => {

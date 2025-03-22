@@ -33,7 +33,7 @@ import {
   YSPACER,
   tune_body_code,
 } from "../types/Expr2";
-import { Token } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan2";
 import { SystemAligner2 } from "./fmt2/fmt_aligner";
 import { resolveRules } from "./fmt2/fmt_rules_assignment";
 
@@ -335,7 +335,20 @@ export class AbcFormatter2 implements Visitor<string> {
   }
 
   visitTupletExpr(expr: Tuplet): string {
-    return expr.p.lexeme;
+    // Construct the tuplet notation
+    let result = "(" + expr.p.lexeme;
+
+    // Add q value if present
+    if (expr.q) {
+      result += ":" + expr.q.lexeme;
+
+      // Add r value if present
+      if (expr.r) {
+        result += ":" + expr.r.lexeme;
+      }
+    }
+
+    return result;
   }
 
   visitErrorExpr(expr: ErrorExpr): string {

@@ -488,28 +488,39 @@ export function parseGraceGroup(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): 
 
 // Parse a tuplet
 export function parseTuplet(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Tuplet | null {
-  if (!ctx.match(TT.TUPLET)) {
-    return null;
+  if (ctx.match(TT.TUPLET_LPAREN)) {
+    // Parse p value (required)
+    if (!ctx.match(TT.TUPLET_P)) {
+      ctx.report("Expected number after tuplet opening");
+      return null;
+    }
+    const p = ctx.previous();
+
+    // Parse optional q value
+    let q: Token | undefined;
+    let r: Token | undefined;
+
+    if (ctx.match(TT.TUPLET_COLON)) {
+      // Skip the colon token
+      if (ctx.match(TT.TUPLET_Q)) {
+        q = ctx.previous();
+      }
+
+      // Parse optional r value
+      if (ctx.match(TT.TUPLET_COLON)) {
+        // Skip the colon token
+        if (ctx.match(TT.TUPLET_R)) {
+          r = ctx.previous();
+        }
+      }
+    }
+
+    const tuplet = new Tuplet(ctx.abcContext.generateId(), p, q, r);
+    prnt_arr && prnt_arr.push(tuplet);
+    return tuplet;
   }
 
-  // Extract p:q:r values from the token
-  const tupletValue = ctx.previous().lexeme;
-  const match = /\((\d+)(?::(\d+))?(?::(\d+))?/.exec(tupletValue);
-
-  if (!match) {
-    ctx.report("Invalid tuplet format");
-    return null;
-  }
-
-  const p = ctx.previous(); // The entire tuplet token
-  // FIXME: q and r are not getting parsed
-  let q: Token[] | undefined;
-  let r: Token[] | undefined;
-
-  const tuplet = new Tuplet(ctx.abcContext.generateId(), p, q, r);
-  prnt_arr && prnt_arr.push(tuplet);
-
-  return tuplet;
+  return null;
 }
 
 // Parse a Y spacer

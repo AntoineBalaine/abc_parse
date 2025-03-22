@@ -63,13 +63,60 @@ export function ampersand(ctx: Ctx): boolean {
 }
 
 export function tuplet(ctx: Ctx): boolean {
-  const match = new RegExp(`^${pTuplet.source}`).exec(ctx.source.substring(ctx.current));
-  if (!match) return false;
+  const fullMatch = new RegExp(`^${pTuplet.source}`).exec(ctx.source.substring(ctx.current));
+  if (!fullMatch) return false;
 
-  ctx.current += match[0].length;
-  // Extract the tuplet numbers (p:q:r notation)
-  const [p, q, r] = [match[1], match[3], match[5]].map((n) => (n ? parseInt(n) : undefined));
-  ctx.push(TT.TUPLET);
+  // Save the original start position
+  const originalStart = ctx.current;
+
+  // Push the opening parenthesis token
+  ctx.start = ctx.current;
+  ctx.current += 1; // Move past the opening parenthesis
+  ctx.push(TT.TUPLET_LPAREN);
+
+  // Extract and push the p value
+  const pMatch = new RegExp(`^${pNumber.source}`).exec(ctx.source.substring(ctx.current));
+  if (pMatch) {
+    ctx.start = ctx.current;
+    ctx.current += pMatch[0].length;
+    ctx.push(TT.TUPLET_P);
+  }
+
+  // Check for q value (after first colon)
+  if (ctx.source[ctx.current] === ":") {
+    // Push the colon token
+    ctx.start = ctx.current;
+    ctx.current += 1; // Move past the colon
+    ctx.push(TT.TUPLET_COLON);
+
+    // Check if there's a q value after the colon
+    const qMatch = new RegExp(`^${pNumber.source}`).exec(ctx.source.substring(ctx.current));
+    if (qMatch) {
+      ctx.start = ctx.current;
+      ctx.current += qMatch[0].length;
+      ctx.push(TT.TUPLET_Q);
+    }
+
+    // Check for r value (after second colon)
+    if (ctx.source[ctx.current] === ":") {
+      // Push the second colon token
+      ctx.start = ctx.current;
+      ctx.current += 1; // Move past the colon
+      ctx.push(TT.TUPLET_COLON);
+
+      // Check if there's an r value after the colon
+      const rMatch = new RegExp(`^${pNumber.source}`).exec(ctx.source.substring(ctx.current));
+      if (rMatch) {
+        ctx.start = ctx.current;
+        ctx.current += rMatch[0].length;
+        ctx.push(TT.TUPLET_R);
+      }
+    }
+  }
+
+  // The tuplet is now fully parsed with individual tokens
+  // No need for backward compatibility token anymore
+
   return true;
 }
 

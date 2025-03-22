@@ -206,9 +206,9 @@ export class Voice_overlay extends Expr {
  */
 export class Tuplet extends Expr {
   p: Token;
-  q?: Array<Token>;
-  r?: Array<Token>;
-  constructor(id: number, p: Token, q?: Array<Token>, r?: Array<Token>) {
+  q?: Token;
+  r?: Token;
+  constructor(id: number, p: Token, q?: Token, r?: Token) {
     super(id);
     this.p = p;
     this.q = q;

@@ -180,17 +180,33 @@ describe("Scanner Round-trip Tests", () => {
   // Ampersand generator (both forms)
   const genAmpersand = fc.oneof(fc.constantFrom(new Token(TT.VOICE, "&")), fc.constantFrom(new Token(TT.VOICE_OVRLAY, "&\n")));
 
-  // Tuplet generator
+  // Tuplet generator - creates tokens for (p:q:r format
   const genTuplet = fc
     .tuple(
       fc.integer({ min: 2, max: 9 }).map(String),
-      fc.option(fc.tuple(fc.constantFrom(":"), fc.integer({ min: 1, max: 9 }).map(String))),
-      fc.option(fc.tuple(fc.constantFrom(":"), fc.integer({ min: 1, max: 9 }).map(String)))
+      fc.option(fc.integer({ min: 1, max: 9 }).map(String)),
+      fc.option(fc.integer({ min: 1, max: 9 }).map(String))
     )
     .map(([p, q, r]) => {
-      const qStr = q ? `${q[0]}${q[1]}` : "";
-      const rStr = r ? `${r[0]}${r[1]}` : "";
-      return new Token(TT.TUPLET, `(${p}${qStr}${rStr}`);
+      // Start with the opening parenthesis and p value
+      const tokens = [new Token(TT.TUPLET_LPAREN, "("), new Token(TT.TUPLET_P, p)];
+
+      // Check if we have a second value (q or r)
+      if (q) {
+        tokens.push(new Token(TT.TUPLET_COLON, ":"));
+
+        // If we have a third value (r), then the second value is q
+        if (r) {
+          tokens.push(new Token(TT.TUPLET_Q, q));
+          tokens.push(new Token(TT.TUPLET_COLON, ":"));
+          tokens.push(new Token(TT.TUPLET_R, r));
+        } else {
+          // If we only have two values, the second value is q
+          tokens.push(new Token(TT.TUPLET_Q, q));
+        }
+      }
+
+      return tokens;
     });
 
   // Slur generator
@@ -336,7 +352,7 @@ describe("Scanner Round-trip Tests", () => {
         // genTie.map((tie) => [tie])
         genAmpersand.map((amp) => [amp]),
         genWhitespace.map((ws) => [ws]),
-        genTuplet.map((tup) => [tup]),
+        genTuplet, // Now returns an array of tokens directly
         genSlur.map((slur) => [slur]),
         genDecorationWithFollower,
         genSymbol.map((sym) => [sym]),

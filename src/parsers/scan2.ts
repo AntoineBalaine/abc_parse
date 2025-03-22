@@ -182,7 +182,11 @@ export enum TT {
   STYLESHEET_DIRECTIVE, // %%
   SYMBOL, // ![a-zA-Z]!
   TIE,
-  TUPLET,
+  TUPLET_LPAREN, // Opening parenthesis of a tuplet (
+  TUPLET_P, // The p value in a tuplet
+  TUPLET_COLON, // The colon separator in a tuplet :
+  TUPLET_Q, // The q value in a tuplet
+  TUPLET_R, // The r value in a tuplet
   VOICE,
   VOICE_OVRLAY,
   WS,

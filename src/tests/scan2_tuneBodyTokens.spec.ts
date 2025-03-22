@@ -746,76 +746,88 @@ describe("scan2", () => {
       const ctx = createCtx("(3");
       const result = tuplet(ctx);
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 1);
-      assert.equal(ctx.tokens[0].type, TT.TUPLET);
+      assert.equal(ctx.tokens.length, 2);
+      assert.equal(ctx.tokens[0].type, TT.TUPLET_LPAREN);
+      assert.equal(ctx.tokens[1].type, TT.TUPLET_P);
     });
 
     it("should parse a tuplet with a larger number", () => {
       const ctx = createCtx("(5");
       const result = tuplet(ctx);
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 1);
-      assert.equal(ctx.tokens[0].type, TT.TUPLET);
+      assert.equal(ctx.tokens.length, 2);
+      assert.equal(ctx.tokens[0].type, TT.TUPLET_LPAREN);
+      assert.equal(ctx.tokens[1].type, TT.TUPLET_P);
     });
 
     it("should parse a tuplet with p:q notation", () => {
       const ctx = createCtx("(3:2");
       const result = tuplet(ctx);
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 1);
-      assert.equal(ctx.tokens[0].type, TT.TUPLET);
-      // Verify the token lexeme contains the full tuplet notation
-      assert.equal(ctx.tokens[0].lexeme, "(3:2");
+      assert.equal(ctx.tokens.length, 4);
+      assert.equal(ctx.tokens[0].type, TT.TUPLET_LPAREN);
+      assert.equal(ctx.tokens[1].type, TT.TUPLET_P);
+      assert.equal(ctx.tokens[2].type, TT.TUPLET_COLON);
+      assert.equal(ctx.tokens[3].type, TT.TUPLET_Q);
     });
 
     it("should parse a tuplet with p:q:r notation", () => {
       const ctx = createCtx("(3:2:3");
       const result = tuplet(ctx);
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 1);
-      assert.equal(ctx.tokens[0].type, TT.TUPLET);
-      // Verify the token lexeme contains the full tuplet notation
-      assert.equal(ctx.tokens[0].lexeme, "(3:2:3");
+      assert.equal(ctx.tokens.length, 6);
+      assert.equal(ctx.tokens[0].type, TT.TUPLET_LPAREN);
+      assert.equal(ctx.tokens[1].type, TT.TUPLET_P);
+      assert.equal(ctx.tokens[2].type, TT.TUPLET_COLON);
+      assert.equal(ctx.tokens[3].type, TT.TUPLET_Q);
+      assert.equal(ctx.tokens[4].type, TT.TUPLET_COLON);
+      assert.equal(ctx.tokens[5].type, TT.TUPLET_R);
     });
 
     it("should parse a tuplet with missing q value", () => {
       const ctx = createCtx("(3:");
       const result = tuplet(ctx);
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 1);
-      assert.equal(ctx.tokens[0].type, TT.TUPLET);
-      // Verify the token lexeme contains the tuplet notation
-      assert.equal(ctx.tokens[0].lexeme, "(3:");
+      assert.equal(ctx.tokens.length, 3);
+      assert.equal(ctx.tokens[0].type, TT.TUPLET_LPAREN);
+      assert.equal(ctx.tokens[1].type, TT.TUPLET_P);
+      assert.equal(ctx.tokens[2].type, TT.TUPLET_COLON);
     });
 
     it("should parse a tuplet with missing r value", () => {
       const ctx = createCtx("(3:2:");
       const result = tuplet(ctx);
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 1);
-      assert.equal(ctx.tokens[0].type, TT.TUPLET);
-      // Verify the token lexeme contains the tuplet notation
-      assert.equal(ctx.tokens[0].lexeme, "(3:2:");
+      assert.equal(ctx.tokens.length, 5);
+      assert.equal(ctx.tokens[0].type, TT.TUPLET_LPAREN);
+      assert.equal(ctx.tokens[1].type, TT.TUPLET_P);
+      assert.equal(ctx.tokens[2].type, TT.TUPLET_COLON);
+      assert.equal(ctx.tokens[3].type, TT.TUPLET_Q);
+      assert.equal(ctx.tokens[4].type, TT.TUPLET_COLON);
     });
 
     it("should parse a tuplet with both q and r missing", () => {
       const ctx = createCtx("(3::");
       const result = tuplet(ctx);
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 1);
-      assert.equal(ctx.tokens[0].type, TT.TUPLET);
-      // Verify the token lexeme contains the tuplet notation
-      assert.equal(ctx.tokens[0].lexeme, "(3::");
+      assert.equal(ctx.tokens.length, 4);
+      assert.equal(ctx.tokens[0].type, TT.TUPLET_LPAREN);
+      assert.equal(ctx.tokens[1].type, TT.TUPLET_P);
+      assert.equal(ctx.tokens[2].type, TT.TUPLET_COLON);
+      assert.equal(ctx.tokens[3].type, TT.TUPLET_COLON);
     });
 
     it("should parse a complex tuplet example", () => {
       const ctx = createCtx("(5:4:6");
       const result = tuplet(ctx);
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 1);
-      assert.equal(ctx.tokens[0].type, TT.TUPLET);
-      // Verify the token lexeme contains the full tuplet notation
-      assert.equal(ctx.tokens[0].lexeme, "(5:4:6");
+      assert.equal(ctx.tokens.length, 6);
+      assert.equal(ctx.tokens[0].type, TT.TUPLET_LPAREN);
+      assert.equal(ctx.tokens[1].type, TT.TUPLET_P);
+      assert.equal(ctx.tokens[2].type, TT.TUPLET_COLON);
+      assert.equal(ctx.tokens[3].type, TT.TUPLET_Q);
+      assert.equal(ctx.tokens[4].type, TT.TUPLET_COLON);
+      assert.equal(ctx.tokens[5].type, TT.TUPLET_R);
     });
 
     it("should return false for non-tuplet", () => {

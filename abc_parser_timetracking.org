@@ -7,21 +7,21 @@ This file tracks time spent on tasks for the ABC Parser project, which is a full
 
 * Tasks Table
 #+NAME: tasks
-| Feature      | Task                                                      | Orig. Estimate | Cur. Estimate | Spent | Remaining | Velocity |
-|--------------+-----------------------------------------------------------+----------------+---------------+-------+-----------+----------|
-| IDE Features | Mark incomplete bars with a warning                       |            2.5 |           2.5 |   0.0 |       2.5 |      N/A |
-| Formatter    | Group tuplets as beams in rules resolution                |            4.0 |           4.0 |   0.0 |       4.0 |      N/A |
-| IDE Features | Warn about incomplete line-overlay markers                |            1.5 |           1.5 |   0.0 |       1.5 |      N/A |
-| Scanner      | Implement redefinable symbols (U:)                        |            3.0 |           3.0 |   0.0 |       3.0 |      N/A |
-| Scanner      | Implement macros (m:)                                     |            3.5 |           3.5 |   0.0 |       3.5 |      N/A |
-| Scanner      | Implement decoration (I:)                                 |            2.0 |           2.0 |   0.0 |       2.0 |      N/A |
-| Scanner      | Implement history and free text (H:)                      |            2.5 |           2.5 |   0.0 |       2.5 |      N/A |
-| Scanner      | Implement begintext/endtext                               |            1.5 |           1.5 |   0.0 |       1.5 |      N/A |
-| Scanner      | Handle directive followed by X:<number> as new tune       |            3.0 |           3.0 |   0.0 |       3.0 |      N/A |
-| Parser       | Remove regex matching from tuplet parsing                 |            2.0 |           2.0 |   0.0 |       2.0 |      N/A |
-| Parser       | Add new source of error reporting                         |            4.5 |           4.5 |   0.0 |       4.5 |      N/A |
-|--------------+-----------------------------------------------------------+----------------+---------------+-------+-----------+----------|
-| TOTAL        |                                                           |           30.0 |          30.0 |   0.0 |      30.0 |      N/A |
+| Feature      | Task                                                | Orig. Estimate | Cur. Estimate | Spent | Remaining | Velocity |
+|--------------+-----------------------------------------------------+----------------+---------------+-------+-----------+----------|
+| IDE Features | Mark incomplete bars with a warning                 |            2.5 |           2.5 |   0.0 |       2.5 |     0.00 |
+| Formatter    | Group tuplets as beams in rules resolution          |            4.0 |           4.0 |   0.0 |       4.0 |     0.00 |
+| IDE Features | Warn about incomplete line-overlay markers          |            1.5 |           1.5 |   0.0 |       1.5 |     0.00 |
+| Scanner      | Implement redefinable symbols (U:)                  |            3.0 |           3.0 |   0.0 |       3.0 |     0.00 |
+| Scanner      | Implement macros (m:)                               |            3.5 |           3.5 |   0.0 |       3.5 |     0.00 |
+| Scanner      | Implement decoration (I:)                           |            2.0 |           2.0 |   0.0 |       2.0 |     0.00 |
+| Scanner      | Implement history and free text (H:)                |            2.5 |           2.5 |   0.0 |       2.5 |     0.00 |
+| Scanner      | Implement begintext/endtext                         |            1.5 |           1.5 |   0.0 |       1.5 |     0.00 |
+| Scanner      | Handle directive followed by X:<number> as new tune |            3.0 |           3.0 |   0.0 |       3.0 |     0.00 |
+| Parser       | Remove regex matching from tuplet parsing           |            2.0 |           2.0 |   1.0 |       1.0 |     2.00 |
+| Parser       | Add new source of error reporting                   |            4.5 |           4.5 |   0.0 |       4.5 |     0.00 |
+|--------------+-----------------------------------------------------+----------------+---------------+-------+-----------+----------|
+| TOTAL        |                                                     |           30.0 |          30.0 |   1.0 |      29.0 |    30.00 |
 #+TBLFM: @>$3=vsum(@2..@-1);%.1f::@>$4=vsum(@2..@-1);%.1f::@>$5=vsum(@2..@-1);%.1f::@>$6=vsum(@2..@-1);%.1f::$6=$4-$5;%.1f::$7=if($5>0, $4/$5, "N/A");%.2f::@>$7=if(@>$5>0, @>$4/@>$5, "N/A");%.2f
 
 * How to Use This File
