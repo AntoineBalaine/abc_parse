@@ -310,7 +310,7 @@ function getTupletDefaults(p: number): [number, number] {
   }
 }
 
-function parseTuplet(tuplet: Tuplet): TupletContext {
+export function parseTuplet(tuplet: Tuplet): TupletContext {
   const p = parseInt(tuplet.p.lexeme);
 
   // If q is specified, use it, otherwise get default

@@ -359,8 +359,30 @@ export const genMusicExpr = fc.oneof(
   { arbitrary: genBeamExpr, weight: 3 }
 );
 
+export const genMusicExpr_NoBar = fc.oneof(
+  { arbitrary: genNoteExpr, weight: 10 },
+  { arbitrary: genRestExpr, weight: 5 },
+  // Removed genMultiMeasureRestExpr as multi-measure rests don't belong in a single bar
+  { arbitrary: genChordExpr, weight: 5 },
+  { arbitrary: genDecorationExpr, weight: 2 },
+  { arbitrary: genAnnotationExpr, weight: 2 },
+  { arbitrary: genSymbolExpr, weight: 1 },
+  { arbitrary: genYSpacerExpr, weight: 1 },
+  { arbitrary: genGraceGroupExpr, weight: 2 },
+  { arbitrary: genTupletExpr, weight: 2 },
+  { arbitrary: genInlineFieldExpr, weight: 1 },
+  { arbitrary: genBeamExpr, weight: 3 }
+);
+
 // Generate a sequence of music expressions
 export const genMusicSequence = fc.array(genMusicExpr, { minLength: 1, maxLength: 10 }).map((exprs) => {
+  return {
+    tokens: exprs.flatMap((e) => e.tokens),
+    exprs: exprs.map((e) => e.expr),
+  };
+});
+
+export const genMusicSequence_NoBar = fc.array(genMusicExpr_NoBar, { minLength: 1, maxLength: 10 }).map((exprs) => {
   return {
     tokens: exprs.flatMap((e) => e.tokens),
     exprs: exprs.map((e) => e.expr),
