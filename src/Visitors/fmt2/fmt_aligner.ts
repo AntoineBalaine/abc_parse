@@ -32,7 +32,6 @@ export function alignTune(tune: Tune, ctx: ABCContext, stringifyVisitor: AbcForm
 
       // Get bar-based alignment points
       const barTimeMaps = mapTimePoints(voiceSplits);
-
       // Process each bar
       for (const barTimeMap of barTimeMaps) {
         voiceSplits = alignBars(voiceSplits, barTimeMap, stringifyVisitor, ctx);
@@ -73,8 +72,8 @@ export function alignBars(voiceSplits: VoiceSplit[], barTimeMap: BarAlignment, s
   });
 
   // Process each time point
-  timeStamps.forEach((timeStamp) => {
-    const locations = barTimeMap.map.get(timeStamp)!;
+  for (let tmStmpIdx = 0; tmStmpIdx < timeStamps.length; tmStmpIdx++) {
+    const locations = barTimeMap.map.get(timeStamps[tmStmpIdx])!;
 
     // new map with locations, start node and stringified content between startNode and current node
     const locsWithStrings = locations.map(createLocationMapper(voiceSplits, barTimeMap, stringifyVisitor));
@@ -83,13 +82,21 @@ export function alignBars(voiceSplits: VoiceSplit[], barTimeMap: BarAlignment, s
     const maxLen = Math.max(...locsWithStrings.map((l) => l.str.length));
 
     // Add padding where needed
-    locsWithStrings.forEach((location) => {
+    for (let idx = 0; idx < locsWithStrings.length; idx++) {
+      const location = locsWithStrings[idx];
       if (location.str.length < maxLen) {
+        // print the location.str using ansi code yellow
         const paddingLen = maxLen - location.str.length;
 
         // Find insertion point
         // const insertIdx = findPaddingInsertionPoint(voiceSplits[location.voiceIdx].content, location.nodeID, location.startNode);
         const insertIdx = voiceSplits[location.voiceIdx].content.findIndex((node) => getNodeId(node) === location.nodeID);
+        console.log(
+          `\x1b[33m appending ${paddingLen} to "${location.str}", based on ${voiceSplits[location.voiceIdx].content
+            .slice(0, insertIdx + 1)
+            .map((e) => stringifyVisitor.stringify(e))
+            .join("")} \x1b[0m`
+        );
 
         // Insert padding
         if (insertIdx !== -1) {
@@ -102,8 +109,8 @@ export function alignBars(voiceSplits: VoiceSplit[], barTimeMap: BarAlignment, s
           }
         }
       }
-    });
-  });
+    }
+  }
 
   return voiceSplits;
 }
