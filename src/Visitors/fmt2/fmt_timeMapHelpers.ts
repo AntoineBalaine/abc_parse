@@ -2,9 +2,10 @@ import { isChord, isNote } from "../../helpers2";
 import { Token, TT } from "../../parsers/scan2";
 import { BarLine, Beam, Comment, Expr, Info_line, MultiMeasureRest, System, tune_body_code } from "../../types/Expr2";
 import { toVoices } from "./fmt_voiceSplitter";
+import { Rational } from "./rational";
 
 export type NodeID = number;
-export type TimeStamp = number;
+export type TimeStamp = Rational;
 
 export interface VoiceSplit {
   type: "formatted" | "noformat";
@@ -18,12 +19,13 @@ export interface Location {
 
 export interface BarTimeMap {
   startNodeId: NodeID;
-  map: Map<TimeStamp, NodeID>;
+  map: Map<string, NodeID>; // Key is string representation of Rational
+  // We use string keys because JavaScript Map can't use objects as keys based on their value equality
 }
 
 export interface BarAlignment {
   startNodes: Map<number, NodeID>; // voiceIdx -> startNodeId
-  map: Map<TimeStamp, Array<Location>>;
+  map: Map<string, Array<Location>>; // Key is string representation of Rational
 }
 
 // Helper function to safely get the ID of an expression or token

@@ -5,6 +5,7 @@ import { BarAlignment, Location, TimeStamp, NodeID, VoiceSplit, findFmtblLines, 
 import { mapTimePoints } from "./fmt_timeMap";
 import { createLocationMapper, equalizeBarLengths, equalizer, findPaddingInsertionPoint } from "./fmt_alignerHelpers";
 import { AbcFormatter2 } from "../Formatter2";
+import { createRational, rationalToNumber, rationalFromNumber } from "./rational";
 
 /**
  * collect the time points for each bar, create a map of locations. Locations means: VoiceIndex and NodeID.
@@ -62,8 +63,22 @@ export class SystemAligner2 {
  * Lastly, compare the whole bars' lengths and add padding to the end of the shorter bars.
  */
 export function alignBars(voiceSplits: VoiceSplit[], barTimeMap: BarAlignment, stringifyVisitor: AbcFormatter2, ctx: ABCContext): VoiceSplit[] {
-  // Get sorted timestamps
-  const timeStamps = Array.from(barTimeMap.map.keys()).sort((a, b) => a - b);
+  // Get sorted timestamps - convert string keys to rational numbers for sorting
+  const timeStamps = Array.from(barTimeMap.map.keys()).sort((a, b) => {
+    // Parse the rational numbers from the string keys
+    const [aNumerator, aDenominator] = a.split("/").map(Number);
+    const [bNumerator, bDenominator] = b.split("/").map(Number);
+
+    // Compare the rational numbers
+    if (aDenominator === 0 && bDenominator === 0) {
+      return 0; // Both are infinity
+    }
+    if (aDenominator === 0) return 1; // a is infinity
+    if (bDenominator === 0) return -1; // b is infinity
+
+    // Regular comparison: a/b ⋛ c/d ⟺ ad ⋛ bc
+    return aNumerator * bDenominator - bNumerator * aDenominator;
+  });
 
   // Process each time point
   timeStamps.forEach((timeStamp) => {

@@ -6,6 +6,7 @@ import { Beam, Chord, MultiMeasureRest, Note, Pitch, Rest, Rhythm, System } from
 import { calculateDuration, DurationContext, isTimeEvent, processBar } from "../Visitors/fmt2/fmt_timeMap";
 import { BarTimeMap, getNodeId } from "../Visitors/fmt2/fmt_timeMapHelpers";
 import * as Generators from "./parse2_pbt.generators.spec";
+import { Rational, createRational, addRational, rationalToString, rationalToNumber, isInfiniteRational, equalRational } from "../Visitors/fmt2/rational";
 
 describe("processBar function", () => {
   let ctx: ABCContext;
@@ -15,14 +16,14 @@ describe("processBar function", () => {
   });
 
   // Helper function to calculate expected durations for a sequence of time events
-  function calculateExpectedDurations(timeEvents: Array<Note | Beam | MultiMeasureRest | Chord | Rest>): number[] {
-    const durations: number[] = [];
+  function calculateExpectedDurations(timeEvents: Array<Note | Beam | MultiMeasureRest | Chord | Rest>): Rational[] {
+    const durations: Rational[] = [];
     const context: DurationContext = {};
 
     for (const event of timeEvents) {
       const duration = calculateDuration(event, context);
 
-      if (duration === Infinity) {
+      if (isInfiniteRational(duration)) {
         break;
       }
 
@@ -44,26 +45,27 @@ describe("processBar function", () => {
 
   // Helper function to verify time map
   function verifyTimeMap(
-    timeMap: Map<number, number>,
+    timeMap: Map<string, number>,
     timeEvents: Array<Note | Beam | MultiMeasureRest | Chord | Rest>,
-    expectedDurations: number[]
+    expectedDurations: Rational[]
   ): void {
     try {
       // Check that the time map has the correct number of entries
       expect(timeMap.size).to.equal(timeEvents.length, `expected ${timeEvents.length}, got ${timeMap.size}`);
 
       // Check that each time event is in the map at the correct time
-      let currentTime = 0;
+      let currentTime = createRational(0, 1);
       for (let i = 0; i < timeEvents.length; i++) {
         const event = timeEvents[i];
         const eventId = getNodeId(event);
+        const timeKey = rationalToString(currentTime);
 
         // Check that the event is in the map at the correct time
-        expect(timeMap.has(currentTime), `Time map should have an entry at time ${currentTime}`);
-        expect(timeMap.get(currentTime)).to.equal(eventId, `Time map should have event ${eventId} at time ${currentTime}`);
+        expect(timeMap.has(timeKey), `Time map should have an entry at time ${timeKey}`);
+        expect(timeMap.get(timeKey)).to.equal(eventId, `Time map should have event ${eventId} at time ${timeKey}`);
 
         // Update current time for next event
-        currentTime += expectedDurations[i];
+        currentTime = addRational(currentTime, expectedDurations[i]);
       }
     } catch (error) {
       // Print debug information only if there's an error
@@ -162,8 +164,9 @@ describe("processBar function", () => {
           expect(result.map.size).to.equal(1, "Time map should have one entry for the multi-measure rest");
 
           // Check that the multi-measure rest is in the map at time 0
-          expect(result.map.has(0), "Time map should have an entry at time 0");
-          expect(result.map.get(0)).to.equal(getNodeId(mmRest), "Time map should have the multi-measure rest at time 0");
+          const zeroKey = rationalToString(createRational(0, 1));
+          expect(result.map.has(zeroKey), "Time map should have an entry at time 0");
+          expect(result.map.get(zeroKey)).to.equal(getNodeId(mmRest), "Time map should have the multi-measure rest at time 0");
           return true;
         })
       );
@@ -311,10 +314,14 @@ describe("processBar function", () => {
 
       // Verify the time map
       expect(result.map.size).to.equal(2);
-      expect(result.map.has(0)).to.be.true;
-      expect(result.map.get(0)).to.equal(getNodeId(noteWithBrokenRhythm));
-      expect(result.map.has(duration1)).to.be.true;
-      expect(result.map.get(duration1)).to.equal(getNodeId(regularNote));
+
+      const time0 = rationalToString(createRational(0, 1));
+      expect(result.map.has(time0)).to.be.true;
+      expect(result.map.get(time0)).to.equal(getNodeId(noteWithBrokenRhythm));
+
+      const time1 = rationalToString(duration1);
+      expect(result.map.has(time1)).to.be.true;
+      expect(result.map.get(time1)).to.equal(getNodeId(regularNote));
     });
   });
 
@@ -409,7 +416,7 @@ describe("processBar function", () => {
 
       // First chord should have duration 0.5 (due to broken rhythm '<')
       const duration1 = calculateDuration(chord1, context);
-      expect(duration1).to.equal(0.5);
+      expect(rationalToNumber(duration1)).to.equal(0.5);
 
       // Context should now have brokenRhythmPending
       expect(context.brokenRhythmPending).to.exist;
@@ -417,25 +424,29 @@ describe("processBar function", () => {
 
       // Second chord should have duration 1.5 (1/1 * 1.5 due to preceding broken rhythm)
       const duration2 = calculateDuration(chord2, context);
-      expect(duration2).to.equal(1.5);
+      expect(rationalToNumber(duration2)).to.equal(1.5);
 
       // Context should no longer have brokenRhythmPending
       expect(context.brokenRhythmPending).to.be.undefined;
 
       // Third chord should have normal duration 1
       const duration3 = calculateDuration(chord3, context);
-      expect(duration3).to.equal(1);
+      expect(rationalToNumber(duration3)).to.equal(1);
 
       // Verify the time map
       expect(result.map.size).to.equal(3);
-      expect(result.map.has(0)).to.be.true;
-      expect(result.map.get(0)).to.equal(getNodeId(chord1));
 
-      expect(result.map.has(0.5)).to.be.true;
-      expect(result.map.get(0.5)).to.equal(getNodeId(chord2));
+      const time0 = rationalToString(createRational(0, 1));
+      expect(result.map.has(time0)).to.be.true;
+      expect(result.map.get(time0)).to.equal(getNodeId(chord1));
 
-      expect(result.map.has(2.0)).to.be.true;
-      expect(result.map.get(2.0)).to.equal(getNodeId(chord3));
+      const time05 = rationalToString(createRational(1, 2));
+      expect(result.map.has(time05)).to.be.true;
+      expect(result.map.get(time05)).to.equal(getNodeId(chord2));
+
+      const time2 = rationalToString(createRational(2, 1));
+      expect(result.map.has(time2)).to.be.true;
+      expect(result.map.get(time2)).to.equal(getNodeId(chord3));
     });
   });
 });

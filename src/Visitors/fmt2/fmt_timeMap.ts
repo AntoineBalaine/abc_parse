@@ -14,6 +14,7 @@ import {
   isMultiMeasureRest,
   isToken,
 } from "./fmt_timeMapHelpers";
+import { Rational, createRational, addRational, multiplyRational, divideRational, isInfiniteRational, rationalToString } from "./rational";
 
 export function mapTimePoints(voiceSplits: VoiceSplit[]): BarAlignment[] {
   // Get formatted voices and their indices
@@ -26,7 +27,7 @@ export function mapTimePoints(voiceSplits: VoiceSplit[]): BarAlignment[] {
 
   // For each bar
   for (let barIdx = 0; barIdx < barCount; barIdx++) {
-    const barTimePoints = new Map<TimeStamp, Array<Location>>();
+    const barTimePoints = new Map<string, Array<Location>>();
     const startNodes = new Map<number, NodeID>();
 
     // For each formatted voice
@@ -41,11 +42,11 @@ export function mapTimePoints(voiceSplits: VoiceSplit[]): BarAlignment[] {
       startNodes.set(voiceIdx, bar.startNodeId);
 
       // Add time points for this voice
-      bar.map.forEach((nodeID: NodeID, timeStamp: TimeStamp) => {
-        let locations = barTimePoints.get(timeStamp);
+      bar.map.forEach((nodeID: NodeID, timeKey: string) => {
+        let locations = barTimePoints.get(timeKey);
         if (!locations) {
           locations = [];
-          barTimePoints.set(timeStamp, locations);
+          barTimePoints.set(timeKey, locations);
         }
         locations.push({
           voiceIdx,
@@ -100,13 +101,13 @@ function isTuplet(element: Expr | Token): element is Tuplet {
 
 // Helper to process a bar
 export function processBar(bar: System, startNodeId: NodeID): BarTimeMap {
-  const timeMap = new Map<TimeStamp, NodeID>();
-  let currentTime = 0;
+  const timeMap = new Map<string, NodeID>();
+  let currentTime: Rational = createRational(0, 1); // Start at 0/1
   const context: DurationContext = {};
 
   for (let i = 0; i < bar.length; i++) {
     const node = bar[i];
-    // for (const node of bar) {
+
     if (isTuplet(node)) {
       context.tuplet = parseTuplet(node);
       continue;
@@ -114,14 +115,19 @@ export function processBar(bar: System, startNodeId: NodeID): BarTimeMap {
 
     if (!isTimeEvent(node)) continue;
 
-    timeMap.set(currentTime, getNodeId(node));
+    // Store the node at the current time point using string key
+    const timeKey = rationalToString(currentTime);
+    timeMap.set(timeKey, getNodeId(node));
+
+    // Calculate duration as a rational number
     const duration = calculateDuration(node, context);
 
-    if (duration === Infinity) {
+    if (isInfiniteRational(duration)) {
       break;
     }
 
-    currentTime += duration;
+    // Add the duration to current time
+    currentTime = addRational(currentTime, duration);
 
     // Update tuplet counting if we're in a tuplet
     // and this is a note-carrying event
@@ -161,20 +167,19 @@ export interface DurationContext {
   };
 }
 
-export function calculateDuration(node: Note | Beam | MultiMeasureRest | Chord | Rest, context: DurationContext): number {
+export function calculateDuration(node: Note | Beam | MultiMeasureRest | Chord | Rest, context: DurationContext): Rational {
   if (isMultiMeasureRest(node)) {
-    // assume this Z | X doesn't carry a rhythm:
-    // in multi voice scores, it's expected that multi-measure rests be expanded
-    return Infinity;
+    // Return "infinity" as a rational
+    return createRational(1, 0); // Represents infinity
   }
 
   if (isBeam(node)) {
-    let total = 0;
+    let total = createRational(0, 1);
     const beamContext: DurationContext = { ...context };
 
     for (const content of node.contents) {
       if (isNote(content)) {
-        total += calculateNoteDuration(content, beamContext);
+        total = addRational(total, calculateNoteDuration(content, beamContext));
         if (content.rhythm?.broken) {
           beamContext.brokenRhythmPending = {
             token: content.rhythm.broken,
@@ -200,22 +205,22 @@ export function calculateDuration(node: Note | Beam | MultiMeasureRest | Chord |
     return calculateBaseDuration(node.rhythm, context);
   }
 
-  return 0;
+  return createRational(0, 1); // Zero duration
 }
 
-export function calculateNoteDuration(note: Note, context: DurationContext): number {
+export function calculateNoteDuration(note: Note, context: DurationContext): Rational {
   const baseDuration = calculateBaseDuration(note.rhythm, context);
 
   // Apply tuplet modification if in tuplet
   if (context.tuplet) {
-    return (baseDuration * context.tuplet.q) / context.tuplet.p;
+    return multiplyRational(baseDuration, createRational(context.tuplet.q, context.tuplet.p));
   }
 
   return baseDuration;
 }
 
-export function calculateBaseDuration(rhythm: Rhythm | undefined, context: DurationContext): number {
-  let duration = 1;
+export function calculateBaseDuration(rhythm: Rhythm | undefined, context: DurationContext): Rational {
+  let duration = createRational(1, 1); // Default to 1/1
 
   if (!rhythm) {
     return duration;
@@ -223,22 +228,23 @@ export function calculateBaseDuration(rhythm: Rhythm | undefined, context: Durat
 
   // Handle basic rhythm
   if (rhythm.numerator) {
-    duration *= parseInt(rhythm.numerator.lexeme);
+    duration = multiplyRational(duration, createRational(parseInt(rhythm.numerator.lexeme), 1));
   }
 
   if (rhythm.denominator) {
-    duration /= parseInt(rhythm.denominator.lexeme);
+    duration = divideRational(duration, createRational(parseInt(rhythm.denominator.lexeme), 1));
   } else if (rhythm.separator) {
-    duration /= Math.pow(2, rhythm.separator.lexeme.length);
+    duration = divideRational(duration, createRational(Math.pow(2, rhythm.separator.lexeme.length), 1));
   }
 
   // Handle broken rhythms
   if (context.brokenRhythmPending) {
-    duration *= context.brokenRhythmPending.isGreater ? 0.5 : 1.5;
+    duration = multiplyRational(duration, createRational(context.brokenRhythmPending.isGreater ? 1 : 3, context.brokenRhythmPending.isGreater ? 2 : 2));
   }
+
   if (rhythm.broken) {
     const isGreater = rhythm.broken.lexeme.includes(">");
-    duration *= isGreater ? 1.5 : 0.5;
+    duration = multiplyRational(duration, createRational(isGreater ? 3 : 1, isGreater ? 2 : 2));
   }
 
   return duration;
