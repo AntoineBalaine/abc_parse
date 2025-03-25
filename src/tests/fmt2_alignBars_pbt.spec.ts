@@ -8,8 +8,15 @@ import { processBar } from "../Visitors/fmt2/fmt_timeMap";
 import { BarAlignment, BarTimeMap, Location, NodeID, VoiceSplit, getNodeId } from "../Visitors/fmt2/fmt_timeMapHelpers";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
 import * as Generators from "./parse2_pbt.generators.spec";
+import { cloneDeep } from "lodash";
 
-describe.only("alignBars function - Property-Based Tests", () => {
+type Clone = {
+  voiceSplits: VoiceSplit[];
+  barAlignment: BarAlignment;
+  ctx: ABCContext;
+};
+
+describe("alignBars function - Property-Based Tests", () => {
   let ctx: ABCContext;
   let stringifyVisitor: AbcFormatter2;
 
@@ -69,7 +76,13 @@ describe.only("alignBars function - Property-Based Tests", () => {
   /**
    * Verifies that nodes at the same time points are aligned
    */
-  function verifyAlignment(alignedVoiceSplits: VoiceSplit[], barAlignment: BarAlignment, stringifyVisitor: AbcFormatter2, orig_str: string): boolean {
+  function verifyAlignment(
+    alignedVoiceSplits: VoiceSplit[],
+    barAlignment: BarAlignment,
+    stringifyVisitor: AbcFormatter2,
+    orig_str: string,
+    clone?: Clone
+  ): boolean {
     // Get time points that appear in multiple voices
     const timeKeys = Array.from(barAlignment.map.entries())
       .filter(([_, locations]) => locations.length > 1)
@@ -98,11 +111,13 @@ describe.only("alignBars function - Property-Based Tests", () => {
         if (acc === -1) return loc.str.length;
         if (acc !== loc.str.length) {
           console.log("==== ERR ====");
-          console.log("OR: ", orig_str);
-          console.log(
-            "NU: ",
-            alignedVoiceSplits.map((v) => v.content.map((e) => stringifyVisitor.stringify(e)).join(""))
-          );
+          console.log("OR:");
+          console.log(orig_str);
+          console.log("NU:");
+          console.log(alignedVoiceSplits.map((v) => v.content.map((e) => stringifyVisitor.stringify(e)).join("")).join("\n"));
+          if (clone) {
+            alignBars(clone.voiceSplits, clone.barAlignment, stringifyVisitor, ctx);
+          }
 
           return null;
         }
@@ -193,7 +208,8 @@ describe.only("alignBars function - Property-Based Tests", () => {
             fc.array(
               fc.oneof(
                 { arbitrary: Generators.genNoteExpr, weight: 10 },
-                { arbitrary: Generators.genRegularRestExpr, weight: 5 }
+                { arbitrary: Generators.genRegularRestExpr, weight: 5 },
+                { arbitrary: Generators.genChordExpr, weight: 5 }
                 // Removed chord expressions to simplify test
               ),
               { minLength: 2, maxLength: 4 }
@@ -232,11 +248,16 @@ describe.only("alignBars function - Property-Based Tests", () => {
             }
 
             const orig_str = voiceSplits.map((v) => v.content.map((e) => stringifyVisitor.stringify(e)).join("")).join("\n");
+            const clone: Clone = {
+              voiceSplits: cloneDeep(voiceSplits),
+              barAlignment: cloneDeep(barAlignment),
+              ctx,
+            };
             // 5. Apply alignBars
             const alignedVoiceSplits = alignBars(voiceSplits, barAlignment, stringifyVisitor, ctx);
 
             // 6. Verify alignment
-            const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor, orig_str);
+            const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor, orig_str, clone);
 
             if (!result) {
               logDebugInfo("Alignment verification failed", voiceSplits, barAlignment);
@@ -306,26 +327,8 @@ describe.only("alignBars function - Property-Based Tests", () => {
         { map: barTimeMap2, voiceIdx: 1 },
       ]);
 
-      // Debug: Print time points and locations
-      console.log("Bar Alignment:");
-      Array.from(barAlignment.map.entries()).forEach(([timeKey, locations]) => {
-        console.log(`Time ${timeKey}:`, locations);
-      });
-      console.log("Start Nodes:", Array.from(barAlignment.startNodes.entries()));
-
-      // Debug: Print original voice content
-      console.log("Original Voice 1:", voice1.map((node) => stringifyVisitor.stringify(node)).join(""));
-      console.log("Original Voice 2:", voice2.map((node) => stringifyVisitor.stringify(node)).join(""));
-
       const orig_str = voiceSplits.map((v) => v.content.map((e) => stringifyVisitor.stringify(e)).join("")).join("\n");
-      // Apply alignBars
       const alignedVoiceSplits = alignBars(voiceSplits, barAlignment, stringifyVisitor, ctx);
-
-      // Debug: Print aligned voice content
-      console.log("Aligned Voice 1:", alignedVoiceSplits[0].content.map((node) => stringifyVisitor.stringify(node)).join(""));
-      console.log("Aligned Voice 2:", alignedVoiceSplits[1].content.map((node) => stringifyVisitor.stringify(node)).join(""));
-
-      // Verify alignment
       const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor, orig_str);
 
       expect(result).to.be.true;
@@ -393,23 +396,8 @@ describe.only("alignBars function - Property-Based Tests", () => {
         { map: barTimeMap3, voiceIdx: 2 },
       ]);
 
-      // Debug: Print time points and locations
-      console.log("Bar Alignment:");
-      Array.from(barAlignment.map.entries()).forEach(([timeKey, locations]) => {
-        console.log(`Time ${timeKey}:`, locations);
-      });
-      console.log("Start Nodes:", Array.from(barAlignment.startNodes.entries()));
-
-      // Debug: Print original voice content
-      console.log("Original Voice 1:", voice1.map((node) => stringifyVisitor.stringify(node)).join(""));
-      console.log("Original Voice 2:", voice2.map((node) => stringifyVisitor.stringify(node)).join(""));
-      console.log("Original Voice 3:", voice3.map((node) => stringifyVisitor.stringify(node)).join(""));
       const orig_str = voiceSplits.map((v) => v.content.map((e) => stringifyVisitor.stringify(e)).join("")).join("\n");
-
-      // Apply alignBars
       const alignedVoiceSplits = alignBars(voiceSplits, barAlignment, stringifyVisitor, ctx);
-
-      // Verify alignment
       const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor, orig_str);
 
       expect(result).to.be.true;

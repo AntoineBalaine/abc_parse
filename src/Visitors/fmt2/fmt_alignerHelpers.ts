@@ -169,37 +169,15 @@ export function findPaddingInsertionPoint(voice: System, nodeId: NodeID, startNo
   const nodeIdx = voice.findIndex((node) => getNodeId(node) === nodeId);
   const startIdx = voice.findIndex((node) => getNodeId(node) === startNodeId);
 
-  if (nodeIdx === -1) {
-    return -1;
-  }
-
-  // If this is the start node itself, insert after it
-  if (nodeId === startNodeId) {
-    return nodeIdx + 1;
-  }
-
-  // If there's nothing between the start node and the current node, insert after the start node
-  if (startIdx !== -1 && nodeIdx === startIdx + 1) {
-    return startIdx + 1;
-  }
-
-  // Look for a whitespace token before the current node
-  let idx = nodeIdx - 1;
+  let idx = nodeIdx;
   while (idx > startIdx) {
+    idx -= 1;
     const node = voice[idx];
     if (isToken(node) && node.type === TT.WS) {
-      // Found whitespace, insert after it
-      return idx + 1;
+      return idx;
     }
-    idx--;
   }
 
-  // If we didn't find a whitespace token, insert after the start node if it exists
-  if (startIdx !== -1) {
-    return startIdx + 1;
-  }
-
-  // If we didn't find the start node either, insert before the current node
   return nodeIdx;
 }
 

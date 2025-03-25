@@ -96,7 +96,8 @@ export function alignBars(voiceSplits: VoiceSplit[], barTimeMap: BarAlignment, s
         const paddingLen = maxLen - location.str.length;
 
         // Find insertion point
-        const insertIdx = findPaddingInsertionPoint(voiceSplits[location.voiceIdx].content, location.nodeID, location.startNode);
+        // const insertIdx = findPaddingInsertionPoint(voiceSplits[location.voiceIdx].content, location.nodeID, location.startNode);
+        const insertIdx = voiceSplits[location.voiceIdx].content.findIndex((node) => getNodeId(node) === location.nodeID);
 
         // Insert padding
         if (insertIdx !== -1) {
