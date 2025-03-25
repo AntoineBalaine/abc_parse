@@ -3,6 +3,17 @@ export interface Rational {
   denominator: number;
 }
 
+export function isRational(e: unknown): e is Rational {
+  return (
+    typeof e === "object" &&
+    e !== null &&
+    "numerator" in e &&
+    "denominator" in e &&
+    (e as Rational).numerator !== undefined &&
+    (e as Rational).denominator !== undefined
+  );
+}
+
 // Helper functions for rational number operations
 export function createRational(numerator: number, denominator: number = 1): Rational {
   if (denominator === 0 && numerator === 0) {
@@ -99,6 +110,10 @@ export function isInfiniteRational(r: Rational): boolean {
 // Check if two rationals are equal
 export function equalRational(a: Rational, b: Rational): boolean {
   return compareRational(a, b) === 0;
+}
+
+export function greaterRational(a: Rational, b: Rational): boolean {
+  return compareRational(a, b) > 0;
 }
 
 // Create a rational from a floating-point number (approximate)
