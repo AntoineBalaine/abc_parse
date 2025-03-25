@@ -21,37 +21,30 @@ import { createRational, rationalToNumber, rationalFromNumber } from "./rational
  */
 export function alignTune(tune: Tune, ctx: ABCContext, stringifyVisitor: AbcFormatter2): Tune {
   if (tune.tune_body && tune.tune_header.voices.length > 1) {
-    tune.tune_body.sequence = alignSystems(tune.tune_body.sequence, ctx, stringifyVisitor);
+    tune.tune_body.sequence = tune.tune_body.sequence.map((system) => {
+      // Split system into voices/noformat lines
+      let voiceSplits: Array<VoiceSplit> = findFmtblLines(system);
+
+      // Skip if no formattable content
+      if (!voiceSplits.some((split) => split.type === "formatted")) {
+        return system;
+      }
+
+      // Get bar-based alignment points
+      const barTimeMaps = mapTimePoints(voiceSplits);
+
+      // Process each bar
+      for (const barTimeMap of barTimeMaps) {
+        voiceSplits = alignBars(voiceSplits, barTimeMap, stringifyVisitor, ctx);
+      }
+      // voiceSplits = equalizeBarLengths(voiceSplits, ctx, stringifyVisitor);
+      voiceSplits = equalizer(voiceSplits, stringifyVisitor);
+      // Reconstruct system from aligned voices
+
+      return voiceSplits.flatMap((split) => split.content);
+    });
   }
   return tune;
-}
-
-/**
- * Align systems in a tune body
- */
-export function alignSystems(systems: Tune_Body["sequence"], ctx: ABCContext, stringifyVisitor: AbcFormatter2): Tune_Body["sequence"] {
-  return systems.map((system) => {
-    // Split system into voices/noformat lines
-    let voiceSplits: Array<VoiceSplit> = findFmtblLines(system);
-
-    // Skip if no formattable content
-    if (!voiceSplits.some((split) => split.type === "formatted")) {
-      return system;
-    }
-
-    // Get bar-based alignment points
-    const barTimeMaps = mapTimePoints(voiceSplits);
-
-    // Process each bar
-    for (const barTimeMap of barTimeMaps) {
-      voiceSplits = alignBars(voiceSplits, barTimeMap, stringifyVisitor, ctx);
-    }
-    // voiceSplits = equalizeBarLengths(voiceSplits, ctx, stringifyVisitor);
-    voiceSplits = equalizer(voiceSplits, stringifyVisitor);
-    // Reconstruct system from aligned voices
-
-    return voiceSplits.flatMap((split) => split.content);
-  });
 }
 
 /**
