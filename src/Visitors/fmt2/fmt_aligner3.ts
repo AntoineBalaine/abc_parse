@@ -28,8 +28,8 @@ class VxCtx {
 type BarNumber = number;
 type AlignPt = [Rational | BarNumber, Array<Location>];
 class GCtx {
-  list: Array<AlignPt> = [];
-  barIndexes: Array<number> = [];
+  list: Array<AlignPt> = [[0, []]];
+  barIndexes: Array<number> = [0];
   push(pt: [Rational | BarNumber, Location], vxCtx: VxCtx) {
     const key = pt[0];
     const value = pt[1];
@@ -42,16 +42,6 @@ class GCtx {
   }
 
   private pushTimeStamp(vxCtx: VxCtx, key: Rational, value: Location) {
-    /**
-     * find the segment which corresponds to the vxCtx's bar number
-     */
-    // Special handling for bar 0 which doesn't need a delimiter
-    if (vxCtx.bar === 0 && this.barIndexes.length === 0) {
-      // Initialize bar 0 entry
-      this.list.push([0, []]); // Add bar marker
-      this.barIndexes[0] = 0;
-    }
-
     // bar exists?
     if (vxCtx.bar >= this.barIndexes.length) {
       throw Error(`Bar number ${vxCtx.bar} not found in barIndexes (length: ${this.barIndexes.length})`);
