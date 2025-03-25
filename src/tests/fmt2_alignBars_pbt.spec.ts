@@ -72,96 +72,47 @@ describe.only("alignBars function - Property-Based Tests", () => {
   /**
    * Verifies that nodes at the same time points are aligned
    */
-  function verifyAlignment(alignedVoiceSplits: VoiceSplit[], barAlignment: BarAlignment, stringifyVisitor: AbcFormatter2): boolean {
+  function verifyAlignment(alignedVoiceSplits: VoiceSplit[], barAlignment: BarAlignment, stringifyVisitor: AbcFormatter2, orig_str: string): boolean {
     // Get time points that appear in multiple voices
-    const multiVoiceTimePoints = Array.from(barAlignment.map.entries())
+    const timeKeys = Array.from(barAlignment.map.entries())
       .filter(([_, locations]) => locations.length > 1)
       .map(([timeKey, _]) => timeKey);
 
-    if (multiVoiceTimePoints.length === 0) {
-      // No time points to check
-      return true;
-    }
-
     // Check each time point
-    for (const timeKey of multiVoiceTimePoints) {
+    for (const timeKey of timeKeys) {
       const locations = barAlignment.map.get(timeKey)!;
 
-      // Get string lengths up to each node
-      const stringLengths: { length: number; content: string; voiceIdx: number; nodeID: NodeID; startIdx: number; nodeIdx: number }[] = locations.map(
-        (location) => {
-          const { voiceIdx, nodeID } = location;
-          const voice = alignedVoiceSplits[voiceIdx].content;
-          const startNodeId = barAlignment.startNodes.get(voiceIdx)!;
+      const loc_str = locations.map((loc) => {
+        const { voiceIdx, nodeID } = loc;
+        const voice = alignedVoiceSplits[voiceIdx].content;
+        const startNodeId = barAlignment.startNodes.get(voiceIdx)!;
+        const startIdx = voice.findIndex((node) => getNodeId(node) === startNodeId);
+        const nodeIdx = voice.findIndex((node) => getNodeId(node) === nodeID);
+        const segment = voice.slice(startIdx, nodeIdx);
+        const str = segment.map((node) => stringifyVisitor.stringify(node)).join("");
+        return {
+          ...loc,
+          str,
+        };
+      });
 
-          // Find indices
-          const startIdx = voice.findIndex((node) => getNodeId(node) === startNodeId);
-          const nodeIdx = voice.findIndex((node) => getNodeId(node) === nodeID);
+      const hasEqual = loc_str.reduce((acc: number | null, loc) => {
+        if (acc === null) return null;
+        if (acc === -1) return loc.str.length;
+        if (acc !== loc.str.length) {
+          console.log("==== ERR ====");
+          console.log("OR: ", orig_str);
+          console.log(
+            "NU: ",
+            alignedVoiceSplits.map((v) => v.content.map((e) => stringifyVisitor.stringify(e)).join(""))
+          );
 
-          if (startIdx === -1 || nodeIdx === -1) {
-            console.error(
-              `Node not found: startIdx=${startIdx}, nodeIdx=${nodeIdx}, voiceIdx=${voiceIdx}, nodeID=${nodeID}, startNodeId=${startNodeId}`
-            );
-            return { length: -1, content: "", voiceIdx, nodeID, startIdx, nodeIdx }; // Error case
-          }
-
-          // Stringify content up to node
-          const segment = voice.slice(startIdx, nodeIdx + 1);
-          const str = segment.map((node) => stringifyVisitor.stringify(node)).join("");
-
-          // Log detailed information about the segment
-          console.log(`Voice ${voiceIdx} at time ${timeKey}:`);
-          console.log(`  Start node ID: ${startNodeId}, index: ${startIdx}`);
-          console.log(`  End node ID: ${nodeID}, index: ${nodeIdx}`);
-          console.log(`  Segment: ${str}`);
-          console.log(`  Length: ${str.length}`);
-
-          // Log each node in the segment
-          segment.forEach((node, idx) => {
-            const nodeStr = stringifyVisitor.stringify(node);
-            console.log(`    Node ${idx} (ID: ${getNodeId(node)}): "${nodeStr}" (${nodeStr.length})`);
-          });
-
-          return { length: str.length, content: str, voiceIdx, nodeID, startIdx, nodeIdx };
+          return null;
         }
-      );
+        return acc;
+      }, -1);
 
-      // Check if all lengths are equal
-      const validLengths = stringLengths.filter((item) => item.length >= 0);
-      if (validLengths.length < 2) {
-        // Not enough valid lengths to compare
-        continue;
-      }
-
-      const firstLength = validLengths[0].length;
-      const allEqual = validLengths.every((item) => item.length === firstLength);
-
-      if (!allEqual) {
-        console.error(`Alignment failed at time ${timeKey}:`);
-        validLengths.forEach((item) => {
-          console.error(`Voice ${item.voiceIdx}, Node ${item.nodeID}: Length ${item.length}, Content: "${item.content}"`);
-
-          // Log whitespace tokens in the voice
-          const voice = alignedVoiceSplits[item.voiceIdx].content;
-          console.error(`  Whitespace tokens in voice ${item.voiceIdx}:`);
-          voice.forEach((node, idx) => {
-            if (isToken(node) && node.type === TT.WS) {
-              console.error(`    Index ${idx}: "${stringifyVisitor.stringify(node)}" (${stringifyVisitor.stringify(node).length})`);
-            }
-          });
-
-          // Log insertion point that would be used
-          const insertIdx = findPaddingInsertionPoint(voice, item.nodeID, barAlignment.startNodes.get(item.voiceIdx)!);
-          console.error(`  Insertion point: ${insertIdx}`);
-          if (insertIdx !== -1 && insertIdx < voice.length) {
-            const nodeAtInsertPoint = voice[insertIdx];
-            console.error(
-              `    Node at insertion point: ${nodeAtInsertPoint instanceof Token ? nodeAtInsertPoint.type : nodeAtInsertPoint.constructor.name}`
-            );
-          }
-        });
-        return false;
-      }
+      if (hasEqual === null) return false;
     }
 
     return true;
@@ -226,11 +177,13 @@ describe.only("alignBars function - Property-Based Tests", () => {
         { map: barTimeMap2, voiceIdx: 1 },
       ]);
 
+      const orig_str = voiceSplits.map((v) => v.content.map((e) => stringifyVisitor.stringify(e)).join("")).join("\n");
+
       // Apply alignBars
       const alignedVoiceSplits = alignBars(voiceSplits, barAlignment, stringifyVisitor, ctx);
 
       // Verify alignment
-      const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor);
+      const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor, orig_str);
 
       expect(result).to.be.true;
     });
@@ -281,11 +234,12 @@ describe.only("alignBars function - Property-Based Tests", () => {
               return true;
             }
 
+            const orig_str = voiceSplits.map((v) => v.content.map((e) => stringifyVisitor.stringify(e)).join("")).join("\n");
             // 5. Apply alignBars
             const alignedVoiceSplits = alignBars(voiceSplits, barAlignment, stringifyVisitor, ctx);
 
             // 6. Verify alignment
-            const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor);
+            const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor, orig_str);
 
             if (!result) {
               logDebugInfo("Alignment verification failed", voiceSplits, barAlignment);
@@ -366,6 +320,7 @@ describe.only("alignBars function - Property-Based Tests", () => {
       console.log("Original Voice 1:", voice1.map((node) => stringifyVisitor.stringify(node)).join(""));
       console.log("Original Voice 2:", voice2.map((node) => stringifyVisitor.stringify(node)).join(""));
 
+      const orig_str = voiceSplits.map((v) => v.content.map((e) => stringifyVisitor.stringify(e)).join("")).join("\n");
       // Apply alignBars
       const alignedVoiceSplits = alignBars(voiceSplits, barAlignment, stringifyVisitor, ctx);
 
@@ -374,7 +329,7 @@ describe.only("alignBars function - Property-Based Tests", () => {
       console.log("Aligned Voice 2:", alignedVoiceSplits[1].content.map((node) => stringifyVisitor.stringify(node)).join(""));
 
       // Verify alignment
-      const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor);
+      const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor, orig_str);
 
       expect(result).to.be.true;
     });
@@ -452,17 +407,13 @@ describe.only("alignBars function - Property-Based Tests", () => {
       console.log("Original Voice 1:", voice1.map((node) => stringifyVisitor.stringify(node)).join(""));
       console.log("Original Voice 2:", voice2.map((node) => stringifyVisitor.stringify(node)).join(""));
       console.log("Original Voice 3:", voice3.map((node) => stringifyVisitor.stringify(node)).join(""));
+      const orig_str = voiceSplits.map((v) => v.content.map((e) => stringifyVisitor.stringify(e)).join("")).join("\n");
 
       // Apply alignBars
       const alignedVoiceSplits = alignBars(voiceSplits, barAlignment, stringifyVisitor, ctx);
 
-      // Debug: Print aligned voice content
-      console.log("Aligned Voice 1:", alignedVoiceSplits[0].content.map((node) => stringifyVisitor.stringify(node)).join(""));
-      console.log("Aligned Voice 2:", alignedVoiceSplits[1].content.map((node) => stringifyVisitor.stringify(node)).join(""));
-      console.log("Aligned Voice 3:", alignedVoiceSplits[2].content.map((node) => stringifyVisitor.stringify(node)).join(""));
-
       // Verify alignment
-      const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor);
+      const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor, orig_str);
 
       expect(result).to.be.true;
     });
