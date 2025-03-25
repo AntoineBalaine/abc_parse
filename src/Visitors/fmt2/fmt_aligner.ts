@@ -100,9 +100,7 @@ export function alignBars(voiceSplits: VoiceSplit[], barTimeMap: BarAlignment, s
 
         // Insert padding
         if (insertIdx !== -1) {
-          const tknCtx: Ctx = new Ctx(" ".repeat(paddingLen));
-          tknCtx.current = tknCtx.source.length;
-          const padding = new Token(TT.WS, tknCtx);
+          const padding = new Token(TT.WS, " ".repeat(paddingLen));
           voiceSplits[location.voiceIdx].content.splice(insertIdx, 0, padding);
 
           const startNodeIdx = voiceSplits[location.voiceIdx].content.findIndex((node) => getNodeId(node) === location.startNode);

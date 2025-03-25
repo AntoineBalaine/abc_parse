@@ -6,11 +6,8 @@ import { Beam, Chord, MultiMeasureRest, Note, Pitch, Rest, Rhythm, System } from
 import { alignBars } from "../Visitors/fmt2/fmt_aligner";
 import { processBar } from "../Visitors/fmt2/fmt_timeMap";
 import { BarAlignment, BarTimeMap, Location, NodeID, VoiceSplit, getNodeId } from "../Visitors/fmt2/fmt_timeMapHelpers";
-import { findPaddingInsertionPoint } from "../Visitors/fmt2/fmt_alignerHelpers";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
 import * as Generators from "./parse2_pbt.generators.spec";
-import { rationalToString } from "../Visitors/fmt2/rational";
-import { isToken } from "../helpers2";
 
 describe.only("alignBars function - Property-Based Tests", () => {
   let ctx: ABCContext;
