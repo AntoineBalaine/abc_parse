@@ -34,7 +34,7 @@ import {
   tune_body_code,
 } from "../types/Expr2";
 import { Token, TT } from "../parsers/scan2";
-import { SystemAligner2 } from "./fmt2/fmt_aligner";
+import { alignTune } from "./fmt2/fmt_aligner";
 import { resolveRules } from "./fmt2/fmt_rules_assignment";
 
 /**
@@ -66,7 +66,7 @@ export class AbcFormatter2 implements Visitor<string> {
     let withRules = resolveRules(ast, this.ctx);
 
     // 2. align multi-voices tunes
-    let alignedTune = new SystemAligner2(this.ctx, this).alignTune(withRules);
+    let alignedTune = alignTune(withRules, this.ctx, this);
 
     // 3. Print using visitor
     return this.stringify(alignedTune);

@@ -181,7 +181,7 @@ export function findPaddingInsertionPoint(voice: System, nodeId: NodeID, startNo
   return nodeIdx;
 }
 
-export function equalizer(voiceSplits: Array<VoiceSplit>, ctx: ABCContext, stringifyVisitor: AbcFormatter2): Array<VoiceSplit> {
+export function equalizer(voiceSplits: Array<VoiceSplit>, stringifyVisitor: AbcFormatter2): Array<VoiceSplit> {
   let voices = voiceSplits.map((split) => ({
     ...split,
     cursor: 0,

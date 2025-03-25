@@ -15,44 +15,43 @@ import { createRational, rationalToNumber, rationalFromNumber } from "./rational
  * `mapTimePoints() => BarArray<TimeMap<TimeStamp, Array<{ VoiceIdx, NodeID }>> >`
  */
 
-export class SystemAligner2 {
-  constructor(private ctx: ABCContext, private stringifyVisitor: AbcFormatter2) {}
+/**
+ * Add alignment padding to multi-voice tunes.
+ * Does nothing if tune is single-voice.
+ */
+export function alignTune(tune: Tune, ctx: ABCContext, stringifyVisitor: AbcFormatter2): Tune {
+  if (tune.tune_body && tune.tune_header.voices.length > 1) {
+    tune.tune_body.sequence = alignSystems(tune.tune_body.sequence, ctx, stringifyVisitor);
+  }
+  return tune;
+}
 
-  /**
-   * Add alignment padding to multi-voice tunes.
-   * Does nothing if tune is single-voice.
-   */
-  alignTune(tune: Tune): Tune {
-    if (tune.tune_body && tune.tune_header.voices.length > 1) {
-      tune.tune_body.sequence = this.align(tune.tune_body.sequence);
+/**
+ * Align systems in a tune body
+ */
+export function alignSystems(systems: Tune_Body["sequence"], ctx: ABCContext, stringifyVisitor: AbcFormatter2): Tune_Body["sequence"] {
+  return systems.map((system) => {
+    // Split system into voices/noformat lines
+    let voiceSplits: Array<VoiceSplit> = findFmtblLines(system);
+
+    // Skip if no formattable content
+    if (!voiceSplits.some((split) => split.type === "formatted")) {
+      return system;
     }
-    return tune;
-  }
 
-  private align(systems: Tune_Body["sequence"]): Tune_Body["sequence"] {
-    return systems.map((system) => {
-      // Split system into voices/noformat lines
-      let voiceSplits: Array<VoiceSplit> = findFmtblLines(system);
+    // Get bar-based alignment points
+    const barTimeMaps = mapTimePoints(voiceSplits);
 
-      // Skip if no formattable content
-      if (!voiceSplits.some((split) => split.type === "formatted")) {
-        return system;
-      }
+    // Process each bar
+    for (const barTimeMap of barTimeMaps) {
+      voiceSplits = alignBars(voiceSplits, barTimeMap, stringifyVisitor, ctx);
+    }
+    // voiceSplits = equalizeBarLengths(voiceSplits, ctx, stringifyVisitor);
+    voiceSplits = equalizer(voiceSplits, stringifyVisitor);
+    // Reconstruct system from aligned voices
 
-      // Get bar-based alignment points
-      const barTimeMaps = mapTimePoints(voiceSplits);
-
-      // Process each bar
-      for (const barTimeMap of barTimeMaps) {
-        voiceSplits = alignBars(voiceSplits, barTimeMap, this.stringifyVisitor, this.ctx);
-      }
-      // voiceSplits = equalizeBarLengths(voiceSplits, this.ctx, this.stringifyVisitor);
-      voiceSplits = equalizer(voiceSplits, this.ctx, this.stringifyVisitor);
-      // Reconstruct system from aligned voices
-
-      return voiceSplits.flatMap((split) => split.content);
-    });
-  }
+    return voiceSplits.flatMap((split) => split.content);
+  });
 }
 
 /**

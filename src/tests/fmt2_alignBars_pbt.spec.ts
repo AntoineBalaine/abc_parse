@@ -17,7 +17,7 @@ type Clone = {
   ctx: ABCContext;
 };
 
-describe.only("alignBars function - Property-Based Tests", () => {
+describe("alignBars function - Property-Based Tests", () => {
   let ctx: ABCContext;
   let stringifyVisitor: AbcFormatter2;
 
