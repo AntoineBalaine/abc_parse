@@ -8,7 +8,7 @@ import { BarTimeMap, getNodeId } from "../Visitors/fmt2/fmt_timeMapHelpers";
 import * as Generators from "./parse2_pbt.generators.spec";
 import { Rational, createRational, addRational, rationalToString, rationalToNumber, isInfiniteRational, equalRational } from "../Visitors/fmt2/rational";
 
-describe.only("processBar function", () => {
+describe("processBar function", () => {
   let ctx: ABCContext;
 
   beforeEach(() => {

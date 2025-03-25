@@ -50,6 +50,7 @@ export function stringifyVoiceSlice(voice: System, startId: NodeID, endId: NodeI
     return "";
   }
 
+  // Exclude the end node from the slice - we only want to measure up to the node
   const segment = voice.slice(startIdx, endIdx);
   return segment.map((node) => stringifyVisitor.stringify(node)).join("");
 }
@@ -159,28 +160,47 @@ export function equalizeBarLengths(voiceSplits: Array<VoiceSplit>, ctx: ABCConte
 }
 
 /**
- * Find first WS position before `nodeId` - or use `startNodeId`.
+ * Find insertion point for padding.
+ * If there's a whitespace token before the node, return the index after the whitespace.
+ * If we find the start node, return the index after the start node.
+ * Otherwise, return the index before the current node.
  */
 export function findPaddingInsertionPoint(voice: System, nodeId: NodeID, startNodeId: NodeID): number {
   const nodeIdx = voice.findIndex((node) => getNodeId(node) === nodeId);
+  const startIdx = voice.findIndex((node) => getNodeId(node) === startNodeId);
 
   if (nodeIdx === -1) {
     return -1;
   }
 
-  let idx = nodeIdx;
-  while (idx > 0) {
+  // If this is the start node itself, insert after it
+  if (nodeId === startNodeId) {
+    return nodeIdx + 1;
+  }
+
+  // If there's nothing between the start node and the current node, insert after the start node
+  if (startIdx !== -1 && nodeIdx === startIdx + 1) {
+    return startIdx + 1;
+  }
+
+  // Look for a whitespace token before the current node
+  let idx = nodeIdx - 1;
+  while (idx > startIdx) {
     const node = voice[idx];
-    if (getNodeId(node) === startNodeId) {
-      break;
-    }
     if (isToken(node) && node.type === TT.WS) {
-      break;
+      // Found whitespace, insert after it
+      return idx + 1;
     }
     idx--;
   }
 
-  return idx;
+  // If we didn't find a whitespace token, insert after the start node if it exists
+  if (startIdx !== -1) {
+    return startIdx + 1;
+  }
+
+  // If we didn't find the start node either, insert before the current node
+  return nodeIdx;
 }
 
 export function equalizer(voiceSplits: Array<VoiceSplit>, ctx: ABCContext, stringifyVisitor: AbcFormatter2): Array<VoiceSplit> {
