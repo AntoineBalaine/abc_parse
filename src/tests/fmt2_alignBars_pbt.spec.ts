@@ -4,11 +4,12 @@ import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import { Beam, Chord, MultiMeasureRest, Note, Pitch, Rest, Rhythm, System } from "../types/Expr2";
 import { alignBars } from "../Visitors/fmt2/fmt_aligner";
-import { processBar } from "../Visitors/fmt2/fmt_timeMap";
-import { BarAlignment, BarTimeMap, Location, NodeID, VoiceSplit, getNodeId } from "../Visitors/fmt2/fmt_timeMapHelpers";
+import { isTimeEvent, processBar } from "../Visitors/fmt2/fmt_timeMap";
+import { BarAlignment, BarTimeMap, Location, NodeID, VoiceSplit, getNodeId, isBeam } from "../Visitors/fmt2/fmt_timeMapHelpers";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
 import * as Generators from "./parse2_pbt.generators.spec";
 import { cloneDeep } from "lodash";
+import { isChord, isNote } from "../helpers2";
 
 type Clone = {
   voiceSplits: VoiceSplit[];
@@ -16,7 +17,7 @@ type Clone = {
   ctx: ABCContext;
 };
 
-describe("alignBars function - Property-Based Tests", () => {
+describe.only("alignBars function - Property-Based Tests", () => {
   let ctx: ABCContext;
   let stringifyVisitor: AbcFormatter2;
 
@@ -401,6 +402,244 @@ describe("alignBars function - Property-Based Tests", () => {
       const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor, orig_str);
 
       expect(result).to.be.true;
+    });
+
+    it("aligns complex musical expressions with grace notes, decorations, and more", () => {
+      fc.assert(
+        fc.property(
+          // Generate 2-3 arrays of complex musical expressions
+          fc.array(
+            fc.array(
+              fc.oneof(
+                // Include time events (notes, chords, rests) as they determine alignment
+                { arbitrary: Generators.genNoteExpr, weight: 10 },
+                { arbitrary: Generators.genRegularRestExpr, weight: 5 },
+                { arbitrary: Generators.genChordExpr, weight: 5 },
+
+                // Include grace notes (which attach to the following note)
+                { arbitrary: Generators.genGraceGroupExpr, weight: 3 },
+
+                // Include decorations
+                { arbitrary: Generators.genDecorationExpr, weight: 3 },
+
+                // Include beams (groups of notes)
+                { arbitrary: Generators.genBeamExpr, weight: 3 },
+
+                // Include annotations
+                { arbitrary: Generators.genAnnotationExpr, weight: 2 },
+
+                // Include symbols
+                { arbitrary: Generators.genSymbolExpr, weight: 2 }
+              ),
+              { minLength: 2, maxLength: 6 }
+            ),
+            { minLength: 2, maxLength: 3 }
+          ),
+          (voiceArrays) => {
+            // 1. Extract expressions from generators
+            const voices = voiceArrays.map((voice) => {
+              // Filter out non-time events at the beginning of each voice
+              // to ensure we have a valid start node for time mapping
+              const firstTimeEventIndex = voice.findIndex(
+                (item) => isNote(item.expr) || isChord(item.expr) || item.expr instanceof Rest || isBeam(item.expr)
+              );
+
+              if (firstTimeEventIndex === -1) {
+                // If no time events, generate a simple note to ensure we have a time event
+                const noteExpr = fc.sample(Generators.genNoteExpr, 1)[0];
+                // Push the note expression into the voice array
+                const result = voice.map((item) => item.expr);
+                result.push(noteExpr.expr);
+                return result;
+              }
+
+              // Ensure we have at least one time event in each voice
+              return voice.map((item) => item.expr);
+            });
+
+            // 2. Process each voice to create time maps
+            const barTimeMaps = voices
+              .map((voice, idx) => {
+                // Find the first time event to use as start node
+                const firstTimeEventIndex = voice.findIndex((node) => isNote(node) || isChord(node) || node instanceof Rest || isBeam(node));
+
+                if (firstTimeEventIndex === -1) {
+                  // This shouldn't happen due to our filtering above, but just in case
+                  return null;
+                }
+
+                const startNodeId = getNodeId(voice[firstTimeEventIndex]);
+                return {
+                  map: processBar(voice, startNodeId),
+                  voiceIdx: idx,
+                };
+              })
+              .filter((map) => map !== null) as Array<{ map: BarTimeMap; voiceIdx: number }>;
+
+            // Skip test if we don't have at least 2 valid voices with time maps
+            if (barTimeMaps.length < 2) {
+              return true;
+            }
+
+            // 3. Create voice splits
+            const voiceSplits: VoiceSplit[] = voices.map((voice) => ({
+              type: "formatted",
+              content: voice,
+            }));
+
+            // 4. Create bar alignment from time maps
+            const barAlignment = createBarAlignmentFromTimeMaps(barTimeMaps);
+
+            // Skip test if there are no common time points
+            const multiVoiceTimePoints = Array.from(barAlignment.map.entries())
+              .filter(([_, locations]) => locations.length > 1)
+              .map(([timeKey, _]) => timeKey);
+
+            if (multiVoiceTimePoints.length === 0) {
+              return true;
+            }
+
+            const orig_str = voiceSplits.map((v) => v.content.map((e) => stringifyVisitor.stringify(e)).join("")).join("\n");
+            const clone: Clone = {
+              voiceSplits: cloneDeep(voiceSplits),
+              barAlignment: cloneDeep(barAlignment),
+              ctx,
+            };
+
+            // 5. Apply alignBars
+            const alignedVoiceSplits = alignBars(voiceSplits, barAlignment, stringifyVisitor, ctx);
+
+            // 6. Verify alignment
+            const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor, orig_str, clone);
+
+            if (!result) {
+              logDebugInfo("Complex alignment verification failed", voiceSplits, barAlignment);
+            }
+
+            return result;
+          }
+        ),
+        { numRuns: 1000, verbose: true }
+      );
+    });
+
+    it("aligns complex musical expressions with mixed elements in a single bar", () => {
+      fc.assert(
+        fc.property(
+          // Generate a sequence of mixed musical expressions for each voice
+          fc.array(
+            fc.array(
+              fc.oneof(
+                // Base time events
+                { arbitrary: Generators.genNoteExpr, weight: 10 },
+                { arbitrary: Generators.genRegularRestExpr, weight: 5 },
+                { arbitrary: Generators.genChordExpr, weight: 5 },
+
+                // Create complex combinations
+                fc.tuple(Generators.genGraceGroupExpr, Generators.genNoteExpr).map(([grace, note]) => {
+                  // Combine grace group with a note
+                  return {
+                    tokens: [...grace.tokens, ...note.tokens],
+                    expr: note.expr, // The note is the time event
+                  };
+                }),
+
+                fc.tuple(Generators.genDecorationExpr, Generators.genNoteExpr).map(([deco, note]) => {
+                  // Combine decoration with a note
+                  return {
+                    tokens: [...deco.tokens, ...note.tokens],
+                    expr: note.expr, // The note is the time event
+                  };
+                }),
+
+                fc.tuple(Generators.genAnnotationExpr, Generators.genChordExpr).map(([anno, chord]) => {
+                  // Combine annotation with a chord
+                  return {
+                    tokens: [...anno.tokens, ...chord.tokens],
+                    expr: chord.expr, // The chord is the time event
+                  };
+                }),
+
+                fc.tuple(Generators.genSymbolExpr, Generators.genNoteExpr).map(([symbol, note]) => {
+                  // Combine symbol with a note
+                  return {
+                    tokens: [...symbol.tokens, ...note.tokens],
+                    expr: note.expr, // The note is the time event
+                  };
+                })
+              ),
+              { minLength: 2, maxLength: 5 }
+            ),
+            { minLength: 2, maxLength: 3 }
+          ),
+          (voiceArrays) => {
+            // 1. Extract expressions from generators
+            const voices = voiceArrays.map((voice) => voice.map((item) => item.expr));
+
+            // 2. Process each voice to create time maps
+            const barTimeMaps = voices
+              .map((voice, idx) => {
+                // Find the first time event to use as start node
+                const firstTimeEventIndex = voice.findIndex((node) => isTimeEvent(node));
+
+                if (firstTimeEventIndex === -1) {
+                  // If no time events, skip this voice
+                  return null;
+                }
+
+                const startNodeId = getNodeId(voice[firstTimeEventIndex]);
+                return {
+                  map: processBar(voice, startNodeId),
+                  voiceIdx: idx,
+                };
+              })
+              .filter((map) => map !== null) as Array<{ map: BarTimeMap; voiceIdx: number }>;
+
+            // Skip test if we don't have at least 2 valid voices with time maps
+            if (barTimeMaps.length < 2) {
+              return true;
+            }
+
+            // 3. Create voice splits
+            const voiceSplits: VoiceSplit[] = voices.map((voice) => ({
+              type: "formatted",
+              content: voice,
+            }));
+
+            // 4. Create bar alignment from time maps
+            const barAlignment = createBarAlignmentFromTimeMaps(barTimeMaps);
+
+            // Skip test if there are no common time points
+            const multiVoiceTimePoints = Array.from(barAlignment.map.entries())
+              .filter(([_, locations]) => locations.length > 1)
+              .map(([timeKey, _]) => timeKey);
+
+            if (multiVoiceTimePoints.length === 0) {
+              return true;
+            }
+
+            const orig_str = voiceSplits.map((v) => v.content.map((e) => stringifyVisitor.stringify(e)).join("")).join("\n");
+            const clone: Clone = {
+              voiceSplits: cloneDeep(voiceSplits),
+              barAlignment: cloneDeep(barAlignment),
+              ctx,
+            };
+
+            // 5. Apply alignBars
+            const alignedVoiceSplits = alignBars(voiceSplits, barAlignment, stringifyVisitor, ctx);
+
+            // 6. Verify alignment
+            const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor, orig_str, clone);
+
+            if (!result) {
+              logDebugInfo("Mixed elements alignment verification failed", voiceSplits, barAlignment);
+            }
+
+            return result;
+          }
+        ),
+        { numRuns: 1000, verbose: true }
+      );
     });
   });
 
