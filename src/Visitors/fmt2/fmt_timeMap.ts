@@ -138,8 +138,8 @@ export function processBar(bar: System, startNodeId: NodeID): BarTimeMap {
       }
     }
 
-    // Update broken rhythm context // TODO ALLOW FOR BROKEN RHYTHM IN CHORDS
-    if (isNote(node) && node.rhythm?.broken) {
+    // Update broken rhythm context
+    if ((isNote(node) || isChord(node) || node instanceof Rest) && node.rhythm?.broken) {
       context.brokenRhythmPending = {
         token: node.rhythm.broken,
         isGreater: node.rhythm.broken.lexeme.includes(">"),
@@ -167,6 +167,23 @@ export interface DurationContext {
   };
 }
 
+// Helper function to check if an element has a broken rhythm
+function hasBrokenRhythm(element: any): boolean {
+  return !!element.rhythm?.broken;
+}
+
+// Helper function to update broken rhythm context
+function updateBrokenRhythmContext(element: any, context: DurationContext): void {
+  if (hasBrokenRhythm(element) && element.rhythm?.broken?.lexeme) {
+    context.brokenRhythmPending = {
+      token: element.rhythm.broken,
+      isGreater: element.rhythm.broken.lexeme.includes(">"),
+    };
+  } else {
+    context.brokenRhythmPending = undefined;
+  }
+}
+
 export function calculateDuration(node: Note | Beam | MultiMeasureRest | Chord | Rest, context: DurationContext): Rational {
   if (isMultiMeasureRest(node)) {
     // Return "infinity" as a rational
@@ -178,34 +195,43 @@ export function calculateDuration(node: Note | Beam | MultiMeasureRest | Chord |
     const beamContext: DurationContext = { ...context };
 
     for (const content of node.contents) {
-      if (isNote(content)) {
-        total = addRational(total, calculateNoteDuration(content, beamContext));
-        if (content.rhythm?.broken) {
-          beamContext.brokenRhythmPending = {
-            token: content.rhythm.broken,
-            isGreater: content.rhythm.broken.lexeme.includes(">"),
-          };
-        } else {
-          beamContext.brokenRhythmPending = undefined;
-        }
+      // Only process time events
+      if (isTimeEvent(content)) {
+        // Recursively calculate duration for this content
+        const contentDuration = calculateDuration(content, beamContext);
+        total = addRational(total, contentDuration);
+
+        // Update broken rhythm context
+        updateBrokenRhythmContext(content, beamContext);
       }
     }
     return total;
   }
 
+  let result: Rational;
+
   if (isChord(node)) {
-    return calculateBaseDuration(node.rhythm, context);
+    result = calculateBaseDuration(node.rhythm, context);
+  } else if (isNote(node)) {
+    result = calculateNoteDuration(node, context);
+  } else if (node instanceof Rest) {
+    result = calculateBaseDuration(node.rhythm, context);
+  } else {
+    result = createRational(0, 1); // Zero duration
   }
 
-  if (isNote(node)) {
-    return calculateNoteDuration(node, context);
+  // Update broken rhythm context
+  if ((isNote(node) || isChord(node) || node instanceof Rest) && node.rhythm?.broken) {
+    context.brokenRhythmPending = {
+      token: node.rhythm.broken,
+      isGreater: node.rhythm.broken.lexeme.includes(">"),
+    };
+  } else if (!(isBeam(node) || isMultiMeasureRest(node))) {
+    // Only clear the context if this is not a beam or multi-measure rest
+    context.brokenRhythmPending = undefined;
   }
 
-  if (node instanceof Rest) {
-    return calculateBaseDuration(node.rhythm, context);
-  }
-
-  return createRational(0, 1); // Zero duration
+  return result;
 }
 
 export function calculateNoteDuration(note: Note, context: DurationContext): Rational {

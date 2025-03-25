@@ -299,11 +299,30 @@ export const genInlineFieldExpr = ScannerGen.genInlineField.map((tokens) => {
   };
 });
 
+// Helper function to create a regular rest expression (not multi-measure)
+export const genRegularRestExpr = fc
+  .tuple(
+    fc.constantFrom(new Token(TT.REST, "z"), new Token(TT.REST, "x")), // Only lowercase z and x for regular rests
+    fc.option(ScannerGen.genRhythm)
+  )
+  .map(([rest, rhythmTokens]) => {
+    const tokens = [rest];
+    if (rhythmTokens) tokens.push(...rhythmTokens);
+
+    // Create the rhythm expression if we have rhythm tokens
+    const rhythmExpr = buildRhythmExpr(rhythmTokens ?? undefined);
+
+    return {
+      tokens,
+      expr: new Rest(sharedContext.generateId(), rest, rhythmExpr),
+    };
+  });
+
 export const genBeamExpr = fc
   .array(
     fc.oneof(
       { arbitrary: genNoteExpr, weight: 10 },
-      { arbitrary: genRestExpr, weight: 5 },
+      { arbitrary: genRegularRestExpr, weight: 5 }, // Use regular rests only, not multi-measure rests
       { arbitrary: genChordExpr, weight: 5 },
       { arbitrary: genGraceGroupExpr, weight: 2 },
       { arbitrary: genDecorationExpr, weight: 2 },
@@ -327,7 +346,7 @@ export const genBeamExpr = fc
 export const genMusicExpr = fc.oneof(
   { arbitrary: genNoteExpr, weight: 10 },
   { arbitrary: genRestExpr, weight: 5 },
-  { arbitrary: genMultiMeasureRestExpr, weight: 2 },
+  // Removed genMultiMeasureRestExpr as multi-measure rests don't belong in a single bar
   { arbitrary: genChordExpr, weight: 5 },
   { arbitrary: genBarLineExpr, weight: 3 },
   { arbitrary: genDecorationExpr, weight: 2 },

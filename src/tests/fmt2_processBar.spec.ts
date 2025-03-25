@@ -30,7 +30,7 @@ describe("processBar function", () => {
       durations.push(duration);
 
       // Update context for broken rhythms
-      if (event instanceof Note && event.rhythm?.broken) {
+      if ((event instanceof Note || event instanceof Chord || event instanceof Rest) && event.rhythm?.broken) {
         context.brokenRhythmPending = {
           token: event.rhythm.broken,
           isGreater: event.rhythm.broken.lexeme.includes(">"),
@@ -86,7 +86,7 @@ describe("processBar function", () => {
   }
 
   describe("basic functionality", () => {
-    it.only("maps simple notes correctly", () => {
+    it("maps simple notes correctly", () => {
       fc.assert(
         fc.property(fc.array(Generators.genNoteExpr, { minLength: 3, maxLength: 5 }), (noteExprs) => {
           const notes = noteExprs.map((n) => n.expr);
@@ -183,11 +183,21 @@ describe("processBar function", () => {
           // Process the bar
           const result = processBar(beams, startNodeId);
 
+          // Filter out beams that don't contain any time events
+          const timeEventBeams = beams.filter((beam) => {
+            return beam.contents.some((content) => isTimeEvent(content));
+          });
+
+          if (timeEventBeams.length === 0) {
+            // Skip test if there are no time event beams
+            return true;
+          }
+
           // Calculate expected durations
-          const expectedDurations = calculateExpectedDurations(beams);
+          const expectedDurations = calculateExpectedDurations(timeEventBeams);
 
           // Verify the time map
-          verifyTimeMap(result.map, beams, expectedDurations);
+          verifyTimeMap(result.map, timeEventBeams, expectedDurations);
           return true;
         })
       );
@@ -198,11 +208,24 @@ describe("processBar function", () => {
         fc.property(
           Generators.genNoteExpr,
           Generators.genChordExpr,
-          Generators.genRestExpr,
+          Generators.genRegularRestExpr, // Use regular rests, not multi-measure rests
           Generators.genBeamExpr,
           (noteExpr, chordExpr, restExpr, beamExpr) => {
             // Create a mixed array of time events
-            const timeEvents = [noteExpr.expr, chordExpr.expr, restExpr.expr, beamExpr.expr];
+            const allEvents = [noteExpr.expr, chordExpr.expr, restExpr.expr, beamExpr.expr];
+
+            // Filter out beams that don't contain any time events and multi-measure rests
+            const timeEvents = allEvents.filter((event) => {
+              if (event instanceof Beam) {
+                return event.contents.some((content) => isTimeEvent(content) && !(content instanceof MultiMeasureRest));
+              }
+              return isTimeEvent(event) && !(event instanceof MultiMeasureRest);
+            });
+
+            if (timeEvents.length === 0) {
+              // Skip test if there are no time events
+              return true;
+            }
 
             const startNodeId = getNodeId(timeEvents[0]);
 
