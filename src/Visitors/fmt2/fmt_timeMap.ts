@@ -1,6 +1,6 @@
 import { isChord, isNote } from "../../helpers2";
 import { Token, TT } from "../../parsers/scan2";
-import { Beam, Chord, Expr, MultiMeasureRest, Note, Rhythm, System, Tuplet, tune_body_code } from "../../types/Expr2";
+import { Rest, Beam, Chord, Expr, MultiMeasureRest, Note, Rhythm, System, Tuplet, tune_body_code } from "../../types/Expr2";
 import {
   BarAlignment,
   BarTimeMap,
@@ -99,7 +99,7 @@ function isTuplet(element: Expr | Token): element is Tuplet {
 }
 
 // Helper to process a bar
-function processBar(bar: System, startNodeId: NodeID): BarTimeMap {
+export function processBar(bar: System, startNodeId: NodeID): BarTimeMap {
   const timeMap = new Map<TimeStamp, NodeID>();
   let currentTime = 0;
   const context: DurationContext = {};
@@ -110,34 +110,34 @@ function processBar(bar: System, startNodeId: NodeID): BarTimeMap {
       continue;
     }
 
-    if (isTimeEvent(node)) {
-      timeMap.set(currentTime, getNodeId(node));
-      const duration = calculateDuration(node, context);
+    if (!isTimeEvent(node)) continue;
 
-      if (duration === Infinity) {
-        break;
+    timeMap.set(currentTime, getNodeId(node));
+    const duration = calculateDuration(node, context);
+
+    if (duration === Infinity) {
+      break;
+    }
+
+    currentTime += duration;
+
+    // Update tuplet counting if we're in a tuplet
+    // and this is a note-carrying event
+    if (context.tuplet && (isNote(node) || isChord(node))) {
+      context.tuplet.notesRemaining--;
+      if (context.tuplet.notesRemaining <= 0) {
+        context.tuplet = undefined;
       }
+    }
 
-      currentTime += duration;
-
-      // Update tuplet counting if we're in a tuplet
-      // and this is a note-carrying event
-      if (context.tuplet && (isNote(node) || isChord(node))) {
-        context.tuplet.notesRemaining--;
-        if (context.tuplet.notesRemaining <= 0) {
-          context.tuplet = undefined;
-        }
-      }
-
-      // Update broken rhythm context
-      if (isNote(node) && node.rhythm?.broken) {
-        context.brokenRhythmPending = {
-          token: node.rhythm.broken,
-          isGreater: node.rhythm.broken.lexeme.includes(">"),
-        };
-      } else {
-        context.brokenRhythmPending = undefined;
-      }
+    // Update broken rhythm context // TODO ALLOW FOR BROKEN RHYTHM IN CHORDS
+    if (isNote(node) && node.rhythm?.broken) {
+      context.brokenRhythmPending = {
+        token: node.rhythm.broken,
+        isGreater: node.rhythm.broken.lexeme.includes(">"),
+      };
+    } else {
+      context.brokenRhythmPending = undefined;
     }
   }
 
@@ -147,11 +147,11 @@ function processBar(bar: System, startNodeId: NodeID): BarTimeMap {
   };
 }
 
-function isTimeEvent(node: Expr | Token): node is Note | Beam | MultiMeasureRest | Chord {
-  return isNote(node) || isBeam(node) || isMultiMeasureRest(node) || isChord(node);
+export function isTimeEvent(node: Expr | Token): node is Note | Beam | MultiMeasureRest | Chord | Rest {
+  return isNote(node) || isBeam(node) || isMultiMeasureRest(node) || isChord(node) || node instanceof Rest;
 }
 
-interface DurationContext {
+export interface DurationContext {
   tuplet?: TupletContext;
   brokenRhythmPending?: {
     token: Token;
@@ -159,7 +159,7 @@ interface DurationContext {
   };
 }
 
-function calculateDuration(node: Note | Beam | MultiMeasureRest | Chord, context: DurationContext): number {
+export function calculateDuration(node: Note | Beam | MultiMeasureRest | Chord | Rest, context: DurationContext): number {
   if (isMultiMeasureRest(node)) {
     // assume this Z | X doesn't carry a rhythm:
     // in multi voice scores, it's expected that multi-measure rests be expanded
@@ -194,10 +194,14 @@ function calculateDuration(node: Note | Beam | MultiMeasureRest | Chord, context
     return calculateNoteDuration(node, context);
   }
 
+  if (node instanceof Rest) {
+    return calculateBaseDuration(node.rhythm, context);
+  }
+
   return 0;
 }
 
-function calculateNoteDuration(note: Note, context: DurationContext): number {
+export function calculateNoteDuration(note: Note, context: DurationContext): number {
   const baseDuration = calculateBaseDuration(note.rhythm, context);
 
   // Apply tuplet modification if in tuplet
@@ -208,7 +212,7 @@ function calculateNoteDuration(note: Note, context: DurationContext): number {
   return baseDuration;
 }
 
-function calculateBaseDuration(rhythm: Rhythm | undefined, context: DurationContext): number {
+export function calculateBaseDuration(rhythm: Rhythm | undefined, context: DurationContext): number {
   let duration = 1;
 
   if (!rhythm) {

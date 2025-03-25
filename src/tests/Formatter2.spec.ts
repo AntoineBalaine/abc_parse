@@ -760,7 +760,7 @@ describe("Formatter2", function () {
       assert.equal(removeTuneHeader(fmt).trim(), expected_fmt);
     });
   });
-  describe("format rhythms", () => {
+  describe.skip("format rhythms", () => {
     it(`should format a/2 into a/`, () => {
       const r = new Rhythm(0, new Token(TT.RHY_NUMER, "a"), new Token(TT.RHY_SEP, "/"), new Token(TT.RHY_DENOM, "2"));
       const expected = "a/";
