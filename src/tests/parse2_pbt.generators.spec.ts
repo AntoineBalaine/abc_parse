@@ -21,8 +21,8 @@ import {
 } from "../types/Expr2";
 import * as ScannerGen from "./scan2_pbt.generators.spec";
 
-// Helper function to create a context
-const createContext = () => new ABCContext(new AbcErrorReporter());
+// Create a shared context for all generators
+export const sharedContext = new ABCContext(new AbcErrorReporter());
 
 // Helper function to build a rhythm expression from tokens
 const buildRhythmExpr = (tokens: Token[] | undefined): Rhythm | undefined => {
@@ -30,7 +30,6 @@ const buildRhythmExpr = (tokens: Token[] | undefined): Rhythm | undefined => {
     return undefined;
   }
 
-  const ctx = createContext();
   let numerator = null;
   let separator = undefined;
   let denominator = null;
@@ -43,13 +42,12 @@ const buildRhythmExpr = (tokens: Token[] | undefined): Rhythm | undefined => {
     else if (token.type === TT.RHY_BRKN) broken = token;
   }
 
-  return new Rhythm(ctx.generateId(), numerator, separator, denominator, broken);
+  return new Rhythm(sharedContext.generateId(), numerator, separator, denominator, broken);
 };
 
 // Helper function to build a pitch expression from tokens
 const buildPitchExpr = (tokens: Token[]): Pitch => {
-  const ctx = createContext();
-  return new Pitch(ctx.generateId(), {
+  return new Pitch(sharedContext.generateId(), {
     alteration: tokens.find((t) => t.type === TT.ACCIDENTAL),
     noteLetter: tokens.find((t) => t.type === TT.NOTE_LETTER)!,
     octave: tokens.find((t) => t.type === TT.OCTAVE),
@@ -65,14 +63,13 @@ export const genPitchExpr = fc
     tokens.push(note);
     if (oct) tokens.push(oct);
 
-    const ctx = createContext();
     const alteration = acc ?? undefined;
     const noteLetter = note;
     const octave = oct ?? undefined;
 
     return {
       tokens,
-      expr: new Pitch(ctx.generateId(), { alteration, noteLetter, octave }),
+      expr: new Pitch(sharedContext.generateId(), { alteration, noteLetter, octave }),
     };
   });
 
@@ -83,8 +80,6 @@ export const genNoteExpr = fc
     if (rhythmTokens) tokens.push(...rhythmTokens);
     if (tie) tokens.push(tie);
 
-    const ctx = createContext();
-
     // Create the pitch expression
     const pitchExpr = buildPitchExpr(pitchTokens);
 
@@ -93,15 +88,13 @@ export const genNoteExpr = fc
 
     return {
       tokens,
-      expr: new Note(ctx.generateId(), pitchExpr, rhythmExpr, tie ?? undefined),
+      expr: new Note(sharedContext.generateId(), pitchExpr, rhythmExpr, tie ?? undefined),
     };
   });
 
 export const genRestExpr = fc.tuple(ScannerGen.genRest, fc.option(ScannerGen.genRhythm)).map(([rest, rhythmTokens]) => {
   const tokens = [rest];
   if (rhythmTokens) tokens.push(...rhythmTokens);
-
-  const ctx = createContext();
 
   // Check if this is a multi-measure rest (uppercase Z or X)
   const isMultiMeasureRest = /^[ZX]$/.test(rest.lexeme);
@@ -118,7 +111,7 @@ export const genRestExpr = fc.tuple(ScannerGen.genRest, fc.option(ScannerGen.gen
 
     return {
       tokens,
-      expr: new MultiMeasureRest(ctx.generateId(), rest, length),
+      expr: new MultiMeasureRest(sharedContext.generateId(), rest, length),
     };
   } else {
     // Create the rhythm expression if we have rhythm tokens
@@ -126,7 +119,7 @@ export const genRestExpr = fc.tuple(ScannerGen.genRest, fc.option(ScannerGen.gen
 
     return {
       tokens,
-      expr: new Rest(ctx.generateId(), rest, rhythmExpr),
+      expr: new Rest(sharedContext.generateId(), rest, rhythmExpr),
     };
   }
 });
@@ -140,11 +133,9 @@ export const genMultiMeasureRestExpr = fc
     const tokens = [rest];
     if (length) tokens.push(length);
 
-    const ctx = createContext();
-
     return {
       tokens,
-      expr: new MultiMeasureRest(ctx.generateId(), rest, length ?? undefined),
+      expr: new MultiMeasureRest(sharedContext.generateId(), rest, length ?? undefined),
     };
   });
 
@@ -158,8 +149,6 @@ export const genChordExpr = fc
     fc.option(ScannerGen.genTie)
   )
   .map(([noteExprs, rhythmTokens, tie]) => {
-    const ctx = createContext();
-
     // Create tokens array starting with left bracket
     const tokens = [new Token(TT.CHRD_LEFT_BRKT, "[")];
 
@@ -189,7 +178,7 @@ export const genChordExpr = fc
 
     return {
       tokens,
-      expr: new Chord(ctx.generateId(), notes, rhythmExpr, tie ?? undefined),
+      expr: new Chord(sharedContext.generateId(), notes, rhythmExpr, tie ?? undefined),
     };
   });
 
@@ -210,44 +199,34 @@ export const genBarLineExpr = fc
     const tokens = [barline];
     if (repeatNumbers) tokens.push(...repeatNumbers);
 
-    const ctx = createContext();
-
     return {
       tokens,
-      expr: new BarLine(ctx.generateId(), [barline], repeatNumbers ?? undefined),
+      expr: new BarLine(sharedContext.generateId(), [barline], repeatNumbers ?? undefined),
     };
   });
 
 export const genDecorationExpr = ScannerGen.genDecoration.map((decoration) => {
-  const ctx = createContext();
-
   return {
     tokens: [decoration],
-    expr: new Decoration(ctx.generateId(), decoration),
+    expr: new Decoration(sharedContext.generateId(), decoration),
   };
 });
 
 export const genAnnotationExpr = ScannerGen.genAnnotation.map((annotation) => {
-  const ctx = createContext();
-
   return {
     tokens: [annotation],
-    expr: new Annotation(ctx.generateId(), annotation),
+    expr: new Annotation(sharedContext.generateId(), annotation),
   };
 });
 
 export const genSymbolExpr = ScannerGen.genSymbol.map((symbol) => {
-  const ctx = createContext();
-
   return {
     tokens: [symbol],
-    expr: new Symbol(ctx.generateId(), symbol),
+    expr: new Symbol(sharedContext.generateId(), symbol),
   };
 });
 
 export const genYSpacerExpr = ScannerGen.genYspacer.map((tokens) => {
-  const ctx = createContext();
-
   // Extract the y-spacer token
   const ySpacer = tokens.find((t) => t.type === TT.Y_SPC)!;
 
@@ -259,7 +238,7 @@ export const genYSpacerExpr = ScannerGen.genYspacer.map((tokens) => {
 
   return {
     tokens,
-    expr: new YSPACER(ctx.generateId(), ySpacer, rhythmExpr),
+    expr: new YSPACER(sharedContext.generateId(), ySpacer, rhythmExpr),
   };
 });
 
@@ -271,8 +250,6 @@ export const genGraceGroupExpr = fc
     fc.boolean()
   )
   .map(([noteExprs, hasSlash]) => {
-    const ctx = createContext();
-
     // Create tokens array starting with left brace
     const tokens = [new Token(TT.GRC_GRP_LEFT_BRACE, "{")];
 
@@ -295,13 +272,11 @@ export const genGraceGroupExpr = fc
 
     return {
       tokens,
-      expr: new Grace_group(ctx.generateId(), notes, hasSlash),
+      expr: new Grace_group(sharedContext.generateId(), notes, hasSlash),
     };
   });
 
 export const genTupletExpr = ScannerGen.genTuplet.map((tokens) => {
-  const ctx = createContext();
-
   // Extract components
   const p = tokens.find((t) => t.type === TT.TUPLET_P)!;
   const q = tokens.find((t) => t.type === TT.TUPLET_Q);
@@ -309,20 +284,18 @@ export const genTupletExpr = ScannerGen.genTuplet.map((tokens) => {
 
   return {
     tokens,
-    expr: new Tuplet(ctx.generateId(), p, q, r),
+    expr: new Tuplet(sharedContext.generateId(), p, q, r),
   };
 });
 
 export const genInlineFieldExpr = ScannerGen.genInlineField.map((tokens) => {
-  const ctx = createContext();
-
   // Extract components
   const field = tokens.find((t) => t.type === TT.INF_HDR)!;
   const text = tokens.filter((t) => t.type === TT.INFO_STR);
 
   return {
     tokens,
-    expr: new Inline_field(ctx.generateId(), field, text),
+    expr: new Inline_field(sharedContext.generateId(), field, text),
   };
 });
 
@@ -340,15 +313,13 @@ export const genBeamExpr = fc
     { minLength: 2, maxLength: 5 }
   )
   .map((exprs) => {
-    const ctx = createContext();
-
     // Extract all tokens and expressions
     const tokens = exprs.flatMap((e) => e.tokens);
     const contents = exprs.map((e) => e.expr);
 
     return {
       tokens,
-      expr: new Beam(ctx.generateId(), contents),
+      expr: new Beam(sharedContext.generateId(), contents),
     };
   });
 

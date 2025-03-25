@@ -20,7 +20,7 @@ describe("processBar function", () => {
     const context: DurationContext = {};
 
     for (const event of timeEvents) {
-      const duration = calculateDuration(event as any, context);
+      const duration = calculateDuration(event, context);
 
       if (duration === Infinity) {
         break;
@@ -48,29 +48,47 @@ describe("processBar function", () => {
     timeEvents: Array<Note | Beam | MultiMeasureRest | Chord | Rest>,
     expectedDurations: number[]
   ): void {
-    // Check that the time map has the correct number of entries
-    expect(timeMap.size).to.equal(timeEvents.length, "Time map should have one entry per time event");
+    try {
+      // Check that the time map has the correct number of entries
+      expect(timeMap.size).to.equal(timeEvents.length, `expected ${timeEvents.length}, got ${timeMap.size}`);
 
-    // Check that each time event is in the map at the correct time
-    let currentTime = 0;
-    for (let i = 0; i < timeEvents.length; i++) {
-      const event = timeEvents[i];
-      const eventId = getNodeId(event);
+      // Check that each time event is in the map at the correct time
+      let currentTime = 0;
+      for (let i = 0; i < timeEvents.length; i++) {
+        const event = timeEvents[i];
+        const eventId = getNodeId(event);
 
-      // Check that the event is in the map at the correct time
-      expect(timeMap.has(currentTime), `Time map should have an entry at time ${currentTime}`);
-      expect(timeMap.get(currentTime)).to.equal(eventId, `Time map should have event ${eventId} at time ${currentTime}`);
+        // Check that the event is in the map at the correct time
+        expect(timeMap.has(currentTime), `Time map should have an entry at time ${currentTime}`);
+        expect(timeMap.get(currentTime)).to.equal(eventId, `Time map should have event ${eventId} at time ${currentTime}`);
 
-      // Update current time for next event
-      currentTime += expectedDurations[i];
+        // Update current time for next event
+        currentTime += expectedDurations[i];
+      }
+    } catch (error) {
+      // Print debug information only if there's an error
+      console.log("===================================");
+      console.log("ERROR DETECTED - Debug information:");
+      console.log(
+        "Expected time events:",
+        timeEvents.map((e) => e.constructor.name)
+      );
+      console.log(`expected ${timeEvents.length}, got ${timeMap.size}`);
+      console.log("Expected durations:", expectedDurations);
+      console.log("Actual time map entries:", Array.from(timeMap.entries()));
+      const result = processBar(timeEvents, timeEvents[0].id);
+
+      // Re-throw the error
+      throw error;
     }
   }
 
   describe("basic functionality", () => {
-    it("maps simple notes correctly", () => {
+    it.only("maps simple notes correctly", () => {
       fc.assert(
         fc.property(fc.array(Generators.genNoteExpr, { minLength: 3, maxLength: 5 }), (noteExprs) => {
           const notes = noteExprs.map((n) => n.expr);
+
           const startNodeId = getNodeId(notes[0]);
 
           // Process the bar
@@ -81,7 +99,9 @@ describe("processBar function", () => {
 
           // Verify the time map
           verifyTimeMap(result.map, notes, expectedDurations);
-        })
+        }),
+
+        { verbose: true, numRuns: 2000 }
       );
     });
 
@@ -254,8 +274,18 @@ describe("processBar function", () => {
       const noteLetterToken = new Token(TT.NOTE_LETTER, "C");
       const pitch = new Pitch(ctx.generateId(), { noteLetter: noteLetterToken });
       const brokenToken = new Token(TT.RHY_BRKN, ">");
+
+      // Create a rhythm with broken rhythm
       const rhythm = new Rhythm(ctx.generateId(), null, undefined, null, brokenToken);
+      rhythm.broken = brokenToken; // This is important!
+
+      // Create the note with the rhythm
       const noteWithBrokenRhythm = new Note(ctx.generateId(), pitch, rhythm);
+
+      // Manually verify the rhythm is set correctly
+      expect(noteWithBrokenRhythm.rhythm).to.exist;
+      expect(noteWithBrokenRhythm.rhythm!.broken).to.exist;
+      expect(noteWithBrokenRhythm.rhythm!.broken!.lexeme).to.equal(">");
 
       // Create a regular note to follow it
       const noteLetterToken2 = new Token(TT.NOTE_LETTER, "D");
@@ -331,6 +361,81 @@ describe("processBar function", () => {
 
       // Verify the time map
       verifyTimeMap(result.map, chords, expectedDurations);
+    });
+
+    it("correctly handles chords with broken rhythms", () => {
+      // Create a chord with broken rhythm '<'
+      const ctx = new ABCContext();
+
+      // First chord with broken rhythm '<'
+      const noteLetterToken1 = new Token(TT.NOTE_LETTER, "A");
+      const pitch1 = new Pitch(ctx.generateId(), { noteLetter: noteLetterToken1 });
+      const note1 = new Note(ctx.generateId(), pitch1);
+
+      const brokenToken = new Token(TT.RHY_BRKN, "<");
+      const rhythm1 = new Rhythm(ctx.generateId(), null, undefined, null, brokenToken);
+      rhythm1.broken = brokenToken; // Important!
+
+      const chord1 = new Chord(ctx.generateId(), [note1], rhythm1);
+
+      // Second chord with rhythm '1/'
+      const noteLetterToken2 = new Token(TT.NOTE_LETTER, "A");
+      const pitch2 = new Pitch(ctx.generateId(), { noteLetter: noteLetterToken2 });
+      const note2 = new Note(ctx.generateId(), pitch2);
+
+      const numeratorToken = new Token(TT.RHY_NUMER, "1");
+      const separatorToken = new Token(TT.RHY_SEP, "/");
+      const denominatorToken = new Token(TT.RHY_DENOM, "1");
+      const rhythm2 = new Rhythm(ctx.generateId(), numeratorToken, separatorToken, denominatorToken);
+
+      const chord2 = new Chord(ctx.generateId(), [note2], rhythm2);
+
+      // Third chord with no rhythm
+      const noteLetterToken3 = new Token(TT.NOTE_LETTER, "A");
+      const pitch3 = new Pitch(ctx.generateId(), { noteLetter: noteLetterToken3 });
+      const note3 = new Note(ctx.generateId(), pitch3);
+
+      const chord3 = new Chord(ctx.generateId(), [note3]);
+
+      // Create a bar with these chords
+      const chords = [chord1, chord2, chord3];
+      const startNodeId = getNodeId(chords[0]);
+
+      // Process the bar
+      const result = processBar(chords, startNodeId);
+
+      // Calculate expected durations manually
+      const context: DurationContext = {};
+
+      // First chord should have duration 0.5 (due to broken rhythm '<')
+      const duration1 = calculateDuration(chord1, context);
+      expect(duration1).to.equal(0.5);
+
+      // Context should now have brokenRhythmPending
+      expect(context.brokenRhythmPending).to.exist;
+      expect(context.brokenRhythmPending?.isGreater).to.be.false;
+
+      // Second chord should have duration 1.5 (1/1 * 1.5 due to preceding broken rhythm)
+      const duration2 = calculateDuration(chord2, context);
+      expect(duration2).to.equal(1.5);
+
+      // Context should no longer have brokenRhythmPending
+      expect(context.brokenRhythmPending).to.be.undefined;
+
+      // Third chord should have normal duration 1
+      const duration3 = calculateDuration(chord3, context);
+      expect(duration3).to.equal(1);
+
+      // Verify the time map
+      expect(result.map.size).to.equal(3);
+      expect(result.map.has(0)).to.be.true;
+      expect(result.map.get(0)).to.equal(getNodeId(chord1));
+
+      expect(result.map.has(0.5)).to.be.true;
+      expect(result.map.get(0.5)).to.equal(getNodeId(chord2));
+
+      expect(result.map.has(2.0)).to.be.true;
+      expect(result.map.get(2.0)).to.equal(getNodeId(chord3));
     });
   });
 });

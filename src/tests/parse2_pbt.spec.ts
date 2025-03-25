@@ -8,16 +8,15 @@ import { AbcFormatter2 } from "../Visitors/Formatter2";
 import * as ParserGen from "./parse2_pbt.generators.spec";
 
 describe("Parser Property Tests", () => {
-  // Create a context for testing
-  const createContext = () => new ABCContext(new AbcErrorReporter());
+  // Use the shared context from the generators
+  const testContext = ParserGen.sharedContext;
 
   // Test that parsing never crashes on valid input
   it("should never crash on valid input", () => {
     fc.assert(
       fc.property(ParserGen.genMusicSequence, (sequence) => {
         try {
-          const ctx = createContext();
-          const tuneBody = prsBody(new ParseCtx(sequence.tokens, ctx));
+          const tuneBody = prsBody(new ParseCtx(sequence.tokens, testContext));
           return true;
         } catch (e) {
           console.error("Parsing crashed with error:", e);
@@ -34,13 +33,11 @@ describe("Parser Property Tests", () => {
     it("should correctly round-trip Note expressions", () => {
       fc.assert(
         fc.property(ParserGen.genNoteExpr, (gen) => {
-          const ctx = createContext();
-
           // Add EOL token to ensure proper parsing
           const tokens = [...gen.tokens, new Token(TT.EOL, "\n")];
 
           // Parse the tokens
-          const tuneBody = prsBody(new ParseCtx(tokens, ctx));
+          const tuneBody = prsBody(new ParseCtx(tokens, testContext));
 
           // Check if we got a valid tune body
           if (!tuneBody || !tuneBody.sequence || tuneBody.sequence.length === 0) {
@@ -52,7 +49,7 @@ describe("Parser Property Tests", () => {
           const parsedExpr = tuneBody.sequence[0][0];
 
           // Compare the original and parsed expressions
-          const formatter = new AbcFormatter2(ctx);
+          const formatter = new AbcFormatter2(testContext);
           const originalStr = formatter.stringify(gen.expr);
           const parsedStr = formatter.stringify(parsedExpr);
 
@@ -70,13 +67,11 @@ describe("Parser Property Tests", () => {
     it("should correctly round-trip Rest expressions", () => {
       fc.assert(
         fc.property(ParserGen.genRestExpr, (gen) => {
-          const ctx = createContext();
-
           // Add EOL token to ensure proper parsing
           const tokens = [...gen.tokens, new Token(TT.EOL, "\n")];
 
           // Parse the tokens
-          const tuneBody = prsBody(new ParseCtx(tokens, ctx));
+          const tuneBody = prsBody(new ParseCtx(tokens, testContext));
 
           // Check if we got a valid tune body
           if (!tuneBody || !tuneBody.sequence || tuneBody.sequence.length === 0) {
@@ -87,7 +82,7 @@ describe("Parser Property Tests", () => {
           const parsedExpr = tuneBody.sequence[0][0];
 
           // Compare the original and parsed expressions
-          const formatter = new AbcFormatter2(ctx);
+          const formatter = new AbcFormatter2(testContext);
           const originalStr = formatter.stringify(gen.expr);
           const parsedStr = formatter.stringify(parsedExpr);
 
@@ -100,13 +95,11 @@ describe("Parser Property Tests", () => {
     it("should correctly round-trip Chord expressions", () => {
       fc.assert(
         fc.property(ParserGen.genChordExpr, (gen) => {
-          const ctx = createContext();
-
           // Add EOL token to ensure proper parsing
           const tokens = [...gen.tokens];
 
           // Parse the tokens
-          const tuneBody = prsBody(new ParseCtx(tokens, ctx));
+          const tuneBody = prsBody(new ParseCtx(tokens, testContext));
 
           // Check if we got a valid tune body
           if (!tuneBody || !tuneBody.sequence || tuneBody.sequence.length === 0) {
@@ -117,7 +110,7 @@ describe("Parser Property Tests", () => {
           const parsedExpr = tuneBody.sequence[0][0];
 
           // Compare the original and parsed expressions
-          const formatter = new AbcFormatter2(ctx);
+          const formatter = new AbcFormatter2(testContext);
           const originalStr = formatter.stringify(gen.expr);
           const parsedStr = formatter.stringify(parsedExpr);
           if (originalStr !== parsedStr) {
@@ -137,13 +130,11 @@ describe("Parser Property Tests", () => {
     it("should correctly round-trip BarLine expressions", () => {
       fc.assert(
         fc.property(ParserGen.genBarLineExpr, (gen) => {
-          const ctx = createContext();
-
           // Add EOL token to ensure proper parsing
           const tokens = [...gen.tokens, new Token(TT.EOL, "\n")];
 
           // Parse the tokens
-          const tuneBody = prsBody(new ParseCtx(tokens, ctx));
+          const tuneBody = prsBody(new ParseCtx(tokens, testContext));
 
           // Check if we got a valid tune body
           if (!tuneBody || !tuneBody.sequence || tuneBody.sequence.length === 0) {
@@ -154,7 +145,7 @@ describe("Parser Property Tests", () => {
           const parsedExpr = tuneBody.sequence[0][0];
 
           // Compare the original and parsed expressions
-          const formatter = new AbcFormatter2(ctx);
+          const formatter = new AbcFormatter2(testContext);
           const originalStr = formatter.stringify(gen.expr);
           const parsedStr = formatter.stringify(parsedExpr);
 
@@ -168,13 +159,11 @@ describe("Parser Property Tests", () => {
     it("should correctly round-trip sequences of music expressions", () => {
       fc.assert(
         fc.property(ParserGen.genMusicSequence, (sequence) => {
-          const ctx = createContext();
-
           // Add EOL token to ensure proper parsing
           const tokens = [...sequence.tokens];
 
           // Parse the tokens
-          const tuneBody = prsBody(new ParseCtx(tokens, ctx));
+          const tuneBody = prsBody(new ParseCtx(tokens, testContext));
 
           // Check if we got a valid tune body
           if (!tuneBody || !tuneBody.sequence || tuneBody.sequence.length === 0) {
@@ -186,7 +175,7 @@ describe("Parser Property Tests", () => {
           const parsedExprs = tuneBody.sequence[0];
 
           // Compare the original and parsed expressions
-          const formatter = new AbcFormatter2(ctx);
+          const formatter = new AbcFormatter2(testContext);
 
           // Convert all expressions to strings and join them
           const originalStr = sequence.exprs.map((expr) => formatter.stringify(expr)).join("");

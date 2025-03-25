@@ -104,7 +104,9 @@ export function processBar(bar: System, startNodeId: NodeID): BarTimeMap {
   let currentTime = 0;
   const context: DurationContext = {};
 
-  for (const node of bar) {
+  for (let i = 0; i < bar.length; i++) {
+    const node = bar[i];
+    // for (const node of bar) {
     if (isTuplet(node)) {
       context.tuplet = parseTuplet(node);
       continue;

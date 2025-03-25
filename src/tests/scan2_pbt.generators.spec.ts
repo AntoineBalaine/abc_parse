@@ -1,7 +1,11 @@
 import * as fc from "fast-check";
 import { Ctx, Scanner2, Token, TT } from "../parsers/scan2";
+import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { pDuration, pitch, pPitch, scanTune } from "../parsers/scan_tunebody";
+
+// Create a shared context for all generators
+export const sharedContext = new ABCContext(new AbcErrorReporter());
 
 export const genNoteLetter = fc.stringMatching(/^[a-gA-G]$/).map((letter) => new Token(TT.NOTE_LETTER, letter));
 
