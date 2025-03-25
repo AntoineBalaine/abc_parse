@@ -156,7 +156,16 @@ export function processBar(bar: System, startNodeId: NodeID): BarTimeMap {
 }
 
 export function isTimeEvent(node: Expr | Token): node is Note | Beam | MultiMeasureRest | Chord | Rest {
-  return isNote(node) || isBeam(node) || isMultiMeasureRest(node) || isChord(node) || node instanceof Rest;
+  if (isNote(node) || isMultiMeasureRest(node) || isChord(node) || node instanceof Rest) {
+    return true;
+  }
+
+  if (isBeam(node)) {
+    // A beam is a time event if it contains at least one time event
+    return node.contents.some((content) => isTimeEvent(content));
+  }
+
+  return false;
 }
 
 export interface DurationContext {
