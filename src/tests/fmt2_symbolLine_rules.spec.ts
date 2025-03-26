@@ -1,5 +1,5 @@
 import { assert } from "chai";
-import { isToken } from "../helpers2";
+import { isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Ctx, Token, TT } from "../parsers/scan2";
 import { BarLine, Expr, System, Tune } from "../types/Expr2";

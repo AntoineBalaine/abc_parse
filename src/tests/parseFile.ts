@@ -1,5 +1,4 @@
 import fs from "fs";
-import { Scanner2 } from "../parsers/scan2";
 import { processFile2 } from "./parseFolder";
 
 // Get directory path from command line argument

@@ -1,4 +1,4 @@
-import { Comment, Info_line, music_code } from "./Expr";
+import { Comment, Info_line, music_code } from "./Expr2";
 
 /**
  * List of token types that the scanner is capable of recognizing.
@@ -8,56 +8,56 @@ import { Comment, Info_line, music_code } from "./Expr";
  * This is bound to happen for rare characters such as subscript and postscript chars
  * in an info line, or in a tune body's code.
  */
-export enum TokenType {
-  APOSTROPHE,
-  ANTISLASH_EOL,
-  AMPERSAND, // &
-  BACKTICK, // `
-  BARLINE, //|
-  COLON, // :
-  COMMA, //,,,,,,
-  COMMENT,
-  DOLLAR, //$
-  DOT,
-  EOF,
-  EOL,
-  ESCAPED_CHAR,
-  FLAT_HALF, // quarter tone flat
-  FLAT, // ♭
-  FLAT_DBL, // 𝄫
-  GREATER, //>>>>>
-  LEFT_BRACE, // {
-  LEFTBRKT, // [
-  LEFTPAREN, // (
-  LEFTPAREN_NUMBER, // (1
-  LESS, // <<<<<
-  NOTE_LETTER,
-  LETTER,
-  LETTER_COLON,
-  MINUS, //-
-  NATURAL, // ♮
-  NUMBER,
-  PLUS, //+
-  PLUS_COLON, //+: - extending info line
-  RESERVED_CHAR,
-  RIGHT_BRACE, // }
-  RIGHT_BRKT,
-  RIGHT_PAREN, // )
-  SHARP_HALF, // quarter tone sharp
-  SHARP, // ♯
-  SHARP_DBL, // 𝄪
-  SLASH, // ////
-  STRING, // any un-categorizable text
-  STYLESHEET_DIRECTIVE, // %%
-  SYMBOL, // ![a-zA-Z]!
-  TILDE, // ~
-  /**
-   * # * ; ? @ are reserved symbols, treated as ws
-   */
-  WHITESPACE,
-  WHITESPACE_FORMATTER, // THIS IS NOT USED IN THE LEXER OR THE PARSER, only in the formatter
-  INVALID,
-}
+// export enum TokenType {
+//   APOSTROPHE,
+//   ANTISLASH_EOL,
+//   AMPERSAND, // &
+//   BACKTICK, // `
+//   BARLINE, //|
+//   COLON, // :
+//   COMMA, //,,,,,,
+//   COMMENT,
+//   DOLLAR, //$
+//   DOT,
+//   EOF,
+//   EOL,
+//   ESCAPED_CHAR,
+//   FLAT_HALF, // quarter tone flat
+//   FLAT, // ♭
+//   FLAT_DBL, // 𝄫
+//   GREATER, //>>>>>
+//   LEFT_BRACE, // {
+//   LEFTBRKT, // [
+//   LEFTPAREN, // (
+//   LEFTPAREN_NUMBER, // (1
+//   LESS, // <<<<<
+//   NOTE_LETTER,
+//   LETTER,
+//   LETTER_COLON,
+//   MINUS, //-
+//   NATURAL, // ♮
+//   NUMBER,
+//   PLUS, //+
+//   PLUS_COLON, //+: - extending info line
+//   RESERVED_CHAR,
+//   RIGHT_BRACE, // }
+//   RIGHT_BRKT,
+//   RIGHT_PAREN, // )
+//   SHARP_HALF, // quarter tone sharp
+//   SHARP, // ♯
+//   SHARP_DBL, // 𝄪
+//   SLASH, // ////
+//   STRING, // any un-categorizable text
+//   STYLESHEET_DIRECTIVE, // %%
+//   SYMBOL, // ![a-zA-Z]!
+//   TILDE, // ~
+//   /**
+//    * # * ; ? @ are reserved symbols, treated as ws
+//    */
+//   WHITESPACE,
+//   WHITESPACE_FORMATTER, // THIS IS NOT USED IN THE LEXER OR THE PARSER, only in the formatter
+//   INVALID,
+// }
 
 /**
  * Based off VsCode's `Position` class.

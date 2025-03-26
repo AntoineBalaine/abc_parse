@@ -1,4 +1,6 @@
 import { ABCContext } from "./parsers/Context";
+import { ParseCtx } from "./parsers/parse2";
+import { Token, TT } from "./parsers/scan2";
 import {
   Annotation,
   BarLine,
@@ -14,6 +16,7 @@ import {
   Inline_field,
   MultiMeasureRest,
   Music_code,
+  music_code,
   Note,
   Pitch,
   Rest,
@@ -23,11 +26,83 @@ import {
   Tuplet,
   Voice_overlay,
   YSPACER,
-  music_code,
-  tune_body_code,
-} from "./types/Expr";
-import { Token } from "./types/token";
-import { Range, TokenType } from "./types/types";
+} from "./types/Expr2";
+import { Range } from "./types/types";
+
+// Check if an element is a token
+export function isToken(element: Expr | Token): element is Token {
+  return element instanceof Token;
+}
+
+// Check if an element is a note
+export function isNote(element: Expr | Token): element is Note {
+  return element instanceof Note;
+}
+
+// Check if an element is a chord
+export function isChord(element: Expr | Token): element is Chord {
+  return element instanceof Chord;
+}
+
+// Check if an element is a whitespace token
+export function isWS(element: Expr | Token): boolean {
+  return element instanceof Token && (element.type === TT.WS || element.type === TT.EOL);
+}
+
+// Check if an element can be part of a beam
+export function isBeamContents(element: Expr | Token): element is Beam_contents {
+  return (
+    (element instanceof Token && !isWS(element)) ||
+    element instanceof YSPACER ||
+    element instanceof Annotation ||
+    element instanceof Decoration ||
+    element instanceof Note ||
+    element instanceof Grace_group ||
+    element instanceof Chord ||
+    element instanceof Symbol
+  );
+}
+
+// Check if an element breaks a beam
+export function isBeamBreaker(element: Expr | Token): boolean {
+  if (element instanceof Token) {
+    return isWS(element);
+  } else {
+    return !isBeamContents(element) || element instanceof BarLine;
+  }
+}
+
+export function followedBy(ctx: ParseCtx, needle: TT[], ignoreTokens: TT[]): boolean {
+  let i = ctx.current + 1;
+  while (i < ctx.tokens.length) {
+    if (ignoreTokens.includes(ctx.tokens[i].type)) {
+      i++;
+    } else {
+      return needle.includes(ctx.tokens[i].type);
+    }
+  }
+  return false;
+}
+
+// Check if there's a note following the current element before a beam breaker
+export function followedByNote(elements: Array<Expr | Token>, index: number): boolean {
+  for (let i = index; i < elements.length; i++) {
+    if (!isBeamContents(elements[i]) || isWS(elements[i])) {
+      return false;
+    } else if (isNote(elements[i]) || isChord(elements[i])) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Check if the current element is the start of a beam
+export function foundBeam(elements: Array<Expr | Token>, index: number): boolean {
+  if ((isNote(elements[index]) || isChord(elements[index])) && index + 1 < elements.length && !isWS(elements[index + 1])) {
+    return followedByNote(elements, index + 1);
+  }
+  return false;
+}
 
 export function isMusicCode(expr: Expr | Token): expr is Music_code {
   return expr instanceof Music_code;
@@ -35,9 +110,6 @@ export function isMusicCode(expr: Expr | Token): expr is Music_code {
 
 export const isBeam = (expr: unknown): expr is Beam => {
   return expr instanceof Beam;
-};
-export const isNote = (expr: unknown): expr is Note => {
-  return expr instanceof Note;
 };
 export const isBarLine = (expr: unknown): expr is BarLine => {
   return expr instanceof BarLine;
@@ -50,9 +122,6 @@ export const isGraceGroup = (expr: unknown): expr is Grace_group => {
 };
 export const isInline_field = (expr: unknown): expr is Inline_field => {
   return expr instanceof Inline_field;
-};
-export const isChord = (expr: unknown): expr is Chord => {
-  return expr instanceof Chord;
 };
 export const isSymbol = (expr: unknown): expr is Symbol => {
   return expr instanceof Symbol;
@@ -72,9 +141,6 @@ export const isRhythm = (expr: unknown): expr is Rhythm => {
 export const isRest = (expr: unknown): expr is Rest => {
   return expr instanceof Rest;
 };
-export const isToken = (expr: unknown): expr is Token => {
-  return expr instanceof Token;
-};
 export const isInfo_line = (expr: unknown): expr is Info_line => {
   return expr instanceof Info_line;
 };
@@ -82,7 +148,7 @@ export function isYSPACER(expr: Expr | Token): expr is YSPACER {
   return expr instanceof YSPACER;
 }
 export function isSlurToken(expr: Expr | Token) {
-  return expr instanceof Token && (expr.type === TokenType.LEFTPAREN || expr.type === TokenType.RIGHT_PAREN);
+  return expr instanceof Token && expr.type === TT.SLUR;
 }
 export function isTune_Body(expr: Expr): expr is Tune_Body {
   return expr instanceof Tune_Body;
@@ -112,7 +178,7 @@ export const mergeTokens = (tokens: Token[], ctx: ABCContext) => {
 };
 
 export const cloneToken = (token: Token, ctx: ABCContext) => {
-  return new Token(token.type, cloneText(token.lexeme), null, token.line, token.position, ctx);
+  return new Token(token.type, cloneText(token.lexeme), ctx.generateId());
 };
 
 export const cloneText = (text: string) => {
@@ -152,109 +218,6 @@ export function followedByWS(expr: music_code) {
   }
 }
 
-export function isBeamContents(e: unknown): e is Beam_contents {
-  return (
-    (isToken(e) && !isWS(e)) ||
-    e instanceof YSPACER ||
-    e instanceof Annotation ||
-    e instanceof Decoration ||
-    e instanceof Note ||
-    e instanceof Grace_group ||
-    e instanceof Chord ||
-    e instanceof Symbol
-  );
-}
-
-/**
- * Iterate music_code from given index.
- * if any of the expressions is a note, return true.
- * if any of the expressions is a beam breaker, return false.
- */
-export function followedByNote(music_code: Array<Expr | Token>, index: number) {
-  for (let i = index; i < music_code.length; i++) {
-    if (!isBeamContents(music_code[i]) || isWS(music_code[i])) {
-      return false;
-    } else if (isNote(music_code[i]) || isChord(music_code[i])) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * checks whether e is WHITESPACE, EOL, EOF, or ANTISLASH_EOL
- * @param e
- * @returns
- */
-export function isWS(e: unknown) {
-  return (
-    e instanceof Token && (e.type === TokenType.WHITESPACE || e.type === TokenType.EOL || e.type === TokenType.EOF || e.type === TokenType.ANTISLASH_EOL)
-  );
-}
-
-/**
- * if cur expr is a note not immediately followed by WS or beam break,
- * find whether there is another note before a beam breaker or before end of array.
- *
- * Beam breakers are barlines, inline fields, and nth repeats.
- */
-export function foundBeam(music_code: Array<Expr | Token>, index: number) {
-  /**
-   * iterate the array from the given index.
-   * if any of the expressions is a note, return true.
-   * if any of the expressions is a beam breaker, return false.
-   */
-  if ((isNote(music_code[index]) || isChord(music_code[index])) && !isWS(music_code[index + 1])) {
-    return followedByNote(music_code, index + 1);
-  } else {
-    return false;
-  }
-}
-
-function precededByNoteBeforBeamBreaker(prev: Array<Expr | Token>) {
-  let i = prev.length;
-  while (i > 0) {
-    i--;
-    const last = prev[i];
-    if (isBeamBreaker(last)) {
-      return false;
-    } else if (isNote(last) || isChord(last)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-export function isInvalidBacktick(prev: Array<Expr | Token>, follow: Array<Token>): boolean {
-  if (!precededByNoteBeforBeamBreaker(prev)) {
-    return false;
-  } else {
-    let i = prev.length;
-    while (i < follow.length) {
-      const last = follow[i];
-      if (isBeamBreaker(last)) {
-        return false;
-      } else if (isNoteToken(last)) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-/**
- * beam's end is when we find a beam breaker or end of array.
- */
-export function beamEnd(music_code: Array<Expr | Token>, index: number) {
-  const cur = music_code[index];
-  const next = music_code[index + 1];
-  if ((isNote(cur) || isChord(cur)) && isBeamBreaker(cur)) {
-    return true;
-  } else {
-    return isBeamBreaker(cur);
-  }
-}
-
 export function isRhythmInRange(range: Range, expr: Rhythm): boolean {
   const { numerator, separator, denominator, broken } = expr;
   const arr = [numerator, separator, denominator, broken].filter((e): e is Token => !!e);
@@ -267,31 +230,6 @@ export function isRhythmInRange(range: Range, expr: Rhythm): boolean {
 
 export function isTokenInRange(range: Range, expr: Token): boolean {
   return range.start.line <= expr.line && range.end.line >= expr.line && range.start.character <= expr.position && range.end.character >= expr.position;
-}
-
-export function isDecorationToken(token: Token) {
-  const type = token.type;
-  const lexeme = token.lexeme;
-  return type === TokenType.DOT || type === TokenType.TILDE || (type === TokenType.LETTER && /[RHJLMOPSTuv]/.test(lexeme));
-}
-
-export function isNoteToken(token: Token) {
-  return (
-    token.type === TokenType.FLAT ||
-    token.type === TokenType.FLAT_DBL ||
-    token.type === TokenType.NATURAL ||
-    token.type === TokenType.NOTE_LETTER ||
-    token.type === TokenType.SHARP ||
-    token.type === TokenType.SHARP_DBL
-  );
-}
-
-function isBeamBreaker(cur: Token | Expr): boolean {
-  if (isToken(cur)) {
-    return isWS(cur);
-  } else {
-    return !isBeamContents(cur) || isBarLine(cur);
-  }
 }
 
 export function getPitchRange(e: Pitch | Rest): Range {
@@ -371,109 +309,9 @@ export const isEmptyRhythm = (rhythm: Rhythm): boolean => {
   return !numerator && !separator && !denominator && !broken;
 };
 
-export function hasRestAttributes(token: Token) {
-  return token.type === TokenType.LETTER && (token.lexeme === "z" || token.lexeme === "x");
-}
-export const isRhythmToken = (pkd: Token) => {
-  return pkd.type === TokenType.SLASH || pkd.type === TokenType.NUMBER || pkd.type === TokenType.GREATER || pkd.type === TokenType.LESS;
-};
-
-export const isMultiMesureRestToken = (pkd: Token) => {
-  return pkd.type === TokenType.LETTER && (pkd.lexeme === "Z" || pkd.lexeme === "X");
-};
-export const isRestToken = (pkd: Token) => {
-  return hasRestAttributes(pkd);
-};
-
 /**
  * is voice marker
  */
 export function isVoiceMarker(node: Expr | Token): node is Info_line | Inline_field {
   return (isInline_field(node) && node.field.lexeme === "V:") || (isInfo_line(node) && node.key.lexeme === "V:");
-}
-
-/**
- * Check if a tuplet marker is followed by valid music content (notes, rests, chords)
- * Allows for decorations, grace notes, annotations etc. before the music content
- * @param tokens Array of tokens to check
- * @param startIndex Current position (at tuplet marker)
- * @returns boolean indicating if valid music content was found
- */
-export function foundMusic(tokens: Token[], startIndex: number): boolean {
-  let i = startIndex;
-
-  while (i < tokens.length) {
-    const token = tokens[i];
-
-    // Skip whitespace
-    if (token.type === TokenType.WHITESPACE) {
-      i++;
-      continue;
-    }
-
-    // Handle grace notes group
-    if (token.type === TokenType.LEFT_BRACE) {
-      i++;
-      // Find matching right brace
-      let braceCount = 1;
-      while (i < tokens.length && braceCount > 0) {
-        if (tokens[i].type === TokenType.LEFT_BRACE) braceCount++;
-        if (tokens[i].type === TokenType.RIGHT_BRACE) braceCount--;
-        i++;
-      }
-      if (braceCount > 0) return false; // Unclosed grace group
-      continue;
-    }
-
-    // Handle annotations (already come as complete STRING tokens)
-    if (token.type === TokenType.STRING) {
-      i++;
-      continue;
-    }
-
-    if (token.type === TokenType.COLON && (tokens[i + 1].type === TokenType.COLON || tokens[i + 1].type === TokenType.NUMBER)) {
-      i += 2;
-      continue;
-    }
-    // Handle tuplet syntax
-    if (token.type === TokenType.NUMBER) {
-      i++;
-      continue;
-    }
-
-    // Handle decorations (including symbols)
-    if (token.type === TokenType.DOT || token.type === TokenType.TILDE || token.type === TokenType.SYMBOL || isDecorationToken(token)) {
-      i++;
-      continue;
-    }
-
-    if (token.type === TokenType.LEFTPAREN_NUMBER) {
-      return foundMusic(tokens, i + 1);
-    }
-
-    // Handle nested grouping
-    if (token.type === TokenType.RIGHT_PAREN || token.type === TokenType.LEFTPAREN) {
-      i++;
-      // Find matching right paren
-      continue;
-    }
-
-    // Found valid music content
-    if (
-      // Note
-      isNoteToken(token) ||
-      // Rest
-      isRestToken(token) ||
-      // Start of chord
-      (token.type === TokenType.LEFTBRKT && (i + 1 >= tokens.length || tokens[i + 1].type !== TokenType.LETTER_COLON))
-    ) {
-      return true;
-    }
-
-    // Invalid token found
-    return false;
-  }
-
-  // Reached end without finding music
-  return false;
 }

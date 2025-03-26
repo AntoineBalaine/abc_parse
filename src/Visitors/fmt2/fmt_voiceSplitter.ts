@@ -1,6 +1,6 @@
-import { isToken } from "../../helpers2";
-import { Token, TT } from "../../parsers/scan2";
-import { Comment, Info_line, System, tune_body_code } from "../../types/Expr2";
+import { isToken } from "../../helpers";
+import { TT } from "../../parsers/scan2";
+import { System, tune_body_code } from "../../types/Expr2";
 
 class VoiceSplitter {
   private current = 0;

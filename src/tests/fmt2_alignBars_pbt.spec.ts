@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { cloneDeep } from "lodash";
-import { isChord, isNote } from "../helpers2";
+import { isChord, isNote } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import { Note, Pitch, Rest, Rhythm } from "../types/Expr2";

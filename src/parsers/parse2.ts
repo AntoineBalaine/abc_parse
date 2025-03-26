@@ -1,4 +1,4 @@
-import { followedBy, foundBeam, isBeamBreaker } from "../helpers2";
+import { followedBy, foundBeam, isBeamBreaker } from "../helpers";
 import {
   Annotation,
   BarLine,

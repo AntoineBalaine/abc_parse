@@ -1,8 +1,9 @@
 import chai from "chai";
+import { isToken, isVoiceMarker } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { parseTune } from "../parsers/parse2";
 import { Scanner2, Token, TT } from "../parsers/scan2";
-import { isNewSystem, isToken, isVoiceMarker, parseNoVoices, parseSystemsWithVoices, parseVoices, stringifyVoice, VoiceCtx } from "../parsers/voices2";
+import { isNewSystem, parseNoVoices, parseSystemsWithVoices, parseVoices, stringifyVoice, VoiceCtx } from "../parsers/voices2";
 import { Info_line, Inline_field, tune_body_code } from "../types/Expr2";
 
 const expect = chai.expect;

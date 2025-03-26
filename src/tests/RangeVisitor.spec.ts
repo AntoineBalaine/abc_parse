@@ -2,10 +2,10 @@ import assert from "assert";
 import chai from "chai";
 import { RangeVisitor } from "../Visitors/RangeVisitor";
 import { isGraceGroup, isNote } from "../helpers";
-import { Grace_group, Note } from "../types/Expr";
+import { ABCContext } from "../parsers/Context";
+import { Grace_group, Note } from "../types/Expr2";
 import { Range } from "../types/types";
 import { buildParse } from "./RhythmTransform.spec";
-import { ABCContext } from "../parsers/Context";
 
 const expect = chai.expect;
 describe("Range Visitor", function () {

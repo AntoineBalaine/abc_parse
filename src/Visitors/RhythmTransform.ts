@@ -11,6 +11,7 @@ import {
   isTune_Body,
 } from "../helpers";
 import { ABCContext } from "../parsers/Context";
+import { Token, TT as TokenType } from "../parsers/scan2";
 import {
   Annotation,
   BarLine,
@@ -19,6 +20,8 @@ import {
   Chord,
   Comment,
   Decoration,
+  Directive,
+  ErrorExpr,
   Expr,
   File_header,
   File_structure,
@@ -42,11 +45,9 @@ import {
   YSPACER,
   music_code,
   tune_body_code,
-  ErrorExpr,
-} from "../types/Expr";
-import { Token } from "../types/token";
-import { Range, TokenType } from "../types/types";
-import { AbcFormatter } from "./Formatter";
+} from "../types/Expr2";
+import { Range } from "../types/types";
+import { AbcFormatter2 as AbcFormatter } from "./Formatter2";
 import { RangeVisitor } from "./RangeVisitor";
 
 /**
@@ -172,6 +173,12 @@ export class RhythmVisitor implements Visitor<Expr> {
     }
     return expr;
   }
+  visitDirectiveExpr(expr: Directive): Expr {
+    if (this.isInRange(expr)) {
+      this.updateChanges([expr]);
+    }
+    return expr;
+  }
   visitDecorationExpr(expr: Decoration): Decoration {
     if (this.isInRange(expr)) {
       this.updateChanges([expr]);
@@ -252,9 +259,9 @@ export class RhythmVisitor implements Visitor<Expr> {
       expr.rhythm = this.visitRhythmExpr(expr.rhythm);
     } else if (isInRange) {
       if (this.factor === "*") {
-        expr.rhythm = new Rhythm(this.ctx, new Token(TokenType.NUMBER, "2", null, pitchRange.start.line, pitchRange.end.character + 1, this.ctx));
+        expr.rhythm = new Rhythm(this.ctx.generateId(), new Token(TokenType.RHY_NUMER, "2", this.ctx.generateId()));
       } else {
-        expr.rhythm = new Rhythm(this.ctx, null, new Token(TokenType.SLASH, "/", null, pitchRange.start.line, pitchRange.end.character + 1, this.ctx));
+        expr.rhythm = new Rhythm(this.ctx.generateId(), new Token(TokenType.RHY_SEP, "/", this.ctx.generateId()));
       }
     }
     if (expr.rhythm && isEmptyRhythm(expr.rhythm)) {
@@ -447,7 +454,7 @@ export class RhythmVisitor implements Visitor<Expr> {
     } else if (expr.numerator) {
       expr.numerator.lexeme = (parseInt(expr.numerator.lexeme) * 2).toString();
     } else {
-      expr.numerator = new Token(TokenType.NUMBER, "2", null, -1, -1, this.ctx);
+      expr.numerator = new Token(TokenType.RHY_NUMER, "2", this.ctx.generateId());
     }
     return expr;
   }
@@ -464,7 +471,7 @@ export class RhythmVisitor implements Visitor<Expr> {
         }
         expr.separator.lexeme = `/`;
         if (count > 2) {
-          expr.denominator = new Token(TokenType.NUMBER, `${count}`, null, -1, -1, this.ctx);
+          expr.denominator = new Token(TokenType.RHY_NUMER, `${count}`, this.ctx.generateId());
         }
       } else {
         let denominator_int = parseInt(expr.denominator.lexeme);
@@ -481,7 +488,7 @@ export class RhythmVisitor implements Visitor<Expr> {
         expr.separator = undefined;
       }
     } else {
-      expr.separator = new Token(TokenType.SLASH, "/", null, -1, -1, this.ctx);
+      expr.separator = new Token(TokenType.RHY_SEP, "/", this.ctx.generateId());
     }
     return expr;
   }

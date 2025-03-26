@@ -1,4 +1,4 @@
-import { isNote, isToken } from "../helpers2";
+import { isNote, isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token } from "../parsers/scan2";
 import {

@@ -1,4 +1,4 @@
-import { isChord, isNote } from "../../helpers2";
+import { isChord, isNote } from "../../helpers";
 import { Token, TT } from "../../parsers/scan2";
 import { BarLine, Beam, Expr, MultiMeasureRest, System } from "../../types/Expr2";
 import { Rational } from "./rational";

@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { isChord } from "../helpers2";
+import { isChord } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { parseTune } from "../parsers/parse2";
 import { Scanner2 } from "../parsers/scan2";

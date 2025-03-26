@@ -1,20 +1,8 @@
-import { isChord, isNote } from "../../helpers2";
-import { Token, TT } from "../../parsers/scan2";
-import { Rest, Beam, Chord, Expr, MultiMeasureRest, Note, Rhythm, System, Tuplet, tune_body_code } from "../../types/Expr2";
-import {
-  BarAlignment,
-  BarTimeMap,
-  Location,
-  NodeID,
-  TimeStamp,
-  VoiceSplit,
-  getNodeId,
-  isBarLine,
-  isBeam,
-  isMultiMeasureRest,
-  isToken,
-} from "./fmt_timeMapHelpers";
-import { Rational, createRational, addRational, multiplyRational, divideRational, isInfiniteRational, rationalToString } from "./rational";
+import { isChord, isNote } from "../../helpers";
+import { Token } from "../../parsers/scan2";
+import { Beam, Chord, Expr, MultiMeasureRest, Note, Rest, Rhythm, System, Tuplet } from "../../types/Expr2";
+import { BarAlignment, BarTimeMap, Location, NodeID, VoiceSplit, getNodeId, isBarLine, isBeam, isMultiMeasureRest } from "./fmt_timeMapHelpers";
+import { Rational, addRational, createRational, divideRational, isInfiniteRational, multiplyRational, rationalToString } from "./rational";
 
 export function mapTimePoints(voiceSplits: VoiceSplit[]): BarAlignment[] {
   // Get formatted voices and their indices

@@ -1,4 +1,4 @@
-import { isChord, isNote, isToken } from "../../helpers2";
+import { isChord, isNote, isToken } from "../../helpers";
 import { Token, TT } from "../../parsers/scan2";
 import { Expr, Rest } from "../../types/Expr2";
 import { AbcFormatter2 } from "../Formatter2";

@@ -1,11 +1,12 @@
 import assert from "assert";
 import chai from "chai";
-import { AbcFormatter } from "../Visitors/Formatter";
+import { AbcFormatter2 as AbcFormatter } from "../Visitors/Formatter2";
 import { RhythmVisitor } from "../Visitors/RhythmTransform";
-import { Parser } from "../parsers/Parser";
-import { Scanner } from "../parsers/Scanner";
-import { File_header, File_structure } from "../types/Expr";
 import { ABCContext } from "../parsers/Context";
+import { parseTune } from "../parsers/parse2";
+import { Ctx, Scanner2 } from "../parsers/scan2";
+import { scanTune } from "../parsers/scan_tunebody";
+import { File_header, File_structure } from "../types/Expr2";
 const expect = chai.expect;
 
 export function tuneHeader(testStr: string) {
@@ -16,14 +17,21 @@ export function removeTuneHeader(testStr: string) {
   return testStr.replace(`X:1\n`, "");
 }
 
+function createCtx(source: string): Ctx {
+  return new Ctx(source, new ABCContext());
+}
+
 export function buildParse(source: string, ctx: ABCContext): File_structure {
   const fmtHeader = tuneHeader(source);
-  const scan = new Scanner(fmtHeader, ctx).scanTokens();
-  const parse = new Parser(scan, ctx).parse();
+  scanTune(createCtx(source));
+
+  const tokens = Scanner2(source, ctx);
+  const parse = parseTune(tokens, ctx);
+
   if (!parse) {
-    return new File_structure(ctx, new File_header(ctx, "", []), []);
+    return new File_structure(ctx.generateId(), new File_header(ctx.generateId(), "", []), []);
   } else {
-    return parse;
+    return new File_structure(ctx.generateId(), new File_header(ctx.generateId(), "", []), [parse]);
   }
 }
 

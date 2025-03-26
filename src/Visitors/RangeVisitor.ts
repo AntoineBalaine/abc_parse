@@ -1,5 +1,6 @@
 import { getTokenRange, isNote, isToken, reduceRanges } from "../helpers";
 import { ABCContext } from "../parsers/Context";
+import { Token } from "../parsers/scan2";
 import {
   Annotation,
   BarLine,
@@ -7,6 +8,7 @@ import {
   Chord,
   Comment,
   Decoration,
+  Directive,
   ErrorExpr,
   File_header,
   File_structure,
@@ -28,8 +30,7 @@ import {
   Visitor,
   Voice_overlay,
   YSPACER,
-} from "../types/Expr";
-import { Token } from "../types/token";
+} from "../types/Expr2";
 import { Range } from "../types/types";
 
 /**
@@ -43,6 +44,9 @@ export class RangeVisitor implements Visitor<Range> {
   }
   visitAnnotationExpr(expr: Annotation): Range {
     return getTokenRange(expr.text);
+  }
+  visitDirectiveExpr(expr: Directive): Range {
+    return getTokenRange(expr.token);
   }
   visitBarLineExpr(expr: BarLine): Range {
     return [expr.barline, expr.repeatNumbers]

@@ -1,5 +1,6 @@
+import { isToken, isVoiceMarker } from "../helpers";
+import { Info_line, Inline_field, System, tune_body_code } from "../types/Expr2";
 import { Token, TT } from "./scan2";
-import { Comment, Info_line, Inline_field, System, tune_body_code } from "../types/Expr2";
 
 /**
  * Context for voice parsing operations
@@ -51,20 +52,6 @@ export class VoiceCtx {
   isAtEnd(): boolean {
     return this.current >= this.elements.length || (isToken(this.elements[this.current]) && (this.elements[this.current] as Token).type === TT.EOF);
   }
-}
-
-/**
- * Check if an element is a voice marker (V: field)
- */
-export function isVoiceMarker(element: tune_body_code): element is Info_line | Inline_field {
-  return (element instanceof Inline_field && element.field.lexeme === "V:") || (element instanceof Info_line && element.key.lexeme === "V:");
-}
-
-/**
- * Check if a token is a token (not an expression)
- */
-export function isToken(element: tune_body_code): element is Token {
-  return element instanceof Token;
 }
 
 /**

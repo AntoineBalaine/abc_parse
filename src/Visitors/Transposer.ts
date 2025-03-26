@@ -1,5 +1,6 @@
 import { isBeam, isChord, isGraceGroup, isNote, isPitch, isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
+import { Token } from "../parsers/scan2";
 import {
   Annotation,
   BarLine,
@@ -7,6 +8,7 @@ import {
   Chord,
   Comment,
   Decoration,
+  Directive,
   ErrorExpr,
   Expr,
   File_header,
@@ -29,8 +31,7 @@ import {
   Visitor,
   Voice_overlay,
   YSPACER,
-} from "../types/Expr";
-import { Token } from "../types/token";
+} from "../types/Expr2";
 
 /**
  * WIP there will be dragons.
@@ -53,6 +54,9 @@ export class Transposer implements Visitor<Expr | Token> {
   for each expression, create a visit method
   that returns the expression */
   visitAnnotationExpr(expr: Annotation): Annotation {
+    return expr;
+  }
+  visitDirectiveExpr(expr: Directive) {
     return expr;
   }
   visitBarLineExpr(expr: BarLine): BarLine {
