@@ -81,6 +81,8 @@ export function assignTuneBodyRules(tune: Tune): Map<Expr | Token, SpcRul> {
     for (let i = 1; i < system.length; i++) {
       const prev = system[i - 1];
       const node = system[i];
+      const newIdx = symLnRules(system, i, ruleMap);
+      if (newIdx !== null) i = newIdx;
       if (noteAfterSlur(ruleMap, prev, node)) continue;
       if (slurAfterNote(ruleMap, prev, node)) continue;
       if (noteAfterTuplet(ruleMap, prev, node)) continue;
@@ -204,4 +206,25 @@ function noPrev(prev: tune_body_code | null, cur: tune_body_code): boolean {
     (prev instanceof Grace_group && cur instanceof Beam) ||
     (prev instanceof Grace_group && isChord(cur))
   );
+}
+
+// special rules for symbol lines: only barlines get spaces.
+function symLnRules(system: System, idx: number, ruleMap: Map<Expr | Token, SpcRul>): number | null {
+  const strtNode = system[idx];
+  if (!(isToken(strtNode) && strtNode.type === TT.SY_HDR)) return null;
+  ruleMap.set(strtNode, SpcRul.FOLLOW_SPC);
+
+  let i = idx + 1;
+  for (; i < system.length; i++) {
+    const node = system[i];
+    if (isToken(node) && (node.type === TT.EOL || node.type === TT.EOF)) {
+      return i;
+    }
+    if (isToken(node) && (node.type === TT.SY_STAR || node.type === TT.SY_TXT)) {
+      ruleMap.set(node, SpcRul.NO_SPC);
+      continue;
+    }
+    ruleMap.set(node, SpcRul.PRECEDE_SPC);
+  }
+  return i;
 }

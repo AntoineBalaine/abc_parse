@@ -337,6 +337,220 @@ CDEF |`;
     });
   });
 
+  // Symbol line alignment tests
+  describe.only("symbol line alignment", () => {
+    it("aligns basic symbol line with parent voice", () => {
+      const input = `
+X:1
+V:1
+V:2
+V:1
+C D |
+s: * * |`;
+
+      const expected = `V:1
+   C D |
+s: * * |`;
+
+      testAlignment(input, expected);
+    });
+
+    it("aligns symbol line with barlines", () => {
+      const input = `
+X:1
+V:1
+V:2
+V:1
+CDEF|GABC|
+s: text|text|`;
+
+      const expected = `V:1
+   CDEF | GABC |
+s: text | text |`;
+
+      testAlignment(input, expected);
+    });
+
+    it("aligns symbol line with different token types", () => {
+      const input = `
+X:1
+V:1
+V:2
+V:1
+CDEF GABC|
+s: * t * *|`;
+
+      const expected = `V:1
+   CDEF GABC |
+s: *t**      |`;
+
+      testAlignment(input, expected);
+    });
+
+    it("aligns symbol line with complex parent voice", () => {
+      const input = `
+X:1
+V:1
+V:2
+V:1
+C2 [CEG] (3DEF G|
+s: t * t t|`;
+
+      const expected = `V:1
+   C2 [CEG] (3DEF G |
+s: t  *       tt    |`;
+
+      testAlignment(input, expected);
+    });
+
+    it("aligns multiple symbol lines with the same parent", () => {
+      const input = `
+X:1
+V:1
+V:2
+V:1
+CDEF GABC|
+s: t t t|
+s: * * *|`;
+
+      // Known issue : reparsing after this formatting will treat `ttt` as a single token
+      const expected = `V:1
+   CDEF GABC      |
+s: ttt            |
+s: ***            |`;
+
+      testAlignment(input, expected);
+    });
+
+    it("handles symbol line with more barlines than parent", () => {
+      const input = `
+X:1
+V:1
+V:2
+V:1
+CDEF GABC|
+s: t***|text|`;
+
+      const expected = `V:1
+   CDEF GABC |
+s: t***      | text |`;
+
+      testAlignment(input, expected);
+    });
+
+    it("handles parent voice with more time events than symbol line", () => {
+      const input = `
+X:1
+V:1
+V:2
+V:1
+CDEF GABC DEF|
+s: t*** t***|`;
+
+      const expected = `V:1
+   CDEF GABC DEF |
+s: t*** t***     |`;
+
+      testAlignment(input, expected);
+    });
+
+    it("aligns symbol line with parent voice containing multiple barlines", () => {
+      const input = `
+X:1
+V:1
+V:2
+V:1
+CDEF|GABC|DEF|
+s: t|t|t|`;
+
+      const expected = `V:1
+   CDEF | GABC | DEF |
+s: t    | t    | t   |`;
+
+      testAlignment(input, expected);
+    });
+
+    it("aligns symbol line with mixed token types against varied note durations", () => {
+      const input = `
+X:1
+V:1
+V:2
+V:1
+C2 D E2 F|
+s: * text * text|`;
+
+      const expected = `V:1
+   C2  D E2  F |
+s: *   t *   t |`;
+
+      testAlignment(input, expected);
+    });
+
+    it("aligns symbol line with parent voice containing grace notes", () => {
+      const input = `
+X:1
+V:1
+V:2
+V:1
+{ag}F2 G {cd}E|
+s: text * text|`;
+
+      const expected = `V:1
+{ag}F2  G {cd}E |
+s:  t   *     t |`;
+
+      testAlignment(input, expected);
+    });
+
+    it("aligns symbol line with parent voice containing decorations", () => {
+      const input = `
+X:1
+V:1
+V:2
+V:1
+!p!C D !f!E F|
+s: * * * *|`;
+
+      const expected = `V:1
+!p! C D !f! E F |
+s:  * *     * * |`;
+
+      testAlignment(input, expected);
+    });
+
+    it("aligns symbol line with mix of barlines and tokens", () => {
+      const input = `
+X:1
+V:1
+V:2
+V:1
+CDEF|GABC|
+s: t*t|*t*|`;
+
+      const expected = `V:1
+   CDEF | GABC |
+s: t*t  | *t*  |`;
+
+      testAlignment(input, expected);
+    });
+
+    it("aligns symbol line with parent voice containing tuplets", () => {
+      const input = `
+X:1
+V:1
+V:2
+V:1
+(3CDE F G|
+s: text * *|`;
+
+      const expected = `V:1
+(3CDE F G |
+s:t   * * |`;
+
+      testAlignment(input, expected);
+    });
+  });
+
   // Regression tests
   describe("regression tests", () => {
     it("fixes the padding space issue in bar alignment", () => {

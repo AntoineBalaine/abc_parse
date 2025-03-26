@@ -35,14 +35,14 @@ export function getNodeId(node: Expr | Token): NodeID {
 export function findFmtblLines(system: System): VoiceSplit[] {
   const splits = splitLines(system);
   return splits.map((split) => {
-    if (isFormattableLine(split)) {
-      return {
-        type: "formatted",
-        content: split,
-      };
-    } else if (split.some((n) => isToken(n) && n.type === TT.SY_HDR)) {
+    if (split.some((n) => isToken(n) && n.type === TT.SY_HDR)) {
       return {
         type: "symbol_line",
+        content: split,
+      };
+    } else if (isFormattableLine(split)) {
+      return {
+        type: "formatted",
         content: split,
       };
     } else {

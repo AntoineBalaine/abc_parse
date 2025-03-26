@@ -3,7 +3,7 @@ import { Token, TT } from "../../parsers/scan2";
 import { Expr, Rest } from "../../types/Expr2";
 import { AbcFormatter2 } from "../Formatter2";
 import { calculateDuration, DurationContext, isTimeEvent } from "./fmt_timeMap";
-import { getNodeId, isBarLine, Location, VoiceSplit } from "./fmt_timeMapHelpers";
+import { getNodeId, isBarLine, isBeam, Location, VoiceSplit } from "./fmt_timeMapHelpers";
 import { addRational, equalRational, greaterRational, isInfiniteRational, isRational, Rational, rationalToString } from "./rational";
 
 class SymbolLnCtx {
@@ -13,10 +13,12 @@ class SymbolLnCtx {
   parentPos: number | null = null;
   voiceIdx: number;
   parentVxIdx: number;
-  constructor(nodes: Array<Expr | Token>, voiceIdx: number, parentVxIdx: number) {
+  parentVoice: Array<Expr | Token>;
+  constructor(nodes: Array<Expr | Token>, voiceIdx: number, parentVxIdx: number, parentVoice: Array<Expr | Token>) {
     this.nodes = nodes;
     this.voiceIdx = voiceIdx;
     this.parentVxIdx = parentVxIdx;
+    this.parentVoice = parentVoice;
   }
 }
 class VxCtx {
@@ -180,7 +182,7 @@ export function scanAlignPoints(voiceSplits: Array<VoiceSplit>) {
         return null;
       })();
       if (prevVx === null) continue;
-      const vxCtx = new SymbolLnCtx(voiceSplits[i].content, i, prevVx);
+      const vxCtx = new SymbolLnCtx(voiceSplits[i].content, i, prevVx, voiceSplits[prevVx].content);
       scanSymbolLinePts(gCtx, vxCtx);
     }
   }
@@ -299,52 +301,70 @@ export function aligner(gCtx: GCtx, voiceSplits: Array<VoiceSplit>, stringifyVis
   return voiceSplits;
 }
 
-function scanSymbolLinePts(gCtx: GCtx, vxCtx: SymbolLnCtx) {
+function scanSymbolLinePts(gCtx: GCtx, symCtx: SymbolLnCtx) {
   const parentAlignPts = gCtx.list
     .map((aPt): AlignPt | null => {
       if (typeof aPt[0] === "number") {
         return aPt;
       }
-      const newLocs = aPt[1].filter((loc) => loc.voiceIdx === vxCtx.parentVxIdx);
+      const newLocs = aPt[1].filter((loc) => loc.voiceIdx === symCtx.parentVxIdx);
       if (newLocs.length === 0) return null;
       return [aPt[0], newLocs];
     })
     .filter((n): n is AlignPt => n != null);
 
-  const first = peek(vxCtx);
-  if (!(isToken(first) && first.type !== TT.SY_HDR)) return false;
-  advance(vxCtx);
-  while (!isAtEnd(vxCtx)) {
-    const cur = peek(vxCtx);
-    if (barlinePts(gCtx, vxCtx)) continue;
-    if (symbolLnTimeEvent(gCtx, vxCtx)) continue;
-    advance(vxCtx);
+  const first = peek(symCtx);
+  if (!(isToken(first) && first.type === TT.SY_HDR)) return false;
+  advance(symCtx);
+  while (!isAtEnd(symCtx)) {
+    const cur = peek(symCtx);
+    if (barlinePts(gCtx, symCtx)) continue;
+    if (symbolLnTimeEvent(gCtx, symCtx)) continue;
+    advance(symCtx);
   }
   return false;
 }
 
-function symbolLnTimeEvent(gCtx: GCtx, vxCtx: SymbolLnCtx): boolean {
-  const node = peek(vxCtx);
+function symbolLnTimeEvent(gCtx: GCtx, symCtx: SymbolLnCtx): boolean {
+  const node = peek(symCtx);
   if (!(isToken(node) && (node.type === TT.SY_TXT || node.type === TT.SY_STAR))) return false;
-  const startIdx = gCtx.barIndexes[vxCtx.bar] + (vxCtx.parentPos ?? 0);
+  const startIdx = gCtx.barIndexes[symCtx.bar] + (symCtx.parentPos ?? 0) + 1;
   let endIdx: number;
-  if (vxCtx.bar + 1 >= gCtx.barIndexes.length) {
+  if (symCtx.bar + 1 >= gCtx.barIndexes.length) {
     endIdx = gCtx.list.length;
   } else {
-    endIdx = gCtx.barIndexes[vxCtx.bar + 1];
+    endIdx = gCtx.barIndexes[symCtx.bar + 1];
   }
 
   for (let i = startIdx; i < endIdx; i++) {
     const entry = gCtx.list[i];
     const timeKey = entry[0];
-    if (!isRational(timeKey)) throw Error("Expected time stamp");
+    if (!isRational(timeKey)) continue;
     const locations = entry[1];
-    const mtchIdx = locations.findIndex((loc) => loc.voiceIdx === vxCtx.parentVxIdx);
+    const mtchIdx = locations.findIndex((loc) => loc.voiceIdx === symCtx.parentVxIdx);
     if (mtchIdx === -1) continue;
-    gCtx.push([timeKey, { voiceIdx: vxCtx.voiceIdx, nodeID: node.id }], vxCtx);
-    vxCtx.parentPos = i - gCtx.barIndexes[vxCtx.bar];
-    advance(vxCtx);
+    gCtx.push([timeKey, { voiceIdx: symCtx.voiceIdx, nodeID: node.id }], symCtx);
+    symCtx.parentPos = i - gCtx.barIndexes[symCtx.bar];
+    const parentNodeId = locations[mtchIdx].nodeID;
+    const parentNode = symCtx.parentVoice.find((e) => e.id === parentNodeId);
+    if (advanceToBeamEnd(symCtx, parentNode!)) return true;
+    advance(symCtx);
     return true;
   }
   return false;
+}
+
+/**
+ * Notes inside a beam don’t get an alignment point assigned in the formatter,
+ * but they do get matched to a symbol line’s tokens by AbcJS.
+ * This means that we need to advance the symbol line’s context’s position to the end of the beam
+ */
+function advanceToBeamEnd(symCtx: SymbolLnCtx, parentNode: Expr | Token): boolean {
+  if (!isBeam(parentNode!)) return false;
+  for (let j = 0; j < parentNode.contents.length; j++) {
+    if (isTimeEvent(parentNode.contents[j])) {
+      advance(symCtx);
+    }
+  }
+  return true;
 }

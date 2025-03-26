@@ -500,7 +500,19 @@ describe("scan2", () => {
       assert.equal(ctx.tokens[0].type, TT.SY_HDR);
       assert.equal(ctx.tokens[1].type, TT.SY_TXT);
     });
-
+    it("should parse stars as single tokens", () => {
+      const ctx = createCtx("s:** * ");
+      const result = symbol_line(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 6);
+      assert.equal(ctx.tokens[0].type, TT.SY_HDR);
+      assert.equal(ctx.tokens[1].type, TT.SY_STAR);
+      assert.equal(ctx.tokens[1].lexeme, "*");
+      assert.equal(ctx.tokens[2].type, TT.SY_STAR);
+      assert.equal(ctx.tokens[2].lexeme, "*");
+      assert.equal(ctx.tokens[4].type, TT.SY_STAR);
+      assert.equal(ctx.tokens[4].lexeme, "*");
+    });
     it("should parse an symbol line with comment", () => {
       const ctx = createCtx("s:Title %comment");
       const result = symbol_line(ctx);

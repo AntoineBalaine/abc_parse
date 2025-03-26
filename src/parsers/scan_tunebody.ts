@@ -1,4 +1,4 @@
-import { Ctx, advance, TT, peek, isAtEnd, EOL, WS, stylesheet_directive, info_line, precededBy } from "./scan2";
+import { Ctx, EOL, TT, WS, advance, info_line, isAtEnd, precededBy, stylesheet_directive } from "./scan2";
 
 const pLETTER_COLON = /[a-zA-Z]:/;
 export const pEOL = "\n";
@@ -636,8 +636,8 @@ export function symbol_line(ctx: Ctx): boolean {
     if (WS(ctx)) continue;
     if (barline(ctx)) continue;
     if (ctx.test("*")) {
-      ctx.push(TT.SY_STAR);
       advance(ctx);
+      ctx.push(TT.SY_STAR);
     }
     if (!isAtEnd(ctx) && !ctx.test(/[ \t%*\n]/)) {
       while (!isAtEnd(ctx) && !ctx.test(pEOL) && !ctx.test(/[ \t%*\n]/)) {
