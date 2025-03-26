@@ -490,7 +490,7 @@ describe("scan2", () => {
     });
   });
 
-  describe.only("symbol line", () => {
+  describe("symbol line", () => {
     it("should parse a simple symbol line", () => {
       const ctx = createCtx("s:hello");
       const result = symbol_line(ctx);

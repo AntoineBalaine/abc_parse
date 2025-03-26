@@ -111,6 +111,28 @@ export class Info_line extends Expr {
   }
 }
 
+export class SymbolLine extends Expr {
+  key: Token;
+  value: Array<Token>;
+
+  constructor(id: number, tokens: Array<Token>) {
+    super(id);
+
+    this.key = tokens[0];
+    const remainingTokens = tokens.slice(1);
+
+    if (!remainingTokens.length) {
+      this.value = [];
+      return;
+    }
+    this.value = remainingTokens;
+  }
+
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitInfoLineExpr(this);
+  }
+}
+
 export class Lyric_section extends Expr {
   info_lines: Array<Info_line>;
   constructor(id: number, info_lines: Array<Info_line>) {

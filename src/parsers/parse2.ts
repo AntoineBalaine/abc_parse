@@ -28,6 +28,7 @@ import {
   Inline_field,
   MultiMeasureRest,
   ErrorExpr,
+  SymbolLine,
 } from "../types/Expr2";
 import { isBeamBreaker, foundBeam, followedBy } from "../helpers2";
 
@@ -186,6 +187,21 @@ export function prsInfoLine(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Info
   return null;
 }
 
+export function prsSymbolLine(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Info_line | null {
+  if (!ctx.match(TT.SY_HDR)) return null;
+  const field = ctx.previous();
+  const tokens: Token[] = [field];
+  if (ctx.match(TT.INFO_STR)) {
+    tokens.push(ctx.previous());
+  }
+  while (!ctx.isAtEnd() && !ctx.check(TT.EOL)) {
+    tokens.push(ctx.advance());
+  }
+  const rv = new SymbolLine(ctx.abcContext.generateId(), tokens);
+  prnt_arr && prnt_arr.push(rv);
+  return rv;
+}
+
 // Check if a token is part of the tune header
 export function isHeaderToken(token: Token): boolean {
   return token.type === TT.INF_HDR || token.type === TT.INFO_STR || token.type === TT.COMMENT || token.type === TT.EOL || token.type === TT.WS;
@@ -199,6 +215,7 @@ export function prsBody(ctx: ParseCtx, voices: string[] = []): Tune_Body | null 
   // Parse until end of file or section break
   while (!ctx.isAtEnd() && !ctx.check(TT.SCT_BRK)) {
     if (prsComment(ctx, elmnts)) continue;
+    if (prsSymbolLine(ctx, elmnts)) continue;
     if (prsInfoLine(ctx, elmnts)) continue;
     if (parseMusicCode(ctx, elmnts)) continue;
 

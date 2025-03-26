@@ -419,6 +419,7 @@ export function scanTune(ctx: Ctx): boolean {
     // Try each tokenizer function in order of precedence
     if (stylesheet_directive(ctx)) continue;
     if (comment(ctx)) continue;
+    if (symbol_line(ctx)) continue;
     if (info_line(ctx)) continue;
     if (annotation(ctx)) continue;
     if (inline_field(ctx)) continue;
