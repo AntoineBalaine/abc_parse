@@ -1,15 +1,14 @@
 import { assert } from "chai";
-import { isNote, isChord } from "../helpers2";
+import { isNote } from "../helpers2";
 import { ABCContext } from "../parsers/Context";
 import { parseTune } from "../parsers/parse2";
-import { Scanner2, Token, TT } from "../parsers/scan2";
-import { Grace_group } from "../types/Expr2";
+import { Scanner2, TT } from "../parsers/scan2";
+import { BarLine, Beam, Decoration, Grace_group, MultiMeasureRest } from "../types/Expr2";
 import { assignTuneBodyRules, expandMultiMeasureRests, preprocessTune, SpcRul } from "../Visitors/fmt2/fmt_rules_assignment";
-import { BarLine, Decoration, MultiMeasureRest, Beam } from "../types/Expr2";
 import { isBarLine, isToken } from "../Visitors/fmt2/fmt_timeMapHelpers";
 
 function buildTune(input: string, ctx: ABCContext) {
-  const tokens = Scanner2(input, ctx.errorReporter);
+  const tokens = Scanner2(input, ctx);
   return parseTune(tokens, ctx);
 }
 

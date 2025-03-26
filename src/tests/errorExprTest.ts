@@ -1,8 +1,8 @@
 import { assert } from "chai";
 import { describe, it } from "mocha";
-import { Scanner2 } from "../parsers/scan2";
-import { parseTune } from "../parsers/parse2";
 import { ABCContext } from "../parsers/Context";
+import { parseTune } from "../parsers/parse2";
+import { Scanner2 } from "../parsers/scan2";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
 
 describe("ErrorExpr Preservation in Formatter", () => {
@@ -10,7 +10,7 @@ describe("ErrorExpr Preservation in Formatter", () => {
     // Create a simple tune with an invalid token
     const source = "X:1\nA ~123 B";
     const abcContext = new ABCContext();
-    const tokens = Scanner2(source, abcContext.errorReporter);
+    const tokens = Scanner2(source, abcContext);
 
     // Parse the tune
     const tune = parseTune(tokens, abcContext);
@@ -27,7 +27,7 @@ describe("ErrorExpr Preservation in Formatter", () => {
     const input = `X:1\n[V:1]abc ~123 |\n[V:2]def \\e |\n`;
     const abcContext = new ABCContext();
     const formatter = new AbcFormatter2(abcContext);
-    const tokens = Scanner2(input, abcContext.errorReporter);
+    const tokens = Scanner2(input, abcContext);
     const ast = parseTune(tokens, abcContext);
 
     const result = formatter.format(ast);

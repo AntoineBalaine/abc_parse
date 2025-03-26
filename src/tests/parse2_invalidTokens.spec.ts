@@ -1,22 +1,29 @@
 import { assert } from "chai";
 import { describe, it } from "mocha";
-import { parseTune, ParseCtx, parseInvalidToken } from "../parsers/parse2";
-import { Token, TT, Scanner2 } from "../parsers/scan2";
 import { ABCContext } from "../parsers/Context";
+import { ParseCtx, parseInvalidToken, parseTune } from "../parsers/parse2";
+import { Scanner2, Token, TT } from "../parsers/scan2";
 import { ErrorExpr, Tune } from "../types/Expr2";
 
 // Helper function to create a token with the given type and lexeme
 function createToken(type: TT, lexeme: string, line: number = 0, position: number = 0): Token {
-  const token = new Token(type, {
-    source: "",
-    tokens: [],
-    start: 0,
-    current: lexeme.length,
-    line,
-    report: () => {},
-    push: () => {},
-    test: () => false,
-  });
+  const abcContext = new ABCContext();
+  const token = new Token(
+    type,
+    {
+      source: "",
+      tokens: [],
+      start: 0,
+      current: lexeme.length,
+      line,
+      report: () => {},
+      push: () => {},
+      test: () => false,
+      abcContext: abcContext,
+      errorReporter: abcContext.errorReporter,
+    },
+    abcContext.generateId()
+  );
 
   // Override the lexeme property
   Object.defineProperty(token, "lexeme", {
@@ -68,7 +75,7 @@ describe("Invalid Token Handling in Parser", () => {
       // Create a simple tune with an invalid token
       const source = "X:1\nA ~123 B";
       const abcContext = new ABCContext();
-      const tokens = Scanner2(source, abcContext.errorReporter);
+      const tokens = Scanner2(source, abcContext);
 
       // Parse the tune
       const tune = parseTune(tokens, abcContext);
@@ -111,7 +118,7 @@ describe("Invalid Token Handling in Parser", () => {
       // Create a simple tune with an invalid token
       const source = "X:1\nA ~123 B";
       const abcContext = new ABCContext();
-      const tokens = Scanner2(source, abcContext.errorReporter);
+      const tokens = Scanner2(source, abcContext);
 
       // Parse the tune
       const tune = parseTune(tokens, abcContext);
@@ -160,7 +167,7 @@ describe("Invalid Token Handling in Parser", () => {
       // Create a tune with multiple invalid tokens
       const source = "X:1\nA ~123 B @456 C";
       const abcContext = new ABCContext();
-      const tokens = Scanner2(source, abcContext.errorReporter);
+      const tokens = Scanner2(source, abcContext);
 
       // Parse the tune
       const tune = parseTune(tokens, abcContext);

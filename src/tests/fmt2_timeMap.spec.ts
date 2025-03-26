@@ -1,14 +1,12 @@
 import { assert } from "chai";
+import { isNote } from "../helpers2";
 import { ABCContext } from "../parsers/Context";
 import { parseTune } from "../parsers/parse2";
 import { Scanner2 } from "../parsers/scan2";
-import { System, Beam } from "../types/Expr2";
-import { mapTimePoints } from "../Visitors/fmt2/fmt_timeMap";
-import { VoiceSplit } from "../Visitors/fmt2/fmt_timeMapHelpers";
+import { Beam, System } from "../types/Expr2";
 import { preprocessTune } from "../Visitors/fmt2/fmt_rules_assignment";
-import { findFmtblLines } from "../Visitors/fmt2/fmt_timeMapHelpers";
-import { isNote } from "../helpers2";
-import { getNodeId } from "../Visitors/fmt2/fmt_timeMapHelpers";
+import { mapTimePoints } from "../Visitors/fmt2/fmt_timeMap";
+import { findFmtblLines, getNodeId, VoiceSplit } from "../Visitors/fmt2/fmt_timeMapHelpers";
 
 describe("TimeMapper (fmt2)", () => {
   let ctx: ABCContext;
@@ -18,7 +16,7 @@ describe("TimeMapper (fmt2)", () => {
   });
 
   function parseSystem(input: string): System {
-    const tokens = Scanner2(input, ctx.errorReporter);
+    const tokens = Scanner2(input, ctx);
     const ast = parseTune(tokens, ctx);
     if (!ast) {
       throw new Error("Failed to parse");

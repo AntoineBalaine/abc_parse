@@ -1,17 +1,14 @@
-import { assert } from "chai";
-import chai from "chai";
-import { Comment, Inline_field } from "../types/Expr2";
-import { System } from "../types/Expr2";
-import { Scanner2, Token, TT } from "../parsers/scan2";
-import { parseTune } from "../parsers/parse2";
+import chai, { assert } from "chai";
 import { ABCContext } from "../parsers/Context";
+import { parseTune } from "../parsers/parse2";
+import { Scanner2, Token, TT } from "../parsers/scan2";
+import { Rhythm, System } from "../types/Expr2";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
-import { Rhythm } from "../types/Expr2";
 
 const expect = chai.expect;
 
 function format(input: string, ctx: ABCContext, formatter: AbcFormatter2): string {
-  const tokens = Scanner2(input, ctx.errorReporter);
+  const tokens = Scanner2(input, ctx);
   const ast = parseTune(tokens, ctx);
   if (!ast) {
     throw new Error("Failed to parse");
@@ -29,7 +26,7 @@ function RunSystemTest(input: string, test: (systems: System[], expected: string
   return () => {
     const ctx = new ABCContext();
     const formatter = new AbcFormatter2(ctx);
-    const tokens = Scanner2(input, ctx.errorReporter);
+    const tokens = Scanner2(input, ctx);
     const ast = parseTune(tokens, ctx);
     if (!ast || !ast.tune_body) {
       throw new Error("Failed to parse or no tune body");
@@ -638,7 +635,7 @@ describe("Format Info Lines in Tune Header", function () {
       title: "format a tune header containing info lines only",
       test: (input, expected) => {
         const ctx = new ABCContext();
-        const tokens = Scanner2(input as string, ctx.errorReporter);
+        const tokens = Scanner2(input as string, ctx);
         const ast = parseTune(tokens, ctx);
         if (!ast) {
           throw new Error("Failed to parse");
@@ -663,7 +660,7 @@ K:C
       title: "format a tune header containing comments",
       test: (input, expected) => {
         const ctx = new ABCContext();
-        const tokens = Scanner2(input as string, ctx.errorReporter);
+        const tokens = Scanner2(input as string, ctx);
         const ast = parseTune(tokens, ctx);
         if (!ast) {
           throw new Error("Failed to parse");
@@ -701,7 +698,7 @@ describe("Format Info Lines in Tune Body", function () {
       title: "format a tune body containing info lines",
       test: (input, expected) => {
         const ctx = new ABCContext();
-        const tokens = Scanner2(input as string, ctx.errorReporter);
+        const tokens = Scanner2(input as string, ctx);
         const ast = parseTune(tokens, ctx);
         if (!ast || !ast.tune_body) {
           throw new Error("Failed to parse or no tune body");
@@ -740,7 +737,7 @@ describe("Formatter2", function () {
 
     it("can visit the tree without modifying source", function () {
       const ctx = new ABCContext();
-      const tokens = Scanner2(input, ctx.errorReporter);
+      const tokens = Scanner2(input, ctx);
       const ast = parseTune(tokens, ctx);
       if (!ast) {
         throw new Error("Failed to parse");
@@ -751,7 +748,7 @@ describe("Formatter2", function () {
 
     it("removes useless double spaces", function () {
       const ctx = new ABCContext();
-      const tokens = Scanner2(input, ctx.errorReporter);
+      const tokens = Scanner2(input, ctx);
       const ast = parseTune(tokens, ctx);
       if (!ast) {
         throw new Error("Failed to parse");
@@ -762,19 +759,26 @@ describe("Formatter2", function () {
   });
   describe.skip("format rhythms", () => {
     it(`should format a/2 into a/`, () => {
-      const r = new Rhythm(0, new Token(TT.RHY_NUMER, "a"), new Token(TT.RHY_SEP, "/"), new Token(TT.RHY_DENOM, "2"));
+      const ctx = new ABCContext();
+      const r = new Rhythm(
+        0,
+        new Token(TT.RHY_NUMER, "a", ctx.generateId()),
+        new Token(TT.RHY_SEP, "/", ctx.generateId()),
+        new Token(TT.RHY_DENOM, "2", ctx.generateId())
+      );
       const expected = "a/";
       const fmt = r.accept(new AbcFormatter2(new ABCContext()));
       assert.equal(removeTuneHeader(fmt).trim(), expected);
     });
 
     it(`should format a// into a/4`, () => {
+      const ctx = new ABCContext();
       const r = new Rhythm(
         0,
-        new Token(TT.RHY_NUMER, "a"),
-        new Token(TT.RHY_SEP, "/"),
+        new Token(TT.RHY_NUMER, "a", ctx.generateId()),
+        new Token(TT.RHY_SEP, "/", ctx.generateId()),
         null, // no denominator token for a//
-        new Token(TT.RHY_SEP, "/") // second slash
+        new Token(TT.RHY_SEP, "/", ctx.generateId()) // second slash
       );
       const expected = "a/4";
       const fmt = r.accept(new AbcFormatter2(new ABCContext()));
@@ -782,19 +786,26 @@ describe("Formatter2", function () {
     });
 
     it(`should format z/2 into z/`, () => {
-      const r = new Rhythm(0, new Token(TT.RHY_NUMER, "z"), new Token(TT.RHY_SEP, "/"), new Token(TT.RHY_DENOM, "2"));
+      const ctx = new ABCContext();
+      const r = new Rhythm(
+        0,
+        new Token(TT.RHY_NUMER, "z", ctx.generateId()),
+        new Token(TT.RHY_SEP, "/", ctx.generateId()),
+        new Token(TT.RHY_DENOM, "2", ctx.generateId())
+      );
       const expected = "z/";
       const fmt = r.accept(new AbcFormatter2(new ABCContext()));
       assert.equal(removeTuneHeader(fmt).trim(), expected);
     });
 
     it(`should format z// into z/4`, () => {
+      const ctx = new ABCContext();
       const r = new Rhythm(
         0,
-        new Token(TT.RHY_NUMER, "z"),
-        new Token(TT.RHY_SEP, "/"),
+        new Token(TT.RHY_NUMER, "z", ctx.generateId()),
+        new Token(TT.RHY_SEP, "/", ctx.generateId()),
         null, // no denominator token for z//
-        new Token(TT.RHY_SEP, "/") // second slash
+        new Token(TT.RHY_SEP, "/", ctx.generateId()) // second slash
       );
       const expected = "z/4";
       const fmt = r.accept(new AbcFormatter2(new ABCContext()));
@@ -802,14 +813,26 @@ describe("Formatter2", function () {
     });
 
     it(`should format a/4 into a/4`, () => {
-      const r = new Rhythm(0, new Token(TT.RHY_NUMER, "a"), new Token(TT.RHY_SEP, "/"), new Token(TT.RHY_DENOM, "4"));
+      const ctx = new ABCContext();
+      const r = new Rhythm(
+        0,
+        new Token(TT.RHY_NUMER, "a", ctx.generateId()),
+        new Token(TT.RHY_SEP, "/", ctx.generateId()),
+        new Token(TT.RHY_DENOM, "4", ctx.generateId())
+      );
       const expected = "a/4";
       const fmt = r.accept(new AbcFormatter2(new ABCContext()));
       assert.equal(removeTuneHeader(fmt).trim(), expected);
     });
 
     it(`should format a3/4 into a3/4`, () => {
-      const r = new Rhythm(0, new Token(TT.RHY_NUMER, "a3"), new Token(TT.RHY_SEP, "/"), new Token(TT.RHY_DENOM, "4"));
+      const ctx = new ABCContext();
+      const r = new Rhythm(
+        0,
+        new Token(TT.RHY_NUMER, "a3", ctx.generateId()),
+        new Token(TT.RHY_SEP, "/", ctx.generateId()),
+        new Token(TT.RHY_DENOM, "4", ctx.generateId())
+      );
       const expected = "a3/4";
       const fmt = r.accept(new AbcFormatter2(new ABCContext()));
       assert.equal(removeTuneHeader(fmt).trim(), expected);
@@ -826,7 +849,7 @@ describe("Formatter2: Stringify", () => {
     sample.forEach(([input, expected]) => {
       it(`should stringify ${input} into ${expected}`, () => {
         const ctx = new ABCContext();
-        const tokens = Scanner2(input, ctx.errorReporter);
+        const tokens = Scanner2(input, ctx);
         const ast = parseTune(tokens, ctx);
         if (!ast) {
           throw new Error("Failed to parse");
@@ -842,7 +865,7 @@ describe("Formatter2: Stringify", () => {
     sample.forEach(([input, expected]) => {
       it(`should stringify ${input} into ${expected}`, () => {
         const ctx = new ABCContext();
-        const tokens = Scanner2(input, ctx.errorReporter);
+        const tokens = Scanner2(input, ctx);
         const ast = parseTune(tokens, ctx);
         if (!ast) {
           throw new Error("Failed to parse");
@@ -873,7 +896,7 @@ describe("Formatter2: Whitespace handling", () => {
       it(title, () => {
         const ctx = new ABCContext();
         const formatter = new AbcFormatter2(ctx);
-        const tokens = Scanner2(input, ctx.errorReporter);
+        const tokens = Scanner2(input, ctx);
         const ast = parseTune(tokens, ctx);
         if (!ast) {
           throw new Error("Failed to parse");
@@ -916,7 +939,7 @@ describe("Formatter2: Error Preservation", () => {
       it(title, () => {
         const ctx = new ABCContext();
         const formatter = new AbcFormatter2(ctx);
-        const tokens = Scanner2(input, ctx.errorReporter);
+        const tokens = Scanner2(input, ctx);
         const ast = parseTune(tokens, ctx);
         if (!ast) {
           throw new Error("Failed to parse");
@@ -932,7 +955,7 @@ describe("Formatter2: Error Preservation", () => {
       it(title, () => {
         const ctx = new ABCContext();
         const formatter = new AbcFormatter2(ctx);
-        const tokens = Scanner2(input, ctx.errorReporter);
+        const tokens = Scanner2(input, ctx);
         const ast = parseTune(tokens, ctx);
         if (!ast) {
           throw new Error("Failed to parse");
@@ -950,7 +973,7 @@ describe("Formatter2: Error Preservation", () => {
 
     const ctx = new ABCContext();
     const formatter = new AbcFormatter2(ctx);
-    const tokens = Scanner2(input, ctx.errorReporter);
+    const tokens = Scanner2(input, ctx);
     const ast = parseTune(tokens, ctx);
     if (!ast) {
       throw new Error("Failed to parse");
@@ -966,7 +989,7 @@ describe("Formatter2: Error Preservation", () => {
 
     const ctx = new ABCContext();
     const formatter = new AbcFormatter2(ctx);
-    const tokens = Scanner2(input, ctx.errorReporter);
+    const tokens = Scanner2(input, ctx);
     const ast = parseTune(tokens, ctx);
     if (!ast) {
       throw new Error("Failed to parse");

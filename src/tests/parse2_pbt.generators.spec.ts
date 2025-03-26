@@ -126,8 +126,8 @@ export const genRestExpr = fc.tuple(ScannerGen.genRest, fc.option(ScannerGen.gen
 
 export const genMultiMeasureRestExpr = fc
   .tuple(
-    fc.constantFrom(new Token(TT.REST, "Z"), new Token(TT.REST, "X")),
-    fc.option(fc.stringMatching(/^[1-9][0-9]*$/).map((n) => new Token(TT.RHY_NUMER, n)))
+    fc.constantFrom(new Token(TT.REST, "Z", sharedContext.generateId()), new Token(TT.REST, "X", sharedContext.generateId())),
+    fc.option(fc.stringMatching(/^[1-9][0-9]*$/).map((n) => new Token(TT.RHY_NUMER, n, sharedContext.generateId())))
   )
   .map(([rest, length]) => {
     const tokens = [rest];
@@ -150,7 +150,7 @@ export const genChordExpr = fc
   )
   .map(([noteExprs, rhythmTokens, tie]) => {
     // Create tokens array starting with left bracket
-    const tokens = [new Token(TT.CHRD_LEFT_BRKT, "[")];
+    const tokens = [new Token(TT.CHRD_LEFT_BRKT, "[", sharedContext.generateId())];
 
     // Add all note tokens
     const notes: Note[] = [];
@@ -162,7 +162,7 @@ export const genChordExpr = fc
     }
 
     // Add right bracket
-    tokens.push(new Token(TT.CHRD_RIGHT_BRKT, "]"));
+    tokens.push(new Token(TT.CHRD_RIGHT_BRKT, "]", sharedContext.generateId()));
 
     // Add rhythm tokens if present
     let rhythmExpr: Rhythm | undefined = undefined;
@@ -187,7 +187,7 @@ export const genBarLineExpr = fc
     ScannerGen.genBarline,
     fc.option(
       fc.array(
-        fc.stringMatching(/^[1-9][0-9]*$/).map((n) => new Token(TT.REPEAT_NUMBER, n)),
+        fc.stringMatching(/^[1-9][0-9]*$/).map((n) => new Token(TT.REPEAT_NUMBER, n, sharedContext.generateId())),
         {
           minLength: 1,
           maxLength: 3,
@@ -251,11 +251,11 @@ export const genGraceGroupExpr = fc
   )
   .map(([noteExprs, hasSlash]) => {
     // Create tokens array starting with left brace
-    const tokens = [new Token(TT.GRC_GRP_LEFT_BRACE, "{")];
+    const tokens = [new Token(TT.GRC_GRP_LEFT_BRACE, "{", sharedContext.generateId())];
 
     // Add slash if this is an accacciatura
     if (hasSlash) {
-      tokens.push(new Token(TT.GRC_GRP_SLSH, "/"));
+      tokens.push(new Token(TT.GRC_GRP_SLSH, "/", sharedContext.generateId()));
     }
 
     // Add all note tokens
@@ -268,7 +268,7 @@ export const genGraceGroupExpr = fc
     }
 
     // Add right brace
-    tokens.push(new Token(TT.GRC_GRP_RGHT_BRACE, "}"));
+    tokens.push(new Token(TT.GRC_GRP_RGHT_BRACE, "}", sharedContext.generateId()));
 
     return {
       tokens,
@@ -302,7 +302,7 @@ export const genInlineFieldExpr = ScannerGen.genInlineField.map((tokens) => {
 // Helper function to create a regular rest expression (not multi-measure)
 export const genRegularRestExpr = fc
   .tuple(
-    fc.constantFrom(new Token(TT.REST, "z"), new Token(TT.REST, "x")), // Only lowercase z and x for regular rests
+    fc.constantFrom(new Token(TT.REST, "z", sharedContext.generateId()), new Token(TT.REST, "x", sharedContext.generateId())), // Only lowercase z and x for regular rests
     fc.option(ScannerGen.genRhythm)
   )
   .map(([rest, rhythmTokens]) => {

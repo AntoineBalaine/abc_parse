@@ -1,6 +1,6 @@
-import { isChord, isNote, isToken, isWS } from "../../helpers2";
+import { isChord, isNote, isToken } from "../../helpers2";
 import { ABCContext } from "../../parsers/Context";
-import { Token, TT } from "../../parsers/scan2";
+import { Ctx, Token, TT } from "../../parsers/scan2";
 import {
   BarLine,
   Beam,
@@ -11,11 +11,10 @@ import {
   System,
   Tune,
   Tune_Body,
+  tune_body_code,
   Tuplet,
   YSPACER,
-  tune_body_code,
 } from "../../types/Expr2";
-import { Ctx } from "../../parsers/scan2";
 import { isBeam, isMultiMeasureRest } from "./fmt_timeMapHelpers";
 
 // Types for rules assignment
@@ -111,9 +110,9 @@ export function resolveTuneBody(tuneBody: Tune_Body, ruleMap: Map<Expr | Token, 
       const node = system[i];
       const decision = spacingDecisions.get(node);
       if (decision === TT.WS) {
-        const tknCtx = new Ctx(" ");
+        const tknCtx = new Ctx(" ", ctx);
         tknCtx.current = tknCtx.source.length;
-        tuneBody.sequence[s].splice(i, 0, new Token(TT.WS, tknCtx));
+        tuneBody.sequence[s].splice(i, 0, new Token(TT.WS, tknCtx, ctx.generateId()));
         i += 1;
       }
     }
@@ -136,21 +135,21 @@ export function expandMultiMeasureRests(system: System, ctx: ABCContext): System
       const measures = node.length ? parseInt(node.length.lexeme) : 1;
 
       // Add first Z
-      const firstRestCtx = new Ctx(is_invisible_rest ? "X" : "Z");
+      const firstRestCtx = new Ctx(is_invisible_rest ? "X" : "Z", ctx);
       firstRestCtx.current = firstRestCtx.source.length;
-      const firstRest = new Token(TT.REST, firstRestCtx);
+      const firstRest = new Token(TT.REST, firstRestCtx, ctx.generateId());
       expanded.push(new MultiMeasureRest(ctx.generateId(), firstRest));
 
       // Add barline and Z for remaining measures
       for (let i = 1; i < measures; i++) {
-        const barCtx = new Ctx("|");
+        const barCtx = new Ctx("|", ctx);
         barCtx.current = barCtx.source.length;
-        const barToken = new Token(TT.BARLINE, barCtx);
+        const barToken = new Token(TT.BARLINE, barCtx, ctx.generateId());
         expanded.push(new BarLine(ctx.generateId(), [barToken]));
 
-        const restCtx = new Ctx(is_invisible_rest ? "X" : "Z");
+        const restCtx = new Ctx(is_invisible_rest ? "X" : "Z", ctx);
         restCtx.current = restCtx.source.length;
-        const restToken = new Token(TT.REST, restCtx);
+        const restToken = new Token(TT.REST, restCtx, ctx.generateId());
         expanded.push(new MultiMeasureRest(ctx.generateId(), restToken));
       }
     } else {

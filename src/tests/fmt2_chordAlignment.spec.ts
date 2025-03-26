@@ -1,15 +1,14 @@
 import { expect } from "chai";
+import { isChord } from "../helpers2";
 import { ABCContext } from "../parsers/Context";
 import { parseTune } from "../parsers/parse2";
 import { Scanner2 } from "../parsers/scan2";
+import { System } from "../types/Expr2";
 import { alignBars } from "../Visitors/fmt2/fmt_aligner";
-import { VoiceSplit } from "../Visitors/fmt2/fmt_timeMapHelpers";
 import { resolveRules } from "../Visitors/fmt2/fmt_rules_assignment";
 import { mapTimePoints } from "../Visitors/fmt2/fmt_timeMap";
-import { findFmtblLines } from "../Visitors/fmt2/fmt_timeMapHelpers";
+import { findFmtblLines, VoiceSplit } from "../Visitors/fmt2/fmt_timeMapHelpers";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
-import { isChord } from "../helpers2";
-import { Chord, System } from "../types/Expr2";
 
 describe("Chord Alignment Tests", () => {
   let stringifyVisitor: AbcFormatter2;
@@ -21,7 +20,7 @@ describe("Chord Alignment Tests", () => {
   });
 
   function format(input: string): string {
-    const tokens = Scanner2(input, ctx.errorReporter);
+    const tokens = Scanner2(input, ctx);
     const ast = parseTune(tokens, ctx);
     if (!ast) {
       throw new Error("Failed to parse");
@@ -59,7 +58,7 @@ describe("Chord Alignment Tests", () => {
   }
 
   function parseSystem(input: string): System {
-    const tokens = Scanner2(input, ctx.errorReporter);
+    const tokens = Scanner2(input, ctx);
     const ast = parseTune(tokens, ctx);
     if (!ast) {
       throw new Error("Failed to parse");

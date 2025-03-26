@@ -1,12 +1,10 @@
 import { ABCContext } from "../../parsers/Context";
-import { Ctx, Token, TT } from "../../parsers/scan2";
-import { Expr, System, Tune, Tune_Body, tune_body_code } from "../../types/Expr2";
-import { BarAlignment, Location, TimeStamp, NodeID, VoiceSplit, findFmtblLines, getNodeId, isToken } from "./fmt_timeMapHelpers";
-import { mapTimePoints } from "./fmt_timeMap";
-import { createLocationMapper, equalizeBarLengths, equalizer, findPaddingInsertionPoint } from "./fmt_alignerHelpers";
+import { Token, TT } from "../../parsers/scan2";
+import { Tune } from "../../types/Expr2";
 import { AbcFormatter2 } from "../Formatter2";
-import { createRational, rationalToNumber, rationalFromNumber } from "./rational";
 import { aligner, scanAlignPoints } from "./fmt_aligner3";
+import { createLocationMapper } from "./fmt_alignerHelpers";
+import { BarAlignment, findFmtblLines, getNodeId, VoiceSplit } from "./fmt_timeMapHelpers";
 
 /**
  * collect the time points for each bar, create a map of locations. Locations means: VoiceIndex and NodeID.
@@ -89,7 +87,7 @@ export function alignBars(voiceSplits: VoiceSplit[], barTimeMap: BarAlignment, s
 
         // Insert padding
         if (insertIdx !== -1) {
-          const padding = new Token(TT.WS, " ".repeat(paddingLen));
+          const padding = new Token(TT.WS, " ".repeat(paddingLen), ctx.generateId());
           voiceSplits[location.voiceIdx].content.splice(insertIdx, 0, padding);
 
           const startNodeIdx = voiceSplits[location.voiceIdx].content.findIndex((node) => getNodeId(node) === location.startNode);

@@ -1,12 +1,12 @@
 import assert from "assert";
 import { describe, it } from "mocha";
-import { Ctx, Token, TT } from "../parsers/scan2";
-import { scanRepeatNumbers, barline2, parseColonStart, parseBarlineStart, parseLeftBracketStart } from "../parsers/scan_tunebody";
-import { AbcErrorReporter } from "../parsers/ErrorReporter";
+import { ABCContext } from "../parsers/Context";
+import { Ctx, TT } from "../parsers/scan2";
+import { barline2, parseBarlineStart, parseColonStart, parseLeftBracketStart, scanRepeatNumbers } from "../parsers/scan_tunebody";
 
 // Helper function to create a Ctx object for testing
 function createCtx(source: string): Ctx {
-  return new Ctx(source, new AbcErrorReporter());
+  return new Ctx(source, new ABCContext());
 }
 
 describe("parseRepeatNumbers", () => {

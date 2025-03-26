@@ -1,43 +1,31 @@
-import chai, { assert } from "chai";
+import chai from "chai";
 import { ABCContext } from "../parsers/Context";
-import { Token, TT, Scanner2 } from "../parsers/scan2";
-import {
-  Info_line,
-  Inline_field,
-  System,
-  tune_body_code,
-} from "../types/Expr2";
-import {
-  VoiceCtx,
-  isVoiceMarker,
-  isToken,
-  stringifyVoice,
-  isNewSystem,
-  parseNoVoices,
-  parseVoices,
-  parseSystemsWithVoices,
-} from "../parsers/voices2";
 import { parseTune } from "../parsers/parse2";
+import { Scanner2, Token, TT } from "../parsers/scan2";
+import { isNewSystem, isToken, isVoiceMarker, parseNoVoices, parseSystemsWithVoices, parseVoices, stringifyVoice, VoiceCtx } from "../parsers/voices2";
+import { Info_line, Inline_field, tune_body_code } from "../types/Expr2";
 
 const expect = chai.expect;
 
 // Helper function to create a token with the given type and lexeme
-function createToken(
-  type: TT,
-  lexeme: string,
-  line: number = 0,
-  position: number = 0,
-): Token {
-  const token = new Token(type, {
-    source: "",
-    tokens: [],
-    start: 0,
-    current: lexeme.length,
-    line,
-    report: () => {},
-    push: () => {},
-    test: () => false,
-  });
+function createToken(type: TT, lexeme: string, line: number = 0, position: number = 0): Token {
+  const abcContext = new ABCContext();
+  const token = new Token(
+    type,
+    {
+      source: "",
+      tokens: [],
+      start: 0,
+      current: lexeme.length,
+      line,
+      report: () => {},
+      push: () => {},
+      test: () => false,
+      abcContext: abcContext,
+      errorReporter: abcContext.errorReporter,
+    },
+    abcContext.generateId()
+  );
 
   // Override the lexeme property
   Object.defineProperty(token, "lexeme", {
@@ -55,26 +43,20 @@ function createToken(
 }
 
 // Helper function to create a VoiceCtx with the given elements and voices
-function createVoiceCtx(
-  elements: tune_body_code[],
-  voices: string[] = [],
-): VoiceCtx {
+function createVoiceCtx(elements: tune_body_code[], voices: string[] = []): VoiceCtx {
   return new VoiceCtx(elements, voices);
 }
 
 // Helper function to parse ABC notation into tokens
 function parseABC(abc: string): Token[] {
   const ctx = new ABCContext();
-  return Scanner2(abc, ctx.errorReporter);
+  return Scanner2(abc, ctx);
 }
 
 describe("voices2.ts", () => {
   describe("VoiceCtx class", () => {
     it("should initialize with the provided elements and voices", () => {
-      const elements: tune_body_code[] = [
-        createToken(TT.NOTE_LETTER, "C"),
-        createToken(TT.NOTE_LETTER, "D"),
-      ];
+      const elements: tune_body_code[] = [createToken(TT.NOTE_LETTER, "C"), createToken(TT.NOTE_LETTER, "D")];
       const voices = ["Voice1", "Voice2"];
 
       const ctx = createVoiceCtx(elements, voices);
@@ -88,10 +70,7 @@ describe("voices2.ts", () => {
     });
 
     it("should peek at the current element without advancing", () => {
-      const elements: tune_body_code[] = [
-        createToken(TT.NOTE_LETTER, "C"),
-        createToken(TT.NOTE_LETTER, "D"),
-      ];
+      const elements: tune_body_code[] = [createToken(TT.NOTE_LETTER, "C"), createToken(TT.NOTE_LETTER, "D")];
 
       const ctx = createVoiceCtx(elements);
 
@@ -100,10 +79,7 @@ describe("voices2.ts", () => {
     });
 
     it("should return the previous element", () => {
-      const elements: tune_body_code[] = [
-        createToken(TT.NOTE_LETTER, "C"),
-        createToken(TT.NOTE_LETTER, "D"),
-      ];
+      const elements: tune_body_code[] = [createToken(TT.NOTE_LETTER, "C"), createToken(TT.NOTE_LETTER, "D")];
 
       const ctx = createVoiceCtx(elements);
       ctx.current = 1; // Set current to 1
@@ -112,10 +88,7 @@ describe("voices2.ts", () => {
     });
 
     it("should advance to the next element and return the previous one", () => {
-      const elements: tune_body_code[] = [
-        createToken(TT.NOTE_LETTER, "C"),
-        createToken(TT.NOTE_LETTER, "D"),
-      ];
+      const elements: tune_body_code[] = [createToken(TT.NOTE_LETTER, "C"), createToken(TT.NOTE_LETTER, "D")];
 
       const ctx = createVoiceCtx(elements);
 
@@ -150,10 +123,7 @@ describe("voices2.ts", () => {
     });
 
     it("should detect EOF token as end of elements", () => {
-      const elements: tune_body_code[] = [
-        createToken(TT.NOTE_LETTER, "C"),
-        createToken(TT.EOF, ""),
-      ];
+      const elements: tune_body_code[] = [createToken(TT.NOTE_LETTER, "C"), createToken(TT.EOF, "")];
 
       const ctx = createVoiceCtx(elements);
 
@@ -167,31 +137,21 @@ describe("voices2.ts", () => {
   describe("Helper functions", () => {
     it("should identify voice markers (Info_line)", () => {
       const ctx = new ABCContext();
-      const infoLine = new Info_line(ctx.generateId(), [
-        createToken(TT.INF_HDR, "V:"),
-        createToken(TT.INFO_STR, "Voice1"),
-      ]);
+      const infoLine = new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "Voice1")]);
 
       expect(isVoiceMarker(infoLine)).to.be.true;
     });
 
     it("should identify voice markers (Inline_field)", () => {
       const ctx = new ABCContext();
-      const inlineField = new Inline_field(
-        ctx.generateId(),
-        createToken(TT.INF_HDR, "V:"),
-        [createToken(TT.INFO_STR, "Voice1")],
-      );
+      const inlineField = new Inline_field(ctx.generateId(), createToken(TT.INF_HDR, "V:"), [createToken(TT.INFO_STR, "Voice1")]);
 
       expect(isVoiceMarker(inlineField)).to.be.true;
     });
 
     it("should not identify non-voice markers as voice markers", () => {
       const ctx = new ABCContext();
-      const infoLine = new Info_line(ctx.generateId(), [
-        createToken(TT.INF_HDR, "K:"),
-        createToken(TT.INFO_STR, "C"),
-      ]);
+      const infoLine = new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "K:"), createToken(TT.INFO_STR, "C")]);
 
       expect(isVoiceMarker(infoLine)).to.be.false;
     });
@@ -204,41 +164,28 @@ describe("voices2.ts", () => {
 
     it("should not identify non-tokens as tokens", () => {
       const ctx = new ABCContext();
-      const infoLine = new Info_line(ctx.generateId(), [
-        createToken(TT.INF_HDR, "K:"),
-        createToken(TT.INFO_STR, "C"),
-      ]);
+      const infoLine = new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "K:"), createToken(TT.INFO_STR, "C")]);
 
       expect(isToken(infoLine)).to.be.false;
     });
 
     it("should extract voice name from Info_line", () => {
       const ctx = new ABCContext();
-      const infoLine = new Info_line(ctx.generateId(), [
-        createToken(TT.INF_HDR, "V:"),
-        createToken(TT.INFO_STR, "Voice1"),
-      ]);
+      const infoLine = new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "Voice1")]);
 
       expect(stringifyVoice(infoLine)).to.equal("Voice1");
     });
 
     it("should extract voice name from Inline_field", () => {
       const ctx = new ABCContext();
-      const inlineField = new Inline_field(
-        ctx.generateId(),
-        createToken(TT.INF_HDR, "V:"),
-        [createToken(TT.INFO_STR, "Voice1")],
-      );
+      const inlineField = new Inline_field(ctx.generateId(), createToken(TT.INF_HDR, "V:"), [createToken(TT.INFO_STR, "Voice1")]);
 
       expect(stringifyVoice(inlineField)).to.equal("Voice1");
     });
 
     it("should detect new system when lastVoice is empty", () => {
       const ctx = new ABCContext();
-      const infoLine = new Info_line(ctx.generateId(), [
-        createToken(TT.INF_HDR, "V:"),
-        createToken(TT.INFO_STR, "Voice1"),
-      ]);
+      const infoLine = new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "Voice1")]);
 
       const voiceCtx = createVoiceCtx([infoLine], ["Voice1", "Voice2"]);
 
@@ -247,10 +194,7 @@ describe("voices2.ts", () => {
 
     it("should detect new system when current voice has lower index than last voice", () => {
       const ctx = new ABCContext();
-      const infoLine = new Info_line(ctx.generateId(), [
-        createToken(TT.INF_HDR, "V:"),
-        createToken(TT.INFO_STR, "Voice1"),
-      ]);
+      const infoLine = new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "Voice1")]);
 
       const voiceCtx = createVoiceCtx([infoLine], ["Voice1", "Voice2"]);
       voiceCtx.lastVoice = "Voice2";
@@ -260,10 +204,7 @@ describe("voices2.ts", () => {
 
     it("should not detect new system when current voice has higher index than last voice", () => {
       const ctx = new ABCContext();
-      const infoLine = new Info_line(ctx.generateId(), [
-        createToken(TT.INF_HDR, "V:"),
-        createToken(TT.INFO_STR, "Voice2"),
-      ]);
+      const infoLine = new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "Voice2")]);
 
       const voiceCtx = createVoiceCtx([infoLine], ["Voice1", "Voice2"]);
       voiceCtx.lastVoice = "Voice1";
@@ -329,10 +270,7 @@ describe("voices2.ts", () => {
         createToken(TT.NOTE_LETTER, "C"),
         createToken(TT.NOTE_LETTER, "D"),
         createToken(TT.EOL, "\n"),
-        new Info_line(ctx.generateId(), [
-          createToken(TT.INF_HDR, "V:"),
-          createToken(TT.INFO_STR, "Voice1"),
-        ]),
+        new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "Voice1")]),
         createToken(TT.NOTE_LETTER, "E"),
         createToken(TT.NOTE_LETTER, "F"),
       ];
@@ -350,22 +288,13 @@ describe("voices2.ts", () => {
       const ctx = new ABCContext();
 
       const elements: tune_body_code[] = [
-        new Info_line(ctx.generateId(), [
-          createToken(TT.INF_HDR, "V:"),
-          createToken(TT.INFO_STR, "Voice1"),
-        ]),
+        new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "Voice1")]),
         createToken(TT.NOTE_LETTER, "C"),
         createToken(TT.NOTE_LETTER, "D"),
-        new Info_line(ctx.generateId(), [
-          createToken(TT.INF_HDR, "V:"),
-          createToken(TT.INFO_STR, "Voice2"),
-        ]),
+        new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "Voice2")]),
         createToken(TT.NOTE_LETTER, "E"),
         createToken(TT.NOTE_LETTER, "F"),
-        new Info_line(ctx.generateId(), [
-          createToken(TT.INF_HDR, "V:"),
-          createToken(TT.INFO_STR, "Voice1"),
-        ]),
+        new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "Voice1")]),
         createToken(TT.NOTE_LETTER, "G"),
         createToken(TT.NOTE_LETTER, "A"),
       ];
@@ -383,14 +312,10 @@ describe("voices2.ts", () => {
       const ctx = new ABCContext();
 
       const elements: tune_body_code[] = [
-        new Inline_field(ctx.generateId(), createToken(TT.INF_HDR, "V:"), [
-          createToken(TT.INFO_STR, "Voice1"),
-        ]),
+        new Inline_field(ctx.generateId(), createToken(TT.INF_HDR, "V:"), [createToken(TT.INFO_STR, "Voice1")]),
         createToken(TT.NOTE_LETTER, "C"),
         createToken(TT.NOTE_LETTER, "D"),
-        new Inline_field(ctx.generateId(), createToken(TT.INF_HDR, "V:"), [
-          createToken(TT.INFO_STR, "Voice2"),
-        ]),
+        new Inline_field(ctx.generateId(), createToken(TT.INF_HDR, "V:"), [createToken(TT.INFO_STR, "Voice2")]),
         createToken(TT.NOTE_LETTER, "E"),
         createToken(TT.NOTE_LETTER, "F"),
       ];
@@ -423,15 +348,9 @@ describe("voices2.ts", () => {
       const ctx = new ABCContext();
 
       const elements: tune_body_code[] = [
-        new Info_line(ctx.generateId(), [
-          createToken(TT.INF_HDR, "V:"),
-          createToken(TT.INFO_STR, "Voice1"),
-        ]),
+        new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "Voice1")]),
         createToken(TT.NOTE_LETTER, "C"),
-        new Info_line(ctx.generateId(), [
-          createToken(TT.INF_HDR, "V:"),
-          createToken(TT.INFO_STR, "Voice2"),
-        ]),
+        new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "Voice2")]),
         createToken(TT.NOTE_LETTER, "D"),
       ];
 
@@ -451,7 +370,7 @@ z16|
 z16|`;
 
       const ctx = new ABCContext();
-      const tokens = Scanner2(sample, ctx.errorReporter);
+      const tokens = Scanner2(sample, ctx);
       const tune = parseTune(tokens, ctx);
 
       expect(tune).to.not.be.null;
@@ -469,7 +388,7 @@ L:1/8
 [V: V1]z16|`;
 
       const ctx = new ABCContext();
-      const tokens = Scanner2(sample, ctx.errorReporter);
+      const tokens = Scanner2(sample, ctx);
       const tune = parseTune(tokens, ctx);
 
       expect(tune).to.not.be.null;
@@ -489,7 +408,7 @@ L:1/8
 [V: V1]z16|`;
 
       const ctx = new ABCContext();
-      const tokens = Scanner2(sample, ctx.errorReporter);
+      const tokens = Scanner2(sample, ctx);
       const tune = parseTune(tokens, ctx);
 
       expect(tune).to.not.be.null;
@@ -510,7 +429,7 @@ L:1/8
 [V: V1]z16|`;
 
       const ctx = new ABCContext();
-      const tokens = Scanner2(sample, ctx.errorReporter);
+      const tokens = Scanner2(sample, ctx);
       const tune = parseTune(tokens, ctx);
 
       expect(tune).to.not.be.null;
@@ -532,7 +451,7 @@ V:LH
 A|`;
 
       const ctx = new ABCContext();
-      const tokens = Scanner2(sample, ctx.errorReporter);
+      const tokens = Scanner2(sample, ctx);
       const tune = parseTune(tokens, ctx);
 
       expect(tune).to.not.be.null;
@@ -552,7 +471,7 @@ K:C
 [V: LH] A|`;
 
       const ctx = new ABCContext();
-      const tokens = Scanner2(sample, ctx.errorReporter);
+      const tokens = Scanner2(sample, ctx);
       const tune = parseTune(tokens, ctx);
 
       expect(tune).to.not.be.null;

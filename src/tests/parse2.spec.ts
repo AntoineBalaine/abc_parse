@@ -1,65 +1,67 @@
 import { assert } from "chai";
 import { describe, it } from "mocha";
-import {
-  ParseCtx,
-  parseBarline,
-  parseChord,
-  parseGraceGroup,
-  parseRest,
-  parseNote,
-  parseTuplet,
-  parseYSpacer,
-  parseSymbol,
-  parseAnnotation,
-  parseDecoration,
-  parsePitch,
-  parseRhythm,
-  parseRepeatNumbers,
-  parseMusicCode,
-  prcssBms,
-  BeamCtx,
-  prsTuneHdr,
-  prsInfoLine,
-  prsComment,
-  prsDirective,
-  prsBody,
-} from "../parsers/parse2";
-import { Token, TT } from "../parsers/scan2";
 import { ABCContext } from "../parsers/Context";
 import {
+  parseAnnotation,
+  parseBarline,
+  parseChord,
+  ParseCtx,
+  parseDecoration,
+  parseGraceGroup,
+  parseMusicCode,
+  parseNote,
+  parsePitch,
+  parseRepeatNumbers,
+  parseRest,
+  parseRhythm,
+  parseSymbol,
+  parseTuplet,
+  parseYSpacer,
+  prcssBms,
+  prsBody,
+  prsTuneHdr,
+} from "../parsers/parse2";
+import { Token, TT } from "../parsers/scan2";
+import {
+  Annotation,
   BarLine,
+  Beam,
   Chord,
+  Comment,
+  Decoration,
+  Directive,
   Grace_group,
-  Rest,
+  Info_line,
+  MultiMeasureRest,
   Note,
   Pitch,
+  Rest,
   Rhythm,
   Symbol,
-  YSPACER,
-  Annotation,
-  Decoration,
-  Tuplet,
-  Beam,
-  Tune_header,
-  Info_line,
-  Comment,
-  Directive,
-  MultiMeasureRest,
   Tune_Body,
+  Tune_header,
+  Tuplet,
+  YSPACER,
 } from "../types/Expr2";
 
 // Helper function to create a token with the given type and lexeme
 function createToken(type: TT, lexeme: string, line: number = 0, position: number = 0): Token {
-  const token = new Token(type, {
-    source: "",
-    tokens: [],
-    start: 0,
-    current: lexeme.length,
-    line,
-    report: () => {},
-    push: () => {},
-    test: () => false,
-  });
+  const ctx = new ABCContext();
+  const token = new Token(
+    type,
+    {
+      source: "",
+      tokens: [],
+      start: 0,
+      current: lexeme.length,
+      line,
+      report: () => {},
+      push: () => {},
+      test: () => false,
+      abcContext: ctx,
+    },
+    ctx.generateId()
+  );
 
   // Override the lexeme property
   Object.defineProperty(token, "lexeme", {

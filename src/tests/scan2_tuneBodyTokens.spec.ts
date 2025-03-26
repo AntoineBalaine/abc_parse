@@ -1,33 +1,34 @@
 import assert from "assert";
 import { describe, it } from "mocha";
-import { Ctx, TT, stylesheet_directive, info_line } from "../parsers/scan2";
+import { ABCContext } from "../parsers/Context";
+import { AbcErrorReporter } from "../parsers/ErrorReporter";
+import { Ctx, TT, info_line, stylesheet_directive } from "../parsers/scan2";
 import {
+  accidental,
+  ampersand,
+  annotation,
+  barline,
+  bcktck_spc,
+  chord,
   comment,
   decoration,
-  symbol,
-  rhythm,
-  pitch,
-  accidental,
-  note,
-  rest,
-  chord,
   grace_grp,
   inline_field,
-  annotation,
-  y_spacer,
-  tuplet,
-  barline,
-  ampersand,
-  bcktck_spc,
-  slur,
+  note,
+  pitch,
+  rest,
+  rhythm,
   scanTune,
+  slur,
+  symbol,
   symbol_line,
+  tuplet,
+  y_spacer,
 } from "../parsers/scan_tunebody";
-import { AbcErrorReporter } from "../parsers/ErrorReporter";
 
 // Helper function to create a Ctx object for testing
 export function createCtx(source: string): Ctx {
-  return new Ctx(source, new AbcErrorReporter());
+  return new Ctx(source, new ABCContext());
 }
 
 describe("scan2", () => {
@@ -614,7 +615,7 @@ describe("scan2", () => {
     it("should correctly parse chord with accidental", () => {
       // Arrange
       const input = "[^/a]";
-      const ctx = new Ctx(input);
+      const ctx = new Ctx(input, new ABCContext());
       const errorReporter = new AbcErrorReporter();
       ctx.errorReporter = errorReporter;
 

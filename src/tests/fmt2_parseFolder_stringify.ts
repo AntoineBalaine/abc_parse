@@ -1,10 +1,9 @@
 import { assert } from "chai";
 import fs from "fs";
 import path from "path";
-import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Scanner2 } from "../parsers/scan2";
-import { parseTune } from "../parsers/parse2";
 import { ABCContext } from "../parsers/Context";
+import { parseTune } from "../parsers/parse2";
+import { Scanner2 } from "../parsers/scan2";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
 
 describe("Formatter2: StringifyFolder", function () {
@@ -21,7 +20,7 @@ describe("Formatter2: StringifyFolder", function () {
     try {
       const content = fs.readFileSync(filePath, "utf-8");
       const ctx = new ABCContext();
-      const tokens = Scanner2(content, ctx.errorReporter);
+      const tokens = Scanner2(content, ctx);
 
       // Skip files that can't be parsed
       if (ctx.errorReporter.hasErrors()) {

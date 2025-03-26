@@ -1,8 +1,8 @@
 import { ABCContext } from "../../parsers/Context";
 import { Ctx, Token, TT } from "../../parsers/scan2";
-import { Expr, System, tune_body_code } from "../../types/Expr2";
-import { BarAlignment, Location, NodeID, VoiceSplit, getNodeId, isBarLine, isToken } from "./fmt_timeMapHelpers";
+import { System } from "../../types/Expr2";
 import { AbcFormatter2 } from "../Formatter2";
+import { BarAlignment, getNodeId, isBarLine, isToken, Location, NodeID, VoiceSplit } from "./fmt_timeMapHelpers";
 
 export function reconstructSystem(voiceSplits: VoiceSplit[]): System {
   const newSystem: System = [];
@@ -148,9 +148,9 @@ export function equalizeBarLengths(voiceSplits: Array<VoiceSplit>, ctx: ABCConte
       barLengths.forEach(({ voiceIdx, endIdx, length, isLastBar }) => {
         if (!isLastBar && length < maxLen) {
           const paddingLen = maxLen - length;
-          const tknCtx: Ctx = new Ctx(" ".repeat(paddingLen));
+          const tknCtx: Ctx = new Ctx(" ".repeat(paddingLen), ctx);
           tknCtx.current = tknCtx.source.length;
-          const padding = new Token(TT.WS, tknCtx);
+          const padding = new Token(TT.WS, tknCtx, ctx.generateId());
           voiceSplits[voiceIdx].content.splice(endIdx, 0, padding);
         }
       });
@@ -179,60 +179,4 @@ export function findPaddingInsertionPoint(voice: System, nodeId: NodeID, startNo
   }
 
   return nodeIdx;
-}
-
-export function equalizer(voiceSplits: Array<VoiceSplit>, stringifyVisitor: AbcFormatter2): Array<VoiceSplit> {
-  let voices = voiceSplits.map((split) => ({
-    ...split,
-    cursor: 0,
-    stringified: "",
-  }));
-
-  while (voices.some((voice) => voice.type === "formatted")) {
-    // Update cursor and stringified content for each voice
-    voices.forEach((voice) => {
-      if (voice.type !== "formatted") return;
-
-      // Find next barline
-      const nextBarIndex = voice.content.findIndex((node, idx) => idx > voice.cursor && isBarLine(node));
-
-      // If no more bars or hit EOL/EOF, mark as noformat
-      if (nextBarIndex === -1) {
-        voice.type = "noformat";
-        return;
-      } else {
-        // Update cursor and get stringified content
-        voice.cursor = nextBarIndex;
-        voice.stringified = voice.content
-          .slice(0, voice.cursor)
-          .map((node) => stringifyVisitor.stringify(node))
-          .join("");
-      }
-    });
-
-    // Check if we still have formatted voices
-    if (!voices.some((voice) => voice.type === "formatted")) break;
-
-    // Find max length and add padding where needed
-    const maxLen = Math.max(...voices.filter((voice) => voice.type === "formatted").map((voice) => voice.stringified.length));
-
-    voices.forEach((voice) => {
-      if (voice.type !== "formatted") return;
-
-      if (voice.stringified.length < maxLen) {
-        const paddingLen = maxLen - voice.stringified.length;
-        const insertIdx = findPaddingInsertionPoint(voice.content, getNodeId(voice.content[voice.cursor]), getNodeId(voice.content[0]));
-
-        if (insertIdx !== -1) {
-          const tknCtx: Ctx = new Ctx(" ".repeat(paddingLen));
-          tknCtx.current = tknCtx.source.length;
-          const padding = new Token(TT.WS, tknCtx);
-          voice.content.splice(insertIdx + 1, 0, padding);
-          voice.cursor++;
-        }
-      }
-    });
-  }
-
-  return voices;
 }

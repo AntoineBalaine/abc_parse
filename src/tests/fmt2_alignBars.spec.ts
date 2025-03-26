@@ -3,10 +3,9 @@ import { ABCContext } from "../parsers/Context";
 import { parseTune } from "../parsers/parse2";
 import { Scanner2 } from "../parsers/scan2";
 import { alignBars } from "../Visitors/fmt2/fmt_aligner";
-import { VoiceSplit } from "../Visitors/fmt2/fmt_timeMapHelpers";
 import { resolveRules } from "../Visitors/fmt2/fmt_rules_assignment";
 import { mapTimePoints } from "../Visitors/fmt2/fmt_timeMap";
-import { findFmtblLines } from "../Visitors/fmt2/fmt_timeMapHelpers";
+import { findFmtblLines, VoiceSplit } from "../Visitors/fmt2/fmt_timeMapHelpers";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
 
 describe("Formatter2 - align time points", () => {
@@ -19,7 +18,7 @@ describe("Formatter2 - align time points", () => {
   });
 
   function format(input: string): string {
-    const tokens = Scanner2(input, ctx.errorReporter);
+    const tokens = Scanner2(input, ctx);
     const ast = parseTune(tokens, ctx);
     if (!ast) {
       throw new Error("Failed to parse");

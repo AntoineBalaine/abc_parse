@@ -14,7 +14,7 @@ describe("splitSystem (fmt2)", () => {
   });
 
   function parseSystem(input: string): System {
-    const tokens = Scanner2(input, ctx.errorReporter);
+    const tokens = Scanner2(input, ctx);
     const ast = parseTune(tokens, ctx);
     if (!ast) {
       throw new Error("Failed to parse");

@@ -1,34 +1,37 @@
 import * as fc from "fast-check";
-import { Ctx, Scanner2, Token, TT } from "../parsers/scan2";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { pDuration, pitch, pPitch, scanTune } from "../parsers/scan_tunebody";
+import { Token, TT } from "../parsers/scan2";
 
 // Create a shared context for all generators
 export const sharedContext = new ABCContext(new AbcErrorReporter());
 
-export const genNoteLetter = fc.stringMatching(/^[a-gA-G]$/).map((letter) => new Token(TT.NOTE_LETTER, letter));
+export const genNoteLetter = fc.stringMatching(/^[a-gA-G]$/).map((letter) => new Token(TT.NOTE_LETTER, letter, sharedContext.generateId()));
 
-export const genOctave = fc.stringMatching(/^(,+|'+)$/).map((oct) => new Token(TT.OCTAVE, oct));
+export const genOctave = fc.stringMatching(/^(,+|'+)$/).map((oct) => new Token(TT.OCTAVE, oct, sharedContext.generateId()));
 
-export const genAccidental = fc.stringMatching(/^((\^[\^\/]?)|(_[_\/]?)|=)$/).map((acc) => new Token(TT.ACCIDENTAL, acc));
+export const genAccidental = fc.stringMatching(/^((\^[\^\/]?)|(_[_\/]?)|=)$/).map((acc) => new Token(TT.ACCIDENTAL, acc, sharedContext.generateId()));
 
-export const genRest = fc.stringMatching(/^[xXzZ]$/).map((rest) => new Token(TT.REST, rest));
+export const genRest = fc.stringMatching(/^[xXzZ]$/).map((rest) => new Token(TT.REST, rest, sharedContext.generateId()));
 
 // Fixed barline generator that matches scanner behavior
-export const genBarline = fc.stringMatching(/^((\[\|)|(\|\])|(\|\|)|(\|))$/).map((bar) => new Token(TT.BARLINE, bar));
+export const genBarline = fc.stringMatching(/^((\[\|)|(\|\])|(\|\|)|(\|))$/).map((bar) => new Token(TT.BARLINE, bar, sharedContext.generateId()));
 
 export const genRhythm = fc.oneof(
-  fc.stringMatching(/^\/+$/).map((slashes) => [new Token(TT.RHY_SEP, slashes)]),
+  fc.stringMatching(/^\/+$/).map((slashes) => [new Token(TT.RHY_SEP, slashes, sharedContext.generateId())]),
   fc
     .tuple(
       fc.stringMatching(/^[1-9][0-9]*$/), // numerator
       fc.constantFrom("/"), // separator
       fc.stringMatching(/^[1-9][0-9]*$/) // denominator
     )
-    .map(([num, sep, denom]) => [new Token(TT.RHY_NUMER, num), new Token(TT.RHY_SEP, sep), new Token(TT.RHY_DENOM, denom)]),
-  fc.stringMatching(/^[1-9][0-9]*$/).map((num) => [new Token(TT.RHY_NUMER, num.toString())]),
-  fc.stringMatching(/^([>]+|[<]+)$/).map((arrows) => [new Token(TT.RHY_BRKN, arrows)])
+    .map(([num, sep, denom]) => [
+      new Token(TT.RHY_NUMER, num, sharedContext.generateId()),
+      new Token(TT.RHY_SEP, sep, sharedContext.generateId()),
+      new Token(TT.RHY_DENOM, denom, sharedContext.generateId()),
+    ]),
+  fc.stringMatching(/^[1-9][0-9]*$/).map((num) => [new Token(TT.RHY_NUMER, num.toString(), sharedContext.generateId())]),
+  fc.stringMatching(/^([>]+|[<]+)$/).map((arrows) => [new Token(TT.RHY_BRKN, arrows, sharedContext.generateId())])
 );
 
 // Composite token generators
@@ -45,7 +48,7 @@ export const genNote = fc.tuple(genPitch, fc.option(genRhythm)).map(([pitchToken
   return [...pitchTokens, ...(rhythmTokens || [])];
 });
 
-export const genTie = fc.constantFrom(new Token(TT.TIE, "-"));
+export const genTie = fc.constantFrom(new Token(TT.TIE, "-", sharedContext.generateId()));
 
 // Tuplet generator - creates tokens for (p:q:r format
 export const genTuplet = fc
@@ -56,20 +59,20 @@ export const genTuplet = fc
   )
   .map(([p, q, r]) => {
     // Start with the opening parenthesis and p value
-    const tokens = [new Token(TT.TUPLET_LPAREN, "("), new Token(TT.TUPLET_P, p)];
+    const tokens = [new Token(TT.TUPLET_LPAREN, "(", sharedContext.generateId()), new Token(TT.TUPLET_P, p, sharedContext.generateId())];
 
     // Check if we have a second value (q or r)
     if (q) {
-      tokens.push(new Token(TT.TUPLET_COLON, ":"));
+      tokens.push(new Token(TT.TUPLET_COLON, ":", sharedContext.generateId()));
 
       // If we have a third value (r), then the second value is q
       if (r) {
-        tokens.push(new Token(TT.TUPLET_Q, q));
-        tokens.push(new Token(TT.TUPLET_COLON, ":"));
-        tokens.push(new Token(TT.TUPLET_R, r));
+        tokens.push(new Token(TT.TUPLET_Q, q, sharedContext.generateId()));
+        tokens.push(new Token(TT.TUPLET_COLON, ":", sharedContext.generateId()));
+        tokens.push(new Token(TT.TUPLET_R, r, sharedContext.generateId()));
       } else {
         // If we only have two values, the second value is q
-        tokens.push(new Token(TT.TUPLET_Q, q));
+        tokens.push(new Token(TT.TUPLET_Q, q, sharedContext.generateId()));
       }
     }
 
@@ -77,30 +80,32 @@ export const genTuplet = fc
   });
 
 // Slur generator
-export const genSlur = fc.constantFrom("(", ")").map((slur) => new Token(TT.SLUR, slur));
+export const genSlur = fc.constantFrom("(", ")").map((slur) => new Token(TT.SLUR, slur, sharedContext.generateId()));
 
 // Decoration generator
-export const genDecoration = fc.stringMatching(/^[\~\.HLMOPSTuv]+$/).map((deco) => new Token(TT.DECORATION, deco));
+export const genDecoration = fc.stringMatching(/^[\~\.HLMOPSTuv]+$/).map((deco) => new Token(TT.DECORATION, deco, sharedContext.generateId()));
 
 // Symbol generator
 export const genSymbol = fc.oneof(
-  fc.stringMatching(/^![a-zA-Z][^\n!]*!$/).map((sym) => new Token(TT.SYMBOL, sym)),
-  fc.stringMatching(/^\+[^\n\+]*\+$/).map((sym) => new Token(TT.SYMBOL, sym))
+  fc.stringMatching(/^![a-zA-Z][^\n!]*!$/).map((sym) => new Token(TT.SYMBOL, sym, sharedContext.generateId())),
+  fc.stringMatching(/^\+[^\n\+]*\+$/).map((sym) => new Token(TT.SYMBOL, sym, sharedContext.generateId()))
 );
 
 // Y-spacer generator
-export const genYspacer = fc.tuple(fc.constantFrom(new Token(TT.Y_SPC, "y")), fc.option(genRhythm)).map(([y, rhy]) => (rhy ? [y, ...rhy] : [y]));
+export const genYspacer = fc
+  .tuple(fc.constantFrom(new Token(TT.Y_SPC, "y", sharedContext.generateId())), fc.option(genRhythm))
+  .map(([y, rhy]) => (rhy ? [y, ...rhy] : [y]));
 
 // Backtick spacer generator
-export const genBcktckSpc = fc.constantFrom(new Token(TT.BCKTCK_SPC, "`"));
+export const genBcktckSpc = fc.constantFrom(new Token(TT.BCKTCK_SPC, "`", sharedContext.generateId()));
 
 // Grace notes generator
 export const genGraceGroup = fc
   .tuple(
-    fc.constantFrom(new Token(TT.GRC_GRP_LEFT_BRACE, "{")),
-    fc.option(fc.constantFrom(new Token(TT.GRC_GRP_SLSH, "/"))),
+    fc.constantFrom(new Token(TT.GRC_GRP_LEFT_BRACE, "{", sharedContext.generateId())),
+    fc.option(fc.constantFrom(new Token(TT.GRC_GRP_SLSH, "/", sharedContext.generateId()))),
     fc.array(genPitch, { minLength: 1, maxLength: 4 }),
-    fc.constantFrom(new Token(TT.GRC_GRP_RGHT_BRACE, "}"))
+    fc.constantFrom(new Token(TT.GRC_GRP_RGHT_BRACE, "}", sharedContext.generateId()))
   )
   .map(([leftBrace, slashOpt, notes, rightBrace]) => {
     const tokens = [leftBrace];
@@ -113,35 +118,35 @@ export const genGraceGroup = fc
 // Inline field generator
 export const genInlineField = fc
   .tuple(
-    fc.constantFrom(new Token(TT.INLN_FLD_LFT_BRKT, "[")),
-    fc.stringMatching(/^[a-zA-Z]:$/).map((hdr) => new Token(TT.INF_HDR, hdr)),
-    fc.stringMatching(/^[^\]]+$/).map((str) => new Token(TT.INFO_STR, str)),
-    fc.constantFrom(new Token(TT.INLN_FLD_RGT_BRKT, "]"))
+    fc.constantFrom(new Token(TT.INLN_FLD_LFT_BRKT, "[", sharedContext.generateId())),
+    fc.stringMatching(/^[a-zA-Z]:$/).map((hdr) => new Token(TT.INF_HDR, hdr, sharedContext.generateId())),
+    fc.stringMatching(/^[^\]]+$/).map((str) => new Token(TT.INFO_STR, str, sharedContext.generateId())),
+    fc.constantFrom(new Token(TT.INLN_FLD_RGT_BRKT, "]", sharedContext.generateId()))
   )
   .map((tokens) => tokens);
-export const genEOL = fc.constantFrom(new Token(TT.EOL, "\n"));
+export const genEOL = fc.constantFrom(new Token(TT.EOL, "\n", sharedContext.generateId()));
 
 // Stylesheet directive generator
 export const genStylesheetDirective = fc.tuple(
-  fc.stringMatching(/^%%[^\n]*$/).map((str) => new Token(TT.STYLESHEET_DIRECTIVE, str)),
+  fc.stringMatching(/^%%[^\n]*$/).map((str) => new Token(TT.STYLESHEET_DIRECTIVE, str, sharedContext.generateId())),
   genEOL
 );
 
 // Comment generator
 export const genCommentToken = fc.tuple(
-  fc.stringMatching(/^%[^%\n]*$/).map((str) => new Token(TT.COMMENT, str)),
+  fc.stringMatching(/^%[^%\n]*$/).map((str) => new Token(TT.COMMENT, str, sharedContext.generateId())),
   genEOL
 );
 
-export const genWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws));
+export const genWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws, sharedContext.generateId()));
 // Ampersand generator (both forms)
-export const genAmpersand = fc.tuple(fc.constantFrom(new Token(TT.VOICE, "&")), genWhitespace);
-export const genVoiceOvrlay = fc.constantFrom(new Token(TT.VOICE_OVRLAY, "&\n"));
+export const genAmpersand = fc.tuple(fc.constantFrom(new Token(TT.VOICE, "&", sharedContext.generateId())), genWhitespace);
+export const genVoiceOvrlay = fc.constantFrom(new Token(TT.VOICE_OVRLAY, "&\n", sharedContext.generateId()));
 export const genChord = fc
   .tuple(
-    fc.constantFrom(new Token(TT.CHRD_LEFT_BRKT, "[")),
+    fc.constantFrom(new Token(TT.CHRD_LEFT_BRKT, "[", sharedContext.generateId())),
     fc.array(genPitch, { minLength: 1, maxLength: 4 }),
-    fc.constantFrom(new Token(TT.CHRD_RIGHT_BRKT, "]")),
+    fc.constantFrom(new Token(TT.CHRD_RIGHT_BRKT, "]", sharedContext.generateId())),
     fc.option(genRhythm)
   )
   .map(([leftBracket, pitches, rightBracket, rhythmOpt]) => {
@@ -156,10 +161,10 @@ export const genGraceGroupWithFollower = fc
   .tuple(
     // The grace group
     fc.tuple(
-      fc.constantFrom(new Token(TT.GRC_GRP_LEFT_BRACE, "{")),
-      fc.option(fc.constantFrom(new Token(TT.GRC_GRP_SLSH, "/"))),
+      fc.constantFrom(new Token(TT.GRC_GRP_LEFT_BRACE, "{", sharedContext.generateId())),
+      fc.option(fc.constantFrom(new Token(TT.GRC_GRP_SLSH, "/", sharedContext.generateId()))),
       fc.array(genPitch, { minLength: 1, maxLength: 4 }),
-      fc.constantFrom(new Token(TT.GRC_GRP_RGHT_BRACE, "}"))
+      fc.constantFrom(new Token(TT.GRC_GRP_RGHT_BRACE, "}", sharedContext.generateId()))
     ),
     // The follower - either a pitch or a chord (you'll need to create a chord generator)
     fc.oneof(genNote, genChord)
@@ -181,7 +186,7 @@ export const genGraceGroupWithFollower = fc
 export const genDecorationWithFollower = fc
   .tuple(
     // The decoration
-    fc.stringMatching(/^[\~\.HLMOPSTuv]+$/).map((deco) => new Token(TT.DECORATION, deco)),
+    fc.stringMatching(/^[\~\.HLMOPSTuv]+$/).map((deco) => new Token(TT.DECORATION, deco, sharedContext.generateId())),
 
     // The follower - either a note or a chord
     fc.oneof(
@@ -199,15 +204,15 @@ export const genAnnotation = fc
   .map((text) => {
     // Create the complete quoted annotation
     const quotedText = `"${text}"`;
-    return new Token(TT.ANNOTATION, quotedText);
+    return new Token(TT.ANNOTATION, quotedText, sharedContext.generateId());
   });
 
 export const genInfoLine = fc
   .tuple(
     // genWhitespace,
     genEOL,
-    fc.stringMatching(/^[a-wA-W]:$/).map((header) => new Token(TT.INF_HDR, header)),
-    fc.stringMatching(/^[^&\s%]+$/).map((content) => new Token(TT.INFO_STR, content)),
+    fc.stringMatching(/^[a-wA-W]:$/).map((header) => new Token(TT.INF_HDR, header, sharedContext.generateId())),
+    fc.stringMatching(/^[^&\s%]+$/).map((content) => new Token(TT.INFO_STR, content, sharedContext.generateId())),
     genEOL
   )
   .map((tokens) => tokens);

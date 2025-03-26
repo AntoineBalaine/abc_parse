@@ -1,12 +1,12 @@
 import assert from "assert";
 import { describe, it } from "mocha";
-import { Ctx, Scanner2, TT } from "../parsers/scan2";
+import { ABCContext } from "../parsers/Context";
+import { Ctx, TT } from "../parsers/scan2";
 import { scanTune } from "../parsers/scan_tunebody";
-import { AbcErrorReporter } from "../parsers/ErrorReporter";
 
 // Helper function to create a Ctx object for testing
 function createCtx(source: string): Ctx {
-  return new Ctx(source, new AbcErrorReporter());
+  return new Ctx(source, new ABCContext());
 }
 
 describe("Invalid Token Handling in Scanner", () => {

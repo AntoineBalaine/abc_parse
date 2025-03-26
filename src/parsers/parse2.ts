@@ -1,36 +1,36 @@
-import { parseSystemsWithVoices } from "./voices2";
-import { Token, TT } from "./scan2";
-import { ABCContext } from "./Context";
+import { followedBy, foundBeam, isBeamBreaker } from "../helpers2";
 import {
   Annotation,
   BarLine,
   Beam,
+  Beam_contents,
   Chord,
   Comment,
   Decoration,
+  Directive,
+  ErrorExpr,
   Expr,
   Grace_group,
   Info_line,
+  Inline_field,
+  MultiMeasureRest,
   Note,
   Pitch,
   Rest,
   Rhythm,
   Symbol,
+  SymbolLine,
   System,
   Tune,
   Tune_Body,
+  tune_body_code,
   Tune_header,
   Tuplet,
   YSPACER,
-  tune_body_code,
-  Beam_contents,
-  Directive,
-  Inline_field,
-  MultiMeasureRest,
-  ErrorExpr,
-  SymbolLine,
 } from "../types/Expr2";
-import { isBeamBreaker, foundBeam, followedBy } from "../helpers2";
+import { ABCContext } from "./Context";
+import { Token, TT } from "./scan2";
+import { parseSystemsWithVoices } from "./voices2";
 
 // Parse Context
 export class ParseCtx {
@@ -84,6 +84,7 @@ export class ParseCtx {
         report: () => {},
         push: () => {},
         test: () => false,
+        abcContext: this.abcContext,
       },
       message
     );
@@ -644,6 +645,7 @@ export class BeamCtx {
         report: () => {},
         push: () => {},
         test: () => false,
+        abcContext: this.abcContext,
       },
       message
     );

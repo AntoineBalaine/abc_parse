@@ -1,6 +1,6 @@
 import * as fc from "fast-check";
-import { Ctx, Scanner2, Token, TT } from "../parsers/scan2";
-import { AbcErrorReporter } from "../parsers/ErrorReporter";
+import { ABCContext } from "../parsers/Context";
+import { Ctx, Scanner2, TT } from "../parsers/scan2";
 import { pDuration, pitch, pPitch, scanTune } from "../parsers/scan_tunebody";
 import { genTokenSequence } from "./scan2_pbt.generators.spec";
 
@@ -47,7 +47,8 @@ describe("Scanner Property Tests", () => {
   it("should preserve structural integrity", () => {
     fc.assert(
       fc.property(genAbcFile, (input) => {
-        const tokens = Scanner2(input);
+        const ctx = new ABCContext();
+        const tokens = Scanner2(input, ctx);
         // Property 1: Every section break should correspond to double newlines in input
         const sectionBreaks = tokens.filter((t) => t.type === TT.SCT_BRK);
         const inputBreaks = (input.match(/\n\n/g) || []).length;
@@ -60,7 +61,8 @@ describe("Scanner Property Tests", () => {
   it("should maintain token position integrity", () => {
     fc.assert(
       fc.property(genAbcFile, (input) => {
-        const tokens = Scanner2(input, new AbcErrorReporter());
+        const ctx = new ABCContext();
+        const tokens = Scanner2(input, ctx);
 
         // Property 2: Tokens should be sequential and non-overlapping
         for (let i = 0; i < tokens.length - 1; i++) {
@@ -87,7 +89,8 @@ describe("Scanner Property Tests", () => {
   it("should properly identify tune sections", () => {
     fc.assert(
       fc.property(genAbcFile, (input) => {
-        const tokens = Scanner2(input, new AbcErrorReporter());
+        const ctx = new ABCContext();
+        const tokens = Scanner2(input, ctx);
 
         // Property 3: Every X: line should start a new tune section
         const tuneHeaders = tokens.filter((t) => t.type === TT.INF_HDR && t.lexeme.startsWith("X:"));
@@ -102,7 +105,8 @@ describe("Scanner Property Tests", () => {
     fc.assert(
       fc.property(genAbcFile, (input) => {
         try {
-          Scanner2(input, new AbcErrorReporter());
+          const ctx = new ABCContext();
+          Scanner2(input, ctx);
           return true;
         } catch (e) {
           return false;
@@ -119,7 +123,7 @@ describe("gen scan from regex", () => {
     const genPitch = fc.stringMatching(new RegExp(`^${pPitch.source}$`));
     fc.assert(
       fc.property(genPitch, (pitchStr) => {
-        const ctx = new Ctx(pitchStr);
+        const ctx = new Ctx(pitchStr, new ABCContext());
         const result = pitch(ctx);
         if (!result) {
           return false;
@@ -157,8 +161,7 @@ describe("Scanner Round-trip Tests", () => {
         const input = originalTokens.map((t) => (t as TokenLike).lexeme).join("");
 
         // Rescan
-        const errorReporter = new AbcErrorReporter();
-        let ctx = new Ctx(input);
+        const ctx = new Ctx(input, new ABCContext());
         scanTune(ctx);
         const rescannedTokens = ctx.tokens;
 

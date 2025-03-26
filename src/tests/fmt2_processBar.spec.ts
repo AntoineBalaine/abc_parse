@@ -1,12 +1,11 @@
-import { expect } from "chai";
 import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import { Beam, Chord, MultiMeasureRest, Note, Pitch, Rest, Rhythm, System } from "../types/Expr2";
 import { calculateDuration, DurationContext, isTimeEvent, processBar } from "../Visitors/fmt2/fmt_timeMap";
-import { BarTimeMap, getNodeId } from "../Visitors/fmt2/fmt_timeMapHelpers";
+import { getNodeId } from "../Visitors/fmt2/fmt_timeMapHelpers";
+import { addRational, createRational, isInfiniteRational, Rational, rationalToNumber, rationalToString } from "../Visitors/fmt2/rational";
 import * as Generators from "./parse2_pbt.generators.spec";
-import { Rational, createRational, addRational, rationalToString, rationalToNumber, isInfiniteRational, equalRational } from "../Visitors/fmt2/rational";
 
 describe("processBar function", () => {
   let ctx: ABCContext;
@@ -370,7 +369,7 @@ describe("processBar function", () => {
     it("ignores non-time events", () => {
       fc.assert(
         fc.property(Generators.genNoteExpr, Generators.genNoteExpr, (noteExpr1, noteExpr2) => {
-          const nonTimeEvent = new Token(TT.COMMENT, "% comment");
+          const nonTimeEvent = new Token(TT.COMMENT, "% comment", ctx.generateId());
 
           // Create a bar with time events and non-time events
           const bar = [noteExpr1.expr, nonTimeEvent, noteExpr2.expr];
@@ -410,7 +409,7 @@ describe("processBar function", () => {
 
     it("handles bars with only non-time events", () => {
       // Create a bar with only non-time events
-      const bar = [new Token(TT.COMMENT, "% comment"), new Token(TT.WS, " ")];
+      const bar = [new Token(TT.COMMENT, "% comment", ctx.generateId()), new Token(TT.WS, " ", ctx.generateId())];
       const startNodeId = getNodeId(bar[0]);
 
       // Process the bar
@@ -429,9 +428,9 @@ describe("processBar function", () => {
     it("correctly applies broken rhythm context to subsequent notes", () => {
       // Create a note with broken rhythm
       const ctx = new ABCContext();
-      const noteLetterToken = new Token(TT.NOTE_LETTER, "C");
+      const noteLetterToken = new Token(TT.NOTE_LETTER, "C", ctx.generateId());
       const pitch = new Pitch(ctx.generateId(), { noteLetter: noteLetterToken });
-      const brokenToken = new Token(TT.RHY_BRKN, ">");
+      const brokenToken = new Token(TT.RHY_BRKN, ">", ctx.generateId());
 
       // Create a rhythm with broken rhythm
       const rhythm = new Rhythm(ctx.generateId(), null, undefined, null, brokenToken);
@@ -452,7 +451,7 @@ describe("processBar function", () => {
       }
 
       // Create a regular note to follow it
-      const noteLetterToken2 = new Token(TT.NOTE_LETTER, "D");
+      const noteLetterToken2 = new Token(TT.NOTE_LETTER, "D", ctx.generateId());
       const pitch2 = new Pitch(ctx.generateId(), { noteLetter: noteLetterToken2 });
       const regularNote = new Note(ctx.generateId(), pitch2);
 
@@ -518,28 +517,28 @@ describe("processBar function", () => {
       const ctx = new ABCContext();
 
       // Create a chord with rhythm 2
-      const noteLetterToken1 = new Token(TT.NOTE_LETTER, "C");
+      const noteLetterToken1 = new Token(TT.NOTE_LETTER, "C", ctx.generateId());
       const pitch1 = new Pitch(ctx.generateId(), { noteLetter: noteLetterToken1 });
       const note1 = new Note(ctx.generateId(), pitch1);
 
-      const noteLetterToken2 = new Token(TT.NOTE_LETTER, "E");
+      const noteLetterToken2 = new Token(TT.NOTE_LETTER, "E", ctx.generateId());
       const pitch2 = new Pitch(ctx.generateId(), { noteLetter: noteLetterToken2 });
       const note2 = new Note(ctx.generateId(), pitch2);
 
-      const numeratorToken = new Token(TT.RHY_NUMER, "2");
+      const numeratorToken = new Token(TT.RHY_NUMER, "2", ctx.generateId());
       const rhythm = new Rhythm(ctx.generateId(), numeratorToken);
       const chord1 = new Chord(ctx.generateId(), [note1, note2], rhythm);
 
       // Create a chord with rhythm /
-      const noteLetterToken3 = new Token(TT.NOTE_LETTER, "D");
+      const noteLetterToken3 = new Token(TT.NOTE_LETTER, "D", ctx.generateId());
       const pitch3 = new Pitch(ctx.generateId(), { noteLetter: noteLetterToken3 });
       const note3 = new Note(ctx.generateId(), pitch3);
 
-      const noteLetterToken4 = new Token(TT.NOTE_LETTER, "F");
+      const noteLetterToken4 = new Token(TT.NOTE_LETTER, "F", ctx.generateId());
       const pitch4 = new Pitch(ctx.generateId(), { noteLetter: noteLetterToken4 });
       const note4 = new Note(ctx.generateId(), pitch4);
 
-      const separatorToken = new Token(TT.RHY_SEP, "/");
+      const separatorToken = new Token(TT.RHY_SEP, "/", ctx.generateId());
       const rhythm2 = new Rhythm(ctx.generateId(), null, separatorToken);
       const chord2 = new Chord(ctx.generateId(), [note3, note4], rhythm2);
 
@@ -562,30 +561,30 @@ describe("processBar function", () => {
       const ctx = new ABCContext();
 
       // First chord with broken rhythm '<'
-      const noteLetterToken1 = new Token(TT.NOTE_LETTER, "A");
+      const noteLetterToken1 = new Token(TT.NOTE_LETTER, "A", ctx.generateId());
       const pitch1 = new Pitch(ctx.generateId(), { noteLetter: noteLetterToken1 });
       const note1 = new Note(ctx.generateId(), pitch1);
 
-      const brokenToken = new Token(TT.RHY_BRKN, "<");
+      const brokenToken = new Token(TT.RHY_BRKN, "<", ctx.generateId());
       const rhythm1 = new Rhythm(ctx.generateId(), null, undefined, null, brokenToken);
       rhythm1.broken = brokenToken; // Important!
 
       const chord1 = new Chord(ctx.generateId(), [note1], rhythm1);
 
       // Second chord with rhythm '1/'
-      const noteLetterToken2 = new Token(TT.NOTE_LETTER, "A");
+      const noteLetterToken2 = new Token(TT.NOTE_LETTER, "A", ctx.generateId());
       const pitch2 = new Pitch(ctx.generateId(), { noteLetter: noteLetterToken2 });
       const note2 = new Note(ctx.generateId(), pitch2);
 
-      const numeratorToken = new Token(TT.RHY_NUMER, "1");
-      const separatorToken = new Token(TT.RHY_SEP, "/");
-      const denominatorToken = new Token(TT.RHY_DENOM, "1");
+      const numeratorToken = new Token(TT.RHY_NUMER, "1", ctx.generateId());
+      const separatorToken = new Token(TT.RHY_SEP, "/", ctx.generateId());
+      const denominatorToken = new Token(TT.RHY_DENOM, "1", ctx.generateId());
       const rhythm2 = new Rhythm(ctx.generateId(), numeratorToken, separatorToken, denominatorToken);
 
       const chord2 = new Chord(ctx.generateId(), [note2], rhythm2);
 
       // Third chord with no rhythm
-      const noteLetterToken3 = new Token(TT.NOTE_LETTER, "A");
+      const noteLetterToken3 = new Token(TT.NOTE_LETTER, "A", ctx.generateId());
       const pitch3 = new Pitch(ctx.generateId(), { noteLetter: noteLetterToken3 });
       const note3 = new Note(ctx.generateId(), pitch3);
 

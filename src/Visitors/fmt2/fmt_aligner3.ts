@@ -1,14 +1,10 @@
-import { DurationContext, isTimeEvent, calculateDuration, calculateNoteDuration, calculateBaseDuration, parseTuplet } from "./fmt_timeMap";
-import { Token, TT } from "../../parsers/scan2";
-import { Expr, Rest, System } from "../../types/Expr2";
-import { BarAlignment, isBarLine, Location, NodeID, VoiceSplit, getNodeId } from "./fmt_timeMapHelpers";
-import { equalRational, greaterRational, isRational, Rational, createRational, addRational, isInfiniteRational, rationalToString } from "./rational";
 import { isChord, isNote, isToken } from "../../helpers2";
-import { alignBars } from "./fmt_aligner";
-import { findFmtblLines } from "./fmt_timeMapHelpers";
-import { equalizer } from "./fmt_alignerHelpers";
+import { Token, TT } from "../../parsers/scan2";
+import { Expr, Rest } from "../../types/Expr2";
 import { AbcFormatter2 } from "../Formatter2";
-import { ABCContext } from "../../parsers/Context";
+import { calculateDuration, DurationContext, isTimeEvent } from "./fmt_timeMap";
+import { getNodeId, isBarLine, Location, VoiceSplit } from "./fmt_timeMapHelpers";
+import { addRational, equalRational, greaterRational, isInfiniteRational, isRational, Rational, rationalToString } from "./rational";
 
 class VxCtx {
   nodes: Array<Expr | Token>;
@@ -265,7 +261,7 @@ export function aligner(gCtx: GCtx, voiceSplits: Array<VoiceSplit>, stringifyVis
       if (padding <= 0) continue;
 
       // Insert whitespace token before the current node
-      const wsToken = new Token(TT.WS, " ".repeat(padding));
+      const wsToken = new Token(TT.WS, " ".repeat(padding), stringifyVisitor.ctx.generateId());
       voiceSplits[voiceIdx].content.splice(nodeidx, 0, wsToken);
     }
   }

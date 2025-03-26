@@ -1,3 +1,4 @@
+import { ABCContext } from "./Context";
 import { AbcErrorReporter } from "./ErrorReporter";
 import { comment, pEOL, pInfoLine, pSectionBrk, pTuneHeadStrt, pTuneStart, scanTune } from "./scan_tunebody";
 
@@ -8,14 +9,16 @@ export class Ctx {
   public current: number;
   public line: number;
   public errorReporter?: AbcErrorReporter;
+  public abcContext: ABCContext;
 
-  constructor(source: string, errorReporter?: AbcErrorReporter) {
+  constructor(source: string, abcContext: ABCContext) {
     this.source = source;
     this.tokens = [];
     this.start = 0;
     this.current = 0;
     this.line = 0;
-    this.errorReporter = errorReporter;
+    this.abcContext = abcContext;
+    this.errorReporter = abcContext.errorReporter;
   }
   test(pattern: RegExp | string, offset?: number) {
     if (pattern instanceof RegExp) {
@@ -27,7 +30,8 @@ export class Ctx {
   }
 
   push(tokenType: TT) {
-    this.tokens.push(new Token(tokenType, this));
+    const id = this.abcContext.generateId();
+    this.tokens.push(new Token(tokenType, this, id));
     this.start = this.current;
   }
 
@@ -35,8 +39,8 @@ export class Ctx {
     this.errorReporter?.Scanner2Error(this, msg);
   }
 }
-export function Scanner2(source: string, errorReporter?: AbcErrorReporter): Array<Token> {
-  const ctx = new Ctx(String.raw`${source}`, errorReporter ?? new AbcErrorReporter());
+export function Scanner2(source: string, abcContext: ABCContext): Array<Token> {
+  const ctx = new Ctx(String.raw`${source}`, abcContext);
   while (!isAtEnd(ctx)) {
     ctx.start = ctx.current;
     fileStructure(ctx);
@@ -205,10 +209,15 @@ export class Token {
   public lexeme: string;
   public line: number;
   public position: number;
+  public id: number;
+
   public toString = () => {
-    return this.type + " " + this.lexeme;
+    return `${this.type} ${this.lexeme} (id: ${this.id})`;
   };
-  constructor(type: TT, ctx: Ctx | string) {
+
+  constructor(type: TT, ctx: Ctx | string, id: number) {
+    this.id = id;
+
     if (ctx instanceof Ctx) {
       this.type = type;
       this.lexeme = ctx.source.slice(ctx.start, ctx.current);

@@ -1,12 +1,12 @@
 import assert from "assert";
 import { describe, it } from "mocha";
+import { ABCContext } from "../parsers/Context";
 import { Ctx, Scanner2, TT } from "../parsers/scan2";
 import { scanTune } from "../parsers/scan_tunebody";
-import { AbcErrorReporter } from "../parsers/ErrorReporter";
 
 // Helper function to create a Ctx object for testing
 function createCtx(source: string): Ctx {
-  return new Ctx(source, new AbcErrorReporter());
+  return new Ctx(source, new ABCContext());
 }
 
 describe("scanTuneBody", () => {
@@ -30,7 +30,8 @@ describe("scanTuneBody", () => {
     const input = "X:1\nA B C\n\nX:2\nD E F";
 
     // Tokenize the input
-    const tokens = Scanner2(input, new AbcErrorReporter());
+    const ctx = new ABCContext();
+    const tokens = Scanner2(input, ctx);
 
     // Debug: Print out all tokens for inspection
     console.log("Actual tokens generated:");

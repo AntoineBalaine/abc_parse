@@ -1,10 +1,8 @@
 // abc_parse/src/tests/parseFolder.ts
 import fs from "fs";
 import path from "path";
-import { AbcError, AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Parser } from "../parsers/Parser";
-import { Scanner } from "../parsers/Scanner";
 import { ABCContext } from "../parsers/Context";
+import { AbcError, AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Scanner2 } from "../parsers/scan2";
 
 function formatError(error: AbcError, sourceContent: string): string {
@@ -26,7 +24,7 @@ export function processFile2(filePath: string, errorLog: string[]): boolean {
     const content = fs.readFileSync(filePath, "utf-8");
 
     const reporter = new AbcErrorReporter();
-    const tokens = Scanner2(content, ctx.errorReporter);
+    const tokens = Scanner2(content, ctx);
     if (tokens.length === 0) {
       // Log parsing failure but don't throw
       errorLog.push(`\nFile: ${filePath}`);

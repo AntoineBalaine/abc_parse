@@ -1,15 +1,15 @@
 import { expect } from "chai";
 import * as fc from "fast-check";
-import { ABCContext } from "../parsers/Context";
-import { Token, TT } from "../parsers/scan2";
-import { Beam, Chord, MultiMeasureRest, Note, Pitch, Rest, Rhythm, System } from "../types/Expr2";
-import { alignBars } from "../Visitors/fmt2/fmt_aligner";
-import { isTimeEvent, processBar } from "../Visitors/fmt2/fmt_timeMap";
-import { BarAlignment, BarTimeMap, Location, NodeID, VoiceSplit, getNodeId, isBeam } from "../Visitors/fmt2/fmt_timeMapHelpers";
-import { AbcFormatter2 } from "../Visitors/Formatter2";
-import * as Generators from "./parse2_pbt.generators.spec";
 import { cloneDeep } from "lodash";
 import { isChord, isNote } from "../helpers2";
+import { ABCContext } from "../parsers/Context";
+import { Token, TT } from "../parsers/scan2";
+import { Note, Pitch, Rest, Rhythm } from "../types/Expr2";
+import { alignBars } from "../Visitors/fmt2/fmt_aligner";
+import { isTimeEvent, processBar } from "../Visitors/fmt2/fmt_timeMap";
+import { BarAlignment, BarTimeMap, getNodeId, isBeam, Location, NodeID, VoiceSplit } from "../Visitors/fmt2/fmt_timeMapHelpers";
+import { AbcFormatter2 } from "../Visitors/Formatter2";
+import * as Generators from "./parse2_pbt.generators.spec";
 
 type Clone = {
   voiceSplits: VoiceSplit[];
@@ -162,14 +162,30 @@ describe("alignBars function - Property-Based Tests", () => {
       const ctx = new ABCContext();
 
       // Create first voice with two notes
-      const noteA1 = new Note(ctx.generateId(), new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "C") }), undefined);
+      const noteA1 = new Note(
+        ctx.generateId(),
+        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "C", ctx.generateId()) }),
+        undefined
+      );
 
-      const noteA2 = new Note(ctx.generateId(), new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "D") }), undefined);
+      const noteA2 = new Note(
+        ctx.generateId(),
+        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "D", ctx.generateId()) }),
+        undefined
+      );
 
       // Create second voice with two notes
-      const noteB1 = new Note(ctx.generateId(), new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "E") }), undefined);
+      const noteB1 = new Note(
+        ctx.generateId(),
+        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "E", ctx.generateId()) }),
+        undefined
+      );
 
-      const noteB2 = new Note(ctx.generateId(), new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "F") }), undefined);
+      const noteB2 = new Note(
+        ctx.generateId(),
+        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "F", ctx.generateId()) }),
+        undefined
+      );
 
       const voice1 = [noteA1, noteA2];
       const voice2 = [noteB1, noteB2];
@@ -282,32 +298,32 @@ describe("alignBars function - Property-Based Tests", () => {
       // Voice 1: C D - two quarter notes
       const noteA1 = new Note(
         ctx.generateId(),
-        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "C") }),
-        new Rhythm(ctx.generateId(), new Token(TT.RHY_NUMER, "1"), undefined, undefined, undefined)
+        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "C", ctx.generateId()) }),
+        new Rhythm(ctx.generateId(), new Token(TT.RHY_NUMER, "1", ctx.generateId()), undefined, undefined, undefined)
       );
 
       const noteA2 = new Note(
         ctx.generateId(),
-        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "D") }),
-        new Rhythm(ctx.generateId(), new Token(TT.RHY_NUMER, "1"), undefined, undefined, undefined)
+        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "D", ctx.generateId()) }),
+        new Rhythm(ctx.generateId(), new Token(TT.RHY_NUMER, "1", ctx.generateId()), undefined, undefined, undefined)
       );
 
       // Voice 2: E F - two quarter notes
       const noteB1 = new Note(
         ctx.generateId(),
-        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "E") }),
-        new Rhythm(ctx.generateId(), new Token(TT.RHY_NUMER, "1"), undefined, undefined, undefined)
+        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "E", ctx.generateId()) }),
+        new Rhythm(ctx.generateId(), new Token(TT.RHY_NUMER, "1", ctx.generateId()), undefined, undefined, undefined)
       );
 
       const noteB2 = new Note(
         ctx.generateId(),
-        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "F") }),
-        new Rhythm(ctx.generateId(), new Token(TT.RHY_NUMER, "1"), undefined, undefined, undefined)
+        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "F", ctx.generateId()) }),
+        new Rhythm(ctx.generateId(), new Token(TT.RHY_NUMER, "1", ctx.generateId()), undefined, undefined, undefined)
       );
 
       // Add a whitespace token between notes to test padding insertion
-      const ws1 = new Token(TT.WS, " ");
-      const ws2 = new Token(TT.WS, " ");
+      const ws1 = new Token(TT.WS, " ", ctx.generateId());
+      const ws2 = new Token(TT.WS, " ", ctx.generateId());
 
       const voice1 = [noteA1, ws1, noteA2];
       const voice2 = [noteB1, ws2, noteB2];
@@ -345,34 +361,38 @@ describe("alignBars function - Property-Based Tests", () => {
       // Voice 1: z>A-z (rest with broken rhythm, note with tie, rest)
       const restV1_1 = new Rest(
         ctx.generateId(),
-        new Token(TT.REST, "z"),
-        new Rhythm(ctx.generateId(), null, undefined, null, new Token(TT.RHY_BRKN, ">"))
+        new Token(TT.REST, "z", ctx.generateId()),
+        new Rhythm(ctx.generateId(), null, undefined, null, new Token(TT.RHY_BRKN, ">", ctx.generateId()))
       );
 
       const noteV1_2 = new Note(
         ctx.generateId(),
-        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "A") }),
+        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "A", ctx.generateId()) }),
         undefined,
-        new Token(TT.TIE, "-")
+        new Token(TT.TIE, "-", ctx.generateId())
       );
 
-      const restV1_3 = new Rest(ctx.generateId(), new Token(TT.REST, "z"), undefined);
+      const restV1_3 = new Rest(ctx.generateId(), new Token(TT.REST, "z", ctx.generateId()), undefined);
 
       // Voice 2: zA (rest, note)
-      const restV2_1 = new Rest(ctx.generateId(), new Token(TT.REST, "z"), undefined);
+      const restV2_1 = new Rest(ctx.generateId(), new Token(TT.REST, "z", ctx.generateId()), undefined);
 
-      const noteV2_2 = new Note(ctx.generateId(), new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "A") }), undefined);
+      const noteV2_2 = new Note(
+        ctx.generateId(),
+        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "A", ctx.generateId()) }),
+        undefined
+      );
 
       // Voice 3: a>zz (note with broken rhythm, two rests)
       const noteV3_1 = new Note(
         ctx.generateId(),
-        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "a") }),
-        new Rhythm(ctx.generateId(), null, undefined, null, new Token(TT.RHY_BRKN, ">"))
+        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "a", ctx.generateId()) }),
+        new Rhythm(ctx.generateId(), null, undefined, null, new Token(TT.RHY_BRKN, ">", ctx.generateId()))
       );
 
-      const restV3_2 = new Rest(ctx.generateId(), new Token(TT.REST, "z"), undefined);
+      const restV3_2 = new Rest(ctx.generateId(), new Token(TT.REST, "z", ctx.generateId()), undefined);
 
-      const restV3_3 = new Rest(ctx.generateId(), new Token(TT.REST, "z"), undefined);
+      const restV3_3 = new Rest(ctx.generateId(), new Token(TT.REST, "z", ctx.generateId()), undefined);
 
       const voice1 = [restV1_1, noteV1_2, restV1_3];
       const voice2 = [restV2_1, noteV2_2];

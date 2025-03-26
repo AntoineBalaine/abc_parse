@@ -1,9 +1,6 @@
 import * as fc from "fast-check";
-import { ABCContext } from "../parsers/Context";
-import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { parseTune, prsBody, ParseCtx } from "../parsers/parse2";
-import { Scanner2, Token, TT } from "../parsers/scan2";
-import { Expr, Tune_Body } from "../types/Expr2";
+import { ParseCtx, prsBody } from "../parsers/parse2";
+import { Token, TT } from "../parsers/scan2";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
 import * as ParserGen from "./parse2_pbt.generators.spec";
 
@@ -34,7 +31,7 @@ describe("Parser Property Tests", () => {
       fc.assert(
         fc.property(ParserGen.genNoteExpr, (gen) => {
           // Add EOL token to ensure proper parsing
-          const tokens = [...gen.tokens, new Token(TT.EOL, "\n")];
+          const tokens = [...gen.tokens, new Token(TT.EOL, "\n", testContext.generateId())];
 
           // Parse the tokens
           const tuneBody = prsBody(new ParseCtx(tokens, testContext));
@@ -68,7 +65,7 @@ describe("Parser Property Tests", () => {
       fc.assert(
         fc.property(ParserGen.genRestExpr, (gen) => {
           // Add EOL token to ensure proper parsing
-          const tokens = [...gen.tokens, new Token(TT.EOL, "\n")];
+          const tokens = [...gen.tokens, new Token(TT.EOL, "\n", testContext.generateId())];
 
           // Parse the tokens
           const tuneBody = prsBody(new ParseCtx(tokens, testContext));
@@ -131,7 +128,7 @@ describe("Parser Property Tests", () => {
       fc.assert(
         fc.property(ParserGen.genBarLineExpr, (gen) => {
           // Add EOL token to ensure proper parsing
-          const tokens = [...gen.tokens, new Token(TT.EOL, "\n")];
+          const tokens = [...gen.tokens, new Token(TT.EOL, "\n", testContext.generateId())];
 
           // Parse the tokens
           const tuneBody = prsBody(new ParseCtx(tokens, testContext));
