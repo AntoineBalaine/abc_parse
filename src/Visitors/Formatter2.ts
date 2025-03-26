@@ -1,5 +1,6 @@
 import { isNote, isToken } from "../helpers2";
 import { ABCContext } from "../parsers/Context";
+import { Token } from "../parsers/scan2";
 import {
   Annotation,
   BarLine,
@@ -23,7 +24,6 @@ import {
   Rest,
   Rhythm,
   Symbol,
-  System,
   Tune,
   Tune_Body,
   Tune_header,
@@ -31,9 +31,7 @@ import {
   Visitor,
   Voice_overlay,
   YSPACER,
-  tune_body_code,
 } from "../types/Expr2";
-import { Token, TT } from "../parsers/scan2";
 import { alignTune } from "./fmt2/fmt_aligner";
 import { resolveRules } from "./fmt2/fmt_rules_assignment";
 

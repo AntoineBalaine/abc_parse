@@ -6,6 +6,17 @@ import { calculateDuration, DurationContext, isTimeEvent } from "./fmt_timeMap";
 import { getNodeId, isBarLine, Location, VoiceSplit } from "./fmt_timeMapHelpers";
 import { addRational, equalRational, greaterRational, isInfiniteRational, isRational, Rational, rationalToString } from "./rational";
 
+class SymbolLnCtx {
+  nodes: Array<Expr | Token>;
+  bar: number = 0;
+  pos: number = 0;
+  parentPos: number | null = null;
+  voiceIdx: number;
+  constructor(nodes: Array<Expr | Token>, voiceIdx: number) {
+    this.nodes = nodes;
+    this.voiceIdx = voiceIdx;
+  }
+}
 class VxCtx {
   nodes: Array<Expr | Token>;
   bar: number = 0;
@@ -26,7 +37,7 @@ type AlignPt = [Rational | BarNumber, Array<Location>];
 class GCtx {
   list: Array<AlignPt> = [[0, []]];
   barIndexes: Array<number> = [0];
-  push(pt: [Rational | BarNumber, Location], vxCtx: VxCtx) {
+  push(pt: [Rational | BarNumber, Location], vxCtx: VxCtx | SymbolLnCtx) {
     const key = pt[0];
     const value = pt[1];
     if (typeof key === "number") {
@@ -37,7 +48,7 @@ class GCtx {
     }
   }
 
-  private pushTimeStamp(vxCtx: VxCtx, key: Rational, value: Location) {
+  private pushTimeStamp(vxCtx: VxCtx | SymbolLnCtx, key: Rational, value: Location) {
     // bar exists?
     if (vxCtx.bar >= this.barIndexes.length) {
       throw Error(`Bar number ${vxCtx.bar} not found in barIndexes (length: ${this.barIndexes.length})`);
@@ -159,6 +170,16 @@ export function scanAlignPoints(voiceSplits: Array<VoiceSplit>) {
       const vxCtx = new VxCtx(voiceSplits[i].content, i);
       scanVxAlignPts(gCtx, vxCtx);
     }
+    if (voiceSplits[i].type === "symbol_line") {
+      const vxCtx = new SymbolLnCtx(voiceSplits[i].content, i);
+      const prevVx = (() => {
+        for (let j = i - 1; j > 0; j--) {
+          if (voiceSplits[j].type === "formatted") return j;
+        }
+        return null;
+      })();
+      prevVx !== null && scanSymbolLinePts(gCtx, vxCtx, prevVx);
+    }
   }
   return gCtx;
 }
@@ -172,14 +193,16 @@ export function scanVxAlignPts(gCtx: GCtx, vxCtx: VxCtx): boolean {
   return false;
 }
 
-function barlinePts(gCtx: GCtx, vxCtx: VxCtx): boolean {
+function barlinePts(gCtx: GCtx, vxCtx: VxCtx | SymbolLnCtx): boolean {
   const cur = peek(vxCtx);
   if (!isBarLine(cur)) return false;
   gCtx.push([++vxCtx.bar, { voiceIdx: vxCtx.voiceIdx, nodeID: cur.id }], vxCtx);
-  vxCtx.time = {
-    numerator: 0,
-    denominator: 1,
-  };
+  if (vxCtx instanceof VxCtx) {
+    vxCtx.time = {
+      numerator: 0,
+      denominator: 1,
+    };
+  }
   advance(vxCtx);
   return true;
 }
@@ -220,15 +243,15 @@ function timeEventPts(gCtx: GCtx, vxCtx: VxCtx): boolean {
   return true;
 }
 
-export function peek(ctx: VxCtx) {
+export function peek(ctx: VxCtx | SymbolLnCtx) {
   return ctx.nodes[ctx.pos];
 }
 
-export function isAtEnd(ctx: VxCtx) {
+export function isAtEnd(ctx: VxCtx | SymbolLnCtx) {
   return ctx.pos >= ctx.nodes.length;
 }
 
-function advance(ctx: VxCtx) {
+function advance(ctx: VxCtx | SymbolLnCtx) {
   ctx.pos++;
 }
 
@@ -267,4 +290,28 @@ export function aligner(gCtx: GCtx, voiceSplits: Array<VoiceSplit>, stringifyVis
   }
 
   return voiceSplits;
+}
+
+function scanSymbolLinePts(gCtx: GCtx, vxCtx: SymbolLnCtx, prntVx: number) {
+  const parentAlignPts = gCtx.list
+    .map((aPt): AlignPt | null => {
+      if (typeof aPt[0] === "number") {
+        return aPt;
+      }
+      const newLocs = aPt[1].filter((loc) => loc.voiceIdx === prntVx);
+      if (newLocs.length === 0) return null;
+      return [aPt[0], newLocs];
+    })
+    .filter((n): n is AlignPt => n != null);
+
+  const first = peek(vxCtx);
+  if (!(isToken(first) && first.type !== TT.SY_HDR)) return false;
+  advance(vxCtx);
+  while (!isAtEnd(vxCtx)) {
+    const cur = peek(vxCtx);
+    if (barlinePts(gCtx, vxCtx)) continue;
+    // if (timeEventPts(gCtx, vxCtx)) continue;
+    advance(vxCtx);
+  }
+  return false;
 }

@@ -7,7 +7,7 @@ export type NodeID = number;
 export type TimeStamp = Rational;
 
 export interface VoiceSplit {
-  type: "formatted" | "noformat";
+  type: "formatted" | "noformat" | "symbol_line";
   content: System;
 }
 
@@ -33,32 +33,16 @@ export function getNodeId(node: Expr | Token): NodeID {
 }
 
 export function findFmtblLines(system: System): VoiceSplit[] {
-  // First, try to split by voice overlays
-  // const voiceSplits = toVoices(system);
-
-  // if (voiceSplits) {
-  //   // If we have voice overlays, process each voice
-  //   return voiceSplits.map((voice) => {
-  //     if (isFormattableLine(voice)) {
-  //       return {
-  //         type: "formatted",
-  //         content: voice,
-  //       };
-  //     } else {
-  //       return {
-  //         type: "noformat",
-  //         content: voice,
-  //       };
-  //     }
-  //   });
-  // } else
-  // {
-  //  // Otherwise, split by lines
   const splits = splitLines(system);
   return splits.map((split) => {
     if (isFormattableLine(split)) {
       return {
         type: "formatted",
+        content: split,
+      };
+    } else if (split.some((n) => isToken(n) && n.type === TT.SY_HDR)) {
+      return {
+        type: "symbol_line",
         content: split,
       };
     } else {
@@ -68,7 +52,6 @@ export function findFmtblLines(system: System): VoiceSplit[] {
       };
     }
   });
-  // }
 }
 
 // Helper functions for type checking
