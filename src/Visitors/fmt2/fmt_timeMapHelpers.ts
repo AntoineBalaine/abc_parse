@@ -1,7 +1,6 @@
 import { isChord, isNote } from "../../helpers2";
 import { Token, TT } from "../../parsers/scan2";
-import { BarLine, Beam, Comment, Expr, Info_line, MultiMeasureRest, System, tune_body_code } from "../../types/Expr2";
-import { toVoices } from "./fmt_voiceSplitter";
+import { BarLine, Beam, Expr, MultiMeasureRest, System } from "../../types/Expr2";
 import { Rational } from "./rational";
 
 export type NodeID = number;
@@ -30,17 +29,7 @@ export interface BarAlignment {
 
 // Helper function to safely get the ID of an expression or token
 export function getNodeId(node: Expr | Token): NodeID {
-  if (node instanceof Expr) {
-    return node.id;
-  }
-  // For tokens, we'll use a hash of their properties as an ID
-  return hashToken(node);
-}
-
-// Simple hash function for tokens
-export function hashToken(token: Token): number {
-  // Use line, position, and type as a simple hash
-  return token.line * 10000 + token.position * 100 + token.type;
+  return node.id;
 }
 
 export function findFmtblLines(system: System): VoiceSplit[] {
