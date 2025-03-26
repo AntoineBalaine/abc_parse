@@ -100,54 +100,6 @@ class GCtx {
   }
 
   /**
-   * Converts the alignment points list to a format compatible with the existing alignment code
-   */
-  toBarAlignments(): BarAlignment[] {
-    const result: BarAlignment[] = [];
-
-    // Find all bar boundaries
-    const barBoundaries: number[] = [];
-    this.list.forEach((item, idx) => {
-      const key = item[0];
-      if (typeof key === "number") {
-        barBoundaries.push(idx);
-      }
-    });
-
-    // Process each bar
-    for (let i = 0; i < barBoundaries.length; i++) {
-      const startIdx = barBoundaries[i];
-      const endIdx = i < barBoundaries.length - 1 ? barBoundaries[i + 1] : this.list.length;
-
-      // Get bar number
-      const barNum = this.list[startIdx][0] as number;
-
-      // Get start nodes
-      const startNodes = new Map<number, NodeID>();
-      this.list[startIdx][1].forEach((loc: Location) => {
-        startNodes.set(loc.voiceIdx, loc.nodeID);
-      });
-
-      // Get time points
-      const timePoints = new Map<string, Array<Location>>();
-      for (let j = startIdx + 1; j < endIdx; j++) {
-        const [key, locations] = this.list[j];
-        if (typeof key !== "number") {
-          // It's a time point
-          timePoints.set(rationalToString(key as Rational), locations as Array<Location>);
-        }
-      }
-
-      result.push({
-        startNodes,
-        map: timePoints,
-      });
-    }
-
-    return result;
-  }
-
-  /**
    * Returns a string representation of the alignment points for debugging
    */
   toString(): string {

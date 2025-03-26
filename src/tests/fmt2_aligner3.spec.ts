@@ -17,6 +17,7 @@ describe("Aligner3", () => {
     stringifyVisitor = new AbcFormatter2(ctx);
   });
 
+  // Helper function to parse ABC notation into a system
   function parseSystem(input: string): System {
     const tokens = Scanner2(input, ctx.errorReporter);
     const ast = parseTune(tokens, ctx);
@@ -26,146 +27,70 @@ describe("Aligner3", () => {
     return ast.tune_body!.sequence[0];
   }
 
-  describe("scanAlignPoints", () => {
-    it("correctly identifies bar boundaries and time points", () => {
-      const system = parseSystem(`
-X:1
-V:1
-V:2
-V:1
-CDEF|GABC|
-V:2
-CDEF|GABC|`);
+  // Helper function to format the result for easier comparison
+  function formatResult(result: string): string {
+    // Remove X:1 header and trim whitespace
+    return result.replace(/X:1\n/, "").trim();
+  }
 
-      // Split into formatted/non-formatted content
-      const voiceSplits = findFmtblLines(system);
+  function setup(input: string) {
+    const system = parseSystem(input);
 
-      // Scan alignment points
-      const gCtx = scanAlignPoints(voiceSplits);
+    // Create a temporary Tune object to apply rules
+    const tempTune = {
+      tune_header: { voices: ["1", "2"] }, // Assume multi-voice for rules
+      tune_body: { sequence: [system] },
+    } as Tune;
 
-      // Verify that we have the correct number of bars
-      assert.isTrue(gCtx.validate(), "Alignment points should be valid");
+    // Apply rules to the tune
+    const processedTune = resolveRules(tempTune, ctx);
 
-      // Convert to string for debugging
-      console.log(gCtx.toString());
+    // Get the processed system with rules applied
+    const processedSystem = processedTune.tune_body!.sequence[0];
 
-      // Convert to bar alignments
-      const barAlignments = gCtx.toBarAlignments();
+    // Split the processed system into voices
+    const voiceSplits = findFmtblLines(processedSystem);
 
-      // Verify that we have the correct number of bar alignments
-      assert.equal(barAlignments.length, 3, "Should have 3 bar alignments");
-    });
+    return voiceSplits;
+  }
 
-    it("handles voices with different numbers of bars", () => {
-      const system = parseSystem(`
-X:1
-V:1
-V:2
-V:1
-CD|GABC|
-V:2
-CDEF|`);
+  // Helper function to test alignment
+  function testAlignment(input: string, expected: string): void {
+    const system = parseSystem(input);
 
-      // Split into formatted/non-formatted content
-      const voiceSplits = findFmtblLines(system);
+    // Create a temporary Tune object to apply rules
+    const tempTune = {
+      tune_header: { voices: ["1", "2"] }, // Assume multi-voice for rules
+      tune_body: { sequence: [system] },
+    } as Tune;
 
-      // Scan alignment points
-      const gCtx = scanAlignPoints(voiceSplits);
+    // Apply rules to the tune
+    const processedTune = resolveRules(tempTune, ctx);
 
-      // Verify that we have the correct number of bars
-      assert.isTrue(gCtx.validate(), "Alignment points should be valid");
+    // Get the processed system with rules applied
+    const processedSystem = processedTune.tune_body!.sequence[0];
 
-      // Convert to bar alignments
-      const barAlignments = gCtx.toBarAlignments();
+    // Split the processed system into voices
+    const voiceSplits = findFmtblLines(processedSystem);
 
-      // Verify that we have the correct number of bar alignments
-      assert.equal(barAlignments.length, 3, "Should have 3 bar alignments");
-    });
-  });
+    // Get alignment points
+    const gCtx = scanAlignPoints(voiceSplits);
 
-  describe.only("aligner function", () => {
-    let ctx: ABCContext;
-    let stringifyVisitor: AbcFormatter2;
+    // Apply the aligner function
+    const alignedVoiceSplits = aligner(gCtx, voiceSplits, stringifyVisitor);
 
-    beforeEach(() => {
-      ctx = new ABCContext();
-      stringifyVisitor = new AbcFormatter2(ctx);
-    });
+    // Reconstruct the system and convert to string
+    const alignedSystem = alignedVoiceSplits.flatMap((split) => split.content);
+    const result = alignedSystem.map((node) => stringifyVisitor.stringify(node)).join("");
 
-    // Helper function to parse ABC notation into a system
-    function parseSystem(input: string): System {
-      const tokens = Scanner2(input, ctx.errorReporter);
-      const ast = parseTune(tokens, ctx);
-      if (!ast) {
-        throw new Error("Failed to parse");
-      }
-      return ast.tune_body!.sequence[0];
-    }
+    // Compare with expected result
+    assert.equal(formatResult(result), expected);
+  }
 
-    // Helper function to format the result for easier comparison
-    function formatResult(result: string): string {
-      // Remove X:1 header and trim whitespace
-      return result.replace(/X:1\n/, "").trim();
-    }
-
-    function setup(input: string) {
-      const system = parseSystem(input);
-
-      // Create a temporary Tune object to apply rules
-      const tempTune = {
-        tune_header: { voices: ["1", "2"] }, // Assume multi-voice for rules
-        tune_body: { sequence: [system] },
-      } as Tune;
-
-      // Apply rules to the tune
-      const processedTune = resolveRules(tempTune, ctx);
-
-      // Get the processed system with rules applied
-      const processedSystem = processedTune.tune_body!.sequence[0];
-
-      // Split the processed system into voices
-      const voiceSplits = findFmtblLines(processedSystem);
-
-      return voiceSplits;
-    }
-
-    // Helper function to test alignment
-    function testAlignment(input: string, expected: string): void {
-      const system = parseSystem(input);
-
-      // Create a temporary Tune object to apply rules
-      const tempTune = {
-        tune_header: { voices: ["1", "2"] }, // Assume multi-voice for rules
-        tune_body: { sequence: [system] },
-      } as Tune;
-
-      // Apply rules to the tune
-      const processedTune = resolveRules(tempTune, ctx);
-
-      // Get the processed system with rules applied
-      const processedSystem = processedTune.tune_body!.sequence[0];
-
-      // Split the processed system into voices
-      const voiceSplits = findFmtblLines(processedSystem);
-
-      // Get alignment points
-      const gCtx = scanAlignPoints(voiceSplits);
-
-      // Apply the aligner function
-      const alignedVoiceSplits = aligner(gCtx, voiceSplits, stringifyVisitor);
-
-      // Reconstruct the system and convert to string
-      const alignedSystem = alignedVoiceSplits.flatMap((split) => split.content);
-      const result = alignedSystem.map((node) => stringifyVisitor.stringify(node)).join("");
-
-      // Compare with expected result
-      assert.equal(formatResult(result), expected);
-    }
-
-    // Basic alignment tests
-    describe("basic alignment", () => {
-      it("aligns simple notes at the same time points", () => {
-        const input = `
+  // Basic alignment tests
+  describe("basic alignment", () => {
+    it("aligns simple notes at the same time points", () => {
+      const input = `
 X:1
 V:1
 V:2
@@ -174,16 +99,16 @@ CDEF GABC|
 V:2
 EFGA BCDE|`;
 
-        const expected = `V:1
+      const expected = `V:1
 CDEF GABC |
 V:2
 EFGA BCDE |`;
 
-        testAlignment(input, expected);
-      });
+      testAlignment(input, expected);
+    });
 
-      it("aligns bars with different note lengths", () => {
-        const input = `
+    it("aligns bars with different note lengths", () => {
+      const input = `
 X:1
 V:1
 V:2
@@ -192,16 +117,16 @@ C2D2|GABC|
 V:2
 CDEF|GABC|`;
 
-        const expected = `V:1
+      const expected = `V:1
 C2D2 | GABC |
 V:2
 CDEF | GABC |`;
 
-        testAlignment(input, expected);
-      });
+      testAlignment(input, expected);
+    });
 
-      it("aligns notes with different rhythms", () => {
-        const input = `
+    it("aligns notes with different rhythms", () => {
+      const input = `
 X:1
 V:1
 V:2
@@ -210,30 +135,30 @@ C2 D/2E/2 F|
 V:2
 C D E/2F/2|`;
 
-        const expected = `V:1
+      const expected = `V:1
 C2  D/2E/2 F |
 V:2
 C D E/2F/2   |`;
 
-        const voiceSplits = setup(input);
-        // Get alignment points
-        const gCtx = scanAlignPoints(voiceSplits);
-        console.log("gCtx", gCtx);
+      const voiceSplits = setup(input);
+      // Get alignment points
+      const gCtx = scanAlignPoints(voiceSplits);
+      console.log("gCtx", gCtx);
 
-        // Apply the aligner function
-        const alignedVoiceSplits = aligner(gCtx, voiceSplits, stringifyVisitor);
+      // Apply the aligner function
+      const alignedVoiceSplits = aligner(gCtx, voiceSplits, stringifyVisitor);
 
-        // Reconstruct the system and convert to string
-        const alignedSystem = alignedVoiceSplits.flatMap((split) => split.content);
-        const result = alignedSystem.map((node) => stringifyVisitor.stringify(node)).join("");
-        assert.equal(formatResult(result), expected);
-      });
+      // Reconstruct the system and convert to string
+      const alignedSystem = alignedVoiceSplits.flatMap((split) => split.content);
+      const result = alignedSystem.map((node) => stringifyVisitor.stringify(node)).join("");
+      assert.equal(formatResult(result), expected);
     });
+  });
 
-    // Complex musical notation tests
-    describe("complex musical notation", () => {
-      it("aligns grace notes with regular notes", () => {
-        const input = `
+  // Complex musical notation tests
+  describe("complex musical notation", () => {
+    it("aligns grace notes with regular notes", () => {
+      const input = `
 X:1
 V:1
 V:2
@@ -242,16 +167,16 @@ V:1
 V:2
 C2 F|`;
 
-        const expected = `V:1
+      const expected = `V:1
 {ag}F2   |
 V:2
     C2 F |`;
 
-        testAlignment(input, expected);
-      });
+      testAlignment(input, expected);
+    });
 
-      it("aligns chords with notes", () => {
-        const input = `
+    it("aligns chords with notes", () => {
+      const input = `
 X:1
 V:1
 V:2
@@ -260,16 +185,16 @@ V:1
 V:2
 C2 E|`;
 
-        const expected = `V:1
+      const expected = `V:1
 [CEG]F |
 V:2
 C2 E   |`;
 
-        testAlignment(input, expected);
-      });
+      testAlignment(input, expected);
+    });
 
-      it("aligns decorations and annotations", () => {
-        const input = `
+    it("aligns decorations and annotations", () => {
+      const input = `
 X:1
 V:1
 V:2
@@ -278,16 +203,16 @@ V:1
 V:2
 C D|`;
 
-        const expected = `V:1
+      const expected = `V:1
 !p! C "swing" D |
 V:2
     C         D |`;
 
-        testAlignment(input, expected);
-      });
+      testAlignment(input, expected);
+    });
 
-      it("aligns tuplets with regular notes", () => {
-        const input = `
+    it("aligns tuplets with regular notes", () => {
+      const input = `
 X:1
 V:1
 V:2
@@ -296,19 +221,19 @@ V:1
 V:2
 C2 F|`;
 
-        const expected = `V:1
+      const expected = `V:1
 (3CDE F |
 V:2
   C2 F  |`;
 
-        testAlignment(input, expected);
-      });
+      testAlignment(input, expected);
     });
+  });
 
-    // Edge case tests
-    describe("edge cases", () => {
-      it("handles empty voices", () => {
-        const input = `
+  // Edge case tests
+  describe("edge cases", () => {
+    it("handles empty voices", () => {
+      const input = `
 X:1
 V:1
 V:2
@@ -317,16 +242,16 @@ CDEF|
 V:2
 |`;
 
-        const expected = `V:1
+      const expected = `V:1
 CDEF |
 V:2
      |`;
 
-        testAlignment(input, expected);
-      });
+      testAlignment(input, expected);
+    });
 
-      it("preserves comments between voices", () => {
-        const input = `
+    it("preserves comments between voices", () => {
+      const input = `
 X:1
 V:1
 V:2
@@ -336,20 +261,20 @@ CDEF|
 V:2
 CDEF|`;
 
-        const expected = `V:1
+      const expected = `V:1
 CDEF |
 % A comment
 V:2
 CDEF |`;
 
-        testAlignment(input, expected);
-      });
+      testAlignment(input, expected);
     });
+  });
 
-    // Regression tests
-    describe("regression tests", () => {
-      it("fixes the padding space issue in bar alignment", () => {
-        const input = `
+  // Regression tests
+  describe("regression tests", () => {
+    it("fixes the padding space issue in bar alignment", () => {
+      const input = `
 X:1
 V:1
 V:2
@@ -358,16 +283,16 @@ CDEF  GABC|
 V:2
 EFGA BCDE|`;
 
-        const expected = `V:1
+      const expected = `V:1
 CDEF GABC |
 V:2
 EFGA BCDE |`;
 
-        testAlignment(input, expected);
-      });
+      testAlignment(input, expected);
+    });
 
-      it("fixes the grace notes alignment issue", () => {
-        const input = `
+    it("fixes the grace notes alignment issue", () => {
+      const input = `
 X:1
 V:1
 V:2
@@ -376,16 +301,16 @@ V:1
 V:2
     C2 F|`;
 
-        const expected = `V:1
+      const expected = `V:1
 {ag}F2   |
 V:2
     C2 F |`;
 
-        testAlignment(input, expected);
-      });
+      testAlignment(input, expected);
+    });
 
-      it("fixes the chord alignment issue", () => {
-        const input = `
+    it("fixes the chord alignment issue", () => {
+      const input = `
 X:1
 V:1
 V:2
@@ -394,13 +319,12 @@ V:1
 V:2
 C2 E  |`;
 
-        const expected = `V:1
+      const expected = `V:1
 [CEG]F |
 V:2
 C2 E   |`;
 
-        testAlignment(input, expected);
-      });
+      testAlignment(input, expected);
     });
   });
 });
