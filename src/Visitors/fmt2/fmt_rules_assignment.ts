@@ -15,11 +15,10 @@ import {
   Tuplet,
   YSPACER,
 } from "../../types/Expr2";
-import { isBeam, isMultiMeasureRest } from "./fmt_timeMapHelpers";
+import { isBarLine, isBeam, isMultiMeasureRest } from "./fmt_timeMapHelpers";
 
 // Types for rules assignment
 export enum SpcRul {
-  FOLLOW_SPC,
   NO_SPC,
   PRECEDE_SPC,
 }
@@ -78,11 +77,14 @@ export function assignTuneBodyRules(tune: Tune): Map<Expr | Token, SpcRul> {
   let ruleMap = new Map<Expr | Token, SpcRul>();
   // Process each system
   for (let system of tuneBody.sequence) {
-    for (let i = 1; i < system.length; i++) {
+    for (let i = 0; i < system.length; i++) {
+      const newIdx = symLnRules(system, i, ruleMap);
+      if (newIdx !== null) {
+        i = newIdx;
+        continue;
+      }
       const prev = system[i - 1];
       const node = system[i];
-      const newIdx = symLnRules(system, i, ruleMap);
-      if (newIdx !== null) i = newIdx;
       if (noteAfterSlur(ruleMap, prev, node)) continue;
       if (slurAfterNote(ruleMap, prev, node)) continue;
       if (noteAfterTuplet(ruleMap, prev, node)) continue;
@@ -169,7 +171,7 @@ export function resolveSystem(ruleMap: Map<Expr | Token, SpcRul>, system: System
   for (let i = 0; i < system.length; i++) {
     const node = system[i];
     const currentRules: SpcRul | undefined = ruleMap.get(node);
-    if (!currentRules) {
+    if (currentRules === undefined) {
       continue;
     }
 
@@ -212,8 +214,6 @@ function noPrev(prev: tune_body_code | null, cur: tune_body_code): boolean {
 function symLnRules(system: System, idx: number, ruleMap: Map<Expr | Token, SpcRul>): number | null {
   const strtNode = system[idx];
   if (!(isToken(strtNode) && strtNode.type === TT.SY_HDR)) return null;
-  ruleMap.set(strtNode, SpcRul.FOLLOW_SPC);
-
   let i = idx + 1;
   for (; i < system.length; i++) {
     const node = system[i];
@@ -221,7 +221,9 @@ function symLnRules(system: System, idx: number, ruleMap: Map<Expr | Token, SpcR
       return i;
     }
     if (isToken(node) && (node.type === TT.SY_STAR || node.type === TT.SY_TXT)) {
-      ruleMap.set(node, SpcRul.NO_SPC);
+      if (idx === i - 1 || isBarLine(system[i - 1])) {
+        ruleMap.set(node, SpcRul.PRECEDE_SPC);
+      } else ruleMap.set(node, SpcRul.NO_SPC);
       continue;
     }
     ruleMap.set(node, SpcRul.PRECEDE_SPC);

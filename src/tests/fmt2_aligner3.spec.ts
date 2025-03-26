@@ -338,7 +338,7 @@ CDEF |`;
   });
 
   // Symbol line alignment tests
-  describe.only("symbol line alignment", () => {
+  describe("symbol line alignment", () => {
     it("aligns basic symbol line with parent voice", () => {
       const input = `
 X:1

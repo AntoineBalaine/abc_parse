@@ -69,7 +69,7 @@ CDEF|GABC|CDEF|GABC|
       tune.tune_body!.sequence[0].forEach((node) => {
         if (isToken(node) && node.type === TT.SLUR) {
           const rules = ruleMap.get(node);
-          assert.isTrue(!!rules && rules === SpcRul.NO_SPC);
+          assert.isTrue(rules !== undefined && rules === SpcRul.NO_SPC);
         }
       });
     });
