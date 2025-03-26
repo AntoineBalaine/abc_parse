@@ -2,9 +2,8 @@ import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { parseTune } from "../parsers/parse2";
 import { Scanner2 } from "../parsers/scan2";
-import { alignBars } from "../Visitors/fmt2/fmt_aligner";
+import { aligner, scanAlignPoints } from "../Visitors/fmt2/fmt_aligner3";
 import { resolveRules } from "../Visitors/fmt2/fmt_rules_assignment";
-import { mapTimePoints } from "../Visitors/fmt2/fmt_timeMap";
 import { findFmtblLines, VoiceSplit } from "../Visitors/fmt2/fmt_timeMapHelpers";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
 
@@ -38,18 +37,16 @@ describe("Formatter2 - align time points", () => {
           return system;
         }
 
-        // Get bar-based alignment points
-        const barTimeMaps = mapTimePoints(voiceSplits);
+        const gCtx = scanAlignPoints(voiceSplits);
 
-        // Process each bar
-        for (const barTimeMap of barTimeMaps) {
-          voiceSplits = alignBars(voiceSplits, barTimeMap, stringifyVisitor, ctx);
-        }
+        // Apply the aligner function
+        const alignedVoiceSplits = aligner(gCtx, voiceSplits, stringifyVisitor);
+
         // NOTE: we're testing this step WITHOUT equalizing bar lengths.
         // voiceSplits = equalizeBarLengths(voiceSplits, ctx, stringifyVisitor);
 
         // Reconstruct system from aligned voices
-        return voiceSplits.flatMap((split) => split.content);
+        return alignedVoiceSplits.flatMap((split) => split.content);
       });
     }
 
@@ -93,7 +90,7 @@ V:2
 V:1
 C2 GABC |
 V:2
-CD GA |`);
+CD GA   |`);
     });
   });
 
@@ -114,7 +111,7 @@ V:2
 V:1
 (3CDE F |
 V:2
-  C2  F |`;
+  C2 F  |`;
       expect(result).to.equal(expected, "Tuplet group should align with corresponding notes");
     });
 

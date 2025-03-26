@@ -211,7 +211,7 @@ export const genInfoLine = fc
   .tuple(
     // genWhitespace,
     genEOL,
-    fc.stringMatching(/^[a-wA-W]:$/).map((header) => new Token(TT.INF_HDR, header, sharedContext.generateId())),
+    fc.stringMatching(/^[a-rA-R]:$/).map((header) => new Token(TT.INF_HDR, header, sharedContext.generateId())),
     fc.stringMatching(/^[^&\s%]+$/).map((content) => new Token(TT.INFO_STR, content, sharedContext.generateId())),
     genEOL
   )
