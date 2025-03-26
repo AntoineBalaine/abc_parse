@@ -91,12 +91,6 @@ class GCtx {
     } else if (value) {
       this.list[this.barIndexes[key]][1].push(value);
     }
-
-    const nextBarKey = key + 1;
-    if (this.barIndexes.length <= nextBarKey) {
-      this.list.push([nextBarKey, []]);
-      this.barIndexes[nextBarKey] = this.list.length - 1;
-    }
   }
 
   /**

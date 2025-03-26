@@ -17,8 +17,9 @@ This file tracks time spent on tasks for the ABC Parser project, which is a full
 | parser       | setup PBT tests                                     |            4.0 |           2.0 |   2.0 |       0.0 |     1.00 |
 | Parser       | Add new source of error reporting                   |            4.5 |           4.5 |   0.0 |       4.5 |     0.00 |
 | fmt          | process bar tests                                   |            6.0 |           3.5 |   3.5 |       0.0 |     1.00 |
+| fmt          | fmt2 + new pipeline                                 |           12.0 |          12.0 |  12.0 |       0.0 |     1.00 |
 |--------------+-----------------------------------------------------+----------------+---------------+-------+-----------+----------|
-| TOTAL        |                                                     |           28.0 |          23.5 |   8.5 |      15.0 |     2.76 |
+| TOTAL        |                                                     |           40.0 |          35.5 |  20.5 |      15.0 |     1.73 |
 #+TBLFM: @>$3=vsum(@2..@-1);%.1f::@>$4=vsum(@2..@-1);%.1f::@>$5=vsum(@2..@-1);%.1f::@>$6=vsum(@2..@-1);%.1f::$6=$4-$5;%.1f::$7=if($5>0, $4/$5, "N/A");%.2f::@>$7=if(@>$5>0, @>$4/@>$5, "N/A");%.2f
 
 * How to Use This File

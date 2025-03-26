@@ -6,6 +6,7 @@ import { mapTimePoints } from "./fmt_timeMap";
 import { createLocationMapper, equalizeBarLengths, equalizer, findPaddingInsertionPoint } from "./fmt_alignerHelpers";
 import { AbcFormatter2 } from "../Formatter2";
 import { createRational, rationalToNumber, rationalFromNumber } from "./rational";
+import { aligner, scanAlignPoints } from "./fmt_aligner3";
 
 /**
  * collect the time points for each bar, create a map of locations. Locations means: VoiceIndex and NodeID.
@@ -30,17 +31,11 @@ export function alignTune(tune: Tune, ctx: ABCContext, stringifyVisitor: AbcForm
         return system;
       }
 
-      // Get bar-based alignment points
-      const barTimeMaps = mapTimePoints(voiceSplits);
-      // Process each bar
-      for (const barTimeMap of barTimeMaps) {
-        voiceSplits = alignBars(voiceSplits, barTimeMap, stringifyVisitor, ctx);
-      }
-      // voiceSplits = equalizeBarLengths(voiceSplits, ctx, stringifyVisitor);
-      voiceSplits = equalizer(voiceSplits, stringifyVisitor);
-      // Reconstruct system from aligned voices
+      const gCtx = scanAlignPoints(voiceSplits);
+      const alignedVoiceSplits = aligner(gCtx, voiceSplits, stringifyVisitor);
+      const alignedSystem = alignedVoiceSplits.flatMap((split) => split.content);
 
-      return voiceSplits.flatMap((split) => split.content);
+      return alignedSystem;
     });
   }
   return tune;

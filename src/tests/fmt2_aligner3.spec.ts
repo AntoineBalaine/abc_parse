@@ -143,7 +143,6 @@ C D E/2F/2   |`;
       const voiceSplits = setup(input);
       // Get alignment points
       const gCtx = scanAlignPoints(voiceSplits);
-      console.log("gCtx", gCtx);
 
       // Apply the aligner function
       const alignedVoiceSplits = aligner(gCtx, voiceSplits, stringifyVisitor);
@@ -225,6 +224,73 @@ C2 F|`;
 (3CDE F |
 V:2
   C2 F  |`;
+
+      testAlignment(input, expected);
+    });
+  });
+
+  // Tests for failing cases in Formatter2
+  describe("formatter2 failing cases", () => {
+    it("aligns bars that start with annotations", () => {
+      const input = `
+X:1
+V:1
+V:2
+V:1
+"hello"CDEF|GABC|"again" DE
+V:2
+CDEF|"world"GABC|DE`;
+
+      const expected = `V:1
+"hello" CDEF |         GABC | "again" DE
+V:2
+        CDEF | "world" GABC |         DE`;
+
+      const voiceSplits = setup(input);
+      // Get alignment points
+      const gCtx = scanAlignPoints(voiceSplits);
+
+      // Apply the aligner function
+      const alignedVoiceSplits = aligner(gCtx, voiceSplits, stringifyVisitor);
+
+      // Reconstruct the system and convert to string
+      const alignedSystem = alignedVoiceSplits.flatMap((split) => split.content);
+      const result = alignedSystem.map((node) => stringifyVisitor.stringify(node)).join("");
+      assert.equal(formatResult(result), expected);
+    });
+
+    it("aligns with expanded multi-measure rests", () => {
+      const input = `
+X:1
+V:1
+V:2
+V:1
+Z4|
+V:2
+CDEF|GABC|CDEF|GABC|`;
+
+      const expected = `V:1
+Z    | Z    | Z    | Z    |
+V:2
+CDEF | GABC | CDEF | GABC |`;
+
+      testAlignment(input, expected);
+    });
+
+    it("handles empty bars", () => {
+      const input = `
+X:1
+V:1
+V:2
+V:1
+CDEF| GABC| CDE
+V:2
+CDEF| |GABC|`;
+
+      const expected = `V:1
+CDEF | GABC | CDE
+V:2
+CDEF |      | GABC |`;
 
       testAlignment(input, expected);
     });
