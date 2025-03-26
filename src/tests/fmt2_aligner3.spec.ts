@@ -415,9 +415,9 @@ s: * * *|`;
 
       // Known issue : reparsing after this formatting will treat `ttt` as a single token
       const expected = `V:1
-   CDEF GABC      |
-s: ttt            |
-s: ***            |`;
+   CDEF GABC |
+s: ttt       |
+s: ***       |`;
 
       testAlignment(input, expected);
     });
@@ -477,11 +477,11 @@ V:1
 V:2
 V:1
 C2 D E2 F|
-s: * text * text|`;
+s: * t * t|`;
 
       const expected = `V:1
-   C2  D E2  F |
-s: *   t *   t |`;
+   C2 D E2 F |
+s: *  t *  t |`;
 
       testAlignment(input, expected);
     });
@@ -493,11 +493,11 @@ V:1
 V:2
 V:1
 {ag}F2 G {cd}E|
-s: text * text|`;
+s: t * t|`;
 
       const expected = `V:1
-{ag}F2  G {cd}E |
-s:  t   *     t |`;
+{ag}F2 G {cd}E |
+s:  t  *     t |`;
 
       testAlignment(input, expected);
     });
@@ -541,11 +541,11 @@ V:1
 V:2
 V:1
 (3CDE F G|
-s: text * *|`;
+s: t * * * * |`;
 
       const expected = `V:1
-(3CDE F G |
-s:t   * * |`;
+(3 CDE F G |
+s: t** * * |`;
 
       testAlignment(input, expected);
     });

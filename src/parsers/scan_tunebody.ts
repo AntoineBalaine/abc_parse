@@ -638,9 +638,10 @@ export function symbol_line(ctx: Ctx): boolean {
     if (ctx.test("*")) {
       advance(ctx);
       ctx.push(TT.SY_STAR);
+      continue;
     }
     if (!isAtEnd(ctx) && !ctx.test(/[ \t%*\n]/)) {
-      while (!isAtEnd(ctx) && !ctx.test(pEOL) && !ctx.test(/[ \t%*\n]/)) {
+      while (!isAtEnd(ctx) && !ctx.test(pEOL) && !ctx.test(/[ \t%*\n]/) && !ctx.test(pBrLn)) {
         advance(ctx);
       }
       ctx.push(TT.SY_TXT);

@@ -540,6 +540,14 @@ describe("scan2", () => {
       assert.equal(ctx.tokens[6].type, TT.BARLINE);
       assert.equal(ctx.tokens[8].type, TT.SY_TXT);
     });
+    it("should parse concatenated tokens in symbol lines", () => {
+      const ctx = createCtx("s:t|*|");
+      const result = symbol_line(ctx);
+      assert.equal(ctx.tokens[1].type, TT.SY_TXT);
+      assert.equal(ctx.tokens[2].type, TT.BARLINE);
+      assert.equal(ctx.tokens[3].type, TT.SY_STAR);
+      assert.equal(ctx.tokens[4].type, TT.BARLINE);
+    });
     it("should return false for non-symbol line", () => {
       const ctx = createCtx("Not a symbol line");
       const result = symbol_line(ctx);

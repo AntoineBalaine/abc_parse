@@ -362,7 +362,8 @@ function symbolLnTimeEvent(gCtx: GCtx, symCtx: SymbolLnCtx): boolean {
 function advanceToBeamEnd(symCtx: SymbolLnCtx, parentNode: Expr | Token): boolean {
   if (!isBeam(parentNode!)) return false;
   for (let j = 0; j < parentNode.contents.length; j++) {
-    if (isTimeEvent(parentNode.contents[j])) {
+    const node = parentNode.contents[j];
+    if (isTimeEvent(node) && !isBarLine(peek(symCtx))) {
       advance(symCtx);
     }
   }
