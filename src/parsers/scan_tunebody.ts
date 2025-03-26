@@ -1,8 +1,9 @@
-import { Ctx, advance, TT, peek, isAtEnd, EOL, WS, stylesheet_directive, info_line } from "./scan2";
+import { Ctx, advance, TT, peek, isAtEnd, EOL, WS, stylesheet_directive, info_line, precededBy } from "./scan2";
 
 const pLETTER_COLON = /[a-zA-Z]:/;
 export const pEOL = "\n";
 export const pInfoLine = /[a-zA-Z][ \t]*:/;
+export const pSymbolLine = /s[ \t]*:/;
 export const pInfoLnCtd = /[ \t]*\+:[ \t]*/;
 
 export const pTuneHeadStrt = /[ \t]*X:/;
@@ -619,5 +620,33 @@ export function parseLeftBracketStart(ctx: Ctx): boolean {
 
   // Push the barline token with the entire matched text
   ctx.push(TT.BARLINE);
+  return true;
+}
+
+export function symbol_line(ctx: Ctx): boolean {
+  if (!(ctx.test(pSymbolLine) && precededBy(ctx, new Set([TT.EOL, TT.SCT_BRK]), new Set([TT.WS])))) return false;
+
+  const match = new RegExp(`^${pSymbolLine.source}`).exec(ctx.source.substring(ctx.current));
+  if (!match) return false;
+  ctx.current += match[0].length;
+  ctx.push(TT.SY_HDR);
+
+  while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
+    if (WS(ctx)) continue;
+    if (barline(ctx)) continue;
+    if (ctx.test("*")) {
+      ctx.push(TT.SY_STAR);
+      advance(ctx);
+    }
+    if (!isAtEnd(ctx) && !ctx.test(/[ \t%*\n]/)) {
+      while (!isAtEnd(ctx) && !ctx.test(pEOL) && !ctx.test(/[ \t%*\n]/)) {
+        advance(ctx);
+      }
+      ctx.push(TT.SY_TXT);
+    }
+    if (ctx.test("%")) break;
+  }
+
+  comment(ctx);
   return true;
 }

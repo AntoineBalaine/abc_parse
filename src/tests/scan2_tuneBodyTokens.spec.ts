@@ -21,6 +21,7 @@ import {
   bcktck_spc,
   slur,
   scanTune,
+  symbol_line,
 } from "../parsers/scan_tunebody";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 
@@ -489,6 +490,50 @@ describe("scan2", () => {
     });
   });
 
+  describe.only("symbol line", () => {
+    it("should parse a simple symbol line", () => {
+      const ctx = createCtx("s:hello");
+      const result = symbol_line(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 2);
+      assert.equal(ctx.tokens[0].type, TT.SY_HDR);
+      assert.equal(ctx.tokens[1].type, TT.SY_TXT);
+    });
+
+    it("should parse an symbol line with comment", () => {
+      const ctx = createCtx("s:Title %comment");
+      const result = symbol_line(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.SY_HDR);
+      assert.equal(ctx.tokens[1].type, TT.SY_TXT);
+      assert.equal(ctx.tokens[3].type, TT.COMMENT);
+    });
+
+    it("should parse symbol line with stars", () => {
+      const ctx = createCtx("s: hello * * ");
+      const result = symbol_line(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[2].type, TT.SY_TXT);
+      assert.equal(ctx.tokens[4].type, TT.SY_STAR);
+      assert.equal(ctx.tokens[6].type, TT.SY_STAR);
+    });
+
+    it("should parse symbol line with stars, text and barlines", () => {
+      const ctx = createCtx("s: G * | G");
+      const result = symbol_line(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[2].type, TT.SY_TXT);
+      assert.equal(ctx.tokens[4].type, TT.SY_STAR);
+      assert.equal(ctx.tokens[6].type, TT.BARLINE);
+      assert.equal(ctx.tokens[8].type, TT.SY_TXT);
+    });
+    it("should return false for non-symbol line", () => {
+      const ctx = createCtx("Not a symbol line");
+      const result = symbol_line(ctx);
+      assert.equal(result, false);
+      assert.equal(ctx.tokens.length, 0);
+    });
+  });
   describe("info_line", () => {
     it("should parse a simple info line", () => {
       const ctx = createCtx("T:Title");

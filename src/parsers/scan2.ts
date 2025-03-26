@@ -195,6 +195,9 @@ export enum TT {
   REPEAT_COMMA, // For commas separating numbers (1,2,3)
   REPEAT_DASH, // For dashes in ranges (1-3)
   REPEAT_X, // For 'x' notation (1x2)
+  SY_HDR, // symbol line header
+  SY_STAR, // symbol line star
+  SY_TXT, // symbol line text
 }
 
 export class Token {
@@ -231,7 +234,7 @@ export function stylesheet_directive(ctx: Ctx): boolean {
   return true;
 }
 
-function precededBy(ctx: Ctx, needles: Set<TT>, ignoreTokens: Set<TT>): boolean {
+export function precededBy(ctx: Ctx, needles: Set<TT>, ignoreTokens: Set<TT>): boolean {
   // backtrack through the context’s tokens, until you find one of the
   for (let i = ctx.tokens.length - 1; i > 0; i--) {
     const cur = ctx.tokens[i];
