@@ -3,7 +3,7 @@ import { Token, TT } from "../../parsers/scan2";
 import { Expr, Rest, System } from "../../types/Expr2";
 import { BarAlignment, isBarLine, Location, NodeID, VoiceSplit, getNodeId } from "./fmt_timeMapHelpers";
 import { equalRational, greaterRational, isRational, Rational, createRational, addRational, isInfiniteRational, rationalToString } from "./rational";
-import { isChord, isNote } from "../../helpers2";
+import { isChord, isNote, isToken } from "../../helpers2";
 import { alignBars } from "./fmt_aligner";
 import { findFmtblLines } from "./fmt_timeMapHelpers";
 import { equalizer } from "./fmt_alignerHelpers";
@@ -59,6 +59,13 @@ class GCtx {
       if (isRational(listEntry)) {
         if (greaterRational(listEntry, key)) {
           this.list.splice(i, 0, [key, [value]]);
+
+          // Update all bar indexes that come after the insertion point
+          for (let barIdx = 0; barIdx < this.barIndexes.length; barIdx++) {
+            if (this.barIndexes[barIdx] >= i) {
+              this.barIndexes[barIdx]++;
+            }
+          }
           return;
         }
         if (equalRational(listEntry, key)) {
@@ -226,8 +233,7 @@ export function scanVxAlignPts(gCtx: GCtx, vxCtx: VxCtx): boolean {
 function barlinePts(gCtx: GCtx, vxCtx: VxCtx): boolean {
   const cur = peek(vxCtx);
   if (!isBarLine(cur)) return false;
-  gCtx.push([vxCtx.bar, { voiceIdx: vxCtx.voiceIdx, nodeID: cur.id }], vxCtx);
-  vxCtx.bar++;
+  gCtx.push([++vxCtx.bar, { voiceIdx: vxCtx.voiceIdx, nodeID: cur.id }], vxCtx);
   vxCtx.time = {
     numerator: 0,
     denominator: 1,
@@ -284,40 +290,39 @@ function advance(ctx: VxCtx) {
   ctx.pos++;
 }
 
-/**
- * Add alignment padding to multi-voice tunes using the new alignment algorithm.
- * Does nothing if tune is single-voice.
- */
-export function alignTuneWithNewAlgorithm(tune: System, ctx: ABCContext, stringifyVisitor: AbcFormatter2): System {
-  // Split system into voices/noformat lines
-  let voiceSplits: Array<VoiceSplit> = findFmtblLines(tune);
+export function aligner(gCtx: GCtx, voiceSplits: Array<VoiceSplit>, stringifyVisitor: AbcFormatter2): Array<VoiceSplit> {
+  for (let i = 0; i < gCtx.list.length; i++) {
+    const [_, locations] = gCtx.list[i];
+    const maxLength = Math.max(
+      ...locations.map((v) => {
+        const voice = voiceSplits[v.voiceIdx].content;
+        const idx = voice.findIndex((n) => !isToken(n) && getNodeId(n) === v.nodeID);
+        if (idx === -1) throw Error("Node not found");
+        const slice = voice.slice(0, idx);
+        return slice.map((node) => stringifyVisitor.stringify(node)).join("").length;
+      })
+    );
 
-  // Skip if no formattable content
-  if (!voiceSplits.some((split) => split.type === "formatted")) {
-    return tune;
+    // Insert whitespace tokens to equalize lengths
+    for (const loc of locations) {
+      const voiceIdx = loc.voiceIdx;
+      if (voiceSplits[voiceIdx].type !== "formatted") continue;
+
+      const voice = voiceSplits[voiceIdx].content;
+      const nodeidx = voice.findIndex((n) => !isToken(n) && getNodeId(n) === loc.nodeID);
+      if (nodeidx === -1) throw Error("Node not found");
+      const slice = voice.slice(0, nodeidx);
+      const currentLength = slice.map((node) => stringifyVisitor.stringify(node)).join("").length;
+
+      const padding = maxLength - currentLength;
+
+      if (padding <= 0) continue;
+
+      // Insert whitespace token before the current node
+      const wsToken = new Token(TT.WS, " ".repeat(padding));
+      voiceSplits[voiceIdx].content.splice(nodeidx, 0, wsToken);
+    }
   }
 
-  // Get alignment points using the new algorithm
-  const gCtx = scanAlignPoints(voiceSplits);
-
-  // Validate the alignment points
-  if (!gCtx.validate()) {
-    console.error("Invalid alignment points detected");
-    return tune;
-  }
-
-  // Convert to bar alignments for compatibility with existing code
-  const barAlignments = gCtx.toBarAlignments();
-
-  // Process each bar alignment
-  for (const barAlignment of barAlignments) {
-    // Use the existing alignBars function
-    voiceSplits = alignBars(voiceSplits, barAlignment, stringifyVisitor, ctx);
-  }
-
-  // Apply bar length equalization
-  voiceSplits = equalizer(voiceSplits, stringifyVisitor);
-
-  // Reconstruct system from aligned voices
-  return voiceSplits.flatMap((split) => split.content);
+  return voiceSplits;
 }
