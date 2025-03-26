@@ -12,9 +12,11 @@ class SymbolLnCtx {
   pos: number = 0;
   parentPos: number | null = null;
   voiceIdx: number;
-  constructor(nodes: Array<Expr | Token>, voiceIdx: number) {
+  parentVxIdx: number;
+  constructor(nodes: Array<Expr | Token>, voiceIdx: number, parentVxIdx: number) {
     this.nodes = nodes;
     this.voiceIdx = voiceIdx;
+    this.parentVxIdx = parentVxIdx;
   }
 }
 class VxCtx {
@@ -171,14 +173,15 @@ export function scanAlignPoints(voiceSplits: Array<VoiceSplit>) {
       scanVxAlignPts(gCtx, vxCtx);
     }
     if (voiceSplits[i].type === "symbol_line") {
-      const vxCtx = new SymbolLnCtx(voiceSplits[i].content, i);
       const prevVx = (() => {
         for (let j = i - 1; j > 0; j--) {
           if (voiceSplits[j].type === "formatted") return j;
         }
         return null;
       })();
-      prevVx !== null && scanSymbolLinePts(gCtx, vxCtx, prevVx);
+      if (prevVx === null) continue;
+      const vxCtx = new SymbolLnCtx(voiceSplits[i].content, i, prevVx);
+      scanSymbolLinePts(gCtx, vxCtx);
     }
   }
   return gCtx;
@@ -202,6 +205,9 @@ function barlinePts(gCtx: GCtx, vxCtx: VxCtx | SymbolLnCtx): boolean {
       numerator: 0,
       denominator: 1,
     };
+  }
+  if (vxCtx instanceof SymbolLnCtx) {
+    vxCtx.parentPos = null;
   }
   advance(vxCtx);
   return true;
@@ -261,7 +267,7 @@ export function aligner(gCtx: GCtx, voiceSplits: Array<VoiceSplit>, stringifyVis
     const maxLength = Math.max(
       ...locations.map((v) => {
         const voice = voiceSplits[v.voiceIdx].content;
-        const idx = voice.findIndex((n) => !isToken(n) && getNodeId(n) === v.nodeID);
+        const idx = voice.findIndex((n) => getNodeId(n) === v.nodeID);
         if (idx === -1) throw Error("Node not found");
         const slice = voice.slice(0, idx);
         return slice.map((node) => stringifyVisitor.stringify(node)).join("").length;
@@ -271,10 +277,11 @@ export function aligner(gCtx: GCtx, voiceSplits: Array<VoiceSplit>, stringifyVis
     // Insert whitespace tokens to equalize lengths
     for (const loc of locations) {
       const voiceIdx = loc.voiceIdx;
-      if (voiceSplits[voiceIdx].type !== "formatted") continue;
+      const voiceType = voiceSplits[voiceIdx].type;
+      if (!(voiceType === "formatted" || voiceType === "symbol_line")) continue;
 
       const voice = voiceSplits[voiceIdx].content;
-      const nodeidx = voice.findIndex((n) => !isToken(n) && getNodeId(n) === loc.nodeID);
+      const nodeidx = voice.findIndex((n) => getNodeId(n) === loc.nodeID);
       if (nodeidx === -1) throw Error("Node not found");
       const slice = voice.slice(0, nodeidx);
       const currentLength = slice.map((node) => stringifyVisitor.stringify(node)).join("").length;
@@ -292,13 +299,13 @@ export function aligner(gCtx: GCtx, voiceSplits: Array<VoiceSplit>, stringifyVis
   return voiceSplits;
 }
 
-function scanSymbolLinePts(gCtx: GCtx, vxCtx: SymbolLnCtx, prntVx: number) {
+function scanSymbolLinePts(gCtx: GCtx, vxCtx: SymbolLnCtx) {
   const parentAlignPts = gCtx.list
     .map((aPt): AlignPt | null => {
       if (typeof aPt[0] === "number") {
         return aPt;
       }
-      const newLocs = aPt[1].filter((loc) => loc.voiceIdx === prntVx);
+      const newLocs = aPt[1].filter((loc) => loc.voiceIdx === vxCtx.parentVxIdx);
       if (newLocs.length === 0) return null;
       return [aPt[0], newLocs];
     })
@@ -310,8 +317,34 @@ function scanSymbolLinePts(gCtx: GCtx, vxCtx: SymbolLnCtx, prntVx: number) {
   while (!isAtEnd(vxCtx)) {
     const cur = peek(vxCtx);
     if (barlinePts(gCtx, vxCtx)) continue;
-    // if (timeEventPts(gCtx, vxCtx)) continue;
+    if (symbolLnTimeEvent(gCtx, vxCtx)) continue;
     advance(vxCtx);
+  }
+  return false;
+}
+
+function symbolLnTimeEvent(gCtx: GCtx, vxCtx: SymbolLnCtx): boolean {
+  const node = peek(vxCtx);
+  if (!(isToken(node) && (node.type === TT.SY_TXT || node.type === TT.SY_STAR))) return false;
+  const startIdx = gCtx.barIndexes[vxCtx.bar] + (vxCtx.parentPos ?? 0);
+  let endIdx: number;
+  if (vxCtx.bar + 1 >= gCtx.barIndexes.length) {
+    endIdx = gCtx.list.length;
+  } else {
+    endIdx = gCtx.barIndexes[vxCtx.bar + 1];
+  }
+
+  for (let i = startIdx; i < endIdx; i++) {
+    const entry = gCtx.list[i];
+    const timeKey = entry[0];
+    if (!isRational(timeKey)) throw Error("Expected time stamp");
+    const locations = entry[1];
+    const mtchIdx = locations.findIndex((loc) => loc.voiceIdx === vxCtx.parentVxIdx);
+    if (mtchIdx === -1) continue;
+    gCtx.push([timeKey, { voiceIdx: vxCtx.voiceIdx, nodeID: node.id }], vxCtx);
+    vxCtx.parentPos = i - gCtx.barIndexes[vxCtx.bar];
+    advance(vxCtx);
+    return true;
   }
   return false;
 }
