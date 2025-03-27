@@ -33,20 +33,20 @@ TODO:
 
 # Bug list:
 
-- scanner - refine generator for tune bodies
-- parser property tests
-- fix align bars
 - remove abcContext everywhere, and pass error reporter instead
 - new error reporter: accomodate scan2, parse2
-- remove legacy parser-scanner
-  Dependent upon align bars tests.
-- symbol-line formatting
-  _The formatting of symbol lines needs to be done AFTER formatting music lines. These are dependent lines, which means we shouldn’t be worried about system-wide formatting: s-lines come after *any* music formatting._
-  - scan line
-    all time-sensitive elements, `*` and chord symbols.
-  - Scan chord symbols - requires scanning the fundamental name, any possible polychords, and the ciphering which might represent up to 11 notes. For our purposes, we don’t need to go that far: we just want to find the boundaries of the chord symbols.
-    So this means we can probably use a regex to delimit the section of the chord symbol. How can I discern whether the annotation is NOT a chord symbol? What’s AbcJs’ policy? Do annotations get aligned too?
-  - parse into expressions: «symbol-line extends Expr»
-  - add time - mapping logic
 - sys-fmt
   - system detection logic
+
+# features: 
+- reorder chords
+- divide/multiple rhythms (bug)
+- double octaves
+- octaviate note
+- enharmonize
+- midi input w/ appropriate accidentals
+  requires gathering key signature contexts
+- input mode for vim:
+    <C-a> => ^a
+    <M-a> => _a
+
