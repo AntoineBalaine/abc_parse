@@ -58,6 +58,19 @@ export class AbcFormatter2 implements Visitor<string> {
    * use this flag to indicate if we just want to stringify the tree, without pretty-printing
    */
   no_format: boolean = false;
+  formatFile(ast: File_structure): string {
+    this.no_format = false;
+    const contents = ast.contents
+      .map((tune_or_token) => {
+        if (tune_or_token instanceof Tune) {
+          return this.format(tune_or_token);
+        } else {
+          return tune_or_token.accept(this);
+        }
+      })
+      .join("\n\n");
+    return [ast.file_header?.accept(this), contents].join("\n\n");
+  }
   format(ast: Tune): string {
     this.no_format = false;
     // 1. Rules resolution phase
