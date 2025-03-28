@@ -60,7 +60,7 @@ export class AbcFormatter2 implements Visitor<string> {
   no_format: boolean = false;
   formatFile(ast: File_structure): string {
     this.no_format = false;
-    const contents = ast.contents
+    let rv = ast.contents
       .map((tune_or_token) => {
         if (tune_or_token instanceof Tune) {
           return this.format(tune_or_token);
@@ -69,7 +69,10 @@ export class AbcFormatter2 implements Visitor<string> {
         }
       })
       .join("\n\n");
-    return [ast.file_header?.accept(this), contents].join("\n\n");
+    if (ast.file_header) {
+      return ast.file_header?.accept(this) + "\n\n" + rv;
+    }
+    return rv;
   }
   format(ast: Tune): string {
     this.no_format = false;

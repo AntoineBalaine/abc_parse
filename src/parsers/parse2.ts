@@ -98,7 +98,7 @@ export function parse(tokens: Token[], abcContext: ABCContext): File_structure {
   const fileHeader = parseFileHeader(ctx);
   while (!ctx.isAtEnd()) {
     const cur = ctx.peek();
-    if (parseTune(ctx)) continue;
+    if (parseTune(ctx, seq)) continue;
     switch (cur.type) {
       case TT.SCT_BRK:
         ctx.advance();
@@ -125,13 +125,15 @@ export function parseFileHeader(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): 
   // parse as long as we don’t have a tune start or section break
   // iterate through lines. If we find a tune start token before a section break, then this is a tune header.
   // otherwise, this is a file header.
-  const pos = ctx.current;
-  const tok = ctx.tokens[pos];
+  let pos = ctx.current;
+  let tok = ctx.tokens[pos];
   while (!(pos >= ctx.tokens.length || tok.type === TT.EOF)) {
     if (isTuneStart(tok)) return null;
     if (tok.type === TT.SCT_BRK) {
       break;
     }
+    pos += 1;
+    tok = ctx.tokens[pos];
   }
 
   const contents: Array<Expr | Token> = [];

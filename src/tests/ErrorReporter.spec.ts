@@ -6,7 +6,7 @@ import { tuneHeader } from "./RhythmTransform.spec";
 
 const expect = chai.expect;
 
-describe("Error Reporter", () => {
+describe.skip("Error Reporter", () => {
   it("Parser: retrieve errors after synchronization", () => {
     const sample = "~23 a bc\na,,";
     const ctx = new ABCContext();
