@@ -98,7 +98,11 @@ export function parse(tokens: Token[], abcContext: ABCContext): File_structure {
   const fileHeader = parseFileHeader(ctx);
   while (!ctx.isAtEnd()) {
     const cur = ctx.peek();
-    if (parseTune(ctx, seq)) continue;
+    if (isTune(ctx)) {
+      // TODO: modifiy signature so that parseTune returns Tune | null
+      parseTune(ctx, seq);
+      continue;
+    }
     switch (cur.type) {
       case TT.SCT_BRK:
         ctx.advance();
@@ -145,11 +149,29 @@ export function parseFileHeader(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): 
       ctx.advance();
       continue;
     }
+    if (ctx.check(TT.FREE_TXT)) {
+      contents.push(ctx.advance());
+      continue;
+    }
     break;
   }
   const rv = new File_header(ctx.abcContext.generateId(), contents);
   if (prnt_arr) prnt_arr.push(rv);
   return null;
+}
+
+function isTune(ctx: ParseCtx) {
+  let pos = ctx.current;
+  let tok = ctx.tokens[pos];
+  while (!(pos >= ctx.tokens.length || tok.type === TT.EOF)) {
+    if (isTuneStart(tok)) return true;
+    if (tok.type === TT.SCT_BRK) {
+      return false;
+    }
+    pos += 1;
+    tok = ctx.tokens[pos];
+  }
+  return true;
 }
 
 // Main parser export function

@@ -61,32 +61,20 @@ export function fileStructure(ctx: Ctx) {
   return ctx.tokens;
 }
 
-export function isFileHeader(ctx: Ctx): boolean {
-  // If we're not at the beginning of the file, it's not a file header
-  if (ctx.current !== 0) return false;
-
-  const remainingSource = ctx.source.substring(ctx.current);
-
-  // Find the position of the first section break
-  const sectionBreakMatch = new RegExp(pSectionBrk.source).exec(remainingSource);
+export function sectBreakBeforeTuneStart(source: string): boolean {
+  const sectionBreakMatch = new RegExp(pSectionBrk.source).exec(source);
   const sectionBreakPos = sectionBreakMatch ? sectionBreakMatch.index : Infinity;
-
-  // Find the position of the first tune header start
-  const tuneHeadMatch = new RegExp(pTuneHeadStrt.source).exec(remainingSource);
+  const tuneHeadMatch = new RegExp(pTuneHeadStrt.source).exec(source);
   const tuneHeadPos = tuneHeadMatch ? tuneHeadMatch.index : Infinity;
-
-  // If there's no tune head start and no section break, it's a file header
   if (tuneHeadPos === Infinity && sectionBreakPos === Infinity) {
-    return true;
-  }
-
-  // If the tune head start comes before the section break, it's not a file header
-  if (tuneHeadPos < sectionBreakPos) {
     return false;
   }
+  return tuneHeadPos > sectionBreakPos;
+}
 
-  // If the section break comes before the tune head start, it is a file header
-  return true;
+export function isFileHeader(ctx: Ctx): boolean {
+  if (ctx.current !== 0) return false;
+  return sectBreakBeforeTuneStart(ctx.source.substring(ctx.current));
 }
 
 export function fileHeader(ctx: Ctx) {

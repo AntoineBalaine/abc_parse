@@ -204,7 +204,7 @@ describe("Scanner Round-trip Tests", () => {
         return isEqual;
       }),
       {
-        verbose: true,
+        verbose: false,
         numRuns: 10000,
       }
     );
