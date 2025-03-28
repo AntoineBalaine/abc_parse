@@ -11,22 +11,21 @@ function createCtx(source: string): Ctx {
 
 describe("Invalid Token Handling in Scanner", () => {
   it("should tokenize invalid characters as INVALID tokens", () => {
-    const ctx = createCtx("~123");
+    const ctx = createCtx("X:1\n~123");
     scanTune(ctx);
 
     // Check that we have the expected token types in the right order
-    assert.equal(ctx.tokens.length, 1, "Expected 1 token but got " + ctx.tokens.length);
-    assert.equal(ctx.tokens[0].type, TT.INVALID, "Token should be INVALID but was " + ctx.tokens[0].type);
-    assert.equal(ctx.tokens[0].lexeme, "~123", "Token lexeme should be '~123' but was '" + ctx.tokens[0].lexeme + "'");
+    assert.equal(ctx.tokens[3].type, TT.INVALID, "Token should be INVALID but was " + ctx.tokens[3].type);
+    assert.equal(ctx.tokens[3].lexeme, "~123", "Token lexeme should be '~123' but was '" + ctx.tokens[3].lexeme + "'");
   });
 
   it("should tokenize invalid characters mixed with valid ones", () => {
-    const ctx = createCtx("A ~123 B");
+    const ctx = createCtx("X:1\nA ~123 B");
     scanTune(ctx);
 
     // Check that we have the expected token types in the right order
-    const expectedTypes = [TT.NOTE_LETTER, TT.WS, TT.INVALID, TT.WS, TT.NOTE_LETTER];
-    const expectedLexemes = ["A", " ", "~123", " ", "B"];
+    const expectedTypes = [TT.INF_HDR, TT.INFO_STR, TT.EOL, TT.NOTE_LETTER, TT.WS, TT.INVALID, TT.WS, TT.NOTE_LETTER];
+    const expectedLexemes = ["X:", "1", "\n", "A", " ", "~123", " ", "B"];
 
     assert.equal(ctx.tokens.length, expectedTypes.length, `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`);
 
@@ -42,12 +41,12 @@ describe("Invalid Token Handling in Scanner", () => {
   });
 
   it("should tokenize multiple invalid tokens separately", () => {
-    const ctx = createCtx("A ~123 @456 B");
+    const ctx = createCtx("X:1\nA ~123 @456 B");
     scanTune(ctx);
 
     // Check that we have the expected token types in the right order
-    const expectedTypes = [TT.NOTE_LETTER, TT.WS, TT.INVALID, TT.WS, TT.INVALID, TT.WS, TT.NOTE_LETTER];
-    const expectedLexemes = ["A", " ", "~123", " ", "@456", " ", "B"];
+    const expectedTypes = [TT.INF_HDR, TT.INFO_STR, TT.EOL, TT.NOTE_LETTER, TT.WS, TT.INVALID, TT.WS, TT.INVALID, TT.WS, TT.NOTE_LETTER];
+    const expectedLexemes = ["X:", "1", "\n", "A", " ", "~123", " ", "@456", " ", "B"];
 
     assert.equal(ctx.tokens.length, expectedTypes.length, `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`);
 
@@ -63,7 +62,7 @@ describe("Invalid Token Handling in Scanner", () => {
   });
 
   it("should preserve all characters from the source in the tokens", () => {
-    const source = "A ~123 B";
+    const source = "X:1\nA ~123 B";
     const ctx = createCtx(source);
     scanTune(ctx);
 
@@ -73,12 +72,12 @@ describe("Invalid Token Handling in Scanner", () => {
   });
 
   it("should handle invalid tokens at the beginning of a line", () => {
-    const ctx = createCtx("~123 A");
+    const ctx = createCtx("X:1\n~123 A");
     scanTune(ctx);
 
     // Check that we have the expected token types in the right order
-    const expectedTypes = [TT.INVALID, TT.WS, TT.NOTE_LETTER];
-    const expectedLexemes = ["~123", " ", "A"];
+    const expectedTypes = [TT.INF_HDR, TT.INFO_STR, TT.EOL, TT.INVALID, TT.WS, TT.NOTE_LETTER];
+    const expectedLexemes = ["X:", "1", "\n", "~123", " ", "A"];
 
     assert.equal(ctx.tokens.length, expectedTypes.length, `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`);
 
@@ -94,12 +93,12 @@ describe("Invalid Token Handling in Scanner", () => {
   });
 
   it("should handle invalid tokens at the end of a line", () => {
-    const ctx = createCtx("A ~123");
+    const ctx = createCtx("X:1\nA ~123");
     scanTune(ctx);
 
     // Check that we have the expected token types in the right order
-    const expectedTypes = [TT.NOTE_LETTER, TT.WS, TT.INVALID];
-    const expectedLexemes = ["A", " ", "~123"];
+    const expectedTypes = [TT.INF_HDR, TT.INFO_STR, TT.EOL, TT.NOTE_LETTER, TT.WS, TT.INVALID];
+    const expectedLexemes = ["X:", "1", "\n", "A", " ", "~123"];
 
     assert.equal(ctx.tokens.length, expectedTypes.length, `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`);
 
@@ -115,11 +114,14 @@ describe("Invalid Token Handling in Scanner", () => {
   });
 
   it("should handle invalid tokens in a complex music pattern", () => {
-    const ctx = createCtx("A2 ~123 B | C ~456 D");
+    const ctx = createCtx("X:1\nA2 ~123 B | C ~456 D");
     scanTune(ctx);
 
     // Check that we have the expected token types in the right order
     const expectedTypes = [
+      TT.INF_HDR,
+      TT.INFO_STR,
+      TT.EOL,
       TT.NOTE_LETTER,
       TT.RHY_NUMER,
       TT.WS,
@@ -136,7 +138,7 @@ describe("Invalid Token Handling in Scanner", () => {
       TT.NOTE_LETTER,
     ];
 
-    const expectedLexemes = ["A", "2", " ", "~123", " ", "B", " ", "|", " ", "C", " ", "~456", " ", "D"];
+    const expectedLexemes = ["X:", "1", "\n", "A", "2", " ", "~123", " ", "B", " ", "|", " ", "C", " ", "~456", " ", "D"];
 
     assert.equal(ctx.tokens.length, expectedTypes.length, `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`);
 

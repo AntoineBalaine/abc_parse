@@ -11,11 +11,11 @@ function createCtx(source: string): Ctx {
 
 describe("scanTuneBody", () => {
   it("should tokenize a simple music pattern", () => {
-    const ctx = createCtx("A2 B");
+    const ctx = createCtx("X:1\nA2 B");
     scanTune(ctx);
 
     // Check that we have the expected token types in the right order
-    const expectedTypes = [TT.NOTE_LETTER, TT.RHY_NUMER, TT.WS, TT.NOTE_LETTER];
+    const expectedTypes = [TT.INF_HDR, TT.INFO_STR, TT.EOL, TT.NOTE_LETTER, TT.RHY_NUMER, TT.WS, TT.NOTE_LETTER];
 
     assert.equal(ctx.tokens.length, expectedTypes.length, `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`);
 
@@ -83,10 +83,13 @@ describe("scanTuneBody", () => {
   });
 
   it("should tokenize a line with chords and annotations", () => {
-    const ctx = createCtx('[CEG] "Cmaj" [FAC] "Fmaj"');
+    const ctx = createCtx('X:1\n[CEG] "Cmaj" [FAC] "Fmaj"');
     scanTune(ctx);
 
     const expectedTypes = [
+      TT.INF_HDR,
+      TT.INFO_STR,
+      TT.EOL,
       TT.CHRD_LEFT_BRKT,
       TT.NOTE_LETTER,
       TT.NOTE_LETTER,
@@ -112,10 +115,13 @@ describe("scanTuneBody", () => {
   });
 
   it("should tokenize a line with grace notes and tuplets", () => {
-    const ctx = createCtx("{/AC} (3DEF G2");
+    const ctx = createCtx("X:1\n{/AC} (3DEF G2");
     scanTune(ctx);
 
     const expectedTypes = [
+      TT.INF_HDR,
+      TT.INFO_STR,
+      TT.EOL,
       TT.GRC_GRP_LEFT_BRACE,
       TT.GRC_GRP_SLSH,
       TT.NOTE_LETTER,
@@ -140,10 +146,14 @@ describe("scanTuneBody", () => {
   });
 
   it("should tokenize a line with barlines and inline fields", () => {
-    const ctx = createCtx("| [M:3/4] A B C |");
+    const ctx = createCtx("X:1\n| [M:3/4] A B C |");
     scanTune(ctx);
 
     const expectedTypes = [
+      TT.INF_HDR,
+      TT.INFO_STR,
+
+      TT.EOL,
       TT.BARLINE,
       TT.WS,
       TT.INLN_FLD_LFT_BRKT,
@@ -168,10 +178,23 @@ describe("scanTuneBody", () => {
   });
 
   it("should tokenize a line with comments and directives", () => {
-    const ctx = createCtx("A B C %comment\n%%directive");
+    const ctx = createCtx("X:1\nA B C %comment\n%%directive");
     scanTune(ctx);
 
-    const expectedTypes = [TT.NOTE_LETTER, TT.WS, TT.NOTE_LETTER, TT.WS, TT.NOTE_LETTER, TT.WS, TT.COMMENT, TT.EOL, TT.STYLESHEET_DIRECTIVE];
+    const expectedTypes = [
+      TT.INF_HDR,
+      TT.INFO_STR,
+      TT.EOL,
+      TT.NOTE_LETTER,
+      TT.WS,
+      TT.NOTE_LETTER,
+      TT.WS,
+      TT.NOTE_LETTER,
+      TT.WS,
+      TT.COMMENT,
+      TT.EOL,
+      TT.STYLESHEET_DIRECTIVE,
+    ];
 
     assert.ok(ctx.tokens.length >= expectedTypes.length);
 
@@ -181,10 +204,23 @@ describe("scanTuneBody", () => {
   });
 
   it("should tokenize a line with slurs and ties", () => {
-    const ctx = createCtx("(A-B) C-D");
+    const ctx = createCtx("X:1\n(A-B) C-D");
     scanTune(ctx);
 
-    const expectedTypes = [TT.SLUR, TT.NOTE_LETTER, TT.TIE, TT.NOTE_LETTER, TT.SLUR, TT.WS, TT.NOTE_LETTER, TT.TIE, TT.NOTE_LETTER];
+    const expectedTypes = [
+      TT.INF_HDR,
+      TT.INFO_STR,
+      TT.EOL,
+      TT.SLUR,
+      TT.NOTE_LETTER,
+      TT.TIE,
+      TT.NOTE_LETTER,
+      TT.SLUR,
+      TT.WS,
+      TT.NOTE_LETTER,
+      TT.TIE,
+      TT.NOTE_LETTER,
+    ];
 
     assert.ok(ctx.tokens.length >= expectedTypes.length);
 

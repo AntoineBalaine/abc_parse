@@ -61,7 +61,7 @@ export function fileStructure(ctx: Ctx) {
   return ctx.tokens;
 }
 
-export function sectBreakBeforeTuneStart(source: string): boolean {
+export function tuneStartBeforeSectBrk(source: string): boolean {
   const sectionBreakMatch = new RegExp(pSectionBrk.source).exec(source);
   const sectionBreakPos = sectionBreakMatch ? sectionBreakMatch.index : Infinity;
   const tuneHeadMatch = new RegExp(pTuneHeadStrt.source).exec(source);
@@ -69,12 +69,22 @@ export function sectBreakBeforeTuneStart(source: string): boolean {
   if (tuneHeadPos === Infinity && sectionBreakPos === Infinity) {
     return false;
   }
-  return tuneHeadPos > sectionBreakPos;
+  return tuneHeadPos < sectionBreakPos;
 }
 
 export function isFileHeader(ctx: Ctx): boolean {
   if (ctx.current !== 0) return false;
-  return sectBreakBeforeTuneStart(ctx.source.substring(ctx.current));
+  /**
+   * false if tune header start before section break
+   * false if no text
+   * true if only header content
+   */
+
+  if (tuneStartBeforeSectBrk(ctx.source.substring(ctx.current))) {
+    return false;
+  }
+
+  return true;
 }
 
 export function fileHeader(ctx: Ctx) {

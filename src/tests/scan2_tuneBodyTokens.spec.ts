@@ -140,19 +140,19 @@ describe("scan2", () => {
     });
 
     it("should work with scanTune for a decoration followed by a pitch", () => {
-      const ctx = createCtx(".A");
+      const ctx = createCtx("X:1\n.A");
       scanTune(ctx);
-      assert.equal(ctx.tokens.length, 2);
-      assert.equal(ctx.tokens[0].type, TT.DECORATION);
-      assert.equal(ctx.tokens[1].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens.length, 5);
+      assert.equal(ctx.tokens[3].type, TT.DECORATION);
+      assert.equal(ctx.tokens[4].type, TT.NOTE_LETTER);
     });
 
     it("should work with scanTune for a decoration followed by a rest", () => {
-      const ctx = createCtx(".z");
+      const ctx = createCtx("X:1\n.z");
       scanTune(ctx);
-      assert.equal(ctx.tokens.length, 2);
-      assert.equal(ctx.tokens[0].type, TT.DECORATION);
-      assert.equal(ctx.tokens[1].type, TT.REST);
+      assert.equal(ctx.tokens.length, 5);
+      assert.equal(ctx.tokens[3].type, TT.DECORATION);
+      assert.equal(ctx.tokens[4].type, TT.REST);
     });
   });
 
@@ -364,11 +364,11 @@ describe("scan2", () => {
     });
 
     it("should work within the context of scanTune for a note with accidental", () => {
-      const ctx = createCtx("^A");
+      const ctx = createCtx("X:1\n^A");
       scanTune(ctx);
-      assert.equal(ctx.tokens.length, 2);
-      assert.equal(ctx.tokens[0].type, TT.ACCIDENTAL);
-      assert.equal(ctx.tokens[1].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens.length, 5);
+      assert.equal(ctx.tokens[3].type, TT.ACCIDENTAL);
+      assert.equal(ctx.tokens[4].type, TT.NOTE_LETTER);
     });
   });
 
@@ -451,12 +451,12 @@ describe("scan2", () => {
       assert.equal(ctx.tokens.length, 0);
     });
     it("should parse multiple rests in succession", () => {
-      const ctx = createCtx("zzz");
+      const ctx = createCtx("X:1\nzzz");
       scanTune(ctx);
-      assert.equal(ctx.tokens.length, 3);
-      assert.equal(ctx.tokens[0].type, TT.REST);
-      assert.equal(ctx.tokens[1].type, TT.REST);
-      assert.equal(ctx.tokens[2].type, TT.REST);
+      assert.equal(ctx.tokens.length, 6);
+      assert.equal(ctx.tokens[3].type, TT.REST);
+      assert.equal(ctx.tokens[4].type, TT.REST);
+      assert.equal(ctx.tokens[5].type, TT.REST);
     });
   });
 

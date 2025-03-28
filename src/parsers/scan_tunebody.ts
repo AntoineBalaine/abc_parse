@@ -1,4 +1,4 @@
-import { Ctx, EOL, TT, WS, advance, info_line, isAtEnd, precededBy, sectBreakBeforeTuneStart, stylesheet_directive } from "./scan2";
+import { Ctx, EOL, TT, WS, advance, info_line, isAtEnd, precededBy, stylesheet_directive, tuneStartBeforeSectBrk } from "./scan2";
 
 const pLETTER_COLON = /[a-zA-Z]:/;
 export const pEOL = "\n";
@@ -413,7 +413,7 @@ export function scanRepeatNumbers(ctx: Ctx): boolean {
 }
 
 export function scanTune(ctx: Ctx): boolean {
-  if (sectBreakBeforeTuneStart(ctx.source.substring(ctx.current))) return false;
+  if (!tuneStartBeforeSectBrk(ctx.source.substring(ctx.current))) return false;
   // if (!ctx.test(pTuneStart)) return false;
   while (!isAtEnd(ctx) && !ctx.test(pSectionBrk)) {
     ctx.start = ctx.current;

@@ -153,11 +153,11 @@ export function parseFileHeader(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): 
       contents.push(ctx.advance());
       continue;
     }
-    break;
+    ctx.advance();
   }
   const rv = new File_header(ctx.abcContext.generateId(), contents);
   if (prnt_arr) prnt_arr.push(rv);
-  return null;
+  return rv;
 }
 
 function isTune(ctx: ParseCtx) {
@@ -171,7 +171,7 @@ function isTune(ctx: ParseCtx) {
     pos += 1;
     tok = ctx.tokens[pos];
   }
-  return true;
+  return false;
 }
 
 // Main parser export function

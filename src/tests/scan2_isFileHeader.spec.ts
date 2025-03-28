@@ -24,6 +24,13 @@ T:Title
     assert.strictEqual(result, true);
   });
 
+  it("should return true for a file with tune header and free text", () => {
+    const ctx = createCtx(`%%directive
+some free text
+`);
+    const result = isFileHeader(ctx);
+    assert.strictEqual(result, true);
+  });
   it("should return false for a file with tune header start", () => {
     const ctx = createCtx(`X:1
 T:Title

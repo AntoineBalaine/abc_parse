@@ -70,7 +70,7 @@ export class AbcFormatter2 implements Visitor<string> {
       })
       .join("\n\n");
     if (ast.file_header) {
-      return ast.file_header?.accept(this) + "\n\n" + rv;
+      return `${ast.file_header?.accept(this)}${rv.length ? "\n\n" : ""}${rv}`;
     }
     return rv;
   }
@@ -117,7 +117,10 @@ export class AbcFormatter2 implements Visitor<string> {
 
   visitFileHeaderExpr(expr: File_header): string {
     //TODO should I return tokens here as well?
-    return expr.contents.map((c) => c.accept(this)).join("\n");
+    return expr.contents
+      .map((c) => c.accept(this))
+      .join("\n")
+      .trim();
   }
 
   visitDirectiveExpr(expr: Directive): string {
