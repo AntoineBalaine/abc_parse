@@ -82,7 +82,7 @@ export class Transposer implements Visitor<Expr | Token> {
     return expr;
   }
   visitFileStructureExpr(expr: File_structure): File_structure {
-    expr.tune = expr.tune.map((tune) => {
+    expr.contents = expr.contents.map((tune) => {
       return this.visitTuneExpr(tune);
     });
     return expr;

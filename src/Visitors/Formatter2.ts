@@ -85,20 +85,23 @@ export class AbcFormatter2 implements Visitor<string> {
       })
       .join("\n");
   }
+  visitToken(expr: Token) {
+    return expr.lexeme;
+  }
   visitFileStructureExpr(expr: File_structure) {
     let formattedFile = "";
     if (expr.file_header) {
       formattedFile += expr.file_header.accept(this);
     }
-    const formattedTunes = expr.tune.map((tune): string => {
+    const formattedTunes = expr.contents.map((tune): string => {
       return tune.accept(this);
     });
     return formattedFile + formattedTunes.join(formattedFile.length > 0 ? "\n" : "");
   }
 
-  visitFileHeaderExpr(expr: File_header) {
+  visitFileHeaderExpr(expr: File_header): string {
     //TODO should I return tokens here as well?
-    return expr.text;
+    return expr.contents.map((c) => c.accept(this)).join("\n");
   }
 
   visitDirectiveExpr(expr: Directive): string {

@@ -1,3 +1,4 @@
+import { Visitor } from "../types/Expr2";
 import { ABCContext } from "./Context";
 import { AbcErrorReporter } from "./ErrorReporter";
 import { comment, pEOL, pInfoLine, pSectionBrk, pTuneHeadStrt, pTuneStart, scanTune } from "./scan_tunebody";
@@ -211,6 +212,9 @@ export class Token {
   public position: number;
   public id: number;
 
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitToken(this);
+  }
   public toString = () => {
     return `${this.type} ${this.lexeme} (id: ${this.id})`;
   };

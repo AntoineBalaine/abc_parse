@@ -74,11 +74,11 @@ export class RangeVisitor implements Visitor<Range> {
     return getTokenRange(expr.decoration);
   }
   visitFileHeaderExpr(expr: File_header): Range {
-    return expr.tokens.map((e) => getTokenRange(e)).reduce(reduceRanges, <Range>{});
+    return expr.contents.map((e) => getTokenRange(e)).reduce(reduceRanges, <Range>{});
   }
   visitFileStructureExpr(expr: File_structure): Range {
-    const { file_header, tune } = expr;
-    return tune
+    const { file_header, contents } = expr;
+    return contents
       .map((t) => t.accept(this))
       .concat([file_header?.accept(this)].filter((e): e is Range => !!e))
       .reduce(reduceRanges, <Range>{});

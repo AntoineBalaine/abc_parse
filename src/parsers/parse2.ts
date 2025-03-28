@@ -10,6 +10,8 @@ import {
   Directive,
   ErrorExpr,
   Expr,
+  File_header,
+  File_structure,
   Grace_group,
   Info_line,
   Inline_field,
@@ -90,16 +92,74 @@ export class ParseCtx {
   }
 }
 
-// Main parser export function
-export function parseTune(tokens: Token[], abcContext: ABCContext): Tune {
+export function parse(tokens: Token[], abcContext: ABCContext): File_structure {
   const ctx = new ParseCtx(tokens, abcContext);
+  const seq: Array<Expr | Token> = [];
+  const fileHeader = parseFileHeader(ctx);
+  while (!ctx.isAtEnd()) {
+    const cur = ctx.peek();
+    if (parseTune(ctx)) continue;
+    switch (cur.type) {
+      case TT.SCT_BRK:
+        ctx.advance();
+        continue;
+      case TT.FREE_TXT:
+        seq.push(ctx.advance());
+        continue;
+      case TT.INVALID:
+        seq.push(ctx.advance());
+        continue;
+      default:
+        ctx.report("parser: unexpected token");
+        seq.push(ctx.advance());
+    }
 
+    ctx.report("unexpected");
+  }
+  return new File_structure(ctx.abcContext.generateId(), fileHeader, seq);
+}
+function isTuneStart(token: Token): boolean {
+  return token.type === TT.INF_HDR && token.lexeme.trim() === "X:";
+}
+export function parseFileHeader(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): null | File_header {
+  // parse as long as we don’t have a tune start or section break
+  // iterate through lines. If we find a tune start token before a section break, then this is a tune header.
+  // otherwise, this is a file header.
+  const pos = ctx.current;
+  const tok = ctx.tokens[pos];
+  while (!(pos >= ctx.tokens.length || tok.type === TT.EOF)) {
+    if (isTuneStart(tok)) return null;
+    if (tok.type === TT.SCT_BRK) {
+      break;
+    }
+  }
+
+  const contents: Array<Expr | Token> = [];
+  while (!ctx.isAtEnd() && !ctx.check(TT.SCT_BRK)) {
+    if (prsComment(ctx, contents)) continue;
+    if (prsDirective(ctx, contents)) continue;
+    if (prsInfoLine(ctx, contents)) continue;
+    if (ctx.check(TT.EOL) && followedBy(ctx, [TT.INF_HDR, TT.COMMENT, TT.STYLESHEET_DIRECTIVE], [TT.WS])) {
+      ctx.advance();
+      continue;
+    }
+    break;
+  }
+  const rv = new File_header(ctx.abcContext.generateId(), contents);
+  if (prnt_arr) prnt_arr.push(rv);
+  return null;
+}
+
+// Main parser export function
+export function parseTune(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Tune {
   // Parse header information
   const tuneHeader = prsTuneHdr(ctx);
   // Parse body (music sections) with voices from the header
   const tuneBody = prsBody(ctx, tuneHeader.voices);
 
-  return new Tune(ctx.abcContext.generateId(), tuneHeader, tuneBody);
+  const rv = new Tune(ctx.abcContext.generateId(), tuneHeader, tuneBody);
+  if (prnt_arr) prnt_arr.push(rv);
+  return rv;
 }
 
 export function prsTuneHdr(ctx: ParseCtx): Tune_header {

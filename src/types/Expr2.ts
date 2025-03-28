@@ -7,6 +7,7 @@ import { Token, TT } from "../parsers/scan2";
  */
 export interface Visitor<R> {
   ctx: ABCContext;
+  visitToken(token: Token): R;
   visitAnnotationExpr(expr: Annotation): R;
   visitBarLineExpr(expr: BarLine): R;
   visitChordExpr(expr: Chord): R;
@@ -47,11 +48,11 @@ export abstract class Expr {
 
 export class File_structure extends Expr {
   file_header: File_header | null;
-  tune: Array<Tune>;
-  constructor(id: number, file_header: File_header | null, tune: Array<Tune>) {
+  contents: Array<Expr | Token>;
+  constructor(id: number, file_header: File_header | null, tune: Array<Expr | Token>) {
     super(id);
     this.file_header = file_header;
-    this.tune = tune;
+    this.contents = tune;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitFileStructureExpr(this);
@@ -74,12 +75,10 @@ export class Pitch extends Expr {
 }
 
 export class File_header extends Expr {
-  text: string;
-  tokens: Array<Token>;
-  constructor(id: number, text: string, tokens: Array<Token>) {
+  contents: Array<Token | Expr>;
+  constructor(id: number, tokens: Array<Token | Expr>) {
     super(id);
-    this.text = text;
-    this.tokens = tokens;
+    this.contents = tokens;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitFileHeaderExpr(this);

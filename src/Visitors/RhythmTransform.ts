@@ -189,7 +189,7 @@ export class RhythmVisitor implements Visitor<Expr> {
     return expr;
   }
   visitFileStructureExpr(expr: File_structure): File_structure {
-    expr.tune = expr.tune.map((tune) => {
+    expr.contents = expr.contents.map((tune) => {
       return tune.accept(this);
     }) as Tune[];
     return expr;
