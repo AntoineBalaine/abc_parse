@@ -1,7 +1,7 @@
 import { assert } from "chai";
 import { isNote } from "../helpers";
 import { ABCContext } from "../parsers/Context";
-import { parseTune } from "../parsers/parse2";
+import { ParseCtx, parseTune } from "../parsers/parse2";
 import { Scanner2, TT } from "../parsers/scan2";
 import { BarLine, Beam, Decoration, Grace_group, MultiMeasureRest } from "../types/Expr2";
 import { assignTuneBodyRules, expandMultiMeasureRests, preprocessTune, SpcRul } from "../Visitors/fmt2/fmt_rules_assignment";
@@ -9,7 +9,8 @@ import { isBarLine, isToken } from "../Visitors/fmt2/fmt_timeMapHelpers";
 
 function buildTune(input: string, ctx: ABCContext) {
   const tokens = Scanner2(input, ctx);
-  return parseTune(tokens, ctx);
+  const parseCtx = new ParseCtx(tokens, ctx);
+  return parseTune(parseCtx);
 }
 
 describe("Rules Assignment (fmt2)", () => {

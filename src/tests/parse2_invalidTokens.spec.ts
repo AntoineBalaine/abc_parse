@@ -78,7 +78,8 @@ describe("Invalid Token Handling in Parser", () => {
       const tokens = Scanner2(source, abcContext);
 
       // Parse the tune
-      const tune = parseTune(tokens, abcContext);
+      const parseCtx = new ParseCtx(tokens, abcContext);
+      const tune = parseTune(parseCtx);
 
       // Verify that the tune was parsed correctly
       assert.instanceOf(tune, Tune);
@@ -121,7 +122,8 @@ describe("Invalid Token Handling in Parser", () => {
       const tokens = Scanner2(source, abcContext);
 
       // Parse the tune
-      const tune = parseTune(tokens, abcContext);
+      const parseCtx = new ParseCtx(tokens, abcContext);
+      const tune = parseTune(parseCtx);
 
       // Collect all lexemes from the AST
       const lexemes: string[] = [];
@@ -170,7 +172,8 @@ describe("Invalid Token Handling in Parser", () => {
       const tokens = Scanner2(source, abcContext);
 
       // Parse the tune
-      const tune = parseTune(tokens, abcContext);
+      const parseCtx = new ParseCtx(tokens, abcContext);
+      const tune = parseTune(parseCtx);
 
       // Find all ErrorExpr instances in the tune body
       const errorExprs: ErrorExpr[] = [];

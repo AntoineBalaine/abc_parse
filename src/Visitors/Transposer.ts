@@ -45,6 +45,10 @@ export class Transposer implements Visitor<Expr | Token> {
     this.ctx = ctx;
     this.source = source;
   }
+
+  visitToken(token: Token): Token {
+    return token;
+  }
   transpose(distance: number) {
     this.distance = distance;
     return this.visitFileStructureExpr(this.source);
@@ -82,8 +86,11 @@ export class Transposer implements Visitor<Expr | Token> {
     return expr;
   }
   visitFileStructureExpr(expr: File_structure): File_structure {
-    expr.contents = expr.contents.map((tune) => {
-      return this.visitTuneExpr(tune);
+    expr.contents = expr.contents.map((contents) => {
+      if (isToken(contents)) {
+        return contents;
+      }
+      return this.visitTuneExpr(contents);
     });
     return expr;
   }

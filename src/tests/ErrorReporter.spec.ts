@@ -1,6 +1,6 @@
 import chai from "chai";
 import { ABCContext } from "../parsers/Context";
-import { parseTune } from "../parsers/parse2";
+import { ParseCtx, parseTune } from "../parsers/parse2";
 import { Scanner2 } from "../parsers/scan2";
 import { tuneHeader } from "./RhythmTransform.spec";
 
@@ -13,7 +13,8 @@ describe("Error Reporter", () => {
     const tokens = Scanner2(tuneHeader(sample), ctx);
 
     // Parse the tune
-    const parse = parseTune(tokens, ctx);
+    const parseCtx = new ParseCtx(tokens, ctx);
+    const parse = parseTune(parseCtx);
     expect(parse).to.be.not.null;
     if (parse === null) {
       return;
@@ -25,7 +26,8 @@ describe("Error Reporter", () => {
     const sample = "~23 a bc\na,,";
     const ctx = new ABCContext();
     const tokens = Scanner2(tuneHeader(sample), ctx);
-    const parse = parseTune(tokens, ctx);
+    const parseCtx = new ParseCtx(tokens, ctx);
+    const parse = parseTune(parseCtx);
     expect(parse).to.be.not.null;
     if (parse === null) {
       return;
@@ -38,7 +40,8 @@ describe("Error Reporter", () => {
     const sample = `a \\e bc`;
     const ctx = new ABCContext();
     const tokens = Scanner2(tuneHeader(sample), ctx);
-    const parse = parseTune(tokens, ctx);
+    const parseCtx = new ParseCtx(tokens, ctx);
+    const parse = parseTune(parseCtx);
     expect(parse).to.be.not.null;
     if (parse === null) {
       return;

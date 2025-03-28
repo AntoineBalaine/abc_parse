@@ -1,7 +1,7 @@
 import { assert } from "chai";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
-import { parseTune } from "../parsers/parse2";
+import { ParseCtx, parseTune } from "../parsers/parse2";
 import { Scanner2 } from "../parsers/scan2";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
 
@@ -13,7 +13,8 @@ describe("ErrorExpr Preservation in Formatter", () => {
     const tokens = Scanner2(source, abcContext);
 
     // Parse the tune
-    const tune = parseTune(tokens, abcContext);
+    const parseCtx = new ParseCtx(tokens, abcContext);
+    const tune = parseTune(parseCtx);
 
     // Format the tune
     const formatter = new AbcFormatter2(abcContext);
@@ -28,7 +29,8 @@ describe("ErrorExpr Preservation in Formatter", () => {
     const abcContext = new ABCContext();
     const formatter = new AbcFormatter2(abcContext);
     const tokens = Scanner2(input, abcContext);
-    const ast = parseTune(tokens, abcContext);
+    const parseCtx = new ParseCtx(tokens, abcContext);
+    const ast = parseTune(parseCtx);
 
     const result = formatter.format(ast);
 

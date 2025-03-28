@@ -1,6 +1,6 @@
 import { assert } from "chai";
 import { ABCContext } from "../parsers/Context";
-import { parseTune } from "../parsers/parse2";
+import { ParseCtx, parseTune } from "../parsers/parse2";
 import { Scanner2 } from "../parsers/scan2";
 import { System, Tune } from "../types/Expr2";
 import { aligner, scanAlignPoints } from "../Visitors/fmt2/fmt_aligner3";
@@ -20,7 +20,8 @@ describe("Aligner3", () => {
   // Helper function to parse ABC notation into a system
   function parseSystem(input: string): System {
     const tokens = Scanner2(input, ctx);
-    const ast = parseTune(tokens, ctx);
+    const parseCtx = new ParseCtx(tokens, ctx);
+    const ast = parseTune(parseCtx);
     if (!ast) {
       throw new Error("Failed to parse");
     }

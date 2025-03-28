@@ -42,6 +42,9 @@ export class RangeVisitor implements Visitor<Range> {
   constructor(ctx: ABCContext) {
     this.ctx = ctx;
   }
+  visitToken(token: Token): Range {
+    return getTokenRange(token);
+  }
   visitAnnotationExpr(expr: Annotation): Range {
     return getTokenRange(expr.text);
   }
@@ -74,7 +77,12 @@ export class RangeVisitor implements Visitor<Range> {
     return getTokenRange(expr.decoration);
   }
   visitFileHeaderExpr(expr: File_header): Range {
-    return expr.contents.map((e) => getTokenRange(e)).reduce(reduceRanges, <Range>{});
+    return expr.contents
+      .map((e) => {
+        if (isToken(e)) return getTokenRange(e);
+        return e.accept(this);
+      })
+      .reduce(reduceRanges, <Range>{});
   }
   visitFileStructureExpr(expr: File_structure): Range {
     const { file_header, contents } = expr;

@@ -98,6 +98,10 @@ export class RhythmVisitor implements Visitor<Expr> {
     };
   }
 
+  visitToken(token: Token): Token {
+    return token;
+  }
+
   transform(factor: "*" | "/", range?: Range) {
     this.factor = factor;
     if (range) {

@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { isChord } from "../helpers";
 import { ABCContext } from "../parsers/Context";
-import { parseTune } from "../parsers/parse2";
+import { ParseCtx, parseTune } from "../parsers/parse2";
 import { Scanner2 } from "../parsers/scan2";
 import { System } from "../types/Expr2";
 import { alignBars } from "../Visitors/fmt2/fmt_aligner";
@@ -21,7 +21,8 @@ describe("Chord Alignment Tests", () => {
 
   function format(input: string): string {
     const tokens = Scanner2(input, ctx);
-    const ast = parseTune(tokens, ctx);
+    const parseCtx = new ParseCtx(tokens, ctx);
+    const ast = parseTune(parseCtx);
     if (!ast) {
       throw new Error("Failed to parse");
     }
@@ -59,7 +60,8 @@ describe("Chord Alignment Tests", () => {
 
   function parseSystem(input: string): System {
     const tokens = Scanner2(input, ctx);
-    const ast = parseTune(tokens, ctx);
+    const parseCtx = new ParseCtx(tokens, ctx);
+    const ast = parseTune(parseCtx);
     if (!ast) {
       throw new Error("Failed to parse");
     }

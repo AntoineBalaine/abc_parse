@@ -94,7 +94,7 @@ export class ParseCtx {
 
 export function parse(tokens: Token[], abcContext: ABCContext): File_structure {
   const ctx = new ParseCtx(tokens, abcContext);
-  const seq: Array<Expr | Token> = [];
+  const seq: Array<Tune | Token> = [];
   const fileHeader = parseFileHeader(ctx);
   while (!ctx.isAtEnd()) {
     const cur = ctx.peek();

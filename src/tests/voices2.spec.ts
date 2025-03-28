@@ -1,7 +1,7 @@
 import chai from "chai";
 import { isToken, isVoiceMarker } from "../helpers";
 import { ABCContext } from "../parsers/Context";
-import { parseTune } from "../parsers/parse2";
+import { ParseCtx, parseTune } from "../parsers/parse2";
 import { Scanner2, Token, TT } from "../parsers/scan2";
 import { isNewSystem, parseNoVoices, parseSystemsWithVoices, parseVoices, stringifyVoice, VoiceCtx } from "../parsers/voices2";
 import { Info_line, Inline_field, tune_body_code } from "../types/Expr2";
@@ -372,7 +372,8 @@ z16|`;
 
       const ctx = new ABCContext();
       const tokens = Scanner2(sample, ctx);
-      const tune = parseTune(tokens, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
 
       expect(tune).to.not.be.null;
       const systems = tune.tune_body?.sequence;
@@ -390,7 +391,8 @@ L:1/8
 
       const ctx = new ABCContext();
       const tokens = Scanner2(sample, ctx);
-      const tune = parseTune(tokens, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
 
       expect(tune).to.not.be.null;
       const systems = tune.tune_body?.sequence;
@@ -410,7 +412,8 @@ L:1/8
 
       const ctx = new ABCContext();
       const tokens = Scanner2(sample, ctx);
-      const tune = parseTune(tokens, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
 
       expect(tune).to.not.be.null;
       const systems = tune.tune_body?.sequence;
@@ -431,7 +434,8 @@ L:1/8
 
       const ctx = new ABCContext();
       const tokens = Scanner2(sample, ctx);
-      const tune = parseTune(tokens, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
 
       expect(tune).to.not.be.null;
       const systems = tune.tune_body?.sequence;
@@ -453,7 +457,8 @@ A|`;
 
       const ctx = new ABCContext();
       const tokens = Scanner2(sample, ctx);
-      const tune = parseTune(tokens, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
 
       expect(tune).to.not.be.null;
       expect(tune.tune_header.voices).to.have.lengthOf(2);
@@ -473,7 +478,8 @@ K:C
 
       const ctx = new ABCContext();
       const tokens = Scanner2(sample, ctx);
-      const tune = parseTune(tokens, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
 
       expect(tune).to.not.be.null;
       expect(tune.tune_header.voices).to.have.lengthOf(2);

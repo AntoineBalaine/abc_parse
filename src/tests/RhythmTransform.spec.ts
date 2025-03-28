@@ -3,7 +3,7 @@ import chai from "chai";
 import { AbcFormatter2 as AbcFormatter } from "../Visitors/Formatter2";
 import { RhythmVisitor } from "../Visitors/RhythmTransform";
 import { ABCContext } from "../parsers/Context";
-import { parseTune } from "../parsers/parse2";
+import { ParseCtx, parseTune } from "../parsers/parse2";
 import { Ctx, Scanner2 } from "../parsers/scan2";
 import { scanTune } from "../parsers/scan_tunebody";
 import { File_header, File_structure } from "../types/Expr2";
@@ -26,12 +26,13 @@ export function buildParse(source: string, ctx: ABCContext): File_structure {
   scanTune(createCtx(source));
 
   const tokens = Scanner2(source, ctx);
-  const parse = parseTune(tokens, ctx);
+  const parseCtx = new ParseCtx(tokens, ctx);
+  const parse = parseTune(parseCtx);
 
   if (!parse) {
-    return new File_structure(ctx.generateId(), new File_header(ctx.generateId(), "", []), []);
+    return new File_structure(ctx.generateId(), new File_header(ctx.generateId(), []), []);
   } else {
-    return new File_structure(ctx.generateId(), new File_header(ctx.generateId(), "", []), [parse]);
+    return new File_structure(ctx.generateId(), new File_header(ctx.generateId(), []), [parse]);
   }
 }
 

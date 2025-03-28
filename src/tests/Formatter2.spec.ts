@@ -1,6 +1,6 @@
 import chai, { assert } from "chai";
 import { ABCContext } from "../parsers/Context";
-import { parseTune } from "../parsers/parse2";
+import { ParseCtx, parseTune } from "../parsers/parse2";
 import { Scanner2, Token, TT } from "../parsers/scan2";
 import { Rhythm, System } from "../types/Expr2";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
@@ -9,7 +9,8 @@ const expect = chai.expect;
 
 function format(input: string, ctx: ABCContext, formatter: AbcFormatter2): string {
   const tokens = Scanner2(input, ctx);
-  const ast = parseTune(tokens, ctx);
+  const parseCtx = new ParseCtx(tokens, ctx);
+  const ast = parseTune(parseCtx);
   if (!ast) {
     throw new Error("Failed to parse");
   }
@@ -27,7 +28,8 @@ function RunSystemTest(input: string, test: (systems: System[], expected: string
     const ctx = new ABCContext();
     const formatter = new AbcFormatter2(ctx);
     const tokens = Scanner2(input, ctx);
-    const ast = parseTune(tokens, ctx);
+    const parseCtx = new ParseCtx(tokens, ctx);
+    const ast = parseTune(parseCtx);
     if (!ast || !ast.tune_body) {
       throw new Error("Failed to parse or no tune body");
     }
@@ -636,7 +638,8 @@ describe("Format Info Lines in Tune Header", function () {
       test: (input, expected) => {
         const ctx = new ABCContext();
         const tokens = Scanner2(input as string, ctx);
-        const ast = parseTune(tokens, ctx);
+        const parseCtx = new ParseCtx(tokens, ctx);
+        const ast = parseTune(parseCtx);
         if (!ast) {
           throw new Error("Failed to parse");
         }
@@ -661,7 +664,8 @@ K:C
       test: (input, expected) => {
         const ctx = new ABCContext();
         const tokens = Scanner2(input as string, ctx);
-        const ast = parseTune(tokens, ctx);
+        const parseCtx = new ParseCtx(tokens, ctx);
+        const ast = parseTune(parseCtx);
         if (!ast) {
           throw new Error("Failed to parse");
         }
@@ -699,7 +703,8 @@ describe("Format Info Lines in Tune Body", function () {
       test: (input, expected) => {
         const ctx = new ABCContext();
         const tokens = Scanner2(input as string, ctx);
-        const ast = parseTune(tokens, ctx);
+        const parseCtx = new ParseCtx(tokens, ctx);
+        const ast = parseTune(parseCtx);
         if (!ast || !ast.tune_body) {
           throw new Error("Failed to parse or no tune body");
         }
@@ -738,7 +743,8 @@ describe("Formatter2", function () {
     it("can visit the tree without modifying source", function () {
       const ctx = new ABCContext();
       const tokens = Scanner2(input, ctx);
-      const ast = parseTune(tokens, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const ast = parseTune(parseCtx);
       if (!ast) {
         throw new Error("Failed to parse");
       }
@@ -749,7 +755,8 @@ describe("Formatter2", function () {
     it("removes useless double spaces", function () {
       const ctx = new ABCContext();
       const tokens = Scanner2(input, ctx);
-      const ast = parseTune(tokens, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const ast = parseTune(parseCtx);
       if (!ast) {
         throw new Error("Failed to parse");
       }
@@ -850,7 +857,8 @@ describe("Formatter2: Stringify", () => {
       it(`should stringify ${input} into ${expected}`, () => {
         const ctx = new ABCContext();
         const tokens = Scanner2(input, ctx);
-        const ast = parseTune(tokens, ctx);
+        const parseCtx = new ParseCtx(tokens, ctx);
+        const ast = parseTune(parseCtx);
         if (!ast) {
           throw new Error("Failed to parse");
         }
@@ -866,7 +874,8 @@ describe("Formatter2: Stringify", () => {
       it(`should stringify ${input} into ${expected}`, () => {
         const ctx = new ABCContext();
         const tokens = Scanner2(input, ctx);
-        const ast = parseTune(tokens, ctx);
+        const parseCtx = new ParseCtx(tokens, ctx);
+        const ast = parseTune(parseCtx);
         if (!ast) {
           throw new Error("Failed to parse");
         }
@@ -897,7 +906,8 @@ describe("Formatter2: Whitespace handling", () => {
         const ctx = new ABCContext();
         const formatter = new AbcFormatter2(ctx);
         const tokens = Scanner2(input, ctx);
-        const ast = parseTune(tokens, ctx);
+        const parseCtx = new ParseCtx(tokens, ctx);
+        const ast = parseTune(parseCtx);
         if (!ast) {
           throw new Error("Failed to parse");
         }
@@ -940,7 +950,8 @@ describe("Formatter2: Error Preservation", () => {
         const ctx = new ABCContext();
         const formatter = new AbcFormatter2(ctx);
         const tokens = Scanner2(input, ctx);
-        const ast = parseTune(tokens, ctx);
+        const parseCtx = new ParseCtx(tokens, ctx);
+        const ast = parseTune(parseCtx);
         if (!ast) {
           throw new Error("Failed to parse");
         }
@@ -956,7 +967,8 @@ describe("Formatter2: Error Preservation", () => {
         const ctx = new ABCContext();
         const formatter = new AbcFormatter2(ctx);
         const tokens = Scanner2(input, ctx);
-        const ast = parseTune(tokens, ctx);
+        const parseCtx = new ParseCtx(tokens, ctx);
+        const ast = parseTune(parseCtx);
         if (!ast) {
           throw new Error("Failed to parse");
         }
@@ -974,7 +986,8 @@ describe("Formatter2: Error Preservation", () => {
     const ctx = new ABCContext();
     const formatter = new AbcFormatter2(ctx);
     const tokens = Scanner2(input, ctx);
-    const ast = parseTune(tokens, ctx);
+    const parseCtx = new ParseCtx(tokens, ctx);
+    const ast = parseTune(parseCtx);
     if (!ast) {
       throw new Error("Failed to parse");
     }
@@ -990,7 +1003,8 @@ describe("Formatter2: Error Preservation", () => {
     const ctx = new ABCContext();
     const formatter = new AbcFormatter2(ctx);
     const tokens = Scanner2(input, ctx);
-    const ast = parseTune(tokens, ctx);
+    const parseCtx = new ParseCtx(tokens, ctx);
+    const ast = parseTune(parseCtx);
     if (!ast) {
       throw new Error("Failed to parse");
     }

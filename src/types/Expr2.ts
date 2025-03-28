@@ -48,8 +48,8 @@ export abstract class Expr {
 
 export class File_structure extends Expr {
   file_header: File_header | null;
-  contents: Array<Expr | Token>;
-  constructor(id: number, file_header: File_header | null, tune: Array<Expr | Token>) {
+  contents: Array<Tune | Token>;
+  constructor(id: number, file_header: File_header | null, tune: Array<Tune | Token>) {
     super(id);
     this.file_header = file_header;
     this.contents = tune;

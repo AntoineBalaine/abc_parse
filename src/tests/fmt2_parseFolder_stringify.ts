@@ -2,7 +2,7 @@ import { assert } from "chai";
 import fs from "fs";
 import path from "path";
 import { ABCContext } from "../parsers/Context";
-import { parseTune } from "../parsers/parse2";
+import { ParseCtx, parseTune } from "../parsers/parse2";
 import { Scanner2 } from "../parsers/scan2";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
 
@@ -30,7 +30,8 @@ describe("Formatter2: StringifyFolder", function () {
         };
       }
 
-      const ast = parseTune(tokens, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const ast = parseTune(parseCtx);
       if (!ast) {
         return {
           success: false,
