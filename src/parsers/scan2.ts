@@ -54,8 +54,8 @@ export function Scanner2(source: string, abcContext: ABCContext): Array<Token> {
 export function fileStructure(ctx: Ctx) {
   while (!isAtEnd(ctx)) {
     if (sectionBreak(ctx)) continue;
-    if (scanTune(ctx)) continue;
     if (fileHeader(ctx)) continue;
+    if (scanTune(ctx)) continue;
     freeText(ctx);
   }
   return ctx.tokens;
