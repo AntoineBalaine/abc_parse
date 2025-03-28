@@ -261,8 +261,8 @@ export function prsInfoLine(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Info
       // is it really needed?
       tokens.push(ctx.previous());
     }
-    while (!ctx.isAtEnd() && !ctx.check(TT.EOL)) {
-      tokens.push(ctx.advance());
+    while (ctx.match(TT.WS) || ctx.match(TT.COMMENT)) {
+      tokens.push(ctx.previous());
     }
     const rv = new Info_line(ctx.abcContext.generateId(), tokens);
     prnt_arr && prnt_arr.push(rv);

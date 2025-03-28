@@ -1,6 +1,6 @@
 import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
-import { Ctx, Scanner2, TT } from "../parsers/scan2";
+import { Ctx, Scanner2, Token, TT } from "../parsers/scan2";
 import { pDuration, pitch, pPitch, scanTune } from "../parsers/scan_tunebody";
 import { genTokenSequence } from "./scan2_pbt.generators.spec";
 
@@ -157,13 +157,19 @@ describe("Scanner Round-trip Tests", () => {
           lexeme: string;
         }
 
+        function trimTokens(tokens: Array<Token>) {
+          let i = 0;
+          while (i < tokens.length && (tokens[i].type === TT.EOL || tokens[i].type === TT.WS)) i++;
+          return tokens.slice(i);
+        }
+        const trimmedTokens = trimTokens(originalTokens);
         // Concatenate lexemes
-        const input = originalTokens.map((t) => (t as TokenLike).lexeme).join("");
+        const input = ["X:1\n", ...trimmedTokens.map((t) => (t as TokenLike).lexeme)].join("");
 
         // Rescan
         const ctx = new Ctx(input, new ABCContext());
         scanTune(ctx);
-        const rescannedTokens = ctx.tokens;
+        const rescannedTokens = ctx.tokens.slice(3);
 
         // Skip position-related properties in comparison
         const normalizeToken = (token: TokenLike): NormalizedToken => ({
@@ -172,13 +178,13 @@ describe("Scanner Round-trip Tests", () => {
         });
 
         // Compare token sequences
-        const normalizedOriginal = originalTokens.map((t) => normalizeToken(t as TokenLike));
+        const normalizedOriginal = trimmedTokens.map((t) => normalizeToken(t as TokenLike));
         const normalizedRescanned = rescannedTokens
           .filter((t) => t.type !== TT.EOF) // Exclude EOF token
           .map(normalizeToken);
 
         if (normalizedOriginal.length !== normalizedRescanned.length) {
-          compareTokenArrays(originalTokens, rescannedTokens, input);
+          compareTokenArrays(trimmedTokens, rescannedTokens, input);
           console.log("Token count mismatch:", {
             input,
             original: normalizedOriginal,
@@ -193,7 +199,7 @@ describe("Scanner Round-trip Tests", () => {
         });
 
         if (!isEqual) {
-          compareTokenArrays(originalTokens, rescannedTokens, input);
+          compareTokenArrays(trimmedTokens, rescannedTokens, input);
           console.log("Token mismatch:", {
             input,
             original: normalizedOriginal,

@@ -281,7 +281,7 @@ T:Tune with Voices
 V:1 clef=treble
 V:2 clef=bass
 V:1
-CDEF | GABC |
+CDEF     | GABC     |
 V:2
 C,D,E,F, | G,A,B,C, |`;
 
