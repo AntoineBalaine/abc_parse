@@ -96,7 +96,7 @@ describe("AbcFormatter2", () => {
       });
 
       it("handles notes with rhythm", () => {
-        assert.equal(format("X:1\nC2D/2E/2F|", ctx, formatter), "X:1\nC2D/2E/2F |");
+        assert.equal(format("X:1\nC2D/2E/2F|", ctx, formatter), "X:1\nC2D/E/F |");
       });
 
       it("handles broken rhythms", () => {

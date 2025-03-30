@@ -1,6 +1,6 @@
 import { isNote, isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
-import { Token } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan2";
 import {
   Annotation,
   BarLine,
@@ -83,11 +83,11 @@ export class AbcFormatter2 implements Visitor<string> {
     let alignedTune = alignTune(withRules, this.ctx, this);
 
     // 3. Print using visitor
-    return this.stringify(alignedTune);
+    return this.stringify(alignedTune, false);
   }
 
-  stringify(expr: Expr | Token): string {
-    this.no_format = true;
+  stringify(expr: Expr | Token, no_fmt?: boolean): string {
+    this.no_format = no_fmt !== undefined ? no_fmt : true;
 
     const fmt = isToken(expr) ? expr.lexeme : expr.accept(this);
     this.no_format = false;
@@ -169,7 +169,10 @@ export class AbcFormatter2 implements Visitor<string> {
   }
 
   visitChordExpr(expr: Chord): string {
-    const str = expr.contents
+    // If we're formatting (not just stringifying), sort the notes from lowest to highest
+    const contents = this.no_format ? expr.contents : sortNotes(expr.contents);
+
+    const str = contents
       .map((content): string => {
         if (isToken(content)) {
           return content.lexeme;
@@ -240,9 +243,10 @@ export class AbcFormatter2 implements Visitor<string> {
     let formattedNote = "";
     if (expr.pitch instanceof Pitch) {
       formattedNote += this.visitPitchExpr(expr.pitch);
-    } else if (expr.pitch instanceof Rest) {
-      formattedNote += this.visitRestExpr(expr.pitch);
     }
+    // else if (expr.pitch instanceof Rest) {
+    //   formattedNote += this.visitRestExpr(expr.pitch);
+    // }
     if (expr.rhythm) {
       formattedNote += this.visitRhythmExpr(expr.rhythm);
     }
@@ -375,3 +379,130 @@ export class AbcFormatter2 implements Visitor<string> {
     return expr.tokens.map((token) => token.lexeme).join("");
   }
 }
+
+export class FmtCtx {
+  source: Array<Token | Expr>;
+  current: number = 0;
+  start: number = 0;
+
+  constructor(tokens: Array<Token | Expr>) {
+    this.source = tokens;
+  }
+
+  peek(): Token | Expr {
+    return this.source[this.current];
+  }
+
+  previous(): Token | Expr {
+    return this.source[this.current - 1];
+  }
+
+  advance(): Token | Expr {
+    if (!this.isAtEnd()) this.current++;
+    return this.previous();
+  }
+
+  isAtEnd(): boolean {
+    const cur = this.peek();
+    return this.current >= this.source.length || (isToken(cur) && cur.type === TT.EOF);
+  }
+
+  push(into: Array<Array<Token | Expr>>) {
+    into.push([...this.source.slice(this.start, this.current)]);
+    this.start = this.current;
+  }
+}
+
+// Export for testing
+export function getSplits(contents: Array<Note | Token | Annotation>): Array<Array<Note | Token | Annotation>> {
+  let splits: Array<Array<Note | Token | Annotation>> = [];
+  const ctx = new FmtCtx(contents);
+
+  while (!ctx.isAtEnd()) {
+    while (!isNote(ctx.peek())) {
+      ctx.advance();
+    }
+
+    ctx.advance(); // advance note
+    ctx.push(splits);
+  }
+  if (ctx.current < ctx.source.length) {
+    splits.push([...ctx.source.slice(ctx.start)] as Array<Note | Token | Annotation>);
+    ctx.push(splits);
+  }
+  return splits;
+}
+
+// Export for testing
+export function sortNotes(contents: Array<Note | Token | Annotation>): Array<Note | Token | Annotation> {
+  const splits = getSplits(contents);
+  splits.sort((a, b) => {
+    // compare relative value of notes.
+    const a_note = a.find((e) => isNote(e));
+    const b_note = b.find((e) => isNote(e));
+    if (!a_note || !b_note) {
+      return 0;
+    }
+    const a_pval = toMidiPitch(a_note.pitch as Pitch);
+    const b_pval = toMidiPitch(b_note.pitch as Pitch);
+    return a_pval - b_pval;
+  });
+  return splits.flat();
+}
+
+/**
+ * Converts a Pitch object to its MIDI pitch value for comparison
+ * This is used to sort notes from lowest to highest in a chord
+ */
+// Export for testing
+export const toMidiPitch = (pitch: Pitch): number => {
+  let noteNum: number;
+  const note_letter = pitch.noteLetter.lexeme;
+
+  // Base MIDI numbers for C4 (middle C) = 60, D4 = 62, etc.
+  switch (note_letter.toUpperCase()) {
+    case "C":
+      noteNum = 60;
+      break;
+    case "D":
+      noteNum = 62;
+      break;
+    case "E":
+      noteNum = 64;
+      break;
+    case "F":
+      noteNum = 65;
+      break;
+    case "G":
+      noteNum = 67;
+      break;
+    case "A":
+      noteNum = 69;
+      break;
+    case "B":
+      noteNum = 71;
+      break;
+    default:
+      throw new Error(`Invalid note letter: ${note_letter}`);
+  }
+
+  // Handle alterations (sharps, flats, naturals)
+  if (pitch.alteration) {
+    const alt = pitch.alteration.lexeme;
+    if (alt === "^") noteNum += 1; // Sharp
+    else if (alt === "^^") noteNum += 2; // Double sharp
+    else if (alt === "_") noteNum -= 1; // Flat
+    else if (alt === "__") noteNum -= 2; // Double flat
+    // Natural (=) doesn't change the pitch
+  }
+
+  // Handle octave
+  // In ABC notation, lowercase letters are one octave higher than uppercase
+  if (/[a-g]/.test(note_letter)) {
+    noteNum += 12; // One octave higher for lowercase letters
+  }
+
+  pitch.octave?.lexeme.split("").forEach((oct) => (oct === "'" ? (noteNum += 12) : (noteNum -= 12)));
+
+  return noteNum;
+};

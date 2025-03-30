@@ -254,10 +254,10 @@ export class Rest extends Expr {
 }
 
 export class Note extends Expr {
-  pitch: Pitch | Rest;
+  pitch: Pitch;
   rhythm?: Rhythm;
   tie?: Token;
-  constructor(id: number, pitch: Pitch | Rest, rhythm?: Rhythm, tie?: Token) {
+  constructor(id: number, pitch: Pitch, rhythm?: Rhythm, tie?: Token) {
     super(id);
     this.pitch = pitch;
     this.rhythm = rhythm;
