@@ -1,6 +1,6 @@
 import { isBeam, isChord, isGraceGroup, isNote, isPitch, isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
-import { Token } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan2";
 import {
   Annotation,
   BarLine,
@@ -32,6 +32,7 @@ import {
   Voice_overlay,
   YSPACER,
 } from "../types/Expr2";
+import { toMidiPitch } from "./Formatter2";
 
 /**
  * WIP there will be dragons.
@@ -57,13 +58,13 @@ export class Transposer implements Visitor<Expr | Token> {
   /* create all the properties that are needed for the transposer
   for each expression, create a visit method
   that returns the expression */
-  visitAnnotationExpr(expr: Annotation): Annotation {
-    return expr;
+  visitAnnotationExpr(expr: Annotation) {
+    return expr as Expr | Token; // ugh… this cast is ugly as can be
   }
   visitDirectiveExpr(expr: Directive) {
     return expr;
   }
-  visitBarLineExpr(expr: BarLine): BarLine {
+  visitBarLineExpr(expr: BarLine) {
     return expr;
   }
   visitChordExpr(expr: Chord): Chord {
@@ -141,8 +142,14 @@ export class Transposer implements Visitor<Expr | Token> {
     return expr;
   }
   visitPitchExpr(expr: Pitch): Pitch {
-    // TODO
-    return expr;
+    // Convert to MIDI pitch
+    const midiPitch = toMidiPitch(expr);
+
+    // Apply transposition
+    const transposedMidiPitch = midiPitch + this.distance;
+
+    // Convert back to ABC notation
+    return fromMidiPitch(transposedMidiPitch, this.ctx);
   }
   visitRestExpr(expr: Rest): Rest {
     return expr;
@@ -213,4 +220,102 @@ export class Transposer implements Visitor<Expr | Token> {
   visitErrorExpr(expr: ErrorExpr) {
     return expr;
   }
+}
+
+export function fromMidiPitch(midiPitch: number, ctx: ABCContext): Pitch {
+  // Create tokens for the new Pitch object
+
+  // Determine the note letter and accidental
+  // C=0, C#=1, D=2, D#=3, E=4, F=5, F#=6, G=7, G#=8, A=9, A#=10, B=11
+  const noteNum = midiPitch % 12;
+  let noteLetter: string;
+  let accidental: string | undefined;
+
+  // Map MIDI note numbers to ABC notation
+  // Prefer using sharps for simplicity
+  switch (noteNum) {
+    case 0: // C
+      noteLetter = "C";
+      break;
+    case 1: // C#
+      noteLetter = "C";
+      accidental = "^";
+      break;
+    case 2: // D
+      noteLetter = "D";
+      break;
+    case 3: // D#
+      noteLetter = "D";
+      accidental = "^";
+      break;
+    case 4: // E
+      noteLetter = "E";
+      break;
+    case 5: // F
+      noteLetter = "F";
+      break;
+    case 6: // F#
+      noteLetter = "F";
+      accidental = "^";
+      break;
+    case 7: // G
+      noteLetter = "G";
+      break;
+    case 8: // G#
+      noteLetter = "G";
+      accidental = "^";
+      break;
+    case 9: // A
+      noteLetter = "A";
+      break;
+    case 10: // A#
+      noteLetter = "A";
+      accidental = "^";
+      break;
+    case 11: // B
+      noteLetter = "B";
+      break;
+    default:
+      throw new Error(`Invalid MIDI note number: ${noteNum}`);
+  }
+
+  const midiOctave = Math.floor(midiPitch / 12) - 1; // Convert MIDI octave to musical octave number
+
+  // Create tokens for the new Pitch object
+  let noteLetterToken: Token;
+  let accidentalToken: Token | undefined;
+  let octaveToken: Token | undefined;
+
+  // Handle octave notation
+  if (midiOctave <= 4) {
+    // Octave 4 and below - uppercase letters
+    noteLetterToken = new Token(TT.NOTE_LETTER, noteLetter, ctx.generateId());
+
+    // Add commas for octaves below 4
+    if (midiOctave < 4) {
+      const octaveStr = ",".repeat(4 - midiOctave);
+      octaveToken = new Token(TT.OCTAVE, octaveStr, ctx.generateId());
+    }
+  } else {
+    // Octave 5 and above - lowercase letters
+    noteLetterToken = new Token(TT.NOTE_LETTER, noteLetter.toLowerCase(), ctx.generateId());
+
+    // Add apostrophes for octaves above 5
+    if (midiOctave > 5) {
+      const octaveStr = "'".repeat(midiOctave - 5);
+      octaveToken = new Token(TT.OCTAVE, octaveStr, ctx.generateId());
+    }
+  }
+
+  // Create accidental token if needed
+  if (accidental) {
+    accidentalToken = new Token(TT.ACCIDENTAL, accidental, ctx.generateId());
+  }
+
+  // Create and return the new Pitch object
+  return new Pitch(ctx.generateId(), {
+    alteration: accidentalToken,
+    noteLetter: noteLetterToken,
+    octave: octaveToken,
+  });
 }
