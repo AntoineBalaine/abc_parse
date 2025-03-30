@@ -1,12 +1,14 @@
 import { expect } from "chai";
+import { isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import { File_header, File_structure, Note, Pitch, Tune, Tune_Body, Tune_header } from "../types/Expr2";
 import { Range } from "../types/types";
 import { AbcFormatter2, toMidiPitch } from "../Visitors/Formatter2";
+import { ExpressionCollector } from "../Visitors/RangeCollector";
 import { fromMidiPitch, Transposer } from "../Visitors/Transposer";
 
-describe("Transposer", () => {
+describe.only("Transposer", () => {
   describe("fromMidiPitch", () => {
     const ctx = new ABCContext();
     const formatter = new AbcFormatter2(ctx);
@@ -507,6 +509,190 @@ describe("Transposer", () => {
       expect(formattedNotes[2]).to.equal("E"); // Not transposed
       expect(formattedNotes[3]).to.equal("F"); // Not transposed
       expect(formattedNotes[4]).to.equal("G"); // Not transposed
+    });
+  });
+
+  describe("ExpressionCollector", () => {
+    const ctx = new ABCContext();
+    const formatter = new AbcFormatter2(ctx);
+
+    // Helper function to create a note with position information
+    const createNote = (noteLetter: string, line: number, position: number, alteration?: string, octave?: string): Note => {
+      const id = ctx.generateId();
+
+      const noteLetterToken = new Token(TT.NOTE_LETTER, noteLetter, ctx.generateId());
+      noteLetterToken.line = line;
+      noteLetterToken.position = position;
+
+      const alterationToken = alteration ? new Token(TT.ACCIDENTAL, alteration, ctx.generateId()) : undefined;
+      if (alterationToken) {
+        alterationToken.line = line;
+        alterationToken.position = position - 1;
+      }
+
+      const octaveToken = octave ? new Token(TT.OCTAVE, octave, ctx.generateId()) : undefined;
+      if (octaveToken) {
+        octaveToken.line = line;
+        octaveToken.position = position + 1;
+      }
+
+      const pitch = new Pitch(ctx.generateId(), {
+        noteLetter: noteLetterToken,
+        alteration: alterationToken,
+        octave: octaveToken,
+      });
+
+      return new Note(id, pitch);
+    };
+
+    // Create a tune with multiple notes at different positions
+    const createTuneWithNotes = (): Tune => {
+      const tuneId = ctx.generateId();
+      const tuneHeaderId = ctx.generateId();
+      const tuneBodyId = ctx.generateId();
+
+      // Create notes at different positions
+      const note1 = createNote("C", 1, 0); // C at line 1, position 0
+      const note2 = createNote("D", 1, 2); // D at line 1, position 2
+      const note3 = createNote("E", 1, 4); // E at line 1, position 4
+      const note4 = createNote("F", 1, 6); // F at line 1, position 6
+      const note5 = createNote("G", 1, 8); // G at line 1, position 8
+
+      // Create a tune body with the notes
+      const tuneBody = new Tune_Body(tuneBodyId, [[note1, note2, note3, note4, note5]]);
+
+      // Create a tune with the tune body
+      const tune = new Tune(tuneId, new Tune_header(tuneHeaderId, []), tuneBody);
+
+      return tune;
+    };
+
+    // Create a file structure with the tune
+    const createFileStructureWithTune = (): File_structure => {
+      const fileStructureId = ctx.generateId();
+      const fileHeaderId = ctx.generateId();
+
+      const tune = createTuneWithNotes();
+
+      return new File_structure(fileStructureId, new File_header(fileHeaderId, []), [tune]);
+    };
+
+    it("should collect only expressions within the specified range", () => {
+      // Create a file structure with notes
+      const fileStructure = createFileStructureWithTune();
+
+      // Define a range that includes only the middle notes (D and E)
+      const range: Range = {
+        start: { line: 1, character: 2 },
+        end: { line: 1, character: 5 },
+      };
+
+      // Create an expression collector with the range
+      const collector = new ExpressionCollector(ctx, range);
+
+      // Traverse the file structure to collect expressions
+      fileStructure.accept(collector);
+
+      // Get the collected expressions
+      const collected = collector.getCollectedExpressions();
+
+      // Format the collected expressions to check their values
+      const formattedExpressions = collected
+        .map((expr) => {
+          if (expr instanceof Note) {
+            return expr.pitch.accept(formatter);
+          }
+          return null;
+        })
+        .filter(Boolean); // Filter out nulls
+
+      // Verify that only the notes within the range were collected
+      expect(formattedExpressions).to.have.lengthOf(2);
+      expect(formattedExpressions[0]).to.equal("D");
+      expect(formattedExpressions[1]).to.equal("E");
+    });
+
+    it("should collect all expressions when range covers the entire document", () => {
+      // Create a file structure with notes
+      const fileStructure = createFileStructureWithTune();
+
+      // Define a range that covers the entire document
+      const range: Range = {
+        start: { line: 0, character: 0 },
+        end: { line: Number.MAX_VALUE, character: Number.MAX_VALUE },
+      };
+
+      // Create an expression collector with the range
+      const collector = new ExpressionCollector(ctx, range);
+
+      // Traverse the file structure to collect expressions
+      fileStructure.accept(collector);
+
+      // Get the collected expressions
+      const collected = collector.getCollectedExpressions();
+
+      // Count the number of notes collected
+      const noteCount = collected.filter((expr) => expr instanceof Note).length;
+
+      // Verify that all notes were collected
+      expect(noteCount).to.equal(5);
+    });
+
+    it("should collect no expressions when range is outside the document", () => {
+      // Create a file structure with notes
+      const fileStructure = createFileStructureWithTune();
+
+      // Define a range that is outside the document
+      const range: Range = {
+        start: { line: 10, character: 0 },
+        end: { line: 20, character: 10 },
+      };
+
+      // Create an expression collector with the range
+      const collector = new ExpressionCollector(ctx, range);
+
+      // Traverse the file structure to collect expressions
+      fileStructure.accept(collector);
+
+      // Get the collected expressions
+      const collected = collector.getCollectedExpressions();
+
+      // Count the number of notes collected
+      const noteCount = collected.filter((expr) => expr instanceof Note).length;
+
+      // Verify that no notes were collected
+      expect(noteCount).to.equal(0);
+    });
+
+    it("should format collected expressions correctly", () => {
+      // Create a file structure with notes
+      const fileStructure = createFileStructureWithTune();
+
+      // Define a range that includes all notes
+      const range: Range = {
+        start: { line: 0, character: 0 },
+        end: { line: Number.MAX_VALUE, character: Number.MAX_VALUE },
+      };
+
+      // Create an expression collector with the range
+      const collector = new ExpressionCollector(ctx, range);
+
+      // Traverse the file structure to collect expressions
+      fileStructure.accept(collector);
+
+      // Format the collected expressions
+      const formatter = new AbcFormatter2(ctx);
+      const formatted = collector
+        .getCollectedExpressions()
+        .map((e) => (isToken(e) ? e.lexeme : formatter.stringify(e)))
+        .join("");
+
+      // Verify that the formatted string contains all notes
+      expect(formatted).to.include("C");
+      expect(formatted).to.include("D");
+      expect(formatted).to.include("E");
+      expect(formatted).to.include("F");
+      expect(formatted).to.include("G");
     });
   });
 });

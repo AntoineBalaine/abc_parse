@@ -33,7 +33,8 @@ import {
   YSPACER,
 } from "../types/Expr2";
 import { Range } from "../types/types";
-import { toMidiPitch } from "./Formatter2";
+import { AbcFormatter2 as AbcFormatter, toMidiPitch } from "./Formatter2";
+import { ExpressionCollector } from "./RangeCollector";
 import { RangeVisitor } from "./RangeVisitor";
 
 /**
@@ -76,6 +77,21 @@ export class Transposer implements Visitor<Expr | Token> {
       exprRange = expr.accept(this.rangeVisitor);
     }
     return exprIsInRange(this.range, exprRange);
+  }
+
+  getChanges(): string {
+    // Create a collector visitor that finds expressions in the range
+    const collector = new ExpressionCollector(this.ctx, this.range);
+
+    // Traverse the already-transposed AST to collect expressions
+    this.source.accept(collector);
+
+    // Format and return the collected expressions
+    const formatter = new AbcFormatter(this.ctx);
+    return collector
+      .getCollectedExpressions()
+      .map((e) => (isToken(e) ? e.lexeme : formatter.stringify(e)))
+      .join("");
   }
 
   transpose(distance: number, range?: Range) {
