@@ -1,4 +1,4 @@
-import { isBeam, isChord, isGraceGroup, isNote, isPitch, isToken } from "../helpers";
+import { exprIsInRange, getTokenRange, isBeam, isChord, isGraceGroup, isNote, isPitch, isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import {
@@ -32,7 +32,9 @@ import {
   Voice_overlay,
   YSPACER,
 } from "../types/Expr2";
+import { Range } from "../types/types";
 import { toMidiPitch } from "./Formatter2";
+import { RangeVisitor } from "./RangeVisitor";
 
 /**
  * WIP there will be dragons.
@@ -42,16 +44,45 @@ export class Transposer implements Visitor<Expr | Token> {
   distance: number = 0;
   source: File_structure;
   ctx: ABCContext;
+  range: Range;
+  rangeVisitor: RangeVisitor;
+
   constructor(source: File_structure, ctx: ABCContext) {
     this.ctx = ctx;
     this.source = source;
+    this.rangeVisitor = new RangeVisitor(this.ctx);
+    // Default range covers the entire document
+    this.range = {
+      start: {
+        line: 0,
+        character: 0,
+      },
+      end: {
+        line: Number.MAX_VALUE,
+        character: Number.MAX_VALUE,
+      },
+    };
   }
 
   visitToken(token: Token): Token {
     return token;
   }
-  transpose(distance: number) {
+
+  private isInRange(expr: Expr | Token): boolean {
+    let exprRange: Range;
+    if (isToken(expr)) {
+      exprRange = getTokenRange(expr);
+    } else {
+      exprRange = expr.accept(this.rangeVisitor);
+    }
+    return exprIsInRange(this.range, exprRange);
+  }
+
+  transpose(distance: number, range?: Range) {
     this.distance = distance;
+    if (range) {
+      this.range = range;
+    }
     return this.visitFileStructureExpr(this.source);
   }
 
@@ -68,13 +99,15 @@ export class Transposer implements Visitor<Expr | Token> {
     return expr;
   }
   visitChordExpr(expr: Chord): Chord {
-    expr.contents.map((content) => {
-      if (isNote(content)) {
-        return this.visitNoteExpr(content);
-      } else {
-        return content;
-      }
-    });
+    if (this.isInRange(expr)) {
+      expr.contents.map((content) => {
+        if (isNote(content)) {
+          return this.visitNoteExpr(content);
+        } else {
+          return content;
+        }
+      });
+    }
     return expr;
   }
   visitCommentExpr(expr: Comment): Comment {
@@ -96,13 +129,15 @@ export class Transposer implements Visitor<Expr | Token> {
     return expr;
   }
   visitGraceGroupExpr(expr: Grace_group): Grace_group {
-    expr.notes = expr.notes.map((e) => {
-      if (isNote(e)) {
-        return this.visitNoteExpr(e);
-      } else {
-        return e;
-      }
-    });
+    if (this.isInRange(expr)) {
+      expr.notes = expr.notes.map((e) => {
+        if (isNote(e)) {
+          return this.visitNoteExpr(e);
+        } else {
+          return e;
+        }
+      });
+    }
     return expr;
   }
   visitInfoLineExpr(expr: Info_line): Info_line {
@@ -136,7 +171,7 @@ export class Transposer implements Visitor<Expr | Token> {
     return expr;
   }
   visitNoteExpr(expr: Note): Note {
-    if (isPitch(expr.pitch)) {
+    if (isPitch(expr.pitch) && this.isInRange(expr)) {
       expr.pitch = this.visitPitchExpr(expr.pitch);
     }
     return expr;
@@ -197,19 +232,21 @@ export class Transposer implements Visitor<Expr | Token> {
     return expr;
   }
   visitBeamExpr(expr: Beam): Beam {
-    expr.contents.map((content) => {
-      if (isToken(content)) {
-        return content;
-      } else if (isChord(content)) {
-        return this.visitChordExpr(content);
-      } else if (isNote(content)) {
-        return this.visitNoteExpr(content);
-      } else if (isGraceGroup(content)) {
-        return this.visitGraceGroupExpr(content);
-      } else {
-        return content;
-      }
-    });
+    if (this.isInRange(expr)) {
+      expr.contents.map((content) => {
+        if (isToken(content)) {
+          return content;
+        } else if (isChord(content)) {
+          return this.visitChordExpr(content);
+        } else if (isNote(content)) {
+          return this.visitNoteExpr(content);
+        } else if (isGraceGroup(content)) {
+          return this.visitGraceGroupExpr(content);
+        } else {
+          return content;
+        }
+      });
+    }
     return expr;
   }
 
