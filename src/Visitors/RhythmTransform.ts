@@ -404,12 +404,13 @@ export class RhythmVisitor implements Visitor<Expr> {
     // Handle separator and denominator
     if (expr.separator) {
       const slashCount = expr.separator.lexeme.length;
-      let slashDenominator = Math.pow(2, slashCount);
 
       if (expr.denominator) {
-        denominator = parseInt(expr.denominator.lexeme) * slashDenominator;
+        // Handle cases like a/2, a/4, etc.
+        denominator = parseInt(expr.denominator.lexeme);
       } else {
-        denominator = slashDenominator;
+        // Handle cases like a/, a//, etc.
+        denominator = Math.pow(2, slashCount);
       }
     }
 
@@ -428,11 +429,14 @@ export class RhythmVisitor implements Visitor<Expr> {
     expr.separator = undefined;
     expr.denominator = undefined;
 
+    // Special case: if the rational is 1/1, return an empty rhythm
+    if (numerator === 1 && denominator === 1) {
+      return expr;
+    }
+
     if (denominator === 1) {
       // Whole number rhythm (e.g., 2, 4)
-      if (numerator !== 1) {
-        expr.numerator = new Token(TokenType.RHY_NUMER, numerator.toString(), this.ctx.generateId());
-      }
+      expr.numerator = new Token(TokenType.RHY_NUMER, numerator.toString(), this.ctx.generateId());
     } else {
       // Fraction rhythm
       if (numerator !== 1) {
@@ -440,20 +444,24 @@ export class RhythmVisitor implements Visitor<Expr> {
       }
 
       // Check if denominator is a power of 2
-      let slashCount = 0;
-      let remainingDenominator = denominator;
+      let isPowerOfTwo = (denominator & (denominator - 1)) === 0;
 
-      while (remainingDenominator % 2 === 0 && remainingDenominator > 1) {
-        slashCount++;
-        remainingDenominator /= 2;
-      }
+      if (isPowerOfTwo) {
+        // If it's a power of 2, use slashes
+        let slashCount = Math.log2(denominator);
 
-      if (slashCount > 0) {
-        expr.separator = new Token(TokenType.RHY_SEP, "/".repeat(slashCount), this.ctx.generateId());
-      }
-
-      if (remainingDenominator > 1) {
-        expr.denominator = new Token(TokenType.RHY_NUMER, remainingDenominator.toString(), this.ctx.generateId());
+        if (slashCount === 1) {
+          // 1/2 -> /
+          expr.separator = new Token(TokenType.RHY_SEP, "/", this.ctx.generateId());
+        } else {
+          // 1/4, 1/8, etc. -> /4, /8, etc.
+          expr.separator = new Token(TokenType.RHY_SEP, "/", this.ctx.generateId());
+          expr.denominator = new Token(TokenType.RHY_NUMER, denominator.toString(), this.ctx.generateId());
+        }
+      } else {
+        // Not a power of 2, use explicit fraction
+        expr.separator = new Token(TokenType.RHY_SEP, "/", this.ctx.generateId());
+        expr.denominator = new Token(TokenType.RHY_NUMER, denominator.toString(), this.ctx.generateId());
       }
     }
 
