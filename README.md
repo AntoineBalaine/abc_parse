@@ -39,10 +39,8 @@ TODO:
   - system detection logic
 
 # features: 
-- reorder chords
 - divide/multiple rhythms (bug)
 - double octaves
-- octaviate note
 - enharmonize
 - midi input w/ appropriate accidentals
   requires gathering key signature contexts

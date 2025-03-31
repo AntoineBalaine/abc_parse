@@ -71,28 +71,22 @@ export class Transposer implements Visitor<Expr | Token> {
     return exprIsInRange(this.range, exprRange);
   }
 
-  getChanges(): string {
-    const formatter = new AbcFormatter(this.ctx);
-    if (!this.range) {
-      return this.source.accept(formatter);
-    }
-    return this.collectedExpressions.map((e) => e.accept(formatter)).join("");
-  }
-
-  transpose(distance: number, range?: Range) {
+  transpose(distance: number, range?: Range): string {
     this.distance = distance;
+
+    const formatter = new AbcFormatter(this.ctx);
     if (range) {
       this.range = range;
-
-      // Create a collector and collect expressions in range
       const collector = new ExpressionCollector(this.ctx, this.range);
       this.source.accept(collector);
       this.collectedExpressions = collector.getCollectedExpressions();
+      this.visitFileStructureExpr(this.source);
+      return this.collectedExpressions.map((e) => e.accept(formatter)).join("");
     } else {
       this.collectedExpressions = [];
+      this.visitFileStructureExpr(this.source);
+      return this.source.accept(formatter);
     }
-
-    return this.visitFileStructureExpr(this.source);
   }
 
   /* create all the properties that are needed for the transposer

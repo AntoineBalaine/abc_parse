@@ -393,7 +393,8 @@ describe("Transposer", () => {
 
       // Create a transposer and transpose with the range
       const transposer = new Transposer(fileStructure, ctx);
-      const transposedFileStructure = transposer.transpose(2, range); // Transpose up by a whole tone
+      transposer.transpose(2, range); // Transpose up by a whole tone
+      const transposedFileStructure = transposer.source;
 
       // Get the transposed notes
       const transposedTune = transposedFileStructure.contents[0] as Tune;
@@ -421,7 +422,8 @@ describe("Transposer", () => {
 
       // Create a transposer and transpose without a range
       const transposer = new Transposer(fileStructure, ctx);
-      const transposedFileStructure = transposer.transpose(2); // Transpose up by a whole tone
+      transposer.transpose(2); // Transpose up by a whole tone
+      const transposedFileStructure = transposer.source;
 
       // Get the transposed notes
       const transposedTune = transposedFileStructure.contents[0] as Tune;
@@ -455,7 +457,8 @@ describe("Transposer", () => {
 
       // Create a transposer and transpose with the range
       const transposer = new Transposer(fileStructure, ctx);
-      const transposedFileStructure = transposer.transpose(2, range); // Transpose up by a whole tone
+      transposer.transpose(2, range); // Transpose up by a whole tone
+      const transposedFileStructure = transposer.source;
 
       // Get the transposed notes
       const transposedTune = transposedFileStructure.contents[0] as Tune;
@@ -489,7 +492,8 @@ describe("Transposer", () => {
 
       // Create a transposer and transpose with the range
       const transposer = new Transposer(fileStructure, ctx);
-      const transposedFileStructure = transposer.transpose(2, range); // Transpose up by a whole tone
+      transposer.transpose(2, range); // Transpose up by a whole tone
+      const transposedFileStructure = transposer.source;
 
       // Get the transposed notes
       const transposedTune = transposedFileStructure.contents[0] as Tune;
@@ -773,8 +777,7 @@ describe("Transposer", () => {
 
       // Create a transposer and transpose with the range
       const transposer = new Transposer(fileStructure, ctx);
-      const out_ast = transposer.transpose(2, range); // Transpose up by a whole tone
-      const result = transposer.getChanges();
+      const result = transposer.transpose(2, range); // Transpose up by a whole tone
 
       // Verify that only the notes within the range were included in the result
       expect(result).to.include("E"); // D -> E
@@ -789,8 +792,7 @@ describe("Transposer", () => {
 
       // Create a transposer and transpose without a range
       const transposer = new Transposer(fileStructure, ctx);
-      transposer.transpose(2); // Transpose up by a whole tone
-      const result = transposer.getChanges();
+      const result = transposer.transpose(2); // Transpose up by a whole tone
 
       // Verify that all notes were included in the result
       expect(result).to.include("D"); // C -> D
@@ -812,8 +814,7 @@ describe("Transposer", () => {
 
       // Create a transposer and transpose with the range
       const transposer = new Transposer(fileStructure, ctx);
-      transposer.transpose(2, range); // Transpose up by a whole tone
-      const result = transposer.getChanges();
+      const result = transposer.transpose(2, range); // Transpose up by a whole tone
       // Verify that no notes were included in the result
       expect(result).to.equal("");
     });
