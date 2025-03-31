@@ -45,24 +45,15 @@ export class Transposer implements Visitor<Expr | Token> {
   distance: number = 0;
   source: File_structure;
   ctx: ABCContext;
-  range: Range;
+  range?: Range;
   rangeVisitor: RangeVisitor;
+  private collectedExpressions: Array<Expr | Token> = [];
 
   constructor(source: File_structure, ctx: ABCContext) {
     this.ctx = ctx;
     this.source = source;
     this.rangeVisitor = new RangeVisitor(this.ctx);
     // Default range covers the entire document
-    this.range = {
-      start: {
-        line: 0,
-        character: 0,
-      },
-      end: {
-        line: Number.MAX_VALUE,
-        character: Number.MAX_VALUE,
-      },
-    };
   }
 
   visitToken(token: Token): Token {
@@ -70,6 +61,7 @@ export class Transposer implements Visitor<Expr | Token> {
   }
 
   private isInRange(expr: Expr | Token): boolean {
+    if (!this.range) return true;
     let exprRange: Range;
     if (isToken(expr)) {
       exprRange = getTokenRange(expr);
@@ -80,25 +72,26 @@ export class Transposer implements Visitor<Expr | Token> {
   }
 
   getChanges(): string {
-    // Create a collector visitor that finds expressions in the range
-    const collector = new ExpressionCollector(this.ctx, this.range);
-
-    // Traverse the already-transposed AST to collect expressions
-    this.source.accept(collector);
-
-    // Format and return the collected expressions
     const formatter = new AbcFormatter(this.ctx);
-    return collector
-      .getCollectedExpressions()
-      .map((e) => (isToken(e) ? e.lexeme : formatter.stringify(e)))
-      .join("");
+    if (!this.range) {
+      return this.source.accept(formatter);
+    }
+    return this.collectedExpressions.map((e) => e.accept(formatter)).join("");
   }
 
   transpose(distance: number, range?: Range) {
     this.distance = distance;
     if (range) {
       this.range = range;
+
+      // Create a collector and collect expressions in range
+      const collector = new ExpressionCollector(this.ctx, this.range);
+      this.source.accept(collector);
+      this.collectedExpressions = collector.getCollectedExpressions();
+    } else {
+      this.collectedExpressions = [];
     }
+
     return this.visitFileStructureExpr(this.source);
   }
 
@@ -188,7 +181,9 @@ export class Transposer implements Visitor<Expr | Token> {
   }
   visitNoteExpr(expr: Note): Note {
     if (isPitch(expr.pitch) && this.isInRange(expr)) {
+      const id = expr.pitch.id;
       expr.pitch = this.visitPitchExpr(expr.pitch);
+      expr.id = id;
     }
     return expr;
   }

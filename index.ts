@@ -6,5 +6,6 @@ export { Scanner2, Token, TT } from "./src/parsers/scan2";
 export * from "./src/parsers/voices2";
 export * from "./src/types/Expr2";
 export * from "./src/Visitors/Formatter2";
+export * from "./src/Visitors/RangeCollector";
 export * from "./src/Visitors/RhythmTransform";
 export * from "./src/Visitors/Transposer";

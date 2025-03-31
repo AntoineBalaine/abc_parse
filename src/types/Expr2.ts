@@ -38,7 +38,7 @@ export interface Visitor<R> {
 }
 
 export abstract class Expr {
-  public readonly id: number;
+  public id: number;
 
   constructor(id: number) {
     this.id = id;

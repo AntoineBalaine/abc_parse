@@ -8,7 +8,7 @@ import { AbcFormatter2, toMidiPitch } from "../Visitors/Formatter2";
 import { ExpressionCollector } from "../Visitors/RangeCollector";
 import { fromMidiPitch, Transposer } from "../Visitors/Transposer";
 
-describe.only("Transposer", () => {
+describe("Transposer", () => {
   describe("fromMidiPitch", () => {
     const ctx = new ABCContext();
     const formatter = new AbcFormatter2(ctx);
@@ -693,6 +693,129 @@ describe.only("Transposer", () => {
       expect(formatted).to.include("E");
       expect(formatted).to.include("F");
       expect(formatted).to.include("G");
+    });
+  });
+
+  describe("Range-based transposition with string output", () => {
+    const ctx = new ABCContext();
+    const formatter = new AbcFormatter2(ctx);
+
+    // Helper function to create a note with position information
+    const createNote = (noteLetter: string, line: number, position: number, alteration?: string, octave?: string): Note => {
+      const id = ctx.generateId();
+
+      const noteLetterToken = new Token(TT.NOTE_LETTER, noteLetter, ctx.generateId());
+      noteLetterToken.line = line;
+      noteLetterToken.position = position;
+
+      const alterationToken = alteration ? new Token(TT.ACCIDENTAL, alteration, ctx.generateId()) : undefined;
+      if (alterationToken) {
+        alterationToken.line = line;
+        alterationToken.position = position - 1;
+      }
+
+      const octaveToken = octave ? new Token(TT.OCTAVE, octave, ctx.generateId()) : undefined;
+      if (octaveToken) {
+        octaveToken.line = line;
+        octaveToken.position = position + 1;
+      }
+
+      const pitch = new Pitch(ctx.generateId(), {
+        noteLetter: noteLetterToken,
+        alteration: alterationToken,
+        octave: octaveToken,
+      });
+
+      return new Note(id, pitch);
+    };
+
+    // Create a tune with multiple notes at different positions
+    const createTuneWithNotes = (): Tune => {
+      const tuneId = ctx.generateId();
+      const tuneHeaderId = ctx.generateId();
+      const tuneBodyId = ctx.generateId();
+
+      // Create notes at different positions
+      const note1 = createNote("C", 1, 0); // C at line 1, position 0
+      const note2 = createNote("D", 1, 2); // D at line 1, position 2
+      const note3 = createNote("E", 1, 4); // E at line 1, position 4
+      const note4 = createNote("F", 1, 6); // F at line 1, position 6
+      const note5 = createNote("G", 1, 8); // G at line 1, position 8
+
+      // Create a tune body with the notes
+      const tuneBody = new Tune_Body(tuneBodyId, [[note1, note2, note3, note4, note5]]);
+
+      // Create a tune with the tune body
+      const tune = new Tune(tuneId, new Tune_header(tuneHeaderId, []), tuneBody);
+
+      return tune;
+    };
+
+    // Create a file structure with the tune
+    const createFileStructureWithTune = (): File_structure => {
+      const fileStructureId = ctx.generateId();
+      const fileHeaderId = ctx.generateId();
+
+      const tune = createTuneWithNotes();
+
+      return new File_structure(fileStructureId, new File_header(fileHeaderId, []), [tune]);
+    };
+
+    it("should return only the transposed notes within the specified range", () => {
+      // Create a file structure with notes
+      const fileStructure = createFileStructureWithTune();
+
+      // Define a range that includes only the middle notes (D and E)
+      const range: Range = {
+        start: { line: 1, character: 2 },
+        end: { line: 1, character: 5 },
+      };
+
+      // Create a transposer and transpose with the range
+      const transposer = new Transposer(fileStructure, ctx);
+      const out_ast = transposer.transpose(2, range); // Transpose up by a whole tone
+      const result = transposer.getChanges();
+
+      // Verify that only the notes within the range were included in the result
+      expect(result).to.include("E"); // D -> E
+      expect(result).to.include("^F"); // E -> F#
+      expect(result).not.to.include("C"); // Not in range
+      expect(result).not.to.include("G"); // Not in range
+    });
+
+    it("should return all transposed notes when no range is specified", () => {
+      // Create a file structure with notes
+      const fileStructure = createFileStructureWithTune();
+
+      // Create a transposer and transpose without a range
+      const transposer = new Transposer(fileStructure, ctx);
+      transposer.transpose(2); // Transpose up by a whole tone
+      const result = transposer.getChanges();
+
+      // Verify that all notes were included in the result
+      expect(result).to.include("D"); // C -> D
+      expect(result).to.include("E"); // D -> E
+      expect(result).to.include("^F"); // E -> F#
+      expect(result).to.include("G"); // F -> G
+      expect(result).to.include("A"); // G -> A
+    });
+
+    it("should return an empty string when range doesn't include any notes", () => {
+      // Create a file structure with notes
+      const fileStructure = createFileStructureWithTune();
+
+      // Define a range that doesn't include any notes
+      const range: Range = {
+        start: { line: 10, character: 0 },
+        end: { line: 20, character: 10 },
+      };
+
+      // Create a transposer and transpose with the range
+      const transposer = new Transposer(fileStructure, ctx);
+      transposer.transpose(2, range); // Transpose up by a whole tone
+      const result = transposer.getChanges();
+      // Verify that no notes were included in the result
+      expect(result).to.equal("");
     });
   });
 });
