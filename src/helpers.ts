@@ -272,7 +272,7 @@ export function exprIsInRange(control_range: Range, expr_range: Range): boolean 
     expr_range.start.line >= control_range.start.line &&
     expr_range.end.line <= control_range.end.line &&
     expr_range.start.character >= control_range.start.character &&
-    expr_range.end.character <= control_range.end.character + 1
+    expr_range.end.character <= control_range.end.character
   );
 }
 export function getTokenRange(token: Token): Range {

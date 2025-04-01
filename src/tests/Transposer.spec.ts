@@ -1,7 +1,8 @@
 import { expect } from "chai";
 import { isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
-import { Token, TT } from "../parsers/scan2";
+import { parse } from "../parsers/parse2";
+import { Scanner2, Token, TT } from "../parsers/scan2";
 import { File_header, File_structure, Note, Pitch, Tune, Tune_Body, Tune_header } from "../types/Expr2";
 import { Range } from "../types/types";
 import { AbcFormatter2, toMidiPitch } from "../Visitors/Formatter2";
@@ -817,6 +818,64 @@ describe("Transposer", () => {
       const result = transposer.transpose(2, range); // Transpose up by a whole tone
       // Verify that no notes were included in the result
       expect(result).to.equal("");
+    });
+  });
+
+  describe("Integration test - Full ABC string transposition", () => {
+    it("should transpose a specific part of an ABC string and replace it in place", () => {
+      // Create a simple ABC string
+      const inpt = "X:1\nABC DEF\nDEF ABC";
+
+      // Create a context for parsing
+      const ctx = new ABCContext();
+
+      // Parse the ABC string into tokens
+      const tokens = Scanner2(inpt, ctx);
+
+      // Parse tokens into a File_structure
+      const fileStructure = parse(tokens, ctx);
+
+      // Define a range that covers only the first occurrence of "ABC"
+      // The first "ABC" is at line 1 (0-indexed), positions 0-2
+      const range: Range = {
+        start: { line: 1, character: 0 },
+        end: { line: 1, character: 3 },
+      };
+      function rewriteRange(range: Range, inpt: string): { start: number; end: number } {
+        let strt_ln_pos: number | null = null;
+        let end_ln_pos: number | null = null;
+        let ln_count = 0;
+        let pos = 0;
+        while (pos < inpt.length) {
+          if (inpt[pos] == "\n") {
+            ln_count++;
+            if (ln_count == range.start.line) {
+              strt_ln_pos = pos;
+            }
+
+            if (ln_count == range.end.line) {
+              end_ln_pos = pos;
+            }
+            if (end_ln_pos != null && strt_ln_pos != null) {
+              break;
+            }
+          }
+          pos++;
+        }
+        if (strt_ln_pos == null || end_ln_pos == null) {
+          throw new Error("Invalid range");
+        }
+        const startChar = strt_ln_pos + 1 + range.start.character;
+        const endChar = end_ln_pos + 1 + range.end.character;
+        return { start: startChar, end: endChar };
+      }
+      const transposer = new Transposer(fileStructure, ctx);
+
+      const transposedText = transposer.transpose(12, range);
+      const convertedRange = rewriteRange(range, inpt);
+      const resultText = `${inpt.substring(0, convertedRange.start)}${transposedText}${inpt.substring(convertedRange.end)}`;
+
+      expect(resultText).to.equal("X:1\nabc DEF\nDEF ABC");
     });
   });
 });
