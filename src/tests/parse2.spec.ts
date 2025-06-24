@@ -45,7 +45,7 @@ import {
 } from "../types/Expr2";
 
 // Helper function to create a token with the given type and lexeme
-function createToken(type: TT, lexeme: string, line: number = 0, position: number = 0): Token {
+export function createToken(type: TT, lexeme: string, line: number = 0, position: number = 0): Token {
   const ctx = new ABCContext();
   const token = new Token(
     type,
@@ -55,8 +55,8 @@ function createToken(type: TT, lexeme: string, line: number = 0, position: numbe
       start: 0,
       current: lexeme.length,
       line,
-      report: () => {},
-      push: () => {},
+      report: () => { },
+      push: () => { },
       test: () => false,
       abcContext: ctx,
     },

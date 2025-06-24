@@ -15,6 +15,7 @@ import {
   Grace_group,
   Info_line,
   Inline_field,
+  Lyric_section,
   MultiMeasureRest,
   Note,
   Pitch,
@@ -271,12 +272,55 @@ export function prsInfoLine(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Info
   return null;
 }
 
-// Check if a token is part of the tune header
-export function isHeaderToken(token: Token): boolean {
-  return token.type === TT.INF_HDR || token.type === TT.INFO_STR || token.type === TT.COMMENT || token.type === TT.EOL || token.type === TT.WS;
+export function prsLyricSection(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Lyric_section | null {
+  // Check if we have a lyric header (w: or W:)
+  if (!ctx.check(TT.LY_HDR) && !ctx.check(TT.LY_SECT_HDR)) {
+    return null;
+  }
+
+  const info_lines: Info_line[] = [];
+
+  // Parse consecutive lyric lines
+  const lyricHeader = ctx.advance(); // Get the lyric header token
+  let tokens: Token[] = [lyricHeader];
+
+  // Collect all tokens that belong to this lyric line
+  while (!ctx.isAtEnd()) {
+    if (!isLyricToken(ctx.peek())) {
+      break;
+    }
+    if (ctx.match(TT.INF_CTND) && tokens.length > 0) {
+      info_lines.push(new Info_line(ctx.abcContext.generateId(), tokens));
+      tokens = [];
+    }
+    tokens.push(ctx.advance());
+  }
+
+  if (tokens.length > 0) {
+    info_lines.push(new Info_line(ctx.abcContext.generateId(), tokens));
+  }
+
+  const rv = new Lyric_section(ctx.abcContext.generateId(), info_lines);
+  prnt_arr && prnt_arr.push(rv);
+  return rv;
 }
 
-// Process beams within a Music_code instance
+export function isLyricToken(token: Token): boolean {
+  switch (token.type) {
+    case TT.LY_TXT:
+    case TT.LY_HYPH:
+    case TT.LY_UNDR:
+    case TT.LY_STAR:
+    case TT.LY_SPS:
+    case TT.WS:
+    case TT.BARLINE:
+    case TT.COMMENT:
+    case TT.INF_CTND:
+      return true;
+    default:
+      return false;
+  }
+}
 
 export function prsBody(ctx: ParseCtx, voices: string[] = []): Tune_Body | null {
   const elmnts: Array<tune_body_code> = [];
