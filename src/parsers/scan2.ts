@@ -196,11 +196,19 @@ export enum TT {
   GRC_GRP_LEFT_BRACE,
   GRC_GRP_RGHT_BRACE,
   GRC_GRP_SLSH,
+  INF_CTND, // field continuation
   INFO_STR,
   INF_HDR,
   INLN_FLD_LFT_BRKT,
   INLN_FLD_RGT_BRKT,
   INVALID, // For invalid tokens that should be preserved
+  LY_HDR, // lyric header
+  LY_HYPH,
+  LY_SECT_HDR,
+  LY_SPS,
+  LY_STAR,
+  LY_TXT,
+  LY_UNDR,
   NOTE_LETTER,
   OCTAVE,
   RESERVED_CHAR,

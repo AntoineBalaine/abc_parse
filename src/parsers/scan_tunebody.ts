@@ -4,6 +4,7 @@ const pLETTER_COLON = /[a-zA-Z]:/;
 export const pEOL = "\n";
 export const pInfoLine = /[a-zA-Z][ \t]*:/;
 export const pSymbolLine = /s[ \t]*:/;
+export const pLyricLine = /[wW][ \t]*:/;
 export const pInfoLnCtd = /[ \t]*\+:[ \t]*/;
 
 export const pTuneHeadStrt = /[ \t]*X:/;
@@ -651,5 +652,97 @@ export function symbol_line(ctx: Ctx): boolean {
   }
 
   comment(ctx);
+  return true;
+}
+
+/**
+-  (hyphen) break between syllables within a word
+_  (underscore) previous syllable is to be held for an extra note
+*  one note is skipped (i.e. * is equivalent to a blank syllable)
+~  appears as a space; aligns multiple words under one note
+\- appears as hyphen; aligns multiple syllables under one note
+|  advances to the next bar
+LY_HYPH
+LY_UNDR
+LY_STAR
+LY_SPS
+LY_CTND
+*/
+export function lyric_line(ctx: Ctx): boolean {
+  if (!ctx.test(pLyricLine)) return false;
+
+  const match = new RegExp(`^${pLyricLine.source}`).exec(ctx.source.substring(ctx.current));
+  if (!match) return false;
+  ctx.current += match[0].length;
+
+  if (match[0].charAt(0) == "W") {
+    ctx.push(TT.LY_SECT_HDR);
+  } else {
+    ctx.push(TT.LY_HDR);
+  }
+
+  while (!isAtEnd(ctx)) {
+    if (field_continuation(ctx)) continue;
+    if (ctx.test(pEOL)) break;
+    if (comment(ctx)) continue;
+
+    if (WS(ctx)) continue;
+    if (barline(ctx)) continue;
+
+    if (ctx.test("*")) {
+      advance(ctx);
+      ctx.push(TT.LY_STAR); // Skip one note
+      continue;
+    }
+
+    if (ctx.test("_")) {
+      advance(ctx);
+      ctx.push(TT.LY_UNDR); // Hold previous syllable for extra note
+      continue;
+    }
+
+    if (ctx.test("~")) {
+      advance(ctx);
+      ctx.push(TT.LY_SPS); // Space that aligns multiple words under one note
+      continue;
+    }
+
+    if (ctx.test("-")) {
+      advance(ctx);
+      ctx.push(TT.LY_HYPH); // Break between syllables within a word
+      continue;
+    }
+
+    if (ctx.test("\\-")) {
+      advance(ctx, 2);
+      ctx.push(TT.LY_HYPH); // Appears as hyphen; aligns multiple syllables under one note
+      continue;
+    }
+
+    if (!isAtEnd(ctx) && !isSyllableDelimiter(ctx)) {
+      while (!isAtEnd(ctx) && !isSyllableDelimiter(ctx)) {
+        advance(ctx);
+      }
+      ctx.push(TT.LY_TXT);
+      continue;
+    }
+  }
+  return true;
+}
+
+function isSyllableDelimiter(ctx: Ctx): boolean {
+  // Check for whitespace, special lyric symbols, and EOL
+  if (ctx.test(/[ \t%*_~\\\-\n]/)) return true;
+
+  // Check for barlines using the more comprehensive pBrLn regex
+  if (ctx.test(pBrLn)) return true;
+
+  return false;
+}
+
+export function field_continuation(ctx: Ctx): boolean {
+  if (!ctx.test("\n+:")) return false;
+  advance(ctx, 3);
+  ctx.push(TT.INF_CTND);
   return true;
 }
