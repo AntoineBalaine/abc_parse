@@ -4,7 +4,7 @@ import { TT } from "../parsers/scan2";
 import { field_continuation, lyric_line } from "../parsers/scan_tunebody";
 import { createCtx } from "./scan2_tuneBodyTokens.spec";
 
-describe.only("Lyric Line Scanning", () => {
+describe("Lyric Line Scanning", () => {
   describe("lyric_line", () => {
     it("should parse a simple lyric line", () => {
       const ctx = createCtx("w:lyrics");
