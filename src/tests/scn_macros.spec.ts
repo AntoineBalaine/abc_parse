@@ -1,7 +1,7 @@
 import assert from "assert";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
-import { Ctx, TT, Token, macro_decl } from "../parsers/scan2";
+import { Ctx, TT, Token, macro_decl, macro_invocation } from "../parsers/scan2";
 
 /** starts by pushing an EOL token to simulate being at the start of a line */
 function createMacroCtx(source: string): Ctx {
@@ -143,5 +143,105 @@ describe("macro function", () => {
     const result = macro_decl(ctx);
 
     assert.equal(result, false, "macro function should return false when not preceded by EOL");
+  });
+});
+
+describe("macro invocation function", () => {
+  it("should recognize macro invocation after declaration", () => {
+    // First declare a macro
+    const ctx = createMacroCtx("m:myvar=A B C");
+    const declResult = macro_decl(ctx);
+    assert.equal(declResult, true, "macro declaration should succeed");
+
+    // Now test invocation
+    ctx.current = 0; // Reset position
+    ctx.start = 0;
+    ctx.source = "myvar"; // Set source to just the variable name
+
+    const result = macro_invocation(ctx);
+    assert.equal(result, true, "macro invocation should be recognized");
+
+    // Check that MACRO_INVOCATION token was created
+    const invocationToken = ctx.tokens.find(t => t.type === TT.MACRO_INVOCATION);
+    assert(invocationToken, "Should create MACRO_INVOCATION token");
+    assert.equal(invocationToken.lexeme, "myvar");
+  });
+
+  it("should not recognize undeclared variables", () => {
+    const ctx = new Ctx("undeclared", new ABCContext());
+    const result = macro_invocation(ctx);
+
+    assert.equal(result, false, "should not recognize undeclared variables");
+  });
+
+  it("should not match partial words", () => {
+    // Declare a macro
+    const ctx = createMacroCtx("m:var=content");
+    macro_decl(ctx);
+
+    // Test with a longer word that contains the variable
+    ctx.current = 0;
+    ctx.start = 0;
+    ctx.source = "variable"; // Contains "var" but is longer
+
+    const result = macro_invocation(ctx);
+    assert.equal(result, false, "should not match partial words");
+  });
+
+  it("should match variable at word boundary", () => {
+    // Declare a macro
+    const ctx = createMacroCtx("m:var=ABC");
+    macro_decl(ctx);
+
+    // Test with variable followed by space
+    ctx.current = 0;
+    ctx.start = 0;
+    ctx.source = "var ";
+
+    const result = macro_invocation(ctx);
+    assert.equal(result, true, "should match at word boundary");
+
+    const invocationToken = ctx.tokens.find(t => t.type === TT.MACRO_INVOCATION);
+    assert.equal(invocationToken?.lexeme, "var");
+  });
+
+  it("should handle multiple macro declarations", () => {
+    const ctx = new Ctx("", new ABCContext());
+
+    // Manually add macros to test multiple declarations
+    ctx.macros = new Map();
+    ctx.macros.set("var1", "ABC");
+    ctx.macros.set("var2", "DEF");
+
+    // Test first variable
+    ctx.source = "var1";
+    ctx.current = 0;
+    ctx.start = 0;
+
+    let result = macro_invocation(ctx);
+    assert.equal(result, true, "should recognize first variable");
+
+    // Test second variable
+    ctx.source = "var2";
+    ctx.current = 0;
+    ctx.start = 0;
+
+    result = macro_invocation(ctx);
+    assert.equal(result, true, "should recognize second variable");
+  });
+
+  it("should handle variables with numbers and tildes", () => {
+    const ctx = createMacroCtx("m:var123~=content");
+    macro_decl(ctx);
+
+    ctx.current = 0;
+    ctx.start = 0;
+    ctx.source = "var123~";
+
+    const result = macro_invocation(ctx);
+    assert.equal(result, true, "should recognize variables with numbers and tildes");
+
+    const invocationToken = ctx.tokens.find(t => t.type === TT.MACRO_INVOCATION);
+    assert.equal(invocationToken?.lexeme, "var123~");
   });
 });
