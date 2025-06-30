@@ -35,7 +35,8 @@ describe("Rhythms", () => {
     ["a/", "a"],
     ["a/2", "a"],
     ["a//", "a/"],
-    ["a/4", "a/2"],
+    ["a/4", "a/"],
+    ["a///", "a/4"],
   ];
   const divide = [
     ["a,2", "a,"],
@@ -73,7 +74,7 @@ describe("Rhythms", () => {
 
   describe("Range: divide rhythms", () => {
     const divide = [
-      ["c2d", "c"],
+      ["c2def", "c"],
       /*       ["a4", "a2"],
             ["a/", "a/4"],
             ["a/2", "a/4"],
@@ -86,7 +87,7 @@ describe("Rhythms", () => {
         const ctx = new ABCContext();
         const parse = buildParse(input, ctx);
         const rhythmVisitor = new RhythmVisitor(parse, ctx);
-        rhythmVisitor.transform("/", { start: { line: 1, character: 0 }, end: { line: 1, character: 1 } });
+        rhythmVisitor.transform("/", { start: { line: 1, character: 0 }, end: { line: 1, character: 2 } });
         const fmt = rhythmVisitor.getChanges();
         assert.equal(removeTuneHeader(fmt).trim(), expected);
       });
