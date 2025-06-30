@@ -1,7 +1,37 @@
 import assert from "assert";
 import { describe, it } from "mocha";
+import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { Ctx, TT, Token, macro_decl, macro_invocation } from "../parsers/scan2";
+import { scanTune } from "../parsers/scan_tunebody";
+import { createRoundTripPredicate } from "./scn_pbt.spec";
+import {
+  genMacroHeader,
+  genMacroVariable,
+  genMacroString,
+  genEOL,
+  genCommentToken,
+  genNote,
+  genRest,
+  genBarline,
+  genWhitespace,
+  sharedContext,
+  applyTokenFiltering,
+  genAmpersand,
+  genAnnotation,
+  genBcktckSpc,
+  genChord,
+  genDecorationWithFollower,
+  genGraceGroupWithFollower,
+  genInfoLine,
+  genLyricLine,
+  genSlur,
+  genStylesheetDirective,
+  genSymbol,
+  genTuplet,
+  genVoiceOvrlay,
+  genYspacer
+} from "./scn_pbt.generators.spec";
 
 /** starts by pushing an EOL token to simulate being at the start of a line */
 function createMacroCtx(source: string): Ctx {
@@ -243,5 +273,82 @@ describe("macro invocation function", () => {
 
     const invocationToken = ctx.tokens.find(t => t.type === TT.MACRO_INVOCATION);
     assert.equal(invocationToken?.lexeme, "var123~");
+  });
+});
+
+// Property-based tests for macro round-trip scenarios
+describe("macro round-trip property tests", () => {
+  // Generate a macro line that returns both tokens and the variable name
+  const genMacroLine = fc
+    .tuple(
+      genEOL,
+      genMacroHeader,
+      genMacroVariable,
+      genMacroString,
+      fc.option(genCommentToken.map(([comment]) => comment)),
+      genEOL
+    )
+    .map(([eol1, header, variable, macroStr, comment, eol2]) => {
+      const tokens = [eol1, header, variable, macroStr];
+      if (comment) tokens.push(comment);
+      tokens.push(eol2);
+      return { tokens, variable: variable.lexeme };
+    });
+
+  // Generate a scenario with macro declaration followed by music that may use the macro
+  const genMacroScenario = genMacroLine
+    .chain(({ tokens: macroTokens, variable }) => {
+      // Create invocation generator using the specific variable from this macro
+      const genInvocation = fc.constantFrom(
+        new Token(TT.MACRO_INVOCATION, variable, sharedContext.generateId())
+      ).map(token => [token]);
+
+      // Generate music tokens that may include the macro invocation
+      const genMusicTokens = fc.array(
+        fc.oneof(
+          // Include macro invocation with higher weight
+          { arbitrary: genInvocation, weight: 2 },
+          // Regular music tokens
+          genNote,
+          genRest.map((rest) => [rest]),
+          genBarline.map((bar) => [bar]),
+          // genTie.map((tie) => [tie])
+          genAmpersand.map((amp) => amp),
+          genVoiceOvrlay.map((ovrlay) => [ovrlay]),
+          genWhitespace.map((ws) => [ws]),
+          genTuplet, // Now returns an array of tokens directly
+          genSlur.map((slur) => [slur]),
+          genDecorationWithFollower,
+          genSymbol.map((sym) => [sym]),
+          genYspacer,
+          genBcktckSpc.map((bck) => [bck]),
+          genGraceGroupWithFollower,
+          genChord,
+          genAnnotation,
+          { arbitrary: genInfoLine, weight: 1 },
+          { arbitrary: genStylesheetDirective, weight: 1 },
+          { arbitrary: genCommentToken, weight: 2 },
+          { arbitrary: genLyricLine, weight: 1 },
+        )
+      );
+
+      return genMusicTokens.map(musicTokenArrays => {
+        const allTokens = [
+          ...macroTokens,
+          ...musicTokenArrays.flat()
+        ];
+        return applyTokenFiltering(allTokens);
+      });
+    });
+
+
+  it("should produce equivalent tokens when rescanning macro scenarios", () => {
+    fc.assert(
+      fc.property(genMacroScenario, createRoundTripPredicate),
+      {
+        verbose: false,
+        numRuns: 100,
+      }
+    );
   });
 });

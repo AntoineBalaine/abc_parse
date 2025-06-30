@@ -145,70 +145,7 @@ describe("Scanner Round-trip Tests", () => {
 
   it("should produce equivalent tokens when rescanning concatenated lexemes", () => {
     fc.assert(
-      fc.property(genTokenSequence, (originalTokens) => {
-        // Define interfaces for token types
-        interface TokenLike {
-          type: number;
-          lexeme: string;
-        }
-
-        interface NormalizedToken {
-          type: number;
-          lexeme: string;
-        }
-
-        function trimTokens(tokens: Array<Token>) {
-          let i = 0;
-          while (i < tokens.length && (tokens[i].type === TT.EOL || tokens[i].type === TT.WS)) i++;
-          return tokens.slice(i);
-        }
-        const trimmedTokens = trimTokens(originalTokens);
-        // Concatenate lexemes
-        const input = ["X:1\n", ...trimmedTokens.map((t) => (t as TokenLike).lexeme)].join("");
-
-        // Rescan
-        const ctx = new Ctx(input, new ABCContext());
-        scanTune(ctx);
-        const rescannedTokens = ctx.tokens.slice(3);
-
-        // Skip position-related properties in comparison
-        const normalizeToken = (token: TokenLike): NormalizedToken => ({
-          type: token.type,
-          lexeme: token.lexeme,
-        });
-
-        // Compare token sequences
-        const normalizedOriginal = trimmedTokens.map((t) => normalizeToken(t as TokenLike));
-        const normalizedRescanned = rescannedTokens
-          .filter((t) => t.type !== TT.EOF) // Exclude EOF token
-          .map(normalizeToken);
-
-        if (normalizedOriginal.length !== normalizedRescanned.length) {
-          compareTokenArrays(trimmedTokens, rescannedTokens, input);
-          console.log("Token count mismatch:", {
-            input,
-            original: normalizedOriginal,
-            rescanned: normalizedRescanned,
-          });
-          return false;
-        }
-
-        const isEqual = normalizedOriginal.every((orig, i) => {
-          const rescanned = normalizedRescanned[i];
-          return orig.type === rescanned.type && orig.lexeme === rescanned.lexeme;
-        });
-
-        if (!isEqual) {
-          compareTokenArrays(trimmedTokens, rescannedTokens, input);
-          console.log("Token mismatch:", {
-            input,
-            original: normalizedOriginal,
-            rescanned: normalizedRescanned,
-          });
-        }
-
-        return isEqual;
-      }),
+      fc.property(genTokenSequence, createRoundTripPredicate),
       {
         verbose: false,
         numRuns: 10000,
@@ -216,6 +153,77 @@ describe("Scanner Round-trip Tests", () => {
     );
   });
 });
+
+// Reusable round-trip test predicate
+export function createRoundTripPredicate(originalTokens: Array<Token>): boolean {
+  // Define interfaces for token types
+  interface TokenLike {
+    type: number;
+    lexeme: string;
+  }
+
+  interface NormalizedToken {
+    type: number;
+    lexeme: string;
+  }
+
+  function trimTokens(tokens: Array<Token>) {
+    let i = 0;
+    while (i < tokens.length && (tokens[i].type === TT.EOL || tokens[i].type === TT.WS)) i++;
+    return tokens.slice(i);
+  }
+  
+  const trimmedTokens = trimTokens(originalTokens);
+  // Concatenate lexemes
+  const input = ["X:1\n", ...trimmedTokens.map((t) => {
+    let rv = t.lexeme;
+    if (t.type === TT.MACRO_VAR) rv += "=";
+    return rv;
+  })].join("");
+
+  // Rescan
+  const ctx = new Ctx(input, new ABCContext());
+  scanTune(ctx);
+  const rescannedTokens = ctx.tokens.slice(3);
+
+  // Skip position-related properties in comparison
+  const normalizeToken = (token: TokenLike): NormalizedToken => ({
+    type: token.type,
+    lexeme: token.lexeme,
+  });
+
+  // Compare token sequences
+  const normalizedOriginal = trimmedTokens.map((t) => normalizeToken(t as TokenLike));
+  const normalizedRescanned = rescannedTokens
+    .filter((t) => t.type !== TT.EOF) // Exclude EOF token
+    .map(normalizeToken);
+
+  if (normalizedOriginal.length !== normalizedRescanned.length) {
+    compareTokenArrays(trimmedTokens, rescannedTokens, input);
+    console.log("Token count mismatch:", {
+      input,
+      original: normalizedOriginal,
+      rescanned: normalizedRescanned,
+    });
+    return false;
+  }
+
+  const isEqual = normalizedOriginal.every((orig, i) => {
+    const rescanned = normalizedRescanned[i];
+    return orig.type === rescanned.type && orig.lexeme === rescanned.lexeme;
+  });
+
+  if (!isEqual) {
+    compareTokenArrays(trimmedTokens, rescannedTokens, input);
+    console.log("Token mismatch:", {
+      input,
+      original: normalizedOriginal,
+      rescanned: normalizedRescanned,
+    });
+  }
+
+  return isEqual;
+}
 
 /**
  * Compares two arrays of tokens and returns true if they match.

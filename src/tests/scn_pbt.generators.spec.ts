@@ -236,11 +236,11 @@ export const genLyricSectionHeader = fc.constantFrom(new Token(TT.LY_SECT_HDR, "
 export const genFieldContinuation = fc.tuple(genEOL, fc.constantFrom(new Token(TT.INF_CTND, "+:", sharedContext.generateId())));
 
 // Macro generators
-const genMacroHeader = fc.constantFrom(new Token(TT.MACRO_HDR, "m:", sharedContext.generateId()));
+export const genMacroHeader = fc.constantFrom(new Token(TT.MACRO_HDR, "m:", sharedContext.generateId()));
 
-const genMacroVariable = fc.stringMatching(/^[a-zA-Z0-9~]+$/).map((varName) => new Token(TT.MACRO_VAR, varName, sharedContext.generateId()));
+export const genMacroVariable = fc.stringMatching(/^[a-zA-Z0-9~]+$/).map((varName) => new Token(TT.MACRO_VAR, varName, sharedContext.generateId()));
 
-const genMacroString = fc.stringMatching(/^[^\n%]*$/).map((content) => new Token(TT.MACRO_STR, content, sharedContext.generateId()));
+export const genMacroString = fc.stringMatching(/^[^\n%]*$/).map((content) => new Token(TT.MACRO_STR, content, sharedContext.generateId()));
 
 export const genMacroLine = fc
   .tuple(
@@ -317,49 +317,58 @@ export const genTokenSequence = fc
     )
   )
   .map((arrays) => {
-    // Flatten arrays
     const flatTokens = arrays.flat();
-    const result = [];
-
-    if (flatTokens.length > 0) {
-      result.push(flatTokens[0]);
-    }
-
-    for (let i = 1; i < flatTokens.length; i++) {
-      const cur = flatTokens[i];
-      const prev = flatTokens[i - 1];
-      const next = flatTokens[i + 1];
-      const test = (tok: Token, type: TT) => tok.type === type;
-      const both = (type: TT) => cur.type === type && prev.type === type;
-      const rewind = (type: TT, strt: number, ignores?: Array<TT>): boolean => {
-        let j = strt - 1; // Start from the previous token
-        while (j >= 0) {
-          let token = flatTokens[j];
-          if (test(token, type)) return true;
-          if (ignores && ignores.includes(token.type)) {
-            j--; // Only decrement if we're ignoring this token
-            continue;
-          }
-          break;
-        }
-        return false;
-      };
-
-      if (test(cur, TT.VOICE) && next && test(next, TT.EOL)) continue;
-      if (test(cur, TT.INF_HDR) && !rewind(TT.EOL, i)) continue;
-      if (test(cur, TT.INFO_STR) && test(result[result.length - 1], TT.INF_HDR) && !(next && test(next, TT.EOL))) continue;
-
-      // Lyric token filtering rules
-      if ((test(cur, TT.LY_HDR) || test(cur, TT.LY_SECT_HDR)) && !rewind(TT.EOL, i)) continue;
-      if ((test(cur, TT.LY_TXT)) && rewind(TT.LY_TXT, i)) continue; // prevent multiple lyric tokens in a row.
-
-      if (test(cur, TT.INF_CTND) && !rewind(TT.EOL, i)) throw new Error("INF_CTND not preceded by EOL");
-
-      if ((test(cur, TT.EOL) && rewind(TT.EOL, i, [TT.WS])) || both(TT.WS) || both(TT.BARLINE)) {
-        continue;
-      }
-      result.push(cur);
-    }
-
-    return result;
+    return applyTokenFiltering(flatTokens);
   });
+
+// Reusable token filtering function
+export function applyTokenFiltering(flatTokens: Token[]): Token[] {
+  const result = [];
+
+  if (flatTokens.length > 0) {
+    result.push(flatTokens[0]);
+  }
+
+  for (let i = 1; i < flatTokens.length; i++) {
+    const cur = flatTokens[i];
+    const prev = flatTokens[i - 1];
+    const next = flatTokens[i + 1];
+    const test = (tok: Token, type: TT) => tok.type === type;
+    const both = (type: TT) => cur.type === type && prev.type === type;
+    const rewind = (type: TT, strt: number, ignores?: Array<TT>): boolean => {
+      let j = strt - 1; // Start from the previous token
+      while (j >= 0) {
+        let token = flatTokens[j];
+        if (test(token, type)) return true;
+        if (ignores && ignores.includes(token.type)) {
+          j--; // Only decrement if we're ignoring this token
+          continue;
+        }
+        break;
+      }
+      return false;
+    };
+
+    if (test(cur, TT.VOICE) && next && test(next, TT.EOL)) continue;
+    if (test(cur, TT.INF_HDR) && !rewind(TT.EOL, i)) continue;
+    if (test(cur, TT.INFO_STR) && test(result[result.length - 1], TT.INF_HDR) && !(next && test(next, TT.EOL))) continue;
+
+    // Lyric token filtering rules
+    if ((test(cur, TT.LY_HDR) || test(cur, TT.LY_SECT_HDR)) && !rewind(TT.EOL, i)) continue;
+    if ((test(cur, TT.LY_TXT)) && rewind(TT.LY_TXT, i)) continue; // prevent multiple lyric tokens in a row.
+
+    // Macro token filtering rules
+    if (test(cur, TT.MACRO_HDR) && !rewind(TT.EOL, i)) continue;
+    if (test(cur, TT.MACRO_VAR) && !test(result[result.length - 1], TT.MACRO_HDR)) continue;
+    if (test(cur, TT.MACRO_STR) && !test(result[result.length - 1], TT.MACRO_VAR)) continue;
+
+    if (test(cur, TT.INF_CTND) && !rewind(TT.EOL, i)) throw new Error("INF_CTND not preceded by EOL");
+
+    if ((test(cur, TT.EOL) && rewind(TT.EOL, i, [TT.WS])) || both(TT.WS) || both(TT.BARLINE)) {
+      continue;
+    }
+    result.push(cur);
+  }
+
+  return result;
+}
