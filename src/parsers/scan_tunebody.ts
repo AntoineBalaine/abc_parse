@@ -1,7 +1,8 @@
-import { Ctx, EOL, TT, WS, advance, info_line, isAtEnd, precededBy, stylesheet_directive, tuneStartBeforeSectBrk } from "./scan2";
+import { Ctx, EOL, TT, WS, advance, info_line, isAtEnd, precededBy, stylesheet_directive, tuneStartBeforeSectBrk, macro_decl } from "./scan2";
 
 const pLETTER_COLON = /[a-zA-Z]:/;
 export const pEOL = "\n";
+export const pMacroLine = /[m:][ \t]*:/;
 export const pInfoLine = /[a-zA-Z][ \t]*:/;
 export const pSymbolLine = /s[ \t]*:/;
 export const pLyricLine = /[wW][ \t]*:/;
@@ -421,6 +422,7 @@ export function scanTune(ctx: Ctx): boolean {
     // Try each tokenizer function in order of precedence
     if (stylesheet_directive(ctx)) continue;
     if (comment(ctx)) continue;
+    if (macro_decl(ctx)) continue;
     if (symbol_line(ctx)) continue;
     if (lyric_line(ctx)) continue;
     if (info_line(ctx)) continue;
@@ -748,3 +750,4 @@ export function field_continuation(ctx: Ctx): boolean {
   ctx.push(TT.INF_CTND);
   return true;
 }
+

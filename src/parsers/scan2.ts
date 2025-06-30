@@ -1,7 +1,7 @@
 import { Visitor } from "../types/Expr2";
 import { ABCContext } from "./Context";
 import { AbcErrorReporter } from "./ErrorReporter";
-import { comment, pEOL, pInfoLine, pSectionBrk, pTuneHeadStrt, scanTune } from "./scan_tunebody";
+import { comment, pEOL, pInfoLine, pMacroLine, pSectionBrk, pTuneHeadStrt, scanTune } from "./scan_tunebody";
 
 export class Ctx {
   public source: string;
@@ -107,6 +107,7 @@ export function fileHeader(ctx: Ctx) {
     // Try each tokenizer function in order of precedence
     if (stylesheet_directive(ctx)) continue;
     if (comment(ctx)) continue;
+    if (macro_decl(ctx)) continue;
     if (info_line(ctx)) continue;
     if (EOL(ctx)) continue;
     if (WS(ctx)) continue;
@@ -141,13 +142,17 @@ export function freeText(ctx: Ctx) {
   ctx.push(TT.FREE_TXT);
 }
 
-export function WS(ctx: Ctx): boolean {
+export function WS(ctx: Ctx, nopush: boolean = false): boolean {
   // Handle whitespace and newlines
 
   const match = /^[ \t]+/.exec(ctx.source.substring(ctx.current));
   if (!match) return false;
   ctx.current += match[0].length;
-  ctx.push(TT.WS);
+  if (nopush) {
+    ctx.start = ctx.current; // Reset start to current position
+  } else {
+    ctx.push(TT.WS);
+  }
   return true;
 }
 
@@ -209,6 +214,9 @@ export enum TT {
   LY_STAR,
   LY_TXT,
   LY_UNDR,
+  MACRO_HDR,
+  MACRO_STR,
+  MACRO_VAR,
   NOTE_LETTER,
   OCTAVE,
   RESERVED_CHAR,
@@ -313,4 +321,99 @@ export function info_line(ctx: Ctx): boolean {
   }
   comment(ctx);
   return true;
+}
+
+export function macro_decl(ctx: Ctx): boolean {
+  if (!(ctx.test(pMacroLine) && ctx.tokens.length > 0 && precededBy(ctx, new Set([TT.EOL, TT.SCT_BRK]), new Set([TT.WS])))) return false;
+  const match = new RegExp(`^${pMacroLine.source}`).exec(ctx.source.substring(ctx.current));
+
+  if (!match) return false;
+  ctx.current += match[0].length;
+  ctx.push(TT.MACRO_HDR);
+
+  enum Expect {
+    VAR,
+    EQUALS,
+    CONTENT,
+  }
+
+  let state: Expect = Expect.VAR;
+
+  outer: while (!isAtEnd(ctx) && !ctx.test(pEOL) && !ctx.test("%")) {
+    if (WS(ctx, true)) continue; // Use your existing WS function
+
+    switch (state) {
+      case Expect.VAR: {
+        if (ctx.test(/[a-zA-Z0-9~]/)) {
+          // ctx.start = ctx.current;
+          while (!isAtEnd(ctx) && ctx.test(/[a-zA-Z0-9~]/)) {
+            advance(ctx);
+          }
+          ctx.push(TT.MACRO_VAR);
+          state = Expect.EQUALS;
+          continue outer;
+        } else {
+          collectInvalidInfoLn(ctx, "expected macro variable declaration");
+          break outer;
+        }
+      }
+
+      case Expect.EQUALS: {
+        if (ctx.test("=")) {
+          advance(ctx);
+          ctx.start = ctx.current;
+          state = Expect.CONTENT;
+          continue outer;
+        } else {
+          collectInvalidInfoLn(ctx, "expected `=` sign in macro declaration");
+          break outer;
+        }
+      }
+      case Expect.CONTENT: {
+        // ctx.start = ctx.current;
+        while (!isAtEnd(ctx) && !ctx.test(pEOL) && !ctx.test("%")) {
+          advance(ctx);
+        }
+        if (ctx.current > ctx.start) {
+          ctx.push(TT.MACRO_STR);
+        }
+        break outer;
+      }
+    }
+  }
+
+  comment(ctx);
+  return true;
+}
+
+export function collectInvalidInfoLn(ctx: Ctx, msg: string): boolean {
+  if (msg) ctx.report(msg);
+  // Store the starting position to ensure we capture all characters
+  const startPos = ctx.current;
+
+  // Advance until we find a character that could start a valid token
+  // or until we reach the end of the line or input
+
+  function infoLineRecoveryPoint(ctx: Ctx) {
+    return (
+      ctx.test(pEOL) || // stylesheet directive
+      ctx.test("%")
+    ); // comment
+  }
+  while (!isAtEnd(ctx) && !ctx.test(pEOL) && !infoLineRecoveryPoint(ctx)) {
+    advance(ctx);
+  }
+
+  // If we collected any characters, create an INVALID token
+  if (ctx.current > startPos) {
+    // Make sure we set the start position to the beginning of the invalid token
+    ctx.start = startPos;
+    ctx.report(`Invalid token: ${ctx.source.slice(ctx.start, ctx.current)}`);
+    ctx.push(TT.INVALID);
+    return true;
+  }
+
+  // If we didn't collect any characters (shouldn't happen), just advance
+  advance(ctx);
+  return false;
 }

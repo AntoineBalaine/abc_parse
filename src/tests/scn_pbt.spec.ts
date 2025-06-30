@@ -2,7 +2,7 @@ import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { Ctx, Scanner2, Token, TT } from "../parsers/scan2";
 import { pDuration, pitch, pPitch, scanTune } from "../parsers/scan_tunebody";
-import { genTokenSequence } from "./scn_pbt.generators.spec";
+import { genTokenSequence, genMacroLine } from "./scn_pbt.generators.spec";
 
 describe("Scanner Property Tests", () => {
   // Arbitrary generators for ABC notation components
@@ -26,13 +26,13 @@ describe("Scanner Property Tests", () => {
   const genTuneHeader = fc.nat().map((n) => `X:${n}`);
 
   // Generate a valid file header section
-  const genFileHeader = fc.array(fc.oneof(genInfoLine, genComment, genDirective)).map((lines) => lines.join("\n"));
+  const genFileHeader = fc.array(fc.oneof(genInfoLine, genComment, genDirective, genMacroLine)).map((lines) => lines.join("\n"));
 
   // Generate a valid tune section
   const genTuneSection = fc
     .record({
       header: genTuneHeader,
-      content: fc.array(fc.oneof(genInfoLine, genComment, genDirective)),
+      content: fc.array(fc.oneof(genInfoLine, genComment, genDirective, genMacroLine)),
     })
     .map(({ header, content }) => [header, ...content].join("\n"));
 
