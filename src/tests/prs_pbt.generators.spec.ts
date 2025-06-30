@@ -19,7 +19,7 @@ import {
   Tuplet,
   YSPACER,
 } from "../types/Expr2";
-import * as ScannerGen from "./scan2_pbt.generators.spec";
+import * as ScannerGen from "./scn_pbt.generators.spec";
 
 // Create a shared context for all generators
 export const sharedContext = new ABCContext(new AbcErrorReporter());

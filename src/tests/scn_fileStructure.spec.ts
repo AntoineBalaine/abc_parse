@@ -3,7 +3,7 @@ import { describe, it } from "mocha";
 import { TT, fileHeader } from "../parsers/scan2";
 import { scanTune } from "../parsers/scan_tunebody";
 import { Expr } from "../types/Expr2";
-import { createCtx } from "./scan2_tuneBodyTokens.spec";
+import { createCtx } from "./scn_tuneBodyTokens.spec";
 
 describe("fileHeader", () => {
   it("should parse a file header with info lines, comments, and stylesheet directives", () => {

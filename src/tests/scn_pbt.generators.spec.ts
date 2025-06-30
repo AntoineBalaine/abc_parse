@@ -305,7 +305,7 @@ export const genTokenSequence = fc
       const prev = flatTokens[i - 1];
       const next = flatTokens[i + 1];
       const test = (tok: Token, type: TT) => tok.type === type;
-      const both = (type: TT) => cur.type == type && prev.type === type;
+      const both = (type: TT) => cur.type === type && prev.type === type;
       const rewind = (type: TT, strt: number, ignores?: Array<TT>): boolean => {
         let j = strt - 1; // Start from the previous token
         while (j >= 0) {

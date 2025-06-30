@@ -4,7 +4,7 @@ import { ABCContext } from "../parsers/Context";
 import { ParseCtx, prsLyricSection } from "../parsers/parse2";
 import { Token, TT } from "../parsers/scan2";
 import { Info_line, Lyric_section } from "../types/Expr2";
-import { createToken } from "./parse2.spec";
+import { createToken } from "./prs_music_code.spec";
 
 // Helper function to create a token with the given type and lexeme
 

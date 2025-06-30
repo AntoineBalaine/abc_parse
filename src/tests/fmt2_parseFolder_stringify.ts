@@ -5,8 +5,6 @@ import { ABCContext } from "../parsers/Context";
 import { ParseCtx, parseTune } from "../parsers/parse2";
 import { Scanner2 } from "../parsers/scan2";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
-
-describe("Formatter2: StringifyFolder", function () {
   // Helper function to remove any whitespace differences that aren't semantically meaningful
   function normalizeWhitespace(text: string): string {
     return text
@@ -104,6 +102,8 @@ describe("Formatter2: StringifyFolder", function () {
     walkDir(directoryPath);
     return result;
   }
+describe("Formatter2: StringifyFolder", function () {
+
 
   it("should not modify source when stringifying ABC files", function () {
     // Skip if no test directory is provided

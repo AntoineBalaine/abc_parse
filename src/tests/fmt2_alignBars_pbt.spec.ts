@@ -9,7 +9,7 @@ import { alignBars } from "../Visitors/fmt2/fmt_aligner";
 import { isTimeEvent, processBar } from "../Visitors/fmt2/fmt_timeMap";
 import { BarAlignment, BarTimeMap, getNodeId, isBeam, Location, NodeID, VoiceSplit } from "../Visitors/fmt2/fmt_timeMapHelpers";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
-import * as Generators from "./parse2_pbt.generators.spec";
+import * as Generators from "./prs_pbt.generators.spec";
 
 type Clone = {
   voiceSplits: VoiceSplit[];

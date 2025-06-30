@@ -2,7 +2,7 @@ import * as fc from "fast-check";
 import { ParseCtx, prsBody } from "../parsers/parse2";
 import { Token, TT } from "../parsers/scan2";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
-import * as ParserGen from "./parse2_pbt.generators.spec";
+import * as ParserGen from "./prs_pbt.generators.spec";
 
 describe("Parser Property Tests", () => {
   // Use the shared context from the generators

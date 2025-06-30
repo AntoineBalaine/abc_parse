@@ -2,7 +2,7 @@ import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { Ctx, Scanner2, Token, TT } from "../parsers/scan2";
 import { pDuration, pitch, pPitch, scanTune } from "../parsers/scan_tunebody";
-import { genTokenSequence } from "./scan2_pbt.generators.spec";
+import { genTokenSequence } from "./scn_pbt.generators.spec";
 
 describe("Scanner Property Tests", () => {
   // Arbitrary generators for ABC notation components

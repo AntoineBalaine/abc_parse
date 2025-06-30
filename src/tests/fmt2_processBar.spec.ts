@@ -5,7 +5,7 @@ import { Beam, Chord, MultiMeasureRest, Note, Pitch, Rest, Rhythm, System } from
 import { calculateDuration, DurationContext, isTimeEvent, processBar } from "../Visitors/fmt2/fmt_timeMap";
 import { getNodeId } from "../Visitors/fmt2/fmt_timeMapHelpers";
 import { addRational, createRational, isInfiniteRational, Rational, rationalToNumber, rationalToString } from "../Visitors/fmt2/rational";
-import * as Generators from "./parse2_pbt.generators.spec";
+import * as Generators from "./prs_pbt.generators.spec";
 
 describe("processBar function", () => {
   let ctx: ABCContext;

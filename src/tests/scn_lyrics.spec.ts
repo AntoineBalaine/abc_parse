@@ -2,7 +2,7 @@ import assert from "assert";
 import { describe, it } from "mocha";
 import { TT } from "../parsers/scan2";
 import { field_continuation, lyric_line } from "../parsers/scan_tunebody";
-import { createCtx } from "./scan2_tuneBodyTokens.spec";
+import { createCtx } from "./scn_tuneBodyTokens.spec";
 
 describe("Lyric Line Scanning", () => {
   describe("lyric_line", () => {

@@ -6,8 +6,8 @@ import { parse } from "../parsers/parse2";
 import { Scanner2, Token, TT } from "../parsers/scan2";
 import { Annotation, Chord, Note, Pitch } from "../types/Expr2";
 import { AbcFormatter2, getSplits, sortNotes, toMidiPitch } from "../Visitors/Formatter2";
-import * as ParseGen from "./parse2_pbt.generators.spec";
-import * as ScanGen from "./scan2_pbt.generators.spec";
+import * as ParseGen from "./prs_pbt.generators.spec";
+import * as ScanGen from "./scn_pbt.generators.spec";
 
 describe("Chord Note Sorting Functions", () => {
   let ctx: ABCContext;
