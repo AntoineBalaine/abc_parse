@@ -8,7 +8,7 @@ import { Range } from "../types/types";
 import { buildParse } from "./RhythmTransform.spec";
 
 const expect = chai.expect;
-describe.skip("Range Visitor", function () {
+describe("Range Visitor", function () {
   it("can accomodate ties in notes", function () {
     const input = "B2-";
     const expected: Range = {

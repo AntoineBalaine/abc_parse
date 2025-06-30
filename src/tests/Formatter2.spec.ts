@@ -1,8 +1,8 @@
 import chai, { assert } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { ParseCtx, parseTune } from "../parsers/parse2";
-import { Scanner2, Token, TT } from "../parsers/scan2";
-import { Rhythm, System } from "../types/Expr2";
+import { Scanner2 } from "../parsers/scan2";
+import { System } from "../types/Expr2";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
 
 const expect = chai.expect;
@@ -760,87 +760,6 @@ describe("Formatter2", function () {
       }
       const fmt = new AbcFormatter2(ctx).format(ast);
       assert.equal(removeTuneHeader(fmt).trim(), expected_fmt);
-    });
-  });
-  describe.skip("format rhythms", () => {
-    it(`should format a/2 into a/`, () => {
-      const ctx = new ABCContext();
-      const r = new Rhythm(
-        0,
-        new Token(TT.RHY_NUMER, "a", ctx.generateId()),
-        new Token(TT.RHY_SEP, "/", ctx.generateId()),
-        new Token(TT.RHY_DENOM, "2", ctx.generateId())
-      );
-      const expected = "a/";
-      const fmt = r.accept(new AbcFormatter2(new ABCContext()));
-      assert.equal(removeTuneHeader(fmt).trim(), expected);
-    });
-
-    it(`should format a// into a/4`, () => {
-      const ctx = new ABCContext();
-      const r = new Rhythm(
-        0,
-        new Token(TT.RHY_NUMER, "a", ctx.generateId()),
-        new Token(TT.RHY_SEP, "/", ctx.generateId()),
-        null, // no denominator token for a//
-        new Token(TT.RHY_SEP, "/", ctx.generateId()) // second slash
-      );
-      const expected = "a/4";
-      const fmt = r.accept(new AbcFormatter2(new ABCContext()));
-      assert.equal(removeTuneHeader(fmt).trim(), expected);
-    });
-
-    it(`should format z/2 into z/`, () => {
-      const ctx = new ABCContext();
-      const r = new Rhythm(
-        0,
-        new Token(TT.RHY_NUMER, "z", ctx.generateId()),
-        new Token(TT.RHY_SEP, "/", ctx.generateId()),
-        new Token(TT.RHY_DENOM, "2", ctx.generateId())
-      );
-      const expected = "z/";
-      const fmt = r.accept(new AbcFormatter2(new ABCContext()));
-      assert.equal(removeTuneHeader(fmt).trim(), expected);
-    });
-
-    it(`should format z// into z/4`, () => {
-      const ctx = new ABCContext();
-      const r = new Rhythm(
-        0,
-        new Token(TT.RHY_NUMER, "z", ctx.generateId()),
-        new Token(TT.RHY_SEP, "/", ctx.generateId()),
-        null, // no denominator token for z//
-        new Token(TT.RHY_SEP, "/", ctx.generateId()) // second slash
-      );
-      const expected = "z/4";
-      const fmt = r.accept(new AbcFormatter2(new ABCContext()));
-      assert.equal(removeTuneHeader(fmt).trim(), expected);
-    });
-
-    it(`should format a/4 into a/4`, () => {
-      const ctx = new ABCContext();
-      const r = new Rhythm(
-        0,
-        new Token(TT.RHY_NUMER, "a", ctx.generateId()),
-        new Token(TT.RHY_SEP, "/", ctx.generateId()),
-        new Token(TT.RHY_DENOM, "4", ctx.generateId())
-      );
-      const expected = "a/4";
-      const fmt = r.accept(new AbcFormatter2(new ABCContext()));
-      assert.equal(removeTuneHeader(fmt).trim(), expected);
-    });
-
-    it(`should format a3/4 into a3/4`, () => {
-      const ctx = new ABCContext();
-      const r = new Rhythm(
-        0,
-        new Token(TT.RHY_NUMER, "a3", ctx.generateId()),
-        new Token(TT.RHY_SEP, "/", ctx.generateId()),
-        new Token(TT.RHY_DENOM, "4", ctx.generateId())
-      );
-      const expected = "a3/4";
-      const fmt = r.accept(new AbcFormatter2(new ABCContext()));
-      assert.equal(removeTuneHeader(fmt).trim(), expected);
     });
   });
 });
