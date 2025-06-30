@@ -11,6 +11,7 @@ export class Ctx {
   public line: number;
   public errorReporter?: AbcErrorReporter;
   public abcContext: ABCContext;
+  public macros?: Map<string, string>;
 
   constructor(source: string, abcContext: ABCContext) {
     this.source = source;
@@ -20,6 +21,7 @@ export class Ctx {
     this.line = 0;
     this.abcContext = abcContext;
     this.errorReporter = abcContext.errorReporter;
+    this.macros = new Map<string, string>();
   }
   test(pattern: RegExp | string, offset?: number) {
     if (pattern instanceof RegExp) {
@@ -215,6 +217,7 @@ export enum TT {
   LY_TXT,
   LY_UNDR,
   MACRO_HDR,
+  MACRO_INVOCATION,
   MACRO_STR,
   MACRO_VAR,
   NOTE_LETTER,
@@ -345,7 +348,6 @@ export function macro_decl(ctx: Ctx): boolean {
     switch (state) {
       case Expect.VAR: {
         if (ctx.test(/[a-zA-Z0-9~]/)) {
-          // ctx.start = ctx.current;
           while (!isAtEnd(ctx) && ctx.test(/[a-zA-Z0-9~]/)) {
             advance(ctx);
           }
@@ -354,7 +356,7 @@ export function macro_decl(ctx: Ctx): boolean {
           continue outer;
         } else {
           collectInvalidInfoLn(ctx, "expected macro variable declaration");
-          break outer;
+          return true;
         }
       }
 
@@ -366,24 +368,51 @@ export function macro_decl(ctx: Ctx): boolean {
           continue outer;
         } else {
           collectInvalidInfoLn(ctx, "expected `=` sign in macro declaration");
-          break outer;
+          return true;
         }
       }
       case Expect.CONTENT: {
-        // ctx.start = ctx.current;
         while (!isAtEnd(ctx) && !ctx.test(pEOL) && !ctx.test("%")) {
           advance(ctx);
         }
         if (ctx.current > ctx.start) {
           ctx.push(TT.MACRO_STR);
+          const variable = ctx.tokens[ctx.tokens.length - 2];
+          const contents = ctx.tokens[ctx.tokens.length - 1];
+          if (!ctx.macros) {
+            ctx.macros = new Map<string, string>()
+          }
+          ctx.macros.set(variable.lexeme, contents.lexeme);
+          break outer;
+        } else {
+          collectInvalidInfoLn(ctx, "expected contents of macro declaration");
+          return true;
         }
-        break outer;
       }
     }
   }
 
   comment(ctx);
   return true;
+}
+
+export function macro_invocation(ctx: Ctx): boolean {
+  // Check if current position matches any declared macro variable
+  if (!ctx.macros) return false;
+  for (const [variable,] of ctx.macros) {
+    if (ctx.test(variable)) {
+      // Make sure it's a whole word match (not part of a larger token)
+      const nextChar = ctx.source[ctx.current + variable.length];
+      if (nextChar && /[a-zA-Z0-9~]/.test(nextChar)) {
+        continue; // This is part of a larger token
+      }
+
+      advance(ctx, variable.length);
+      ctx.push(TT.MACRO_INVOCATION);
+      return true;
+    }
+  }
+  return false;
 }
 
 export function collectInvalidInfoLn(ctx: Ctx, msg: string): boolean {
