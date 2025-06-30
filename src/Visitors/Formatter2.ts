@@ -334,20 +334,16 @@ export class AbcFormatter2 implements Visitor<string> {
   visitTuneExpr(expr: Tune): string {
     let formatted = "";
     formatted += this.visitTuneHeaderExpr(expr.tune_header);
-    if (expr.tune_body) {
+    if (expr.tune_body && expr.tune_body.sequence.length) {
+      formatted+="\n";
       formatted += this.visitTuneBodyExpr(expr.tune_body);
     }
     return formatted;
   }
 
   visitTuneHeaderExpr(expr: Tune_header): string {
-    const info_lines = expr.info_lines.map((infoLine): string => {
-      let rv = "";
-      rv = infoLine.accept(this);
-      rv += "\n";
-      return rv;
-    });
-    return info_lines.join("");
+    const info_lines = expr.info_lines.map(il=> il.accept(this)).join("\n");
+    return info_lines;
   }
 
   visitYSpacerExpr(expr: YSPACER): string {

@@ -213,7 +213,8 @@ export function prsTuneHdr(ctx: ParseCtx): Tune_header {
     }
     break;
   }
-  ctx.advance();
+  
+  ctx.match(TT.EOL);
   return new Tune_header(ctx.abcContext.generateId(), infoLines as Array<Info_line | Comment>, voices);
 }
 

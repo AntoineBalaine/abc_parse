@@ -656,8 +656,7 @@ K:C
       expected: `X:1
 M:4/4
 L:1/8
-K:C
-`,
+K:C`,
     },
     {
       title: "format a tune header containing comments",
@@ -684,8 +683,7 @@ K:C
 M:4/4
 L:1/8
 %surprise
-K:C
-`,
+K:C`,
     },
   ];
 
