@@ -256,6 +256,7 @@ export function prsComment(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Comme
 }
 
 export function prsInfoLine(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Info_line | null {
+  // FIXME: add a condition to check that this is NOT a lyric line?
   if (ctx.match(TT.INF_HDR)) {
     const field = ctx.previous();
     const tokens: Token[] = [field];
@@ -287,12 +288,13 @@ export function prsLyricSection(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): 
 
   // Collect all tokens that belong to this lyric line
   while (!ctx.isAtEnd()) {
-    if (!isLyricToken(ctx.peek())) {
+    if (!isLyricToken(ctx)) {
       break;
     }
-    if (ctx.match(TT.INF_CTND) && tokens.length > 0) {
-      info_lines.push(new Info_line(ctx.abcContext.generateId(), tokens));
-      tokens = [];
+    if (infoLineContinued(ctx)) {
+      tokens.push(ctx.advance());
+      tokens.push(ctx.advance());
+      continue;
     }
     tokens.push(ctx.advance());
   }
@@ -306,8 +308,14 @@ export function prsLyricSection(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): 
   return rv;
 }
 
-export function isLyricToken(token: Token): boolean {
-  switch (token.type) {
+function infoLineContinued(ctx: ParseCtx): boolean {
+  return ctx.check(TT.EOL) && ctx.tokens[ctx.current + 1].type === TT.INF_CTND;
+}
+
+export function isLyricToken(ctx: ParseCtx): boolean {
+  const cur_tkn = ctx.peek();
+  if (infoLineContinued(ctx)) return true;
+  switch (cur_tkn.type) {
     case TT.LY_TXT:
     case TT.LY_HYPH:
     case TT.LY_UNDR:
@@ -329,6 +337,7 @@ export function prsBody(ctx: ParseCtx, voices: string[] = []): Tune_Body | null 
   // Parse until end of file or section break
   while (!ctx.isAtEnd() && !ctx.check(TT.SCT_BRK)) {
     if (prsComment(ctx, elmnts)) continue;
+    if (prsLyricSection(ctx)) continue;
     if (prsInfoLine(ctx, elmnts)) continue;
     if (parseMusicCode(ctx, elmnts)) continue;
 

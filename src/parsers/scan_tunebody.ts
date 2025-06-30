@@ -422,6 +422,7 @@ export function scanTune(ctx: Ctx): boolean {
     if (stylesheet_directive(ctx)) continue;
     if (comment(ctx)) continue;
     if (symbol_line(ctx)) continue;
+    if (lyric_line(ctx)) continue;
     if (info_line(ctx)) continue;
     if (annotation(ctx)) continue;
     if (inline_field(ctx)) continue;
@@ -742,7 +743,8 @@ function isSyllableDelimiter(ctx: Ctx): boolean {
 
 export function field_continuation(ctx: Ctx): boolean {
   if (!ctx.test("\n+:")) return false;
-  advance(ctx, 3);
+  EOL(ctx);
+  advance(ctx, 2);
   ctx.push(TT.INF_CTND);
   return true;
 }

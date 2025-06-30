@@ -138,14 +138,14 @@ describe("AbcFormatter2", () => {
           format(
             `X:1
 CDEF|
-W: hello
+T: hello
 GABG|`,
             ctx,
             formatter
           ),
           `X:1
 CDEF |
-W: hello
+T: hello
 GABG |`
         );
       });

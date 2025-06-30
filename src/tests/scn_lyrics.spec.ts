@@ -1,8 +1,10 @@
 import assert from "assert";
 import { describe, it } from "mocha";
-import { TT } from "../parsers/scan2";
+import { Scanner2, TT } from "../parsers/scan2";
 import { field_continuation, lyric_line } from "../parsers/scan_tunebody";
 import { createCtx } from "./scn_tuneBodyTokens.spec";
+import { scanTune } from "../parsers/scan_tunebody";
+import { ABCContext } from "../parsers/Context";
 
 describe("Lyric Line Scanning", () => {
   describe("lyric_line", () => {
@@ -129,8 +131,7 @@ describe("Lyric Line Scanning", () => {
       const ctx = createCtx("\n+: continued");
       const result = field_continuation(ctx);
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 1);
-      assert.equal(ctx.tokens[0].type, TT.INF_CTND);
+      assert.equal(ctx.tokens[1].type, TT.INF_CTND);
     });
 
     it("should return false for non-field continuation", () => {
@@ -140,4 +141,6 @@ describe("Lyric Line Scanning", () => {
       assert.equal(ctx.tokens.length, 0);
     });
   });
+
 });
+

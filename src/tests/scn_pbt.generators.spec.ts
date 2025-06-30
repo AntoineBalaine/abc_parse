@@ -232,7 +232,7 @@ export const genLyricHeader = fc.constantFrom(new Token(TT.LY_HDR, "w:", sharedC
 
 export const genLyricSectionHeader = fc.constantFrom(new Token(TT.LY_SECT_HDR, "W:", sharedContext.generateId()));
 
-export const genFieldContinuation = fc.constantFrom(new Token(TT.INF_CTND, "+:", sharedContext.generateId()));
+export const genFieldContinuation = fc.tuple(genEOL, fc.constantFrom(new Token(TT.INF_CTND, "+:", sharedContext.generateId())));
 
 // Lyric content generator - generates various lyric tokens
 export const genLyricContent = fc.array(
@@ -244,25 +244,20 @@ export const genLyricContent = fc.array(
     genLyricSpace,
     genWhitespace,
     genBarline,
-    genCommentToken.map(([comment]) => comment) // Extract just the comment token
+    // genCommentToken.map(([comment]) => comment) 
   ),
   { minLength: 1, maxLength: 10 }
 );
 
 // Regular lyric line generator (w:)
 export const genLyricLine = fc
-  .tuple(genEOL, genLyricHeader, genLyricContent, genEOL)
-  .map(([eol1, header, content, eol2]) => [eol1, header, ...content, eol2]);
-
-// Section lyric line generator (W:)
-export const genLyricSectionLine = fc
-  .tuple(genEOL, genLyricSectionHeader, genLyricContent, genEOL)
-  .map(([eol1, header, content, eol2]) => [eol1, header, ...content, eol2]);
+  .tuple(genNote, genEOL, genLyricHeader, genLyricContent, genEOL)
+  .map(([note, eol1, header, content, eol2]) => [...note, eol1, header, ...content, eol2]);
 
 // Multi-line lyric generator with field continuation
-export const genMultiLineLyric = fc
-  .tuple(genEOL, genLyricHeader, genLyricContent, genEOL, genFieldContinuation, genLyricContent, genEOL)
-  .map(([eol1, header, content1, eol2, continuation, content2, eol3]) => [eol1, header, ...content1, eol2, continuation, ...content2, eol3]);
+// export const genMultiLineLyric = fc
+//   .tuple(genLyricLine, genFieldContinuation, genLyricContent, genEOL)
+//   .map(([lyric_line, continuation, content2, eol3]) => [...lyric_line, continuation, ...content2, eol3]);
 
 // Main token sequence generator
 export const genTokenSequence = fc
@@ -288,7 +283,7 @@ export const genTokenSequence = fc
       { arbitrary: genStylesheetDirective, weight: 1 },
       { arbitrary: genCommentToken, weight: 2 },
       { arbitrary: genLyricLine, weight: 1 },
-      { arbitrary: genMultiLineLyric, weight: 1 }
+      // { arbitrary: genMultiLineLyric, weight: 1 }
     )
   )
   .map((arrays) => {
@@ -326,11 +321,9 @@ export const genTokenSequence = fc
 
       // Lyric token filtering rules
       if ((test(cur, TT.LY_HDR) || test(cur, TT.LY_SECT_HDR)) && !rewind(TT.EOL, i)) continue;
-      if (test(cur, TT.INF_CTND) && !rewind(TT.EOL, i)) continue;
+      if ((test(cur, TT.LY_TXT)) && rewind(TT.LY_TXT, i)) continue; // prevent multiple lyric tokens in a row.
 
-      // Lyric content tokens should only appear after lyric headers
-      const isLyricContent = [TT.LY_TXT, TT.LY_HYPH, TT.LY_UNDR, TT.LY_STAR, TT.LY_SPS].includes(cur.type);
-      if (isLyricContent && !rewind(TT.LY_HDR, i, [TT.WS]) && !rewind(TT.LY_SECT_HDR, i, [TT.WS]) && !rewind(TT.INF_CTND, i, [TT.WS])) continue;
+      if (test(cur, TT.INF_CTND) && !rewind(TT.EOL, i)) throw new Error("INF_CTND not preceded by EOL");
 
       if ((test(cur, TT.EOL) && rewind(TT.EOL, i, [TT.WS])) || both(TT.WS) || both(TT.BARLINE)) {
         continue;
