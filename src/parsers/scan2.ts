@@ -1,7 +1,7 @@
 import { Visitor } from "../types/Expr2";
 import { ABCContext } from "./Context";
 import { AbcErrorReporter } from "./ErrorReporter";
-import { comment, pEOL, pInfoLine, pMacroLine, pSectionBrk, pTuneHeadStrt, scanTune } from "./scan_tunebody";
+import { comment, pEOL, pInfoLine, pMacroLine, pSectionBrk, pTuneHeadStrt, pUserSymbol, scanTune, symbol } from "./scan_tunebody";
 
 export class Ctx {
   public source: string;
@@ -238,6 +238,7 @@ export enum TT {
   TUPLET_COLON, // The colon separator in a tuplet :
   TUPLET_Q, // The q value in a tuplet
   TUPLET_R, // The r value in a tuplet
+  USER_SY, // user-symbol
   VOICE,
   VOICE_OVRLAY,
   WS,
@@ -326,6 +327,65 @@ export function info_line(ctx: Ctx): boolean {
   return true;
 }
 
+
+/** U: T = !trill! */
+// ai! create some tests for this function 
+// in the scn_user_symbol.spec.ts file.
+export function userSymbol(ctx: Ctx): boolean {
+  if (!(ctx.test(pUserSymbol) && ctx.tokens.length > 0 && precededBy(ctx, new Set([TT.EOL]), new Set([TT.WS])))) return false;
+  const match = new RegExp(`^${pUserSymbol.source}`).exec(ctx.source.substring(ctx.current));
+
+  if (!match) return false;
+  ctx.current += match[0].length;
+  ctx.push(TT.INF_HDR);
+  let state: Expect = Expect.VAR;
+  outer: while (!isAtEnd(ctx) && !ctx.test(pEOL) && !ctx.test("%")) {
+    if (WS(ctx, true)) continue; // Use your existing WS function
+
+    switch (state) {
+      case Expect.VAR: {
+        if (ctx.test(/[h-wH-W~]/)) {
+          advance(ctx);
+          ctx.push(TT.USER_SY);
+          state = Expect.EQUALS;
+          continue outer;
+        } else {
+          collectInvalidInfoLn(ctx, "expected user-symbol variable declaration");
+          return true;
+        }
+      }
+
+      case Expect.EQUALS: {
+        if (ctx.test("=")) {
+          advance(ctx);
+          ctx.start = ctx.current;
+          state = Expect.CONTENT;
+          continue outer;
+        } else {
+          collectInvalidInfoLn(ctx, "expected `=` sign in user-symbol declaration");
+          return true;
+        }
+      }
+      case Expect.CONTENT: {
+        if (!symbol(ctx)) {
+          collectInvalidInfoLn(ctx, "expected contents of user-symbol declaration");
+        } else {
+          return true;
+        }
+      }
+    }
+  }
+
+  comment(ctx);
+  return true;
+
+}
+enum Expect {
+  VAR,
+  EQUALS,
+  CONTENT,
+}
+
 /** grammar rule: variable declarations can’t start with a number.
  * Also, they can’t contain the y char, since it is reserved for y-spacers.
  */
@@ -337,11 +397,6 @@ export function macro_decl(ctx: Ctx): boolean {
   ctx.current += match[0].length;
   ctx.push(TT.MACRO_HDR);
 
-  enum Expect {
-    VAR,
-    EQUALS,
-    CONTENT,
-  }
 
   let state: Expect = Expect.VAR;
 
@@ -444,3 +499,4 @@ export function collectInvalidInfoLn(ctx: Ctx, msg: string): boolean {
   advance(ctx);
   return false;
 }
+

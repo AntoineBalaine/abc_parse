@@ -3,6 +3,7 @@ import { Ctx, EOL, TT, WS, advance, info_line, isAtEnd, precededBy, stylesheet_d
 const pLETTER_COLON = /[a-zA-Z]:/;
 export const pEOL = "\n";
 export const pMacroLine = /[m][ \t]*:/;
+export const pUserSymbol = /U[ \t]*:/;
 export const pInfoLine = /[a-zA-Z][ \t]*:/;
 export const pSymbolLine = /s[ \t]*:/;
 export const pLyricLine = /[wW][ \t]*:/;
