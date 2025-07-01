@@ -238,9 +238,11 @@ export const genFieldContinuation = fc.tuple(genEOL, fc.constantFrom(new Token(T
 // Macro generators
 export const genMacroHeader = fc.constantFrom(new Token(TT.MACRO_HDR, "m:", sharedContext.generateId()));
 
-export const genMacroVariable = fc.stringMatching(/^[a-zA-Z0-9~]+$/).map((varName) => new Token(TT.MACRO_VAR, varName, sharedContext.generateId()));
+export const genMacroVariable = fc
+  .stringMatching(/^[a-xzA-XZ~][a-xzA-XZ0-9~]*$/)
+  .map((varName) => new Token(TT.MACRO_VAR, varName, sharedContext.generateId()));
 
-export const genMacroString = fc.stringMatching(/^[^\n%]*$/).map((content) => new Token(TT.MACRO_STR, content, sharedContext.generateId()));
+export const genMacroString = fc.stringMatching(/^[^\n% \t][^\n% \t]*$/).map((content) => new Token(TT.MACRO_STR, content, sharedContext.generateId()));
 
 export const genMacroLine = fc
   .tuple(
@@ -273,8 +275,8 @@ export const genLyricContent = fc.array(
     genLyricStar,
     genLyricSpace,
     genWhitespace,
-    genBarline,
-    // genCommentToken.map(([comment]) => comment) 
+    genBarline
+    // genCommentToken.map(([comment]) => comment)
   ),
   { minLength: 1, maxLength: 10 }
 );
@@ -312,7 +314,7 @@ export const genTokenSequence = fc
       { arbitrary: genInfoLine, weight: 1 },
       { arbitrary: genStylesheetDirective, weight: 1 },
       { arbitrary: genCommentToken, weight: 2 },
-      { arbitrary: genLyricLine, weight: 1 },
+      { arbitrary: genLyricLine, weight: 1 }
       // { arbitrary: genMultiLineLyric, weight: 1 }
     )
   )
@@ -355,7 +357,7 @@ export function applyTokenFiltering(flatTokens: Token[]): Token[] {
 
     // Lyric token filtering rules
     if ((test(cur, TT.LY_HDR) || test(cur, TT.LY_SECT_HDR)) && !rewind(TT.EOL, i)) continue;
-    if ((test(cur, TT.LY_TXT)) && rewind(TT.LY_TXT, i)) continue; // prevent multiple lyric tokens in a row.
+    if (test(cur, TT.LY_TXT) && rewind(TT.LY_TXT, i)) continue; // prevent multiple lyric tokens in a row.
 
     // Macro token filtering rules
     if (test(cur, TT.MACRO_HDR) && !rewind(TT.EOL, i)) continue;

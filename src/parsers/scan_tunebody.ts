@@ -2,7 +2,7 @@ import { Ctx, EOL, TT, WS, advance, info_line, isAtEnd, precededBy, stylesheet_d
 
 const pLETTER_COLON = /[a-zA-Z]:/;
 export const pEOL = "\n";
-export const pMacroLine = /[m:][ \t]*:/;
+export const pMacroLine = /[m][ \t]*:/;
 export const pInfoLine = /[a-zA-Z][ \t]*:/;
 export const pSymbolLine = /s[ \t]*:/;
 export const pLyricLine = /[wW][ \t]*:/;
@@ -423,10 +423,10 @@ export function scanTune(ctx: Ctx): boolean {
     if (stylesheet_directive(ctx)) continue;
     if (comment(ctx)) continue;
     if (macro_decl(ctx)) continue;
-    if (macro_invocation(ctx)) continue;
     if (symbol_line(ctx)) continue;
     if (lyric_line(ctx)) continue;
     if (info_line(ctx)) continue;
+    if (macro_invocation(ctx)) continue;
     if (annotation(ctx)) continue;
     if (inline_field(ctx)) continue;
     if (tuplet(ctx)) continue;

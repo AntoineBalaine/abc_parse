@@ -179,14 +179,14 @@ describe("macro function", () => {
 describe("macro invocation function", () => {
   it("should recognize macro invocation after declaration", () => {
     // First declare a macro
-    const ctx = createMacroCtx("m:myvar=A B C");
+    const ctx = createMacroCtx("m:movar=A B C");
     const declResult = macro_decl(ctx);
     assert.equal(declResult, true, "macro declaration should succeed");
 
     // Now test invocation
     ctx.current = 0; // Reset position
     ctx.start = 0;
-    ctx.source = "myvar"; // Set source to just the variable name
+    ctx.source = "movar"; // Set source to just the variable name
 
     const result = macro_invocation(ctx);
     assert.equal(result, true, "macro invocation should be recognized");
@@ -194,7 +194,7 @@ describe("macro invocation function", () => {
     // Check that MACRO_INVOCATION token was created
     const invocationToken = ctx.tokens.find(t => t.type === TT.MACRO_INVOCATION);
     assert(invocationToken, "Should create MACRO_INVOCATION token");
-    assert.equal(invocationToken.lexeme, "myvar");
+    assert.equal(invocationToken.lexeme, "movar");
   });
 
   it("should not recognize undeclared variables", () => {
@@ -299,15 +299,22 @@ describe("macro round-trip property tests", () => {
   const genMacroScenario = genMacroLine
     .chain(({ tokens: macroTokens, variable }) => {
       // Create invocation generator using the specific variable from this macro
-      const genInvocation = fc.constantFrom(
-        new Token(TT.MACRO_INVOCATION, variable, sharedContext.generateId())
-      ).map(token => [token]);
+
+      const genInvocation = fc.tuple(
+        fc.constantFrom(
+          new Token(TT.MACRO_INVOCATION, variable, sharedContext.generateId())
+        ).map(token => [token]),
+        fc.oneof(
+          genWhitespace,
+          genYspacer,
+        )
+      );
 
       // Generate music tokens that may include the macro invocation
       const genMusicTokens = fc.array(
         fc.oneof(
           // Include macro invocation with higher weight
-          { arbitrary: genInvocation, weight: 2 },
+          genInvocation,
           // Regular music tokens
           genNote,
           genRest.map((rest) => [rest]),
@@ -336,7 +343,7 @@ describe("macro round-trip property tests", () => {
         const allTokens = [
           ...macroTokens,
           ...musicTokenArrays.flat()
-        ];
+        ].flat();
         return applyTokenFiltering(allTokens);
       });
     });

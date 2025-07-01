@@ -52,6 +52,13 @@ describe("Scanner Property Tests", () => {
         // Property 1: Every section break should correspond to double newlines in input
         const sectionBreaks = tokens.filter((t) => t.type === TT.SCT_BRK);
         const inputBreaks = (input.match(/\n\n/g) || []).length;
+
+        if (sectionBreaks.length !== inputBreaks) {
+          console.log("mis-structured tune:", {
+            input,
+            scanned: tokens,
+          });
+        }
         return sectionBreaks.length === inputBreaks;
       }),
       { verbose: true } // Enable verbose mode
@@ -172,7 +179,7 @@ export function createRoundTripPredicate(originalTokens: Array<Token>): boolean 
     while (i < tokens.length && (tokens[i].type === TT.EOL || tokens[i].type === TT.WS)) i++;
     return tokens.slice(i);
   }
-  
+
   const trimmedTokens = trimTokens(originalTokens);
   // Concatenate lexemes
   const input = ["X:1\n", ...trimmedTokens.map((t) => {

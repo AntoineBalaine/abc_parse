@@ -326,6 +326,9 @@ export function info_line(ctx: Ctx): boolean {
   return true;
 }
 
+/** grammar rule: variable declarations can’t start with a number.
+ * Also, they can’t contain the y char, since it is reserved for y-spacers.
+ */
 export function macro_decl(ctx: Ctx): boolean {
   if (!(ctx.test(pMacroLine) && ctx.tokens.length > 0 && precededBy(ctx, new Set([TT.EOL, TT.SCT_BRK]), new Set([TT.WS])))) return false;
   const match = new RegExp(`^${pMacroLine.source}`).exec(ctx.source.substring(ctx.current));
@@ -347,8 +350,8 @@ export function macro_decl(ctx: Ctx): boolean {
 
     switch (state) {
       case Expect.VAR: {
-        if (ctx.test(/[a-zA-Z0-9~]/)) {
-          while (!isAtEnd(ctx) && ctx.test(/[a-zA-Z0-9~]/)) {
+        if (ctx.test(/[a-xzA-XZ~][a-xzA-XZ0-9~]*/)) {
+          while (ctx.test(/[a-xzA-XZ0-9~]/)) {
             advance(ctx);
           }
           ctx.push(TT.MACRO_VAR);
@@ -380,7 +383,7 @@ export function macro_decl(ctx: Ctx): boolean {
           const variable = ctx.tokens[ctx.tokens.length - 2];
           const contents = ctx.tokens[ctx.tokens.length - 1];
           if (!ctx.macros) {
-            ctx.macros = new Map<string, string>()
+            ctx.macros = new Map<string, string>();
           }
           ctx.macros.set(variable.lexeme, contents.lexeme);
           break outer;
@@ -399,14 +402,9 @@ export function macro_decl(ctx: Ctx): boolean {
 export function macro_invocation(ctx: Ctx): boolean {
   // Check if current position matches any declared macro variable
   if (!ctx.macros) return false;
-  for (const [variable,] of ctx.macros) {
-    if (ctx.test(variable)) {
-      // Make sure it's a whole word match (not part of a larger token)
-      const nextChar = ctx.source[ctx.current + variable.length];
-      if (nextChar && /[a-zA-Z0-9~]/.test(nextChar)) {
-        continue; // This is part of a larger token
-      }
-
+  for (const [variable] of ctx.macros) {
+    // allow EOF, WS and y-spacers after macro invocation
+    if (ctx.test(new RegExp(`^${variable}(?=[ \tyY\n]|$)`))) {
       advance(ctx, variable.length);
       ctx.push(TT.MACRO_INVOCATION);
       return true;
