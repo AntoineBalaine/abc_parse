@@ -327,9 +327,8 @@ export function info_line(ctx: Ctx): boolean {
   return true;
 }
 
-
 /** U: T = !trill! */
-// ai! create some tests for this function 
+// ai! create some tests for this function
 // in the scn_user_symbol.spec.ts file.
 export function userSymbol(ctx: Ctx): boolean {
   if (!(ctx.test(pUserSymbol) && ctx.tokens.length > 0 && precededBy(ctx, new Set([TT.EOL]), new Set([TT.WS])))) return false;
@@ -339,7 +338,7 @@ export function userSymbol(ctx: Ctx): boolean {
   ctx.current += match[0].length;
   ctx.push(TT.INF_HDR);
   let state: Expect = Expect.VAR;
-  outer: while (!isAtEnd(ctx) && !ctx.test(pEOL) && !ctx.test("%")) {
+  outer: while (!isAtEnd(ctx)) {
     if (WS(ctx, true)) continue; // Use your existing WS function
 
     switch (state) {
@@ -378,7 +377,6 @@ export function userSymbol(ctx: Ctx): boolean {
 
   comment(ctx);
   return true;
-
 }
 enum Expect {
   VAR,
@@ -396,7 +394,6 @@ export function macro_decl(ctx: Ctx): boolean {
   if (!match) return false;
   ctx.current += match[0].length;
   ctx.push(TT.MACRO_HDR);
-
 
   let state: Expect = Expect.VAR;
 
@@ -499,4 +496,3 @@ export function collectInvalidInfoLn(ctx: Ctx, msg: string): boolean {
   advance(ctx);
   return false;
 }
-

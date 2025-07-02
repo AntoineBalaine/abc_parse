@@ -10,7 +10,7 @@ function createUserSymbolCtx(source: string): Ctx {
   return ctx;
 }
 
-describe.only("userSymbol function", () => {
+describe("userSymbol function", () => {
   it("should parse a simple user symbol definition", () => {
     const ctx = createUserSymbolCtx("U:T=!trill!");
     const result = userSymbol(ctx);
@@ -191,7 +191,6 @@ describe.only("userSymbol function", () => {
     const ctx = createUserSymbolCtx("V:1");
     const result = userSymbol(ctx);
 
-    assert.equal(result, false, "userSymbol function")
+    assert.equal(result, false, "userSymbol function");
   });
 });
-
