@@ -292,29 +292,34 @@ export const genLyricLine = fc
 //   .map(([lyric_line, continuation, content2, eol3]) => [...lyric_line, continuation, ...content2, eol3]);
 
 // Main token sequence generator
+export const baseMusicTokenGenerators = [
+  genNote,
+  genRest.map((rest) => [rest]),
+  genBarline.map((bar) => [bar]),
+  // genTie.map((tie) => [tie])
+  genAmpersand.map((amp) => amp),
+  genVoiceOvrlay.map((ovrlay) => [ovrlay]),
+  genWhitespace.map((ws) => [ws]),
+  genTuplet, // Now returns an array of tokens directly
+  genSlur.map((slur) => [slur]),
+  genDecorationWithFollower,
+  genSymbol.map((sym) => [sym]),
+  genYspacer,
+  genBcktckSpc.map((bck) => [bck]),
+  genGraceGroupWithFollower,
+  genChord,
+  genAnnotation,
+  { arbitrary: genInfoLine, weight: 1 },
+  { arbitrary: genStylesheetDirective, weight: 1 },
+  { arbitrary: genCommentToken, weight: 2 },
+  { arbitrary: genLyricLine, weight: 1 },
+];
+
+// Main token sequence generator using base music token generators
 export const genTokenSequence = fc
   .array(
     fc.oneof(
-      genNote,
-      genRest.map((rest) => [rest]),
-      genBarline.map((bar) => [bar]),
-      // genTie.map((tie) => [tie])
-      genAmpersand.map((amp) => amp),
-      genVoiceOvrlay.map((ovrlay) => [ovrlay]),
-      genWhitespace.map((ws) => [ws]),
-      genTuplet, // Now returns an array of tokens directly
-      genSlur.map((slur) => [slur]),
-      genDecorationWithFollower,
-      genSymbol.map((sym) => [sym]),
-      genYspacer,
-      genBcktckSpc.map((bck) => [bck]),
-      genGraceGroupWithFollower,
-      genChord,
-      genAnnotation,
-      { arbitrary: genInfoLine, weight: 1 },
-      { arbitrary: genStylesheetDirective, weight: 1 },
-      { arbitrary: genCommentToken, weight: 2 },
-      { arbitrary: genLyricLine, weight: 1 }
+      ...baseMusicTokenGenerators
       // { arbitrary: genMultiLineLyric, weight: 1 }
     )
   )
@@ -326,7 +331,7 @@ export const genTokenSequence = fc
 // Reusable token filtering function
 export function applyTokenFiltering(flatTokens: Token[]): Token[] {
   const result = [];
-  let symbols = new Set<String>()
+  let symbols = new Set<String>();
   if (flatTokens.length > 0) {
     result.push(flatTokens[0]);
   }
@@ -367,8 +372,8 @@ export function applyTokenFiltering(flatTokens: Token[]): Token[] {
     // user-symbol filtering
     if (test(cur, TT.USER_SY_HDR) && !rewind(TT.EOL, i)) continue;
     if (test(cur, TT.USER_SY)) {
-      symbols.add(cur.lexeme)
-      if (!test(result[result.length - 1], TT.USER_SY_HDR)) continue
+      symbols.add(cur.lexeme);
+      if (!test(result[result.length - 1], TT.USER_SY_HDR)) continue;
     }
 
     // user-defined symbols might override decorations
@@ -392,3 +397,107 @@ export const genUserSymbolVariable = fc.stringMatching(/^[h-wH-W~]$/).map((v) =>
 
 export const genUserSymbolHeader = fc.constantFrom(new Token(TT.USER_SY_HDR, "U:", sharedContext.generateId()));
 
+// Macro scenario generator
+export const genMacroScenario = fc
+  .tuple(genEOL, genMacroHeader, genMacroVariable, genMacroString, fc.option(genCommentToken.map(([comment]) => comment)), genEOL)
+  .chain(([eol1, header, variable, macroStr, comment, eol2]) => {
+    const macroTokens = [eol1, header, variable, macroStr];
+    if (comment) macroTokens.push(comment);
+    macroTokens.push(eol2);
+
+    // Create invocation generator using the specific variable from this macro
+    const genInvocation = fc.tuple(
+      fc.constantFrom(new Token(TT.MACRO_INVOCATION, variable.lexeme, sharedContext.generateId())).map((token) => [token]),
+      fc.oneof(genWhitespace, genYspacer)
+    );
+
+    // Generate music tokens that may include the macro invocation
+    const genMusicTokens = fc.array(fc.oneof(genInvocation, ...baseMusicTokenGenerators));
+
+    return genMusicTokens.map((musicTokenArrays) => {
+      const allTokens = [...macroTokens, ...musicTokenArrays.flat()].flat();
+      return applyTokenFiltering(allTokens);
+    });
+  });
+
+// User symbol scenario generator
+export const genUserSymbolScenario = fc
+  .tuple(genEOL, genUserSymbolHeader, genUserSymbolVariable, genSymbol, fc.option(genCommentToken.map(([comment]) => comment)), genEOL)
+  .chain(([eol1, header, variable, symbol, comment, eol2]) => {
+    const userSymbolTokens = [eol1, header, variable, symbol];
+    if (comment) userSymbolTokens.push(comment);
+    userSymbolTokens.push(eol2);
+
+    // Create invocation generator using the specific variable from this user symbol
+    const genUserSymbolInvocation = fc.tuple(
+      fc.constantFrom(new Token(TT.USER_SY_INVOCATION, variable.lexeme, sharedContext.generateId())).map((token) => [token]),
+      genWhitespace
+    );
+
+    // Generate music tokens that may include the user symbol invocation
+    const genMusicTokens = fc.array(
+      fc.oneof(
+        // Include user symbol invocation
+        genUserSymbolInvocation,
+        ...baseMusicTokenGenerators
+      )
+    );
+
+    return genMusicTokens.map((musicTokenArrays) => {
+      const allTokens = [...userSymbolTokens, ...musicTokenArrays.flat()].flat();
+      return applyTokenFiltering(allTokens);
+    });
+  });
+
+export const genMixedStatefulScenario = fc
+  .tuple(
+    // Macro declaration
+    fc.tuple(genEOL, genMacroHeader, genMacroVariable, genMacroString, fc.option(genCommentToken.map(([comment]) => comment)), genEOL),
+    // User symbol declaration
+    fc.tuple(genUserSymbolHeader, genUserSymbolVariable, genSymbol, fc.option(genCommentToken.map(([comment]) => comment)), genEOL)
+  )
+  .chain(([macroDecl, userSymbolDecl]) => {
+    const [macroEol1, macroHeader, macroVariable, macroStr, macroComment, macroEol2] = macroDecl;
+    const [userSymHeader, userSymVariable, userSymbol, userSymComment, userSymEol] = userSymbolDecl;
+
+    const declarationTokens = [
+      macroEol1,
+      macroHeader,
+      macroVariable,
+      macroStr,
+      ...(macroComment ? [macroComment] : []),
+      macroEol2,
+      userSymHeader,
+      userSymVariable,
+      userSymbol,
+      ...(userSymComment ? [userSymComment] : []),
+      userSymEol,
+    ];
+
+    // Create invocation generators for both macro and user symbol
+    const genMacroInvocation = fc.tuple(
+      fc.constantFrom(new Token(TT.MACRO_INVOCATION, macroVariable.lexeme, sharedContext.generateId())).map((token) => [token]),
+      fc.oneof(genWhitespace, genYspacer)
+    );
+
+    const genUserSymbolInvocation = fc.tuple(
+      fc.constantFrom(new Token(TT.USER_SY_INVOCATION, userSymVariable.lexeme, sharedContext.generateId())).map((token) => [token]),
+      genWhitespace
+    );
+
+    // Generate music tokens that may include both types of invocations
+    const genMusicTokens = fc.array(
+      fc.oneof(
+        // Include both invocation types
+        genMacroInvocation,
+        genUserSymbolInvocation,
+        // Spread the base music token generators
+        ...baseMusicTokenGenerators
+      )
+    );
+
+    return genMusicTokens.map((musicTokenArrays) => {
+      const allTokens = [...declarationTokens, ...musicTokenArrays.flat()].flat();
+      return applyTokenFiltering(allTokens);
+    });
+  });

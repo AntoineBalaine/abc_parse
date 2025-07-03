@@ -2,7 +2,7 @@ import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { Ctx, Scanner2, Token, TT } from "../parsers/scan2";
 import { pDuration, pitch, pPitch, scanTune } from "../parsers/scan_tunebody";
-import { genTokenSequence, genMacroLine } from "./scn_pbt.generators.spec";
+import { genTokenSequence, genMacroLine, genMacroScenario, genUserSymbolScenario, genMixedStatefulScenario } from "./scn_pbt.generators.spec";
 
 describe("Scanner Property Tests", () => {
   // Arbitrary generators for ABC notation components
@@ -156,6 +156,61 @@ describe("Scanner Round-trip Tests", () => {
       {
         verbose: false,
         numRuns: 10000,
+      }
+    );
+  });
+
+  // Enhanced token sequence generator that includes stateful scenarios
+  const genStatefulTokenSequence = fc.oneof(
+    // Regular token sequences (existing behavior)
+    genTokenSequence,
+    
+    // Macro scenarios with declarations and invocations
+    genMacroScenario,
+    
+    // User symbol scenarios with declarations and invocations  
+    genUserSymbolScenario,
+    
+    // Mixed scenarios with both macros and user symbols
+    genMixedStatefulScenario
+  );
+
+  it("should handle macro declarations and invocations in round-trip tests", () => {
+    fc.assert(
+      fc.property(genMacroScenario, createRoundTripPredicate),
+      {
+        verbose: false,
+        numRuns: 1000,
+      }
+    );
+  });
+
+  it("should handle user symbol declarations and invocations in round-trip tests", () => {
+    fc.assert(
+      fc.property(genUserSymbolScenario, createRoundTripPredicate),
+      {
+        verbose: false,
+        numRuns: 1000,
+      }
+    );
+  });
+
+  it("should handle mixed stateful scenarios in round-trip tests", () => {
+    fc.assert(
+      fc.property(genMixedStatefulScenario, createRoundTripPredicate),
+      {
+        verbose: false,
+        numRuns: 1000,
+      }
+    );
+  });
+
+  it("should produce equivalent tokens for all enhanced scenarios", () => {
+    fc.assert(
+      fc.property(genStatefulTokenSequence, createRoundTripPredicate),
+      {
+        verbose: false,
+        numRuns: 5000,
       }
     );
   });

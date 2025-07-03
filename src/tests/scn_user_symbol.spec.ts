@@ -1,36 +1,29 @@
 import assert from "assert";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
+import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
 import { Ctx, TT, Token, user_symbol_decl, user_symbol_invocation } from "../parsers/scan2";
-import { scanTune } from "../parsers/scan_tunebody";
+import { genCommentToken, genEOL, genSymbol, genUserSymbolHeader, genUserSymbolScenario, genUserSymbolVariable } from "./scn_pbt.generators.spec";
 import { createRoundTripPredicate } from "./scn_pbt.spec";
-import {
-  genEOL,
-  genCommentToken,
-  genNote,
-  genRest,
-  genBarline,
-  genWhitespace,
-  sharedContext,
-  applyTokenFiltering,
-  genAmpersand,
-  genAnnotation,
-  genBcktckSpc,
-  genChord,
-  genDecorationWithFollower,
-  genGraceGroupWithFollower,
-  genInfoLine,
-  genLyricLine,
-  genSlur,
-  genStylesheetDirective,
-  genSymbol,
-  genTuplet,
-  genVoiceOvrlay,
-  genYspacer,
-  genUserSymbolHeader,
-  genUserSymbolVariable
-} from "./scn_pbt.generators.spec";
+
+// Generate a user symbol line that returns both tokens and the variable name
+const genUserSymbolLine = fc
+  .tuple(
+    genEOL,
+    genUserSymbolHeader,
+    genUserSymbolVariable,
+    genSymbol, // The symbol content (!trill!, +pizz+, etc.)
+    fc.option(genCommentToken.map(([comment]) => comment)),
+    genEOL
+  )
+  .map(([eol1, header, variable, symbol, comment, eol2]) => {
+    const tokens = [eol1, header, variable, symbol];
+    if (comment) tokens.push(comment);
+    tokens.push(eol2);
+    return { tokens, variable: variable.lexeme };
+  });
+
+// genUserSymbolScenario is now imported from generators file
 
 /** starts by pushing an EOL token to simulate being at the start of a line */
 function createUserSymbolCtx(source: string): Ctx {
@@ -240,7 +233,7 @@ describe("user symbol invocation function", () => {
     assert.equal(result, true, "user symbol invocation should be recognized");
 
     // Check that USER_SY_INVOCATION token was created
-    const invocationToken = ctx.tokens.find(t => t.type === TT.USER_SY_INVOCATION);
+    const invocationToken = ctx.tokens.find((t) => t.type === TT.USER_SY_INVOCATION);
     assert(invocationToken, "Should create USER_SY_INVOCATION token");
     assert.equal(invocationToken.lexeme, "T");
   });
@@ -265,7 +258,7 @@ describe("user symbol invocation function", () => {
     const result = user_symbol_invocation(ctx);
     assert.equal(result, true, "should match at word boundary");
 
-    const invocationToken = ctx.tokens.find(t => t.type === TT.USER_SY_INVOCATION);
+    const invocationToken = ctx.tokens.find((t) => t.type === TT.USER_SY_INVOCATION);
     assert.equal(invocationToken?.lexeme, "T");
   });
 
@@ -282,7 +275,7 @@ describe("user symbol invocation function", () => {
     const result = user_symbol_invocation(ctx);
     assert.equal(result, true, "should match at end of line");
 
-    const invocationToken = ctx.tokens.find(t => t.type === TT.USER_SY_INVOCATION);
+    const invocationToken = ctx.tokens.find((t) => t.type === TT.USER_SY_INVOCATION);
     assert.equal(invocationToken?.lexeme, "H");
   });
 
@@ -299,7 +292,7 @@ describe("user symbol invocation function", () => {
     const result = user_symbol_invocation(ctx);
     assert.equal(result, true, "should match when followed by y-spacer");
 
-    const invocationToken = ctx.tokens.find(t => t.type === TT.USER_SY_INVOCATION);
+    const invocationToken = ctx.tokens.find((t) => t.type === TT.USER_SY_INVOCATION);
     assert.equal(invocationToken?.lexeme, "T");
   });
 
@@ -316,7 +309,7 @@ describe("user symbol invocation function", () => {
     const result = user_symbol_invocation(ctx);
     assert.equal(result, true, "should match at end of input");
 
-    const invocationToken = ctx.tokens.find(t => t.type === TT.USER_SY_INVOCATION);
+    const invocationToken = ctx.tokens.find((t) => t.type === TT.USER_SY_INVOCATION);
     assert.equal(invocationToken?.lexeme, "T");
   });
 
@@ -356,7 +349,7 @@ describe("user symbol invocation function", () => {
     const result = user_symbol_invocation(ctx);
     assert.equal(result, true, "should recognize tilde symbol");
 
-    const invocationToken = ctx.tokens.find(t => t.type === TT.USER_SY_INVOCATION);
+    const invocationToken = ctx.tokens.find((t) => t.type === TT.USER_SY_INVOCATION);
     assert.equal(invocationToken?.lexeme, "~");
   });
 
@@ -371,7 +364,7 @@ describe("user symbol invocation function", () => {
     const result = user_symbol_invocation(ctx);
     assert.equal(result, true, "should recognize uppercase symbol");
 
-    const invocationToken = ctx.tokens.find(t => t.type === TT.USER_SY_INVOCATION);
+    const invocationToken = ctx.tokens.find((t) => t.type === TT.USER_SY_INVOCATION);
     assert.equal(invocationToken?.lexeme, "H");
   });
 
@@ -386,86 +379,17 @@ describe("user symbol invocation function", () => {
     const result = user_symbol_invocation(ctx);
     assert.equal(result, true, "should recognize lowercase symbol");
 
-    const invocationToken = ctx.tokens.find(t => t.type === TT.USER_SY_INVOCATION);
+    const invocationToken = ctx.tokens.find((t) => t.type === TT.USER_SY_INVOCATION);
     assert.equal(invocationToken?.lexeme, "h");
   });
 });
 
 // Property-based tests for user symbol round-trip scenarios
 describe("user symbol round-trip property tests", () => {
-
-  // Generate a user symbol line that returns both tokens and the variable name
-  const genUserSymbolLine = fc
-    .tuple(
-      genEOL,
-      genUserSymbolHeader,
-      genUserSymbolVariable,
-      genSymbol, // The symbol content (!trill!, +pizz+, etc.)
-      fc.option(genCommentToken.map(([comment]) => comment)),
-      genEOL
-    )
-    .map(([eol1, header, variable, symbol, comment, eol2]) => {
-      const tokens = [eol1, header, variable, symbol];
-      if (comment) tokens.push(comment);
-      tokens.push(eol2);
-      return { tokens, variable: variable.lexeme };
-    });
-
-  // Generate a scenario with user symbol declaration followed by music that may use the symbol
-  const genUserSymbolScenario = genUserSymbolLine
-    .chain(({ tokens: userSymbolTokens, variable }) => {
-      // Create invocation generator using the specific variable from this user symbol
-      const genUserSymbolInvocation = fc.tuple(
-        fc.constantFrom(
-          new Token(TT.USER_SY_INVOCATION, variable, sharedContext.generateId())
-        ).map(token => [token]),
-        genWhitespace,
-      );
-
-      // Generate music tokens that may include the user symbol invocation
-      const genMusicTokens = fc.array(
-        fc.oneof(
-          // Include user symbol invocation with higher weight
-          genUserSymbolInvocation,
-          // Regular music tokens
-          genNote,
-          genRest.map((rest) => [rest]),
-          genBarline.map((bar) => [bar]),
-          genAmpersand.map((amp) => amp),
-          genVoiceOvrlay.map((ovrlay) => [ovrlay]),
-          genWhitespace.map((ws) => [ws]),
-          genTuplet, // Now returns an array of tokens directly
-          genSlur.map((slur) => [slur]),
-          genDecorationWithFollower,
-          genSymbol.map((sym) => [sym]),
-          genYspacer,
-          genBcktckSpc.map((bck) => [bck]),
-          genGraceGroupWithFollower,
-          genChord,
-          genAnnotation,
-          { arbitrary: genInfoLine, weight: 1 },
-          { arbitrary: genStylesheetDirective, weight: 1 },
-          { arbitrary: genCommentToken, weight: 2 },
-          { arbitrary: genLyricLine, weight: 1 },
-        )
-      );
-
-      return genMusicTokens.map(musicTokenArrays => {
-        const allTokens = [
-          ...userSymbolTokens,
-          ...musicTokenArrays.flat()
-        ].flat();
-        return applyTokenFiltering(allTokens);
-      });
-    });
-
   it("should produce equivalent tokens when rescanning user symbol scenarios", () => {
-    fc.assert(
-      fc.property(genUserSymbolScenario, createRoundTripPredicate),
-      {
-        verbose: false,
-        numRuns: 100,
-      }
-    );
+    fc.assert(fc.property(genUserSymbolScenario, createRoundTripPredicate), {
+      verbose: false,
+      numRuns: 100,
+    });
   });
 });
