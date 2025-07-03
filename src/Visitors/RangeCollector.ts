@@ -16,7 +16,10 @@ import {
   Grace_group,
   Info_line,
   Inline_field,
+  Lyric_line,
   Lyric_section,
+  Macro_decl,
+  Macro_invocation,
   MultiMeasureRest,
   Music_code,
   Note,
@@ -28,6 +31,8 @@ import {
   Tune_Body,
   Tune_header,
   Tuplet,
+  User_symbol_decl,
+  User_symbol_invocation,
   Visitor,
   Voice_overlay,
   YSPACER,
@@ -261,6 +266,36 @@ export class ExpressionCollector implements Visitor<void> {
   }
 
   visitErrorExpr(expr: ErrorExpr): void {
+    if (this.isInRange(expr)) {
+      this.collected.push(expr);
+    }
+  }
+
+  visitLyricLineExpr(expr: Lyric_line): void {
+    if (this.isInRange(expr)) {
+      this.collected.push(expr);
+    }
+  }
+
+  visitMacroDeclExpr(expr: Macro_decl): void {
+    if (this.isInRange(expr)) {
+      this.collected.push(expr);
+    }
+  }
+
+  visitMacroInvocationExpr(expr: Macro_invocation): void {
+    if (this.isInRange(expr)) {
+      this.collected.push(expr);
+    }
+  }
+
+  visitUserSymbolDeclExpr(expr: User_symbol_decl): void {
+    if (this.isInRange(expr)) {
+      this.collected.push(expr);
+    }
+  }
+
+  visitUserSymbolInvocationExpr(expr: User_symbol_invocation): void {
     if (this.isInRange(expr)) {
       this.collected.push(expr);
     }

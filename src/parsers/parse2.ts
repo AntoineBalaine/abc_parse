@@ -15,7 +15,10 @@ import {
   Grace_group,
   Info_line,
   Inline_field,
+  Lyric_line,
   Lyric_section,
+  Macro_decl,
+  Macro_invocation,
   MultiMeasureRest,
   Note,
   Pitch,
@@ -28,6 +31,8 @@ import {
   tune_body_code,
   Tune_header,
   Tuplet,
+  User_symbol_decl,
+  User_symbol_invocation,
   YSPACER,
 } from "../types/Expr2";
 import { ABCContext } from "./Context";
@@ -145,6 +150,8 @@ export function parseFileHeader(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): 
   while (!ctx.isAtEnd() && !ctx.check(TT.SCT_BRK)) {
     if (prsComment(ctx, contents)) continue;
     if (prsDirective(ctx, contents)) continue;
+    if (prsMacroDecl(ctx, contents)) continue;
+    if (prsUserSymbolDecl(ctx, contents)) continue;
     if (prsInfoLine(ctx, contents)) continue;
     if (ctx.check(TT.EOL) && followedBy(ctx, [TT.INF_HDR, TT.COMMENT, TT.STYLESHEET_DIRECTIVE], [TT.WS])) {
       ctx.advance();
@@ -193,6 +200,8 @@ export function prsTuneHdr(ctx: ParseCtx): Tune_header {
   while (!ctx.isAtEnd() && !ctx.check(TT.SCT_BRK)) {
     if (prsComment(ctx, infoLines)) continue;
     if (prsDirective(ctx, infoLines)) continue;
+    if (prsMacroDecl(ctx, infoLines)) continue;
+    if (prsUserSymbolDecl(ctx, infoLines)) continue;
     if (alreadyHasVoice(ctx, voices)) {
       return new Tune_header(ctx.abcContext.generateId(), infoLines as Array<Info_line | Comment>, voices);
     }
@@ -337,7 +346,10 @@ export function prsBody(ctx: ParseCtx, voices: string[] = []): Tune_Body | null 
   // Parse until end of file or section break
   while (!ctx.isAtEnd() && !ctx.check(TT.SCT_BRK)) {
     if (prsComment(ctx, elmnts)) continue;
+    if (prsLyricLine(ctx, elmnts)) continue;
     if (prsLyricSection(ctx)) continue;
+    if (parseMacroInvocation(ctx, elmnts)) continue;
+    if (parseUserSymbolInvocation(ctx, elmnts)) continue;
     if (prsInfoLine(ctx, elmnts)) continue;
     if (parseMusicCode(ctx, elmnts)) continue;
 
@@ -832,4 +844,103 @@ export function parseRhythm(ctx: ParseCtx): Rhythm | undefined {
 }
 export function prsSystems(musicElements: tune_body_code[], voices: string[] = []): System[] {
   return parseSystemsWithVoices(musicElements, voices);
+}
+
+// Parse macro declaration
+export function prsMacroDecl(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Macro_decl | null {
+  if (!ctx.check(TT.MACRO_HDR)) {
+    return null;
+  }
+  
+  const header = ctx.advance();
+  
+  if (!ctx.check(TT.MACRO_VAR)) {
+    ctx.report("Expected macro variable after macro header");
+    return null;
+  }
+  
+  const variable = ctx.advance();
+  
+  if (!ctx.check(TT.MACRO_STR)) {
+    ctx.report("Expected macro content after macro variable");
+    return null;
+  }
+  
+  const content = ctx.advance();
+  
+  const macroDecl = new Macro_decl(ctx.abcContext.generateId(), header, variable, content);
+  prnt_arr && prnt_arr.push(macroDecl);
+  return macroDecl;
+}
+
+// Parse user symbol declaration
+export function prsUserSymbolDecl(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): User_symbol_decl | null {
+  if (!ctx.check(TT.USER_SY_HDR)) {
+    return null;
+  }
+  
+  const header = ctx.advance();
+  
+  if (!ctx.check(TT.USER_SY)) {
+    ctx.report("Expected user symbol variable after user symbol header");
+    return null;
+  }
+  
+  const variable = ctx.advance();
+  
+  if (!ctx.check(TT.SYMBOL)) {
+    ctx.report("Expected symbol content after user symbol variable");
+    return null;
+  }
+  
+  const symbol = ctx.advance();
+  
+  const userSymbolDecl = new User_symbol_decl(ctx.abcContext.generateId(), header, variable, symbol);
+  prnt_arr && prnt_arr.push(userSymbolDecl);
+  return userSymbolDecl;
+}
+
+// Parse lyric line
+export function prsLyricLine(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Lyric_line | null {
+  if (!ctx.check(TT.LY_HDR) && !ctx.check(TT.LY_SECT_HDR)) {
+    return null;
+  }
+  
+  const header = ctx.advance();
+  const contents: Token[] = [];
+  
+  // Collect all lyric tokens until end of line or non-lyric token
+  while (!ctx.isAtEnd() && isLyricToken(ctx)) {
+    contents.push(ctx.advance());
+  }
+  
+  const lyricLine = new Lyric_line(ctx.abcContext.generateId(), header, contents);
+  prnt_arr && prnt_arr.push(lyricLine);
+  return lyricLine;
+}
+
+// Parse macro invocation
+export function parseMacroInvocation(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Macro_invocation | null {
+  if (!ctx.check(TT.MACRO_INVOCATION)) {
+    return null;
+  }
+  
+  const variable = ctx.advance();
+  
+  const macroInvocation = new Macro_invocation(ctx.abcContext.generateId(), variable);
+  prnt_arr && prnt_arr.push(macroInvocation);
+  return macroInvocation;
+}
+
+// Parse user symbol invocation
+export function parseUserSymbolInvocation(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): User_symbol_invocation | null {
+  if (!ctx.check(TT.USER_SY_INVOCATION)) {
+    return null;
+  }
+  
+  const variable = ctx.advance();
+  
+  const userSymbolInvocation = new User_symbol_invocation(ctx.abcContext.generateId(), variable);
+  prnt_arr && prnt_arr.push(userSymbolInvocation);
+  return userSymbolInvocation;
 }

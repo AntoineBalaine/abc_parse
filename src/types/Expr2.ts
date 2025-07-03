@@ -19,7 +19,10 @@ export interface Visitor<R> {
   visitGraceGroupExpr(expr: Grace_group): R;
   visitInfoLineExpr(expr: Info_line): R;
   visitInlineFieldExpr(expr: Inline_field): R;
+  visitLyricLineExpr(expr: Lyric_line): R;
   visitLyricSectionExpr(expr: Lyric_section): R;
+  visitMacroDeclExpr(expr: Macro_decl): R;
+  visitMacroInvocationExpr(expr: Macro_invocation): R;
   visitMultiMeasureRestExpr(expr: MultiMeasureRest): R;
   visitMusicCodeExpr(expr: Music_code): R;
   visitNoteExpr(expr: Note): R;
@@ -30,6 +33,8 @@ export interface Visitor<R> {
   visitTuneBodyExpr(expr: Tune_Body): R;
   visitTuneExpr(expr: Tune): R;
   visitTuneHeaderExpr(expr: Tune_header): R;
+  visitUserSymbolDeclExpr(expr: User_symbol_decl): R;
+  visitUserSymbolInvocationExpr(expr: User_symbol_invocation): R;
   visitYSpacerExpr(expr: YSPACER): R;
   visitBeamExpr(expr: Beam): R;
   visitVoiceOverlayExpr(expr: Voice_overlay): R;
@@ -177,7 +182,7 @@ export class Comment extends Expr {
   }
 }
 
-export type tune_body_code = Comment | Info_line | music_code | ErrorExpr;
+export type tune_body_code = Comment | Info_line | Lyric_line | music_code | ErrorExpr;
 export type System = Array<tune_body_code>;
 
 export class Tune extends Expr {
@@ -383,6 +388,8 @@ export type music_code =
   | MultiMeasureRest
   | Beam
   | Tuplet
+  | Macro_invocation
+  | User_symbol_invocation
   | ErrorExpr;
 
 export class Music_code extends Expr {
@@ -463,5 +470,80 @@ export class ErrorExpr extends Expr {
 
   accept<T>(visitor: Visitor<T>): T {
     return visitor.visitErrorExpr(this);
+  }
+}
+
+export class Lyric_line extends Expr {
+  header: Token;
+  contents: Array<Token>;
+  
+  constructor(id: number, header: Token, contents: Array<Token>) {
+    super(id);
+    this.header = header;
+    this.contents = contents;
+  }
+  
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitLyricLineExpr(this);
+  }
+}
+
+export class Macro_decl extends Expr {
+  header: Token;
+  variable: Token;
+  content: Token;
+  
+  constructor(id: number, header: Token, variable: Token, content: Token) {
+    super(id);
+    this.header = header;
+    this.variable = variable;
+    this.content = content;
+  }
+  
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitMacroDeclExpr(this);
+  }
+}
+
+export class Macro_invocation extends Expr {
+  variable: Token;
+  
+  constructor(id: number, variable: Token) {
+    super(id);
+    this.variable = variable;
+  }
+  
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitMacroInvocationExpr(this);
+  }
+}
+
+export class User_symbol_decl extends Expr {
+  header: Token;
+  variable: Token;
+  symbol: Token;
+  
+  constructor(id: number, header: Token, variable: Token, symbol: Token) {
+    super(id);
+    this.header = header;
+    this.variable = variable;
+    this.symbol = symbol;
+  }
+  
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitUserSymbolDeclExpr(this);
+  }
+}
+
+export class User_symbol_invocation extends Expr {
+  variable: Token;
+  
+  constructor(id: number, variable: Token) {
+    super(id);
+    this.variable = variable;
+  }
+  
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitUserSymbolInvocationExpr(this);
   }
 }

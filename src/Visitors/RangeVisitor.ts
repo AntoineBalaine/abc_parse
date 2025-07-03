@@ -15,7 +15,10 @@ import {
   Grace_group,
   Info_line,
   Inline_field,
+  Lyric_line,
   Lyric_section,
+  Macro_decl,
+  Macro_invocation,
   MultiMeasureRest,
   Music_code,
   Note,
@@ -27,6 +30,8 @@ import {
   Tune_Body,
   Tune_header,
   Tuplet,
+  User_symbol_decl,
+  User_symbol_invocation,
   Visitor,
   Voice_overlay,
   YSPACER,
@@ -232,5 +237,29 @@ export class RangeVisitor implements Visitor<Range> {
 
   visitErrorExpr(expr: ErrorExpr) {
     return expr.tokens.map((e) => getTokenRange(e)).reduce(reduceRanges, <Range>{});
+  }
+
+  visitLyricLineExpr(expr: Lyric_line): Range {
+    const headerRange = getTokenRange(expr.header);
+    const contentsRanges = expr.contents.map(token => getTokenRange(token));
+    return [headerRange, ...contentsRanges].reduce(reduceRanges, <Range>{});
+  }
+
+  visitMacroDeclExpr(expr: Macro_decl): Range {
+    return [getTokenRange(expr.header), getTokenRange(expr.variable), getTokenRange(expr.content)]
+      .reduce(reduceRanges, <Range>{});
+  }
+
+  visitMacroInvocationExpr(expr: Macro_invocation): Range {
+    return getTokenRange(expr.variable);
+  }
+
+  visitUserSymbolDeclExpr(expr: User_symbol_decl): Range {
+    return [getTokenRange(expr.header), getTokenRange(expr.variable), getTokenRange(expr.symbol)]
+      .reduce(reduceRanges, <Range>{});
+  }
+
+  visitUserSymbolInvocationExpr(expr: User_symbol_invocation): Range {
+    return getTokenRange(expr.variable);
   }
 }

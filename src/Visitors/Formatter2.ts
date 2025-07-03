@@ -16,7 +16,10 @@ import {
   Grace_group,
   Info_line,
   Inline_field,
+  Lyric_line,
   Lyric_section,
+  Macro_decl,
+  Macro_invocation,
   MultiMeasureRest,
   Music_code,
   Note,
@@ -28,6 +31,8 @@ import {
   Tune_Body,
   Tune_header,
   Tuplet,
+  User_symbol_decl,
+  User_symbol_invocation,
   Visitor,
   Voice_overlay,
   YSPACER,
@@ -373,6 +378,28 @@ export class AbcFormatter2 implements Visitor<string> {
 
   visitErrorExpr(expr: ErrorExpr): string {
     return expr.tokens.map((token) => token.lexeme).join("");
+  }
+
+  visitLyricLineExpr(expr: Lyric_line): string {
+    const headerStr = expr.header.lexeme;
+    const contentsStr = expr.contents.map(token => token.lexeme).join("");
+    return headerStr + contentsStr;
+  }
+
+  visitMacroDeclExpr(expr: Macro_decl): string {
+    return expr.header.lexeme + expr.variable.lexeme + "=" + expr.content.lexeme;
+  }
+
+  visitMacroInvocationExpr(expr: Macro_invocation): string {
+    return expr.variable.lexeme;
+  }
+
+  visitUserSymbolDeclExpr(expr: User_symbol_decl): string {
+    return expr.header.lexeme + expr.variable.lexeme + "=" + expr.symbol.lexeme;
+  }
+
+  visitUserSymbolInvocationExpr(expr: User_symbol_invocation): string {
+    return expr.variable.lexeme;
   }
 }
 

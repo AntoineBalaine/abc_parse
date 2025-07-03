@@ -28,7 +28,10 @@ import {
   Grace_group,
   Info_line,
   Inline_field,
+  Lyric_line,
   Lyric_section,
+  Macro_decl,
+  Macro_invocation,
   MultiMeasureRest,
   Music_code,
   music_code,
@@ -42,6 +45,8 @@ import {
   tune_body_code,
   Tune_header,
   Tuplet,
+  User_symbol_decl,
+  User_symbol_invocation,
   Visitor,
   Voice_overlay,
   YSPACER,
@@ -386,6 +391,26 @@ export class RhythmVisitor implements Visitor<Expr> {
   }
 
   visitErrorExpr(expr: ErrorExpr) {
+    return expr;
+  }
+
+  visitLyricLineExpr(expr: Lyric_line): Expr {
+    return expr;
+  }
+
+  visitMacroDeclExpr(expr: Macro_decl): Expr {
+    return expr;
+  }
+
+  visitMacroInvocationExpr(expr: Macro_invocation): Expr {
+    return expr;
+  }
+
+  visitUserSymbolDeclExpr(expr: User_symbol_decl): Expr {
+    return expr;
+  }
+
+  visitUserSymbolInvocationExpr(expr: User_symbol_invocation): Expr {
     return expr;
   }
 

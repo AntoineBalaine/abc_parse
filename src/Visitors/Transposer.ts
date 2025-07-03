@@ -16,7 +16,10 @@ import {
   Grace_group,
   Info_line,
   Inline_field,
+  Lyric_line,
   Lyric_section,
+  Macro_decl,
+  Macro_invocation,
   MultiMeasureRest,
   Music_code,
   Note,
@@ -28,6 +31,8 @@ import {
   Tune_Body,
   Tune_header,
   Tuplet,
+  User_symbol_decl,
+  User_symbol_invocation,
   Visitor,
   Voice_overlay,
   YSPACER,
@@ -260,6 +265,26 @@ export class Transposer implements Visitor<Expr | Token> {
   }
 
   visitErrorExpr(expr: ErrorExpr) {
+    return expr;
+  }
+
+  visitLyricLineExpr(expr: Lyric_line): Expr | Token {
+    return expr;
+  }
+
+  visitMacroDeclExpr(expr: Macro_decl): Expr | Token {
+    return expr;
+  }
+
+  visitMacroInvocationExpr(expr: Macro_invocation): Expr | Token {
+    return expr;
+  }
+
+  visitUserSymbolDeclExpr(expr: User_symbol_decl): Expr | Token {
+    return expr;
+  }
+
+  visitUserSymbolInvocationExpr(expr: User_symbol_invocation): Expr | Token {
     return expr;
   }
 }
