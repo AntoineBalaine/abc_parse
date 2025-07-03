@@ -1,7 +1,8 @@
 import assert from "assert";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
-import { Ctx, TT, Token, user_symbol_decl } from "../parsers/scan2";
+import { Ctx, TT, Token, user_symbol_decl, user_symbol_invocation } from "../parsers/scan2";
+import { scanTune } from "../parsers/scan_tunebody";
 
 /** starts by pushing an EOL token to simulate being at the start of a line */
 function createUserSymbolCtx(source: string): Ctx {
@@ -192,5 +193,172 @@ describe("userSymbol function", () => {
     const result = user_symbol_decl(ctx);
 
     assert.equal(result, false, "userSymbol function");
+  });
+});
+
+describe("user symbol invocation function", () => {
+  it("should recognize user symbol invocation after declaration", () => {
+    // First declare a user symbol
+    const ctx = createUserSymbolCtx("U:T=!trill!");
+    const declResult = user_symbol_decl(ctx);
+    assert.equal(declResult, true, "user symbol declaration should succeed");
+
+    // Now test invocation
+    ctx.current = 0; // Reset position
+    ctx.start = 0;
+    ctx.source = "T"; // Set source to just the variable name
+
+    const result = user_symbol_invocation(ctx);
+    assert.equal(result, true, "user symbol invocation should be recognized");
+
+    // Check that USER_SY_INVOCATION token was created
+    const invocationToken = ctx.tokens.find(t => t.type === TT.USER_SY_INVOCATION);
+    assert(invocationToken, "Should create USER_SY_INVOCATION token");
+    assert.equal(invocationToken.lexeme, "T");
+  });
+
+  it("should not recognize undeclared user symbols", () => {
+    const ctx = new Ctx("T", new ABCContext());
+    const result = user_symbol_invocation(ctx);
+
+    assert.equal(result, false, "should not recognize undeclared user symbols");
+  });
+
+  it("should match variable at word boundary", () => {
+    // Declare a user symbol
+    const ctx = createUserSymbolCtx("U:T=!trill!");
+    user_symbol_decl(ctx);
+
+    // Test with variable followed by space
+    ctx.current = 0;
+    ctx.start = 0;
+    ctx.source = "T ";
+
+    const result = user_symbol_invocation(ctx);
+    assert.equal(result, true, "should match at word boundary");
+
+    const invocationToken = ctx.tokens.find(t => t.type === TT.USER_SY_INVOCATION);
+    assert.equal(invocationToken?.lexeme, "T");
+  });
+
+  it("should match variable followed by newline", () => {
+    // Declare a user symbol
+    const ctx = createUserSymbolCtx("U:H=!fermata!");
+    user_symbol_decl(ctx);
+
+    // Test with variable followed by newline
+    ctx.current = 0;
+    ctx.start = 0;
+    ctx.source = "H\n";
+
+    const result = user_symbol_invocation(ctx);
+    assert.equal(result, true, "should match at end of line");
+
+    const invocationToken = ctx.tokens.find(t => t.type === TT.USER_SY_INVOCATION);
+    assert.equal(invocationToken?.lexeme, "H");
+  });
+
+  it("should match variable followed by y-spacer", () => {
+    // Declare a user symbol
+    const ctx = createUserSymbolCtx("U:T=!trill!");
+    user_symbol_decl(ctx);
+
+    // Test with variable followed by y-spacer
+    ctx.current = 0;
+    ctx.start = 0;
+    ctx.source = "Ty";
+
+    const result = user_symbol_invocation(ctx);
+    assert.equal(result, true, "should match when followed by y-spacer");
+
+    const invocationToken = ctx.tokens.find(t => t.type === TT.USER_SY_INVOCATION);
+    assert.equal(invocationToken?.lexeme, "T");
+  });
+
+  it("should match variable at end of input", () => {
+    // Declare a user symbol
+    const ctx = createUserSymbolCtx("U:T=!trill!");
+    user_symbol_decl(ctx);
+
+    // Test with variable at end of input
+    ctx.current = 0;
+    ctx.start = 0;
+    ctx.source = "T";
+
+    const result = user_symbol_invocation(ctx);
+    assert.equal(result, true, "should match at end of input");
+
+    const invocationToken = ctx.tokens.find(t => t.type === TT.USER_SY_INVOCATION);
+    assert.equal(invocationToken?.lexeme, "T");
+  });
+
+  it("should handle multiple user symbol declarations", () => {
+    const ctx = new Ctx("", new ABCContext());
+
+    // Manually add user symbols to test multiple declarations
+    ctx.user_symbols = new Map();
+    ctx.user_symbols.set("T", "!trill!");
+    ctx.user_symbols.set("H", "!fermata!");
+
+    // Test first symbol
+    ctx.source = "T";
+    ctx.current = 0;
+    ctx.start = 0;
+
+    let result = user_symbol_invocation(ctx);
+    assert.equal(result, true, "should recognize first symbol");
+
+    // Test second symbol
+    ctx.source = "H";
+    ctx.current = 0;
+    ctx.start = 0;
+
+    result = user_symbol_invocation(ctx);
+    assert.equal(result, true, "should recognize second symbol");
+  });
+
+  it("should handle tilde user symbol", () => {
+    const ctx = createUserSymbolCtx("U:~=!turn!");
+    user_symbol_decl(ctx);
+
+    ctx.current = 0;
+    ctx.start = 0;
+    ctx.source = "~";
+
+    const result = user_symbol_invocation(ctx);
+    assert.equal(result, true, "should recognize tilde symbol");
+
+    const invocationToken = ctx.tokens.find(t => t.type === TT.USER_SY_INVOCATION);
+    assert.equal(invocationToken?.lexeme, "~");
+  });
+
+  it("should handle uppercase user symbol", () => {
+    const ctx = createUserSymbolCtx("U:H=!fermata!");
+    user_symbol_decl(ctx);
+
+    ctx.current = 0;
+    ctx.start = 0;
+    ctx.source = "H ";
+
+    const result = user_symbol_invocation(ctx);
+    assert.equal(result, true, "should recognize uppercase symbol");
+
+    const invocationToken = ctx.tokens.find(t => t.type === TT.USER_SY_INVOCATION);
+    assert.equal(invocationToken?.lexeme, "H");
+  });
+
+  it("should handle lowercase user symbol", () => {
+    const ctx = createUserSymbolCtx("U:h=!accent!");
+    user_symbol_decl(ctx);
+
+    ctx.current = 0;
+    ctx.start = 0;
+    ctx.source = "h ";
+
+    const result = user_symbol_invocation(ctx);
+    assert.equal(result, true, "should recognize lowercase symbol");
+
+    const invocationToken = ctx.tokens.find(t => t.type === TT.USER_SY_INVOCATION);
+    assert.equal(invocationToken?.lexeme, "h");
   });
 });

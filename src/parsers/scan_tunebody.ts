@@ -429,6 +429,7 @@ export function scanTune(ctx: Ctx): boolean {
     if (lyric_line(ctx)) continue;
     if (info_line(ctx)) continue;
     if (macro_invocation(ctx)) continue;
+    if (user_symbol_invocation(ctx)) continue;
     if (annotation(ctx)) continue;
     if (inline_field(ctx)) continue;
     if (tuplet(ctx)) continue;

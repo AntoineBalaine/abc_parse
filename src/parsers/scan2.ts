@@ -12,6 +12,7 @@ export class Ctx {
   public errorReporter?: AbcErrorReporter;
   public abcContext: ABCContext;
   public macros?: Map<string, string>;
+  public user_symbols?: Map<string, string>;
 
   constructor(source: string, abcContext: ABCContext) {
     this.source = source;
@@ -239,6 +240,7 @@ export enum TT {
   TUPLET_Q, // The q value in a tuplet
   TUPLET_R, // The r value in a tuplet
   USER_SY, // user-symbol
+  USER_SY_INVOCATION,
   VOICE,
   VOICE_OVRLAY,
   WS,
@@ -327,6 +329,26 @@ export function info_line(ctx: Ctx): boolean {
   return true;
 }
 
+export function user_symbol_invocation(ctx: Ctx): boolean {
+  // Check if current position matches any declared symbol variable
+  if (!ctx.user_symbols) return false;
+  for (const [variable] of ctx.user_symbols) {
+    // allow EOF, WS and y-spacers after symbol invocation
+    if (ctx.test(variable)) {
+      advance(ctx, variable.length);
+      ctx.push(TT.USER_SY_INVOCATION);
+      return true;
+    }
+  }
+  return false;
+}
+
+enum Expect {
+  VAR,
+  EQUALS,
+  CONTENT,
+}
+
 /** U: T = !trill! */
 // ai! create some tests for this function
 // in the scn_user_symbol.spec.ts file.
@@ -369,6 +391,12 @@ export function user_symbol_decl(ctx: Ctx): boolean {
         if (!symbol(ctx)) {
           collectInvalidInfoLn(ctx, "expected contents of user-symbol declaration");
         } else {
+          const variable = ctx.tokens[ctx.tokens.length - 2];
+          const contents = ctx.tokens[ctx.tokens.length - 1];
+          if (!ctx.user_symbols) {
+            ctx.user_symbols = new Map<string, string>();
+          }
+          ctx.user_symbols.set(variable.lexeme, contents.lexeme);
           return true;
         }
       }
@@ -377,11 +405,6 @@ export function user_symbol_decl(ctx: Ctx): boolean {
 
   comment(ctx);
   return true;
-}
-enum Expect {
-  VAR,
-  EQUALS,
-  CONTENT,
 }
 
 /** grammar rule: variable declarations can’t start with a number.
@@ -464,7 +487,6 @@ export function macro_invocation(ctx: Ctx): boolean {
   }
   return false;
 }
-
 
 export function collectInvalidInfoLn(ctx: Ctx, msg: string): boolean {
   if (msg) ctx.report(msg);
