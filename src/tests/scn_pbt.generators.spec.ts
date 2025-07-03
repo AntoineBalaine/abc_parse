@@ -332,6 +332,7 @@ export const genTokenSequence = fc
 export function applyTokenFiltering(flatTokens: Token[]): Token[] {
   const result = [];
   let symbols = new Set<String>();
+  let macros = new Set<String>(); // Track macro variables
   if (flatTokens.length > 0) {
     result.push(flatTokens[0]);
   }
@@ -366,7 +367,10 @@ export function applyTokenFiltering(flatTokens: Token[]): Token[] {
 
     // Macro token filtering rules
     if (test(cur, TT.MACRO_HDR) && !rewind(TT.EOL, i)) continue;
-    if (test(cur, TT.MACRO_VAR) && !test(result[result.length - 1], TT.MACRO_HDR)) continue;
+    if (test(cur, TT.MACRO_VAR)) {
+      macros.add(cur.lexeme); // Track macro variables
+      if (!test(result[result.length - 1], TT.MACRO_HDR)) continue;
+    }
     if (test(cur, TT.MACRO_STR) && !test(result[result.length - 1], TT.MACRO_VAR)) continue;
 
     // user-symbol filtering
@@ -374,6 +378,16 @@ export function applyTokenFiltering(flatTokens: Token[]): Token[] {
     if (test(cur, TT.USER_SY)) {
       symbols.add(cur.lexeme);
       if (!test(result[result.length - 1], TT.USER_SY_HDR)) continue;
+    }
+
+    // Macro precedence: skip any non-stateful tokens that conflict with macro variables
+    // FIXME: this breaks precedence of all other tokens, and the generators can’t deal with it rn
+    if (macros.has(cur.lexeme)) {
+      // Skip any token that would conflict with a macro invocation (except macro-related tokens)
+      const macroTokenTypes = [TT.MACRO_HDR, TT.MACRO_VAR, TT.MACRO_STR, TT.MACRO_INVOCATION];
+      if (!macroTokenTypes.includes(cur.type)) {
+        continue;
+      }
     }
 
     // user-defined symbols might override decorations
@@ -456,6 +470,12 @@ export const genMixedStatefulScenario = fc
     // User symbol declaration
     fc.tuple(genUserSymbolHeader, genUserSymbolVariable, genSymbol, fc.option(genCommentToken.map(([comment]) => comment)), genEOL)
   )
+  .filter(([macroDecl, userSymbolDecl]) => {
+    // Avoid conflicts between macro and user symbol variables
+    const macroVariable = macroDecl[2]; // genMacroVariable is at index 2
+    const userSymVariable = userSymbolDecl[1]; // genUserSymbolVariable is at index 1
+    return macroVariable.lexeme !== userSymVariable.lexeme;
+  })
   .chain(([macroDecl, userSymbolDecl]) => {
     const [macroEol1, macroHeader, macroVariable, macroStr, macroComment, macroEol2] = macroDecl;
     const [userSymHeader, userSymVariable, userSymbol, userSymComment, userSymEol] = userSymbolDecl;
