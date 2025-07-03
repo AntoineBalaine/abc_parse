@@ -1,4 +1,4 @@
-import { Ctx, EOL, TT, WS, advance, info_line, isAtEnd, precededBy, stylesheet_directive, tuneStartBeforeSectBrk, macro_decl, macro_invocation } from "./scan2";
+import { Ctx, EOL, TT, WS, advance, info_line, isAtEnd, precededBy, stylesheet_directive, tuneStartBeforeSectBrk, macro_decl, macro_invocation, user_symbol_invocation, user_symbol_decl } from "./scan2";
 
 const pLETTER_COLON = /[a-zA-Z]:/;
 export const pEOL = "\n";
@@ -424,6 +424,7 @@ export function scanTune(ctx: Ctx): boolean {
     if (stylesheet_directive(ctx)) continue;
     if (comment(ctx)) continue;
     if (macro_decl(ctx)) continue;
+    if (user_symbol_decl(ctx)) continue;
     if (symbol_line(ctx)) continue;
     if (lyric_line(ctx)) continue;
     if (info_line(ctx)) continue;

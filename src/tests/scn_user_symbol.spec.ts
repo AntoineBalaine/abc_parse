@@ -1,7 +1,7 @@
 import assert from "assert";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
-import { Ctx, TT, Token, userSymbol } from "../parsers/scan2";
+import { Ctx, TT, Token, user_symbol_decl } from "../parsers/scan2";
 
 /** starts by pushing an EOL token to simulate being at the start of a line */
 function createUserSymbolCtx(source: string): Ctx {
@@ -13,7 +13,7 @@ function createUserSymbolCtx(source: string): Ctx {
 describe("userSymbol function", () => {
   it("should parse a simple user symbol definition", () => {
     const ctx = createUserSymbolCtx("U:T=!trill!");
-    const result = userSymbol(ctx);
+    const result = user_symbol_decl(ctx);
 
     assert.equal(result, true, "userSymbol function should return true for valid user symbol");
 
@@ -33,7 +33,7 @@ describe("userSymbol function", () => {
 
   it("should parse user symbol with spaces around equals sign", () => {
     const ctx = createUserSymbolCtx("U:h = !fermata!");
-    const result = userSymbol(ctx);
+    const result = user_symbol_decl(ctx);
 
     assert.equal(result, true);
 
@@ -51,7 +51,7 @@ describe("userSymbol function", () => {
 
   it("should parse user symbol with lowercase variable", () => {
     const ctx = createUserSymbolCtx("U:w=!accent!");
-    const result = userSymbol(ctx);
+    const result = user_symbol_decl(ctx);
 
     assert.equal(result, true);
 
@@ -65,7 +65,7 @@ describe("userSymbol function", () => {
 
   it("should parse user symbol with uppercase variable", () => {
     const ctx = createUserSymbolCtx("U:H=!staccato!");
-    const result = userSymbol(ctx);
+    const result = user_symbol_decl(ctx);
 
     assert.equal(result, true);
 
@@ -79,7 +79,7 @@ describe("userSymbol function", () => {
 
   it("should parse user symbol with tilde variable", () => {
     const ctx = createUserSymbolCtx("U:~=!turn!");
-    const result = userSymbol(ctx);
+    const result = user_symbol_decl(ctx);
 
     assert.equal(result, true);
 
@@ -93,7 +93,7 @@ describe("userSymbol function", () => {
 
   it("should parse user symbol with plus notation", () => {
     const ctx = createUserSymbolCtx("U:T=+pizz+");
-    const result = userSymbol(ctx);
+    const result = user_symbol_decl(ctx);
 
     assert.equal(result, true);
 
@@ -104,7 +104,7 @@ describe("userSymbol function", () => {
 
   it("should handle user symbol with trailing comment", () => {
     const ctx = createUserSymbolCtx("U:T=!trill! % this is a comment");
-    const result = userSymbol(ctx);
+    const result = user_symbol_decl(ctx);
 
     assert.equal(result, true);
 
@@ -115,7 +115,7 @@ describe("userSymbol function", () => {
 
   it("should handle user symbol with colon variation", () => {
     const ctx = createUserSymbolCtx("U: T=!trill!");
-    const result = userSymbol(ctx);
+    const result = user_symbol_decl(ctx);
 
     assert.equal(result, true);
 
@@ -126,7 +126,7 @@ describe("userSymbol function", () => {
 
   it("should generate invalid token for user symbol without equals sign", () => {
     const ctx = createUserSymbolCtx("U:T !trill!");
-    const result = userSymbol(ctx);
+    const result = user_symbol_decl(ctx);
 
     assert.equal(result, true);
 
@@ -137,7 +137,7 @@ describe("userSymbol function", () => {
 
   it("should generate invalid token for user symbol without variable", () => {
     const ctx = createUserSymbolCtx("U:=!trill!");
-    const result = userSymbol(ctx);
+    const result = user_symbol_decl(ctx);
 
     assert.equal(result, true);
 
@@ -148,7 +148,7 @@ describe("userSymbol function", () => {
 
   it("should generate invalid token for invalid variable character", () => {
     const ctx = createUserSymbolCtx("U:x=!trill!");
-    const result = userSymbol(ctx);
+    const result = user_symbol_decl(ctx);
 
     assert.equal(result, true);
 
@@ -159,7 +159,7 @@ describe("userSymbol function", () => {
 
   it("should generate invalid token for user symbol without content", () => {
     const ctx = createUserSymbolCtx("U:T= %hello");
-    const result = userSymbol(ctx);
+    const result = user_symbol_decl(ctx);
 
     assert.equal(result, true);
 
@@ -170,7 +170,7 @@ describe("userSymbol function", () => {
 
   it("should return false for non-user-symbol input", () => {
     const ctx = createUserSymbolCtx("X:1");
-    const result = userSymbol(ctx);
+    const result = user_symbol_decl(ctx);
 
     assert.equal(result, false, "userSymbol function should return false for non-user-symbol input");
 
@@ -182,14 +182,14 @@ describe("userSymbol function", () => {
   it("should return false when not preceded by EOL", () => {
     const ctx = new Ctx("U:T=!trill!", new ABCContext());
     // Don't add EOL token - user symbol should not be recognized
-    const result = userSymbol(ctx);
+    const result = user_symbol_decl(ctx);
 
     assert.equal(result, false, "userSymbol function should return false when not preceded by EOL");
   });
 
   it("should return false for invalid user symbol pattern", () => {
     const ctx = createUserSymbolCtx("V:1");
-    const result = userSymbol(ctx);
+    const result = user_symbol_decl(ctx);
 
     assert.equal(result, false, "userSymbol function");
   });

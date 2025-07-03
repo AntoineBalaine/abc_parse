@@ -330,7 +330,7 @@ export function info_line(ctx: Ctx): boolean {
 /** U: T = !trill! */
 // ai! create some tests for this function
 // in the scn_user_symbol.spec.ts file.
-export function userSymbol(ctx: Ctx): boolean {
+export function user_symbol_decl(ctx: Ctx): boolean {
   if (!(ctx.test(pUserSymbol) && ctx.tokens.length > 0 && precededBy(ctx, new Set([TT.EOL]), new Set([TT.WS])))) return false;
   const match = new RegExp(`^${pUserSymbol.source}`).exec(ctx.source.substring(ctx.current));
 
@@ -464,6 +464,7 @@ export function macro_invocation(ctx: Ctx): boolean {
   }
   return false;
 }
+
 
 export function collectInvalidInfoLn(ctx: Ctx, msg: string): boolean {
   if (msg) ctx.report(msg);
