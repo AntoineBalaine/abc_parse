@@ -186,6 +186,8 @@ export function createRoundTripPredicate(originalTokens: Array<Token>): boolean 
     let rv = t.lexeme;
     if (t.type === TT.MACRO_VAR) rv += "=";
     if (t.type === TT.MACRO_INVOCATION) rv = t.lexeme;
+    if (t.type === TT.USER_SY) rv += "=";
+    if (t.type === TT.USER_SY_INVOCATION) rv = t.lexeme;
     return rv;
   })].join("");
 

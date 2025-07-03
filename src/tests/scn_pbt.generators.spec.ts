@@ -83,7 +83,7 @@ export const genTuplet = fc
 export const genSlur = fc.constantFrom("(", ")").map((slur) => new Token(TT.SLUR, slur, sharedContext.generateId()));
 
 // Decoration generator
-export const genDecoration = fc.stringMatching(/^[\~\.HLMOPSTuv]+$/).map((deco) => new Token(TT.DECORATION, deco, sharedContext.generateId()));
+export const genDecoration = fc.stringMatching(/^[\~\.HLMOPSTuv]$/).map((deco) => new Token(TT.DECORATION, deco, sharedContext.generateId()));
 
 // Symbol generator
 export const genSymbol = fc.oneof(
@@ -326,7 +326,7 @@ export const genTokenSequence = fc
 // Reusable token filtering function
 export function applyTokenFiltering(flatTokens: Token[]): Token[] {
   const result = [];
-
+  let symbols = new Set<String>()
   if (flatTokens.length > 0) {
     result.push(flatTokens[0]);
   }
@@ -364,6 +364,19 @@ export function applyTokenFiltering(flatTokens: Token[]): Token[] {
     if (test(cur, TT.MACRO_VAR) && !test(result[result.length - 1], TT.MACRO_HDR)) continue;
     if (test(cur, TT.MACRO_STR) && !test(result[result.length - 1], TT.MACRO_VAR)) continue;
 
+    // user-symbol filtering
+    if (test(cur, TT.USER_SY_HDR) && !rewind(TT.EOL, i)) continue;
+    if (test(cur, TT.USER_SY)) {
+      symbols.add(cur.lexeme)
+      if (!test(result[result.length - 1], TT.USER_SY_HDR)) continue
+    }
+
+    // user-defined symbols might override decorations
+    if (test(cur, TT.DECORATION)) {
+      if (symbols.has(cur.lexeme[0])) continue;
+      // if (test(result[result.length - 1], TT.DECORATION)){}
+    }
+
     if (test(cur, TT.INF_CTND) && !rewind(TT.EOL, i)) throw new Error("INF_CTND not preceded by EOL");
 
     if ((test(cur, TT.EOL) && rewind(TT.EOL, i, [TT.WS])) || both(TT.WS) || both(TT.BARLINE)) {
@@ -374,3 +387,8 @@ export function applyTokenFiltering(flatTokens: Token[]): Token[] {
 
   return result;
 }
+
+export const genUserSymbolVariable = fc.stringMatching(/^[h-wH-W~]$/).map((v) => new Token(TT.USER_SY, v, sharedContext.generateId()));
+
+export const genUserSymbolHeader = fc.constantFrom(new Token(TT.USER_SY_HDR, "U:", sharedContext.generateId()));
+

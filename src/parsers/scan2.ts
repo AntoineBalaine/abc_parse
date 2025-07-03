@@ -239,6 +239,7 @@ export enum TT {
   TUPLET_COLON, // The colon separator in a tuplet :
   TUPLET_Q, // The q value in a tuplet
   TUPLET_R, // The r value in a tuplet
+  USER_SY_HDR,
   USER_SY, // user-symbol
   USER_SY_INVOCATION,
   VOICE,
@@ -358,7 +359,7 @@ export function user_symbol_decl(ctx: Ctx): boolean {
 
   if (!match) return false;
   ctx.current += match[0].length;
-  ctx.push(TT.INF_HDR);
+  ctx.push(TT.USER_SY_HDR);
   let state: Expect = Expect.VAR;
   outer: while (!isAtEnd(ctx)) {
     if (WS(ctx, true)) continue; // Use your existing WS function
