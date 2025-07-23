@@ -244,7 +244,7 @@ export const genMacroVariable = fc
 
 export const genMacroString = fc.stringMatching(/^[^\n% \t][^\n% \t]*$/).map((content) => new Token(TT.MACRO_STR, content, sharedContext.generateId()));
 
-export const genMacroLine = fc
+export const genMacroDecl = fc
   .tuple(
     genEOL,
     genMacroHeader,
@@ -412,8 +412,7 @@ export const genUserSymbolVariable = fc.stringMatching(/^[h-wH-W~]$/).map((v) =>
 export const genUserSymbolHeader = fc.constantFrom(new Token(TT.USER_SY_HDR, "U:", sharedContext.generateId()));
 
 // Macro scenario generator
-export const genMacroScenario = fc
-  .tuple(genEOL, genMacroHeader, genMacroVariable, genMacroString, fc.option(genCommentToken.map(([comment]) => comment)), genEOL)
+export const genMacroScenario = genMacroDecl
   .chain(([eol1, header, variable, macroStr, comment, eol2]) => {
     const macroTokens = [eol1, header, variable, macroStr];
     if (comment) macroTokens.push(comment);
@@ -466,7 +465,7 @@ export const genUserSymbolScenario = fc
 export const genMixedStatefulScenario = fc
   .tuple(
     // Macro declaration
-    fc.tuple(genEOL, genMacroHeader, genMacroVariable, genMacroString, fc.option(genCommentToken.map(([comment]) => comment)), genEOL),
+    genMacroDecl,
     // User symbol declaration
     fc.tuple(genUserSymbolHeader, genUserSymbolVariable, genSymbol, fc.option(genCommentToken.map(([comment]) => comment)), genEOL)
   )

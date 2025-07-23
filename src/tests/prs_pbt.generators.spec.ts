@@ -7,9 +7,12 @@ import {
   BarLine,
   Beam,
   Chord,
+  Comment,
   Decoration,
   Grace_group,
   Inline_field,
+  Macro_decl,
+  Macro_invocation,
   MultiMeasureRest,
   Note,
   Pitch,
@@ -342,37 +345,25 @@ export const genBeamExpr = fc
     };
   });
 
+/** no bars */
+const musicGenerators = [{ arbitrary: genNoteExpr, weight: 10 },
+{ arbitrary: genRestExpr, weight: 5 },
+// Removed genMultiMeasureRestExpr as multi-measure rests don't belong in a single bar
+{ arbitrary: genChordExpr, weight: 5 },
+{ arbitrary: genDecorationExpr, weight: 2 },
+{ arbitrary: genAnnotationExpr, weight: 2 },
+{ arbitrary: genSymbolExpr, weight: 1 },
+{ arbitrary: genYSpacerExpr, weight: 1 },
+{ arbitrary: genGraceGroupExpr, weight: 2 },
+{ arbitrary: genTupletExpr, weight: 2 },
+{ arbitrary: genInlineFieldExpr, weight: 1 },
+{ arbitrary: genBeamExpr, weight: 3 }]
 // Generate a simple music expression
-export const genMusicExpr = fc.oneof(
-  { arbitrary: genNoteExpr, weight: 10 },
-  { arbitrary: genRestExpr, weight: 5 },
-  // Removed genMultiMeasureRestExpr as multi-measure rests don't belong in a single bar
-  { arbitrary: genChordExpr, weight: 5 },
+export const genMusicExpr = fc.oneof(...musicGenerators,
   { arbitrary: genBarLineExpr, weight: 3 },
-  { arbitrary: genDecorationExpr, weight: 2 },
-  { arbitrary: genAnnotationExpr, weight: 2 },
-  { arbitrary: genSymbolExpr, weight: 1 },
-  { arbitrary: genYSpacerExpr, weight: 1 },
-  { arbitrary: genGraceGroupExpr, weight: 2 },
-  { arbitrary: genTupletExpr, weight: 2 },
-  { arbitrary: genInlineFieldExpr, weight: 1 },
-  { arbitrary: genBeamExpr, weight: 3 }
 );
 
-export const genMusicExpr_NoBar = fc.oneof(
-  { arbitrary: genNoteExpr, weight: 10 },
-  { arbitrary: genRestExpr, weight: 5 },
-  // Removed genMultiMeasureRestExpr as multi-measure rests don't belong in a single bar
-  { arbitrary: genChordExpr, weight: 5 },
-  { arbitrary: genDecorationExpr, weight: 2 },
-  { arbitrary: genAnnotationExpr, weight: 2 },
-  { arbitrary: genSymbolExpr, weight: 1 },
-  { arbitrary: genYSpacerExpr, weight: 1 },
-  { arbitrary: genGraceGroupExpr, weight: 2 },
-  { arbitrary: genTupletExpr, weight: 2 },
-  { arbitrary: genInlineFieldExpr, weight: 1 },
-  { arbitrary: genBeamExpr, weight: 3 }
-);
+export const genMusicExpr_NoBar = fc.oneof(...musicGenerators);
 
 // Generate a sequence of music expressions
 export const genMusicSequence = fc.array(genMusicExpr, { minLength: 1, maxLength: 10 }).map((exprs) => {
@@ -388,3 +379,63 @@ export const genMusicSequence_NoBar = fc.array(genMusicExpr_NoBar, { minLength: 
     exprs: exprs.map((e) => e.expr),
   };
 });
+
+// Macro expression generators
+export const genMacroDeclExpr = ScannerGen.genMacroDecl
+  .map(([eol1, header, ws1, variable, ws2, macroStr, comment, eol2]) => {
+    const tokens = [eol1, header];
+    if (ws1) tokens.push(ws1);
+    tokens.push(variable);
+    if (ws2) tokens.push(ws2);
+    tokens.push(macroStr);
+    if (comment) tokens.push(comment);
+    tokens.push(eol2);
+
+    const expr = new Macro_decl(sharedContext.generateId(), header, variable, macroStr);
+    return { tokens, expr };
+  });
+
+export const genMacroInvocationExpr = (variableName: string) =>
+  fc.constantFrom(new Token(TT.MACRO_INVOCATION, variableName, sharedContext.generateId()))
+    .map((invocation) => {
+      return {
+        tokens: [invocation],
+        expr: new Macro_invocation(sharedContext.generateId(), invocation)
+      };
+    });
+
+
+export const genMacroScenario = genMacroDeclExpr.chain(macro_decl => {
+  const invocation = genMacroInvocationExpr(macro_decl.expr.variable.lexeme);
+  const tune_body_gen = fc.array(
+    fc.oneof(
+      ...musicGenerators,
+      { arbitrary: invocation, weight: 3 }
+    ),
+    { minLength: 1, maxLength: 5 }
+  );
+
+  return tune_body_gen.map(musicExprs => {
+    const allTokens = [
+      ...macro_decl.tokens,
+      ...musicExprs.flatMap(e => e.tokens)
+    ];
+
+    const allExprs = [
+      macro_decl.expr,
+      ...musicExprs.map(e => e.expr)
+    ];
+
+    return {
+      tokens: allTokens,
+      exprs: allExprs
+    };
+  });
+});
+// Parser expression generators for tune header elements
+// Comment expression generator
+
+export const genCommentExpr = ScannerGen.genCommentToken.map(([comment, eol]) => {
+  return new Comment(sharedContext.generateId(), comment);
+});
+

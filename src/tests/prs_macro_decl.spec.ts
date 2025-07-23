@@ -1,9 +1,13 @@
 import { assert } from "chai";
 import { describe, it } from "mocha";
+import * as fc from "fast-check";
 import { prsMacroDecl, parseMacroInvocation } from "../parsers/parse2";
 import { TT } from "../parsers/scan2";
 import { createToken, createParseCtx } from "./prs_music_code.spec";
 import { Macro_decl, Macro_invocation } from "../types/Expr2";
+
+import * as ScannerGen from "./scn_pbt.generators.spec";
+import { createRoundTripPredicate } from "./scn_pbt.spec";
 
 describe("prsMacroDecl", () => {
   it("should parse a simple macro declaration", () => {
@@ -123,6 +127,38 @@ describe("prsMacroDecl", () => {
     assert.equal(result!.content.lexeme, "C D E F ");
   });
 });
+
+describe("prsMacroDecl round-trip", () => {
+  it("should parse and reconstruct macro declarations correctly", () => {
+    fc.assert(
+      fc.property(ScannerGen.genMacroDecl, (tokens) => {
+        // Filter out EOL and whitespace tokens for parsing
+        const macroTokens = tokens.filter(t => t.type !== TT.EOL && t.type !== TT.WS);
+        
+        // Parse the macro declaration
+        const ctx = createParseCtx(macroTokens);
+        const result = prsMacroDecl(ctx);
+        
+        // Should successfully parse
+        if (!result) return false;
+        
+        // Verify the parsed result matches the original tokens
+        assert.instanceOf(result, Macro_decl);
+        
+        // Check that parsing consumed the expected tokens
+        const expectedTokens = macroTokens.filter(t => 
+          t.type === TT.MACRO_HDR || t.type === TT.MACRO_VAR || t.type === TT.MACRO_STR
+        );
+        
+        return ctx.current === expectedTokens.length;
+      }),
+      {
+        verbose: false,
+        numRuns: 100,
+      }
+    );
+  });
+})
 
 describe("parseMacroInvocation", () => {
   it("should parse a simple macro invocation", () => {

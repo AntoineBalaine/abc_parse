@@ -438,7 +438,8 @@ export function scanTune(ctx: Ctx): boolean {
     // Try each tokenizer function in order of precedence
     if (stylesheet_directive(ctx)) continue;
     if (comment(ctx)) continue;
-    if (macro_decl(ctx)) continue;
+    /** NOTE: macros are off for now */
+    // if (macro_decl(ctx)) continue;
     if (user_symbol_decl(ctx)) continue;
     if (symbol_line(ctx)) continue;
     if (lyric_line(ctx)) continue;

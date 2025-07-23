@@ -149,9 +149,9 @@ export class Lyric_section extends Expr {
 }
 
 export class Tune_header extends Expr {
-  info_lines: Array<Info_line | Comment>;
+  info_lines: Array<Info_line | Comment | Macro_decl | User_symbol_decl | Directive>;
   voices: Array<string>;
-  constructor(id: number, info_lines: Array<Info_line | Comment>, voices?: Array<string>) {
+  constructor(id: number, info_lines: Array<Info_line | Comment | Macro_decl | User_symbol_decl | Directive>, voices?: Array<string>) {
     super(id);
     this.info_lines = info_lines;
     this.voices = voices || [];
@@ -476,13 +476,13 @@ export class ErrorExpr extends Expr {
 export class Lyric_line extends Expr {
   header: Token;
   contents: Array<Token>;
-  
+
   constructor(id: number, header: Token, contents: Array<Token>) {
     super(id);
     this.header = header;
     this.contents = contents;
   }
-  
+
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitLyricLineExpr(this);
   }
@@ -492,14 +492,14 @@ export class Macro_decl extends Expr {
   header: Token;
   variable: Token;
   content: Token;
-  
+
   constructor(id: number, header: Token, variable: Token, content: Token) {
     super(id);
     this.header = header;
     this.variable = variable;
     this.content = content;
   }
-  
+
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitMacroDeclExpr(this);
   }
@@ -507,12 +507,12 @@ export class Macro_decl extends Expr {
 
 export class Macro_invocation extends Expr {
   variable: Token;
-  
+
   constructor(id: number, variable: Token) {
     super(id);
     this.variable = variable;
   }
-  
+
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitMacroInvocationExpr(this);
   }
@@ -522,14 +522,14 @@ export class User_symbol_decl extends Expr {
   header: Token;
   variable: Token;
   symbol: Token;
-  
+
   constructor(id: number, header: Token, variable: Token, symbol: Token) {
     super(id);
     this.header = header;
     this.variable = variable;
     this.symbol = symbol;
   }
-  
+
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitUserSymbolDeclExpr(this);
   }
@@ -537,12 +537,12 @@ export class User_symbol_decl extends Expr {
 
 export class User_symbol_invocation extends Expr {
   variable: Token;
-  
+
   constructor(id: number, variable: Token) {
     super(id);
     this.variable = variable;
   }
-  
+
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitUserSymbolInvocationExpr(this);
   }

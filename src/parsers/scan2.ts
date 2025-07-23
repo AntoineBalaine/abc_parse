@@ -110,7 +110,8 @@ export function fileHeader(ctx: Ctx) {
     // Try each tokenizer function in order of precedence
     if (stylesheet_directive(ctx)) continue;
     if (comment(ctx)) continue;
-    if (macro_decl(ctx)) continue;
+    /** NOTE: macros are off for now */
+    // if (macro_decl(ctx)) continue;
     if (info_line(ctx)) continue;
     if (EOL(ctx)) continue;
     if (WS(ctx)) continue;

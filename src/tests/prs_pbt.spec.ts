@@ -1,5 +1,5 @@
 import * as fc from "fast-check";
-import { ParseCtx, prsBody } from "../parsers/parse2";
+import { ParseCtx, prsBody, parseTune } from "../parsers/parse2";
 import { Token, TT } from "../parsers/scan2";
 import { AbcFormatter2 } from "../Visitors/Formatter2";
 import * as ParserGen from "./prs_pbt.generators.spec";
@@ -187,6 +187,43 @@ describe("Parser Property Tests", () => {
           return originalStr === parsedStr;
         }),
         { verbose: true, numRuns: 2000 }
+      );
+    });
+
+    // Test macro scenarios
+    it.skip("should correctly round-trip macro scenarios", () => {
+      fc.assert(
+        fc.property(ParserGen.genMacroScenario, (scenario) => {
+          // Parse the tokens
+          const tune = parseTune(new ParseCtx(scenario.tokens, testContext))
+          const tuneBody = tune.tune_body!;
+
+          // Check if we got a valid tune body
+          if (!tuneBody || !tuneBody.sequence || tuneBody.sequence.length === 0) {
+            console.log("Failed to parse macro scenario tokens:", scenario.tokens.map((t) => `${TT[t.type]}:${t.lexeme}`).join(", "));
+            return false;
+          }
+
+          // Get all expressions from the first system of the tune body
+          const parsedExprs = tuneBody.sequence[0];
+
+          // Compare the original and parsed expressions
+          const formatter = new AbcFormatter2(testContext);
+
+          // Convert all expressions to strings and join them
+          const originalStr = scenario.exprs.map((expr) => formatter.stringify(expr)).join("");
+          const parsedStr = parsedExprs.map((expr) => formatter.stringify(expr)).join("");
+
+          if (originalStr !== parsedStr) {
+            console.log("Macro scenario mismatch:");
+            console.log("Original:", originalStr);
+            console.log("Parsed:", parsedStr);
+            console.log("Original tokens:", scenario.tokens.map((t) => `${TT[t.type]}:${t.lexeme}`).join(", "));
+          }
+
+          return originalStr === parsedStr;
+        }),
+        { verbose: true, numRuns: 100 }
       );
     });
 
