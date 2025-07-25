@@ -1,4 +1,4 @@
-import { KeySignature, Meter, ClefProperties, TempoProperties, MetaText } from "../../abcjs-ast";
+import { KeySignature, Meter, ClefProperties, TempoProperties, MetaText, KeyRoot, KeyAccidental, Mode, ClefType } from "../../abcjs-ast";
 import { VoiceProperties } from "./InfoLineParser";
 import { Rational, createRational } from "../Visitors/fmt2/rational";
 
@@ -19,24 +19,24 @@ export interface InterpreterContext {
   defaultMeter?: Meter;
   defaultNoteLength: Rational;
   defaultTempo?: TempoProperties;
-  
+
   // Voice and staff management
   voices: Map<string, VoiceContext>;
   currentVoiceId?: string;
-  
+
   // Metadata
   metaText: MetaText;
-  
+
   // User-defined symbols and macros
   userSymbols: Map<string, string>;
   macros: Map<string, string>;
-  
+
   // Global formatting properties
   formatting: { [key: string]: any };
-  
+
   // Visual transposition
   visualTranspose?: number;
-  
+
   // Current processing state
   measureNumber: number;
   charPosition: number;
@@ -46,9 +46,9 @@ export interface InterpreterContext {
 export function createInterpreterContext(): InterpreterContext {
   return {
     defaultKey: {
-      root: 'C',
-      acc: '',
-      mode: '',
+      root: KeyRoot.C,
+      acc: KeyAccidental.None,
+      mode: Mode.Major,
       accidentals: [],
       impliedNaturals: [],
       explicitAccidentals: []
@@ -62,6 +62,30 @@ export function createInterpreterContext(): InterpreterContext {
     measureNumber: 1,
     charPosition: 0
   };
+}
+
+// Reset context to initial state
+export function resetContext(ctx: InterpreterContext): void {
+  ctx.defaultKey = {
+    root: KeyRoot.C,
+    acc: KeyAccidental.None,
+    mode: Mode.Major,
+    accidentals: [],
+    impliedNaturals: [],
+    explicitAccidentals: []
+  };
+  ctx.defaultNoteLength = createRational(1, 8);
+  ctx.voices.clear();
+  ctx.metaText = {};
+  ctx.userSymbols.clear();
+  ctx.macros.clear();
+  ctx.formatting = {};
+  ctx.measureNumber = 1;
+  ctx.charPosition = 0;
+  delete ctx.currentVoiceId;
+  delete ctx.defaultMeter;
+  delete ctx.defaultTempo;
+  delete ctx.visualTranspose;
 }
 
 // Voice management functions
@@ -98,7 +122,7 @@ export function setCurrentVoice(ctx: InterpreterContext, id: string): void {
 // Key signature management
 export function setDefaultKey(ctx: InterpreterContext, key: KeySignature): void {
   ctx.defaultKey = key;
-  
+
   // Update all voices that don't have their own key
   for (const voice of ctx.voices.values()) {
     if (!voice.properties.clef || !voice.properties.transpose) {
@@ -119,7 +143,7 @@ export function setVoiceKey(ctx: InterpreterContext, voiceId: string, key: KeySi
 // Meter management
 export function setDefaultMeter(ctx: InterpreterContext, meter: Meter): void {
   ctx.defaultMeter = meter;
-  
+
   // Update all voices
   for (const voice of ctx.voices.values()) {
     voice.currentMeter = meter;
@@ -168,7 +192,7 @@ export function clearMeasureAccidentals(ctx: InterpreterContext, voiceId?: strin
 // Measure management
 export function nextMeasure(ctx: InterpreterContext): void {
   ctx.measureNumber++;
-  
+
   // Clear accidentals for all voices
   for (const voice of ctx.voices.values()) {
     voice.accidentals.clear();
@@ -178,7 +202,7 @@ export function nextMeasure(ctx: InterpreterContext): void {
 // Helper functions
 function getDefaultClef(): ClefProperties {
   return {
-    type: 'treble',
+    type: ClefType.Treble,
     verticalPos: 6,
     clefPos: 0
   };
@@ -200,26 +224,3 @@ export function createSnapshot(ctx: InterpreterContext): object {
   }));
 }
 
-// Reset context to initial state
-export function resetContext(ctx: InterpreterContext): void {
-  ctx.defaultKey = {
-    root: 'C',
-    acc: '',
-    mode: '',
-    accidentals: [],
-    impliedNaturals: [],
-    explicitAccidentals: []
-  };
-  ctx.defaultNoteLength = createRational(1, 8);
-  ctx.voices.clear();
-  ctx.metaText = {};
-  ctx.userSymbols.clear();
-  ctx.macros.clear();
-  ctx.formatting = {};
-  ctx.measureNumber = 1;
-  ctx.charPosition = 0;
-  delete ctx.currentVoiceId;
-  delete ctx.defaultMeter;
-  delete ctx.defaultTempo;
-  delete ctx.visualTranspose;
-}
