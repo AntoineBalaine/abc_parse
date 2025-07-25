@@ -31,19 +31,11 @@ import {
   Lyric_section,
   Pitch,
   Rhythm,
-  ErrorExpr
+  ErrorExpr,
 } from "../types/Expr2";
 import { Token } from "../parsers/scan2";
 import { ABCContext } from "../parsers/Context";
-import {
-  Tune as ABCJSTune,
-  MusicLine,
-  Staff,
-  VoiceElement,
-  NoteElement,
-  BarElement,
-  MediaType,
-} from "../../abcjs-ast";
+import { Tune as ABCJSTune, MusicLine, Staff, VoiceElement, NoteElement, BarElement, MediaType, MeterType, RestType, BarType, ElementType } from "../../abcjs-ast";
 import {
   InterpreterContext,
   createInterpreterContext,
@@ -52,19 +44,10 @@ import {
   setCurrentVoice,
   addVoice,
   getCurrentVoice,
-  nextMeasure
+  nextMeasure,
 } from "./InterpreterContext";
-import {
-  parseKey,
-  parseMeter,
-  parseNoteLength,
-  parseVoice,
-  parseTempo,
-  parseTitle,
-  parseComposer,
-  parseOrigin,
-  parseGeneric
-} from "./InfoLineParser";
+import { parseKey, parseMeter, parseNoteLength, parseVoice, parseTempo, parseTitle, parseComposer, parseOrigin, parseGeneric } from "./InfoLineParser";
+import { Rational } from "../Visitors/fmt2/rational";
 
 export class ASTTransformer implements Visitor<any> {
   ctx: ABCContext;
@@ -102,7 +85,7 @@ export class ASTTransformer implements Visitor<any> {
     // Process file-level directives and info lines
     for (const content of expr.contents) {
       if (content instanceof Info_line) {
-        this.processFileHeaderInfoLine(content);
+        processFileHeaderInfoLine(content, this.interpreterCtx);
       } else if (content instanceof Directive) {
         this.visitDirectiveExpr(content);
       }
@@ -145,7 +128,7 @@ export class ASTTransformer implements Visitor<any> {
       getTotalBeats: () => 0,
       millisecondsPerMeasure: () => 1000,
       getBeatsPerMeasure: () => 4,
-      getMeter: () => this.interpreterCtx.defaultMeter || { type: 'common_time' },
+      getMeter: () => this.interpreterCtx.defaultMeter || { type: MeterType.CommonTime },
       getMeterFraction: () => ({ num: 4, den: 4 }),
       getKeySignature: () => this.interpreterCtx.defaultKey,
       getElementFromChar: () => null,
@@ -154,7 +137,7 @@ export class ASTTransformer implements Visitor<any> {
       setUpAudio: () => null,
       deline: () => null,
       findSelectableElement: () => null,
-      getSelectableArray: () => []
+      getSelectableArray: () => [],
     };
 
     return tune;
@@ -164,7 +147,7 @@ export class ASTTransformer implements Visitor<any> {
     // Process info lines in tune header
     for (const line of expr.info_lines) {
       if (line instanceof Info_line) {
-        this.processTuneHeaderInfoLine(line);
+        processTuneHeaderInfoLine(line, this.interpreterCtx);
       } else if (line instanceof Comment) {
         // Skip comments
       } else if (line instanceof Directive) {
@@ -197,73 +180,7 @@ export class ASTTransformer implements Visitor<any> {
     return lines;
   }
 
-  // Process info lines
-  private processFileHeaderInfoLine(infoLine: Info_line): void {
-    const key = infoLine.key.lexeme;
-
-    // File-level info lines typically set defaults
-    switch (key) {
-      case 'L':
-        this.interpreterCtx.defaultNoteLength = parseNoteLength(infoLine);
-        break;
-      default:
-        // Store other file-level metadata
-        const generic = parseGeneric(infoLine);
-        this.interpreterCtx.formatting[generic.key] = generic.value;
-        break;
-    }
-  }
-
-  private processTuneHeaderInfoLine(infoLine: Info_line): void {
-    const key = infoLine.key.lexeme;
-
-    switch (key) {
-      case 'K':
-        const keySignature = parseKey(infoLine);
-        setDefaultKey(this.interpreterCtx, keySignature);
-        break;
-
-      case 'M':
-        const meter = parseMeter(infoLine);
-        setDefaultMeter(this.interpreterCtx, meter);
-        break;
-
-      case 'L':
-        this.interpreterCtx.defaultNoteLength = parseNoteLength(infoLine);
-        break;
-
-      case 'V':
-        const { id, properties } = parseVoice(infoLine);
-        addVoice(this.interpreterCtx, id, properties);
-        setCurrentVoice(this.interpreterCtx, id);
-        break;
-
-      case 'Q':
-        this.interpreterCtx.defaultTempo = parseTempo(infoLine);
-        this.interpreterCtx.metaText.tempo = this.interpreterCtx.defaultTempo;
-        break;
-
-      case 'T':
-        this.interpreterCtx.metaText.title = parseTitle(infoLine);
-        break;
-
-      case 'C':
-        this.interpreterCtx.metaText.composer = parseComposer(infoLine);
-        break;
-
-      case 'O':
-        this.interpreterCtx.metaText.origin = parseOrigin(infoLine);
-        break;
-
-      default:
-        // Store other metadata
-        const generic = parseGeneric(infoLine);
-        (this.interpreterCtx.metaText as any)[generic.key] = generic.value;
-        break;
-    }
-  }
-
-  private processSystem(system: any[]): Staff[] {
+  processSystem(system: any[]): Staff[] {
     // For now, create a single staff with all voices
     // TODO: Implement proper multi-staff handling
     const voices: VoiceElement[][] = [];
@@ -277,7 +194,7 @@ export class ASTTransformer implements Visitor<any> {
         voiceElements.push(...musicElements);
       } else if (element instanceof Info_line) {
         // Handle inline info lines (key changes, etc.)
-        this.processInlineInfoLine(element);
+        processInlineInfoLine(element, this.interpreterCtx);
       } else if (element instanceof Comment) {
         // Skip comments in music
       }
@@ -297,7 +214,7 @@ export class ASTTransformer implements Visitor<any> {
         meter: currentVoice.currentMeter,
         workingClef: currentVoice.currentClef,
         voices: voices,
-        title: currentVoice.properties.name ? [currentVoice.properties.name] : []
+        title: currentVoice.properties.name ? [currentVoice.properties.name] : [],
       };
 
       return [staff];
@@ -306,27 +223,6 @@ export class ASTTransformer implements Visitor<any> {
     return [];
   }
 
-  private processInlineInfoLine(infoLine: Info_line): void {
-    // Handle key changes, voice switches, etc. within music
-    const key = infoLine.key.lexeme;
-
-    switch (key) {
-      case 'V':
-        const { id } = parseVoice(infoLine);
-        if (this.interpreterCtx.voices.has(id)) {
-          setCurrentVoice(this.interpreterCtx, id);
-        }
-        break;
-
-      case 'K':
-        const keySignature = parseKey(infoLine);
-        const currentVoice = getCurrentVoice(this.interpreterCtx);
-        if (currentVoice) {
-          currentVoice.currentKey = keySignature;
-        }
-        break;
-    }
-  }
 
   visitMusicCodeExpr(expr: Music_code): VoiceElement[] {
     const elements: VoiceElement[] = [];
@@ -360,11 +256,11 @@ export class ASTTransformer implements Visitor<any> {
     if (!pitchElement) return null;
 
     const noteElement: NoteElement = {
-      el_type: 'note',
+      el_type: ElementType.Note,
       startChar: 0, // TODO: Get from token position
-      endChar: 0,   // TODO: Get from token position
-      duration: this.calculateNoteDuration(expr.rhythm),
-      pitches: [pitchElement]
+      endChar: 0, // TODO: Get from token position
+      duration: calculateNoteDuration(expr.rhythm, this.interpreterCtx),
+      pitches: [pitchElement],
     };
 
     return noteElement;
@@ -372,11 +268,11 @@ export class ASTTransformer implements Visitor<any> {
 
   visitRestExpr(expr: Rest): NoteElement | null {
     const restElement: NoteElement = {
-      el_type: 'note',
+      el_type: ElementType.Note,
       startChar: 0, // TODO: Get from token position
-      endChar: 0,   // TODO: Get from token position
-      duration: this.calculateNoteDuration(expr.rhythm),
-      rest: { type: 'normal' }
+      endChar: 0, // TODO: Get from token position
+      duration: calculateNoteDuration(expr.rhythm, this.interpreterCtx),
+      rest: { type: RestType.Normal },
     };
 
     return restElement;
@@ -384,13 +280,13 @@ export class ASTTransformer implements Visitor<any> {
 
   visitBarLineExpr(expr: BarLine): BarElement | null {
     // Determine bar type from tokens
-    const barType = this.determineBarType(expr.barline);
+    const barType = determineBarType(expr.barline);
 
     const barElement: BarElement = {
-      el_type: 'bar',
+      el_type: ElementType.Bar,
       startChar: 0, // TODO: Get from token position
-      endChar: 0,   // TODO: Get from token position
-      type: barType
+      endChar: 0, // TODO: Get from token position
+      type: barType,
     };
 
     return barElement;
@@ -411,11 +307,11 @@ export class ASTTransformer implements Visitor<any> {
     if (pitches.length === 0) return null;
 
     const chordElement: NoteElement = {
-      el_type: 'note',
+      el_type: ElementType.Note,
       startChar: 0, // TODO: Get from token position
-      endChar: 0,   // TODO: Get from token position
-      duration: this.calculateNoteDuration(expr.rhythm),
-      pitches: pitches
+      endChar: 0, // TODO: Get from token position
+      duration: calculateNoteDuration(expr.rhythm, this.interpreterCtx),
+      pitches: pitches,
     };
 
     return chordElement;
@@ -429,100 +325,268 @@ export class ASTTransformer implements Visitor<any> {
 
     // Calculate pitch number and vertical position
     // This is a simplified implementation
-    const basePitch = this.getBasePitch(noteLetter);
-    const pitch = basePitch + (octave ? this.getOctaveOffset(octave) : 0);
+    const basePitch = getBasePitch(noteLetter);
+    const pitch = basePitch + (octave ? getOctaveOffset(octave) : 0);
 
     return {
       pitch: pitch,
-      name: (accidental || '') + noteLetter,
-      verticalPos: this.calculateVerticalPos(noteLetter, octave),
-      accidental: accidental ? this.convertAccidental(accidental) : undefined
+      name: (accidental || "") + noteLetter,
+      verticalPos: calculateVerticalPos(noteLetter, octave),
+      accidental: accidental ? convertAccidental(accidental) : undefined,
     };
   }
 
-  // Helper methods
-  private calculateNoteDuration(rhythm?: Rhythm): number {
-    if (!rhythm) {
-      // Use default note length
-      return this.interpreterCtx.defaultNoteLength.numerator / this.interpreterCtx.defaultNoteLength.denominator;
-    }
-
-    // TODO: Calculate duration from rhythm
-    return 0.25; // Placeholder
-  }
-
-  private determineBarType(barTokens: Token[]): string {
-    const barString = barTokens.map(t => t.lexeme).join('');
-
-    // Map ABC bar notations to ABCJS bar types
-    switch (barString) {
-      case '|': return 'bar_thin';
-      case '||': return 'bar_thin_thin';
-      case '|:': return 'bar_left_repeat';
-      case ':|': return 'bar_right_repeat';
-      case '::': return 'bar_dbl_repeat';
-      default: return 'bar_thin';
-    }
-  }
-
-  private getBasePitch(noteLetter: string): number {
-    const pitches: { [key: string]: number } = {
-      'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11,
-      'c': 12, 'd': 14, 'e': 16, 'f': 17, 'g': 19, 'a': 21, 'b': 23
-    };
-    return pitches[noteLetter] || 0;
-  }
-
-  private getOctaveOffset(octave: string): number {
-    // Handle octave indicators like ', ,, etc.
-    if (octave.includes(',')) {
-      return -12 * octave.length;
-    } else if (octave.includes("'")) {
-      return 12 * octave.length;
-    }
-    return 0;
-  }
-
-  private calculateVerticalPos(noteLetter: string, octave?: string): number {
-    // Simplified vertical position calculation
-    const basePos = this.getBasePitch(noteLetter);
-    const octaveOffset = octave ? this.getOctaveOffset(octave) : 0;
-    return Math.floor((basePos + octaveOffset) / 2);
-  }
-
-  private convertAccidental(accidental: string): string {
-    switch (accidental) {
-      case '^': return 'sharp';
-      case '_': return 'flat';
-      case '=': return 'natural';
-      case '^^': return 'dblsharp';
-      case '__': return 'dblflat';
-      default: return 'natural';
-    }
-  }
 
   // Placeholder implementations for other visitor methods
-  visitTokenExpr(token: Token): any { return null; }
-  visitAnnotationExpr(expr: Annotation): any { return null; }
-  visitCommentExpr(expr: Comment): any { return null; }
-  visitDirectiveExpr(expr: Directive): any { return null; }
-  visitDecorationExpr(expr: Decoration): any { return null; }
-  visitGraceGroupExpr(expr: Grace_group): any { return null; }
-  visitInfoLineExpr(expr: Info_line): any { return null; }
-  visitInlineFieldExpr(expr: Inline_field): any { return null; }
-  visitLyricLineExpr(expr: Lyric_line): any { return null; }
-  visitLyricSectionExpr(expr: Lyric_section): any { return null; }
-  visitMacroDeclExpr(expr: Macro_decl): any { return null; }
-  visitMacroInvocationExpr(expr: Macro_invocation): any { return null; }
-  visitMultiMeasureRestExpr(expr: MultiMeasureRest): any { return null; }
-  visitRhythmExpr(expr: Rhythm): any { return null; }
-  visitSymbolExpr(expr: Symbol): any { return null; }
-  visitUserSymbolDeclExpr(expr: User_symbol_decl): any { return null; }
-  visitUserSymbolInvocationExpr(expr: User_symbol_invocation): any { return null; }
-  visitYSpacerExpr(expr: YSPACER): any { return null; }
-  visitBeamExpr(expr: Beam): any { return null; }
-  visitVoiceOverlayExpr(expr: Voice_overlay): any { return null; }
-  visitTupletExpr(expr: Tuplet): any { return null; }
-  visitErrorExpr(expr: ErrorExpr): any { return null; }
-  visitToken(token: Token): any { return null; }
+  visitTokenExpr(token: Token): any {
+    return null;
+  }
+  visitAnnotationExpr(expr: Annotation): any {
+    return null;
+  }
+  visitCommentExpr(expr: Comment): any {
+    return null;
+  }
+  visitDirectiveExpr(expr: Directive): any {
+    return null;
+  }
+  visitDecorationExpr(expr: Decoration): any {
+    return null;
+  }
+  visitGraceGroupExpr(expr: Grace_group): any {
+    return null;
+  }
+  visitInfoLineExpr(expr: Info_line): any {
+    return null;
+  }
+  visitInlineFieldExpr(expr: Inline_field): any {
+    return null;
+  }
+  visitLyricLineExpr(expr: Lyric_line): any {
+    return null;
+  }
+  visitLyricSectionExpr(expr: Lyric_section): any {
+    return null;
+  }
+  visitMacroDeclExpr(expr: Macro_decl): any {
+    return null;
+  }
+  visitMacroInvocationExpr(expr: Macro_invocation): any {
+    return null;
+  }
+  visitMultiMeasureRestExpr(expr: MultiMeasureRest): any {
+    return null;
+  }
+  visitRhythmExpr(expr: Rhythm): any {
+    return null;
+  }
+  visitSymbolExpr(expr: Symbol): any {
+    return null;
+  }
+  visitUserSymbolDeclExpr(expr: User_symbol_decl): any {
+    return null;
+  }
+  visitUserSymbolInvocationExpr(expr: User_symbol_invocation): any {
+    return null;
+  }
+  visitYSpacerExpr(expr: YSPACER): any {
+    return null;
+  }
+  visitBeamExpr(expr: Beam): any {
+    return null;
+  }
+  visitVoiceOverlayExpr(expr: Voice_overlay): any {
+    return null;
+  }
+  visitTupletExpr(expr: Tuplet): any {
+    return null;
+  }
+  visitErrorExpr(expr: ErrorExpr): any {
+    return null;
+  }
+  visitToken(token: Token): any {
+    return null;
+  }
+}
+
+// Process info lines
+function processFileHeaderInfoLine(infoLine: Info_line, ctx: InterpreterContext): void {
+  const key = infoLine.key.lexeme;
+
+  // File-level info lines typically set defaults
+  switch (key) {
+    case "L":
+      ctx.defaultNoteLength = parseNoteLength(infoLine);
+      break;
+    default:
+      // Store other file-level metadata
+      const generic = parseGeneric(infoLine);
+      ctx.formatting[generic.key] = generic.value;
+      break;
+  }
+}
+
+
+function processTuneHeaderInfoLine(infoLine: Info_line, ctx: InterpreterContext): void {
+  const key = infoLine.key.lexeme;
+
+  switch (key) {
+    case "K":
+      const keySignature = parseKey(infoLine);
+      setDefaultKey(ctx, keySignature);
+      break;
+
+    case "M":
+      const meter = parseMeter(infoLine);
+      setDefaultMeter(ctx, meter);
+      break;
+
+    case "L":
+      ctx.defaultNoteLength = parseNoteLength(infoLine);
+      break;
+
+    case "V":
+      const { id, properties } = parseVoice(infoLine);
+      addVoice(ctx, id, properties);
+      setCurrentVoice(ctx, id);
+      break;
+
+    case "Q":
+      ctx.defaultTempo = parseTempo(infoLine);
+      ctx.metaText.tempo = ctx.defaultTempo;
+      break;
+
+    case "T":
+      ctx.metaText.title = parseTitle(infoLine);
+      break;
+
+    case "C":
+      ctx.metaText.composer = parseComposer(infoLine);
+      break;
+
+    case "O":
+      ctx.metaText.origin = parseOrigin(infoLine);
+      break;
+
+    default:
+      // Store other metadata
+      const generic = parseGeneric(infoLine);
+      (ctx.metaText as any)[generic.key] = generic.value;
+      break;
+  }
+}
+
+
+
+
+function processInlineInfoLine(infoLine: Info_line, ctx: InterpreterContext): void {
+  // Handle key changes, voice switches, etc. within music
+  const key = infoLine.key.lexeme;
+
+  switch (key) {
+    case "V":
+      const { id } = parseVoice(infoLine);
+      if (ctx.voices.has(id)) {
+        setCurrentVoice(ctx, id);
+      }
+      break;
+
+    case "K":
+      const keySignature = parseKey(infoLine);
+      const currentVoice = getCurrentVoice(ctx);
+      if (currentVoice) {
+        currentVoice.currentKey = keySignature;
+      }
+      break;
+  }
+}
+
+// Helper methods
+function calculateNoteDuration(rhythm: Rhythm | undefined, ctx: InterpreterContext): Rational {
+  if (!rhythm) {
+    // Use default note length
+    return ctx.defaultNoteLength;
+  }
+
+  // TODO: Calculate duration from rhythm
+  return ctx.defaultNoteLength;
+}
+
+
+function determineBarType(barTokens: Token[]): BarType {
+  const barString = barTokens.map((t) => t.lexeme).join("");
+
+  // Map ABC bar notations to ABCJS bar types
+  switch (barString) {
+    case "|":
+      return BarType.BarThin;
+    case "||":
+      return BarType.BarThinThin;
+    case "|:":
+      return BarType.BarLeftRepeat;
+    case ":|":
+      return BarType.BarRightRepeat;
+    case "::":
+      return BarType.BarDblRepeat;
+    default:
+      return BarType.BarThin;
+  }
+}
+
+
+function getBasePitch(noteLetter: string): number {
+  const pitches: { [key: string]: number } = {
+    C: 0,
+    D: 2,
+    E: 4,
+    F: 5,
+    G: 7,
+    A: 9,
+    B: 11,
+    c: 12,
+    d: 14,
+    e: 16,
+    f: 17,
+    g: 19,
+    a: 21,
+    b: 23,
+  };
+  return pitches[noteLetter] || 0;
+}
+
+
+function getOctaveOffset(octave: string): number {
+  // Handle octave indicators like ', ,, etc.
+  if (octave.includes(",")) {
+    return -12 * octave.length;
+  } else if (octave.includes("'")) {
+    return 12 * octave.length;
+  }
+  return 0;
+}
+
+
+function calculateVerticalPos(noteLetter: string, octave?: string): number {
+  // Simplified vertical position calculation
+  const basePos = getBasePitch(noteLetter);
+  const octaveOffset = octave ? getOctaveOffset(octave) : 0;
+  return Math.floor((basePos + octaveOffset) / 2);
+}
+
+
+function convertAccidental(accidental: string): string {
+  switch (accidental) {
+    case "^":
+      return "sharp";
+    case "_":
+      return "flat";
+    case "=":
+      return "natural";
+    case "^^":
+      return "dblsharp";
+    case "__":
+      return "dblflat";
+    default:
+      return "natural";
+  }
 }
