@@ -32,48 +32,49 @@ export interface VoiceProperties {
   brace?: BracketBracePosition;
 }
 
-enum VE {
-  identifier,
-  start,
-  key,
-  value,
-  string_literal,
-}
-
 function scnKey(ctx: Ctx): boolean {
-  if (!ctx.test(/^[a-zA-Z0-9]+=/)) {
+  if (!ctx.test(/^\w+[ \t]*=/)) {
     return false;
   }
 
-  while (!isAtEnd && !ctx.test("=")) {
+  while (!isAtEnd(ctx) && !ctx.test(/[ \t=]/)) {
     advance(ctx);
   }
   ctx.push(TT.VX_K);
+  WS(ctx, true);
   consume(ctx); // "="
   return true;
 }
 
 function scnValue(ctx: Ctx): boolean {
   let is_literal = false;
-  if (ctx.test('"')) is_literal = true;
-  while (!isAtEnd && !isBreaker(ctx, is_literal)) {
+  if (ctx.test('"')) {
+    is_literal = true;
     advance(ctx);
   }
-  if (is_literal) {
-    consume(ctx);
+  while (!isAtEnd(ctx) && !isBreaker(ctx, is_literal)) {
+    advance(ctx);
+  }
+  if (is_literal && ctx.test('"')) {
+    advance(ctx);
   }
   ctx.push(TT.VX_V);
   return true;
 }
 
 function isBreaker(ctx: Ctx, in_literal: boolean): boolean {
+  if (in_literal) {
+    if (ctx.test('"')) {
+      return true; // End of string literal
+    }
+    return ctx.test(/[\n]+/); // Break on whitespace or newline in literal
+  }
   if (ctx.test('"') && in_literal) return true;
-  throw new Error("unimplemented");
-  return false;
+  return ctx.test(/[\n \t%]+/);
 }
 
 function scnVxId(ctx: Ctx): boolean {
-  while (!isAtEnd && ctx.test(/[a-zA-Z0-9]/)) {
+  while (!isAtEnd(ctx) && ctx.test(/\w/)) {
     advance(ctx);
   }
   ctx.push(TT.VX_ID);
@@ -81,12 +82,12 @@ function scnVxId(ctx: Ctx): boolean {
 }
 
 export function scnvx(ctx: Ctx): Array<Token> {
-  let id: string | null = null;
+  let found_id = false;
   while (!isAtEnd(ctx)) {
-    advance(ctx);
-    if (WS(ctx)) continue;
-    if (id === null) {
+    if (WS(ctx, true)) continue;
+    if (!found_id) {
       scnVxId(ctx);
+      found_id = true;
       continue;
     }
     if (scnKey(ctx)) continue;
