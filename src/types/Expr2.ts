@@ -93,7 +93,6 @@ export class File_header extends Expr {
 export class Info_line extends Expr {
   key: Token;
   value: Array<Token>;
-  metadata?: Array<Token>;
 
   constructor(id: number, tokens: Array<Token>) {
     super(id);

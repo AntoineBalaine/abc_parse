@@ -18,7 +18,7 @@ import {
   AccidentalSymbol,
   ModeInput,
   StemDirection,
-  ChordPlacement
+  ChordPlacement,
 } from "../../abcjs-ast";
 
 export interface VoiceProperties {
@@ -45,7 +45,7 @@ export interface VoiceProperties {
  * Examples: K:C, K:G major, K:Dm, K:F# dorian, K:C^c_b
  */
 export function parseKey(infoLine: Info_line): KeySignature {
-  if (infoLine.key.lexeme !== 'K') {
+  if (infoLine.key.lexeme !== "K") {
     throw new Error(`Expected K: info line, got ${infoLine.key.lexeme}:`);
   }
 
@@ -56,24 +56,26 @@ export function parseKey(infoLine: Info_line): KeySignature {
   const keyStr = tokensToString(infoLine.value).trim();
 
   // Handle special cases
-  if (keyStr === 'none') {
+  if (keyStr === "none") {
     return {
-      root: KeyRoot.None,
+      root: KeyRoot.C,
       acc: KeyAccidental.None,
       mode: Mode.Major,
       accidentals: [],
       impliedNaturals: [],
-      explicitAccidentals: []
+      explicitAccidentals: [],
     };
   }
 
-  const keyMatch = keyStr.match(/^([A-G])(#|b)?(?:\s*(major|minor|maj|min|m|ionian|dorian|dor|phrygian|phr|lydian|lyd|mixolydian|mix|aeolian|aeo|locrian|loc))?(.*)$/i);
+  const keyMatch = keyStr.match(
+    /^([A-G])(#|b)?(?:\s*(major|minor|maj|min|m|ionian|dorian|dor|phrygian|phr|lydian|lyd|mixolydian|mix|aeolian|aeo|locrian|loc))?(.*)$/i,
+  );
 
   if (!keyMatch) {
     throw new Error(`Invalid key signature: ${keyStr}`);
   }
 
-  const [, root, accidental = '', modeStr = '', modifiers = ''] = keyMatch;
+  const [, root, accidental = "", modeStr = "", modifiers = ""] = keyMatch;
 
   const keySignature: KeySignature = {
     root: root as KeyRoot,
@@ -81,7 +83,7 @@ export function parseKey(infoLine: Info_line): KeySignature {
     mode: parseMode(modeStr),
     accidentals: parseKeyAccidentals(root, accidental),
     impliedNaturals: [],
-    explicitAccidentals: parseExplicitAccidentals(modifiers.trim())
+    explicitAccidentals: parseExplicitAccidentals(modifiers.trim()),
   };
 
   return keySignature;
@@ -93,7 +95,7 @@ export function parseKey(infoLine: Info_line): KeySignature {
  * Examples: M:4/4, M:3/4, M:C, M:C|, M:6/8
  */
 export function parseMeter(infoLine: Info_line): Meter {
-  if (infoLine.key.lexeme !== 'M') {
+  if (infoLine.key.lexeme !== "M") {
     throw new Error(`Expected M: info line, got ${infoLine.key.lexeme}:`);
   }
 
@@ -104,10 +106,10 @@ export function parseMeter(infoLine: Info_line): Meter {
   const meterStr = tokensToString(infoLine.value).trim();
 
   // Common time signatures
-  if (meterStr === 'C') {
+  if (meterStr === "C") {
     return { type: MeterType.CommonTime };
   }
-  if (meterStr === 'C|') {
+  if (meterStr === "C|") {
     return { type: MeterType.CutTime };
   }
 
@@ -117,7 +119,7 @@ export function parseMeter(infoLine: Info_line): Meter {
     const [, num, den] = fractionMatch;
     return {
       type: MeterType.Specified,
-      value: [{ num: parseInt(num), den: parseInt(den) }]
+      value: [{ num: parseInt(num), den: parseInt(den) }],
     };
   }
 
@@ -127,7 +129,7 @@ export function parseMeter(infoLine: Info_line): Meter {
     const fractions = parseComplexMeter(meterStr);
     return {
       type: MeterType.Specified,
-      value: fractions
+      value: fractions,
     };
   }
 
@@ -140,7 +142,7 @@ export function parseMeter(infoLine: Info_line): Meter {
  * Examples: L:1/8, L:1/4, L:1/16
  */
 export function parseNoteLength(infoLine: Info_line): Rational {
-  if (infoLine.key.lexeme !== 'L') {
+  if (infoLine.key.lexeme !== "L") {
     throw new Error(`Expected L: info line, got ${infoLine.key.lexeme}:`);
   }
 
@@ -164,8 +166,11 @@ export function parseNoteLength(infoLine: Info_line): Rational {
  * Format: V:id [name="Name"] [clef=treble] [transpose=0] etc.
  * Examples: V:1, V:T1 name="Tenor 1" clef=treble, V:B clef=bass transpose=-12
  */
-export function parseVoice(infoLine: Info_line): { id: string; properties: VoiceProperties } {
-  if (infoLine.key.lexeme !== 'V') {
+export function parseVoice(infoLine: Info_line): {
+  id: string;
+  properties: VoiceProperties;
+} {
+  if (infoLine.key.lexeme !== "V") {
     throw new Error(`Expected V: info line, got ${infoLine.key.lexeme}:`);
   }
 
@@ -182,7 +187,7 @@ export function parseVoice(infoLine: Info_line): { id: string; properties: Voice
   // Parse voice properties
   for (let i = 1; i < parts.length; i++) {
     const part = parts[i];
-    const eqIndex = part.indexOf('=');
+    const eqIndex = part.indexOf("=");
 
     if (eqIndex === -1) continue;
 
@@ -194,64 +199,64 @@ export function parseVoice(infoLine: Info_line): { id: string; properties: Voice
       let fullValue = value;
       while (i + 1 < parts.length && !fullValue.endsWith('"')) {
         i++;
-        fullValue += ' ' + parts[i];
+        fullValue += " " + parts[i];
       }
-      value = fullValue.replace(/"/g, '');
+      value = fullValue.replace(/"/g, "");
     }
 
     switch (key) {
-      case 'name':
+      case "name":
         properties.name = value;
         break;
-      case 'clef':
+      case "clef":
         properties.clef = parseClef(value);
         break;
-      case 'transpose':
+      case "transpose":
         properties.transpose = parseInt(value);
         break;
-      case 'octave':
+      case "octave":
         properties.octave = parseInt(value);
         break;
-      case 'middle':
+      case "middle":
         properties.middle = value;
         break;
-      case 'stafflines':
+      case "stafflines":
         properties.stafflines = parseInt(value);
         break;
-      case 'staffscale':
+      case "staffscale":
         properties.staffscale = parseFloat(value);
         break;
-      case 'perc':
-        properties.perc = value.toLowerCase() === 'true' || value === '1';
+      case "perc":
+        properties.perc = value.toLowerCase() === "true" || value === "1";
         break;
-      case 'instrument':
+      case "instrument":
         properties.instrument = parseInt(value);
         break;
-      case 'merge':
-        properties.merge = value.toLowerCase() === 'true' || value === '1';
+      case "merge":
+        properties.merge = value.toLowerCase() === "true" || value === "1";
         break;
-      case 'stems':
+      case "stems":
         if (!isStemDirection(value)) {
           throw new Error(`Invalid stem direction: ${value}`);
         }
         properties.stems = value;
         break;
-      case 'gchord':
+      case "gchord":
         if (!isChordPlacement(value)) {
           throw new Error(`Invalid chord placement: ${value}`);
         }
         properties.gchord = value;
         break;
-      case 'space':
+      case "space":
         properties.space = parseFloat(value);
         break;
-      case 'bracket':
+      case "bracket":
         if (!isBracketBracePosition(value)) {
           throw new Error(`Invalid bracket position: ${value}`);
         }
         properties.bracket = value;
         break;
-      case 'brace':
+      case "brace":
         if (!isBracketBracePosition(value)) {
           throw new Error(`Invalid brace position: ${value}`);
         }
@@ -269,7 +274,7 @@ export function parseVoice(infoLine: Info_line): { id: string; properties: Voice
  * Examples: Q:1/4=120, Q:"Allegro" 1/4=120, Q:1/8=60 "ca. 60"
  */
 export function parseTempo(infoLine: Info_line): TempoProperties {
-  if (infoLine.key.lexeme !== 'Q') {
+  if (infoLine.key.lexeme !== "Q") {
     throw new Error(`Expected Q: info line, got ${infoLine.key.lexeme}:`);
   }
 
@@ -296,7 +301,7 @@ export function parseTempo(infoLine: Info_line): TempoProperties {
  * Parse a Title (T:) info line expression
  */
 export function parseTitle(infoLine: Info_line): string {
-  if (infoLine.key.lexeme !== 'T') {
+  if (infoLine.key.lexeme !== "T") {
     throw new Error(`Expected T: info line, got ${infoLine.key.lexeme}:`);
   }
 
@@ -307,7 +312,7 @@ export function parseTitle(infoLine: Info_line): string {
  * Parse a Composer (C:) info line expression
  */
 export function parseComposer(infoLine: Info_line): string {
-  if (infoLine.key.lexeme !== 'C') {
+  if (infoLine.key.lexeme !== "C") {
     throw new Error(`Expected C: info line, got ${infoLine.key.lexeme}:`);
   }
 
@@ -318,7 +323,7 @@ export function parseComposer(infoLine: Info_line): string {
  * Parse an Origin (O:) info line expression
  */
 export function parseOrigin(infoLine: Info_line): string {
-  if (infoLine.key.lexeme !== 'O') {
+  if (infoLine.key.lexeme !== "O") {
     throw new Error(`Expected O: info line, got ${infoLine.key.lexeme}:`);
   }
 
@@ -328,44 +333,69 @@ export function parseOrigin(infoLine: Info_line): string {
 /**
  * Parse a generic info line into key-value pair
  */
-export function parseGeneric(infoLine: Info_line): { key: string; value: string } {
+export function parseGeneric(infoLine: Info_line): {
+  key: string;
+  value: string;
+} {
   return {
     key: infoLine.key.lexeme,
-    value: tokensToString(infoLine.value).trim()
+    value: tokensToString(infoLine.value).trim(),
   };
 }
 
 // Helper functions
 
 function tokensToString(tokens: Token[]): string {
-  return tokens.map(token => token.lexeme).join('');
+  return tokens.map((token) => token.lexeme).join("");
 }
 
 // Type predicate functions
 function isStemDirection(value: string): value is StemDirection {
-  return value === 'up' || value === 'down' || value === 'auto' || value === 'none';
+  return (
+    value === "up" || value === "down" || value === "auto" || value === "none"
+  );
 }
 
 function isChordPlacement(value: string): value is ChordPlacement {
-  return value === 'above' || value === 'below' || value === 'left' || value === 'right' || value === 'default';
+  return (
+    value === "above" ||
+    value === "below" ||
+    value === "left" ||
+    value === "right" ||
+    value === "default"
+  );
 }
 
 function isBracketBracePosition(value: string): value is BracketBracePosition {
-  return value === 'start' || value === 'end' || value === 'continue';
+  return value === "start" || value === "end" || value === "continue";
 }
 
 function isAccidentalSymbol(value: string): value is AccidentalSymbol {
-  return value === '^' || value === '_' || value === '=';
+  return value === "^" || value === "_" || value === "=";
 }
 
 function isModeInput(value: string): value is ModeInput {
   const lowerValue = value.toLowerCase();
-  return lowerValue === 'major' || lowerValue === 'maj' || lowerValue === 'ionian' ||
-    lowerValue === 'minor' || lowerValue === 'min' || lowerValue === 'm' ||
-    lowerValue === 'aeolian' || lowerValue === 'aeo' || lowerValue === 'dorian' ||
-    lowerValue === 'dor' || lowerValue === 'phrygian' || lowerValue === 'phr' ||
-    lowerValue === 'lydian' || lowerValue === 'lyd' || lowerValue === 'mixolydian' ||
-    lowerValue === 'mix' || lowerValue === 'locrian' || lowerValue === 'loc';
+  return (
+    lowerValue === "major" ||
+    lowerValue === "maj" ||
+    lowerValue === "ionian" ||
+    lowerValue === "minor" ||
+    lowerValue === "min" ||
+    lowerValue === "m" ||
+    lowerValue === "aeolian" ||
+    lowerValue === "aeo" ||
+    lowerValue === "dorian" ||
+    lowerValue === "dor" ||
+    lowerValue === "phrygian" ||
+    lowerValue === "phr" ||
+    lowerValue === "lydian" ||
+    lowerValue === "lyd" ||
+    lowerValue === "mixolydian" ||
+    lowerValue === "mix" ||
+    lowerValue === "locrian" ||
+    lowerValue === "loc"
+  );
 }
 
 function parseTempoCore(str: string): TempoProperties {
@@ -375,7 +405,7 @@ function parseTempoCore(str: string): TempoProperties {
   const match = str.match(/(\d+\/\d+)\s*=\s*(\d+)(.*)$/);
   if (match) {
     const [, noteLength, bpm, suffix] = match;
-    const [num, den] = noteLength.split('/').map(n => parseInt(n));
+    const [num, den] = noteLength.split("/").map((n) => parseInt(n));
 
     tempo.duration = [den / num]; // Convert to duration value
     tempo.bpm = parseInt(bpm);
@@ -417,13 +447,13 @@ function parseMode(modeStr: string): Mode {
       return Mode.Phrygian;
     case ModeInput.Lydian:
     case ModeInput.Lyd:
-      return Mode.Lydian
+      return Mode.Lydian;
     case ModeInput.Mixolydian:
     case ModeInput.Mix:
-      return Mode.Mixolydian
+      return Mode.Mixolydian;
     case ModeInput.Locrian:
     case ModeInput.Loc:
-      return Mode.Locrian
+      return Mode.Locrian;
     default:
       return Mode.Major;
   }
@@ -434,27 +464,39 @@ function parseKeyAccidentals(root: string, accidental: string): Accidental[] {
 
   // Standard key signature accidentals based on circle of fifths
   const keyAccidentals: { [key: string]: string[] } = {
-    'C': [],
-    'G': ['F#'], 'D': ['F#', 'C#'], 'A': ['F#', 'C#', 'G#'], 'E': ['F#', 'C#', 'G#', 'D#'],
-    'B': ['F#', 'C#', 'G#', 'D#', 'A#'], 'F#': ['F#', 'C#', 'G#', 'D#', 'A#', 'E#'],
-    'C#': ['F#', 'C#', 'G#', 'D#', 'A#', 'E#', 'B#'],
-    'F': ['Bb'], 'Bb': ['Bb', 'Eb'], 'Eb': ['Bb', 'Eb', 'Ab'], 'Ab': ['Bb', 'Eb', 'Ab', 'Db'],
-    'Db': ['Bb', 'Eb', 'Ab', 'Db', 'Gb'], 'Gb': ['Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb'],
-    'Cb': ['Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb', 'Fb']
+    C: [],
+    G: ["F#"],
+    D: ["F#", "C#"],
+    A: ["F#", "C#", "G#"],
+    E: ["F#", "C#", "G#", "D#"],
+    B: ["F#", "C#", "G#", "D#", "A#"],
+    "F#": ["F#", "C#", "G#", "D#", "A#", "E#"],
+    "C#": ["F#", "C#", "G#", "D#", "A#", "E#", "B#"],
+    F: ["Bb"],
+    Bb: ["Bb", "Eb"],
+    Eb: ["Bb", "Eb", "Ab"],
+    Ab: ["Bb", "Eb", "Ab", "Db"],
+    Db: ["Bb", "Eb", "Ab", "Db", "Gb"],
+    Gb: ["Bb", "Eb", "Ab", "Db", "Gb", "Cb"],
+    Cb: ["Bb", "Eb", "Ab", "Db", "Gb", "Cb", "Fb"],
   };
 
   const keyWithAccidental = root + accidental;
   const notes = keyAccidentals[keyWithAccidental] || keyAccidentals[root] || [];
 
-  notes.forEach(note => {
-    const isSharp = note.includes('#');
-    const isFlat = note.includes('b');
-    const noteLetter = note.replace(/[#b]/g, '');
+  notes.forEach((note) => {
+    const isSharp = note.includes("#");
+    const isFlat = note.includes("b");
+    const noteLetter = note.replace(/[#b]/g, "");
 
     accidentals.push({
       note: noteLetter as any,
-      acc: isSharp ? AccidentalType.Sharp : isFlat ? AccidentalType.Flat : AccidentalType.Natural,
-      verticalPos: getNoteVerticalPos(noteLetter)
+      acc: isSharp
+        ? AccidentalType.Sharp
+        : isFlat
+          ? AccidentalType.Flat
+          : AccidentalType.Natural,
+      verticalPos: getNoteVerticalPos(noteLetter),
     });
   });
 
@@ -467,7 +509,7 @@ function parseExplicitAccidentals(modifiers: string): Accidental[] {
   // Parse explicit accidentals like ^c_b=f
   const accidentalMatches = modifiers.match(/[\^_=][A-Ga-g]/g) || [];
 
-  accidentalMatches.forEach(match => {
+  accidentalMatches.forEach((match) => {
     const accType = match[0];
     const noteLetter = match[1];
 
@@ -477,16 +519,23 @@ function parseExplicitAccidentals(modifiers: string): Accidental[] {
 
     let accidentalType: AccidentalType;
     switch (accType) {
-      case AccidentalSymbol.Sharp: accidentalType = AccidentalType.Sharp; break;
-      case AccidentalSymbol.Flat: accidentalType = AccidentalType.Flat; break;
-      case AccidentalSymbol.Natural: accidentalType = AccidentalType.Natural; break;
-      default: return;
+      case AccidentalSymbol.Sharp:
+        accidentalType = AccidentalType.Sharp;
+        break;
+      case AccidentalSymbol.Flat:
+        accidentalType = AccidentalType.Flat;
+        break;
+      case AccidentalSymbol.Natural:
+        accidentalType = AccidentalType.Natural;
+        break;
+      default:
+        return;
     }
 
     accidentals.push({
       note: noteLetter.toUpperCase() as any,
       acc: accidentalType,
-      verticalPos: getNoteVerticalPos(noteLetter.toUpperCase())
+      verticalPos: getNoteVerticalPos(noteLetter.toUpperCase()),
     });
   });
 
@@ -494,7 +543,9 @@ function parseExplicitAccidentals(modifiers: string): Accidental[] {
 }
 
 function parseClef(clefStr: string): ClefProperties {
-  const clefMatch = clefStr.match(/^(treble|bass|alto|tenor|perc|none)([+-]\d+)?$/i);
+  const clefMatch = clefStr.match(
+    /^(treble|bass|alto|tenor|perc|none)([+-]\d+)?$/i,
+  );
 
   if (!clefMatch) {
     throw new Error(`Invalid clef: ${clefStr}`);
@@ -507,7 +558,7 @@ function parseClef(clefStr: string): ClefProperties {
   if (octaveModifier) {
     const octaveChange = parseInt(octaveModifier);
     if (octaveChange > 0) {
-      clefType = (type.toLowerCase() + '+' + octaveChange) as ClefType;
+      clefType = (type.toLowerCase() + "+" + octaveChange) as ClefType;
     } else if (octaveChange < 0) {
       clefType = (type.toLowerCase() + octaveChange) as ClefType;
     }
@@ -518,7 +569,7 @@ function parseClef(clefStr: string): ClefProperties {
     type: clefType,
     verticalPos: getClefVerticalPos(clefType),
     clefPos: 0,
-    transpose
+    transpose,
   };
 }
 
@@ -526,9 +577,9 @@ function parseComplexMeter(meterStr: string): MeterFraction[] {
   const fractions: MeterFraction[] = [];
 
   // Split by + and parse each fraction
-  const parts = meterStr.split('+');
+  const parts = meterStr.split("+");
 
-  parts.forEach(part => {
+  parts.forEach((part) => {
     const match = part.trim().match(/^(\d+)\/(\d+)$/);
     if (match) {
       const [, num, den] = match;
@@ -541,7 +592,13 @@ function parseComplexMeter(meterStr: string): MeterFraction[] {
 
 function getNoteVerticalPos(note: string): number {
   const positions: { [key: string]: number } = {
-    'C': 0, 'D': 1, 'E': 2, 'F': 3, 'G': 4, 'A': 5, 'B': 6
+    C: 0,
+    D: 1,
+    E: 2,
+    F: 3,
+    G: 4,
+    A: 5,
+    B: 6,
   };
   return positions[note.toUpperCase()] || 0;
 }
@@ -549,11 +606,16 @@ function getNoteVerticalPos(note: string): number {
 function getClefVerticalPos(clef: ClefType): number {
   // Standard vertical positions for different clefs
   switch (clef) {
-    case 'treble': return 6;
-    case 'bass': return 2;
-    case 'alto': return 4;
-    case 'tenor': return 4;
-    default: return 4;
+    case "treble":
+      return 6;
+    case "bass":
+      return 2;
+    case "alto":
+      return 4;
+    case "tenor":
+      return 4;
+    default:
+      return 4;
   }
 }
 

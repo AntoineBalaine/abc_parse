@@ -177,6 +177,15 @@ export function advance(ctx: Ctx, count?: number) {
   ctx.current += count;
 }
 
+export function consume(ctx: Ctx, count?: number) {
+  if (isAtEnd(ctx)) return;
+  if (!count) {
+    count = 1;
+  }
+  ctx.current += count;
+  ctx.start = ctx.current;
+}
+
 export function peek(ctx: Ctx) {
   if (isAtEnd(ctx)) {
     return "\0";
@@ -245,6 +254,9 @@ export enum TT {
   USER_SY_INVOCATION,
   VOICE,
   VOICE_OVRLAY,
+  VX_K,
+  VX_V,
+  VX_ID,
   WS,
   Y_SPC,
   REPEAT_NUMBER, // For repeat numbers (1, 2, 3, etc.)
