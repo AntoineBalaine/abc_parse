@@ -4,7 +4,7 @@ import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { Ctx, TT, Token } from "../parsers/scan2";
 import { scnvx } from "../interpreter/vxPrs";
-import { sharedContext } from "./scn_pbt.generators.spec";
+import { sharedContext, genCommentToken } from "./scn_pbt.generators.spec";
 
 // Helper function to create a Ctx object for testing
 function createCtx(source: string): Ctx {
@@ -515,22 +515,35 @@ describe("scnvx Property-Based Tests", () => {
     .tuple(
       fc.option(genWhitespace), // leading whitespace
       genVoiceId,
-      fc.array(fc.oneof(genPropertyPair, genPercProperty), { maxLength: 5 }),
-      fc.option(genWhitespace) // trailing whitespace
+      fc.oneof(
+        // Voice definition without comment
+        fc.array(fc.oneof(genPropertyPair, genPercProperty), { maxLength: 5 }),
+
+        // Voice definition with comment at the end
+        fc
+          .tuple(
+            fc.array(fc.oneof(genPropertyPair, genPercProperty), { maxLength: 4 }),
+            genCommentToken.map(([comment]) => [comment])
+          )
+          .map(([properties, comment]) => [...properties, ...comment])
+      )
     )
-    .map(([leadingWs, voiceId, properties, trailingWs]) => {
+    .map(([leadingWs, voiceId, properties]) => {
       const tokens: Token[] = [];
 
       if (leadingWs) tokens.push(leadingWs);
       tokens.push(voiceId);
 
       for (const property of properties) {
-        // Add whitespace before each property
+        // Add whitespace before each property/comment
         tokens.push(new Token(TT.WS, " ", sharedContext.generateId()));
-        tokens.push(...property);
+        if (Array.isArray(property)) {
+          tokens.push(...property);
+        } else {
+          tokens.push(property);
+        }
       }
 
-      if (trailingWs) tokens.push(trailingWs);
       return tokens;
     });
 

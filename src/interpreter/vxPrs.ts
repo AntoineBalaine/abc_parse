@@ -13,6 +13,7 @@ import {
   TT,
   WS,
 } from "../parsers/scan2";
+import { comment } from "../parsers/scan_tunebody";
 
 export interface VoiceProperties {
   name?: string;
@@ -90,6 +91,7 @@ export function scnvx(ctx: Ctx): Array<Token> {
   let found_id = false;
   while (!isAtEnd(ctx)) {
     if (WS(ctx, true)) continue;
+    if (comment(ctx)) break;
     if (!found_id) {
       scnVxId(ctx);
       found_id = true;
