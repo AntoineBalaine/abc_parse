@@ -212,6 +212,13 @@ export enum TT {
   KEY_MODE, // Key signature mode (major, minor, dorian, etc.)
   KEY_EXPLICIT_ACC, // Explicit accidentals in key signature (^c_b=f)
   KEY_NONE, // Special "none" key signature
+  METER_NUMBER, // Meter number (4, 6, 8, etc.)
+  METER_C, // Common time (C)
+  METER_C_BAR, // Cut time (C|)
+  METER_SEPARATOR, // Meter separator (/)
+  METER_PLUS, // Addition operator (+)
+  METER_LPAREN, // Left parenthesis (
+  METER_RPAREN, // Right parenthesis )
   COMMENT,
   DECORATION,
   EOF,
