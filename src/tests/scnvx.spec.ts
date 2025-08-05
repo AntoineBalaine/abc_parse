@@ -10,7 +10,7 @@ function createCtx(source: string): Ctx {
   return new Ctx(source, abcContext);
 }
 
-describe.only("scnvx", () => {
+describe("scnvx", () => {
   describe("Basic Voice ID Parsing", () => {
     it("should parse a simple numeric voice ID", () => {
       const ctx = createCtx("1");

@@ -68,7 +68,7 @@ export function parseKey(infoLine: Info_line): KeySignature {
   }
 
   const keyMatch = keyStr.match(
-    /^([A-G])(#|b)?(?:\s*(major|minor|maj|min|m|ionian|dorian|dor|phrygian|phr|lydian|lyd|mixolydian|mix|aeolian|aeo|locrian|loc))?(.*)$/i,
+    /^([A-G])(#|b)?(?:\s*(major|minor|maj|min|m|ionian|dorian|dor|phrygian|phr|lydian|lyd|mixolydian|mix|aeolian|aeo|locrian|loc))?(.*)$/i
   );
 
   if (!keyMatch) {

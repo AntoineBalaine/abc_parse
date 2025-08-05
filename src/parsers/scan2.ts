@@ -26,7 +26,7 @@ export class Ctx {
   }
   test(pattern: RegExp | string, offset?: number) {
     if (pattern instanceof RegExp) {
-      return new RegExp(`^${pattern.source}`).test(this.source.substring(this.current));
+      return new RegExp(`^${pattern.source}`, pattern.flags).test(this.source.substring(this.current));
     } else {
       offset = offset ?? this.current;
       return this.source.substring(offset, offset + pattern.length) === pattern;
@@ -205,6 +205,13 @@ export enum TT {
   BCKTCK_SPC,
   CHRD_LEFT_BRKT,
   CHRD_RIGHT_BRKT,
+  KEY_K,
+  KEY_V,
+  KEY_ROOT, // Key signature root note (A-G)
+  KEY_ACCIDENTAL, // Key signature accidental (#, b)
+  KEY_MODE, // Key signature mode (major, minor, dorian, etc.)
+  KEY_EXPLICIT_ACC, // Explicit accidentals in key signature (^c_b=f)
+  KEY_NONE, // Special "none" key signature
   COMMENT,
   DECORATION,
   EOF,
