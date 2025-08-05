@@ -81,6 +81,11 @@ function scnVxId(ctx: Ctx): boolean {
   return true;
 }
 
+/**
+ * Parse a Voice (V:) info line expression
+ * Format: V:id [name="Name"] [clef=treble] [transpose=0] etc.
+ * Examples: V:1, V:T1 name="Tenor 1" clef=treble, V:B clef=bass transpose=-12
+ */
 export function scnvx(ctx: Ctx): Array<Token> {
   let found_id = false;
   while (!isAtEnd(ctx)) {

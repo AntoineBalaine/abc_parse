@@ -1,8 +1,10 @@
 import { assert } from "chai";
 import { describe, it } from "mocha";
+import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
-import { Ctx, TT } from "../parsers/scan2";
+import { Ctx, TT, Token } from "../parsers/scan2";
 import { scnvx } from "../interpreter/vxPrs";
+import { sharedContext } from "./scn_pbt.generators.spec";
 
 // Helper function to create a Ctx object for testing
 function createCtx(source: string): Ctx {
@@ -423,5 +425,371 @@ describe("scnvx", () => {
       assert.isTrue(hasName);
       assert.isTrue(hasStafflines);
     });
+  });
+});
+
+describe("scnvx Property-Based Tests", () => {
+  // Voice component generators
+  const genVoiceId = fc.oneof(
+    // Numeric voice IDs
+    fc.integer({ min: 1, max: 99 }).map((n) => new Token(TT.VX_ID, n.toString(), sharedContext.generateId())),
+    // Alphabetic voice IDs
+    fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9]*$/).map((id) => new Token(TT.VX_ID, id, sharedContext.generateId())),
+    // Common voice names
+    fc
+      .constantFrom("melody", "bass", "tenor", "soprano", "alto", "drums", "T1", "B1", "S1", "A1")
+      .map((id) => new Token(TT.VX_ID, id, sharedContext.generateId()))
+  );
+
+  const genPropertyKey = fc
+    .constantFrom(
+      "name",
+      "clef",
+      "transpose",
+      "octave",
+      "middle",
+      "m",
+      "stafflines",
+      "staffscale",
+      "instrument",
+      "merge",
+      "stems",
+      "stem",
+      "gchord",
+      "space",
+      "spc",
+      "bracket",
+      "brk",
+      "brace",
+      "brc"
+    )
+    .map((key) => new Token(TT.VX_K, key, sharedContext.generateId()));
+
+  const genPropertyValue = fc.oneof(
+    // Quoted strings
+    fc
+      .string({ minLength: 1, maxLength: 20 })
+      .filter((s) => !s.includes('"') && !s.includes("\n"))
+      .map((s) => new Token(TT.VX_V, `"${s}"`, sharedContext.generateId())),
+    // Unquoted strings
+    fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9]*$/).map((s) => new Token(TT.VX_V, s, sharedContext.generateId())),
+    // Numbers
+    fc.integer({ min: -12, max: 12 }).map((n) => new Token(TT.VX_V, n.toString(), sharedContext.generateId())),
+    // Decimal numbers
+    fc.float({ min: Math.fround(0.1), max: 5.0, noNaN: true }).map((n) => new Token(TT.VX_V, n.toFixed(1), sharedContext.generateId())),
+    // Boolean-like values
+    fc.constantFrom("true", "false", "1", "0").map((b) => new Token(TT.VX_V, b, sharedContext.generateId())),
+    // Clef values
+    fc.constantFrom("treble", "bass", "alto", "tenor", "perc", "none").map((clef) => new Token(TT.VX_V, clef, sharedContext.generateId())),
+    // Stem directions
+    fc.constantFrom("up", "down", "auto", "none").map((stem) => new Token(TT.VX_V, stem, sharedContext.generateId()))
+  );
+
+  const genSpecialPercValue = fc.constantFrom("perc").map((perc) => new Token(TT.VX_V, perc, sharedContext.generateId()));
+
+  const genWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws, sharedContext.generateId()));
+
+  // Property pair generator (key=value)
+  const genPropertyPair = fc
+    .tuple(
+      genPropertyKey,
+      fc.option(genWhitespace),
+      fc.constantFrom("=").map((eq) => new Token(TT.WS, eq, sharedContext.generateId())),
+      fc.option(genWhitespace),
+      genPropertyValue
+    )
+    .map(([key, ws1, equals, ws2, value]) => {
+      const tokens = [key];
+      if (ws1) tokens.push(ws1);
+      tokens.push(equals);
+      if (ws2) tokens.push(ws2);
+      tokens.push(value);
+      return tokens;
+    });
+
+  // Special perc property (standalone)
+  const genPercProperty = genSpecialPercValue.map((perc) => [perc]);
+
+  // Complete voice definition generator
+  const genVoiceDefinition = fc
+    .tuple(
+      fc.option(genWhitespace), // leading whitespace
+      genVoiceId,
+      fc.array(fc.oneof(genPropertyPair, genPercProperty), { maxLength: 5 }),
+      fc.option(genWhitespace) // trailing whitespace
+    )
+    .map(([leadingWs, voiceId, properties, trailingWs]) => {
+      const tokens: Token[] = [];
+
+      if (leadingWs) tokens.push(leadingWs);
+      tokens.push(voiceId);
+
+      for (const property of properties) {
+        // Add whitespace before each property
+        tokens.push(new Token(TT.WS, " ", sharedContext.generateId()));
+        tokens.push(...property);
+      }
+
+      if (trailingWs) tokens.push(trailingWs);
+      return tokens;
+    });
+
+  function createRoundTripPredicate(tokens: Token[]): boolean {
+    // Convert tokens to string
+    const input = tokens.map((t) => t.lexeme).join("");
+
+    // Skip empty inputs
+    if (input.trim() === "") return true;
+
+    // Scan the input
+    const ctx = createCtx(input);
+    const result = scnvx(ctx);
+
+    // Filter out whitespace tokens from both original and scanned
+    const originalFiltered = tokens.filter((t) => t.type !== TT.WS);
+    const scannedFiltered = result.filter((t) => t.type !== TT.WS);
+
+    // Compare token counts
+    if (originalFiltered.length !== scannedFiltered.length) {
+      console.log("Token count mismatch:", {
+        input,
+        originalCount: originalFiltered.length,
+        scannedCount: scannedFiltered.length,
+        original: originalFiltered.map((t) => `${TT[t.type]}:${t.lexeme}`),
+        scanned: scannedFiltered.map((t) => `${TT[t.type]}:${t.lexeme}`),
+      });
+      return false;
+    }
+
+    // Compare token types and lexemes
+    for (let i = 0; i < originalFiltered.length; i++) {
+      const orig = originalFiltered[i];
+      const scanned = scannedFiltered[i];
+
+      if (orig.type !== scanned.type || orig.lexeme !== scanned.lexeme) {
+        console.log("Token mismatch at position", i, {
+          input,
+          original: `${TT[orig.type]}:${orig.lexeme}`,
+          scanned: `${TT[scanned.type]}:${scanned.lexeme}`,
+        });
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  it("should produce equivalent tokens when rescanning voice definitions", () => {
+    fc.assert(fc.property(genVoiceDefinition, createRoundTripPredicate), {
+      verbose: false,
+      numRuns: 1000,
+    });
+  });
+
+  it("should always start with a VX_ID token for valid voice definitions", () => {
+    fc.assert(
+      fc.property(genVoiceDefinition, (tokens) => {
+        const input = tokens.map((t) => t.lexeme).join("");
+        if (input.trim() === "") return true;
+
+        const ctx = createCtx(input);
+        const result = scnvx(ctx);
+
+        return result.length === 0 || result[0].type === TT.VX_ID;
+      }),
+      {
+        verbose: false,
+        numRuns: 1000,
+      }
+    );
+  });
+
+  it("should maintain alternating key-value pattern for properties", () => {
+    fc.assert(
+      fc.property(genVoiceDefinition, (tokens) => {
+        const input = tokens.map((t) => t.lexeme).join("");
+        if (input.trim() === "") return true;
+
+        const ctx = createCtx(input);
+        const result = scnvx(ctx);
+
+        if (result.length === 0) return true;
+
+        // Skip the voice ID (first token)
+        let expectingKey = true;
+        for (let i = 1; i < result.length; i++) {
+          const token = result[i];
+
+          if (token.type === TT.VX_K) {
+            if (!expectingKey) {
+              console.log("Expected value but got key:", token.lexeme, "at position", i);
+              return false;
+            }
+            expectingKey = false;
+          } else if (token.type === TT.VX_V) {
+            // Special case: standalone "perc" can appear without a key
+            if (token.lexeme === "perc") {
+              expectingKey = true;
+            } else if (expectingKey) {
+              console.log("Expected key but got value:", token.lexeme, "at position", i);
+              return false;
+            } else {
+              expectingKey = true;
+            }
+          }
+        }
+
+        return true;
+      }),
+      {
+        verbose: false,
+        numRuns: 1000,
+      }
+    );
+  });
+
+  it("should handle whitespace variations correctly", () => {
+    const genWhitespaceVariations = fc.tuple(genVoiceId, fc.tuple(genPropertyKey, genPropertyValue)).map(([voiceId, [key, value]]) => {
+      // Generate different whitespace patterns
+      return fc.sample(
+        fc.oneof(
+          // Normal spacing
+          fc.constant([voiceId, new Token(TT.WS, " ", sharedContext.generateId()), key, new Token(TT.WS, "=", sharedContext.generateId()), value]),
+          // Extra spaces
+          fc.constant([voiceId, new Token(TT.WS, "   ", sharedContext.generateId()), key, new Token(TT.WS, " = ", sharedContext.generateId()), value]),
+          // Leading whitespace
+          fc.constant([
+            new Token(TT.WS, "  ", sharedContext.generateId()),
+            voiceId,
+            new Token(TT.WS, " ", sharedContext.generateId()),
+            key,
+            new Token(TT.WS, "=", sharedContext.generateId()),
+            value,
+          ])
+        ),
+        1
+      )[0];
+    });
+
+    fc.assert(
+      fc.property(genWhitespaceVariations, (tokens) => {
+        const input = tokens.map((t) => t.lexeme).join("");
+        const ctx = createCtx(input);
+        const result = scnvx(ctx);
+
+        // Should successfully parse and produce expected token types
+        const nonWhitespaceTokens = result.filter((t) => t.type !== TT.WS);
+        return (
+          nonWhitespaceTokens.length >= 3 &&
+          nonWhitespaceTokens[0].type === TT.VX_ID &&
+          nonWhitespaceTokens[1].type === TT.VX_K &&
+          nonWhitespaceTokens[2].type === TT.VX_V
+        );
+      }),
+      {
+        verbose: false,
+        numRuns: 500,
+      }
+    );
+  });
+
+  it("should never crash on generated voice definitions", () => {
+    fc.assert(
+      fc.property(genVoiceDefinition, (tokens) => {
+        try {
+          const input = tokens.map((t) => t.lexeme).join("");
+          const ctx = createCtx(input);
+          scnvx(ctx);
+          return true;
+        } catch (e) {
+          console.log("Crash on input:", tokens.map((t) => t.lexeme).join(""), e);
+          return false;
+        }
+      }),
+      {
+        verbose: false,
+        numRuns: 1000,
+      }
+    );
+  });
+
+  it("should handle quoted string values correctly", () => {
+    const genQuotedStringTest = fc.tuple(
+      genVoiceId,
+      fc.constantFrom("name").map((key) => new Token(TT.VX_K, key, sharedContext.generateId())),
+      fc
+        .string({ minLength: 1, maxLength: 15 })
+        .filter((s) => !s.includes('"') && !s.includes("\n"))
+        .map((s) => new Token(TT.VX_V, `"${s}"`, sharedContext.generateId()))
+    );
+
+    fc.assert(
+      fc.property(genQuotedStringTest, ([voiceId, key, quotedValue]) => {
+        const input = `${voiceId.lexeme} ${key.lexeme}=${quotedValue.lexeme}`;
+        const ctx = createCtx(input);
+        const result = scnvx(ctx);
+
+        return (
+          result.length === 3 &&
+          result[0].type === TT.VX_ID &&
+          result[1].type === TT.VX_K &&
+          result[2].type === TT.VX_V &&
+          result[2].lexeme === quotedValue.lexeme
+        );
+      }),
+      {
+        verbose: false,
+        numRuns: 500,
+      }
+    );
+  });
+
+  it("should handle numeric property values correctly", () => {
+    const genNumericTest = fc.tuple(
+      genVoiceId,
+      fc.constantFrom("transpose", "octave", "stafflines").map((key) => new Token(TT.VX_K, key, sharedContext.generateId())),
+      fc.integer({ min: -12, max: 12 }).map((n) => new Token(TT.VX_V, n.toString(), sharedContext.generateId()))
+    );
+
+    fc.assert(
+      fc.property(genNumericTest, ([voiceId, key, numValue]) => {
+        const input = `${voiceId.lexeme} ${key.lexeme}=${numValue.lexeme}`;
+        const ctx = createCtx(input);
+        const result = scnvx(ctx);
+
+        return (
+          result.length === 3 &&
+          result[0].type === TT.VX_ID &&
+          result[1].type === TT.VX_K &&
+          result[2].type === TT.VX_V &&
+          result[2].lexeme === numValue.lexeme
+        );
+      }),
+      {
+        verbose: false,
+        numRuns: 500,
+      }
+    );
+  });
+
+  it("should handle special perc keyword correctly", () => {
+    const genPercTest = fc.tuple(
+      genVoiceId,
+      fc.constantFrom("perc").map((perc) => new Token(TT.VX_V, perc, sharedContext.generateId()))
+    );
+
+    fc.assert(
+      fc.property(genPercTest, ([voiceId, percToken]) => {
+        const input = `${voiceId.lexeme} ${percToken.lexeme}`;
+        const ctx = createCtx(input);
+        const result = scnvx(ctx);
+
+        return result.length >= 2 && result[0].type === TT.VX_ID && result.some((t) => t.lexeme === "perc");
+      }),
+      {
+        verbose: false,
+        numRuns: 200,
+      }
+    );
   });
 });

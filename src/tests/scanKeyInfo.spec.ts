@@ -11,7 +11,7 @@ function createTestContext(source: string): Ctx {
   return new Ctx(source, abcContext);
 }
 
-describe.only("scanKeyInfo", () => {
+describe("scanKeyInfo", () => {
   it("should scan simple key root", () => {
     const ctx = createTestContext("C");
     const result = scanKeyInfo(ctx);
@@ -188,7 +188,7 @@ describe.only("scanKeyInfo", () => {
   });
 });
 
-describe.only("scanKeyInfo Property-Based Tests", () => {
+describe("scanKeyInfo Property-Based Tests", () => {
   // Key signature component generators
   const genKeyRoot = fc.constantFrom("A", "B", "C", "D", "E", "F", "G").map((root) => new Token(TT.KEY_ROOT, root, sharedContext.generateId()));
 
