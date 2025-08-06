@@ -219,6 +219,8 @@ export enum TT {
   METER_PLUS, // Addition operator (+)
   METER_LPAREN, // Left parenthesis (
   METER_RPAREN, // Right parenthesis )
+  NOTE_LEN_NUM, // Note length numerator (1, 2, 3, etc.)
+  NOTE_LEN_DENOM, // Note length denominator (4, 8, 16, etc.)
   COMMENT,
   DECORATION,
   EOF,

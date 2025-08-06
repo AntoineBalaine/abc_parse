@@ -11,7 +11,7 @@ function createTestContext(source: string): Ctx {
   return new Ctx(source, abcContext);
 }
 
-describe.only("scanMeterInfo", () => {
+describe("scanMeterInfo", () => {
   it("should scan simple meter 4/4", () => {
     const ctx = createTestContext("4/4");
     const result = scanMeterInfo(ctx);

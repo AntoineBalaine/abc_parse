@@ -1,0 +1,368 @@
+import assert from "assert";
+import * as fc from "fast-check";
+import { describe, it } from "mocha";
+import { Ctx, TT, Token } from "../parsers/scan2";
+import { scanNoteLenInfo } from "../parsers/scanNoteLenInfo";
+import { ABCContext } from "../parsers/Context";
+import { sharedContext } from "./scn_pbt.generators.spec";
+
+function createTestContext(source: string): Ctx {
+  const abcContext = new ABCContext();
+  return new Ctx(source, abcContext);
+}
+
+describe.only("scanNoteLenInfo", () => {
+  it("should scan simple note length with numerator and denominator", () => {
+    const ctx = createTestContext("1/4");
+    const result = scanNoteLenInfo(ctx);
+
+    assert.equal(result, true);
+    assert.equal(ctx.tokens.length, 2);
+    assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
+    assert.equal(ctx.tokens[0].lexeme, "1");
+    assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
+    assert.equal(ctx.tokens[1].lexeme, "4");
+  });
+
+  it("should scan eighth note", () => {
+    const ctx = createTestContext("1/8");
+    const result = scanNoteLenInfo(ctx);
+
+    assert.equal(result, true);
+    assert.equal(ctx.tokens.length, 2);
+    assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
+    assert.equal(ctx.tokens[0].lexeme, "1");
+    assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
+    assert.equal(ctx.tokens[1].lexeme, "8");
+  });
+
+  it("should scan sixteenth note", () => {
+    const ctx = createTestContext("1/16");
+    const result = scanNoteLenInfo(ctx);
+
+    assert.equal(result, true);
+    assert.equal(ctx.tokens.length, 2);
+    assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
+    assert.equal(ctx.tokens[0].lexeme, "1");
+    assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
+    assert.equal(ctx.tokens[1].lexeme, "16");
+  });
+
+  it("should scan half note", () => {
+    const ctx = createTestContext("1/2");
+    const result = scanNoteLenInfo(ctx);
+
+    assert.equal(result, true);
+    assert.equal(ctx.tokens.length, 2);
+    assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
+    assert.equal(ctx.tokens[0].lexeme, "1");
+    assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
+    assert.equal(ctx.tokens[1].lexeme, "2");
+  });
+
+  it("should scan whole note as 1/1", () => {
+    const ctx = createTestContext("1/1");
+    const result = scanNoteLenInfo(ctx);
+
+    assert.equal(result, true);
+    assert.equal(ctx.tokens.length, 2);
+    assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
+    assert.equal(ctx.tokens[0].lexeme, "1");
+    assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
+    assert.equal(ctx.tokens[1].lexeme, "1");
+  });
+
+  it("should scan very short note lengths", () => {
+    const testCases = ["1/32", "1/64", "1/128", "1/256", "1/512"];
+
+    testCases.forEach((testCase) => {
+      const ctx = createTestContext(testCase);
+      const result = scanNoteLenInfo(ctx);
+      const [num, denom] = testCase.split("/");
+
+      assert.equal(result, true, `Failed for ${testCase}`);
+      assert.equal(ctx.tokens.length, 2, `Wrong token count for ${testCase}`);
+      assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM, `Wrong numerator token type for ${testCase}`);
+      assert.equal(ctx.tokens[0].lexeme, num, `Wrong numerator lexeme for ${testCase}`);
+      assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM, `Wrong denominator token type for ${testCase}`);
+      assert.equal(ctx.tokens[1].lexeme, denom, `Wrong denominator lexeme for ${testCase}`);
+    });
+  });
+
+  it("should scan note length with larger numerator", () => {
+    const ctx = createTestContext("3/4");
+    const result = scanNoteLenInfo(ctx);
+
+    assert.equal(result, true);
+    assert.equal(ctx.tokens.length, 2);
+    assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
+    assert.equal(ctx.tokens[0].lexeme, "3");
+    assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
+    assert.equal(ctx.tokens[1].lexeme, "4");
+  });
+
+  it("should scan note length with multi-digit numbers", () => {
+    const ctx = createTestContext("12/16");
+    const result = scanNoteLenInfo(ctx);
+
+    assert.equal(result, true);
+    assert.equal(ctx.tokens.length, 2);
+    assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
+    assert.equal(ctx.tokens[0].lexeme, "12");
+    assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
+    assert.equal(ctx.tokens[1].lexeme, "16");
+  });
+
+  it("should handle whitespace around slash", () => {
+    const ctx = createTestContext("1 / 4");
+    const result = scanNoteLenInfo(ctx);
+
+    assert.equal(result, true);
+    assert.equal(ctx.tokens.length, 2);
+    assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
+    assert.equal(ctx.tokens[0].lexeme, "1");
+    assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
+    assert.equal(ctx.tokens[1].lexeme, "4");
+  });
+
+  it("should handle leading whitespace", () => {
+    const ctx = createTestContext("  1/8  ");
+    const result = scanNoteLenInfo(ctx);
+
+    assert.equal(result, true);
+    assert.equal(ctx.tokens.length, 2);
+    assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
+    assert.equal(ctx.tokens[0].lexeme, "1");
+    assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
+    assert.equal(ctx.tokens[1].lexeme, "8");
+  });
+
+  it("should return false for invalid format - no denominator", () => {
+    const ctx = createTestContext("1/");
+    const result = scanNoteLenInfo(ctx);
+
+    assert.equal(result, false);
+  });
+
+  it("should return false for invalid format - denominator starting with 0", () => {
+    const ctx = createTestContext("1/0");
+    const result = scanNoteLenInfo(ctx);
+
+    assert.equal(result, false);
+  });
+
+  it("should return false for invalid format - numerator starting with 0", () => {
+    const ctx = createTestContext("0/4");
+    const result = scanNoteLenInfo(ctx);
+
+    assert.equal(result, false);
+  });
+
+  it("should return false for empty string", () => {
+    const ctx = createTestContext("");
+    const result = scanNoteLenInfo(ctx);
+
+    assert.equal(result, false);
+  });
+
+  it("should return false for invalid characters", () => {
+    const ctx = createTestContext("a/b");
+    const result = scanNoteLenInfo(ctx);
+
+    assert.equal(result, false);
+  });
+
+  it("should return true for slash and denom", () => {
+    const ctx = createTestContext("/14");
+    const result = scanNoteLenInfo(ctx);
+
+    assert.equal(result, true);
+  });
+  it("should return true for denom-only", () => {
+    const ctx = createTestContext("14");
+    const result = scanNoteLenInfo(ctx);
+
+    assert.equal(result, true);
+  });
+});
+
+describe.only("scanNoteLenInfo Property-Based Tests", () => {
+  // Note length component generators
+  const genNoteLenNum = fc.integer({ min: 1, max: 999 }).map((num) => new Token(TT.NOTE_LEN_NUM, num.toString(), sharedContext.generateId()));
+
+  const genNoteLenDenom = fc
+    .constantFrom(1, 2, 4, 8, 16, 32, 64, 128, 256, 512)
+    .map((denom) => new Token(TT.NOTE_LEN_DENOM, denom.toString(), sharedContext.generateId()));
+
+  const genWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws, sharedContext.generateId()));
+
+  // Generator for complete note length signatures with optional whitespace
+  const genNoteLenSignature = fc
+    .tuple(
+      fc.option(genWhitespace), // leading whitespace
+      genNoteLenNum,
+      fc.option(genWhitespace), // whitespace before slash
+      fc.option(genWhitespace), // whitespace after slash
+      genNoteLenDenom,
+      fc.option(genWhitespace) // trailing whitespace
+    )
+    .map(([leadingWs, num, wsBeforeSlash, wsAfterSlash, denom, trailingWs]) => {
+      const tokens: Token[] = [];
+
+      if (leadingWs) tokens.push(leadingWs);
+      tokens.push(num);
+      if (wsBeforeSlash) tokens.push(wsBeforeSlash);
+      // Add the slash (not as a token, just as text)
+      tokens.push(new Token(TT.WS, "/", sharedContext.generateId()));
+      if (wsAfterSlash) tokens.push(wsAfterSlash);
+      tokens.push(denom);
+      if (trailingWs) tokens.push(trailingWs);
+
+      return tokens;
+    });
+
+  function createRoundTripPredicate(tokens: Token[]): boolean {
+    // Convert tokens to string, handling the slash specially
+    const input = tokens
+      .map((t) => {
+        if (t.lexeme === "/") return "/";
+        return t.lexeme;
+      })
+      .join("");
+
+    // Scan the input
+    const ctx = createTestContext(input);
+    const result = scanNoteLenInfo(ctx);
+
+    if (!result) {
+      return false;
+    }
+
+    // Filter out whitespace tokens and slash from original
+    const originalFiltered = tokens.filter((t) => t.type !== TT.WS && t.lexeme !== "/");
+    const scannedFiltered = ctx.tokens.filter((t) => t.type !== TT.WS);
+
+    // Compare token counts
+    if (originalFiltered.length !== scannedFiltered.length) {
+      console.log("Token count mismatch:", {
+        input,
+        originalCount: originalFiltered.length,
+        scannedCount: scannedFiltered.length,
+        original: originalFiltered.map((t) => `${TT[t.type]}:${t.lexeme}`),
+        scanned: scannedFiltered.map((t) => `${TT[t.type]}:${t.lexeme}`),
+      });
+      return false;
+    }
+
+    // Compare token types and lexemes
+    for (let i = 0; i < originalFiltered.length; i++) {
+      const orig = originalFiltered[i];
+      const scanned = scannedFiltered[i];
+
+      if (orig.type !== scanned.type || orig.lexeme !== scanned.lexeme) {
+        console.log("Token mismatch at position", i, {
+          input,
+          original: `${TT[orig.type]}:${orig.lexeme}`,
+          scanned: `${TT[scanned.type]}:${scanned.lexeme}`,
+        });
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  it("should produce equivalent tokens when rescanning note length signatures", () => {
+    fc.assert(fc.property(genNoteLenSignature, createRoundTripPredicate), {
+      verbose: false,
+      numRuns: 1000,
+    });
+  });
+
+  it("should always succeed on valid note length patterns", () => {
+    fc.assert(
+      fc.property(genNoteLenSignature, (tokens) => {
+        const input = tokens
+          .map((t) => {
+            if (t.lexeme === "/") return "/";
+            return t.lexeme;
+          })
+          .join("");
+        const ctx = createTestContext(input);
+        const result = scanNoteLenInfo(ctx);
+
+        return result === true && ctx.tokens.length >= 2;
+      }),
+      {
+        verbose: false,
+        numRuns: 1000,
+      }
+    );
+  });
+
+  it("should handle various numerator values", () => {
+    const genVariousNumerators = fc
+      .tuple(fc.integer({ min: 1, max: 16 }), genNoteLenDenom)
+      .map(([num, denom]) => [new Token(TT.NOTE_LEN_NUM, num.toString(), sharedContext.generateId()), denom]);
+
+    fc.assert(
+      fc.property(genVariousNumerators, (tokens) => {
+        const input = `${tokens[0].lexeme}/${tokens[1].lexeme}`;
+        const ctx = createTestContext(input);
+        const result = scanNoteLenInfo(ctx);
+
+        const numToken = ctx.tokens.find((t) => t.type === TT.NOTE_LEN_NUM);
+        const denomToken = ctx.tokens.find((t) => t.type === TT.NOTE_LEN_DENOM);
+
+        return result === true && numToken?.lexeme === tokens[0].lexeme && denomToken?.lexeme === tokens[1].lexeme;
+      }),
+      {
+        verbose: false,
+        numRuns: 500,
+      }
+    );
+  });
+
+  it("should handle standard ABC note length denominators", () => {
+    const standardDenominators = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512];
+
+    fc.assert(
+      fc.property(fc.constantFrom(...standardDenominators), fc.integer({ min: 1, max: 8 }), (denom, num) => {
+        const input = `${num}/${denom}`;
+        const ctx = createTestContext(input);
+        const result = scanNoteLenInfo(ctx);
+
+        return result === true && ctx.tokens.length === 2;
+      }),
+      {
+        verbose: false,
+        numRuns: 200,
+      }
+    );
+  });
+
+  it("should never crash on generated note length signatures", () => {
+    fc.assert(
+      fc.property(genNoteLenSignature, (tokens) => {
+        try {
+          const input = tokens
+            .map((t) => {
+              if (t.lexeme === "/") return "/";
+              return t.lexeme;
+            })
+            .join("");
+          const ctx = createTestContext(input);
+          scanNoteLenInfo(ctx);
+          return true;
+        } catch (e) {
+          console.log("Crash on input:", tokens.map((t) => t.lexeme).join(""), e);
+          return false;
+        }
+      }),
+      {
+        verbose: false,
+        numRuns: 1000,
+      }
+    );
+  });
+});
