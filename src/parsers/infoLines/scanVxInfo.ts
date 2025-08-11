@@ -74,7 +74,7 @@ function scnVxId(ctx: Ctx): boolean {
  * Format: V:id [name="Name"] [clef=treble] [transpose=0] etc.
  * Examples: V:1, V:T1 name="Tenor 1" clef=treble, V:B clef=bass transpose=-12
  */
-export function scanVoiceInfo(ctx: Ctx): Array<Token> {
+export function scanVoiceInfo(ctx: Ctx): boolean {
   let found_id = false;
   while (!isAtEnd(ctx)) {
     if (WS(ctx, true)) continue;
@@ -88,7 +88,11 @@ export function scanVoiceInfo(ctx: Ctx): Array<Token> {
     if (scnValue(ctx)) continue;
   }
 
-  return ctx.tokens;
+  if (!found_id) {
+    ctx.report("Voice info line must start with V:id");
+    return false;
+  }
+  return true;
 }
 
 function applyVx(properties: VoiceProperties, key: string, value: string): void {
