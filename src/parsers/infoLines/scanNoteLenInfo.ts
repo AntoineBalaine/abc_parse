@@ -1,5 +1,5 @@
-import { Ctx, TT, WS, consume } from "./scan2";
-import { pNumber } from "./scan_tunebody";
+import { Ctx, TT, WS, consume } from "../scan2";
+import { pNumber } from "../scan_tunebody";
 
 /**
  * Scan a note length info line content
@@ -14,9 +14,7 @@ export function scanNoteLenInfo(ctx: Ctx): boolean {
 
   // Check if we have a numerator (optional)
   if (ctx.test(/[1-9][0-9]*\s*\//)) {
-    const match = new RegExp(`^${pNumber.source}`).exec(
-      ctx.source.substring(ctx.current),
-    );
+    const match = new RegExp(`^${pNumber.source}`).exec(ctx.source.substring(ctx.current));
     if (match) {
       ctx.current += match[0].length;
       ctx.push(TT.NOTE_LEN_NUM);
@@ -34,9 +32,7 @@ export function scanNoteLenInfo(ctx: Ctx): boolean {
 
   // Parse denominator (required after separator)
   if (ctx.test(/[1-9][0-9]*/)) {
-    const match = new RegExp(`^${pNumber.source}`).exec(
-      ctx.source.substring(ctx.current),
-    );
+    const match = new RegExp(`^${pNumber.source}`).exec(ctx.source.substring(ctx.current));
     if (match) {
       ctx.current += match[0].length;
       ctx.push(TT.NOTE_LEN_DENOM);

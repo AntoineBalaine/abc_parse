@@ -1,4 +1,4 @@
-import { Ctx, TT, WS, advance, isAtEnd } from "./scan2";
+import { Ctx, TT, WS, advance, isAtEnd } from "../scan2";
 
 // Pattern definitions for key signature components
 export const pKeyRoot = /[A-G]/;

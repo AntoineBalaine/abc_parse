@@ -1,5 +1,5 @@
-import { Ctx, TT, WS, advance, isAtEnd, collectInvalidInfoLn, consume } from "./scan2";
-import { comment, pEOL, pNumber } from "./scan_tunebody";
+import { Ctx, TT, WS, advance, isAtEnd, collectInvalidInfoLn, consume } from "../scan2";
+import { comment, pEOL, pNumber } from "../scan_tunebody";
 
 function stringLiteral(ctx: Ctx, type: TT): boolean {
   if (!ctx.test(/"[^"]*"/)) {

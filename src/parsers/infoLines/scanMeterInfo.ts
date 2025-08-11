@@ -1,5 +1,5 @@
-import { Ctx, TT, WS, advance, isAtEnd, collectInvalidInfoLn } from "./scan2";
-import { comment, pEOL } from "./scan_tunebody";
+import { Ctx, TT, WS, advance, isAtEnd, collectInvalidInfoLn } from "../scan2";
+import { comment, pEOL } from "../scan_tunebody";
 
 /**
  * Scan a meter info line content

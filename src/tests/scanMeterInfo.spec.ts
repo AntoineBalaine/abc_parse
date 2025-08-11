@@ -2,7 +2,7 @@ import { assert } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";
 import { Ctx, TT, Token } from "../parsers/scan2";
-import { scanMeterInfo } from "../parsers/scanMeterInfo";
+import { scanMeterInfo } from "../parsers/infoLines/scanMeterInfo";
 import { ABCContext } from "../parsers/Context";
 import { sharedContext } from "./scn_pbt.generators.spec";
 
