@@ -18,7 +18,7 @@ function stringLiteral(ctx: Ctx, type: TT): boolean {
  * tempo_definition := (note_sequence "=")? integer
  * Examples: "Allegro", 120, 1/4=120, "Easy Swing" 1/4=140, C3=120
  */
-export function tempLn(ctx: Ctx): boolean {
+export function scanTempoInfo(ctx: Ctx): boolean {
   while (!isAtEnd(ctx) && !ctx.test(pEOL) && !comment(ctx)) {
     WS(ctx, true);
     if (stringLiteral(ctx, TT.TEMPO_TEXT)) continue;

@@ -4,7 +4,7 @@ import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { Ctx, TT, Token } from "../parsers/scan2";
 import { sharedContext, genCommentToken } from "./scn_pbt.generators.spec";
-import { scnvx } from "../parsers/infoLines/scanVxInfo";
+import { scanVoiceInfo } from "../parsers/infoLines/scanVxInfo";
 
 // Helper function to create a Ctx object for testing
 function createCtx(source: string): Ctx {
@@ -16,7 +16,7 @@ describe("scnvx", () => {
   describe("Basic Voice ID Parsing", () => {
     it("should parse a simple numeric voice ID", () => {
       const ctx = createCtx("1");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 1);
       assert.equal(result[0].type, TT.VX_ID);
@@ -25,7 +25,7 @@ describe("scnvx", () => {
 
     it("should parse an alphabetic voice ID", () => {
       const ctx = createCtx("melody");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 1);
       assert.equal(result[0].type, TT.VX_ID);
@@ -34,7 +34,7 @@ describe("scnvx", () => {
 
     it("should parse a mixed alphanumeric voice ID", () => {
       const ctx = createCtx("voice1");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 1);
       assert.equal(result[0].type, TT.VX_ID);
@@ -43,7 +43,7 @@ describe("scnvx", () => {
 
     it("should parse uppercase voice ID", () => {
       const ctx = createCtx("SOPRANO");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 1);
       assert.equal(result[0].type, TT.VX_ID);
@@ -54,7 +54,7 @@ describe("scnvx", () => {
   describe("Single Property Parsing", () => {
     it("should parse voice ID with name property", () => {
       const ctx = createCtx("1 name=Melody");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 3);
       assert.equal(result[0].type, TT.VX_ID);
@@ -67,7 +67,7 @@ describe("scnvx", () => {
 
     it("should parse voice ID with clef property", () => {
       const ctx = createCtx("bass clef=bass");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 3);
       assert.equal(result[0].type, TT.VX_ID);
@@ -80,7 +80,7 @@ describe("scnvx", () => {
 
     it("should parse voice ID with transpose property", () => {
       const ctx = createCtx("1 transpose=2");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 3);
       assert.equal(result[0].type, TT.VX_ID);
@@ -93,7 +93,7 @@ describe("scnvx", () => {
 
     it("should parse voice ID with octave property", () => {
       const ctx = createCtx("1 octave=-1");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 3);
       assert.equal(result[0].type, TT.VX_ID);
@@ -108,7 +108,7 @@ describe("scnvx", () => {
   describe("Multiple Properties Parsing", () => {
     it("should parse voice ID with multiple properties", () => {
       const ctx = createCtx("1 name=Melody clef=treble transpose=2");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 7);
       assert.equal(result[0].type, TT.VX_ID);
@@ -129,7 +129,7 @@ describe("scnvx", () => {
 
     it("should parse voice ID with all common properties", () => {
       const ctx = createCtx("melody name=Melody clef=treble transpose=2 octave=1 stafflines=5");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 11);
       assert.equal(result[0].type, TT.VX_ID);
@@ -148,7 +148,7 @@ describe("scnvx", () => {
   describe("String Literal Values", () => {
     it("should parse quoted string values", () => {
       const ctx = createCtx('1 name="My Voice"');
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 3);
       assert.equal(result[0].type, TT.VX_ID);
@@ -161,7 +161,7 @@ describe("scnvx", () => {
 
     it("should parse quoted string with spaces", () => {
       const ctx = createCtx('soprano name="Soprano Voice Part"');
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 3);
       assert.equal(result[0].type, TT.VX_ID);
@@ -176,7 +176,7 @@ describe("scnvx", () => {
   describe("Special Value: perc", () => {
     it("should parse perc as a standalone value (omitted style key)", () => {
       const ctx = createCtx("1 perc");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       // Based on user clarification, perc should be treated as a value where style key is omitted
       // The exact behavior may depend on implementation details
@@ -191,7 +191,7 @@ describe("scnvx", () => {
 
     it("should parse perc with other properties", () => {
       const ctx = createCtx("drums perc name=Drums");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.isTrue(result.length >= 4);
       assert.equal(result[0].type, TT.VX_ID);
@@ -211,7 +211,7 @@ describe("scnvx", () => {
   describe("Whitespace Handling", () => {
     it("should handle spaces around equals signs", () => {
       const ctx = createCtx("1 name = Melody");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 3);
       assert.equal(result[0].type, TT.VX_ID);
@@ -224,7 +224,7 @@ describe("scnvx", () => {
 
     it("should handle multiple spaces between properties", () => {
       const ctx = createCtx("1   name=Melody    clef=treble");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 5);
       assert.equal(result[0].type, TT.VX_ID);
@@ -241,7 +241,7 @@ describe("scnvx", () => {
 
     it("should handle leading whitespace", () => {
       const ctx = createCtx("  1 name=Melody");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 3);
       assert.equal(result[0].type, TT.VX_ID);
@@ -279,7 +279,7 @@ describe("scnvx", () => {
 
       properties.forEach((prop) => {
         const ctx = createCtx(`1 ${prop}=value`);
-        const result = scnvx(ctx);
+        const result = scanVoiceInfo(ctx);
 
         assert.equal(result.length, 3, `Failed for property: ${prop}`);
         assert.equal(result[0].type, TT.VX_ID);
@@ -292,7 +292,7 @@ describe("scnvx", () => {
 
     it("should handle case-sensitive property keys", () => {
       const ctx = createCtx("1 Name=Melody");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 3);
       assert.equal(result[1].type, TT.VX_K);
@@ -303,7 +303,7 @@ describe("scnvx", () => {
   describe("Numeric Values", () => {
     it("should parse positive integer values", () => {
       const ctx = createCtx("1 transpose=5");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 3);
       assert.equal(result[2].type, TT.VX_V);
@@ -312,7 +312,7 @@ describe("scnvx", () => {
 
     it("should parse negative integer values", () => {
       const ctx = createCtx("1 octave=-2");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 3);
       assert.equal(result[2].type, TT.VX_V);
@@ -321,7 +321,7 @@ describe("scnvx", () => {
 
     it("should parse decimal values", () => {
       const ctx = createCtx("1 staffscale=1.5");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 3);
       assert.equal(result[2].type, TT.VX_V);
@@ -332,7 +332,7 @@ describe("scnvx", () => {
   describe("Boolean-like Values", () => {
     it("should parse true/false values", () => {
       const ctx = createCtx("1 merge=true");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 3);
       assert.equal(result[2].type, TT.VX_V);
@@ -341,7 +341,7 @@ describe("scnvx", () => {
 
     it("should parse 1/0 values", () => {
       const ctx = createCtx("1 merge=1");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 3);
       assert.equal(result[2].type, TT.VX_V);
@@ -352,7 +352,7 @@ describe("scnvx", () => {
   describe("Edge Cases", () => {
     it("should handle empty input", () => {
       const ctx = createCtx("");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.isArray(result);
       assert.equal(result.length, 0);
@@ -360,7 +360,7 @@ describe("scnvx", () => {
 
     it("should handle whitespace-only input", () => {
       const ctx = createCtx("   ");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.isArray(result);
       // Should not produce any meaningful tokens
@@ -368,7 +368,7 @@ describe("scnvx", () => {
 
     it("should handle voice ID only", () => {
       const ctx = createCtx("melody");
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 1);
       assert.equal(result[0].type, TT.VX_ID);
@@ -379,7 +379,7 @@ describe("scnvx", () => {
   describe("Complex Real-world Examples", () => {
     it("should parse a typical melody voice definition", () => {
       const ctx = createCtx('1 name="Melody" clef=treble transpose=0 octave=0');
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 9);
       assert.equal(result[0].lexeme, "1");
@@ -395,7 +395,7 @@ describe("scnvx", () => {
 
     it("should parse a bass voice definition", () => {
       const ctx = createCtx('bass name="Bass Line" clef=bass octave=-1 stems=down');
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.equal(result.length, 9);
       assert.equal(result[0].lexeme, "bass");
@@ -411,7 +411,7 @@ describe("scnvx", () => {
 
     it("should parse a percussion voice definition", () => {
       const ctx = createCtx('drums perc name="Drum Kit" stafflines=1');
-      const result = scnvx(ctx);
+      const result = scanVoiceInfo(ctx);
 
       assert.isTrue(result.length >= 5);
       assert.equal(result[0].lexeme, "drums");
@@ -556,7 +556,7 @@ describe("scnvx Property-Based Tests", () => {
 
     // Scan the input
     const ctx = createCtx(input);
-    const result = scnvx(ctx);
+    const result = scanVoiceInfo(ctx);
 
     // Filter out whitespace tokens from both original and scanned
     const originalFiltered = tokens.filter((t) => t.type !== TT.WS);
@@ -606,7 +606,7 @@ describe("scnvx Property-Based Tests", () => {
         if (input.trim() === "") return true;
 
         const ctx = createCtx(input);
-        const result = scnvx(ctx);
+        const result = scanVoiceInfo(ctx);
 
         return result.length === 0 || result[0].type === TT.VX_ID;
       }),
@@ -624,7 +624,7 @@ describe("scnvx Property-Based Tests", () => {
         if (input.trim() === "") return true;
 
         const ctx = createCtx(input);
-        const result = scnvx(ctx);
+        const result = scanVoiceInfo(ctx);
 
         if (result.length === 0) return true;
 
@@ -688,7 +688,7 @@ describe("scnvx Property-Based Tests", () => {
       fc.property(genWhitespaceVariations, (tokens) => {
         const input = tokens.map((t) => t.lexeme).join("");
         const ctx = createCtx(input);
-        const result = scnvx(ctx);
+        const result = scanVoiceInfo(ctx);
 
         // Should successfully parse and produce expected token types
         const nonWhitespaceTokens = result.filter((t) => t.type !== TT.WS);
@@ -712,7 +712,7 @@ describe("scnvx Property-Based Tests", () => {
         try {
           const input = tokens.map((t) => t.lexeme).join("");
           const ctx = createCtx(input);
-          scnvx(ctx);
+          scanVoiceInfo(ctx);
           return true;
         } catch (e) {
           console.log("Crash on input:", tokens.map((t) => t.lexeme).join(""), e);
@@ -740,7 +740,7 @@ describe("scnvx Property-Based Tests", () => {
       fc.property(genQuotedStringTest, ([voiceId, key, quotedValue]) => {
         const input = `${voiceId.lexeme} ${key.lexeme}=${quotedValue.lexeme}`;
         const ctx = createCtx(input);
-        const result = scnvx(ctx);
+        const result = scanVoiceInfo(ctx);
 
         return (
           result.length === 3 &&
@@ -768,7 +768,7 @@ describe("scnvx Property-Based Tests", () => {
       fc.property(genNumericTest, ([voiceId, key, numValue]) => {
         const input = `${voiceId.lexeme} ${key.lexeme}=${numValue.lexeme}`;
         const ctx = createCtx(input);
-        const result = scnvx(ctx);
+        const result = scanVoiceInfo(ctx);
 
         return (
           result.length === 3 &&
@@ -795,7 +795,7 @@ describe("scnvx Property-Based Tests", () => {
       fc.property(genPercTest, ([voiceId, percToken]) => {
         const input = `${voiceId.lexeme} ${percToken.lexeme}`;
         const ctx = createCtx(input);
-        const result = scnvx(ctx);
+        const result = scanVoiceInfo(ctx);
 
         return result.length >= 2 && result[0].type === TT.VX_ID && result.some((t) => t.lexeme === "perc");
       }),

@@ -2,7 +2,7 @@ import assert from "assert";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";
 import { Ctx, TT, Token } from "../parsers/scan2";
-import { tempLn } from "../parsers/infoLines/scanTempoInfo";
+import { scanTempoInfo } from "../parsers/infoLines/scanTempoInfo";
 import { ABCContext } from "../parsers/Context";
 import { sharedContext } from "./scn_pbt.generators.spec";
 
@@ -15,7 +15,7 @@ describe("scanTempoInfo", () => {
   describe("Text-only tempo markings", () => {
     it("should scan simple quoted text", () => {
       const ctx = createTestContext('"Allegro"');
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_TEXT);
@@ -24,7 +24,7 @@ describe("scanTempoInfo", () => {
 
     it("should scan text with spaces", () => {
       const ctx = createTestContext('"Bossa Nova"');
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_TEXT);
@@ -33,7 +33,7 @@ describe("scanTempoInfo", () => {
 
     it("should scan empty quoted text", () => {
       const ctx = createTestContext('""');
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_TEXT);
@@ -44,7 +44,7 @@ describe("scanTempoInfo", () => {
   describe("BPM-only tempo markings", () => {
     it("should scan simple BPM number", () => {
       const ctx = createTestContext("120");
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_BPM);
@@ -53,7 +53,7 @@ describe("scanTempoInfo", () => {
 
     it("should scan large BPM numbers", () => {
       const ctx = createTestContext("320");
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_BPM);
@@ -62,7 +62,7 @@ describe("scanTempoInfo", () => {
 
     it("should scan small BPM numbers", () => {
       const ctx = createTestContext("40");
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_BPM);
@@ -73,7 +73,7 @@ describe("scanTempoInfo", () => {
   describe("Simple note=BPM tempo markings", () => {
     it("should scan quarter note tempo", () => {
       const ctx = createTestContext("1/4=120");
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
@@ -86,7 +86,7 @@ describe("scanTempoInfo", () => {
 
     it("should scan eighth note tempo", () => {
       const ctx = createTestContext("1/8=200");
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
@@ -99,7 +99,7 @@ describe("scanTempoInfo", () => {
 
     it("should scan half note tempo", () => {
       const ctx = createTestContext("1/2=240");
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
@@ -112,7 +112,7 @@ describe("scanTempoInfo", () => {
 
     it("should scan dotted note tempo", () => {
       const ctx = createTestContext("3/8=100");
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
@@ -127,7 +127,7 @@ describe("scanTempoInfo", () => {
   describe("Note letter tempo markings", () => {
     it("should scan C3 tempo", () => {
       const ctx = createTestContext("C3=120");
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_NOTE_LETTER);
@@ -138,7 +138,7 @@ describe("scanTempoInfo", () => {
 
     it("should scan different note letters", () => {
       const ctx = createTestContext("G4=96");
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_NOTE_LETTER);
@@ -151,7 +151,7 @@ describe("scanTempoInfo", () => {
   describe("Complex note sequences", () => {
     it("should scan multiple note values", () => {
       const ctx = createTestContext("4/8 3/8 4/8=70");
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
 
@@ -179,7 +179,7 @@ describe("scanTempoInfo", () => {
 
     it("should scan mixed note types", () => {
       const ctx = createTestContext("2/16 3/16=60");
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
 
@@ -203,7 +203,7 @@ describe("scanTempoInfo", () => {
   describe("Mixed text and tempo", () => {
     it("should scan text before tempo", () => {
       const ctx = createTestContext('"Easy Swing" 1/4=140');
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_TEXT);
@@ -218,7 +218,7 @@ describe("scanTempoInfo", () => {
 
     it("should scan text after tempo", () => {
       const ctx = createTestContext('1/4=80 "slow"');
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
@@ -233,7 +233,7 @@ describe("scanTempoInfo", () => {
 
     it("should scan text before and after tempo", () => {
       const ctx = createTestContext('"Before" 1/4=120 "After"');
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_TEXT);
@@ -250,7 +250,7 @@ describe("scanTempoInfo", () => {
 
     it("should scan complex text with tempo", () => {
       const ctx = createTestContext('"adagio" 4/8 3/8 4/8=70 "andante"');
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_TEXT);
@@ -279,7 +279,7 @@ describe("scanTempoInfo", () => {
   describe("Whitespace handling", () => {
     it("should handle spaces around equals", () => {
       const ctx = createTestContext("1/4 = 120");
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
@@ -289,7 +289,7 @@ describe("scanTempoInfo", () => {
 
     it("should handle multiple spaces", () => {
       const ctx = createTestContext("  1/4  =  120  ");
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
@@ -299,7 +299,7 @@ describe("scanTempoInfo", () => {
 
     it("should handle tabs and spaces", () => {
       const ctx = createTestContext("\t1/4\t=\t120\t");
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
@@ -332,7 +332,7 @@ describe("scanTempoInfo", () => {
     realExamples.forEach((example, index) => {
       it(`should scan real example ${index + 1}: ${example}`, () => {
         const ctx = createTestContext(example);
-        const result = tempLn(ctx);
+        const result = scanTempoInfo(ctx);
 
         assert.equal(result, true, `Failed to scan: ${example}`);
         assert.equal(ctx.tokens.length > 0, true, `No tokens produced for: ${example}`);
@@ -343,7 +343,7 @@ describe("scanTempoInfo", () => {
   describe("Edge cases", () => {
     it("should handle empty input", () => {
       const ctx = createTestContext("");
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens.length, 0);
@@ -351,7 +351,7 @@ describe("scanTempoInfo", () => {
 
     it("should handle whitespace-only input", () => {
       const ctx = createTestContext("   ");
-      const result = tempLn(ctx);
+      const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
       assert.equal(ctx.tokens.length, 0);
@@ -452,7 +452,7 @@ describe("scanTempoInfo Property-Based Tests", () => {
 
     // Scan the input
     const ctx = createTestContext(input);
-    const result = tempLn(ctx);
+    const result = scanTempoInfo(ctx);
 
     if (!result) {
       console.log("Parsing failed for input:", {
@@ -516,7 +516,7 @@ describe("scanTempoInfo Property-Based Tests", () => {
         if (input.trim() === "") return true;
 
         const ctx = createTestContext(input);
-        const result = tempLn(ctx);
+        const result = scanTempoInfo(ctx);
 
         if (result !== true) {
           console.log("Failed to scan valid tempo pattern:", {
@@ -542,7 +542,7 @@ describe("scanTempoInfo Property-Based Tests", () => {
         try {
           const input = tokens.map((t) => t.lexeme).join("");
           const ctx = createTestContext(input);
-          tempLn(ctx);
+          scanTempoInfo(ctx);
           return true;
         } catch (error) {
           // TypeScript-safe error handling
