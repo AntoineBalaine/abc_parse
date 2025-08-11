@@ -285,7 +285,6 @@ export enum TT {
   TEMPO_TEXT, // Quoted text like "Allegro", "Slowly"
   TEMPO_NOTE_NUM, // Numerator of note value (1, 3, etc.)
   TEMPO_NOTE_DENOM, // Denominator of note value (4, 8, etc.)
-  TEMPO_EQUALS, // The "=" sign in tempo markings
   TEMPO_BPM, // The BPM number (120, 40, etc.)
   TEMPO_NOTE_LETTER, // Note letter in tempo markings like C3=120
 }

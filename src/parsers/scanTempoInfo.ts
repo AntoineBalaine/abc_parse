@@ -35,8 +35,7 @@ export function tempLn(ctx: Ctx): boolean {
 function bpm(ctx: Ctx): boolean {
   if (beatValues(ctx)) {
     if (ctx.test("=")) {
-      advance(ctx);
-      ctx.push(TT.TEMPO_EQUALS);
+      consume(ctx);
       WS(ctx, true);
 
       if (!int(ctx, TT.TEMPO_BPM)) {

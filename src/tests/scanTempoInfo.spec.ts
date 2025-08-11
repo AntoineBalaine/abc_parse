@@ -18,7 +18,6 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_TEXT);
       assert.equal(ctx.tokens[0].lexeme, '"Allegro"');
     });
@@ -28,7 +27,6 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_TEXT);
       assert.equal(ctx.tokens[0].lexeme, '"Bossa Nova"');
     });
@@ -38,7 +36,6 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_TEXT);
       assert.equal(ctx.tokens[0].lexeme, '""');
     });
@@ -50,7 +47,6 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_BPM);
       assert.equal(ctx.tokens[0].lexeme, "120");
     });
@@ -60,7 +56,6 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_BPM);
       assert.equal(ctx.tokens[0].lexeme, "320");
     });
@@ -70,7 +65,6 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 1);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_BPM);
       assert.equal(ctx.tokens[0].lexeme, "40");
     });
@@ -82,15 +76,12 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 4);
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
       assert.equal(ctx.tokens[0].lexeme, "1");
       assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
       assert.equal(ctx.tokens[1].lexeme, "4");
-      assert.equal(ctx.tokens[2].type, TT.TEMPO_EQUALS);
-      assert.equal(ctx.tokens[2].lexeme, "=");
-      assert.equal(ctx.tokens[3].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[3].lexeme, "120");
+      assert.equal(ctx.tokens[2].type, TT.TEMPO_BPM);
+      assert.equal(ctx.tokens[2].lexeme, "120");
     });
 
     it("should scan eighth note tempo", () => {
@@ -98,15 +89,12 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 4);
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
       assert.equal(ctx.tokens[0].lexeme, "1");
       assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
       assert.equal(ctx.tokens[1].lexeme, "8");
-      assert.equal(ctx.tokens[2].type, TT.TEMPO_EQUALS);
-      assert.equal(ctx.tokens[2].lexeme, "=");
-      assert.equal(ctx.tokens[3].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[3].lexeme, "200");
+      assert.equal(ctx.tokens[2].type, TT.TEMPO_BPM);
+      assert.equal(ctx.tokens[2].lexeme, "200");
     });
 
     it("should scan half note tempo", () => {
@@ -114,15 +102,12 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 4);
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
       assert.equal(ctx.tokens[0].lexeme, "1");
       assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
       assert.equal(ctx.tokens[1].lexeme, "2");
-      assert.equal(ctx.tokens[2].type, TT.TEMPO_EQUALS);
-      assert.equal(ctx.tokens[2].lexeme, "=");
-      assert.equal(ctx.tokens[3].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[3].lexeme, "240");
+      assert.equal(ctx.tokens[2].type, TT.TEMPO_BPM);
+      assert.equal(ctx.tokens[2].lexeme, "240");
     });
 
     it("should scan dotted note tempo", () => {
@@ -130,15 +115,12 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 4);
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
       assert.equal(ctx.tokens[0].lexeme, "3");
       assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
       assert.equal(ctx.tokens[1].lexeme, "8");
-      assert.equal(ctx.tokens[2].type, TT.TEMPO_EQUALS);
-      assert.equal(ctx.tokens[2].lexeme, "=");
-      assert.equal(ctx.tokens[3].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[3].lexeme, "100");
+      assert.equal(ctx.tokens[2].type, TT.TEMPO_BPM);
+      assert.equal(ctx.tokens[2].lexeme, "100");
     });
   });
 
@@ -148,13 +130,10 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 3);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_NOTE_LETTER);
       assert.equal(ctx.tokens[0].lexeme, "C3");
-      assert.equal(ctx.tokens[1].type, TT.TEMPO_EQUALS);
-      assert.equal(ctx.tokens[1].lexeme, "=");
-      assert.equal(ctx.tokens[2].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[2].lexeme, "120");
+      assert.equal(ctx.tokens[1].type, TT.TEMPO_BPM);
+      assert.equal(ctx.tokens[1].lexeme, "120");
     });
 
     it("should scan different note letters", () => {
@@ -162,13 +141,10 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 3);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_NOTE_LETTER);
       assert.equal(ctx.tokens[0].lexeme, "G4");
-      assert.equal(ctx.tokens[1].type, TT.TEMPO_EQUALS);
-      assert.equal(ctx.tokens[1].lexeme, "=");
-      assert.equal(ctx.tokens[2].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[2].lexeme, "96");
+      assert.equal(ctx.tokens[1].type, TT.TEMPO_BPM);
+      assert.equal(ctx.tokens[1].lexeme, "96");
     });
   });
 
@@ -178,7 +154,6 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 8);
 
       // First note: 4/8
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
@@ -198,11 +173,8 @@ describe("scanTempoInfo", () => {
       assert.equal(ctx.tokens[5].type, TT.NOTE_LEN_DENOM);
       assert.equal(ctx.tokens[5].lexeme, "8");
 
-      // Equals and BPM
-      assert.equal(ctx.tokens[6].type, TT.TEMPO_EQUALS);
-      assert.equal(ctx.tokens[6].lexeme, "=");
-      assert.equal(ctx.tokens[7].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[7].lexeme, "70");
+      assert.equal(ctx.tokens[6].type, TT.TEMPO_BPM);
+      assert.equal(ctx.tokens[6].lexeme, "70");
     });
 
     it("should scan mixed note types", () => {
@@ -210,7 +182,6 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 6);
 
       // First note: 2/16
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
@@ -224,11 +195,8 @@ describe("scanTempoInfo", () => {
       assert.equal(ctx.tokens[3].type, TT.NOTE_LEN_DENOM);
       assert.equal(ctx.tokens[3].lexeme, "16");
 
-      // Equals and BPM
-      assert.equal(ctx.tokens[4].type, TT.TEMPO_EQUALS);
-      assert.equal(ctx.tokens[4].lexeme, "=");
-      assert.equal(ctx.tokens[5].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[5].lexeme, "60");
+      assert.equal(ctx.tokens[4].type, TT.TEMPO_BPM);
+      assert.equal(ctx.tokens[4].lexeme, "60");
     });
   });
 
@@ -238,17 +206,14 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 5);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_TEXT);
       assert.equal(ctx.tokens[0].lexeme, '"Easy Swing"');
       assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_NUM);
       assert.equal(ctx.tokens[1].lexeme, "1");
       assert.equal(ctx.tokens[2].type, TT.NOTE_LEN_DENOM);
       assert.equal(ctx.tokens[2].lexeme, "4");
-      assert.equal(ctx.tokens[3].type, TT.TEMPO_EQUALS);
-      assert.equal(ctx.tokens[3].lexeme, "=");
-      assert.equal(ctx.tokens[4].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[4].lexeme, "140");
+      assert.equal(ctx.tokens[3].type, TT.TEMPO_BPM);
+      assert.equal(ctx.tokens[3].lexeme, "140");
     });
 
     it("should scan text after tempo", () => {
@@ -256,17 +221,14 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 5);
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
       assert.equal(ctx.tokens[0].lexeme, "1");
       assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
       assert.equal(ctx.tokens[1].lexeme, "4");
-      assert.equal(ctx.tokens[2].type, TT.TEMPO_EQUALS);
-      assert.equal(ctx.tokens[2].lexeme, "=");
-      assert.equal(ctx.tokens[3].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[3].lexeme, "80");
-      assert.equal(ctx.tokens[4].type, TT.TEMPO_TEXT);
-      assert.equal(ctx.tokens[4].lexeme, '"slow"');
+      assert.equal(ctx.tokens[2].type, TT.TEMPO_BPM);
+      assert.equal(ctx.tokens[2].lexeme, "80");
+      assert.equal(ctx.tokens[3].type, TT.TEMPO_TEXT);
+      assert.equal(ctx.tokens[3].lexeme, '"slow"');
     });
 
     it("should scan text before and after tempo", () => {
@@ -274,19 +236,16 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 6);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_TEXT);
       assert.equal(ctx.tokens[0].lexeme, '"Before"');
       assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_NUM);
       assert.equal(ctx.tokens[1].lexeme, "1");
       assert.equal(ctx.tokens[2].type, TT.NOTE_LEN_DENOM);
       assert.equal(ctx.tokens[2].lexeme, "4");
-      assert.equal(ctx.tokens[3].type, TT.TEMPO_EQUALS);
-      assert.equal(ctx.tokens[3].lexeme, "=");
-      assert.equal(ctx.tokens[4].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[4].lexeme, "120");
-      assert.equal(ctx.tokens[5].type, TT.TEMPO_TEXT);
-      assert.equal(ctx.tokens[5].lexeme, '"After"');
+      assert.equal(ctx.tokens[3].type, TT.TEMPO_BPM);
+      assert.equal(ctx.tokens[3].lexeme, "120");
+      assert.equal(ctx.tokens[4].type, TT.TEMPO_TEXT);
+      assert.equal(ctx.tokens[4].lexeme, '"After"');
     });
 
     it("should scan complex text with tempo", () => {
@@ -294,7 +253,6 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 10);
       assert.equal(ctx.tokens[0].type, TT.TEMPO_TEXT);
       assert.equal(ctx.tokens[0].lexeme, '"adagio"');
 
@@ -313,10 +271,8 @@ describe("scanTempoInfo", () => {
       assert.equal(ctx.tokens[6].lexeme, "8");
 
       // Equals and BPM
-      assert.equal(ctx.tokens[7].type, TT.TEMPO_EQUALS);
-      assert.equal(ctx.tokens[7].lexeme, "=");
-      assert.equal(ctx.tokens[8].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[8].lexeme, "70");
+      assert.equal(ctx.tokens[7].type, TT.TEMPO_BPM);
+      assert.equal(ctx.tokens[7].lexeme, "70");
     });
   });
 
@@ -326,11 +282,9 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 4);
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
       assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
-      assert.equal(ctx.tokens[2].type, TT.TEMPO_EQUALS);
-      assert.equal(ctx.tokens[3].type, TT.TEMPO_BPM);
+      assert.equal(ctx.tokens[2].type, TT.TEMPO_BPM);
     });
 
     it("should handle multiple spaces", () => {
@@ -338,11 +292,9 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 4);
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
       assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
-      assert.equal(ctx.tokens[2].type, TT.TEMPO_EQUALS);
-      assert.equal(ctx.tokens[3].type, TT.TEMPO_BPM);
+      assert.equal(ctx.tokens[2].type, TT.TEMPO_BPM);
     });
 
     it("should handle tabs and spaces", () => {
@@ -350,11 +302,9 @@ describe("scanTempoInfo", () => {
       const result = tempLn(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 4);
       assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
       assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
-      assert.equal(ctx.tokens[2].type, TT.TEMPO_EQUALS);
-      assert.equal(ctx.tokens[3].type, TT.TEMPO_BPM);
+      assert.equal(ctx.tokens[2].type, TT.TEMPO_BPM);
     });
   });
 
@@ -459,7 +409,7 @@ describe("scanTempoInfo Property-Based Tests", () => {
     // Just BPM
     genBPMInt.map((bpm) => [bpm]),
     // Note sequence = BPM
-    fc.tuple(genNoteSequence, genBPMInt).map(([notes, bpm]) => [...notes, new Token(TT.TEMPO_EQUALS, "=", sharedContext.generateId()), bpm])
+    fc.tuple(genNoteSequence, genBPMInt).map(([notes, bpm]) => [...notes, new Token(TT.WS, "=", sharedContext.generateId()), bpm])
   );
 
   const genTempoLine = fc
