@@ -3,8 +3,8 @@ import { describe, it } from "mocha";
 import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { Ctx, TT, Token } from "../parsers/scan2";
-import { scnvx } from "../interpreter/vxPrs";
 import { sharedContext, genCommentToken } from "./scn_pbt.generators.spec";
+import { scnvx } from "../parsers/infoLines/scanVxInfo";
 
 // Helper function to create a Ctx object for testing
 function createCtx(source: string): Ctx {

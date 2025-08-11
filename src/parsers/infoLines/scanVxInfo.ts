@@ -1,19 +1,6 @@
-import {
-  StemDirection,
-  ChordPlacement,
-  BracketBracePosition,
-  ClefProperties,
-} from "../../abcjs-ast";
-import {
-  advance,
-  consume,
-  Ctx,
-  isAtEnd,
-  Token,
-  TT,
-  WS,
-} from "../parsers/scan2";
-import { comment } from "../parsers/scan_tunebody";
+import { StemDirection, ChordPlacement, BracketBracePosition, ClefProperties } from "../../../abcjs-ast";
+import { advance, consume, Ctx, isAtEnd, Token, TT, WS } from "../scan2";
+import { comment } from "../scan_tunebody";
 
 export interface VoiceProperties {
   name?: string;
@@ -104,11 +91,7 @@ export function scnvx(ctx: Ctx): Array<Token> {
   return ctx.tokens;
 }
 
-function applyVx(
-  properties: VoiceProperties,
-  key: string,
-  value: string,
-): void {
+function applyVx(properties: VoiceProperties, key: string, value: string): void {
   const normalizedKey = key.toLowerCase();
 
   if (name(properties, normalizedKey, value)) return;
@@ -132,29 +115,17 @@ function applyVx(
 }
 
 function isStemDirection(value: string): value is StemDirection {
-  return (
-    value === "up" || value === "down" || value === "auto" || value === "none"
-  );
+  return value === "up" || value === "down" || value === "auto" || value === "none";
 }
 
 function isChordPlacement(value: string): value is ChordPlacement {
-  return (
-    value === "above" ||
-    value === "below" ||
-    value === "left" ||
-    value === "right" ||
-    value === "default"
-  );
+  return value === "above" || value === "below" || value === "left" || value === "right" || value === "default";
 }
 
 function isBracketBracePosition(value: string): value is BracketBracePosition {
   return value === "start" || value === "end" || value === "continue";
 }
-function clef(
-  properties: VoiceProperties,
-  key: string | null,
-  value: string,
-): boolean {
+function clef(properties: VoiceProperties, key: string | null, value: string): boolean {
   if (!(key && key === "clef")) return false;
 
   if (!/((alto|bass|none|treble|tenor)([',]+)?)|(perc)/.test(value)) {
@@ -164,11 +135,7 @@ function clef(
   return true;
 }
 
-function transpose(
-  properties: VoiceProperties,
-  key: string | null,
-  value: string,
-): boolean {
+function transpose(properties: VoiceProperties, key: string | null, value: string): boolean {
   if (key !== "transpose") return false;
 
   properties.transpose = parseInt(value);
@@ -177,11 +144,7 @@ function transpose(
   }
   return true;
 }
-function octave(
-  properties: VoiceProperties,
-  key: string | null,
-  value: string,
-): boolean {
+function octave(properties: VoiceProperties, key: string | null, value: string): boolean {
   if (key !== "octave") return false;
   properties.octave = parseInt(value);
   if (isNaN(properties.octave)) {
@@ -190,31 +153,19 @@ function octave(
   return true;
 }
 
-function name(
-  properties: VoiceProperties,
-  key: string | null,
-  value: string,
-): boolean {
+function name(properties: VoiceProperties, key: string | null, value: string): boolean {
   if (key !== "name") return false;
   properties.name = value;
   return true;
 }
 
-function middle(
-  properties: VoiceProperties,
-  key: string | null,
-  value: string,
-): boolean {
+function middle(properties: VoiceProperties, key: string | null, value: string): boolean {
   if (key !== "middle" && key !== "m") return false;
   properties.middle = value;
   return true;
 }
 
-function stafflines(
-  properties: VoiceProperties,
-  key: string | null,
-  value: string,
-): boolean {
+function stafflines(properties: VoiceProperties, key: string | null, value: string): boolean {
   if (key !== "stafflines") return false;
   const stafflinesValue = parseInt(value);
   if (isNaN(stafflinesValue)) {
@@ -224,11 +175,7 @@ function stafflines(
   return true;
 }
 
-function staffscale(
-  properties: VoiceProperties,
-  key: string | null,
-  value: string,
-): boolean {
+function staffscale(properties: VoiceProperties, key: string | null, value: string): boolean {
   if (key !== "staffscale") return false;
   const staffscaleValue = parseFloat(value);
   if (isNaN(staffscaleValue)) {
@@ -238,21 +185,13 @@ function staffscale(
   return true;
 }
 
-function perc(
-  properties: VoiceProperties,
-  key: string | null,
-  value: string,
-): boolean {
+function perc(properties: VoiceProperties, key: string | null, value: string): boolean {
   if (key !== "perc") return false;
   properties.perc = value.toLowerCase() === "true" || value === "1";
   return true;
 }
 
-function instrument(
-  properties: VoiceProperties,
-  key: string | null,
-  value: string,
-): boolean {
+function instrument(properties: VoiceProperties, key: string | null, value: string): boolean {
   if (key !== "instrument") return false;
   const instrumentValue = parseInt(value);
   if (isNaN(instrumentValue)) {
@@ -262,21 +201,13 @@ function instrument(
   return true;
 }
 
-function merge(
-  properties: VoiceProperties,
-  key: string | null,
-  value: string,
-): boolean {
+function merge(properties: VoiceProperties, key: string | null, value: string): boolean {
   if (key !== "merge") return false;
   properties.merge = value.toLowerCase() === "true" || value === "1";
   return true;
 }
 
-function stems(
-  properties: VoiceProperties,
-  key: string | null,
-  value: string,
-): boolean {
+function stems(properties: VoiceProperties, key: string | null, value: string): boolean {
   if (key !== "stems" && key !== "stem") return false;
   if (!isStemDirection(value)) {
     throw new Error(`Invalid stem direction: ${value}`);
@@ -285,11 +216,7 @@ function stems(
   return true;
 }
 
-function gchord(
-  properties: VoiceProperties,
-  key: string | null,
-  value: string,
-): boolean {
+function gchord(properties: VoiceProperties, key: string | null, value: string): boolean {
   if (key !== "gchord") return false;
   if (!isChordPlacement(value)) {
     throw new Error(`Invalid chord placement: ${value}`);
@@ -298,11 +225,7 @@ function gchord(
   return true;
 }
 
-function space(
-  properties: VoiceProperties,
-  key: string | null,
-  value: string,
-): boolean {
+function space(properties: VoiceProperties, key: string | null, value: string): boolean {
   if (key !== "space" && key !== "spc") return false;
   const spaceValue = parseFloat(value);
   if (isNaN(spaceValue)) {
@@ -312,11 +235,7 @@ function space(
   return true;
 }
 
-function bracket(
-  properties: VoiceProperties,
-  key: string | null,
-  value: string,
-): boolean {
+function bracket(properties: VoiceProperties, key: string | null, value: string): boolean {
   if (key !== "bracket" && key !== "brk") return false;
   if (!isBracketBracePosition(value)) {
     throw new Error(`Invalid bracket position: ${value}`);
@@ -325,11 +244,7 @@ function bracket(
   return true;
 }
 
-function brace(
-  properties: VoiceProperties,
-  key: string | null,
-  value: string,
-): boolean {
+function brace(properties: VoiceProperties, key: string | null, value: string): boolean {
   if (key !== "brace" && key !== "brc") return false;
   if (!isBracketBracePosition(value)) {
     throw new Error(`Invalid brace position: ${value}`);
