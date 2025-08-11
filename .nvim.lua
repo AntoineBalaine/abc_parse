@@ -84,3 +84,23 @@ require('dap').repl.open({}, 'vsplit')
 else
   print("Warning: dap-ui not found, REPL in split configuration not added")
 end
+
+-- Configure prettier as the formatter for this project
+vim.bo.formatexpr = ""
+vim.bo.formatprg = "prettier --stdin-filepath=%"
+
+-- Auto-format on save for TypeScript/JavaScript files
+vim.api.nvim_create_autocmd("BufWritePre", {
+  pattern = { "*.ts", "*.js", "*.tsx", "*.jsx", "*.json", "*.md" },
+  callback = function()
+    vim.lsp.buf.format({ async = false })
+  end,
+})
+
+-- Set up prettier as the default formatter
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = { "typescript", "javascript", "typescriptreact", "javascriptreact", "json", "markdown" },
+  callback = function()
+    vim.bo.formatprg = "prettier --stdin-filepath=" .. vim.fn.expand("%")
+  end,
+})
