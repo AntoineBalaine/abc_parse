@@ -11,7 +11,7 @@ function createTestContext(source: string): Ctx {
   return new Ctx(source, abcContext);
 }
 
-describe.only("scanNoteLenInfo", () => {
+describe("scanNoteLenInfo", () => {
   it("should scan simple note length with numerator and denominator", () => {
     const ctx = createTestContext("1/4");
     const result = scanNoteLenInfo(ctx);
@@ -186,7 +186,7 @@ describe.only("scanNoteLenInfo", () => {
   });
 });
 
-describe.only("scanNoteLenInfo Property-Based Tests", () => {
+describe("scanNoteLenInfo Property-Based Tests", () => {
   // Note length component generators
   const genNoteLenNum = fc.integer({ min: 1, max: 999 }).map((num) => new Token(TT.NOTE_LEN_NUM, num.toString(), sharedContext.generateId()));
 
