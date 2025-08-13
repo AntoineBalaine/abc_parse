@@ -2,9 +2,301 @@ import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Token, TT } from "../parsers/scan2";
+import { genMeterDefinition } from "./scanMeterInfo.spec";
+import { genNoteLenSignature } from "./scanNoteLenInfo.spec";
 
 // Create a shared context for all generators
 export const sharedContext = new ABCContext(new AbcErrorReporter());
+
+export const genWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws, sharedContext.generateId()));
+// Voice component generators
+export const genVxId = fc.oneof(
+  // Numeric voice IDs
+  fc.integer({ min: 1, max: 99 }).map((n) => new Token(TT.VX_ID, n.toString(), sharedContext.generateId())),
+  // Alphabetic voice IDs
+  fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9]*$/).map((id) => new Token(TT.VX_ID, id, sharedContext.generateId())),
+  // Common voice names
+  fc
+    .constantFrom("melody", "bass", "tenor", "soprano", "alto", "drums", "T1", "B1", "S1", "A1")
+    .map((id) => new Token(TT.VX_ID, id, sharedContext.generateId()))
+);
+
+export const genVxPropKey = fc
+  .constantFrom(
+    "name",
+    "clef",
+    "transpose",
+    "octave",
+    "middle",
+    "m",
+    "stafflines",
+    "staffscale",
+    "instrument",
+    "merge",
+    "stems",
+    "stem",
+    "gchord",
+    "space",
+    "spc",
+    "bracket",
+    "brk",
+    "brace",
+    "brc"
+  )
+  .map((key) => new Token(TT.VX_K, key, sharedContext.generateId()));
+
+export const genVxPropVal = fc.oneof(
+  // Quoted strings
+  fc
+    .string({ minLength: 1, maxLength: 20 })
+    .filter((s) => !s.includes('"') && !s.includes("\n"))
+    .map((s) => new Token(TT.VX_V, `"${s}"`, sharedContext.generateId())),
+  // Unquoted strings
+  fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9]*$/).map((s) => new Token(TT.VX_V, s, sharedContext.generateId())),
+  // Numbers
+  fc.integer({ min: -12, max: 12 }).map((n) => new Token(TT.VX_V, n.toString(), sharedContext.generateId())),
+  // Decimal numbers
+  fc.float({ min: Math.fround(0.1), max: 5.0, noNaN: true }).map((n) => new Token(TT.VX_V, n.toFixed(1), sharedContext.generateId())),
+  // Boolean-like values
+  fc.constantFrom("true", "false", "1", "0").map((b) => new Token(TT.VX_V, b, sharedContext.generateId())),
+  // Clef values
+  fc.constantFrom("treble", "bass", "alto", "tenor", "perc", "none").map((clef) => new Token(TT.VX_V, clef, sharedContext.generateId())),
+  // Stem directions
+  fc.constantFrom("up", "down", "auto", "none").map((stem) => new Token(TT.VX_V, stem, sharedContext.generateId()))
+);
+
+const genVoiceWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws, sharedContext.generateId()));
+
+// Property pair generator (key=value)
+const genVxKV = fc
+  .tuple(
+    genVxPropKey,
+    fc.option(genVoiceWhitespace),
+    fc.constantFrom("=").map((eq) => new Token(TT.DISCARD, eq, sharedContext.generateId())),
+    fc.option(genVoiceWhitespace),
+    genVxPropVal
+  )
+  .map(([key, ws1, equals, ws2, value]) => {
+    const tokens = [key];
+    if (ws1) tokens.push(ws1);
+    tokens.push(equals);
+    if (ws2) tokens.push(ws2);
+    tokens.push(value);
+    return tokens;
+  });
+
+// Special perc property (standalone)
+const genVxPercuProp = fc
+  .constantFrom("perc")
+  .map((perc) => new Token(TT.VX_V, perc, sharedContext.generateId()))
+  .map((perc) => [perc]);
+
+// Complete voice definition generator (simplified for integration tests)
+export const genVxDefinition = fc
+  .tuple(
+    fc.option(genVoiceWhitespace), // leading whitespace
+    genVxId,
+    fc.array(fc.oneof(genVxKV, genVxPercuProp), { maxLength: 3 }) // Simplified, no comments
+  )
+  .map(([leadingWs, voiceId, properties]) => {
+    const tokens: Token[] = [];
+
+    if (leadingWs) tokens.push(leadingWs);
+    tokens.push(voiceId);
+
+    for (const property of properties) {
+      // Add whitespace before each property
+      tokens.push(new Token(TT.WS, " ", sharedContext.generateId()));
+      if (Array.isArray(property)) {
+        tokens.push(...property);
+      } else {
+        tokens.push(property);
+      }
+    }
+
+    return tokens;
+  });
+
+const genTempoText = fc
+  .string({ minLength: 0, maxLength: 20 })
+  .filter((s) => !s.includes('"') && !s.includes("\n"))
+  .map((s) => new Token(TT.TEMPO_TEXT, `"${s}"`, sharedContext.generateId()));
+
+const genBPMInt = fc.integer({ min: 30, max: 400 }).map((bpm) => new Token(TT.TEMPO_BPM, bpm.toString(), sharedContext.generateId()));
+
+const genTempoNoteNum = fc.integer({ min: 1, max: 16 }).map((num) => new Token(TT.NOTE_LEN_NUM, num.toString(), sharedContext.generateId()));
+
+const genTempoNoteDenom = fc.constantFrom(1, 2, 4, 8, 16, 32).map((denom) => new Token(TT.NOTE_LEN_DENOM, denom.toString(), sharedContext.generateId()));
+
+const genTempoNoteLetter = fc
+  .tuple(fc.constantFrom("A", "B", "C", "D", "E", "F", "G"), fc.integer({ min: 1, max: 9 }))
+  .map(([letter, octave]) => new Token(TT.TEMPO_NOTE_LETTER, `${letter}${octave}`, sharedContext.generateId()));
+
+const genRationalNote = fc
+  .tuple(genTempoNoteNum, fc.constantFrom(new Token(TT.DISCARD, "/", sharedContext.generateId())), genTempoNoteDenom)
+  .map(([num, slashToken, denom]) => {
+    return [num, slashToken, denom];
+  });
+
+const genTempoInfoNoteValue = fc.oneof(
+  genRationalNote,
+  genTempoNoteLetter.map((note) => [note])
+);
+
+const genTempoInfoNoteSequence = fc.array(genTempoInfoNoteValue, { minLength: 1, maxLength: 4 }).map((noteValues) => {
+  // Add whitespace between note values
+  const result: Token[] = [];
+
+  for (let i = 0; i < noteValues.length; i++) {
+    // Add the note value tokens
+    result.push(...noteValues[i]);
+
+    // Add whitespace separator between notes (except after the last note)
+    if (i < noteValues.length - 1) {
+      result.push(new Token(TT.WS, " ", sharedContext.generateId()));
+    }
+  }
+
+  return result;
+});
+
+const genTempoDefinition = fc.oneof(
+  // Just BPM
+  genBPMInt.map((bpm) => [bpm]),
+  // Note sequence = BPM
+  fc.tuple(genTempoInfoNoteSequence, genBPMInt).map(([notes, bpm]) => [...notes, new Token(TT.DISCARD, "=", sharedContext.generateId()), bpm])
+);
+
+export const genTempoLine = fc
+  .tuple(fc.option(genTempoText), fc.option(genTempoDefinition), fc.option(genTempoText))
+  .filter(([text1, tempoDef, text2]) => !!(text1 || tempoDef || text2)) // At least one component
+  .map(([text1, tempoDef, text2]) => {
+    const tokens: Token[] = [];
+
+    if (text1) {
+      tokens.push(text1);
+      if (tempoDef || text2) tokens.push(new Token(TT.WS, " ", sharedContext.generateId()));
+    }
+
+    if (tempoDef) {
+      tokens.push(...tempoDef);
+      if (text2) tokens.push(new Token(TT.WS, " ", sharedContext.generateId()));
+    }
+
+    if (text2) {
+      tokens.push(text2);
+      // Removed the trailing space after the last text element
+    }
+
+    return tokens;
+  });
+
+const genKeyNone = fc.constantFrom("none", "NONE", "None").map((none) => new Token(TT.KEY_NONE, none, sharedContext.generateId()));
+
+export const genKeyRoot = fc.constantFrom("A", "B", "C", "D", "E", "F", "G").map((root) => new Token(TT.KEY_ROOT, root, sharedContext.generateId()));
+
+export const genKeyAccidental = fc.constantFrom("#", "b").map((acc) => new Token(TT.KEY_ACCIDENTAL, acc, sharedContext.generateId()));
+
+const genKeyMode = fc
+  .constantFrom(
+    "major",
+    "minor",
+    "maj",
+    "min",
+    "m",
+    "ionian",
+    "dorian",
+    "dor",
+    "phrygian",
+    "phr",
+    "lydian",
+    "lyd",
+    "mixolydian",
+    "mix",
+    "aeolian",
+    "aeo",
+    "locrian",
+    "loc"
+  )
+  .map((mode) => new Token(TT.KEY_MODE, mode, sharedContext.generateId()));
+
+export const genExplicitAccidental = fc
+  .tuple(fc.constantFrom("^", "_", "="), fc.constantFrom("a", "b", "c", "d", "e", "f", "g", "A", "B", "C", "D", "E", "F", "G"))
+  .map(([accSymbol, note]) => new Token(TT.KEY_EXPLICIT_ACC, accSymbol + note, sharedContext.generateId()));
+
+export const genKeySignature = fc.oneof(
+  // "none" key signature with optional leading/trailing whitespace
+  fc.tuple(fc.option(genWhitespace), genKeyNone, fc.option(genWhitespace)).map(([leadingWs, none, trailingWs]) => {
+    const tokens: Token[] = [];
+    if (leadingWs) tokens.push(leadingWs);
+    tokens.push(none);
+    if (trailingWs) tokens.push(trailingWs);
+    return tokens;
+  }),
+
+  // Regular key signatures: root [ws] [accidental] [ws] [mode] [ws] [explicit accidentals]
+  fc
+    .tuple(
+      fc.option(genWhitespace), // leading whitespace
+      genKeyRoot,
+      fc.option(genKeyAccidental),
+      fc.option(genKeyMode),
+      fc.array(genExplicitAccidental, { maxLength: 5 }),
+      fc.option(genWhitespace) // trailing whitespace
+    )
+    .map(([leadingWs, root, accidental, mode, explicitAccs, trailingWs]) => {
+      const tokens: Token[] = [];
+
+      if (leadingWs) tokens.push(leadingWs);
+      tokens.push(root);
+
+      if (accidental) {
+        // Optional whitespace before accidental
+        if (fc.sample(fc.boolean(), 1)[0]) {
+          tokens.push(new Token(TT.WS, " ", sharedContext.generateId()));
+        }
+        tokens.push(accidental);
+      }
+
+      if (mode) {
+        // Always add whitespace before mode if we have one
+        tokens.push(new Token(TT.WS, " ", sharedContext.generateId()));
+        tokens.push(mode);
+      }
+
+      if (explicitAccs.length > 0) {
+        // Optional whitespace before explicit accidentals
+        if (fc.sample(fc.boolean(), 1)[0]) {
+          tokens.push(new Token(TT.WS, " ", sharedContext.generateId()));
+        }
+        tokens.push(...explicitAccs);
+      }
+
+      if (trailingWs) tokens.push(trailingWs);
+      return tokens;
+    })
+);
+const genKeyInfoLine = genKeySignature.map((keyTokens: Token[]) => [new Token(TT.INF_HDR, "K:", sharedContext.generateId()), ...keyTokens]);
+
+const genMeterInfoLine = genMeterDefinition.map((meterTokens: Token[]) => [new Token(TT.INF_HDR, "M:", sharedContext.generateId()), ...meterTokens]);
+
+const genNoteLenInfoLine = genNoteLenSignature.map((noteLenTokens: Token[]) => [
+  new Token(TT.INF_HDR, "L:", sharedContext.generateId()),
+  ...noteLenTokens,
+]);
+
+const genTempoInfoLine = genTempoLine.map((tempoTokens: Token[]) => [new Token(TT.INF_HDR, "Q:", sharedContext.generateId()), ...tempoTokens]);
+
+const genVoiceInfoLine = genVxDefinition.map((voiceTokens: Token[]) => [new Token(TT.INF_HDR, "V:", sharedContext.generateId()), ...voiceTokens]);
+
+const genGenericInfoLine = fc
+  .tuple(
+    fc
+      .constantFrom("T:", "A:", "C:", "O:", "P:", "S:", "W:", "N:", "G:", "H:", "R:", "B:", "D:", "F:", "I:", "Z:")
+      .map((header) => new Token(TT.INF_HDR, header, sharedContext.generateId())),
+    fc.stringMatching(/^[^&\s%\n]+$/).map((content) => new Token(TT.INFO_STR, content, sharedContext.generateId()))
+  )
+  .map(([header, content]) => [header, content]);
 
 export const genNoteLetter = fc.stringMatching(/^[a-gA-G]$/).map((letter) => new Token(TT.NOTE_LETTER, letter, sharedContext.generateId()));
 
@@ -139,7 +431,6 @@ export const genCommentToken = fc.tuple(
   genEOL
 );
 
-export const genWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws, sharedContext.generateId()));
 // Ampersand generator (both forms)
 export const genAmpersand = fc.tuple(fc.constantFrom(new Token(TT.VOICE, "&", sharedContext.generateId())), genWhitespace);
 export const genVoiceOvrlay = fc.constantFrom(new Token(TT.VOICE_OVRLAY, "&\n", sharedContext.generateId()));
@@ -209,14 +500,8 @@ export const genAnnotation = fc
   });
 
 export const genInfoLine = fc
-  .tuple(
-    // genWhitespace,
-    genEOL,
-    fc.stringMatching(/^[a-kA-K]:$/).map((header) => new Token(TT.INF_HDR, header, sharedContext.generateId())),
-    fc.stringMatching(/^[^&\s%]+$/).map((content) => new Token(TT.INFO_STR, content, sharedContext.generateId())),
-    genEOL
-  )
-  .map((tokens) => tokens);
+  .tuple(genEOL, fc.oneof(genKeyInfoLine, genMeterInfoLine, genNoteLenInfoLine, genTempoInfoLine, genVoiceInfoLine, genGenericInfoLine), genEOL)
+  .map(([eol1, infoTokens, eol2]) => [eol1, ...infoTokens, eol2]);
 
 // Lyric token generators
 export const genLyricText = fc.stringMatching(/^[a-zA-Z]+$/).map((text) => new Token(TT.LY_TXT, text, sharedContext.generateId()));
@@ -412,26 +697,25 @@ export const genUserSymbolVariable = fc.stringMatching(/^[h-wH-W~]$/).map((v) =>
 export const genUserSymbolHeader = fc.constantFrom(new Token(TT.USER_SY_HDR, "U:", sharedContext.generateId()));
 
 // Macro scenario generator
-export const genMacroScenario = genMacroDecl
-  .chain(([eol1, header, variable, macroStr, comment, eol2]) => {
-    const macroTokens = [eol1, header, variable, macroStr];
-    if (comment) macroTokens.push(comment);
-    macroTokens.push(eol2);
+export const genMacroScenario = genMacroDecl.chain(([eol1, header, variable, macroStr, comment, eol2]) => {
+  const macroTokens = [eol1, header, variable, macroStr];
+  if (comment) macroTokens.push(comment);
+  macroTokens.push(eol2);
 
-    // Create invocation generator using the specific variable from this macro
-    const genInvocation = fc.tuple(
-      fc.constantFrom(new Token(TT.MACRO_INVOCATION, variable.lexeme, sharedContext.generateId())).map((token) => [token]),
-      fc.oneof(genWhitespace, genYspacer)
-    );
+  // Create invocation generator using the specific variable from this macro
+  const genInvocation = fc.tuple(
+    fc.constantFrom(new Token(TT.MACRO_INVOCATION, variable.lexeme, sharedContext.generateId())).map((token) => [token]),
+    fc.oneof(genWhitespace, genYspacer)
+  );
 
-    // Generate music tokens that may include the macro invocation
-    const genMusicTokens = fc.array(fc.oneof(genInvocation, ...baseMusicTokenGenerators));
+  // Generate music tokens that may include the macro invocation
+  const genMusicTokens = fc.array(fc.oneof(genInvocation, ...baseMusicTokenGenerators));
 
-    return genMusicTokens.map((musicTokenArrays) => {
-      const allTokens = [...macroTokens, ...musicTokenArrays.flat()].flat();
-      return applyTokenFiltering(allTokens);
-    });
+  return genMusicTokens.map((musicTokenArrays) => {
+    const allTokens = [...macroTokens, ...musicTokenArrays.flat()].flat();
+    return applyTokenFiltering(allTokens);
   });
+});
 
 // User symbol scenario generator
 export const genUserSymbolScenario = fc

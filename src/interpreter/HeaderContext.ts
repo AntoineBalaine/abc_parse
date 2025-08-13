@@ -1,19 +1,5 @@
-import {
-  KeySignature,
-  Meter,
-  ClefProperties,
-  TempoProperties,
-} from "../../abcjs-ast";
-import {
-  VoiceProperties,
-  parseKey,
-  parseMeter,
-  parseNoteLength,
-  parseTempo,
-  parseTitle,
-  parseComposer,
-  parseOrigin,
-} from "./InfoLineParser";
+import { KeySignature, Meter, ClefProperties, TempoProperties } from "../types/abcjs-ast";
+import { VoiceProperties, parseKey, parseMeter, parseNoteLength, parseTempo, parseTitle, parseComposer, parseOrigin } from "./InfoLineParser";
 import { Directive, Info_line, Tune_header } from "../types/Expr2";
 import { Rational } from "../Visitors/fmt2/rational";
 
@@ -99,10 +85,7 @@ function applyInfoLine(ctx: Partial<HeaderCtx>, infoLine: Info_line): void {
   }
 }
 
-function applyDirective(
-  context: Partial<HeaderCtx>,
-  directive: Directive,
-): void {
+function applyDirective(context: Partial<HeaderCtx>, directive: Directive): void {
   const value: string = directive.token.lexeme;
 
   // Other formatting directives

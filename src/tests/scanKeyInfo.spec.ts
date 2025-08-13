@@ -4,7 +4,7 @@ import { describe, it } from "mocha";
 import { Ctx, TT, Token } from "../parsers/scan2";
 import { scanKeyInfo } from "../parsers/infoLines/scanKeyInfo";
 import { ABCContext } from "../parsers/Context";
-import { sharedContext } from "./scn_pbt.generators.spec";
+import { genExplicitAccidental, genKeyAccidental, genKeyRoot, genKeySignature, sharedContext } from "./scn_pbt.generators.spec";
 
 function createTestContext(source: string): Ctx {
   const abcContext = new ABCContext();
@@ -189,96 +189,6 @@ describe("scanKeyInfo", () => {
 });
 
 describe("scanKeyInfo Property-Based Tests", () => {
-  // Key signature component generators
-  const genKeyRoot = fc.constantFrom("A", "B", "C", "D", "E", "F", "G").map((root) => new Token(TT.KEY_ROOT, root, sharedContext.generateId()));
-
-  const genKeyAccidental = fc.constantFrom("#", "b").map((acc) => new Token(TT.KEY_ACCIDENTAL, acc, sharedContext.generateId()));
-
-  const genKeyMode = fc
-    .constantFrom(
-      "major",
-      "minor",
-      "maj",
-      "min",
-      "m",
-      "ionian",
-      "dorian",
-      "dor",
-      "phrygian",
-      "phr",
-      "lydian",
-      "lyd",
-      "mixolydian",
-      "mix",
-      "aeolian",
-      "aeo",
-      "locrian",
-      "loc"
-    )
-    .map((mode) => new Token(TT.KEY_MODE, mode, sharedContext.generateId()));
-
-  const genExplicitAccidental = fc
-    .tuple(fc.constantFrom("^", "_", "="), fc.constantFrom("a", "b", "c", "d", "e", "f", "g", "A", "B", "C", "D", "E", "F", "G"))
-    .map(([accSymbol, note]) => new Token(TT.KEY_EXPLICIT_ACC, accSymbol + note, sharedContext.generateId()));
-
-  const genKeyNone = fc.constantFrom("none", "NONE", "None").map((none) => new Token(TT.KEY_NONE, none, sharedContext.generateId()));
-
-  const genWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws, sharedContext.generateId()));
-
-  // Single generator for complete key signatures with optional whitespace
-  const genKeySignature = fc.oneof(
-    // "none" key signature with optional leading/trailing whitespace
-    fc.tuple(fc.option(genWhitespace), genKeyNone, fc.option(genWhitespace)).map(([leadingWs, none, trailingWs]) => {
-      const tokens: Token[] = [];
-      if (leadingWs) tokens.push(leadingWs);
-      tokens.push(none);
-      if (trailingWs) tokens.push(trailingWs);
-      return tokens;
-    }),
-
-    // Regular key signatures: root [ws] [accidental] [ws] [mode] [ws] [explicit accidentals]
-    fc
-      .tuple(
-        fc.option(genWhitespace), // leading whitespace
-        genKeyRoot,
-        fc.option(genKeyAccidental),
-        fc.option(genKeyMode),
-        fc.array(genExplicitAccidental, { maxLength: 5 }),
-        fc.option(genWhitespace) // trailing whitespace
-      )
-      .map(([leadingWs, root, accidental, mode, explicitAccs, trailingWs]) => {
-        const tokens: Token[] = [];
-
-        if (leadingWs) tokens.push(leadingWs);
-        tokens.push(root);
-
-        if (accidental) {
-          // Optional whitespace before accidental
-          if (fc.sample(fc.boolean(), 1)[0]) {
-            tokens.push(new Token(TT.WS, " ", sharedContext.generateId()));
-          }
-          tokens.push(accidental);
-        }
-
-        if (mode) {
-          // Always add whitespace before mode if we have one
-          tokens.push(new Token(TT.WS, " ", sharedContext.generateId()));
-          tokens.push(mode);
-        }
-
-        if (explicitAccs.length > 0) {
-          // Optional whitespace before explicit accidentals
-          if (fc.sample(fc.boolean(), 1)[0]) {
-            tokens.push(new Token(TT.WS, " ", sharedContext.generateId()));
-          }
-          tokens.push(...explicitAccs);
-        }
-
-        if (trailingWs) tokens.push(trailingWs);
-        return tokens;
-      })
-  );
-
   function createRoundTripPredicate(tokens: Token[]): boolean {
     // Convert tokens to string
     const input = tokens.map((t) => t.lexeme).join("");

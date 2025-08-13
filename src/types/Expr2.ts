@@ -1,5 +1,7 @@
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
+import { KeySignature, Meter, TempoProperties, ClefProperties } from "./abcjs-ast";
+import { Rational } from "../Visitors/fmt2/rational";
 
 /**
  * Visitor is the interface that enables walking the parser's syntax tree.
@@ -40,6 +42,60 @@ export interface Visitor<R> {
   visitVoiceOverlayExpr(expr: Voice_overlay): R;
   visitTupletExpr(expr: Tuplet): R;
   visitErrorExpr(expr: ErrorExpr): R;
+}
+
+// Tagged union for parsed info line data
+export type InfoLineUnion =
+  | { type: "key"; data: KeySignature }
+  | { type: "meter"; data: Meter }
+  | { type: "voice"; data: { id: string; properties: any } }
+  | { type: "tempo"; data: TempoProperties }
+  | { type: "title"; data: string }
+  | { type: "composer"; data: string }
+  | { type: "origin"; data: string }
+  | { type: "note_length"; data: Rational }
+  | { type: "clef"; data: ClefProperties }
+  | { type: "directive"; data: { directive: string; args?: string } };
+
+// Type predicate functions for InfoLineUnion
+export function isKeyInfo(info: InfoLineUnion): info is { type: "key"; data: KeySignature } {
+  return info.type === "key";
+}
+
+export function isMeterInfo(info: InfoLineUnion): info is { type: "meter"; data: Meter } {
+  return info.type === "meter";
+}
+
+export function isVoiceInfo(info: InfoLineUnion): info is { type: "voice"; data: { id: string; properties: any } } {
+  return info.type === "voice";
+}
+
+export function isTempoInfo(info: InfoLineUnion): info is { type: "tempo"; data: TempoProperties } {
+  return info.type === "tempo";
+}
+
+export function isNoteLengthInfo(info: InfoLineUnion): info is { type: "note_length"; data: Rational } {
+  return info.type === "note_length";
+}
+
+export function isTitleInfo(info: InfoLineUnion): info is { type: "title"; data: string } {
+  return info.type === "title";
+}
+
+export function isComposerInfo(info: InfoLineUnion): info is { type: "composer"; data: string } {
+  return info.type === "composer";
+}
+
+export function isOriginInfo(info: InfoLineUnion): info is { type: "origin"; data: string } {
+  return info.type === "origin";
+}
+
+export function isClefInfo(info: InfoLineUnion): info is { type: "clef"; data: ClefProperties } {
+  return info.type === "clef";
+}
+
+export function isDirectiveInfo(info: InfoLineUnion): info is { type: "directive"; data: { directive: string; args?: string } } {
+  return info.type === "directive";
 }
 
 export abstract class Expr {
@@ -93,8 +149,9 @@ export class File_header extends Expr {
 export class Info_line extends Expr {
   key: Token;
   value: Array<Token>;
+  parsed?: InfoLineUnion;
 
-  constructor(id: number, tokens: Array<Token>) {
+  constructor(id: number, tokens: Array<Token>, parsed?: InfoLineUnion) {
     super(id);
 
     this.key = tokens[0];
@@ -102,11 +159,11 @@ export class Info_line extends Expr {
 
     if (!remainingTokens.length) {
       this.value = [];
-      return;
+    } else {
+      this.value = remainingTokens;
     }
 
-    // For simplicity, we'll just store the tokens directly
-    this.value = remainingTokens;
+    this.parsed = parsed;
   }
 
   accept<R>(visitor: Visitor<R>): R {

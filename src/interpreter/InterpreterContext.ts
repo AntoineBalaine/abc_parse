@@ -1,4 +1,4 @@
-import { KeySignature, Meter, ClefProperties, TempoProperties, MetaText, KeyRoot, KeyAccidental, Mode, ClefType } from "../../abcjs-ast";
+import { KeySignature, Meter, ClefProperties, TempoProperties, MetaText, KeyRoot, KeyAccidental, Mode, ClefType } from "../types/abcjs-ast";
 import { VoiceProperties } from "./InfoLineParser";
 import { Rational, createRational } from "../Visitors/fmt2/rational";
 
@@ -10,7 +10,7 @@ export interface VoiceContext {
   currentMeter?: Meter;
   transpose: number;
   octave: number;
-  accidentals: Map<string, 'sharp' | 'flat' | 'natural'>; // Active accidentals in current measure
+  accidentals: Map<string, "sharp" | "flat" | "natural">; // Active accidentals in current measure
 }
 
 export interface InterpreterContext {
@@ -51,7 +51,7 @@ export function createInterpreterContext(): InterpreterContext {
       mode: Mode.Major,
       accidentals: [],
       impliedNaturals: [],
-      explicitAccidentals: []
+      explicitAccidentals: [],
     },
     defaultNoteLength: createRational(1, 8), // Default to 1/8 note
     voices: new Map(),
@@ -60,7 +60,7 @@ export function createInterpreterContext(): InterpreterContext {
     macros: new Map(),
     formatting: {},
     measureNumber: 1,
-    charPosition: 0
+    charPosition: 0,
   };
 }
 
@@ -72,7 +72,7 @@ export function resetContext(ctx: InterpreterContext): void {
     mode: Mode.Major,
     accidentals: [],
     impliedNaturals: [],
-    explicitAccidentals: []
+    explicitAccidentals: [],
   };
   ctx.defaultNoteLength = createRational(1, 8);
   ctx.voices.clear();
@@ -105,7 +105,7 @@ export function addVoice(ctx: InterpreterContext, id: string, properties: VoiceP
     currentMeter: ctx.defaultMeter,
     transpose: properties.transpose || 0,
     octave: properties.octave || 0,
-    accidentals: new Map()
+    accidentals: new Map(),
   };
 
   ctx.voices.set(id, voice);
@@ -158,7 +158,7 @@ export function setVoiceMeter(ctx: InterpreterContext, voiceId: string, meter: M
 }
 
 // Accidental management
-export function setAccidental(ctx: InterpreterContext, note: string, accidental: 'sharp' | 'flat' | 'natural', voiceId?: string): void {
+export function setAccidental(ctx: InterpreterContext, note: string, accidental: "sharp" | "flat" | "natural", voiceId?: string): void {
   const targetVoiceId = voiceId || ctx.currentVoiceId;
   if (!targetVoiceId) return;
 
@@ -168,7 +168,7 @@ export function setAccidental(ctx: InterpreterContext, note: string, accidental:
   }
 }
 
-export function getAccidental(ctx: InterpreterContext, note: string, voiceId?: string): 'sharp' | 'flat' | 'natural' | undefined {
+export function getAccidental(ctx: InterpreterContext, note: string, voiceId?: string): "sharp" | "flat" | "natural" | undefined {
   const targetVoiceId = voiceId || ctx.currentVoiceId;
   if (!targetVoiceId) return undefined;
 
@@ -204,23 +204,24 @@ function getDefaultClef(): ClefProperties {
   return {
     type: ClefType.Treble,
     verticalPos: 6,
-    clefPos: 0
+    clefPos: 0,
   };
 }
 
 // Create a snapshot of the current state for debugging
 export function createSnapshot(ctx: InterpreterContext): object {
-  return JSON.parse(JSON.stringify({
-    defaultKey: ctx.defaultKey,
-    defaultMeter: ctx.defaultMeter,
-    defaultNoteLength: ctx.defaultNoteLength,
-    voices: Array.from(ctx.voices.entries()),
-    currentVoiceId: ctx.currentVoiceId,
-    measureNumber: ctx.measureNumber,
-    charPosition: ctx.charPosition,
-    metaText: ctx.metaText,
-    userSymbols: Array.from(ctx.userSymbols.entries()),
-    macros: Array.from(ctx.macros.entries())
-  }));
+  return JSON.parse(
+    JSON.stringify({
+      defaultKey: ctx.defaultKey,
+      defaultMeter: ctx.defaultMeter,
+      defaultNoteLength: ctx.defaultNoteLength,
+      voices: Array.from(ctx.voices.entries()),
+      currentVoiceId: ctx.currentVoiceId,
+      measureNumber: ctx.measureNumber,
+      charPosition: ctx.charPosition,
+      metaText: ctx.metaText,
+      userSymbols: Array.from(ctx.userSymbols.entries()),
+      macros: Array.from(ctx.macros.entries()),
+    })
+  );
 }
-

@@ -14,6 +14,7 @@ import {
   File_structure,
   Grace_group,
   Info_line,
+  InfoLineUnion,
   Inline_field,
   Lyric_line,
   Lyric_section,
@@ -36,6 +37,11 @@ import {
   YSPACER,
 } from "../types/Expr2";
 import { ABCContext } from "./Context";
+import { prsKeyInfo } from "./infoLines/prsKeyInfo";
+import { prsMeterInfo } from "./infoLines/prsMeterInfo";
+import { prsNoteLenInfo } from "./infoLines/prsNoteLenInfo";
+import { prsTempoInfo } from "./infoLines/prsTempoInfo";
+import { prsVxInfo } from "./infoLines/prsVxInfo";
 import { Token, TT } from "./scan2";
 import { parseSystemsWithVoices } from "./voices2";
 
@@ -208,7 +214,7 @@ export function prsTuneHdr(ctx: ParseCtx): Tune_header {
     if (prsInfoLine(ctx, infoLines)) {
       const info_line = infoLines[infoLines.length - 1] as Info_line;
       if (info_line.key.lexeme.trim() === "V:") {
-        const voiceName = info_line.value[0].lexeme.trim().split(" ")[0];
+        const voiceName = info_line.value[0].lexeme.trim();
         if (voiceName && !voices.includes(voiceName)) {
           voices.push(voiceName);
         }
@@ -222,7 +228,7 @@ export function prsTuneHdr(ctx: ParseCtx): Tune_header {
     }
     break;
   }
-  
+
   ctx.match(TT.EOL);
   return new Tune_header(ctx.abcContext.generateId(), infoLines as Array<Info_line | Comment>, voices);
 }
@@ -234,12 +240,6 @@ export function alreadyHasVoice(ctx: ParseCtx, voices?: Array<string>): boolean 
   var pkd = ctx.peek();
   if (pkd.type === TT.INF_HDR && pkd.lexeme.trim() === "V:") {
     let i = ctx.current + 1;
-    while (i < ctx.tokens.length && ctx.tokens[i].type !== TT.INFO_STR) {
-      if (ctx.tokens[i].type === TT.EOL) {
-        return false;
-      }
-      i++;
-    }
     let info_txt = ctx.tokens[i];
     const voiceName = info_txt.lexeme.trim().split(" ")[0];
     return !!voiceName && voices.includes(voiceName);
@@ -269,14 +269,41 @@ export function prsInfoLine(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Info
   if (ctx.match(TT.INF_HDR)) {
     const field = ctx.previous();
     const tokens: Token[] = [field];
-    if (ctx.match(TT.INFO_STR)) {
-      // is it really needed?
+    // Determine info line type and call appropriate parser
+    let parsed: InfoLineUnion | null = null;
+    const fieldType = field.lexeme.trim().charAt(0);
+
+    switch (fieldType) {
+      case "K":
+        parsed = prsKeyInfo(ctx, tokens);
+        break;
+      case "M":
+        parsed = prsMeterInfo(ctx, tokens);
+        break;
+      case "L":
+        parsed = prsNoteLenInfo(ctx, tokens);
+        break;
+      case "Q":
+        parsed = prsTempoInfo(ctx, tokens);
+        break;
+      case "V":
+        parsed = prsVxInfo(ctx, tokens);
+        break;
+      default:
+        if (ctx.match(TT.INFO_STR)) {
+          tokens.push(ctx.previous());
+        }
+        while (ctx.match(TT.WS) || ctx.match(TT.COMMENT)) {
+          tokens.push(ctx.previous());
+        }
+        break;
+    }
+
+    while (ctx.match(TT.COMMENT)) {
       tokens.push(ctx.previous());
     }
-    while (ctx.match(TT.WS) || ctx.match(TT.COMMENT)) {
-      tokens.push(ctx.previous());
-    }
-    const rv = new Info_line(ctx.abcContext.generateId(), tokens);
+
+    const rv = new Info_line(ctx.abcContext.generateId(), tokens, parsed || undefined);
     prnt_arr && prnt_arr.push(rv);
     return rv;
   }
@@ -851,23 +878,23 @@ export function prsMacroDecl(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Mac
   if (!ctx.check(TT.MACRO_HDR)) {
     return null;
   }
-  
+
   const header = ctx.advance();
-  
+
   if (!ctx.check(TT.MACRO_VAR)) {
     ctx.report("Expected macro variable after macro header");
     return null;
   }
-  
+
   const variable = ctx.advance();
-  
+
   if (!ctx.check(TT.MACRO_STR)) {
     ctx.report("Expected macro content after macro variable");
     return null;
   }
-  
+
   const content = ctx.advance();
-  
+
   const macroDecl = new Macro_decl(ctx.abcContext.generateId(), header, variable, content);
   prnt_arr && prnt_arr.push(macroDecl);
   return macroDecl;
@@ -878,23 +905,23 @@ export function prsUserSymbolDecl(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>)
   if (!ctx.check(TT.USER_SY_HDR)) {
     return null;
   }
-  
+
   const header = ctx.advance();
-  
+
   if (!ctx.check(TT.USER_SY)) {
     ctx.report("Expected user symbol variable after user symbol header");
     return null;
   }
-  
+
   const variable = ctx.advance();
-  
+
   if (!ctx.check(TT.SYMBOL)) {
     ctx.report("Expected symbol content after user symbol variable");
     return null;
   }
-  
+
   const symbol = ctx.advance();
-  
+
   const userSymbolDecl = new User_symbol_decl(ctx.abcContext.generateId(), header, variable, symbol);
   prnt_arr && prnt_arr.push(userSymbolDecl);
   return userSymbolDecl;
@@ -905,15 +932,15 @@ export function prsLyricLine(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Lyr
   if (!ctx.check(TT.LY_HDR) && !ctx.check(TT.LY_SECT_HDR)) {
     return null;
   }
-  
+
   const header = ctx.advance();
   const contents: Token[] = [];
-  
+
   // Collect all lyric tokens until end of line or non-lyric token
   while (!ctx.isAtEnd() && isLyricToken(ctx)) {
     contents.push(ctx.advance());
   }
-  
+
   const lyricLine = new Lyric_line(ctx.abcContext.generateId(), header, contents);
   prnt_arr && prnt_arr.push(lyricLine);
   return lyricLine;
@@ -924,9 +951,9 @@ export function parseMacroInvocation(ctx: ParseCtx, prnt_arr?: Array<Expr | Toke
   if (!ctx.check(TT.MACRO_INVOCATION)) {
     return null;
   }
-  
+
   const variable = ctx.advance();
-  
+
   const macroInvocation = new Macro_invocation(ctx.abcContext.generateId(), variable);
   prnt_arr && prnt_arr.push(macroInvocation);
   return macroInvocation;
@@ -937,9 +964,9 @@ export function parseUserSymbolInvocation(ctx: ParseCtx, prnt_arr?: Array<Expr |
   if (!ctx.check(TT.USER_SY_INVOCATION)) {
     return null;
   }
-  
+
   const variable = ctx.advance();
-  
+
   const userSymbolInvocation = new User_symbol_invocation(ctx.abcContext.generateId(), variable);
   prnt_arr && prnt_arr.push(userSymbolInvocation);
   return userSymbolInvocation;

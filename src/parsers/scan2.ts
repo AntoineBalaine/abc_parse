@@ -1,6 +1,7 @@
 import { Visitor } from "../types/Expr2";
 import { ABCContext } from "./Context";
 import { AbcErrorReporter } from "./ErrorReporter";
+import { scanInfoLine } from "./infoLines/scanInfoLine";
 import { comment, pEOL, pInfoLine, pMacroLine, pSectionBrk, pTuneHeadStrt, pUserSymbol, scanTune, symbol } from "./scan_tunebody";
 
 export class Ctx {
@@ -205,6 +206,7 @@ export enum TT {
   BCKTCK_SPC,
   CHRD_LEFT_BRKT,
   CHRD_RIGHT_BRKT,
+  DISCARD, // used only by generators
   KEY_K,
   KEY_V,
   KEY_ROOT, // Key signature root note (A-G)
@@ -343,25 +345,26 @@ export function precededBy(ctx: Ctx, needles: Set<TT>, ignoreTokens: Set<TT>): b
 }
 
 export function info_line(ctx: Ctx): boolean {
-  if (!(ctx.test(pInfoLine) && precededBy(ctx, new Set([TT.EOL, TT.SCT_BRK]), new Set([TT.WS])))) return false;
+  return scanInfoLine(ctx);
+  // if (!(ctx.test(pInfoLine) && precededBy(ctx, new Set([TT.EOL, TT.SCT_BRK]), new Set([TT.WS])))) return false;
 
-  const match = new RegExp(`^${pInfoLine.source}`).exec(ctx.source.substring(ctx.current));
-  if (!match) return false;
-  ctx.current += match[0].length;
-  ctx.push(TT.INF_HDR);
+  // const match = new RegExp(`^${pInfoLine.source}`).exec(ctx.source.substring(ctx.current));
+  // if (!match) return false;
+  // ctx.current += match[0].length;
+  // ctx.push(TT.INF_HDR);
 
-  while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
-    if (ctx.test("%")) {
-      break;
-    } else {
-      advance(ctx);
-    }
-  }
-  if (ctx.current !== ctx.start) {
-    ctx.push(TT.INFO_STR);
-  }
-  comment(ctx);
-  return true;
+  // while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
+  //   if (ctx.test("%")) {
+  //     break;
+  //   } else {
+  //     advance(ctx);
+  //   }
+  // }
+  // if (ctx.current !== ctx.start) {
+  //   ctx.push(TT.INFO_STR);
+  // }
+  // comment(ctx);
+  // return true;
 }
 
 export function user_symbol_invocation(ctx: Ctx): boolean {

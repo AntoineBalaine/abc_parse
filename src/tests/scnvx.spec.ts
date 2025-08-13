@@ -3,7 +3,7 @@ import { describe, it } from "mocha";
 import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { Ctx, TT, Token } from "../parsers/scan2";
-import { sharedContext, genCommentToken } from "./scn_pbt.generators.spec";
+import { sharedContext, genCommentToken, genVxDefinition, genVxId, genVxPropKey, genVxPropVal } from "./scn_pbt.generators.spec";
 import { scanVoiceInfo } from "../parsers/infoLines/scanVxInfo";
 
 // Helper function to create a Ctx object for testing
@@ -426,124 +426,6 @@ describe("scnvx", () => {
 });
 
 describe("scnvx Property-Based Tests", () => {
-  // Voice component generators
-  const genVoiceId = fc.oneof(
-    // Numeric voice IDs
-    fc.integer({ min: 1, max: 99 }).map((n) => new Token(TT.VX_ID, n.toString(), sharedContext.generateId())),
-    // Alphabetic voice IDs
-    fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9]*$/).map((id) => new Token(TT.VX_ID, id, sharedContext.generateId())),
-    // Common voice names
-    fc
-      .constantFrom("melody", "bass", "tenor", "soprano", "alto", "drums", "T1", "B1", "S1", "A1")
-      .map((id) => new Token(TT.VX_ID, id, sharedContext.generateId()))
-  );
-
-  const genPropertyKey = fc
-    .constantFrom(
-      "name",
-      "clef",
-      "transpose",
-      "octave",
-      "middle",
-      "m",
-      "stafflines",
-      "staffscale",
-      "instrument",
-      "merge",
-      "stems",
-      "stem",
-      "gchord",
-      "space",
-      "spc",
-      "bracket",
-      "brk",
-      "brace",
-      "brc"
-    )
-    .map((key) => new Token(TT.VX_K, key, sharedContext.generateId()));
-
-  const genPropertyValue = fc.oneof(
-    // Quoted strings
-    fc
-      .string({ minLength: 1, maxLength: 20 })
-      .filter((s) => !s.includes('"') && !s.includes("\n"))
-      .map((s) => new Token(TT.VX_V, `"${s}"`, sharedContext.generateId())),
-    // Unquoted strings
-    fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9]*$/).map((s) => new Token(TT.VX_V, s, sharedContext.generateId())),
-    // Numbers
-    fc.integer({ min: -12, max: 12 }).map((n) => new Token(TT.VX_V, n.toString(), sharedContext.generateId())),
-    // Decimal numbers
-    fc.float({ min: Math.fround(0.1), max: 5.0, noNaN: true }).map((n) => new Token(TT.VX_V, n.toFixed(1), sharedContext.generateId())),
-    // Boolean-like values
-    fc.constantFrom("true", "false", "1", "0").map((b) => new Token(TT.VX_V, b, sharedContext.generateId())),
-    // Clef values
-    fc.constantFrom("treble", "bass", "alto", "tenor", "perc", "none").map((clef) => new Token(TT.VX_V, clef, sharedContext.generateId())),
-    // Stem directions
-    fc.constantFrom("up", "down", "auto", "none").map((stem) => new Token(TT.VX_V, stem, sharedContext.generateId()))
-  );
-
-  const genSpecialPercValue = fc.constantFrom("perc").map((perc) => new Token(TT.VX_V, perc, sharedContext.generateId()));
-
-  const genWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws, sharedContext.generateId()));
-
-  // Property pair generator (key=value)
-  const genPropertyPair = fc
-    .tuple(
-      genPropertyKey,
-      fc.option(genWhitespace),
-      fc.constantFrom("=").map((eq) => new Token(TT.WS, eq, sharedContext.generateId())),
-      fc.option(genWhitespace),
-      genPropertyValue
-    )
-    .map(([key, ws1, equals, ws2, value]) => {
-      const tokens = [key];
-      if (ws1) tokens.push(ws1);
-      tokens.push(equals);
-      if (ws2) tokens.push(ws2);
-      tokens.push(value);
-      return tokens;
-    });
-
-  // Special perc property (standalone)
-  const genPercProperty = genSpecialPercValue.map((perc) => [perc]);
-
-  // Complete voice definition generator
-  const genVoiceDefinition = fc
-    .tuple(
-      fc.option(genWhitespace), // leading whitespace
-      genVoiceId,
-      fc.oneof(
-        // Voice definition without comment
-        fc.array(fc.oneof(genPropertyPair, genPercProperty), { maxLength: 5 }),
-
-        // Voice definition with comment at the end
-        fc
-          .tuple(
-            fc.array(fc.oneof(genPropertyPair, genPercProperty), { maxLength: 4 }),
-            genCommentToken.map(([comment]) => [comment])
-          )
-          .map(([properties, comment]) => [...properties, ...comment])
-      )
-    )
-    .map(([leadingWs, voiceId, properties]) => {
-      const tokens: Token[] = [];
-
-      if (leadingWs) tokens.push(leadingWs);
-      tokens.push(voiceId);
-
-      for (const property of properties) {
-        // Add whitespace before each property/comment
-        tokens.push(new Token(TT.WS, " ", sharedContext.generateId()));
-        if (Array.isArray(property)) {
-          tokens.push(...property);
-        } else {
-          tokens.push(property);
-        }
-      }
-
-      return tokens;
-    });
-
   function createRoundTripPredicate(tokens: Token[]): boolean {
     // Convert tokens to string
     const input = tokens.map((t) => t.lexeme).join("");
@@ -556,8 +438,8 @@ describe("scnvx Property-Based Tests", () => {
     const result = scanVoiceInfo(ctx);
 
     // Filter out whitespace tokens from both original and scanned
-    const originalFiltered = tokens.filter((t) => t.type !== TT.WS);
-    const scannedFiltered = ctx.tokens.filter((t) => t.type !== TT.WS);
+    const originalFiltered = tokens.filter((t) => t.type !== TT.WS && t.type !== TT.DISCARD);
+    const scannedFiltered = ctx.tokens.filter((t) => t.type !== TT.WS && t.type !== TT.DISCARD);
 
     // Compare token counts
     if (originalFiltered.length !== scannedFiltered.length) {
@@ -590,7 +472,7 @@ describe("scnvx Property-Based Tests", () => {
   }
 
   it("should produce equivalent tokens when rescanning voice definitions", () => {
-    fc.assert(fc.property(genVoiceDefinition, createRoundTripPredicate), {
+    fc.assert(fc.property(genVxDefinition, createRoundTripPredicate), {
       verbose: false,
       numRuns: 1000,
     });
@@ -598,7 +480,7 @@ describe("scnvx Property-Based Tests", () => {
 
   it("should always start with a VX_ID token for valid voice definitions", () => {
     fc.assert(
-      fc.property(genVoiceDefinition, (tokens) => {
+      fc.property(genVxDefinition, (tokens) => {
         const input = tokens.map((t) => t.lexeme).join("");
         if (input.trim() === "") return true;
 
@@ -616,7 +498,7 @@ describe("scnvx Property-Based Tests", () => {
 
   it("should maintain alternating key-value pattern for properties", () => {
     fc.assert(
-      fc.property(genVoiceDefinition, (tokens) => {
+      fc.property(genVxDefinition, (tokens) => {
         const input = tokens.map((t) => t.lexeme).join("");
         if (input.trim() === "") return true;
 
@@ -659,7 +541,7 @@ describe("scnvx Property-Based Tests", () => {
   });
 
   it("should handle whitespace variations correctly", () => {
-    const genWhitespaceVariations = fc.tuple(genVoiceId, fc.tuple(genPropertyKey, genPropertyValue)).map(([voiceId, [key, value]]) => {
+    const genWhitespaceVariations = fc.tuple(genVxId, fc.tuple(genVxPropKey, genVxPropVal)).map(([voiceId, [key, value]]) => {
       // Generate different whitespace patterns
       return fc.sample(
         fc.oneof(
@@ -705,7 +587,7 @@ describe("scnvx Property-Based Tests", () => {
 
   it("should never crash on generated voice definitions", () => {
     fc.assert(
-      fc.property(genVoiceDefinition, (tokens) => {
+      fc.property(genVxDefinition, (tokens) => {
         try {
           const input = tokens.map((t) => t.lexeme).join("");
           const ctx = createCtx(input);
@@ -725,7 +607,7 @@ describe("scnvx Property-Based Tests", () => {
 
   it("should handle quoted string values correctly", () => {
     const genQuotedStringTest = fc.tuple(
-      genVoiceId,
+      genVxId,
       fc.constantFrom("name").map((key) => new Token(TT.VX_K, key, sharedContext.generateId())),
       fc
         .string({ minLength: 1, maxLength: 15 })
@@ -756,7 +638,7 @@ describe("scnvx Property-Based Tests", () => {
 
   it("should handle numeric property values correctly", () => {
     const genNumericTest = fc.tuple(
-      genVoiceId,
+      genVxId,
       fc.constantFrom("transpose", "octave", "stafflines").map((key) => new Token(TT.VX_K, key, sharedContext.generateId())),
       fc.integer({ min: -12, max: 12 }).map((n) => new Token(TT.VX_V, n.toString(), sharedContext.generateId()))
     );
@@ -784,7 +666,7 @@ describe("scnvx Property-Based Tests", () => {
 
   it("should handle special perc keyword correctly", () => {
     const genPercTest = fc.tuple(
-      genVoiceId,
+      genVxId,
       fc.constantFrom("perc").map((perc) => new Token(TT.VX_V, perc, sharedContext.generateId()))
     );
 

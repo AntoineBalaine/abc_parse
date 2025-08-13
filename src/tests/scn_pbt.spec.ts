@@ -151,13 +151,10 @@ describe("Scanner Round-trip Tests", () => {
   // Basic token generators
 
   it("should produce equivalent tokens when rescanning concatenated lexemes", () => {
-    fc.assert(
-      fc.property(genTokenSequence, createRoundTripPredicate),
-      {
-        verbose: false,
-        numRuns: 10000,
-      }
-    );
+    fc.assert(fc.property(genTokenSequence, createRoundTripPredicate), {
+      verbose: false,
+      numRuns: 10000,
+    });
   });
 
   // Enhanced token sequence generator that includes stateful scenarios
@@ -168,7 +165,7 @@ describe("Scanner Round-trip Tests", () => {
     // Macro scenarios with declarations and invocations
     genMacroScenario,
 
-    // User symbol scenarios with declarations and invocations  
+    // User symbol scenarios with declarations and invocations
     genUserSymbolScenario,
 
     // Mixed scenarios with both macros and user symbols
@@ -176,43 +173,31 @@ describe("Scanner Round-trip Tests", () => {
   );
 
   it.skip("should handle macro declarations and invocations in round-trip tests", () => {
-    fc.assert(
-      fc.property(genMacroScenario, createRoundTripPredicate),
-      {
-        verbose: false,
-        numRuns: 1000,
-      }
-    );
+    fc.assert(fc.property(genMacroScenario, createRoundTripPredicate), {
+      verbose: false,
+      numRuns: 1000,
+    });
   });
 
   it.skip("should handle user symbol declarations and invocations in round-trip tests", () => {
-    fc.assert(
-      fc.property(genUserSymbolScenario, createRoundTripPredicate),
-      {
-        verbose: false,
-        numRuns: 1000,
-      }
-    );
+    fc.assert(fc.property(genUserSymbolScenario, createRoundTripPredicate), {
+      verbose: false,
+      numRuns: 1000,
+    });
   });
 
   it.skip("should handle mixed stateful scenarios in round-trip tests", () => {
-    fc.assert(
-      fc.property(genMixedStatefulScenario, createRoundTripPredicate),
-      {
-        verbose: false,
-        numRuns: 1000,
-      }
-    );
+    fc.assert(fc.property(genMixedStatefulScenario, createRoundTripPredicate), {
+      verbose: false,
+      numRuns: 1000,
+    });
   });
 
   it.skip("should produce equivalent tokens for all enhanced scenarios", () => {
-    fc.assert(
-      fc.property(genStatefulTokenSequence, createRoundTripPredicate),
-      {
-        verbose: false,
-        numRuns: 5000,
-      }
-    );
+    fc.assert(fc.property(genStatefulTokenSequence, createRoundTripPredicate), {
+      verbose: false,
+      numRuns: 5000,
+    });
   });
 });
 
@@ -237,14 +222,17 @@ export function createRoundTripPredicate(originalTokens: Array<Token>): boolean 
 
   const trimmedTokens = trimTokens(originalTokens);
   // Concatenate lexemes
-  const input = ["X:1\n", ...trimmedTokens.map((t) => {
-    let rv = t.lexeme;
-    if (t.type === TT.MACRO_VAR) rv += "=";
-    if (t.type === TT.MACRO_INVOCATION) rv = t.lexeme;
-    if (t.type === TT.USER_SY) rv += "=";
-    if (t.type === TT.USER_SY_INVOCATION) rv = t.lexeme;
-    return rv;
-  })].join("");
+  const input = [
+    "X:1\n",
+    ...trimmedTokens.map((t) => {
+      let rv = t.lexeme;
+      if (t.type === TT.MACRO_VAR) rv += "=";
+      if (t.type === TT.MACRO_INVOCATION) rv = t.lexeme;
+      if (t.type === TT.USER_SY) rv += "=";
+      if (t.type === TT.USER_SY_INVOCATION) rv = t.lexeme;
+      return rv;
+    }),
+  ].join("");
 
   // Rescan
   const ctx = new Ctx(input, new ABCContext());
@@ -257,11 +245,8 @@ export function createRoundTripPredicate(originalTokens: Array<Token>): boolean 
     lexeme: token.lexeme,
   });
 
-  // Compare token sequences
-  const normalizedOriginal = trimmedTokens.map((t) => normalizeToken(t as TokenLike));
-  const normalizedRescanned = rescannedTokens
-    .filter((t) => t.type !== TT.EOF) // Exclude EOF token
-    .map(normalizeToken);
+  const normalizedOriginal = trimmedTokens.filter((t) => t.type !== TT.DISCARD).map((t) => normalizeToken(t as TokenLike));
+  const normalizedRescanned = rescannedTokens.filter((t) => t.type !== TT.EOF && t.type !== TT.DISCARD).map(normalizeToken);
 
   if (normalizedOriginal.length !== normalizedRescanned.length) {
     compareTokenArrays(trimmedTokens, rescannedTokens, input);

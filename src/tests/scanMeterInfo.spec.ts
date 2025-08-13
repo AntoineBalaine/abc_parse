@@ -242,60 +242,84 @@ describe("scanMeterInfo", () => {
   });
 });
 
+// Meter component generators
+const genMeterNumber = fc.integer({ min: 1, max: 32 }).map((n) => new Token(TT.METER_NUMBER, n.toString(), sharedContext.generateId()));
+
+const genMeterC = fc.constantFrom("C").map((c) => new Token(TT.METER_C, c, sharedContext.generateId()));
+
+const genMeterCBar = fc.constantFrom("C|").map((cb) => new Token(TT.METER_C_BAR, cb, sharedContext.generateId()));
+
+const genMeterSeparator = fc.constantFrom("/").map((sep) => new Token(TT.METER_SEPARATOR, sep, sharedContext.generateId()));
+
+const genMeterPlus = fc.constantFrom("+").map((plus) => new Token(TT.METER_PLUS, plus, sharedContext.generateId()));
+
+const genMeterLParen = fc.constantFrom("(").map((lp) => new Token(TT.METER_LPAREN, lp, sharedContext.generateId()));
+
+const genMeterRParen = fc.constantFrom(")").map((rp) => new Token(TT.METER_RPAREN, rp, sharedContext.generateId()));
+
+const genMeterWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws, sharedContext.generateId()));
+
+// Simple meter generator (numerator/denominator)
+const genSimpleMeter = fc
+  .tuple(
+    fc.option(genMeterWhitespace),
+    genMeterNumber,
+    fc.option(genMeterWhitespace),
+    genMeterSeparator,
+    fc.option(genMeterWhitespace),
+    genMeterNumber,
+    fc.option(genMeterWhitespace)
+  )
+  .map(([leadingWs, num1, ws1, sep, ws2, num2, trailingWs]) => {
+    const tokens: Token[] = [];
+    if (leadingWs) tokens.push(leadingWs);
+    tokens.push(num1);
+    if (ws1) tokens.push(ws1);
+    tokens.push(sep);
+    if (ws2) tokens.push(ws2);
+    tokens.push(num2);
+    if (trailingWs) tokens.push(trailingWs);
+    return tokens;
+  });
+
+// Complete meter definition generator (simplified, no compound meters for integration tests)
+export const genMeterDefinition = fc.oneof(
+  // Common time
+  fc.tuple(fc.option(genMeterWhitespace), genMeterC, fc.option(genMeterWhitespace)).map(([leadingWs, c, trailingWs]) => {
+    const tokens: Token[] = [];
+    if (leadingWs) tokens.push(leadingWs);
+    tokens.push(c);
+    if (trailingWs) tokens.push(trailingWs);
+    return tokens;
+  }),
+
+  // Cut time
+  fc.tuple(fc.option(genMeterWhitespace), genMeterCBar, fc.option(genMeterWhitespace)).map(([leadingWs, cb, trailingWs]) => {
+    const tokens: Token[] = [];
+    if (leadingWs) tokens.push(leadingWs);
+    tokens.push(cb);
+    if (trailingWs) tokens.push(trailingWs);
+    return tokens;
+  }),
+
+  // Simple meters
+  genSimpleMeter
+);
+
 describe("scanMeterInfo Property-Based Tests", () => {
-  // Meter component generators
-  const genMeterNumber = fc.integer({ min: 1, max: 32 }).map((n) => new Token(TT.METER_NUMBER, n.toString(), sharedContext.generateId()));
-
-  const genMeterC = fc.constantFrom("C").map((c) => new Token(TT.METER_C, c, sharedContext.generateId()));
-
-  const genMeterCBar = fc.constantFrom("C|").map((cb) => new Token(TT.METER_C_BAR, cb, sharedContext.generateId()));
-
-  const genMeterSeparator = fc.constantFrom("/").map((sep) => new Token(TT.METER_SEPARATOR, sep, sharedContext.generateId()));
-
-  const genMeterPlus = fc.constantFrom("+").map((plus) => new Token(TT.METER_PLUS, plus, sharedContext.generateId()));
-
-  const genMeterLParen = fc.constantFrom("(").map((lp) => new Token(TT.METER_LPAREN, lp, sharedContext.generateId()));
-
-  const genMeterRParen = fc.constantFrom(")").map((rp) => new Token(TT.METER_RPAREN, rp, sharedContext.generateId()));
-
-  const genWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws, sharedContext.generateId()));
-
-  // Simple meter generator (numerator/denominator)
-  const genSimpleMeter = fc
-    .tuple(
-      fc.option(genWhitespace),
-      genMeterNumber,
-      fc.option(genWhitespace),
-      genMeterSeparator,
-      fc.option(genWhitespace),
-      genMeterNumber,
-      fc.option(genWhitespace)
-    )
-    .map(([leadingWs, num1, ws1, sep, ws2, num2, trailingWs]) => {
-      const tokens: Token[] = [];
-      if (leadingWs) tokens.push(leadingWs);
-      tokens.push(num1);
-      if (ws1) tokens.push(ws1);
-      tokens.push(sep);
-      if (ws2) tokens.push(ws2);
-      tokens.push(num2);
-      if (trailingWs) tokens.push(trailingWs);
-      return tokens;
-    });
-
-  // Complex meter generator (with parentheses and addition)
+  // Complex meter generator (with parentheses and addition) - kept for existing tests
   const genComplexMeter = fc
     .tuple(
-      fc.option(genWhitespace),
+      fc.option(genMeterWhitespace),
       fc.option(genMeterLParen),
       genMeterNumber,
-      fc.array(fc.tuple(fc.option(genWhitespace), genMeterPlus, fc.option(genWhitespace), genMeterNumber), { minLength: 1, maxLength: 3 }),
+      fc.array(fc.tuple(fc.option(genMeterWhitespace), genMeterPlus, fc.option(genMeterWhitespace), genMeterNumber), { minLength: 1, maxLength: 3 }),
       fc.option(genMeterRParen),
-      fc.option(genWhitespace),
+      fc.option(genMeterWhitespace),
       genMeterSeparator,
-      fc.option(genWhitespace),
+      fc.option(genMeterWhitespace),
       genMeterNumber,
-      fc.option(genWhitespace)
+      fc.option(genMeterWhitespace)
     )
     .map(([leadingWs, lparen, firstNum, additions, rparen, ws1, sep, ws2, denominator, trailingWs]) => {
       const tokens: Token[] = [];
@@ -319,10 +343,10 @@ describe("scanMeterInfo Property-Based Tests", () => {
       return tokens;
     });
 
-  // Complete meter definition generator
-  const genMeterDefinition = fc.oneof(
+  // Complete meter definition generator including complex meters for internal tests
+  const genFullMeterDefinition = fc.oneof(
     // Common time
-    fc.tuple(fc.option(genWhitespace), genMeterC, fc.option(genWhitespace)).map(([leadingWs, c, trailingWs]) => {
+    fc.tuple(fc.option(genMeterWhitespace), genMeterC, fc.option(genMeterWhitespace)).map(([leadingWs, c, trailingWs]) => {
       const tokens: Token[] = [];
       if (leadingWs) tokens.push(leadingWs);
       tokens.push(c);
@@ -331,7 +355,7 @@ describe("scanMeterInfo Property-Based Tests", () => {
     }),
 
     // Cut time
-    fc.tuple(fc.option(genWhitespace), genMeterCBar, fc.option(genWhitespace)).map(([leadingWs, cb, trailingWs]) => {
+    fc.tuple(fc.option(genMeterWhitespace), genMeterCBar, fc.option(genMeterWhitespace)).map(([leadingWs, cb, trailingWs]) => {
       const tokens: Token[] = [];
       if (leadingWs) tokens.push(leadingWs);
       tokens.push(cb);

@@ -186,41 +186,41 @@ describe("scanNoteLenInfo", () => {
   });
 });
 
+// Note length component generators
+const genNoteLenNum = fc.integer({ min: 1, max: 999 }).map((num) => new Token(TT.NOTE_LEN_NUM, num.toString(), sharedContext.generateId()));
+
+const genNoteLenDenom = fc
+  .constantFrom(1, 2, 4, 8, 16, 32, 64, 128, 256, 512)
+  .map((denom) => new Token(TT.NOTE_LEN_DENOM, denom.toString(), sharedContext.generateId()));
+
+const genNoteLenWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws, sharedContext.generateId()));
+
+// Generator for complete note length signatures with optional whitespace
+export const genNoteLenSignature = fc
+  .tuple(
+    fc.option(genNoteLenWhitespace), // leading whitespace
+    genNoteLenNum,
+    fc.option(genNoteLenWhitespace), // whitespace before slash
+    fc.option(genNoteLenWhitespace), // whitespace after slash
+    genNoteLenDenom,
+    fc.option(genNoteLenWhitespace) // trailing whitespace
+  )
+  .map(([leadingWs, num, wsBeforeSlash, wsAfterSlash, denom, trailingWs]) => {
+    const tokens: Token[] = [];
+
+    if (leadingWs) tokens.push(leadingWs);
+    tokens.push(num);
+    if (wsBeforeSlash) tokens.push(wsBeforeSlash);
+    // Add the slash (not as a token, just as text)
+    tokens.push(new Token(TT.WS, "/", sharedContext.generateId()));
+    if (wsAfterSlash) tokens.push(wsAfterSlash);
+    tokens.push(denom);
+    if (trailingWs) tokens.push(trailingWs);
+
+    return tokens;
+  });
+
 describe("scanNoteLenInfo Property-Based Tests", () => {
-  // Note length component generators
-  const genNoteLenNum = fc.integer({ min: 1, max: 999 }).map((num) => new Token(TT.NOTE_LEN_NUM, num.toString(), sharedContext.generateId()));
-
-  const genNoteLenDenom = fc
-    .constantFrom(1, 2, 4, 8, 16, 32, 64, 128, 256, 512)
-    .map((denom) => new Token(TT.NOTE_LEN_DENOM, denom.toString(), sharedContext.generateId()));
-
-  const genWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws, sharedContext.generateId()));
-
-  // Generator for complete note length signatures with optional whitespace
-  const genNoteLenSignature = fc
-    .tuple(
-      fc.option(genWhitespace), // leading whitespace
-      genNoteLenNum,
-      fc.option(genWhitespace), // whitespace before slash
-      fc.option(genWhitespace), // whitespace after slash
-      genNoteLenDenom,
-      fc.option(genWhitespace) // trailing whitespace
-    )
-    .map(([leadingWs, num, wsBeforeSlash, wsAfterSlash, denom, trailingWs]) => {
-      const tokens: Token[] = [];
-
-      if (leadingWs) tokens.push(leadingWs);
-      tokens.push(num);
-      if (wsBeforeSlash) tokens.push(wsBeforeSlash);
-      // Add the slash (not as a token, just as text)
-      tokens.push(new Token(TT.WS, "/", sharedContext.generateId()));
-      if (wsAfterSlash) tokens.push(wsAfterSlash);
-      tokens.push(denom);
-      if (trailingWs) tokens.push(trailingWs);
-
-      return tokens;
-    });
-
   function createRoundTripPredicate(tokens: Token[]): boolean {
     // Convert tokens to string, handling the slash specially
     const input = tokens

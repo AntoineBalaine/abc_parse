@@ -13,11 +13,8 @@ describe("prsTuneHdr", () => {
       createToken(TT.INF_HDR, "T:"),
       createToken(TT.INFO_STR, "Test Tune"),
       createToken(TT.EOL, "\n"),
-      createToken(TT.INF_HDR, "M:"),
-      createToken(TT.INFO_STR, "4/4"),
-      createToken(TT.EOL, "\n"),
       createToken(TT.INF_HDR, "K:"),
-      createToken(TT.INFO_STR, "C"),
+      createToken(TT.KEY_ROOT, "C"),
       createToken(TT.EOL, "\n"),
       createToken(TT.SCT_BRK, "\n\n"),
     ];
@@ -27,7 +24,7 @@ describe("prsTuneHdr", () => {
 
     assert.isNotNull(result);
     assert.instanceOf(result, Tune_header);
-    assert.equal(result.info_lines.length, 4);
+    assert.equal(result.info_lines.length, 3);
     assert.equal(result.voices.length, 0);
 
     // Check that all info lines were parsed correctly
@@ -35,10 +32,8 @@ describe("prsTuneHdr", () => {
     assert.equal((result.info_lines[0] as Info_line).value[0].lexeme, "1");
     assert.equal((result.info_lines[1] as Info_line).key.lexeme, "T:");
     assert.equal((result.info_lines[1] as Info_line).value[0].lexeme, "Test Tune");
-    assert.equal((result.info_lines[2] as Info_line).key.lexeme, "M:");
-    assert.equal((result.info_lines[2] as Info_line).value[0].lexeme, "4/4");
-    assert.equal((result.info_lines[3] as Info_line).key.lexeme, "K:");
-    assert.equal((result.info_lines[3] as Info_line).value[0].lexeme, "C");
+    assert.equal((result.info_lines[2] as Info_line).key.lexeme, "K:");
+    assert.equal((result.info_lines[2] as Info_line).value[0].lexeme, "C");
   });
 
   it("should detect and collect voice names", () => {
@@ -47,13 +42,13 @@ describe("prsTuneHdr", () => {
       createToken(TT.INFO_STR, "1"),
       createToken(TT.EOL, "\n"),
       createToken(TT.INF_HDR, "T:"),
-      createToken(TT.INFO_STR, "Test Tune"),
+      createToken(TT.INFO_STR, '"Test Tune"'),
       createToken(TT.EOL, "\n"),
       createToken(TT.INF_HDR, "V:"),
-      createToken(TT.INFO_STR, "Soprano"),
+      createToken(TT.VX_ID, "Soprano"),
       createToken(TT.EOL, "\n"),
       createToken(TT.INF_HDR, "K:"),
-      createToken(TT.INFO_STR, "C"),
+      createToken(TT.KEY_ROOT, "C"),
       createToken(TT.EOL, "\n"),
       createToken(TT.SCT_BRK, "\n\n"),
     ];
@@ -74,16 +69,16 @@ describe("prsTuneHdr", () => {
       createToken(TT.INFO_STR, "1"),
       createToken(TT.EOL, "\n"),
       createToken(TT.INF_HDR, "V:"),
-      createToken(TT.INFO_STR, "Soprano"),
+      createToken(TT.VX_ID, "Soprano"),
       createToken(TT.EOL, "\n"),
       createToken(TT.INF_HDR, "V:"),
-      createToken(TT.INFO_STR, "Alto"),
+      createToken(TT.VX_ID, "Alto"),
       createToken(TT.EOL, "\n"),
       createToken(TT.INF_HDR, "V:"),
-      createToken(TT.INFO_STR, "Tenor"),
+      createToken(TT.VX_ID, "Tenor"),
       createToken(TT.EOL, "\n"),
       createToken(TT.INF_HDR, "K:"),
-      createToken(TT.INFO_STR, "C"),
+      createToken(TT.KEY_ROOT, "C"),
       createToken(TT.EOL, "\n"),
       createToken(TT.SCT_BRK, "\n\n"),
     ];
@@ -111,7 +106,7 @@ describe("prsTuneHdr", () => {
       createToken(TT.INFO_STR, "Test Tune"),
       createToken(TT.EOL, "\n"),
       createToken(TT.INF_HDR, "K:"),
-      createToken(TT.INFO_STR, "C"),
+      createToken(TT.KEY_ROOT, "C"),
       createToken(TT.EOL, "\n"),
       createToken(TT.SCT_BRK, "\n\n"),
     ];
@@ -138,7 +133,7 @@ describe("prsTuneHdr", () => {
       createToken(TT.INFO_STR, "Test Tune"),
       createToken(TT.EOL, "\n"),
       createToken(TT.INF_HDR, "K:"),
-      createToken(TT.INFO_STR, "C"),
+      createToken(TT.KEY_ROOT, "C"),
       createToken(TT.EOL, "\n"),
       createToken(TT.SCT_BRK, "\n\n"),
     ];
@@ -174,7 +169,7 @@ describe("prsTuneHdr", () => {
       createToken(TT.INFO_STR, "1"),
       createToken(TT.EOL, "\n"),
       createToken(TT.INF_HDR, "K:"),
-      createToken(TT.INFO_STR, "C"),
+      createToken(TT.KEY_ROOT, "C"),
       createToken(TT.EOL, "\n"),
       createToken(TT.SCT_BRK, "\n\n"),
       createToken(TT.NOTE_LETTER, "C"), // Music content after header
@@ -194,10 +189,10 @@ describe("prsTuneHdr", () => {
       createToken(TT.INFO_STR, "1"),
       createToken(TT.EOL, "\n"),
       createToken(TT.INF_HDR, "V:"),
-      createToken(TT.INFO_STR, 'Soprano clef=treble name="Soprano"'),
+      createToken(TT.VX_ID, "Soprano"),
       createToken(TT.EOL, "\n"),
       createToken(TT.INF_HDR, "K:"),
-      createToken(TT.INFO_STR, "C"),
+      createToken(TT.KEY_ROOT, "C"),
       createToken(TT.EOL, "\n"),
       createToken(TT.SCT_BRK, "\n\n"),
     ];
@@ -212,4 +207,3 @@ describe("prsTuneHdr", () => {
     assert.equal(result.voices[0], "Soprano");
   });
 });
-

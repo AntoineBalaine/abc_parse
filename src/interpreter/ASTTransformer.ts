@@ -35,7 +35,19 @@ import {
 } from "../types/Expr2";
 import { Token } from "../parsers/scan2";
 import { ABCContext } from "../parsers/Context";
-import { Tune as ABCJSTune, MusicLine, Staff, VoiceElement, NoteElement, BarElement, MediaType, MeterType, RestType, BarType, ElementType } from "../../abcjs-ast";
+import {
+  Tune as ABCJSTune,
+  MusicLine,
+  Staff,
+  VoiceElement,
+  NoteElement,
+  BarElement,
+  MediaType,
+  MeterType,
+  RestType,
+  BarType,
+  ElementType,
+} from "../types/abcjs-ast";
 import {
   InterpreterContext,
   createInterpreterContext,
@@ -223,7 +235,6 @@ export class ASTTransformer implements Visitor<any> {
     return [];
   }
 
-
   visitMusicCodeExpr(expr: Music_code): VoiceElement[] {
     const elements: VoiceElement[] = [];
 
@@ -336,7 +347,6 @@ export class ASTTransformer implements Visitor<any> {
     };
   }
 
-
   // Placeholder implementations for other visitor methods
   visitTokenExpr(token: Token): any {
     return null;
@@ -426,7 +436,6 @@ function processFileHeaderInfoLine(infoLine: Info_line, ctx: InterpreterContext)
   }
 }
 
-
 function processTuneHeaderInfoLine(infoLine: Info_line, ctx: InterpreterContext): void {
   const key = infoLine.key.lexeme;
 
@@ -476,9 +485,6 @@ function processTuneHeaderInfoLine(infoLine: Info_line, ctx: InterpreterContext)
   }
 }
 
-
-
-
 function processInlineInfoLine(infoLine: Info_line, ctx: InterpreterContext): void {
   // Handle key changes, voice switches, etc. within music
   const key = infoLine.key.lexeme;
@@ -512,7 +518,6 @@ function calculateNoteDuration(rhythm: Rhythm | undefined, ctx: InterpreterConte
   return ctx.defaultNoteLength;
 }
 
-
 function determineBarType(barTokens: Token[]): BarType {
   const barString = barTokens.map((t) => t.lexeme).join("");
 
@@ -532,7 +537,6 @@ function determineBarType(barTokens: Token[]): BarType {
       return BarType.BarThin;
   }
 }
-
 
 function getBasePitch(noteLetter: string): number {
   const pitches: { [key: string]: number } = {
@@ -554,7 +558,6 @@ function getBasePitch(noteLetter: string): number {
   return pitches[noteLetter] || 0;
 }
 
-
 function getOctaveOffset(octave: string): number {
   // Handle octave indicators like ', ,, etc.
   if (octave.includes(",")) {
@@ -565,14 +568,12 @@ function getOctaveOffset(octave: string): number {
   return 0;
 }
 
-
 function calculateVerticalPos(noteLetter: string, octave?: string): number {
   // Simplified vertical position calculation
   const basePos = getBasePitch(noteLetter);
   const octaveOffset = octave ? getOctaveOffset(octave) : 0;
   return Math.floor((basePos + octaveOffset) / 2);
 }
-
 
 function convertAccidental(accidental: string): string {
   switch (accidental) {

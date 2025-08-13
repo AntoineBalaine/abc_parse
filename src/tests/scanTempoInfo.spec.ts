@@ -4,7 +4,7 @@ import { describe, it } from "mocha";
 import { Ctx, TT, Token } from "../parsers/scan2";
 import { scanTempoInfo } from "../parsers/infoLines/scanTempoInfo";
 import { ABCContext } from "../parsers/Context";
-import { sharedContext } from "./scn_pbt.generators.spec";
+import { genTempoLine, sharedContext } from "./scn_pbt.generators.spec";
 
 function createTestContext(source: string): Ctx {
   const abcContext = new ABCContext();
@@ -359,83 +359,9 @@ describe("scanTempoInfo", () => {
   });
 });
 
+// Tempo component generators
+
 describe("scanTempoInfo Property-Based Tests", () => {
-  // Tempo component generators
-  const genTempoText = fc
-    .string({ minLength: 0, maxLength: 20 })
-    .filter((s) => !s.includes('"') && !s.includes("\n"))
-    .map((s) => new Token(TT.TEMPO_TEXT, `"${s}"`, sharedContext.generateId()));
-
-  const genBPMInt = fc.integer({ min: 30, max: 400 }).map((bpm) => new Token(TT.TEMPO_BPM, bpm.toString(), sharedContext.generateId()));
-
-  const genNoteNum = fc.integer({ min: 1, max: 16 }).map((num) => new Token(TT.NOTE_LEN_NUM, num.toString(), sharedContext.generateId()));
-
-  const genNoteDenom = fc.constantFrom(1, 2, 4, 8, 16, 32).map((denom) => new Token(TT.NOTE_LEN_DENOM, denom.toString(), sharedContext.generateId()));
-
-  const genNoteLetter = fc
-    .tuple(fc.constantFrom("A", "B", "C", "D", "E", "F", "G"), fc.integer({ min: 1, max: 9 }))
-    .map(([letter, octave]) => new Token(TT.TEMPO_NOTE_LETTER, `${letter}${octave}`, sharedContext.generateId()));
-
-  const genRationalNote = fc
-    .tuple(genNoteNum, fc.constantFrom(new Token(TT.WS, "/", sharedContext.generateId())), genNoteDenom)
-    .map(([num, slashToken, denom]) => {
-      // Add a slash token between num and denom
-      return [num, slashToken, denom];
-    });
-
-  const genNoteValue = fc.oneof(
-    genRationalNote,
-    genNoteLetter.map((note) => [note])
-  );
-
-  const genNoteSequence = fc.array(genNoteValue, { minLength: 1, maxLength: 4 }).map((noteValues) => {
-    // Add whitespace between note values
-    const result: Token[] = [];
-
-    for (let i = 0; i < noteValues.length; i++) {
-      // Add the note value tokens
-      result.push(...noteValues[i]);
-
-      // Add whitespace separator between notes (except after the last note)
-      if (i < noteValues.length - 1) {
-        result.push(new Token(TT.WS, " ", sharedContext.generateId()));
-      }
-    }
-
-    return result;
-  });
-
-  const genTempoDefinition = fc.oneof(
-    // Just BPM
-    genBPMInt.map((bpm) => [bpm]),
-    // Note sequence = BPM
-    fc.tuple(genNoteSequence, genBPMInt).map(([notes, bpm]) => [...notes, new Token(TT.WS, "=", sharedContext.generateId()), bpm])
-  );
-
-  const genTempoLine = fc
-    .tuple(fc.option(genTempoText), fc.option(genTempoDefinition), fc.option(genTempoText))
-    .filter(([text1, tempoDef, text2]) => !!(text1 || tempoDef || text2)) // At least one component
-    .map(([text1, tempoDef, text2]) => {
-      const tokens: Token[] = [];
-
-      if (text1) {
-        tokens.push(text1);
-        if (tempoDef || text2) tokens.push(new Token(TT.WS, " ", sharedContext.generateId()));
-      }
-
-      if (tempoDef) {
-        tokens.push(...tempoDef);
-        if (text2) tokens.push(new Token(TT.WS, " ", sharedContext.generateId()));
-      }
-
-      if (text2) {
-        tokens.push(text2);
-        // Removed the trailing space after the last text element
-      }
-
-      return tokens;
-    });
-
   function createRoundTripPredicate(tokens: Token[]): boolean {
     // Convert tokens to string
     const input = tokens
@@ -463,11 +389,9 @@ describe("scanTempoInfo Property-Based Tests", () => {
       return false;
     }
 
-    // Filter out whitespace tokens from both original and scanned
-    // This includes the slash tokens in the original input since they're
-    // just whitespace tokens with '/' lexeme that get consumed by the parser
-    const originalFiltered = tokens.filter((t) => t.type !== TT.WS);
-    const scannedFiltered = ctx.tokens.filter((t) => t.type !== TT.WS);
+    // Filter out whitespace and discard tokens from both original and scanned
+    const originalFiltered = tokens.filter((t) => t.type !== TT.WS && t.type !== TT.DISCARD);
+    const scannedFiltered = ctx.tokens.filter((t) => t.type !== TT.WS && t.type !== TT.DISCARD);
 
     // Compare token counts
     if (originalFiltered.length !== scannedFiltered.length) {

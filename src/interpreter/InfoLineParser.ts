@@ -19,7 +19,7 @@ import {
   ModeInput,
   StemDirection,
   ChordPlacement,
-} from "../../abcjs-ast";
+} from "../types/abcjs-ast";
 
 export interface VoiceProperties {
   name?: string;
@@ -351,19 +351,11 @@ function tokensToString(tokens: Token[]): string {
 
 // Type predicate functions
 function isStemDirection(value: string): value is StemDirection {
-  return (
-    value === "up" || value === "down" || value === "auto" || value === "none"
-  );
+  return value === "up" || value === "down" || value === "auto" || value === "none";
 }
 
 function isChordPlacement(value: string): value is ChordPlacement {
-  return (
-    value === "above" ||
-    value === "below" ||
-    value === "left" ||
-    value === "right" ||
-    value === "default"
-  );
+  return value === "above" || value === "below" || value === "left" || value === "right" || value === "default";
 }
 
 function isBracketBracePosition(value: string): value is BracketBracePosition {
@@ -491,11 +483,7 @@ function parseKeyAccidentals(root: string, accidental: string): Accidental[] {
 
     accidentals.push({
       note: noteLetter as any,
-      acc: isSharp
-        ? AccidentalType.Sharp
-        : isFlat
-          ? AccidentalType.Flat
-          : AccidentalType.Natural,
+      acc: isSharp ? AccidentalType.Sharp : isFlat ? AccidentalType.Flat : AccidentalType.Natural,
       verticalPos: getNoteVerticalPos(noteLetter),
     });
   });
@@ -543,9 +531,7 @@ function parseExplicitAccidentals(modifiers: string): Accidental[] {
 }
 
 function parseClef(clefStr: string): ClefProperties {
-  const clefMatch = clefStr.match(
-    /^(treble|bass|alto|tenor|perc|none)([+-]\d+)?$/i,
-  );
+  const clefMatch = clefStr.match(/^(treble|bass|alto|tenor|perc|none)([+-]\d+)?$/i);
 
   if (!clefMatch) {
     throw new Error(`Invalid clef: ${clefStr}`);

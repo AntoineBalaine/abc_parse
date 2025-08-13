@@ -1,4 +1,4 @@
-import { StemDirection, ChordPlacement, BracketBracePosition, ClefProperties } from "../../../abcjs-ast";
+import { StemDirection, ChordPlacement, BracketBracePosition, ClefProperties } from "../../types/abcjs-ast";
 import { advance, consume, Ctx, isAtEnd, Token, TT, WS } from "../scan2";
 import { comment } from "../scan_tunebody";
 
@@ -76,7 +76,7 @@ function scnVxId(ctx: Ctx): boolean {
  */
 export function scanVoiceInfo(ctx: Ctx): boolean {
   let found_id = false;
-  while (!isAtEnd(ctx)) {
+  while (!isAtEnd(ctx) && !ctx.test("\n") && !ctx.test("%")) {
     if (WS(ctx, true)) continue;
     if (comment(ctx)) break;
     if (!found_id) {

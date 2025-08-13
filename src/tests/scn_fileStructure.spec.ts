@@ -68,7 +68,6 @@ describe("scan tune", () => {
   it("should parse a tune header with info lines, comments, and stylesheet directives", () => {
     const ctx = createCtx(`X:1
 T:Title
-M:4/4
 K:C
 %%directive
 %comment
@@ -84,10 +83,7 @@ K:C
       TT.INFO_STR,
       TT.EOL,
       TT.INF_HDR,
-      TT.INFO_STR,
-      TT.EOL,
-      TT.INF_HDR,
-      TT.INFO_STR,
+      TT.KEY_ROOT,
       TT.EOL,
       TT.STYLESHEET_DIRECTIVE,
       TT.EOL,
@@ -106,7 +102,6 @@ K:C
   it("should tokenize a tune with both header and body content", () => {
     const ctx = createCtx(`X:1
 T:Test Tune
-M:4/4
 K:C
 ABC DEF|`);
     scanTune(ctx);
@@ -118,12 +113,9 @@ ABC DEF|`);
       TT.EOL, // X:1
       TT.INF_HDR,
       TT.INFO_STR,
-      TT.EOL, // T:Test Tune
-      TT.INF_HDR,
-      TT.INFO_STR,
       TT.EOL, // M:4/4
       TT.INF_HDR,
-      TT.INFO_STR,
+      TT.KEY_ROOT,
       TT.EOL, // K:C
     ];
 
@@ -167,7 +159,7 @@ ABC DEF|
       TT.INFO_STR,
       TT.EOL, // T:Test Tune
       TT.INF_HDR,
-      TT.INFO_STR,
+      TT.KEY_ROOT,
       TT.EOL, // K:C
       TT.NOTE_LETTER,
       TT.NOTE_LETTER,

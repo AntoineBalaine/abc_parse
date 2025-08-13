@@ -13,7 +13,7 @@ import {
   ClefType,
   AccidentalType,
   Mode,
-} from "../../abcjs-ast";
+} from "../types/abcjs-ast";
 import { HeaderCtx, ROHeadrCtx } from "./HeaderContext";
 import { VoiceProperties } from "./InfoLineParser";
 import { Rational, createRational } from "../Visitors/fmt2/rational";
@@ -21,10 +21,7 @@ import { Rational, createRational } from "../Visitors/fmt2/rational";
 // Constants for cascading defaults
 const DEFAULT_VOICE_ID = "default";
 
-const INTERPRETER_CONSTANTS: Pick<
-  HeaderCtx,
-  "defaultKey" | "defaultNoteLength" | "defaultClef" | "defaultVoiceProperties"
-> = {
+const INTERPRETER_CONSTANTS: Pick<HeaderCtx, "defaultKey" | "defaultNoteLength" | "defaultClef" | "defaultVoiceProperties"> = {
   defaultKey: {
     root: KeyRoot.C,
     acc: KeyAccidental.None,
@@ -87,16 +84,7 @@ export interface TuneBodyContext {
   // Output AST - building the Tune structure (data properties only)
   outputTune: Pick<
     Tune,
-    | "version"
-    | "media"
-    | "metaText"
-    | "metaTextInfo"
-    | "formatting"
-    | "lines"
-    | "staffNum"
-    | "voiceNum"
-    | "lineNum"
-    | "visualTranspose"
+    "version" | "media" | "metaText" | "metaTextInfo" | "formatting" | "lines" | "staffNum" | "voiceNum" | "lineNum" | "visualTranspose"
   >;
 
   // Processing state
@@ -107,10 +95,7 @@ export interface TuneBodyContext {
   currentMusicLine?: MusicLine;
 }
 
-export function createTuneBodyContext(
-  fileHeader: ROHeadrCtx,
-  tuneHeader: ROHeadrCtx,
-): TuneBodyContext {
+export function createTuneBodyContext(fileHeader: ROHeadrCtx, tuneHeader: ROHeadrCtx): TuneBodyContext {
   const resolvedDefaults = mergeDefaults(fileHeader, tuneHeader);
 
   return {
@@ -137,26 +122,14 @@ export function createTuneBodyContext(
   };
 }
 
-function mergeDefaults(
-  fileHeader: ROHeadrCtx,
-  tuneHeader: ROHeadrCtx,
-): ResolvedDefaults {
+function mergeDefaults(fileHeader: ROHeadrCtx, tuneHeader: ROHeadrCtx): ResolvedDefaults {
   return {
     // Cascading defaults: tune -> file -> constants
-    defaultKey:
-      tuneHeader.defaultKey ||
-      fileHeader.defaultKey ||
-      INTERPRETER_CONSTANTS.defaultKey,
+    defaultKey: tuneHeader.defaultKey || fileHeader.defaultKey || INTERPRETER_CONSTANTS.defaultKey,
     defaultMeter: tuneHeader.defaultMeter || fileHeader.defaultMeter,
-    defaultNoteLength:
-      tuneHeader.defaultNoteLength ||
-      fileHeader.defaultNoteLength ||
-      INTERPRETER_CONSTANTS.defaultNoteLength,
+    defaultNoteLength: tuneHeader.defaultNoteLength || fileHeader.defaultNoteLength || INTERPRETER_CONSTANTS.defaultNoteLength,
     defaultTempo: tuneHeader.defaultTempo || fileHeader.defaultTempo,
-    defaultClef:
-      tuneHeader.defaultClef ||
-      fileHeader.defaultClef ||
-      INTERPRETER_CONSTANTS.defaultClef,
+    defaultClef: tuneHeader.defaultClef || fileHeader.defaultClef || INTERPRETER_CONSTANTS.defaultClef,
     defaultVoiceProperties: {
       ...INTERPRETER_CONSTANTS.defaultVoiceProperties,
       ...fileHeader.defaultVoiceProperties,
@@ -165,17 +138,11 @@ function mergeDefaults(
 
     // Combine macros and symbols (tune level can add to file level)
     macros: new Map([...fileHeader.macros, ...tuneHeader.macros]),
-    userSymbols: new Map([
-      ...fileHeader.userSymbols,
-      ...tuneHeader.userSymbols,
-    ]),
+    userSymbols: new Map([...fileHeader.userSymbols, ...tuneHeader.userSymbols]),
   };
 }
 
-function createVoiceContextsFromHeaders(
-  tuneHeader: ROHeadrCtx,
-  resolvedDefaults: ResolvedDefaults,
-): Map<string, VoiceRunningContext> {
+function createVoiceContextsFromHeaders(tuneHeader: ROHeadrCtx, resolvedDefaults: ResolvedDefaults): Map<string, VoiceRunningContext> {
   const voices = new Map<string, VoiceRunningContext>();
 
   // TODO: Extract voice declarations from tune header
@@ -194,10 +161,7 @@ function createVoiceContextsFromHeaders(
   return voices;
 }
 
-function buildMetaText(
-  fileHeader: ROHeadrCtx,
-  tuneHeader: ROHeadrCtx,
-): MetaText {
+function buildMetaText(fileHeader: ROHeadrCtx, tuneHeader: ROHeadrCtx): MetaText {
   return {
     // Tune header wins over file header for metadata
     title: tuneHeader.title || fileHeader.title,
@@ -214,7 +178,7 @@ function buildMetaText(
 export function interpretTuneBody(
   fileHeader: ROHeadrCtx,
   tuneHeader: ROHeadrCtx,
-  tuneBody: any[], // TODO: Define proper tune body element type
+  tuneBody: any[] // TODO: Define proper tune body element type
 ): TuneBodyContext {
   const context = createTuneBodyContext(fileHeader, tuneHeader);
 

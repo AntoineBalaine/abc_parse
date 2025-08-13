@@ -1,4 +1,4 @@
-import { Staff, VoiceElement, MusicLine } from "../../abcjs-ast";
+import { Staff, VoiceElement, MusicLine } from "../types/abcjs-ast";
 import { InterpreterContext, VoiceContext } from "./InterpreterContext";
 import { System } from "../types/Expr2";
 import { Rational, createRational, addRational, compareRational } from "../Visitors/fmt2/rational";
@@ -19,14 +19,14 @@ export interface ResolvedSystem {
  */
 export function resolveVoices(ctx: InterpreterContext, systems: System[]): MusicLine[] {
   const resolvedLines: MusicLine[] = [];
-  
+
   for (const system of systems) {
     const resolved = resolveSystem(ctx, system);
     if (resolved.staffs.length > 0) {
       resolvedLines.push({ staff: resolved.staffs });
     }
   }
-  
+
   return resolvedLines;
 }
 
@@ -37,16 +37,16 @@ export function resolveVoices(ctx: InterpreterContext, systems: System[]): Music
 export function resolveSystem(ctx: InterpreterContext, system: System): ResolvedSystem {
   // Group elements by voice
   const voiceGroups = groupElementsByVoice(ctx, system);
-  
+
   // Create one staff per voice
   const staffs: Staff[] = [];
   let maxTime = createRational(0);
-  
+
   for (const group of voiceGroups) {
     const staff = createStaffForVoice(ctx, group);
     if (staff) {
       staffs.push(staff);
-      
+
       // Calculate timing for this voice
       const voiceTime = calculateVoiceTime(group.elements);
       if (compareRational(voiceTime, maxTime) > 0) {
@@ -54,7 +54,7 @@ export function resolveSystem(ctx: InterpreterContext, system: System): Resolved
       }
     }
   }
-  
+
   return { staffs, maxTime };
 }
 
@@ -65,7 +65,7 @@ function groupElementsByVoice(ctx: InterpreterContext, system: System): Array<{ 
   const groups: Array<{ voiceId: string; elements: any[] }> = [];
   let currentVoiceId = ctx.currentVoiceId || getDefaultVoiceId(ctx);
   let currentGroup: any[] = [];
-  
+
   for (const element of system) {
     // Check if this is a voice switch
     if (isVoiceSwitch(element)) {
@@ -74,7 +74,7 @@ function groupElementsByVoice(ctx: InterpreterContext, system: System): Array<{ 
         groups.push({ voiceId: currentVoiceId, elements: currentGroup });
         currentGroup = [];
       }
-      
+
       // Switch to new voice
       const newVoiceId = extractVoiceId(element);
       if (newVoiceId) {
@@ -85,12 +85,12 @@ function groupElementsByVoice(ctx: InterpreterContext, system: System): Array<{ 
       currentGroup.push(element);
     }
   }
-  
+
   // Add final group
   if (currentGroup.length > 0) {
     groups.push({ voiceId: currentVoiceId, elements: currentGroup });
   }
-  
+
   return groups;
 }
 
@@ -103,21 +103,21 @@ function createStaffForVoice(ctx: InterpreterContext, group: { voiceId: string; 
     console.warn(`Voice ${group.voiceId} not found in context`);
     return null;
   }
-  
+
   // Convert elements to voice elements
   const voiceElements: VoiceElement[] = group.elements
-    .map(element => convertToVoiceElement(element))
+    .map((element) => convertToVoiceElement(element))
     .filter((element): element is VoiceElement => element !== null);
-  
+
   const staff: Staff = {
     clef: voice.currentClef,
     key: voice.currentKey,
     meter: voice.currentMeter,
     workingClef: voice.currentClef,
     voices: [voiceElements], // Single voice in array
-    title: voice.properties.name ? [voice.properties.name] : [voice.id]
+    title: voice.properties.name ? [voice.properties.name] : [voice.id],
   };
-  
+
   return staff;
 }
 
@@ -138,14 +138,14 @@ function convertToVoiceElement(element: any): VoiceElement | null {
  */
 function calculateVoiceTime(elements: any[]): Rational {
   let totalTime = createRational(0);
-  
+
   for (const element of elements) {
     const duration = getElementDuration(element);
     if (duration) {
       totalTime = addRational(totalTime, duration);
     }
   }
-  
+
   return totalTime;
 }
 
@@ -155,11 +155,11 @@ function calculateVoiceTime(elements: any[]): Rational {
 function getElementDuration(element: any): Rational | null {
   if (element && element.duration) {
     // If duration is already a Rational, return it
-    if (typeof element.duration === 'object' && 'numerator' in element.duration) {
+    if (typeof element.duration === "object" && "numerator" in element.duration) {
       return element.duration as Rational;
     }
     // If duration is a number, convert to Rational
-    if (typeof element.duration === 'number') {
+    if (typeof element.duration === "number") {
       return createRational(element.duration * 1000, 1000); // Convert to fraction
     }
   }
@@ -171,9 +171,7 @@ function getElementDuration(element: any): Rational | null {
  */
 function isVoiceSwitch(element: any): boolean {
   // Check if this is a V: info line
-  return element && 
-         element.key && 
-         element.key.lexeme === 'V';
+  return element && element.key && element.key.lexeme === "V";
 }
 
 /**
@@ -205,9 +203,9 @@ function getDefaultVoiceId(ctx: InterpreterContext): string {
 export function resolveVoiceOverlays(elements: VoiceElement[]): VoiceElement[][] {
   const voices: VoiceElement[][] = [];
   let currentVoice: VoiceElement[] = [];
-  
+
   for (const element of elements) {
-    if (element.el_type === 'overlay') {
+    if (element.el_type === "overlay") {
       // Start new voice overlay within the same staff
       if (currentVoice.length > 0) {
         voices.push(currentVoice);
@@ -217,34 +215,37 @@ export function resolveVoiceOverlays(elements: VoiceElement[]): VoiceElement[][]
       currentVoice.push(element);
     }
   }
-  
+
   // Add final voice
   if (currentVoice.length > 0) {
     voices.push(currentVoice);
   }
-  
+
   return voices.length > 0 ? voices : [[]];
 }
 
 /**
  * Calculate timing positions for elements in a voice
  */
-export function calculateTimingPositions(ctx: InterpreterContext, elements: VoiceElement[]): Array<{ element: VoiceElement; startTime: Rational; endTime: Rational }> {
+export function calculateTimingPositions(
+  ctx: InterpreterContext,
+  elements: VoiceElement[]
+): Array<{ element: VoiceElement; startTime: Rational; endTime: Rational }> {
   const timedElements: Array<{ element: VoiceElement; startTime: Rational; endTime: Rational }> = [];
   let currentTime = createRational(0);
-  
+
   for (const element of elements) {
     const duration = getElementDuration(element) || createRational(0);
     const endTime = addRational(currentTime, duration);
-    
+
     timedElements.push({
       element,
       startTime: currentTime,
-      endTime
+      endTime,
     });
-    
+
     currentTime = endTime;
   }
-  
+
   return timedElements;
 }
