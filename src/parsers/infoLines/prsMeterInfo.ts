@@ -4,6 +4,12 @@ import { Token, TT } from "../scan2";
 import { Meter, MeterType, MeterFraction } from "../../types/abcjs-ast";
 
 /**
+ *  Parse a Meter (M:) info line expression
+ *
+ * Format: `M:numerator/denominator` or `M:C` or `M:C|` etc.
+ *
+ * Examples: `M:4/4`, `M:3/4`, `M:C`, `M:C|`, `M:6/8`
+ *
  * To be called from prsInfoLine,
  * so the parent array represents the parsed tokens of the info line.
  * It's expected that the header token is already consumed, and that there be no WS tokens in the info line.

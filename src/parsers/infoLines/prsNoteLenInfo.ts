@@ -4,6 +4,12 @@ import { Token, TT } from "../scan2";
 import { Rational } from "../../Visitors/fmt2/rational";
 
 /**
+ *  Parse a Note Length (L:) info line expression
+ *
+ * Format: `L:1/denominator`
+ *
+ * Examples: `L:1/8`, `L:1/4`, `L:1/16`
+ *
  * To be called from prsInfoLine,
  * so the parent array represents the parsed tokens of the info line.
  * It's expected that the header token is already consumed, and that there be no WS tokens in the info line.

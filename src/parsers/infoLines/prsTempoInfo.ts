@@ -4,6 +4,12 @@ import { Token, TT } from "../scan2";
 import { TempoProperties } from "../../types/abcjs-ast";
 
 /**
+ * Parse a Tempo (Q:) info line expression
+ *
+ * Format: `Q:[note_length]=[bpm]` or `Q:"text"[note_length]=[bpm]"more text"`
+ *
+ * Examples: `Q:1/4=120`, `Q:"Allegro" 1/4=120`, `Q:1/8=60 "ca. 60"`
+ *
  * To be called from prsInfoLine,
  * so the parent array represents the parsed tokens of the info line.
  * It's expected that the header token is already consumed, and that there be no WS tokens in the info line.

@@ -13,10 +13,17 @@ function stringLiteral(ctx: Ctx, type: TT): boolean {
 }
 
 /**
+ *  Format: `Q:[note_length]=[bpm]` or `Q:"text"[note_length]=[bpm]"more text"`
+ *
+ * Examples: `Q:1/4=120`, `Q:"Allegro" 1/4=120`, `Q:1/8=60 "ca. 60"`
+ *
  * Scan a tempo info line content
- * Grammar: string_literal? tempo_definition? string_literal?
- * tempo_definition := (note_sequence "=")? integer
- * Examples: "Allegro", 120, 1/4=120, "Easy Swing" 1/4=140, C3=120
+ *
+ * Grammar: `string_literal? tempo_definition? string_literal?`
+ *
+ * tempo_definition := `(note_sequence "=")? integer`
+ *
+ * Examples: `"Allegro", 120, 1/4=120, "Easy Swing" 1/4=140, C3=120`
  */
 export function scanTempoInfo(ctx: Ctx): boolean {
   while (!isAtEnd(ctx) && !ctx.test(pEOL) && !comment(ctx)) {

@@ -4,6 +4,11 @@ import { Token, TT } from "../scan2";
 import { KeySignature, KeyRoot, KeyAccidental, Mode, Accidental, AccidentalType, NoteLetter } from "../../types/abcjs-ast";
 
 /**
+ * Parse a Key (K:) info line expression
+ * Format: `K:[key][accidentals][mode][ modifiers]`
+ *
+ * Examples: `K:C, K:G major, K:Dm, K:F# dorian, K:C^c_b`
+ *
  * To be called from prsInfoLine,
  * so the parent array represents the parsed tokens of the info line.
  * It's expected that the header token is already consumed, and that there be no WS tokens in the info line.
