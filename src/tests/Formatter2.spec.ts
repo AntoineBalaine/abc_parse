@@ -225,11 +225,11 @@ C,D,E,F, | G,A,B,C, |`
         it("handles voice names with spaces and metadata", () => {
           const result = format(
             `X:1
-V:Right Hand clef=treble % treble staff
-V:Left Hand clef=bass % bass staff
-V:Right Hand
+V:Right_Hand clef=treble % treble staff
+V:Left_Hand clef=bass % bass staff
+V:Right_Hand
 CDEF|GABC|
-V:Left Hand
+V:Left_Hand
 CDEF|GABC|`,
             ctx,
             formatter
@@ -238,11 +238,11 @@ CDEF|GABC|`,
           assert.equal(
             result,
             `X:1
-V:Right Hand clef=treble % treble staff
-V:Left Hand clef=bass % bass staff
-V:Right Hand
+V:Right_Hand clef=treble % treble staff
+V:Left_Hand clef=bass % bass staff
+V:Right_Hand
 CDEF | GABC |
-V:Left Hand
+V:Left_Hand
 CDEF | GABC |`
           );
         });

@@ -31,6 +31,11 @@ TODO:
 - remove regex matching from tuplet parsing case
 - add new source of error reporting instead of using Scanner2 errors.
 
+# info lines TODOs:
+- REMOVE MeterFraction type and replace with RationalNumber
+- when it comes to key/value pairs: the scanner should NOT be discarding `=` and `/` tokens. Those separator tokens should be part of the values, even if to be discarded later.
+- consequently: the formatter should be able to accomodate info lines that carry comments WITHOUT including the comment in the InfoLine expression.
+
 # Bug list:
 
 - remove abcContext everywhere, and pass error reporter instead

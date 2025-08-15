@@ -1,4 +1,5 @@
 import { isNote, isToken } from "../helpers";
+import { InfoLineFmt } from "../infoLineFmt";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import {
@@ -229,9 +230,7 @@ export class AbcFormatter2 implements Visitor<string> {
   }
 
   visitInfoLineExpr(expr: Info_line): string {
-    const { key, value } = expr;
-    const formattedVal = value.map((val) => val.lexeme).join("");
-    return `${key.lexeme}${formattedVal}`;
+    return InfoLineFmt(expr);
   }
 
   visitInlineFieldExpr(expr: Inline_field): string {

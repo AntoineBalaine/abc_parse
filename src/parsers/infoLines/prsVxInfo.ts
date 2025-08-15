@@ -25,7 +25,7 @@ export function prsVxInfo(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): InfoLi
   };
 }
 
-function parseVoiceData(tokens: Token[]): { id: string; properties: any } {
+function parseVoiceData(tokens: Token[]): { id: string; properties: { [key: string]: string } } {
   let id = "";
   const properties: { [key: string]: string } = {};
 
