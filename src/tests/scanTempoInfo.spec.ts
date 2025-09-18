@@ -154,27 +154,28 @@ describe("scanTempoInfo", () => {
       const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
+      const nonWsTokens = ctx.tokens.filter((t) => t.type !== TT.WS);
 
       // First note: 4/8
-      assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
-      assert.equal(ctx.tokens[0].lexeme, "4");
-      assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
-      assert.equal(ctx.tokens[1].lexeme, "8");
+      assert.equal(nonWsTokens[0].type, TT.NOTE_LEN_NUM);
+      assert.equal(nonWsTokens[0].lexeme, "4");
+      assert.equal(nonWsTokens[1].type, TT.NOTE_LEN_DENOM);
+      assert.equal(nonWsTokens[1].lexeme, "8");
 
       // Second note: 3/8
-      assert.equal(ctx.tokens[2].type, TT.NOTE_LEN_NUM);
-      assert.equal(ctx.tokens[2].lexeme, "3");
-      assert.equal(ctx.tokens[3].type, TT.NOTE_LEN_DENOM);
-      assert.equal(ctx.tokens[3].lexeme, "8");
+      assert.equal(nonWsTokens[2].type, TT.NOTE_LEN_NUM);
+      assert.equal(nonWsTokens[2].lexeme, "3");
+      assert.equal(nonWsTokens[3].type, TT.NOTE_LEN_DENOM);
+      assert.equal(nonWsTokens[3].lexeme, "8");
 
       // Third note: 4/8
-      assert.equal(ctx.tokens[4].type, TT.NOTE_LEN_NUM);
-      assert.equal(ctx.tokens[4].lexeme, "4");
-      assert.equal(ctx.tokens[5].type, TT.NOTE_LEN_DENOM);
-      assert.equal(ctx.tokens[5].lexeme, "8");
+      assert.equal(nonWsTokens[4].type, TT.NOTE_LEN_NUM);
+      assert.equal(nonWsTokens[4].lexeme, "4");
+      assert.equal(nonWsTokens[5].type, TT.NOTE_LEN_DENOM);
+      assert.equal(nonWsTokens[5].lexeme, "8");
 
-      assert.equal(ctx.tokens[6].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[6].lexeme, "70");
+      assert.equal(nonWsTokens[6].type, TT.TEMPO_BPM);
+      assert.equal(nonWsTokens[6].lexeme, "70");
     });
 
     it("should scan mixed note types", () => {
@@ -182,21 +183,22 @@ describe("scanTempoInfo", () => {
       const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
+      const nonWsTokens = ctx.tokens.filter((t) => t.type !== TT.WS);
 
       // First note: 2/16
-      assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
-      assert.equal(ctx.tokens[0].lexeme, "2");
-      assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
-      assert.equal(ctx.tokens[1].lexeme, "16");
+      assert.equal(nonWsTokens[0].type, TT.NOTE_LEN_NUM);
+      assert.equal(nonWsTokens[0].lexeme, "2");
+      assert.equal(nonWsTokens[1].type, TT.NOTE_LEN_DENOM);
+      assert.equal(nonWsTokens[1].lexeme, "16");
 
       // Second note: 3/16
-      assert.equal(ctx.tokens[2].type, TT.NOTE_LEN_NUM);
-      assert.equal(ctx.tokens[2].lexeme, "3");
-      assert.equal(ctx.tokens[3].type, TT.NOTE_LEN_DENOM);
-      assert.equal(ctx.tokens[3].lexeme, "16");
+      assert.equal(nonWsTokens[2].type, TT.NOTE_LEN_NUM);
+      assert.equal(nonWsTokens[2].lexeme, "3");
+      assert.equal(nonWsTokens[3].type, TT.NOTE_LEN_DENOM);
+      assert.equal(nonWsTokens[3].lexeme, "16");
 
-      assert.equal(ctx.tokens[4].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[4].lexeme, "60");
+      assert.equal(nonWsTokens[4].type, TT.TEMPO_BPM);
+      assert.equal(nonWsTokens[4].lexeme, "60");
     });
   });
 
@@ -206,14 +208,15 @@ describe("scanTempoInfo", () => {
       const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens[0].type, TT.TEMPO_TEXT);
-      assert.equal(ctx.tokens[0].lexeme, '"Easy Swing"');
-      assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_NUM);
-      assert.equal(ctx.tokens[1].lexeme, "1");
-      assert.equal(ctx.tokens[2].type, TT.NOTE_LEN_DENOM);
-      assert.equal(ctx.tokens[2].lexeme, "4");
-      assert.equal(ctx.tokens[3].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[3].lexeme, "140");
+      const nonWsTokens = ctx.tokens.filter((t) => t.type !== TT.WS);
+      assert.equal(nonWsTokens[0].type, TT.TEMPO_TEXT);
+      assert.equal(nonWsTokens[0].lexeme, '"Easy Swing"');
+      assert.equal(nonWsTokens[1].type, TT.NOTE_LEN_NUM);
+      assert.equal(nonWsTokens[1].lexeme, "1");
+      assert.equal(nonWsTokens[2].type, TT.NOTE_LEN_DENOM);
+      assert.equal(nonWsTokens[2].lexeme, "4");
+      assert.equal(nonWsTokens[3].type, TT.TEMPO_BPM);
+      assert.equal(nonWsTokens[3].lexeme, "140");
     });
 
     it("should scan text after tempo", () => {
@@ -221,14 +224,15 @@ describe("scanTempoInfo", () => {
       const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
-      assert.equal(ctx.tokens[0].lexeme, "1");
-      assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
-      assert.equal(ctx.tokens[1].lexeme, "4");
-      assert.equal(ctx.tokens[2].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[2].lexeme, "80");
-      assert.equal(ctx.tokens[3].type, TT.TEMPO_TEXT);
-      assert.equal(ctx.tokens[3].lexeme, '"slow"');
+      const nonWsTokens = ctx.tokens.filter((t) => t.type !== TT.WS);
+      assert.equal(nonWsTokens[0].type, TT.NOTE_LEN_NUM);
+      assert.equal(nonWsTokens[0].lexeme, "1");
+      assert.equal(nonWsTokens[1].type, TT.NOTE_LEN_DENOM);
+      assert.equal(nonWsTokens[1].lexeme, "4");
+      assert.equal(nonWsTokens[2].type, TT.TEMPO_BPM);
+      assert.equal(nonWsTokens[2].lexeme, "80");
+      assert.equal(nonWsTokens[3].type, TT.TEMPO_TEXT);
+      assert.equal(nonWsTokens[3].lexeme, '"slow"');
     });
 
     it("should scan text before and after tempo", () => {
@@ -236,16 +240,17 @@ describe("scanTempoInfo", () => {
       const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens[0].type, TT.TEMPO_TEXT);
-      assert.equal(ctx.tokens[0].lexeme, '"Before"');
-      assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_NUM);
-      assert.equal(ctx.tokens[1].lexeme, "1");
-      assert.equal(ctx.tokens[2].type, TT.NOTE_LEN_DENOM);
-      assert.equal(ctx.tokens[2].lexeme, "4");
-      assert.equal(ctx.tokens[3].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[3].lexeme, "120");
-      assert.equal(ctx.tokens[4].type, TT.TEMPO_TEXT);
-      assert.equal(ctx.tokens[4].lexeme, '"After"');
+      const nonWsTokens = ctx.tokens.filter((t) => t.type !== TT.WS);
+      assert.equal(nonWsTokens[0].type, TT.TEMPO_TEXT);
+      assert.equal(nonWsTokens[0].lexeme, '"Before"');
+      assert.equal(nonWsTokens[1].type, TT.NOTE_LEN_NUM);
+      assert.equal(nonWsTokens[1].lexeme, "1");
+      assert.equal(nonWsTokens[2].type, TT.NOTE_LEN_DENOM);
+      assert.equal(nonWsTokens[2].lexeme, "4");
+      assert.equal(nonWsTokens[3].type, TT.TEMPO_BPM);
+      assert.equal(nonWsTokens[3].lexeme, "120");
+      assert.equal(nonWsTokens[4].type, TT.TEMPO_TEXT);
+      assert.equal(nonWsTokens[4].lexeme, '"After"');
     });
 
     it("should scan complex text with tempo", () => {
@@ -253,26 +258,27 @@ describe("scanTempoInfo", () => {
       const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens[0].type, TT.TEMPO_TEXT);
-      assert.equal(ctx.tokens[0].lexeme, '"adagio"');
+      const nonWsTokens = ctx.tokens.filter((t) => t.type !== TT.WS);
+      assert.equal(nonWsTokens[0].type, TT.TEMPO_TEXT);
+      assert.equal(nonWsTokens[0].lexeme, '"adagio"');
 
       // Note sequence: 4/8 3/8 4/8
-      assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_NUM);
-      assert.equal(ctx.tokens[1].lexeme, "4");
-      assert.equal(ctx.tokens[2].type, TT.NOTE_LEN_DENOM);
-      assert.equal(ctx.tokens[2].lexeme, "8");
-      assert.equal(ctx.tokens[3].type, TT.NOTE_LEN_NUM);
-      assert.equal(ctx.tokens[3].lexeme, "3");
-      assert.equal(ctx.tokens[4].type, TT.NOTE_LEN_DENOM);
-      assert.equal(ctx.tokens[4].lexeme, "8");
-      assert.equal(ctx.tokens[5].type, TT.NOTE_LEN_NUM);
-      assert.equal(ctx.tokens[5].lexeme, "4");
-      assert.equal(ctx.tokens[6].type, TT.NOTE_LEN_DENOM);
-      assert.equal(ctx.tokens[6].lexeme, "8");
+      assert.equal(nonWsTokens[1].type, TT.NOTE_LEN_NUM);
+      assert.equal(nonWsTokens[1].lexeme, "4");
+      assert.equal(nonWsTokens[2].type, TT.NOTE_LEN_DENOM);
+      assert.equal(nonWsTokens[2].lexeme, "8");
+      assert.equal(nonWsTokens[3].type, TT.NOTE_LEN_NUM);
+      assert.equal(nonWsTokens[3].lexeme, "3");
+      assert.equal(nonWsTokens[4].type, TT.NOTE_LEN_DENOM);
+      assert.equal(nonWsTokens[4].lexeme, "8");
+      assert.equal(nonWsTokens[5].type, TT.NOTE_LEN_NUM);
+      assert.equal(nonWsTokens[5].lexeme, "4");
+      assert.equal(nonWsTokens[6].type, TT.NOTE_LEN_DENOM);
+      assert.equal(nonWsTokens[6].lexeme, "8");
 
       // Equals and BPM
-      assert.equal(ctx.tokens[7].type, TT.TEMPO_BPM);
-      assert.equal(ctx.tokens[7].lexeme, "70");
+      assert.equal(nonWsTokens[7].type, TT.TEMPO_BPM);
+      assert.equal(nonWsTokens[7].lexeme, "70");
     });
   });
 
@@ -282,9 +288,10 @@ describe("scanTempoInfo", () => {
       const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
-      assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
-      assert.equal(ctx.tokens[2].type, TT.TEMPO_BPM);
+      const nonWsTokens = ctx.tokens.filter((t) => t.type !== TT.WS);
+      assert.equal(nonWsTokens[0].type, TT.NOTE_LEN_NUM);
+      assert.equal(nonWsTokens[1].type, TT.NOTE_LEN_DENOM);
+      assert.equal(nonWsTokens[2].type, TT.TEMPO_BPM);
     });
 
     it("should handle multiple spaces", () => {
@@ -292,9 +299,10 @@ describe("scanTempoInfo", () => {
       const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
-      assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
-      assert.equal(ctx.tokens[2].type, TT.TEMPO_BPM);
+      const nonWsTokens = ctx.tokens.filter((t) => t.type !== TT.WS);
+      assert.equal(nonWsTokens[0].type, TT.NOTE_LEN_NUM);
+      assert.equal(nonWsTokens[1].type, TT.NOTE_LEN_DENOM);
+      assert.equal(nonWsTokens[2].type, TT.TEMPO_BPM);
     });
 
     it("should handle tabs and spaces", () => {
@@ -302,9 +310,10 @@ describe("scanTempoInfo", () => {
       const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
-      assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_DENOM);
-      assert.equal(ctx.tokens[2].type, TT.TEMPO_BPM);
+      const nonWsTokens = ctx.tokens.filter((t) => t.type !== TT.WS);
+      assert.equal(nonWsTokens[0].type, TT.NOTE_LEN_NUM);
+      assert.equal(nonWsTokens[1].type, TT.NOTE_LEN_DENOM);
+      assert.equal(nonWsTokens[2].type, TT.TEMPO_BPM);
     });
   });
 
@@ -354,7 +363,8 @@ describe("scanTempoInfo", () => {
       const result = scanTempoInfo(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens.length, 0);
+      const nonWsTokens = ctx.tokens.filter((t) => t.type !== TT.WS);
+      assert.equal(nonWsTokens.length, 0);
     });
   });
 });

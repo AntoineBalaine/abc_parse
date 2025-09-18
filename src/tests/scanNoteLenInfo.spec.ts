@@ -134,13 +134,12 @@ describe("scanNoteLenInfo", () => {
     const result = scanNoteLenInfo(ctx);
 
     assert.equal(result, true);
-    assert.equal(ctx.tokens.length, 3);
     assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
     assert.equal(ctx.tokens[0].lexeme, "1");
-    assert.equal(ctx.tokens[1].type, TT.METER_SEPARATOR);
-    assert.equal(ctx.tokens[1].lexeme, "/");
-    assert.equal(ctx.tokens[2].type, TT.NOTE_LEN_DENOM);
-    assert.equal(ctx.tokens[2].lexeme, "4");
+    assert.equal(ctx.tokens[2].type, TT.METER_SEPARATOR);
+    assert.equal(ctx.tokens[2].lexeme, "/");
+    assert.equal(ctx.tokens[4].type, TT.NOTE_LEN_DENOM);
+    assert.equal(ctx.tokens[4].lexeme, "4");
   });
 
   it("should handle leading whitespace", () => {
@@ -148,13 +147,12 @@ describe("scanNoteLenInfo", () => {
     const result = scanNoteLenInfo(ctx);
 
     assert.equal(result, true);
-    assert.equal(ctx.tokens.length, 3);
-    assert.equal(ctx.tokens[0].type, TT.NOTE_LEN_NUM);
-    assert.equal(ctx.tokens[0].lexeme, "1");
-    assert.equal(ctx.tokens[1].type, TT.METER_SEPARATOR);
-    assert.equal(ctx.tokens[1].lexeme, "/");
-    assert.equal(ctx.tokens[2].type, TT.NOTE_LEN_DENOM);
-    assert.equal(ctx.tokens[2].lexeme, "8");
+    assert.equal(ctx.tokens[1].type, TT.NOTE_LEN_NUM);
+    assert.equal(ctx.tokens[1].lexeme, "1");
+    assert.equal(ctx.tokens[2].type, TT.METER_SEPARATOR);
+    assert.equal(ctx.tokens[2].lexeme, "/");
+    assert.equal(ctx.tokens[3].type, TT.NOTE_LEN_DENOM);
+    assert.equal(ctx.tokens[3].lexeme, "8");
   });
 
   it("should return false for invalid format - no denominator", () => {

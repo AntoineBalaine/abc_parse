@@ -10,7 +10,7 @@ import { pNumber } from "../scan_tunebody";
  */
 export function scanNoteLenInfo(ctx: Ctx): boolean {
   // Skip any leading whitespace
-  WS(ctx, true);
+  WS(ctx);
 
   // Check if we have a numerator (optional)
   if (ctx.test(/[1-9][0-9]*\s*\//)) {
@@ -20,14 +20,14 @@ export function scanNoteLenInfo(ctx: Ctx): boolean {
       ctx.push(TT.NOTE_LEN_NUM);
     }
 
-    WS(ctx, true);
+    WS(ctx);
   }
 
   // Check for separator (required if we have a denominator)
   if (ctx.test(/\//)) {
     advance(ctx);
     ctx.push(TT.METER_SEPARATOR);
-    WS(ctx, true);
+    WS(ctx);
   }
 
   // Parse denominator (required after separator)

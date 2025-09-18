@@ -21,7 +21,7 @@ const pClefType = /^(alto|bass|none|perc|tenor|treble)/i;
 export function scanKeyInfo(ctx: Ctx): boolean {
   if (!scanK(ctx)) return false;
   while (!(isAtEnd(ctx) || ctx.test(pEOL) || ctx.test("%"))) {
-    if (WS(ctx, true)) continue;
+    if (WS(ctx)) continue;
     if (clef(ctx)) continue;
     scnKV(ctx, TT.VX_K, TT.VX_V);
   }
@@ -32,7 +32,7 @@ export function scanKeyInfo(ctx: Ctx): boolean {
 function clef(ctx: Ctx): boolean {
   if (!ctx.test(/(clef[ \t]*=)?[ \t]*(alto|bass|none|perc|tenor|treble)/i)) return false;
   scnKey(ctx, TT.KEY_K);
-  WS(ctx, true);
+  WS(ctx);
 
   const match = pClefType.exec(ctx.source.substring(ctx.current));
   if (match) {
@@ -60,7 +60,7 @@ function clef(ctx: Ctx): boolean {
  */
 function scanK(ctx: Ctx): boolean {
   // Skip any leading whitespace
-  WS(ctx, true);
+  WS(ctx);
 
   // Handle special case: "none"
   if (ctx.test(pKeyNone)) {
@@ -81,7 +81,7 @@ function scanK(ctx: Ctx): boolean {
   advance(ctx);
   ctx.push(TT.KEY_ROOT);
 
-  WS(ctx, true);
+  WS(ctx);
 
   // Parse optional key accidental
   if (ctx.test(pKeyAccidental)) {
@@ -89,7 +89,7 @@ function scanK(ctx: Ctx): boolean {
     ctx.push(TT.KEY_ACCIDENTAL);
   }
 
-  WS(ctx, true);
+  WS(ctx);
 
   // Parse optional mode
   if (ctx.test(pKeyMode)) {
@@ -100,7 +100,7 @@ function scanK(ctx: Ctx): boolean {
     }
   }
 
-  WS(ctx, true);
+  WS(ctx);
 
   // Parse explicit accidentals (can be multiple)
   while (ctx.test(pExplicitAccidental) && !isAtEnd(ctx)) {
@@ -111,7 +111,7 @@ function scanK(ctx: Ctx): boolean {
     } else {
       break;
     }
-    WS(ctx, true);
+    WS(ctx);
   }
 
   return true;

@@ -28,7 +28,7 @@ function stringLiteral(ctx: Ctx, type: TT): boolean {
  */
 export function scanTempoInfo(ctx: Ctx): boolean {
   while (!(isAtEnd(ctx) || ctx.test(pEOL) || ctx.test("%"))) {
-    WS(ctx, true);
+    WS(ctx);
     if (stringLiteral(ctx, TT.TEMPO_TEXT)) continue;
     if (bpm(ctx)) continue;
     collectInvalidInfoLn(ctx, "Invalid tempo line content");
@@ -44,7 +44,7 @@ function bpm(ctx: Ctx): boolean {
   if (beatValues(ctx)) {
     if (ctx.test("=")) {
       consume(ctx);
-      WS(ctx, true);
+      WS(ctx);
 
       if (!int(ctx, TT.TEMPO_BPM)) {
         collectInvalidInfoLn(ctx, "Expected BPM number after '='");
@@ -68,10 +68,10 @@ function beatValues(ctx: Ctx): boolean {
   if (!(absPitch(ctx) || rationalNumber(ctx))) {
     return false;
   }
-  WS(ctx, true);
+  WS(ctx);
 
   while (!isAtEnd(ctx) && (absPitch(ctx) || rationalNumber(ctx))) {
-    WS(ctx, true);
+    WS(ctx);
   }
 
   return true;
@@ -84,13 +84,13 @@ export function rationalNumber(ctx: Ctx): boolean {
 
   int(ctx, TT.NOTE_LEN_NUM);
 
-  WS(ctx, true);
+  WS(ctx);
 
   // Check for separator (required if we have a denominator)
   if (ctx.test(/\//)) {
     consume(ctx);
     // Don't push a token for the separator, just consume it
-    WS(ctx, true);
+    WS(ctx);
   }
 
   int(ctx, TT.NOTE_LEN_DENOM);

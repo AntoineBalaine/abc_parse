@@ -8,17 +8,17 @@ import { comment, pEOL } from "../scan_tunebody";
  */
 export function scanMeterInfo(ctx: Ctx): boolean {
   // Skip any leading whitespace
-  WS(ctx, true);
+  WS(ctx);
 
   // Handle special cases first - check C| before C since C| contains C
   if (ctx.test("C|")) {
     advance(ctx, 2);
     ctx.push(TT.METER_C_BAR);
-    WS(ctx, true);
+    WS(ctx);
   } else if (ctx.test("C")) {
     advance(ctx);
     ctx.push(TT.METER_C);
-    WS(ctx, true);
+    WS(ctx);
   } else {
     // Parse meter expression tokens
     while (!isAtEnd(ctx) && !ctx.test(pEOL) && !ctx.test("%")) {
@@ -47,7 +47,7 @@ export function scanMeterInfo(ctx: Ctx): boolean {
         break;
       }
 
-      WS(ctx, true);
+      WS(ctx);
     }
   }
 

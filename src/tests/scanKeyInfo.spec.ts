@@ -39,11 +39,13 @@ describe("scanKeyInfo", () => {
     const result = scanKeyInfo(ctx);
 
     assert.equal(result, true);
-    assert.equal(ctx.tokens.length, 2);
+    assert.equal(ctx.tokens.length, 3);
     assert.equal(ctx.tokens[0].type, TT.KEY_ROOT);
     assert.equal(ctx.tokens[0].lexeme, "G");
-    assert.equal(ctx.tokens[1].type, TT.KEY_MODE);
-    assert.equal(ctx.tokens[1].lexeme, "major");
+    assert.equal(ctx.tokens[1].type, TT.WS);
+    assert.equal(ctx.tokens[1].lexeme, " ");
+    assert.equal(ctx.tokens[2].type, TT.KEY_MODE);
+    assert.equal(ctx.tokens[2].lexeme, "major");
   });
 
   it("should scan key with accidental and mode", () => {
@@ -51,13 +53,12 @@ describe("scanKeyInfo", () => {
     const result = scanKeyInfo(ctx);
 
     assert.equal(result, true);
-    assert.equal(ctx.tokens.length, 3);
     assert.equal(ctx.tokens[0].type, TT.KEY_ROOT);
     assert.equal(ctx.tokens[0].lexeme, "F");
     assert.equal(ctx.tokens[1].type, TT.KEY_ACCIDENTAL);
     assert.equal(ctx.tokens[1].lexeme, "#");
-    assert.equal(ctx.tokens[2].type, TT.KEY_MODE);
-    assert.equal(ctx.tokens[2].lexeme, "dorian");
+    assert.equal(ctx.tokens[3].type, TT.KEY_MODE);
+    assert.equal(ctx.tokens[3].lexeme, "dorian");
   });
 
   it("should scan key with explicit accidentals", () => {
@@ -79,19 +80,18 @@ describe("scanKeyInfo", () => {
     const result = scanKeyInfo(ctx);
 
     assert.equal(result, true);
-    assert.equal(ctx.tokens.length, 6);
     assert.equal(ctx.tokens[0].type, TT.KEY_ROOT);
     assert.equal(ctx.tokens[0].lexeme, "B");
     assert.equal(ctx.tokens[1].type, TT.KEY_ACCIDENTAL);
     assert.equal(ctx.tokens[1].lexeme, "b");
-    assert.equal(ctx.tokens[2].type, TT.KEY_MODE);
-    assert.equal(ctx.tokens[2].lexeme, "minor");
-    assert.equal(ctx.tokens[3].type, TT.KEY_EXPLICIT_ACC);
-    assert.equal(ctx.tokens[3].lexeme, "^f");
-    assert.equal(ctx.tokens[4].type, TT.KEY_EXPLICIT_ACC);
-    assert.equal(ctx.tokens[4].lexeme, "_e");
+    assert.equal(ctx.tokens[3].type, TT.KEY_MODE);
+    assert.equal(ctx.tokens[3].lexeme, "minor");
     assert.equal(ctx.tokens[5].type, TT.KEY_EXPLICIT_ACC);
-    assert.equal(ctx.tokens[5].lexeme, "=g");
+    assert.equal(ctx.tokens[5].lexeme, "^f");
+    assert.equal(ctx.tokens[6].type, TT.KEY_EXPLICIT_ACC);
+    assert.equal(ctx.tokens[6].lexeme, "_e");
+    assert.equal(ctx.tokens[7].type, TT.KEY_EXPLICIT_ACC);
+    assert.equal(ctx.tokens[7].lexeme, "=g");
   });
 
   it('should scan "none" key signature', () => {
@@ -109,11 +109,10 @@ describe("scanKeyInfo", () => {
     const result = scanKeyInfo(ctx);
 
     assert.equal(result, true);
-    assert.equal(ctx.tokens.length, 2);
     assert.equal(ctx.tokens[0].type, TT.KEY_ROOT);
     assert.equal(ctx.tokens[0].lexeme, "D");
-    assert.equal(ctx.tokens[1].type, TT.KEY_MODE);
-    assert.equal(ctx.tokens[1].lexeme, "MINOR");
+    assert.equal(ctx.tokens[2].type, TT.KEY_MODE);
+    assert.equal(ctx.tokens[2].lexeme, "MINOR");
   });
 
   it("should handle abbreviated modes", () => {
@@ -121,11 +120,10 @@ describe("scanKeyInfo", () => {
     const result = scanKeyInfo(ctx);
 
     assert.equal(result, true);
-    assert.equal(ctx.tokens.length, 2);
     assert.equal(ctx.tokens[0].type, TT.KEY_ROOT);
     assert.equal(ctx.tokens[0].lexeme, "A");
-    assert.equal(ctx.tokens[1].type, TT.KEY_MODE);
-    assert.equal(ctx.tokens[1].lexeme, "min");
+    assert.equal(ctx.tokens[2].type, TT.KEY_MODE);
+    assert.equal(ctx.tokens[2].lexeme, "min");
   });
 
   it("should handle whitespace correctly", () => {
@@ -133,13 +131,13 @@ describe("scanKeyInfo", () => {
     const result = scanKeyInfo(ctx);
 
     assert.equal(result, true);
-    assert.equal(ctx.tokens.length, 3);
-    assert.equal(ctx.tokens[0].type, TT.KEY_ROOT);
-    assert.equal(ctx.tokens[0].lexeme, "C");
-    assert.equal(ctx.tokens[1].type, TT.KEY_MODE);
-    assert.equal(ctx.tokens[1].lexeme, "major");
-    assert.equal(ctx.tokens[2].type, TT.KEY_EXPLICIT_ACC);
-    assert.equal(ctx.tokens[2].lexeme, "^c");
+    const nonWsTokens = ctx.tokens.filter((t) => t.type !== TT.WS);
+    assert.equal(nonWsTokens[0].type, TT.KEY_ROOT);
+    assert.equal(nonWsTokens[0].lexeme, "C");
+    assert.equal(nonWsTokens[1].type, TT.KEY_MODE);
+    assert.equal(nonWsTokens[1].lexeme, "major");
+    assert.equal(nonWsTokens[2].type, TT.KEY_EXPLICIT_ACC);
+    assert.equal(nonWsTokens[2].lexeme, "^c");
   });
 
   it("should return false for invalid key root", () => {
@@ -164,15 +162,15 @@ describe("scanKeyInfo", () => {
     const result = scanKeyInfo(ctx);
 
     assert.equal(result, true);
-    assert.equal(ctx.tokens.length, 4);
-    assert.equal(ctx.tokens[0].type, TT.KEY_ROOT);
-    assert.equal(ctx.tokens[0].lexeme, "F");
-    assert.equal(ctx.tokens[1].type, TT.KEY_ACCIDENTAL);
-    assert.equal(ctx.tokens[1].lexeme, "#");
-    assert.equal(ctx.tokens[2].type, TT.KEY_MODE);
-    assert.equal(ctx.tokens[2].lexeme, "mixolydian");
-    assert.equal(ctx.tokens[3].type, TT.KEY_EXPLICIT_ACC);
-    assert.equal(ctx.tokens[3].lexeme, "=g");
+    const nonWsTokens = ctx.tokens.filter((t) => t.type !== TT.WS);
+    assert.equal(nonWsTokens[0].type, TT.KEY_ROOT);
+    assert.equal(nonWsTokens[0].lexeme, "F");
+    assert.equal(nonWsTokens[1].type, TT.KEY_ACCIDENTAL);
+    assert.equal(nonWsTokens[1].lexeme, "#");
+    assert.equal(nonWsTokens[2].type, TT.KEY_MODE);
+    assert.equal(nonWsTokens[2].lexeme, "mixolydian");
+    assert.equal(nonWsTokens[3].type, TT.KEY_EXPLICIT_ACC);
+    assert.equal(nonWsTokens[3].lexeme, "=g");
 
     // Verify rescan works correctly by converting tokens back to string
     const recreatedInput = ctx.tokens.map((t) => t.lexeme).join("");

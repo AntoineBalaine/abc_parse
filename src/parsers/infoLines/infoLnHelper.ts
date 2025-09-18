@@ -32,7 +32,7 @@ export function scnKey(ctx: Ctx, tt: TT): boolean {
     advance(ctx);
   }
   ctx.push(tt);
-  WS(ctx, true);
+  WS(ctx);
 
   advance(ctx);
   ctx.push(TT.EQL); // "="

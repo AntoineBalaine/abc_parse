@@ -111,13 +111,13 @@ describe("scanMeterInfo", () => {
     const result = scanMeterInfo(ctx);
 
     assert.equal(result, true);
-    assert.equal(ctx.tokens.length, 3);
-    assert.equal(ctx.tokens[0].type, TT.METER_NUMBER);
-    assert.equal(ctx.tokens[0].lexeme, "4");
-    assert.equal(ctx.tokens[1].type, TT.METER_SEPARATOR);
-    assert.equal(ctx.tokens[1].lexeme, "/");
-    assert.equal(ctx.tokens[2].type, TT.METER_NUMBER);
-    assert.equal(ctx.tokens[2].lexeme, "4");
+    const nonWsTokens = ctx.tokens.filter((t) => t.type !== TT.WS);
+    assert.equal(nonWsTokens[0].type, TT.METER_NUMBER);
+    assert.equal(nonWsTokens[0].lexeme, "4");
+    assert.equal(nonWsTokens[1].type, TT.METER_SEPARATOR);
+    assert.equal(nonWsTokens[1].lexeme, "/");
+    assert.equal(nonWsTokens[2].type, TT.METER_NUMBER);
+    assert.equal(nonWsTokens[2].lexeme, "4");
   });
 
   it("should handle whitespace in complex meters", () => {
@@ -125,18 +125,18 @@ describe("scanMeterInfo", () => {
     const result = scanMeterInfo(ctx);
 
     assert.equal(result, true);
-    assert.equal(ctx.tokens.length, 9);
-    assert.equal(ctx.tokens[0].type, TT.METER_LPAREN);
-    assert.equal(ctx.tokens[1].type, TT.METER_NUMBER);
-    assert.equal(ctx.tokens[1].lexeme, "2");
-    assert.equal(ctx.tokens[2].type, TT.METER_PLUS);
-    assert.equal(ctx.tokens[3].type, TT.METER_NUMBER);
-    assert.equal(ctx.tokens[3].lexeme, "3");
-    assert.equal(ctx.tokens[4].type, TT.METER_PLUS);
-    assert.equal(ctx.tokens[5].type, TT.METER_NUMBER);
-    assert.equal(ctx.tokens[5].lexeme, "2");
-    assert.equal(ctx.tokens[6].type, TT.METER_RPAREN);
-    assert.equal(ctx.tokens[7].type, TT.METER_SEPARATOR);
+    const nonWsTokens = ctx.tokens.filter((t) => t.type !== TT.WS);
+    assert.equal(nonWsTokens[0].type, TT.METER_LPAREN);
+    assert.equal(nonWsTokens[1].type, TT.METER_NUMBER);
+    assert.equal(nonWsTokens[1].lexeme, "2");
+    assert.equal(nonWsTokens[2].type, TT.METER_PLUS);
+    assert.equal(nonWsTokens[3].type, TT.METER_NUMBER);
+    assert.equal(nonWsTokens[3].lexeme, "3");
+    assert.equal(nonWsTokens[4].type, TT.METER_PLUS);
+    assert.equal(nonWsTokens[5].type, TT.METER_NUMBER);
+    assert.equal(nonWsTokens[5].lexeme, "2");
+    assert.equal(nonWsTokens[6].type, TT.METER_RPAREN);
+    assert.equal(nonWsTokens[7].type, TT.METER_SEPARATOR);
   });
 
   it("should handle multi-digit numbers", () => {
@@ -166,7 +166,9 @@ describe("scanMeterInfo", () => {
     const result = scanMeterInfo(ctx);
 
     assert.equal(result, true);
-    assert.equal(ctx.tokens.length, 0);
+    // Should have whitespace tokens but they get filtered out by the scanner logic
+    const nonWsTokens = ctx.tokens.filter((t) => t.type !== TT.WS);
+    assert.equal(nonWsTokens.length, 0);
   });
 
   it("should handle invalid tokens", () => {

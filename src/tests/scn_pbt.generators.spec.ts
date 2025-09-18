@@ -747,9 +747,6 @@ export function applyTokenFiltering(flatTokens: Token[]): Token[] {
     if (test(cur, TT.LY_TXT) && rewind(TT.LY_TXT, i)) continue; // prevent multiple lyric tokens in a row.
 
     // Enhanced whitespace filtering for info lines
-    if (test(cur, TT.WS) && isWithinInfoLine(flatTokens, i)) {
-      continue;
-    }
 
     // Macro token filtering rules
     if (test(cur, TT.MACRO_HDR) && !rewind(TT.EOL, i)) continue;
