@@ -1,33 +1,88 @@
 import { Info_line } from "./types/Expr2";
 import { KeySignature, Meter, MeterType } from "./types/abcjs-ast";
 import { rationalToString } from "./Visitors/fmt2/rational";
+import { Token, TT } from "./parsers/scan2";
 
 export function InfoLineFmt(expr: Info_line): string {
+  let rv: string;
   if (expr.parsed) {
     const info = expr.parsed;
     switch (info.type) {
-      case "key":
-        return "K:" + KeyInfoFmt(info.data);
+      // case "key":
+      //   rv = "K:" + KeyInfoFmt(info.data) + trailingComment(expr);
+      //   break;
       case "meter":
-        return "M:" + MeterInfoFmt(info.data);
-      case "voice":
-        return VoiceInfoFmt(info.data);
+        rv = "M:" + MeterInfoFmt(info.data) + trailingComment(expr);
+        break;
+      // case "voice":
+      //   rv = VoiceInfoFmt(info.data) + trailingComment(expr);
+      //   break;
       case "note_length":
-        return "L:" + rationalToString(info.data);
+        rv = "L:" + rationalToString(info.data) + trailingComment(expr);
+        break;
       default:
+        rv = genericFmt(expr);
         break;
     }
+  } else {
+    rv = genericFmt(expr);
   }
+  return rv;
+}
+
+/**
+ * Hackish, at best…
+ */
+function trailingComment(expr: Info_line) {
+  const lastTok = expr.value[expr.value.length - 1];
+  if (lastTok.type === TT.COMMENT) {
+    return ` ${lastTok.lexeme}`;
+  } else return "";
+}
+
+function genericFmt(expr: Info_line) {
   const { key, value } = expr;
-  const formattedVal = value.map((val) => val.lexeme).join("");
-  return `${key.lexeme}${formattedVal}`;
+  // const formattedVal = value.map((val) => val.lexeme).join(" ");
+  let val = "";
+  for (let i = 0; i < value.length; i++) {
+    let tok = value[i];
+    if (tok.type === TT.KEY_K || tok.type === TT.VX_K) {
+      let { idx, kv } = KVFmt(i, value);
+      i = idx;
+      val += kv;
+    } else {
+      val += (i === 0 ? "" : " ") + value[i].lexeme;
+    }
+  }
+  // return `${key.lexeme}${formattedVal}`;
+  return `${key.lexeme}${val}`;
+}
+
+function KVFmt(i: number, value: Array<Token>) {
+  let val = "";
+
+  val += (i === 0 ? "" : " ") + value[i].lexeme;
+  if (i >= value.length - 1) return { idx: i, kv: val };
+
+  const eql_tok = value[i + 1];
+  if (eql_tok && eql_tok.type === TT.EQL) {
+    i++;
+    val += value[i].lexeme;
+  }
+  const val_tok = value[i + 1];
+  if (val_tok && (val_tok.type === TT.KEY_V || val_tok.type === TT.VX_V)) {
+    i++;
+    val += value[i].lexeme;
+  }
+
+  return { idx: i, kv: val };
 }
 
 /**
  * Format KeySignature data to ABC key notation
  * Examples: "Cmaj", "Am", "F#Mix", "HP"
  */
-export function KeyInfoFmt(keyInfo: KeySignature): string {
+export function KeySignatureInfoFmt(keyInfo: KeySignature): string {
   let result = "";
 
   // Handle Highland Pipes special case

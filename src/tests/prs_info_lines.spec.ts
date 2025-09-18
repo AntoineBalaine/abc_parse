@@ -240,8 +240,8 @@ describe("Info Line Parser Integration Tests", () => {
       assert.isDefined(result!.parsed);
       assert.isTrue(isKeyInfo(result!.parsed!));
       if (isKeyInfo(result!.parsed!)) {
-        assert.equal(result!.parsed.data.root, "C");
-        assert.equal(result!.parsed.data.mode, "");
+        assert.equal(result!.parsed.data.keySignature.root, "C");
+        assert.equal(result!.parsed.data.keySignature.mode, "");
       }
     });
 
@@ -459,10 +459,10 @@ describe("Info Line Parser Integration Tests", () => {
           const keyData = result.parsed.data;
 
           const rv =
-            typeof keyData.root === "string" &&
-            typeof keyData.acc === "string" &&
-            typeof keyData.mode === "string" &&
-            Array.isArray(keyData.accidentals);
+            typeof keyData.keySignature.root === "string" &&
+            typeof keyData.keySignature.acc === "string" &&
+            typeof keyData.keySignature.mode === "string" &&
+            Array.isArray(keyData.keySignature.accidentals);
           // Basic validation of key signature structure
           return rv;
         }),

@@ -301,12 +301,13 @@ export interface Font {
 // ============================================================================
 
 export interface ClefProperties {
-  type: ClefType;
+  type?: ClefType;
   verticalPos: number;
   clefPos?: number;
   transpose?: number;
   stafflines?: number;
   staffscale?: number;
+  style?: NoteHeadStyle;
 }
 
 export interface Accidental {
@@ -322,6 +323,11 @@ export interface KeySignature {
   accidentals: Accidental[];
   impliedNaturals?: Accidental[];
   explicitAccidentals?: Accidental[];
+}
+
+export interface KeyInfo {
+  keySignature: KeySignature;
+  clef?: ClefProperties;
 }
 
 export interface Meter {

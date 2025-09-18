@@ -1,5 +1,6 @@
 import { Ctx, TT, WS, advance, isAtEnd, collectInvalidInfoLn, consume } from "../scan2";
 import { comment, pEOL, pNumber } from "../scan_tunebody";
+import { int } from "./infoLnHelper";
 
 function stringLiteral(ctx: Ctx, type: TT): boolean {
   if (!ctx.test(/"[^"]*"/)) {
@@ -26,7 +27,7 @@ function stringLiteral(ctx: Ctx, type: TT): boolean {
  * Examples: `"Allegro", 120, 1/4=120, "Easy Swing" 1/4=140, C3=120`
  */
 export function scanTempoInfo(ctx: Ctx): boolean {
-  while (!isAtEnd(ctx) && !ctx.test(pEOL) && !comment(ctx)) {
+  while (!(isAtEnd(ctx) || ctx.test(pEOL) || ctx.test("%"))) {
     WS(ctx, true);
     if (stringLiteral(ctx, TT.TEMPO_TEXT)) continue;
     if (bpm(ctx)) continue;
@@ -73,17 +74,6 @@ function beatValues(ctx: Ctx): boolean {
     WS(ctx, true);
   }
 
-  return true;
-}
-
-export function int(ctx: Ctx, type: TT): boolean {
-  if (!ctx.test(pNumber)) return false;
-
-  const match = new RegExp(`^${pNumber.source}`).exec(ctx.source.substring(ctx.current));
-  if (match) {
-    ctx.current += match[0].length;
-    ctx.push(type);
-  }
   return true;
 }
 

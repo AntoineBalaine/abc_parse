@@ -221,25 +221,6 @@ describe("scanMeterInfo", () => {
       assert.equal(ctx.tokens[i].lexeme, expected.lexeme);
     });
   });
-
-  it("should handle comments at the end", () => {
-    const ctx = createTestContext("4/4 % this is a comment");
-    const result = scanMeterInfo(ctx);
-
-    assert.equal(result, true);
-    // Should have meter tokens plus a comment token
-    assert.isTrue(ctx.tokens.length >= 3);
-    assert.equal(ctx.tokens[0].type, TT.METER_NUMBER);
-    assert.equal(ctx.tokens[0].lexeme, "4");
-    assert.equal(ctx.tokens[1].type, TT.METER_SEPARATOR);
-    assert.equal(ctx.tokens[1].lexeme, "/");
-    assert.equal(ctx.tokens[2].type, TT.METER_NUMBER);
-    assert.equal(ctx.tokens[2].lexeme, "4");
-
-    // Should have a comment token
-    const hasCommentToken = ctx.tokens.some((token) => token.type === TT.COMMENT);
-    assert.isTrue(hasCommentToken);
-  });
 });
 
 // Meter component generators

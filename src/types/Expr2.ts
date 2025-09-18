@@ -1,6 +1,6 @@
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
-import { KeySignature, Meter, TempoProperties, ClefProperties } from "./abcjs-ast";
+import { KeySignature, Meter, TempoProperties, ClefProperties, KeyInfo } from "./abcjs-ast";
 import { Rational } from "../Visitors/fmt2/rational";
 
 /**
@@ -46,7 +46,7 @@ export interface Visitor<R> {
 
 // Tagged union for parsed info line data
 export type InfoLineUnion =
-  | { type: "key"; data: KeySignature }
+  | { type: "key"; data: KeyInfo }
   | { type: "meter"; data: Meter }
   | { type: "voice"; data: { id: string; properties: any } }
   | { type: "tempo"; data: TempoProperties }
@@ -58,7 +58,7 @@ export type InfoLineUnion =
   | { type: "directive"; data: { directive: string; args?: string } };
 
 // Type predicate functions for InfoLineUnion
-export function isKeyInfo(info: InfoLineUnion): info is { type: "key"; data: KeySignature } {
+export function isKeyInfo(info: InfoLineUnion): info is { type: "key"; data: KeyInfo } {
   return info.type === "key";
 }
 

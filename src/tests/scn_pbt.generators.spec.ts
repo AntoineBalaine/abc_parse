@@ -72,7 +72,7 @@ const genVxKV = fc
   .tuple(
     genVxPropKey,
     fc.option(genVoiceWhitespace),
-    fc.constantFrom("=").map((eq) => new Token(TT.DISCARD, eq, sharedContext.generateId())),
+    fc.constantFrom("=").map((eq) => new Token(TT.EQL, eq, sharedContext.generateId())),
     fc.option(genVoiceWhitespace),
     genVxPropVal
   )
@@ -613,6 +613,67 @@ export const genTokenSequence = fc
     return applyTokenFiltering(flatTokens);
   });
 
+// Helper function to determine if we're within an info line context where whitespace should be filtered
+function isWithinInfoLine(flatTokens: Token[], index: number): boolean {
+  // Look backwards to find if we're within an info line context
+  for (let j = index - 1; j >= 0; j--) {
+    const token = flatTokens[j];
+
+    // If we hit EOL, we're not in an info line anymore
+    if (token.type === TT.EOL) return false;
+
+    // If we find an info header, check what type of info line it is
+    if (token.type === TT.INF_HDR) {
+      const headerType = token.lexeme.charAt(0);
+
+      // For these info line types, the scanner skips whitespace in specific contexts
+      switch (headerType) {
+        case "V": // Voice info lines - scanner skips WS between components
+        case "K": // Key info lines - scanner skips WS around accidentals, modes, etc.
+        case "Q": // Tempo info lines - scanner skips WS around note values and BPM
+        case "M": // Meter info lines - scanner skips WS around numbers and operators
+        case "L": // Note length info lines - scanner skips WS around fractions
+          return true;
+        default:
+          // For generic info lines (T:, A:, etc.), whitespace is preserved in INFO_STR
+          return false;
+      }
+    }
+
+    // Continue looking backwards through valid info line tokens
+    const infoLineTokens = [
+      TT.VX_ID,
+      TT.VX_K,
+      TT.VX_V,
+      TT.EQL,
+      TT.KEY_ROOT,
+      TT.KEY_ACCIDENTAL,
+      TT.KEY_MODE,
+      TT.KEY_EXPLICIT_ACC,
+      TT.KEY_NONE,
+      TT.TEMPO_TEXT,
+      TT.TEMPO_BPM,
+      TT.TEMPO_NOTE_LETTER,
+      TT.NOTE_LEN_NUM,
+      TT.NOTE_LEN_DENOM,
+      TT.METER_NUMBER,
+      TT.METER_C,
+      TT.METER_C_BAR,
+      TT.METER_SEPARATOR,
+      TT.METER_PLUS,
+      TT.METER_LPAREN,
+      TT.METER_RPAREN,
+      TT.WS,
+      TT.DISCARD,
+    ];
+
+    if (!infoLineTokens.includes(token.type)) {
+      return false;
+    }
+  }
+  return false;
+}
+
 // Reusable token filtering function
 export function applyTokenFiltering(flatTokens: Token[]): Token[] {
   const result = [];
@@ -650,6 +711,11 @@ export function applyTokenFiltering(flatTokens: Token[]): Token[] {
     if ((test(cur, TT.LY_HDR) || test(cur, TT.LY_SECT_HDR)) && !rewind(TT.EOL, i)) continue;
     if (test(cur, TT.LY_TXT) && rewind(TT.LY_TXT, i)) continue; // prevent multiple lyric tokens in a row.
 
+    // Enhanced whitespace filtering for info lines
+    if (test(cur, TT.WS) && isWithinInfoLine(flatTokens, i)) {
+      continue;
+    }
+
     // Macro token filtering rules
     if (test(cur, TT.MACRO_HDR) && !rewind(TT.EOL, i)) continue;
     if (test(cur, TT.MACRO_VAR)) {
@@ -666,7 +732,7 @@ export function applyTokenFiltering(flatTokens: Token[]): Token[] {
     }
 
     // Macro precedence: skip any non-stateful tokens that conflict with macro variables
-    // FIXME: this breaks precedence of all other tokens, and the generators can’t deal with it rn
+    // FIXME: this breaks precedence of all other tokens, and the generators can't deal with it rn
     if (macros.has(cur.lexeme)) {
       // Skip any token that would conflict with a macro invocation (except macro-related tokens)
       const macroTokenTypes = [TT.MACRO_HDR, TT.MACRO_VAR, TT.MACRO_STR, TT.MACRO_INVOCATION];

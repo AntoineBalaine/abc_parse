@@ -51,7 +51,5 @@ export function scanMeterInfo(ctx: Ctx): boolean {
     }
   }
 
-  // Handle optional comment at the end
-  comment(ctx);
   return true;
 }

@@ -11,7 +11,7 @@ export function prsVxInfo(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): InfoLi
   const tokens: Token[] = [];
 
   while (!ctx.isAtEnd() && !ctx.check(TT.EOL) && !ctx.check(TT.COMMENT)) {
-    if (!(ctx.check(TT.VX_ID) || ctx.check(TT.VX_K) || ctx.check(TT.VX_V))) {
+    if (!(ctx.check(TT.VX_ID) || ctx.check(TT.VX_K) || ctx.check(TT.VX_V) || ctx.check(TT.EQL))) {
       return null;
     }
 

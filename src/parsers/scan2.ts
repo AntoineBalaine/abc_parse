@@ -204,9 +204,13 @@ export enum TT {
   ANNOTATION,
   BARLINE, //|
   BCKTCK_SPC,
+  CLEF,
+  CLEF_NUM,
+  CLEF_OCTAVE,
   CHRD_LEFT_BRKT,
   CHRD_RIGHT_BRKT,
   DISCARD, // used only by generators
+  EQL,
   KEY_K,
   KEY_V,
   KEY_ROOT, // Key signature root note (A-G)

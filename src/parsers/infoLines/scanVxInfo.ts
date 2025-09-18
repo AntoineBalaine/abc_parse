@@ -1,6 +1,7 @@
 import { StemDirection, ChordPlacement, BracketBracePosition, ClefProperties } from "../../types/abcjs-ast";
-import { advance, consume, Ctx, isAtEnd, Token, TT, WS } from "../scan2";
-import { comment } from "../scan_tunebody";
+import { advance, Ctx, isAtEnd, TT, WS } from "../scan2";
+import { comment, pEOL } from "../scan_tunebody";
+import { scnKey, scnKV, scnValue } from "./infoLnHelper";
 
 export interface VoiceProperties {
   name?: string;
@@ -20,47 +21,6 @@ export interface VoiceProperties {
   brace?: BracketBracePosition;
 }
 
-function scnKey(ctx: Ctx): boolean {
-  if (!ctx.test(/^\w+[ \t]*=/)) {
-    return false;
-  }
-
-  while (!isAtEnd(ctx) && !ctx.test(/[ \t=]/)) {
-    advance(ctx);
-  }
-  ctx.push(TT.VX_K);
-  WS(ctx, true);
-  consume(ctx); // "="
-  return true;
-}
-
-function scnValue(ctx: Ctx): boolean {
-  let is_literal = false;
-  if (ctx.test('"')) {
-    is_literal = true;
-    advance(ctx);
-  }
-  while (!isAtEnd(ctx) && !isBreaker(ctx, is_literal)) {
-    advance(ctx);
-  }
-  if (is_literal && ctx.test('"')) {
-    advance(ctx);
-  }
-  ctx.push(TT.VX_V);
-  return true;
-}
-
-function isBreaker(ctx: Ctx, in_literal: boolean): boolean {
-  if (in_literal) {
-    if (ctx.test('"')) {
-      return true; // End of string literal
-    }
-    return ctx.test(/[\n]+/); // Break on whitespace or newline in literal
-  }
-  if (ctx.test('"') && in_literal) return true;
-  return ctx.test(/[\n \t%]+/);
-}
-
 function scnVxId(ctx: Ctx): boolean {
   while (!isAtEnd(ctx) && ctx.test(/\w/)) {
     advance(ctx);
@@ -78,16 +38,15 @@ function scnVxId(ctx: Ctx): boolean {
  */
 export function scanVoiceInfo(ctx: Ctx): boolean {
   let found_id = false;
-  while (!isAtEnd(ctx) && !ctx.test("\n") && !ctx.test("%")) {
+  while (!(isAtEnd(ctx) || ctx.test(pEOL) || ctx.test("%"))) {
     if (WS(ctx, true)) continue;
-    if (comment(ctx)) break;
     if (!found_id) {
       scnVxId(ctx);
       found_id = true;
       continue;
     }
-    if (scnKey(ctx)) continue;
-    if (scnValue(ctx)) continue;
+    if (scnKey(ctx, TT.VX_K)) continue;
+    scnValue(ctx, TT.VX_V);
   }
 
   if (!found_id) {

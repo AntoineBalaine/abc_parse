@@ -604,21 +604,3 @@ function getClefVerticalPos(clef: ClefType): number {
       return 4;
   }
 }
-
-/**
-```typescript
-function parseInfoLine(infoLine: InfoLine) {
-  if parseComposer(infoLine) return;
-  if parseGeneric(infoLine) return;
-  if parseKey(infoLine) return;
-  if parseMeter(infoLine) return;
-  if parseNoteLength(infoLine) return;
-  if parseOrigin(infoLine) return;
-  if parseTempo(infoLine) return;
-  if parseTitle(infoLine) return;
-  if parseVoice(infoLine) return;
-  else 
-    return false
-}
-```
-*/
