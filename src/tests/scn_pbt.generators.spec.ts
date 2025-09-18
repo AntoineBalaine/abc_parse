@@ -3,7 +3,6 @@ import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Token, TT } from "../parsers/scan2";
 import { genMeterDefinition } from "./scanMeterInfo.spec";
-import { genNoteLenSignature } from "./scanNoteLenInfo.spec";
 
 // Create a shared context for all generators
 export const sharedContext = new ABCContext(new AbcErrorReporter());
@@ -187,6 +186,42 @@ export const genTempoLine = fc
       tokens.push(text2);
       // Removed the trailing space after the last text element
     }
+
+    return tokens;
+  });
+
+// Note length component generators
+const genNoteLenNum = fc.integer({ min: 1, max: 999 }).map((num) => new Token(TT.NOTE_LEN_NUM, num.toString(), sharedContext.generateId()));
+
+export const genNoteLenDenom = fc
+  .constantFrom(1, 2, 4, 8, 16, 32, 64, 128, 256, 512)
+  .map((denom) => new Token(TT.NOTE_LEN_DENOM, denom.toString(), sharedContext.generateId()));
+
+const genNoteLenWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws, sharedContext.generateId()));
+
+export const genMeterSeparator = fc.constantFrom(new Token(TT.METER_SEPARATOR, "/", sharedContext.generateId()));
+
+// Generator for complete note length signatures with optional whitespace
+export const genNoteLenSignature = fc
+  .tuple(
+    fc.option(genNoteLenWhitespace), // leading whitespace
+    genNoteLenNum,
+    fc.option(genNoteLenWhitespace), // whitespace before slash
+    genMeterSeparator,
+    fc.option(genNoteLenWhitespace), // whitespace after slash
+    genNoteLenDenom,
+    fc.option(genNoteLenWhitespace) // trailing whitespace
+  )
+  .map(([leadingWs, num, wsBeforeSlash, separator, wsAfterSlash, denom, trailingWs]) => {
+    const tokens: Token[] = [];
+
+    if (leadingWs) tokens.push(leadingWs);
+    tokens.push(num);
+    if (wsBeforeSlash) tokens.push(wsBeforeSlash);
+    tokens.push(separator);
+    if (wsAfterSlash) tokens.push(wsAfterSlash);
+    tokens.push(denom);
+    if (trailingWs) tokens.push(trailingWs);
 
     return tokens;
   });

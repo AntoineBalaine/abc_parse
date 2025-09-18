@@ -1,4 +1,4 @@
-import { Ctx, TT, WS, consume } from "../scan2";
+import { Ctx, TT, WS, advance } from "../scan2";
 import { pNumber } from "../scan_tunebody";
 
 /**
@@ -25,8 +25,8 @@ export function scanNoteLenInfo(ctx: Ctx): boolean {
 
   // Check for separator (required if we have a denominator)
   if (ctx.test(/\//)) {
-    consume(ctx);
-    // Don't push a token for the separator, just consume it
+    advance(ctx);
+    ctx.push(TT.METER_SEPARATOR);
     WS(ctx, true);
   }
 

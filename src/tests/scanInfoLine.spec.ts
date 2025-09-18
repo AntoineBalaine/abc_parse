@@ -54,10 +54,10 @@ describe("scanInfoLine Integration Tests", () => {
       const result = scanInfoLine(ctx);
 
       assert.equal(result, true);
-      assert.equal(ctx.tokens[ctx.tokens.length - 3].type, TT.INF_HDR);
-      assert.equal(ctx.tokens[ctx.tokens.length - 3].lexeme, "L:");
-      assert.equal(ctx.tokens[ctx.tokens.length - 2].type, TT.NOTE_LEN_NUM);
-      assert.equal(ctx.tokens[ctx.tokens.length - 2].lexeme, "1");
+      assert.equal(ctx.tokens[ctx.tokens.length - 4].type, TT.INF_HDR);
+      assert.equal(ctx.tokens[ctx.tokens.length - 4].lexeme, "L:");
+      assert.equal(ctx.tokens[ctx.tokens.length - 3].type, TT.NOTE_LEN_NUM);
+      assert.equal(ctx.tokens[ctx.tokens.length - 3].lexeme, "1");
       assert.equal(ctx.tokens[ctx.tokens.length - 1].type, TT.NOTE_LEN_DENOM);
       assert.equal(ctx.tokens[ctx.tokens.length - 1].lexeme, "8");
     });

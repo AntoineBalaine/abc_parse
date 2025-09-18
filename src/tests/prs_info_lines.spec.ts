@@ -8,9 +8,8 @@ import { createToken } from "./prs_music_code.spec";
 import { prsInfoLine } from "../parsers/parse2";
 import { isKeyInfo, isMeterInfo, isVoiceInfo, isTempoInfo, isNoteLengthInfo } from "../types/Expr2";
 import fc from "fast-check";
-import { genKeySignature, genTempoLine, genVxDefinition, sharedContext } from "./scn_pbt.generators.spec";
+import { genKeySignature, genNoteLenSignature, genTempoLine, genVxDefinition, sharedContext } from "./scn_pbt.generators.spec";
 import { genMeterDefinition } from "./scanMeterInfo.spec";
-import { genNoteLenSignature } from "./scanNoteLenInfo.spec";
 
 // Helper function to create a token with the given type and lexeme
 

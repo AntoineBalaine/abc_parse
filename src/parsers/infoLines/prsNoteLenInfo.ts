@@ -18,7 +18,7 @@ export function prsNoteLenInfo(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): I
   const tokens: Token[] = [];
 
   while (!ctx.isAtEnd() && !ctx.check(TT.EOL) && !ctx.check(TT.COMMENT)) {
-    if (!(ctx.check(TT.NOTE_LEN_NUM) || ctx.check(TT.NOTE_LEN_DENOM))) {
+    if (!(ctx.check(TT.NOTE_LEN_NUM) || ctx.check(TT.NOTE_LEN_DENOM) || ctx.check(TT.METER_SEPARATOR))) {
       return null;
     }
 

@@ -163,7 +163,7 @@ describe("gen scan from regex", () => {
     );
   });
 });
-describe.only("Scanner Round-trip Tests", () => {
+describe("Scanner Round-trip Tests", () => {
   // Basic token generators
 
   it("should produce equivalent tokens when rescanning concatenated lexemes", () => {
