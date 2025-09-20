@@ -4,7 +4,6 @@ import { Rational, createRational } from "../Visitors/fmt2/rational";
 import {
   KeySignature,
   Meter,
-  MeterFraction,
   ClefProperties,
   TempoProperties,
   KeyRoot,
@@ -119,7 +118,7 @@ export function parseMeter(infoLine: Info_line): Meter {
     const [, num, den] = fractionMatch;
     return {
       type: MeterType.Specified,
-      value: [{ num: parseInt(num), den: parseInt(den) }],
+      value: [createRational(parseInt(num), parseInt(den))],
     };
   }
 
@@ -559,8 +558,8 @@ function parseClef(clefStr: string): ClefProperties {
   };
 }
 
-function parseComplexMeter(meterStr: string): MeterFraction[] {
-  const fractions: MeterFraction[] = [];
+function parseComplexMeter(meterStr: string): Rational[] {
+  const fractions: Rational[] = [];
 
   // Split by + and parse each fraction
   const parts = meterStr.split("+");
@@ -569,7 +568,7 @@ function parseComplexMeter(meterStr: string): MeterFraction[] {
     const match = part.trim().match(/^(\d+)\/(\d+)$/);
     if (match) {
       const [, num, den] = match;
-      fractions.push({ num: parseInt(num), den: parseInt(den) });
+      fractions.push(createRational(parseInt(num), parseInt(den)));
     }
   });
 

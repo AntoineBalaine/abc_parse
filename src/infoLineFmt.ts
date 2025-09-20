@@ -132,7 +132,7 @@ export function MeterInfoFmt(meterInfo: Meter): string {
 
     case MeterType.Specified:
       if (meterInfo.value && meterInfo.value.length > 0) {
-        return meterInfo.value.map((fraction) => rationalToString({ numerator: fraction.num, denominator: fraction.den ?? 1 })).join(" ");
+        return meterInfo.value.map((fraction) => rationalToString(fraction)).join(" ");
       } else {
         return "";
       }

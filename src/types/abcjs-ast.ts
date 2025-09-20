@@ -268,11 +268,6 @@ export interface CharRange {
   endChar: number;
 }
 
-export interface MeterFraction {
-  num: number;
-  den?: number;
-}
-
 export enum FontWeight {
   Normal = "normal",
   Bold = "bold",
@@ -332,8 +327,8 @@ export interface KeyInfo {
 
 export interface Meter {
   type: MeterType;
-  value?: MeterFraction[];
-  beat_division?: MeterFraction[];
+  value?: Rational[];
+  beat_division?: Rational[];
 }
 
 export interface TempoProperties {
@@ -488,8 +483,8 @@ export interface KeyElement extends BaseElement {
 export interface MeterElement extends BaseElement {
   el_type: ElementType.Meter;
   type: MeterType;
-  value?: MeterFraction[];
-  beat_division?: MeterFraction[];
+  value?: Rational[];
+  beat_division?: Rational[];
 }
 
 export interface TempoElement extends BaseElement {
@@ -660,7 +655,7 @@ export interface Tune {
   millisecondsPerMeasure(bpmOverride?: number): number;
   getBeatsPerMeasure(): number;
   getMeter(): Meter;
-  getMeterFraction(): MeterFraction;
+  getMeterFraction(): Rational;
   getKeySignature(): KeySignature;
   getElementFromChar(char: number): VoiceElement | null;
   getBpm(tempo?: TempoProperties): number;

@@ -1,7 +1,8 @@
 import { ParseCtx } from "../parse2";
 import { InfoLineUnion, Expr } from "../../types/Expr2";
 import { Token, TT } from "../scan2";
-import { Meter, MeterType, MeterFraction } from "../../types/abcjs-ast";
+import { Meter, MeterType } from "../../types/abcjs-ast";
+import { Rational, createRational } from "../../Visitors/fmt2/rational";
 
 /**
  *  Parse a Meter (M:) info line expression
@@ -69,8 +70,8 @@ function parseMeterData(tokens: Token[]): Meter {
 }
 
 // TODO: rewrite this awful thing.
-function parseMeterExpression(tokens: Token[]): MeterFraction[] {
-  const fractions: MeterFraction[] = [];
+function parseMeterExpression(tokens: Token[]): Rational[] {
+  const fractions: Rational[] = [];
   let i = 0;
 
   while (i < tokens.length) {
@@ -96,10 +97,7 @@ function parseMeterExpression(tokens: Token[]): MeterFraction[] {
         i++; // skip separator
         if (i < tokens.length && tokens[i].type === TT.METER_NUMBER) {
           const denominator = parseInt(tokens[i].lexeme);
-          fractions.push({
-            num: numeratorSum,
-            den: denominator,
-          });
+          fractions.push(createRational(numeratorSum, denominator));
           i++;
         }
       }
@@ -113,17 +111,12 @@ function parseMeterExpression(tokens: Token[]): MeterFraction[] {
         i++; // skip separator
         if (i < tokens.length && tokens[i].type === TT.METER_NUMBER) {
           const denominator = parseInt(tokens[i].lexeme);
-          fractions.push({
-            num: numerator,
-            den: denominator,
-          });
+          fractions.push(createRational(numerator, denominator));
           i++;
         }
       } else {
         // Just a numerator without denominator
-        fractions.push({
-          num: numerator,
-        });
+        fractions.push(createRational(numerator, 1));
       }
     } else {
       i++;

@@ -59,7 +59,7 @@ import {
   nextMeasure,
 } from "./InterpreterContext";
 import { parseKey, parseMeter, parseNoteLength, parseVoice, parseTempo, parseTitle, parseComposer, parseOrigin, parseGeneric } from "./InfoLineParser";
-import { Rational } from "../Visitors/fmt2/rational";
+import { createRational, Rational } from "../Visitors/fmt2/rational";
 
 export class ASTTransformer implements Visitor<any> {
   ctx: ABCContext;
@@ -141,7 +141,7 @@ export class ASTTransformer implements Visitor<any> {
       millisecondsPerMeasure: () => 1000,
       getBeatsPerMeasure: () => 4,
       getMeter: () => this.interpreterCtx.defaultMeter || { type: MeterType.CommonTime },
-      getMeterFraction: () => ({ num: 4, den: 4 }),
+      getMeterFraction: () => createRational(4, 4),
       getKeySignature: () => this.interpreterCtx.defaultKey,
       getElementFromChar: () => null,
       getBpm: () => 120,

@@ -48,7 +48,7 @@ export interface Visitor<R> {
 export type InfoLineUnion =
   | { type: "key"; data: KeyInfo }
   | { type: "meter"; data: Meter }
-  | { type: "voice"; data: { id: string; properties: any } }
+  | { type: "voice"; data: { id: string; properties: { [key: string]: string } } }
   | { type: "tempo"; data: TempoProperties }
   | { type: "title"; data: string }
   | { type: "composer"; data: string }

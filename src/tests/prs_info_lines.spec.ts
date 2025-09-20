@@ -261,8 +261,8 @@ describe("Info Line Parser Integration Tests", () => {
       if (isMeterInfo(result!.parsed!)) {
         assert.equal(result!.parsed.data.type, "specified");
         assert.isDefined(result!.parsed.data.value);
-        assert.equal(result!.parsed.data.value![0].num, 4);
-        assert.equal(result!.parsed.data.value![0].den, 4);
+        assert.equal(result!.parsed.data.value![0].numerator, 4);
+        assert.equal(result!.parsed.data.value![0].denominator, 4);
       }
     });
 
