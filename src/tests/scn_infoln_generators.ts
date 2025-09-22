@@ -279,14 +279,9 @@ export const genBinaryExpr = fc.oneof(
 );
 
 /**
- * Generator for mixed expressions (both KV and Binary)
- */
-export const genMixedExpr = fc.oneof(genKVExpr, genBinaryExpr);
-
-/**
  * Generator for expression arrays (what parseInfoLine2 returns)
  */
-export const genExprArray = fc.array(genMixedExpr, { minLength: 1, maxLength: 10 });
+export const genExprArray = fc.array(fc.oneof(genKVExpr, genBinaryExpr), { minLength: 1, maxLength: 10 });
 
 /**
  * Generator for specific info line expression patterns

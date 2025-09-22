@@ -5,7 +5,7 @@ import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { parseInfoLine2 } from "../parsers/infoLines/parseInfoLine2";
 import { KV, Binary, Grouping } from "../types/Expr2";
 import { Token, TT } from "../parsers/scan2";
-import { genKVExpr, genBinaryExpr, genMixedExpr, genExprArray, genKeyExprArray, genMeterExprArray, sharedContext } from "./scn_infoln_generators";
+import { genKVExpr, genBinaryExpr, genExprArray, genKeyExprArray, genMeterExprArray } from "./scn_infoln_generators";
 import { expect } from "chai";
 
 describe("parseInfoLine2 - Unified Info Line Parser", () => {

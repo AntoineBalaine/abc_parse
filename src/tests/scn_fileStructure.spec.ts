@@ -83,7 +83,7 @@ K:C
       TT.INFO_STR,
       TT.EOL,
       TT.INF_HDR,
-      TT.KEY_ROOT,
+      TT.SPECIAL_LITERAL,
       TT.EOL,
       TT.STYLESHEET_DIRECTIVE,
       TT.EOL,
@@ -115,7 +115,7 @@ ABC DEF|`);
       TT.INFO_STR,
       TT.EOL, // M:4/4
       TT.INF_HDR,
-      TT.KEY_ROOT,
+      TT.SPECIAL_LITERAL,
       TT.EOL, // K:C
     ];
 
@@ -159,7 +159,7 @@ ABC DEF|
       TT.INFO_STR,
       TT.EOL, // T:Test Tune
       TT.INF_HDR,
-      TT.KEY_ROOT,
+      TT.SPECIAL_LITERAL,
       TT.EOL, // K:C
       TT.NOTE_LETTER,
       TT.NOTE_LETTER,
