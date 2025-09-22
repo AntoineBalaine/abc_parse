@@ -221,10 +221,20 @@ export enum TT {
   METER_NUMBER, // Meter number (4, 6, 8, etc.)
   METER_C, // Common time (C)
   METER_C_BAR, // Cut time (C|)
-  METER_SEPARATOR, // Meter separator (/)
-  METER_PLUS, // Addition operator (+)
-  METER_LPAREN, // Left parenthesis (
-  METER_RPAREN, // Right parenthesis )
+  SLASH, // Slash separator (/)
+  PLUS, // Addition operator (+)
+  LPAREN, // Left parenthesis (
+  RPAREN, // Right parenthesis )
+  // New generic token types for unified info line parsing
+  IDENTIFIER, // Unquoted words (treble, major, etc.)
+  NUMBER, // Integer or float numbers (1, 4, 120, 1.5)
+  STRING_LITERAL, // Quoted text ("Allegro")
+  SPECIAL_LITERAL, // Special cases (C, C|)
+  // Legacy meter tokens - keep for backward compatibility during migration
+  METER_SEPARATOR, // Meter separator (/) - DEPRECATED, use SLASH
+  METER_PLUS, // Addition operator (+) - DEPRECATED, use PLUS
+  METER_LPAREN, // Left parenthesis ( - DEPRECATED, use LPAREN
+  METER_RPAREN, // Right parenthesis ) - DEPRECATED, use RPAREN
   NOTE_LEN_NUM, // Note length numerator (1, 2, 3, etc.)
   NOTE_LEN_DENOM, // Note length denominator (4, 8, 16, etc.)
   COMMENT,
