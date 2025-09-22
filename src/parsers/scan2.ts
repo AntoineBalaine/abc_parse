@@ -225,11 +225,9 @@ export enum TT {
   PLUS, // Addition operator (+)
   LPAREN, // Left parenthesis (
   RPAREN, // Right parenthesis )
-  // New generic token types for unified info line parsing
   IDENTIFIER, // Unquoted words (treble, major, etc.)
   NUMBER, // Integer or float numbers (1, 4, 120, 1.5)
   SPECIAL_LITERAL, // Special cases (C, C|)
-  // Legacy meter tokens - keep for backward compatibility during migration
   METER_SEPARATOR, // Meter separator (/) - DEPRECATED, use SLASH
   METER_PLUS, // Addition operator (+) - DEPRECATED, use PLUS
   METER_LPAREN, // Left parenthesis ( - DEPRECATED, use LPAREN

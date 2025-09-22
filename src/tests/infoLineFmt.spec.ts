@@ -3,7 +3,7 @@ import { assert } from "chai";
 import { Token, TT } from "../parsers/scan2";
 import { Info_line } from "../types/Expr2";
 import { InfoLineFmt } from "../infoLineFmt";
-import { genVxKV, genVxDefinition, genKeyInfoLine, genVxPropKey, genVxPropVal, sharedContext } from "./scn_pbt.generators.spec";
+import { genVxKV, genVxDefinition, genVxPropKey, genVxPropVal, sharedContext } from "./scn_pbt.generators.spec";
 
 describe("InfoLineFmt", () => {
   describe("genericFmt function", () => {

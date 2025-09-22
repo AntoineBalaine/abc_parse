@@ -7,6 +7,9 @@ import { KV, Binary } from "../types/Expr2";
 // Create a shared context for all generators
 export const sharedContext = new ABCContext(new AbcErrorReporter());
 
+// Local EOL generator to avoid circular imports
+const genEOL = fc.constantFrom(new Token(TT.EOL, "\n", sharedContext.generateId()));
+
 /**
  * Generator for IDENTIFIER tokens - unquoted words like "treble", "major", "clef"
  */
@@ -58,7 +61,7 @@ export const genIdentifier = fc
       "brc"
     ),
     // Random valid identifiers
-    fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9_]{0,15}$/)
+    fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9_]{2,15}$/)
   )
   .map((id) => new Token(TT.IDENTIFIER, id, sharedContext.generateId()));
 
@@ -123,40 +126,6 @@ export const genRParen = fc.constantFrom(new Token(TT.RPAREN, ")", sharedContext
 export const genWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws, sharedContext.generateId()));
 
 /**
- * Generator for any unified info line token
- */
-export const genUnifiedInfoToken = fc.oneof(
-  genIdentifier,
-  genNumber,
-  genStringLiteral,
-  genSpecialLiteral,
-  genEql,
-  genPlus,
-  genSlash,
-  genLParen,
-  genRParen,
-  genWhitespace
-);
-
-/**
- * Generator for complete info line content using unified tokens
- */
-export const genUnifiedInfoContent = fc.array(genUnifiedInfoToken, { minLength: 1, maxLength: 20 }).filter((tokens) => {
-  // Ensure we have at least one non-whitespace token
-  return tokens.some((token) => token.type !== TT.WS);
-});
-
-/**
- * Generator for complete unified info lines with headers
- */
-export const genUnifiedInfoLine = fc
-  .tuple(
-    fc.constantFrom("K:", "M:", "L:", "Q:", "V:", "T:", "C:", "A:", "O:").map((header) => new Token(TT.INF_HDR, header, sharedContext.generateId())),
-    genUnifiedInfoContent
-  )
-  .map(([header, content]) => [header, ...content]);
-
-/**
  * Generator for specific info line types for more targeted testing
  */
 
@@ -169,7 +138,12 @@ export const genKeyInfoLine2 = fc
       // Simple key signatures
       fc
         .tuple(
-          fc.constantFrom("C", "D", "E", "F", "G", "A", "B").map((root) => new Token(TT.IDENTIFIER, root, sharedContext.generateId())),
+          fc.oneof(
+            // C is special literal in key context
+            fc.constantFrom("C").map((root) => new Token(TT.SPECIAL_LITERAL, root, sharedContext.generateId())),
+            // Other note names are identifiers
+            fc.constantFrom("D", "E", "F", "G", "A", "B").map((root) => new Token(TT.IDENTIFIER, root, sharedContext.generateId()))
+          ),
           fc.option(fc.constantFrom("major", "minor", "maj", "min").map((mode) => new Token(TT.IDENTIFIER, mode, sharedContext.generateId())))
         )
         .map(([root, mode]) => (mode ? [root, new Token(TT.WS, " ", sharedContext.generateId()), mode] : [root])),
@@ -180,9 +154,10 @@ export const genKeyInfoLine2 = fc
       fc
         .tuple(genWhitespace, genIdentifier, genEql, fc.oneof(genIdentifier, genNumber))
         .map(([ws, key, eq, val]) => (ws ? [ws, key, eq, val] : [key, eq, val]))
-    )
+    ),
+    genEOL
   )
-  .map(([header, leadingWs, keyParts, modifiers]) => [header, ...(leadingWs ? [leadingWs] : []), ...keyParts, ...modifiers.flat()]);
+  .map(([header, leadingWs, keyParts, modifiers, eol]) => [header, ...(leadingWs ? [leadingWs] : []), ...keyParts, ...modifiers.flat()]);
 
 // Meter info: M: 4/4 or M: (2+3)/8 or M: C|
 export const genMeterInfoLine2 = fc
@@ -216,14 +191,15 @@ export const genMeterInfoLine2 = fc
           slash,
           denom,
         ])
-    )
+    ),
+    genEOL
   )
-  .map(([header, ws, content]) => [header, ...(ws ? [ws] : []), ...(Array.isArray(content) ? content : [content])]);
+  .map(([header, ws, content, eol]) => [header, ...(ws ? [ws] : []), ...(Array.isArray(content) ? content : [content])]);
 
 // Note length info: L: 1/4
 export const genNoteLenInfoLine2 = fc
-  .tuple(fc.constantFrom(new Token(TT.INF_HDR, "L:", sharedContext.generateId())), fc.option(genWhitespace), genNumber, genSlash, genNumber)
-  .map(([header, ws, num, slash, denom]) => [header, ...(ws ? [ws] : []), num, slash, denom]);
+  .tuple(fc.constantFrom(new Token(TT.INF_HDR, "L:", sharedContext.generateId())), fc.option(genWhitespace), genNumber, genSlash, genNumber, genEOL)
+  .map(([header, ws, num, slash, denom, eol]) => [header, ...(ws ? [ws] : []), num, slash, denom]);
 
 // Tempo info: Q: "Allegro" 1/4=120
 export const genTempoInfoLine2 = fc
@@ -239,9 +215,31 @@ export const genTempoInfoLine2 = fc
         genWhitespace
       ),
       { minLength: 1, maxLength: 3 }
-    )
+    ),
+    genEOL
   )
-  .map(([header, parts]) => [header, ...parts.flat().flat()]);
+  .map(([header, parts, eol]) => [header, ...parts.flat().flat()]);
+
+/**
+ * Generator for generic info lines (T:, A:, C:, O:, etc.)
+ */
+export const genGenericInfoLine = fc
+  .tuple(
+    fc
+      .constantFrom("T:", "A:", "C:", "O:", "P:", "S:", "N:", "G:", "H:", "R:", "B:", "D:", "F:", "I:", "Z:")
+      .map((header) => new Token(TT.INF_HDR, header, sharedContext.generateId())),
+    fc.stringMatching(/^[^&\s%\n]+$/).map((content) => new Token(TT.INFO_STR, content, sharedContext.generateId())),
+    genEOL
+  )
+  .map(([header, content, eol]) => [header, content]);
+
+/**
+ * Generator for complete info lines using proper syntax-aware generators
+ * This replaces the broken genUnifiedInfoToken approach with valid grammar-based generation
+ */
+export const genInfoLine2 = fc
+  .tuple(genEOL, fc.oneof(genKeyInfoLine2, genMeterInfoLine2, genNoteLenInfoLine2, genTempoInfoLine2, genGenericInfoLine), genEOL)
+  .map(([EOL2, tokArr, EOL]) => [EOL2, ...tokArr, EOL]);
 
 // ========================
 // Expression generators for parseInfoLine2

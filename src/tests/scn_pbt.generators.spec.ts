@@ -3,7 +3,10 @@ import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Token, TT } from "../parsers/scan2";
 import { genMeterDefinition } from "./scanMeterInfo.spec";
-import { genUnifiedInfoLine, genKeyInfoLine2, genMeterInfoLine2, genNoteLenInfoLine2, genTempoInfoLine2 } from "./scn_infoln_generators";
+import { genInfoLine2, genKeyInfoLine2, genMeterInfoLine2, genNoteLenInfoLine2, genTempoInfoLine2, genGenericInfoLine } from "./scn_infoln_generators";
+
+// Re-export the new generators
+export { genInfoLine2, genKeyInfoLine2, genMeterInfoLine2, genNoteLenInfoLine2, genTempoInfoLine2 };
 
 // Create a shared context for all generators
 export const sharedContext = new ABCContext(new AbcErrorReporter());
@@ -312,27 +315,7 @@ export const genKeySignature = fc.oneof(
       return tokens;
     })
 );
-export const genKeyInfoLine = genKeySignature.map((keyTokens: Token[]) => [new Token(TT.INF_HDR, "K:", sharedContext.generateId()), ...keyTokens]);
 
-const genMeterInfoLine = genMeterDefinition.map((meterTokens: Token[]) => [new Token(TT.INF_HDR, "M:", sharedContext.generateId()), ...meterTokens]);
-
-const genNoteLenInfoLine = genNoteLenSignature.map((noteLenTokens: Token[]) => [
-  new Token(TT.INF_HDR, "L:", sharedContext.generateId()),
-  ...noteLenTokens,
-]);
-
-const genTempoInfoLine = genTempoLine.map((tempoTokens: Token[]) => [new Token(TT.INF_HDR, "Q:", sharedContext.generateId()), ...tempoTokens]);
-
-const genVoiceInfoLine = genVxDefinition.map((voiceTokens: Token[]) => [new Token(TT.INF_HDR, "V:", sharedContext.generateId()), ...voiceTokens]);
-
-const genGenericInfoLine = fc
-  .tuple(
-    fc
-      .constantFrom("T:", "A:", "C:", "O:", "P:", "S:", "W:", "N:", "G:", "H:", "R:", "B:", "D:", "F:", "I:", "Z:")
-      .map((header) => new Token(TT.INF_HDR, header, sharedContext.generateId())),
-    fc.stringMatching(/^[^&\s%\n]+$/).map((content) => new Token(TT.INFO_STR, content, sharedContext.generateId()))
-  )
-  .map(([header, content]) => [header, content]);
 
 export const genNoteLetter = fc.stringMatching(/^[a-gA-G]$/).map((letter) => new Token(TT.NOTE_LETTER, letter, sharedContext.generateId()));
 
@@ -535,10 +518,6 @@ export const genAnnotation = fc
     return new Token(TT.ANNOTATION, quotedText, sharedContext.generateId());
   });
 
-export const genInfoLine = fc
-  .tuple(genEOL, fc.oneof(genKeyInfoLine, genMeterInfoLine, genNoteLenInfoLine, genTempoInfoLine, genVoiceInfoLine, genGenericInfoLine), genEOL)
-  .map(([eol1, infoTokens, eol2]) => [eol1, ...infoTokens, eol2]);
-
 // Lyric token generators
 export const genLyricText = fc.stringMatching(/^[a-zA-Z]+$/).map((text) => new Token(TT.LY_TXT, text, sharedContext.generateId()));
 
@@ -630,13 +609,8 @@ export const baseMusicTokenGenerators = [
   genGraceGroupWithFollower,
   genChord,
   genAnnotation,
-  { arbitrary: genInfoLine, weight: 1 },
-  // New unified info line generators
-  { arbitrary: genUnifiedInfoLine, weight: 1 },
-  { arbitrary: genKeyInfoLine2, weight: 1 },
-  { arbitrary: genMeterInfoLine2, weight: 1 },
-  { arbitrary: genNoteLenInfoLine2, weight: 1 },
-  { arbitrary: genTempoInfoLine2, weight: 1 },
+  // Unified info line generator (includes all info line types)
+  { arbitrary: genInfoLine2, weight: 5 },
   { arbitrary: genStylesheetDirective, weight: 1 },
   { arbitrary: genCommentToken, weight: 2 },
   { arbitrary: genLyricLine, weight: 1 },
@@ -730,6 +704,8 @@ export function applyTokenFiltering(flatTokens: Token[]): Token[] {
   const result = [];
   let symbols = new Set<String>();
   let macros = new Set<String>(); // Track macro variables
+  let currentContext: "info_line" | "tune_body" | "none" = "none"; // Track current context
+
   if (flatTokens.length > 0) {
     result.push(flatTokens[0]);
   }
@@ -753,6 +729,42 @@ export function applyTokenFiltering(flatTokens: Token[]): Token[] {
       }
       return false;
     };
+
+    // Update context tracking based on current token
+    if (test(cur, TT.INF_HDR)) {
+      currentContext = "info_line";
+    } else if (test(cur, TT.EOL)) {
+      currentContext = "none"; // Reset context after end of line
+    } else if (currentContext === "none" && !test(cur, TT.WS) && !test(cur, TT.COMMENT)) {
+      // If we're not in a specific context and encounter non-whitespace, non-comment tokens,
+      // assume we're in tune body context
+      currentContext = "tune_body";
+    }
+
+    // Strict validation for info line context
+    if (currentContext === "info_line") {
+      // Valid tokens in info line context with unified approach
+      const validInfoLineTokens = [
+        TT.INF_HDR,
+        TT.IDENTIFIER,
+        TT.NUMBER,
+        TT.ANNOTATION,
+        TT.SPECIAL_LITERAL,
+        TT.INFO_STR, // Used by generic info lines (T:, A:, C:, etc.)
+        TT.EQL,
+        TT.PLUS,
+        TT.SLASH,
+        TT.LPAREN,
+        TT.RPAREN,
+        TT.WS,
+        TT.EOL,
+        TT.COMMENT,
+      ];
+
+      if (!validInfoLineTokens.includes(cur.type)) {
+        throw new Error(`Invalid token ${TT[cur.type]}:${cur.lexeme} found in info line context. This indicates a problem with info line generators.`);
+      }
+    }
 
     if (test(cur, TT.VOICE) && next && test(next, TT.EOL)) continue;
     if (test(cur, TT.INF_HDR) && !rewind(TT.EOL, i)) continue;

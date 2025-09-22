@@ -12,51 +12,40 @@ import { genCommentExpr } from "./prs_pbt.generators.spec";
 // Create a shared context for all generators
 export const sharedContext = new ABCContext(new AbcErrorReporter());
 
-// Directive expression generator  
+// Directive expression generator
 export const genDirectiveExpr = ScannerGen.genStylesheetDirective.map(([directive, eol]) => {
   return new Directive(sharedContext.generateId(), directive);
 });
 
 // Info line expression generator
-export const genInfoLineExpr = ScannerGen.genInfoLine.map((tokens) => {
+export const genInfoLineExpr = ScannerGen.genInfoLine2.map((tokens) => {
   // FIXME: urgent
   // tokens array: [eol, header, content, eol]
-  const header = tokens[1];
-  const content = tokens[2];
   return new Info_line(sharedContext.generateId(), tokens);
 });
 
 // Macro declaration expression generator (reuse existing)
 export const genMacroDeclExpr = ScannerGen.genMacroDecl.map((tokens) => {
   // tokens array: [eol, header, ws?, variable, ws?, content, comment?, eol]
-  const header = tokens.find(t => t.type === TT.MACRO_HDR)!;
-  const variable = tokens.find(t => t.type === TT.MACRO_VAR)!;
-  const content = tokens.find(t => t.type === TT.MACRO_STR)!;
+  const header = tokens.find((t) => t.type === TT.MACRO_HDR)!;
+  const variable = tokens.find((t) => t.type === TT.MACRO_VAR)!;
+  const content = tokens.find((t) => t.type === TT.MACRO_STR)!;
   return new Macro_decl(sharedContext.generateId(), header, variable, content);
 });
 
 // User symbol declaration expression generator
-export const genUserSymbolDeclExpr = fc.tuple(
-  ScannerGen.genUserSymbolHeader,
-  ScannerGen.genUserSymbolVariable,
-  ScannerGen.genSymbol
-).map(([header, variable, symbol]) => {
-  return new User_symbol_decl(sharedContext.generateId(), header, variable, symbol);
-});
+export const genUserSymbolDeclExpr = fc
+  .tuple(ScannerGen.genUserSymbolHeader, ScannerGen.genUserSymbolVariable, ScannerGen.genSymbol)
+  .map(([header, variable, symbol]) => {
+    return new User_symbol_decl(sharedContext.generateId(), header, variable, symbol);
+  });
 
 // Tune header expression generator
-export const genTuneHeaderExpr = fc.array(
-  fc.oneof(
-    genInfoLineExpr,
-    genCommentExpr,
-    genDirectiveExpr,
-    genMacroDeclExpr,
-    genUserSymbolDeclExpr
-  ),
-  { minLength: 1, maxLength: 8 }
-).map((infoLines) => {
-  return new Tune_header(sharedContext.generateId(), infoLines);
-});
+export const genTuneHeaderExpr = fc
+  .array(fc.oneof(genInfoLineExpr, genCommentExpr, genDirectiveExpr, genMacroDeclExpr, genUserSymbolDeclExpr), { minLength: 1, maxLength: 8 })
+  .map((infoLines) => {
+    return new Tune_header(sharedContext.generateId(), infoLines);
+  });
 
 describe("Tune Header Round-trip Tests", () => {
   it("should correctly round-trip Comment expressions", () => {

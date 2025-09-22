@@ -3,7 +3,7 @@ import { ABCContext } from "../parsers/Context";
 import { Ctx, Scanner2, Token, TT } from "../parsers/scan2";
 import { pDuration, pitch, pPitch, scanTune } from "../parsers/scan_tunebody";
 import {
-  genInfoLine,
+  genInfoLine2,
   genTokenSequence,
   genMacroDecl,
   genMacroScenario,
@@ -29,7 +29,7 @@ describe("Scanner Property Tests", () => {
   const genFileHeader = fc
     .array(
       fc.oneof(
-        genInfoLine.map((t): string => t.map((t) => t.lexeme).join("")),
+        genInfoLine2.map((t): string => t.map((t) => t.lexeme).join("")),
         genComment,
         genDirective,
         genMacroDecl.map((t): string => t.map((t) => t.lexeme).join(""))
@@ -43,7 +43,7 @@ describe("Scanner Property Tests", () => {
       header: genTuneHeader,
       content: fc.array(
         fc.oneof(
-          genInfoLine.map((t): string => t.map((t) => t.lexeme).join("")),
+          genInfoLine2.map((t): string => t.map((t) => t.lexeme).join("")),
           genComment,
           genDirective,
           genMacroDecl.map((t): string => t.map((t) => t.lexeme).join(""))
