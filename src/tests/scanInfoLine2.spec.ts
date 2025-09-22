@@ -6,7 +6,7 @@ import { scanInfoLine2 } from "../parsers/infoLines/scanInfoLine2";
 import { genUnifiedInfoLine, genKeyInfoLine2, genMeterInfoLine2, genNoteLenInfoLine2, genTempoInfoLine2 } from "./scn_infoln_generators";
 import { expect } from "chai";
 
-describe.only("scanInfoLine2 - Unified Info Line Scanner", () => {
+describe("scanInfoLine2 - Unified Info Line Scanner", () => {
   let context: ABCContext;
 
   beforeEach(() => {

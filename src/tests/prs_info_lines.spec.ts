@@ -228,7 +228,7 @@ describe("prsLyricSection", () => {
 describe("Info Line Parser Integration Tests", () => {
   // Import the new parser and type predicates
 
-  describe.only("Targeted Debug Tests", () => {
+  describe("Targeted Debug Tests", () => {
     it("should parse K:C clef=perc stafflines=1 correctly", () => {
       // This is the specific case that's failing in the formatter tests
       const tokens = [

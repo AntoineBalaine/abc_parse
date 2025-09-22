@@ -151,7 +151,10 @@ export class Info_line extends Expr {
   value: Array<Token>;
   parsed?: InfoLineUnion;
 
-  constructor(id: number, tokens: Array<Token>, parsed?: InfoLineUnion) {
+  // New unified approach (experimental)
+  value2?: Array<Expr>; // New sub-expressions property
+
+  constructor(id: number, tokens: Array<Token>, parsed?: InfoLineUnion, value2?: Array<Expr>) {
     super(id);
 
     this.key = tokens[0];
@@ -164,6 +167,7 @@ export class Info_line extends Expr {
     }
 
     this.parsed = parsed;
+    this.value2 = value2;
   }
 
   accept<R>(visitor: Visitor<R>): R {
@@ -601,5 +605,71 @@ export class User_symbol_invocation extends Expr {
 
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitUserSymbolInvocationExpr(this);
+  }
+}
+
+// ========================
+// New expression classes for unified info line parsing
+// ========================
+
+/**
+ * Key-value expression with optional key: [key=]value
+ * Used for both key-value pairs (K:clef=treble) and standalone values (K:major)
+ */
+export class KV extends Expr {
+  key?: Token; // IDENTIFIER (optional)
+  equals?: Token; // EQL (optional, only present if key is present)
+  value: Token; // IDENTIFIER, STRING_LITERAL, NUMBER, or SPECIAL_LITERAL
+
+  constructor(id: number, value: Token, key?: Token, equals?: Token) {
+    super(id);
+    this.value = value;
+    this.key = key;
+    this.equals = equals;
+  }
+
+  accept<R>(visitor: Visitor<R>): R {
+    return null as R;
+    // return visitor.visitKVExpr(this);
+  }
+}
+
+/**
+ * Binary expression for arithmetic: left op right
+ * Used for rationals (1/4) and arithmetic expressions ((2+3+2)/8)
+ */
+export class Binary extends Expr {
+  left: Expr | Token;
+  operator: Token; // PLUS, SLASH
+  right: Expr | Token;
+
+  constructor(id: number, left: Expr | Token, operator: Token, right: Expr | Token) {
+    super(id);
+    this.left = left;
+    this.operator = operator;
+    this.right = right;
+  }
+
+  accept<R>(visitor: Visitor<R>): R {
+    return null as R;
+    // return visitor.visitBinaryExpr(this);
+  }
+}
+
+/**
+ * Grouping expression for parenthesized expressions: (expr)
+ * Preserves the fact that an expression was parenthesized in the AST
+ */
+export class Grouping extends Expr {
+  expression: Expr;
+
+  constructor(id: number, expression: Expr) {
+    super(id);
+    this.expression = expression;
+  }
+
+  accept<R>(visitor: Visitor<R>): R {
+    return null as R;
+    // return visitor.visitGroupingExpr(this);
   }
 }

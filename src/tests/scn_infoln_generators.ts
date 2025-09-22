@@ -2,6 +2,7 @@ import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Token, TT } from "../parsers/scan2";
+import { KV, Binary } from "../types/Expr2";
 
 // Create a shared context for all generators
 export const sharedContext = new ABCContext(new AbcErrorReporter());
@@ -241,3 +242,102 @@ export const genTempoInfoLine2 = fc
     )
   )
   .map(([header, parts]) => [header, ...parts.flat().flat()]);
+
+// ========================
+// Expression generators for parseInfoLine2
+// ========================
+
+/**
+ * Generator for KV expressions (with optional key)
+ */
+export const genKVExpr = fc.oneof(
+  // KV with key: clef=treble
+  fc
+    .tuple(genIdentifier, genEql, fc.oneof(genIdentifier, genStringLiteral, genNumber))
+    .map(([key, eq, value]) => new KV(sharedContext.generateId(), value, key, eq)),
+
+  // KV without key: major, C|, 120
+  fc.oneof(genIdentifier, genSpecialLiteral, genNumber, genStringLiteral).map((value) => new KV(sharedContext.generateId(), value))
+);
+
+/**
+ * Generator for Binary expressions
+ */
+export const genBinaryExpr = fc.oneof(
+  // Simple rationals: 1/4
+  fc.tuple(genNumber, genSlash, genNumber).map(([num, slash, denom]) => new Binary(sharedContext.generateId(), num, slash, denom)),
+
+  // Addition: 2+3
+  fc.tuple(genNumber, genPlus, genNumber).map(([left, plus, right]) => new Binary(sharedContext.generateId(), left, plus, right)),
+
+  // Complex nested: (2+3)/4
+  fc
+    .tuple(
+      fc.tuple(genNumber, genPlus, genNumber).map(([left, plus, right]) => new Binary(sharedContext.generateId(), left, plus, right)),
+      genSlash,
+      genNumber
+    )
+    .map(([leftExpr, slash, right]) => new Binary(sharedContext.generateId(), leftExpr, slash, right))
+);
+
+/**
+ * Generator for mixed expressions (both KV and Binary)
+ */
+export const genMixedExpr = fc.oneof(genKVExpr, genBinaryExpr);
+
+/**
+ * Generator for expression arrays (what parseInfoLine2 returns)
+ */
+export const genExprArray = fc.array(genMixedExpr, { minLength: 1, maxLength: 10 });
+
+/**
+ * Generator for specific info line expression patterns
+ */
+
+// Key info expressions: C major clef=treble
+export const genKeyExprArray = fc.array(
+  fc.oneof(
+    // Key signature parts
+    fc
+      .constantFrom("C", "D", "E", "F", "G", "A", "B", "none")
+      .map((val) => new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, val, sharedContext.generateId()))),
+    fc
+      .constantFrom("major", "minor", "dorian")
+      .map((val) => new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, val, sharedContext.generateId()))),
+    // Modifiers
+    fc.constant(
+      new KV(
+        sharedContext.generateId(),
+        new Token(TT.IDENTIFIER, "treble", sharedContext.generateId()),
+        new Token(TT.IDENTIFIER, "clef", sharedContext.generateId()),
+        new Token(TT.EQL, "=", sharedContext.generateId())
+      )
+    )
+  ),
+  { minLength: 1, maxLength: 5 }
+);
+
+// Meter expressions: 4/4, (2+3+2)/8, C|
+export const genMeterExprArray = fc.oneof(
+  // Simple rationals
+  fc.tuple(genNumber, genSlash, genNumber).map(([num, slash, denom]) => [new Binary(sharedContext.generateId(), num, slash, denom)]),
+
+  // Special literals
+  genSpecialLiteral.map((token) => [new KV(sharedContext.generateId(), token)]),
+
+  // Complex expressions
+  fc
+    .tuple(
+      fc.tuple(genNumber, genPlus, genNumber, fc.option(fc.tuple(genPlus, genNumber))).map(([n1, p1, n2, opt]) => {
+        let expr = new Binary(sharedContext.generateId(), n1, p1, n2);
+        if (opt) {
+          const [p2, n3] = opt;
+          expr = new Binary(sharedContext.generateId(), expr, p2, n3);
+        }
+        return expr;
+      }),
+      genSlash,
+      genNumber
+    )
+    .map(([numerExpr, slash, denom]) => [new Binary(sharedContext.generateId(), numerExpr, slash, denom)])
+);
