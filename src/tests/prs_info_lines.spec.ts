@@ -228,6 +228,41 @@ describe("prsLyricSection", () => {
 describe("Info Line Parser Integration Tests", () => {
   // Import the new parser and type predicates
 
+  describe.only("Targeted Debug Tests", () => {
+    it("should parse K:C clef=perc stafflines=1 correctly", () => {
+      // This is the specific case that's failing in the formatter tests
+      const tokens = [
+        createToken(TT.INF_HDR, "K:"),
+        createToken(TT.KEY_ROOT, "C"),
+        createToken(TT.WS, " "),
+        createToken(TT.KEY_K, "clef"),
+        createToken(TT.EQL, "="),
+        createToken(TT.KEY_V, "perc"),
+        createToken(TT.WS, " "),
+        createToken(TT.KEY_K, "stafflines"),
+        createToken(TT.EQL, "="),
+        createToken(TT.KEY_V, "1"),
+      ];
+
+      const ctx = createParseCtx(tokens);
+      console.log("ctx", ctx.tokens.length);
+      const result = prsInfoLine(ctx);
+
+      assert.instanceOf(result, Info_line);
+      assert.equal(result!.key.lexeme, "K:");
+
+      if (result!.parsed) {
+        let filtered = tokens.filter((t) => t.type === TT.WS);
+        for (let i = 1; i < filtered.length - 1; i++) {
+          let cur = filtered[i];
+          let corresponding = result.value[i - 1];
+
+          assert.equal(cur.lexeme, corresponding.lexeme);
+        }
+      }
+    });
+  });
+
   describe("Basic Integration Tests", () => {
     it("should parse key info line with parsed data", () => {
       const tokens = [createToken(TT.INF_HDR, "K:"), createToken(TT.KEY_ROOT, "C"), createToken(TT.KEY_MODE, "major")];

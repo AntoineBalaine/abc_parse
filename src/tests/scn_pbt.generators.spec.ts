@@ -67,7 +67,7 @@ export const genVxPropVal = fc.oneof(
 const genVoiceWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws, sharedContext.generateId()));
 
 // Property pair generator (key=value)
-const genVxKV = fc
+export const genVxKV = fc
   .tuple(
     genVxPropKey,
     fc.option(genVoiceWhitespace),
@@ -311,7 +311,7 @@ export const genKeySignature = fc.oneof(
       return tokens;
     })
 );
-const genKeyInfoLine = genKeySignature.map((keyTokens: Token[]) => [new Token(TT.INF_HDR, "K:", sharedContext.generateId()), ...keyTokens]);
+export const genKeyInfoLine = genKeySignature.map((keyTokens: Token[]) => [new Token(TT.INF_HDR, "K:", sharedContext.generateId()), ...keyTokens]);
 
 const genMeterInfoLine = genMeterDefinition.map((meterTokens: Token[]) => [new Token(TT.INF_HDR, "M:", sharedContext.generateId()), ...meterTokens]);
 

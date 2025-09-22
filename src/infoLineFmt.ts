@@ -50,6 +50,8 @@ function genericFmt(expr: Info_line) {
       let { idx, kv } = KVFmt(i, value);
       i = idx;
       val += kv;
+    } else if (tok.type === TT.WS) {
+      continue;
     } else {
       val += (i === 0 ? "" : " ") + value[i].lexeme;
     }
@@ -62,17 +64,25 @@ function KVFmt(i: number, value: Array<Token>) {
   let val = "";
 
   val += (i === 0 ? "" : " ") + value[i].lexeme;
-  if (i >= value.length - 1) return { idx: i, kv: val };
 
-  const eql_tok = value[i + 1];
-  if (eql_tok && eql_tok.type === TT.EQL) {
-    i++;
-    val += value[i].lexeme;
+  enum ExpectState {
+    EQL,
+    VALUE,
   }
-  const val_tok = value[i + 1];
-  if (val_tok && (val_tok.type === TT.KEY_V || val_tok.type === TT.VX_V)) {
+  let expect: ExpectState = ExpectState.EQL;
+  while (i < value.length - 1) {
     i++;
-    val += value[i].lexeme;
+    if (expect === ExpectState.EQL && value[i].type === TT.EQL) {
+      val += value[i].lexeme;
+      expect = ExpectState.VALUE;
+      continue;
+    }
+    if (expect === ExpectState.VALUE && (value[i].type === TT.KEY_V || value[i].type === TT.VX_V)) {
+      val += value[i].lexeme;
+      break;
+    }
+    if (value[i].type === TT.WS) continue;
+    else break;
   }
 
   return { idx: i, kv: val };

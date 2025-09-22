@@ -11,12 +11,18 @@ export const pKeyNone = /none/i;
 const pClefType = /^(alto|bass|none|perc|tenor|treble)/i;
 /**
  * The format is:
- * K: [⟨key⟩] [⟨modifiers⟩*]
+ *
+ * `K: [⟨key⟩] [⟨modifiers⟩*]`
+ *
  * modifiers are any of the following in any order:
- *  [⟨clef⟩] [middle=⟨pitch⟩] [transpose=[-]⟨number⟩] [stafflines=⟨number⟩] [staffscale=⟨number⟩][style=⟨style⟩]
+ *
+ *  `[⟨clef⟩] [middle=⟨pitch⟩] [transpose=[-]⟨number⟩] [stafflines=⟨number⟩] [staffscale=⟨number⟩][style=⟨style⟩]`
+ *
  * key is none|HP|Hp|⟨specified_key⟩
- * clef is [clef=] [⟨clef type⟩] [⟨line number⟩] [+8|-8]
- * specified_key is ⟨pitch⟩[#|b][mode(first three chars are significant)][accidentals*]
+ *
+ * clef is `[clef=] [⟨clef type⟩] [⟨line number⟩] [+8|-8]`
+ *
+ * specified_key is `⟨pitch⟩[#|b][mode(first three chars are significant)][accidentals*]`
  */
 export function scanKeyInfo(ctx: Ctx): boolean {
   if (!scanK(ctx)) return false;
