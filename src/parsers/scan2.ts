@@ -1,7 +1,7 @@
 import { Visitor } from "../types/Expr2";
 import { ABCContext } from "./Context";
 import { AbcErrorReporter } from "./ErrorReporter";
-import { scanInfoLine } from "./infoLines/scanInfoLine";
+import { scanInfoLine2 } from "./infoLines/scanInfoLine2";
 import { comment, pEOL, pInfoLine, pMacroLine, pSectionBrk, pTuneHeadStrt, pUserSymbol, scanTune, symbol } from "./scan_tunebody";
 
 export class Ctx {
@@ -228,7 +228,6 @@ export enum TT {
   // New generic token types for unified info line parsing
   IDENTIFIER, // Unquoted words (treble, major, etc.)
   NUMBER, // Integer or float numbers (1, 4, 120, 1.5)
-  STRING_LITERAL, // Quoted text ("Allegro")
   SPECIAL_LITERAL, // Special cases (C, C|)
   // Legacy meter tokens - keep for backward compatibility during migration
   METER_SEPARATOR, // Meter separator (/) - DEPRECATED, use SLASH
@@ -359,26 +358,30 @@ export function precededBy(ctx: Ctx, needles: Set<TT>, ignoreTokens: Set<TT>): b
 }
 
 export function info_line(ctx: Ctx): boolean {
-  return scanInfoLine(ctx);
-  // if (!(ctx.test(pInfoLine) && precededBy(ctx, new Set([TT.EOL, TT.SCT_BRK]), new Set([TT.WS])))) return false;
+  if (!(ctx.test(pInfoLine) && precededBy(ctx, new Set([TT.EOL, TT.SCT_BRK]), new Set([TT.WS])))) return false;
 
-  // const match = new RegExp(`^${pInfoLine.source}`).exec(ctx.source.substring(ctx.current));
-  // if (!match) return false;
-  // ctx.current += match[0].length;
-  // ctx.push(TT.INF_HDR);
+  const match = new RegExp(`^${pInfoLine.source}`).exec(ctx.source.substring(ctx.current));
+  if (!match) return false;
 
-  // while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
-  //   if (ctx.test("%")) {
-  //     break;
-  //   } else {
-  //     advance(ctx);
-  //   }
-  // }
-  // if (ctx.current !== ctx.start) {
-  //   ctx.push(TT.INFO_STR);
-  // }
-  // comment(ctx);
-  // return true;
+  const infoType = match[0].trim();
+
+  // Use unified scanner for specific info line types
+  if (infoType === "K:" || infoType === "M:" || infoType === "L:" || infoType === "Q:" || infoType === "V:") {
+    return scanInfoLine2(ctx);
+  }
+
+  // Use old approach for generic info lines (X:, T:, A:, etc.)
+  ctx.current += match[0].length;
+  ctx.push(TT.INF_HDR);
+
+  while (!(isAtEnd(ctx) || ctx.test(pEOL) || ctx.test("%"))) {
+    advance(ctx);
+  }
+  if (ctx.current !== ctx.start) {
+    ctx.push(TT.INFO_STR);
+  }
+  comment(ctx);
+  return true;
 }
 
 export function user_symbol_invocation(ctx: Ctx): boolean {

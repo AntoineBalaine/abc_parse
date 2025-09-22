@@ -78,7 +78,7 @@ function stringLiteral(ctx: Ctx): boolean {
     advance(ctx);
   }
 
-  ctx.push(TT.STRING_LITERAL);
+  ctx.push(TT.ANNOTATION);
   return true;
 }
 

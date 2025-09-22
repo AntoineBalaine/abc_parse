@@ -54,7 +54,7 @@ describe("scanInfoLine2 - Unified Info Line Scanner", () => {
           expect(result).to.be.true;
           expect(ctx.tokens.length).greaterThan(1);
           expect(ctx.tokens[0].type).to.equal(TT.INF_HDR);
-          expect(ctx.tokens[1].type).to.equal(TT.STRING_LITERAL);
+          expect(ctx.tokens[1].type).to.equal(TT.ANNOTATION);
           expect(['"Allegro"', '"Tenor 1"']).contain(ctx.tokens[1].lexeme);
         })
       );

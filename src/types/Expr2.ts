@@ -619,7 +619,7 @@ export class User_symbol_invocation extends Expr {
 export class KV extends Expr {
   key?: Token; // IDENTIFIER (optional)
   equals?: Token; // EQL (optional, only present if key is present)
-  value: Token; // IDENTIFIER, STRING_LITERAL, NUMBER, or SPECIAL_LITERAL
+  value: Token; // IDENTIFIER, ANNOTATION, NUMBER, or SPECIAL_LITERAL
 
   constructor(id: number, value: Token, key?: Token, equals?: Token) {
     super(id);

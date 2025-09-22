@@ -3,6 +3,7 @@ import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Token, TT } from "../parsers/scan2";
 import { genMeterDefinition } from "./scanMeterInfo.spec";
+import { genUnifiedInfoLine, genKeyInfoLine2, genMeterInfoLine2, genNoteLenInfoLine2, genTempoInfoLine2 } from "./scn_infoln_generators";
 
 // Create a shared context for all generators
 export const sharedContext = new ABCContext(new AbcErrorReporter());
@@ -630,6 +631,12 @@ export const baseMusicTokenGenerators = [
   genChord,
   genAnnotation,
   { arbitrary: genInfoLine, weight: 1 },
+  // New unified info line generators
+  { arbitrary: genUnifiedInfoLine, weight: 1 },
+  { arbitrary: genKeyInfoLine2, weight: 1 },
+  { arbitrary: genMeterInfoLine2, weight: 1 },
+  { arbitrary: genNoteLenInfoLine2, weight: 1 },
+  { arbitrary: genTempoInfoLine2, weight: 1 },
   { arbitrary: genStylesheetDirective, weight: 1 },
   { arbitrary: genCommentToken, weight: 2 },
   { arbitrary: genLyricLine, weight: 1 },
@@ -698,6 +705,15 @@ function isWithinInfoLine(flatTokens: Token[], index: number): boolean {
       TT.METER_PLUS,
       TT.METER_LPAREN,
       TT.METER_RPAREN,
+      // info line tokens
+      TT.IDENTIFIER,
+      TT.NUMBER,
+      TT.ANNOTATION,
+      TT.SPECIAL_LITERAL,
+      TT.PLUS,
+      TT.SLASH,
+      TT.LPAREN,
+      TT.RPAREN,
       TT.WS,
       TT.DISCARD,
     ];

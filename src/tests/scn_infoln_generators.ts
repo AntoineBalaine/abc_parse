@@ -75,7 +75,7 @@ export const genNumber = fc
   .map((num) => new Token(TT.NUMBER, num, sharedContext.generateId()));
 
 /**
- * Generator for STRING_LITERAL tokens - quoted text like "Allegro", "Slowly"
+ * Generator for ANNOTATION tokens - quoted text like "Allegro", "Slowly"
  */
 export const genStringLiteral = fc
   .oneof(
@@ -101,7 +101,7 @@ export const genStringLiteral = fc
       .filter((s) => !s.includes('"') && !s.includes("\n"))
       .map((s) => `"${s}"`)
   )
-  .map((literal) => new Token(TT.STRING_LITERAL, literal, sharedContext.generateId()));
+  .map((literal) => new Token(TT.ANNOTATION, literal, sharedContext.generateId()));
 
 /**
  * Generator for SPECIAL_LITERAL tokens - C and C| for meter

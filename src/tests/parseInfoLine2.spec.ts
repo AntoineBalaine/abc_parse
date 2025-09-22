@@ -243,7 +243,7 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
 
   describe("Special token types", () => {
     it("should handle string literals", () => {
-      const tokens = [new Token(TT.STRING_LITERAL, '"Allegro"', context.generateId())];
+      const tokens = [new Token(TT.ANNOTATION, '"Allegro"', context.generateId())];
 
       const ctx = new ParseCtx(tokens, context);
       const expressions = parseInfoLine2(ctx);

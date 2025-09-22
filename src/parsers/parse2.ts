@@ -37,11 +37,7 @@ import {
   YSPACER,
 } from "../types/Expr2";
 import { ABCContext } from "./Context";
-import { prsKeyInfo } from "./infoLines/prsKeyInfo";
-import { prsMeterInfo } from "./infoLines/prsMeterInfo";
-import { prsNoteLenInfo } from "./infoLines/prsNoteLenInfo";
-import { prsTempoInfo } from "./infoLines/prsTempoInfo";
-import { prsVxInfo } from "./infoLines/prsVxInfo";
+import { parseInfoLine2 } from "./infoLines/parseInfoLine2";
 import { Token, TT } from "./scan2";
 import { parseSystemsWithVoices } from "./voices2";
 
@@ -269,41 +265,24 @@ export function prsInfoLine(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Info
   if (ctx.match(TT.INF_HDR)) {
     const field = ctx.previous();
     const tokens: Token[] = [field];
-    // Determine info line type and call appropriate parser
-    let parsed: InfoLineUnion | null = null;
-    const fieldType = field.lexeme.trim().charAt(0);
 
-    switch (fieldType) {
-      case "K":
-        parsed = prsKeyInfo(ctx, tokens);
-        break;
-      case "M":
-        parsed = prsMeterInfo(ctx, tokens);
-        break;
-      case "L":
-        parsed = prsNoteLenInfo(ctx, tokens);
-        break;
-      case "Q":
-        parsed = prsTempoInfo(ctx, tokens);
-        break;
-      case "V":
-        parsed = prsVxInfo(ctx, tokens);
-        break;
-      default:
-        if (ctx.match(TT.INFO_STR)) {
-          tokens.push(ctx.previous());
-        }
-        while (ctx.match(TT.WS) || ctx.match(TT.COMMENT)) {
-          tokens.push(ctx.previous());
-        }
-        break;
+    // Save current position to collect tokens consumed by parseInfoLine2
+    const startPos = ctx.current;
+
+    // Use unified parser to parse the info line content
+    const expressions = parseInfoLine2(ctx);
+
+    // Collect all tokens that were consumed by parseInfoLine2
+    for (let i = startPos; i < ctx.current; i++) {
+      tokens.push(ctx.tokens[i]);
     }
 
+    // Collect any remaining tokens (comments, etc.)
     while (ctx.match(TT.COMMENT)) {
       tokens.push(ctx.previous());
     }
 
-    const rv = new Info_line(ctx.abcContext.generateId(), tokens, parsed || undefined);
+    const rv = new Info_line(ctx.abcContext.generateId(), tokens, undefined, expressions);
     prnt_arr && prnt_arr.push(rv);
     return rv;
   }

@@ -118,5 +118,5 @@ function parsePrimary(ctx: ParseCtx): Expr | Token | null {
 function isValueToken(token: Token | null): boolean {
   if (!token) return false;
 
-  return [TT.IDENTIFIER, TT.STRING_LITERAL, TT.NUMBER, TT.SPECIAL_LITERAL].includes(token.type);
+  return [TT.IDENTIFIER, TT.ANNOTATION, TT.NUMBER, TT.SPECIAL_LITERAL].includes(token.type);
 }
