@@ -1,11 +1,23 @@
 import * as fc from "fast-check";
-import { ParseCtx } from "../parsers/parse2";
+import { ParseCtx, prsInfoLine } from "../parsers/parse2";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { parseInfoLine2 } from "../parsers/infoLines/parseInfoLine2";
-import { KV, Binary, Grouping } from "../types/Expr2";
+import { KV, Binary, Grouping, Info_line } from "../types/Expr2";
 import { Token, TT } from "../parsers/scan2";
-import { genKVExpr, genBinaryExpr, genExprArray, genKeyExprArray, genMeterExprArray } from "./scn_infoln_generators";
+import {
+  genKVExpr,
+  genBinaryExpr,
+  genExprArray,
+  genKeyExprArray,
+  genMeterExprArray,
+  genInfoLine2,
+  genGenericInfoLine,
+  genKeyInfoLine2,
+  genMeterInfoLine2,
+  genNoteLenInfoLine2,
+  genTempoInfoLine2,
+} from "./scn_infoln_generators";
 import { expect } from "chai";
 
 describe("parseInfoLine2 - Unified Info Line Parser", () => {
@@ -264,6 +276,96 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       expect(expressions[0]).to.be.an.instanceof(KV);
       const kv = expressions[0] as KV;
       expect(kv.value.lexeme).to.equal("C|");
+    });
+  });
+
+  describe("Property-based integration testing with prsInfoLine", () => {
+    it("should handle generic info lines with prsInfoLine", () => {
+      fc.assert(
+        fc.property(genGenericInfoLine, (tokens) => {
+          // Filter out EOL tokens that are used for scanner testing but not parser testing
+          const filteredTokens = tokens.filter((t) => t.type !== TT.EOL);
+
+          // Create ParseCtx with the filtered tokens
+          const ctx = new ParseCtx(filteredTokens, context);
+
+          // Call prsInfoLine (which internally uses parseInfoLine2)
+          const result = prsInfoLine(ctx);
+
+          // Verify basic structure
+          expect(result).to.not.be.null;
+          expect(result).to.be.an.instanceof(Info_line);
+
+          if (result) {
+            // Verify the result has a proper key (info line header)
+            expect(result.key).to.not.be.undefined;
+            expect(result.key.type).to.equal(TT.INF_HDR);
+
+            // Verify tokens were consumed properly
+            expect(result.value).to.not.be.undefined;
+            expect(result.value).to.be.an("array");
+
+            // For generic info lines, value2 should be present
+            expect(result.value2).to.not.be.undefined;
+            expect(result.value2).to.be.an("array");
+          }
+
+          return true;
+        }),
+        {
+          numRuns: 50,
+          verbose: false,
+        }
+      );
+    });
+
+    it("should handle specific info lines with parsed expressions", () => {
+      const specificInfoLineGen = fc.oneof(genKeyInfoLine2, genMeterInfoLine2, genNoteLenInfoLine2, genTempoInfoLine2);
+
+      fc.assert(
+        fc.property(specificInfoLineGen, (tokens) => {
+          // Filter out EOL tokens and flatten nested arrays from generators
+          const flattenedTokens = tokens.flat().filter((t) => t && t.type !== TT.EOL);
+
+          // Create ParseCtx with the flattened tokens
+          const ctx = new ParseCtx(flattenedTokens, context);
+
+          // Call prsInfoLine (which internally uses parseInfoLine2)
+          const result = prsInfoLine(ctx);
+
+          // Verify basic structure
+          expect(result).to.not.be.null;
+          expect(result).to.be.an.instanceof(Info_line);
+
+          if (result) {
+            // Verify the result has a proper key (info line header)
+            expect(result.key).to.not.be.undefined;
+            expect(result.key.type).to.equal(TT.INF_HDR);
+
+            // Verify tokens were consumed properly
+            expect(result.value).to.not.be.undefined;
+            expect(result.value).to.be.an("array");
+
+            // For specific info lines, value2 should contain parsed structures
+            expect(result.value2).to.not.be.undefined;
+            expect(result.value2).to.be.an("array");
+
+            // Verify each expression is a valid parsed expression (if any)
+            result.value2?.forEach((expr) => {
+              // For debugging: check what we actually got
+              expect(expr).to.satisfy(
+                (e: any) => e instanceof KV || e instanceof Binary || e instanceof Grouping || e instanceof Token // Allow tokens for now
+              );
+            });
+          }
+
+          return true;
+        }),
+        {
+          numRuns: 50,
+          verbose: false,
+        }
+      );
     });
   });
 });
