@@ -15,7 +15,7 @@ import { parsePitch } from "../parse2"; // Reuse existing pitch parsing logic
 export function parseInfoLine2(ctx: ParseCtx): Array<Expr | Token> {
   const expressions: (Expr | Token)[] = [];
 
-  while (!ctx.isAtEnd() && !ctx.check(TT.EOL) && !ctx.check(TT.COMMENT)) {
+  while (!(ctx.isAtEnd() || ctx.check(TT.EOL) || ctx.check(TT.COMMENT) || ctx.check(TT.SCT_BRK))) {
     if (ctx.match(TT.WS)) continue;
 
     const expr = parseExpression(ctx);
