@@ -159,6 +159,35 @@ describe("scanInfoLine2 - Unified Info Line Scanner", () => {
     });
   });
 
+  describe("Specific scanner failure cases", () => {
+    it("should correctly scan tempo line Q:A0=1 with absolute pitch", () => {
+      const ctx = new Ctx("Q:A0=1\t", context);
+      const result = scanInfoLine2(ctx);
+
+      expect(result).to.be.true;
+      expect(ctx.tokens.length).to.equal(6);
+
+      // Verify exact token sequence
+      expect(ctx.tokens[0].type).to.equal(TT.INF_HDR);
+      expect(ctx.tokens[0].lexeme).to.equal("Q:");
+
+      expect(ctx.tokens[1].type).to.equal(TT.NOTE_LETTER);
+      expect(ctx.tokens[1].lexeme).to.equal("A");
+
+      expect(ctx.tokens[2].type).to.equal(TT.NUMBER);
+      expect(ctx.tokens[2].lexeme).to.equal("0");
+
+      expect(ctx.tokens[3].type).to.equal(TT.EQL);
+      expect(ctx.tokens[3].lexeme).to.equal("=");
+
+      expect(ctx.tokens[4].type).to.equal(TT.NUMBER);
+      expect(ctx.tokens[4].lexeme).to.equal("1");
+
+      expect(ctx.tokens[5].type).to.equal(TT.WS);
+      expect(ctx.tokens[5].lexeme).to.equal("\t");
+    });
+  });
+
   describe("Round-trip testing with generated data", () => {
     it("should handle key info lines", () => {
       fc.assert(

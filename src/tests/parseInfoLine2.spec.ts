@@ -3,7 +3,7 @@ import { ParseCtx, prsInfoLine } from "../parsers/parse2";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { parseInfoLine2 } from "../parsers/infoLines/parseInfoLine2";
-import { KV, Binary, Grouping, Info_line } from "../types/Expr2";
+import { KV, Binary, Grouping, Info_line, AbsolutePitch, Pitch } from "../types/Expr2";
 import { Token, TT } from "../parsers/scan2";
 import {
   genKVExpr,
@@ -41,7 +41,7 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       expect(expressions.length).to.equal(1);
       expect(expressions[0]).to.be.an.instanceof(KV);
       const kv = expressions[0] as KV;
-      expect(kv.key?.lexeme).to.equal("clef");
+      expect((kv.key! as Token).lexeme).to.equal("clef");
       expect(kv.value.lexeme).to.equal("treble");
     });
 
@@ -135,7 +135,8 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       expect(kv2.key).to.be.undefined;
 
       expect(kv3.value.lexeme).to.equal("treble");
-      expect(kv3.key?.lexeme).to.equal("clef");
+
+      expect((kv3.key! as Token).lexeme).to.equal("clef");
     });
   });
 
@@ -354,7 +355,13 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
             result.value2?.forEach((expr) => {
               // For debugging: check what we actually got
               expect(expr).to.satisfy(
-                (e: any) => e instanceof KV || e instanceof Binary || e instanceof Grouping || e instanceof Token // Allow tokens for now
+                (e: any) =>
+                  e instanceof KV ||
+                  e instanceof Binary ||
+                  e instanceof Grouping ||
+                  e instanceof Token ||
+                  e instanceof AbsolutePitch ||
+                  e instanceof Pitch // Allow tokens for now
               );
             });
           }
@@ -366,6 +373,177 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
           verbose: false,
         }
       );
+    });
+  });
+
+  describe("Complex musical syntax cases", () => {
+    it("should handle key signature: K:F#", () => {
+      const tokens = [
+        new Token(TT.INF_HDR, "K:", context.generateId()),
+        new Token(TT.NOTE_LETTER, "F", context.generateId()),
+        new Token(TT.ACCIDENTAL, "#", context.generateId()),
+      ];
+
+      const ctx = new ParseCtx(tokens, context);
+      const result = prsInfoLine(ctx);
+
+      expect(result).to.not.be.null;
+      expect(result!.key.lexeme).to.equal("K:");
+      expect(result!.value2).to.have.length(1);
+
+      const expr = result!.value2![0];
+      expect(expr).to.be.an.instanceof(AbsolutePitch);
+      const absolutePitch = expr as AbsolutePitch;
+      expect(absolutePitch.noteLetter.lexeme).to.equal("F");
+      expect(absolutePitch.alteration?.lexeme).to.equal("#");
+      expect(absolutePitch.octave).to.be.undefined;
+    });
+
+    it("should handle key signature: K:G major", () => {
+      const tokens = [
+        new Token(TT.INF_HDR, "K:", context.generateId()),
+        new Token(TT.NOTE_LETTER, "G", context.generateId()),
+        new Token(TT.WS, " ", context.generateId()),
+        new Token(TT.IDENTIFIER, "major", context.generateId()),
+      ];
+
+      const ctx = new ParseCtx(tokens, context);
+      const result = prsInfoLine(ctx);
+
+      expect(result).to.not.be.null;
+      expect(result!.key.lexeme).to.equal("K:");
+      expect(result!.value2).to.have.length(2);
+
+      // First expression should be AbsolutePitch for "G"
+      const firstExpr = result!.value2![0];
+      expect(firstExpr).to.be.an.instanceof(AbsolutePitch);
+      const absolutePitch = firstExpr as AbsolutePitch;
+      expect(absolutePitch.noteLetter.lexeme).to.equal("G");
+      expect(absolutePitch.alteration).to.be.undefined;
+
+      // Second expression should be KV for "major"
+      const secondExpr = result!.value2![1];
+      expect(secondExpr).to.be.an.instanceof(KV);
+      const kv = secondExpr as KV;
+      expect(kv.value.lexeme).to.equal("major");
+      expect(kv.key).to.be.undefined;
+    });
+
+    it("should handle key signature with explicit accidentals: K:C ^c_b", () => {
+      const tokens = [
+        new Token(TT.INF_HDR, "K:", context.generateId()),
+        new Token(TT.SPECIAL_LITERAL, "C", context.generateId()),
+        new Token(TT.WS, " ", context.generateId()),
+        new Token(TT.ACCIDENTAL, "^", context.generateId()),
+        new Token(TT.NOTE_LETTER, "c", context.generateId()),
+        new Token(TT.ACCIDENTAL, "_", context.generateId()),
+        new Token(TT.NOTE_LETTER, "b", context.generateId()),
+      ];
+
+      const ctx = new ParseCtx(tokens, context);
+      const result = prsInfoLine(ctx);
+
+      expect(result).to.not.be.null;
+      expect(result!.key.lexeme).to.equal("K:");
+      expect(result!.value2).to.have.length(3);
+
+      // First should be KV for "C"
+      const firstExpr = result!.value2![0];
+      expect(firstExpr).to.be.an.instanceof(KV);
+      expect((firstExpr as KV).value.lexeme).to.equal("C");
+
+      // Second should be Pitch for "^c"
+      const secondExpr = result!.value2![1];
+      expect(secondExpr).to.be.an.instanceof(Pitch);
+      const pitch1 = secondExpr as Pitch;
+      expect(pitch1.alteration?.lexeme).to.equal("^");
+      expect(pitch1.noteLetter.lexeme).to.equal("c");
+
+      // Third should be Pitch for "_b"
+      const thirdExpr = result!.value2![2];
+      expect(thirdExpr).to.be.an.instanceof(Pitch);
+      const pitch2 = thirdExpr as Pitch;
+      expect(pitch2.alteration?.lexeme).to.equal("_");
+      expect(pitch2.noteLetter.lexeme).to.equal("b");
+    });
+
+    it('should handle "none" key signature: K:none', () => {
+      const tokens = [new Token(TT.INF_HDR, "K:", context.generateId()), new Token(TT.IDENTIFIER, "none", context.generateId())];
+
+      const ctx = new ParseCtx(tokens, context);
+      const result = prsInfoLine(ctx);
+
+      expect(result).to.not.be.null;
+      expect(result!.key.lexeme).to.equal("K:");
+      expect(result!.value2).to.have.length(1);
+
+      const expr = result!.value2![0];
+      expect(expr).to.be.an.instanceof(KV);
+      const kv = expr as KV;
+      expect(kv.value.lexeme).to.equal("none");
+      expect(kv.key).to.be.undefined;
+    });
+
+    it("should handle tempo with absolute pitch: Q:G4=96", () => {
+      const tokens = [
+        new Token(TT.INF_HDR, "Q:", context.generateId()),
+        new Token(TT.NOTE_LETTER, "G", context.generateId()),
+        new Token(TT.NUMBER, "4", context.generateId()),
+        new Token(TT.EQL, "=", context.generateId()),
+        new Token(TT.NUMBER, "96", context.generateId()),
+      ];
+
+      const ctx = new ParseCtx(tokens, context);
+      const result = prsInfoLine(ctx);
+
+      expect(result).to.not.be.null;
+      expect(result!.key.lexeme).to.equal("Q:");
+      expect(result!.value2).to.have.length(1);
+
+      // Should be Binary expression: AbsolutePitch = Number
+      const expr = result!.value2![0];
+      expect(expr).to.be.an.instanceof(KV);
+      const binary = expr as KV;
+
+      // Left side should be AbsolutePitch
+      expect(binary.key!).to.be.an.instanceof(AbsolutePitch);
+      const absolutePitch = binary.key! as AbsolutePitch;
+      expect(absolutePitch.noteLetter.lexeme).to.equal("G");
+      expect(absolutePitch.octave?.lexeme).to.equal("4");
+      expect(absolutePitch.alteration).to.be.undefined;
+
+      // Right side should be Token with BPM
+      expect(binary.value).to.be.an.instanceof(Token);
+      const bpm = binary.value as Token;
+      expect(bpm.lexeme).to.equal("96");
+    });
+
+    it("should handle clef identifier with octave shift: clef=Ctreble,", () => {
+      const tokens = [
+        new Token(TT.IDENTIFIER, "clef", context.generateId()),
+        new Token(TT.EQL, "=", context.generateId()),
+        new Token(TT.IDENTIFIER, "Ctreble", context.generateId()),
+        new Token(TT.IDENTIFIER, ",", context.generateId()),
+      ];
+
+      const ctx = new ParseCtx(tokens, context);
+      const expressions = parseInfoLine2(ctx);
+
+      expect(expressions).to.have.length(2);
+
+      // First should be KV expression: clef=Ctreble
+      const firstExpr = expressions[0];
+      expect(firstExpr).to.be.an.instanceof(KV);
+      const kv = firstExpr as KV;
+      expect((kv.key! as Token).lexeme).to.equal("clef");
+      expect(kv.value.lexeme).to.equal("Ctreble");
+
+      // Second should be KV expression for comma (octave shift)
+      const secondExpr = expressions[1];
+      expect(secondExpr).to.be.an.instanceof(KV);
+      const commaKv = secondExpr as KV;
+      expect(commaKv.value.lexeme).to.equal(",");
+      expect(commaKv.key).to.be.undefined;
     });
   });
 });

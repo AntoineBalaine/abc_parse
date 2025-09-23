@@ -1,5 +1,5 @@
 import { advance, Ctx, isAtEnd, TT, WS, collectInvalidInfoLn } from "../scan2";
-import { pEOL, pNumber } from "../scan_tunebody";
+import { pEOL, pNumber, pPitch, pitch } from "../scan_tunebody";
 import { infoHeader } from "./infoLnHelper";
 
 /**
@@ -16,6 +16,8 @@ export function scanInfoLine2(ctx: Ctx): boolean {
   while (!(isAtEnd(ctx) || ctx.test(pEOL) || ctx.test("%"))) {
     if (WS(ctx)) continue;
     if (specialLiteral(ctx)) continue; // C, C|
+    if (absolutePitch(ctx)) continue; // G4, F#5, Bb3 (note + optional accidental + optional numeric octave)
+    if (tuneBodyPitch(ctx)) continue; // Tune body pitches: ^c, _b, =f (for key info explicit accidentals)
     if (identifier(ctx)) continue; // abc, treble, major
     if (stringLiteral(ctx)) continue; // "Allegro"
     if (number(ctx)) continue; // 1, 4, 120
@@ -31,6 +33,10 @@ export function scanInfoLine2(ctx: Ctx): boolean {
   }
 
   return true;
+}
+function tuneBodyPitch(ctx: Ctx): boolean {
+  if (!ctx.test(new RegExp(`^${pPitch}[%\n \t]`))) return false;
+  return pitch(ctx);
 }
 
 /**
@@ -115,4 +121,31 @@ function specialLiteral(ctx: Ctx): boolean {
   }
 
   return false;
+}
+
+/**
+ * Scan absolute pitch: note letter + optional accidental + optional numeric octave
+ * Examples: G4, F#5, Bb3, C
+ * Used in tempo markings like Q: G4=120
+ */
+function absolutePitch(ctx: Ctx): boolean {
+  // Must start with note letter (A-G, case insensitive)
+  if (!ctx.test(/[A-Ga-g][#b]?[0-9]?[= \t%\n]/)) return false;
+
+  advance(ctx); // consume note letter
+  ctx.push(TT.NOTE_LETTER);
+
+  // Optional accidental (# or b)
+  if (ctx.test(/[#b]/)) {
+    advance(ctx); // consume accidental
+    ctx.push(TT.ACCIDENTAL);
+  }
+
+  // Optional numeric octave (0-9)
+  if (ctx.test(/[0-9]/)) {
+    advance(ctx); // consume octave digit
+    ctx.push(TT.NUMBER);
+  }
+
+  return true;
 }

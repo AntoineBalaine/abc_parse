@@ -135,6 +135,21 @@ export class Pitch extends Expr {
   }
 }
 
+export class AbsolutePitch extends Expr {
+  noteLetter: Token;
+  alteration?: Token;
+  octave?: Token; // Numeric octave (different from Pitch which uses ' and ,)
+  constructor(id: number, noteLetter: Token, alteration?: Token, octave?: Token) {
+    super(id);
+    this.noteLetter = noteLetter;
+    this.alteration = alteration;
+    this.octave = octave;
+  }
+  accept<R>(visitor: Visitor<R>): R {
+    return null as R;
+  }
+}
+
 export class File_header extends Expr {
   contents: Array<Token | Expr>;
   constructor(id: number, tokens: Array<Token | Expr>) {
@@ -617,11 +632,11 @@ export class User_symbol_invocation extends Expr {
  * Used for both key-value pairs (K:clef=treble) and standalone values (K:major)
  */
 export class KV extends Expr {
-  key?: Token; // IDENTIFIER (optional)
+  key?: Token | AbsolutePitch; // IDENTIFIER (optional)
   equals?: Token; // EQL (optional, only present if key is present)
   value: Token; // IDENTIFIER, ANNOTATION, NUMBER, or SPECIAL_LITERAL
 
-  constructor(id: number, value: Token, key?: Token, equals?: Token) {
+  constructor(id: number, value: Token, key?: Token | AbsolutePitch, equals?: Token) {
     super(id);
     this.value = value;
     this.key = key;

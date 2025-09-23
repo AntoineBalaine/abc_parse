@@ -1,7 +1,8 @@
 import { ParseCtx } from "../parse2";
-import { Expr, KV, Binary, Grouping } from "../../types/Expr2";
+import { Expr, KV, Binary, Grouping, AbsolutePitch, Pitch } from "../../types/Expr2";
 import { Token, TT } from "../scan2";
 import { followedBy } from "../../helpers";
+import { parsePitch } from "../parse2"; // Reuse existing pitch parsing logic
 
 /**
  * Unified info line parser using generic expression types
@@ -36,6 +37,11 @@ function parseExpression(ctx: ParseCtx): Expr | null {
   // Check for KV expression first (identifier followed by =)
   if (ctx.check(TT.IDENTIFIER) && followedBy(ctx, [TT.EQL], [TT.WS])) {
     return parseKVExpression(ctx);
+  }
+
+  // Check for absolute pitch KV expression (NOTE_LETTER + optional ACCIDENTAL + optional NUMBER followed by =)
+  if (ctx.check(TT.NOTE_LETTER) && isAbsolutePitchFollowedByEquals(ctx)) {
+    return parseAbsolutePitchKVExpression(ctx);
   }
 
   // Otherwise try to parse as binary expression or standalone value
@@ -98,6 +104,16 @@ function parsePrimary(ctx: ParseCtx): Expr | Token | null {
     return new Grouping(ctx.abcContext.generateId(), expr);
   }
 
+  // Handle absolute pitches (NOTE_LETTER + optional ACCIDENTAL + optional NUMBER)
+  if (ctx.check(TT.NOTE_LETTER)) {
+    return parseAbsolutePitch(ctx);
+  }
+
+  // Handle tune body pitches (ACCIDENTAL + NOTE_LETTER + optional OCTAVE)
+  if (ctx.check(TT.ACCIDENTAL)) {
+    return parsePitch(ctx);
+  }
+
   // Handle numbers
   if (ctx.match(TT.NUMBER)) {
     return ctx.previous();
@@ -119,4 +135,78 @@ function isValueToken(token: Token | null): boolean {
   if (!token) return false;
 
   return [TT.IDENTIFIER, TT.ANNOTATION, TT.NUMBER, TT.SPECIAL_LITERAL].includes(token.type);
+}
+
+/**
+ * Parse absolute pitch: NOTE_LETTER + optional ACCIDENTAL + optional NUMBER
+ * Examples: G4, F#5, Bb3, C
+ * Used in tempo markings like Q: G4=120
+ */
+function parseAbsolutePitch(ctx: ParseCtx): AbsolutePitch | null {
+  if (!ctx.check(TT.NOTE_LETTER)) return null;
+
+  const noteLetter = ctx.advance();
+  let alteration: Token | undefined;
+  let octave: Token | undefined;
+
+  // Optional accidental
+  if (ctx.check(TT.ACCIDENTAL)) {
+    alteration = ctx.advance();
+  }
+
+  // Optional numeric octave
+  if (ctx.check(TT.NUMBER)) {
+    octave = ctx.advance();
+  }
+
+  return new AbsolutePitch(ctx.abcContext.generateId(), noteLetter, alteration, octave);
+}
+
+/**
+ * Check if current position has an absolute pitch pattern followed by =
+ */
+function isAbsolutePitchFollowedByEquals(ctx: ParseCtx): boolean {
+  let offset = 1; // Start after NOTE_LETTER
+
+  // Skip optional accidental
+  if (ctx.tokens[ctx.current + offset]?.type === TT.ACCIDENTAL) {
+    offset++;
+  }
+
+  // Skip optional numeric octave
+  if (ctx.tokens[ctx.current + offset]?.type === TT.NUMBER) {
+    offset++;
+  }
+
+  // Skip optional whitespace
+  if (ctx.tokens[ctx.current + offset]?.type === TT.WS) {
+    offset++;
+  }
+
+  // Check if followed by =
+  return ctx.tokens[ctx.current + offset]?.type === TT.EQL;
+}
+
+/**
+ * Parse absolute pitch key-value expressions: G4=120
+ */
+function parseAbsolutePitchKVExpression(ctx: ParseCtx): KV | null {
+  const absolutePitch = parseAbsolutePitch(ctx);
+  if (!absolutePitch) {
+    return null;
+  }
+
+  if (!ctx.match(TT.EQL)) {
+    ctx.report("Expected '=' after absolute pitch");
+    return null;
+  }
+  const equals = ctx.previous();
+
+  if (!isValueToken(ctx.peek())) {
+    ctx.report("Expected value after '='");
+    return null;
+  }
+
+  const value = ctx.advance();
+  return new KV(ctx.abcContext.generateId(), value, absolutePitch, equals);
 }

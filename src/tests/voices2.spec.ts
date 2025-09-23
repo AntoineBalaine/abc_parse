@@ -486,5 +486,34 @@ K:C
       const systems = tune.tune_body?.sequence;
       expect(systems).to.have.lengthOf(2);
     });
+
+    it("should correctly separate voice declarations from voice usage", () => {
+      const sample = `X:1
+V:1 clef=treble
+V:2 clef=bass
+V:1
+CDEF|GABC|
+V:2
+CDEF|GABC|`;
+
+      const ctx = new ABCContext();
+      const tokens = Scanner2(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
+
+      expect(tune).to.not.be.null;
+
+      // Should have exactly 3 info lines in tune header: X:1, V:1 clef=treble, V:2 clef=bass
+      const infoLines = tune.tune_header.info_lines.filter((item): item is Info_line => item instanceof Info_line);
+      expect(infoLines).to.have.lengthOf(3);
+      expect(infoLines[0].key.lexeme).to.equal("X:");
+      expect(infoLines[1].key.lexeme).to.equal("V:");
+      expect(infoLines[2].key.lexeme).to.equal("V:");
+
+      // Voice tracking should have detected 2 unique voices
+      expect(tune.tune_header.voices).to.have.lengthOf(2);
+      expect(tune.tune_header.voices).to.include("1");
+      expect(tune.tune_header.voices).to.include("2");
+    });
   });
 });

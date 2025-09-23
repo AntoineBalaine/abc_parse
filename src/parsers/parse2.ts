@@ -16,6 +16,7 @@ import {
   Info_line,
   InfoLineUnion,
   Inline_field,
+  KV,
   Lyric_line,
   Lyric_section,
   Macro_decl,
@@ -210,9 +211,23 @@ export function prsTuneHdr(ctx: ParseCtx): Tune_header {
     if (prsInfoLine(ctx, infoLines)) {
       const info_line = infoLines[infoLines.length - 1] as Info_line;
       if (info_line.key.lexeme.trim() === "V:") {
-        const voiceName = info_line.value[0].lexeme.trim();
+        // Extract voice name from value2 (parsed expressions) instead of value (raw tokens)
+        let voiceName: string | null = null;
+        if (info_line.value2 && info_line.value2.length > 0) {
+          const firstExpr = info_line.value2[0];
+          // Voice name should be in the first KV expression
+          if (firstExpr instanceof KV && firstExpr.value) {
+            voiceName = firstExpr.value.lexeme.trim();
+          } else if (firstExpr instanceof Token && firstExpr.type === TT.NUMBER) {
+            voiceName = firstExpr.lexeme.trim();
+          }
+        }
         if (voiceName && !voices.includes(voiceName)) {
           voices.push(voiceName);
+        } else if (voiceName && voices.includes(voiceName)) {
+          // Voice already declared - remove from header and break to process as tune body
+          infoLines.pop();
+          break;
         }
       }
       continue;
@@ -237,7 +252,7 @@ export function alreadyHasVoice(ctx: ParseCtx, voices?: Array<string>): boolean 
   if (pkd.type === TT.INF_HDR && pkd.lexeme.trim() === "V:") {
     let i = ctx.current + 1;
     let info_txt = ctx.tokens[i];
-    const voiceName = info_txt.lexeme.trim().split(" ")[0];
+    const voiceName: string | null = info_txt ? info_txt.lexeme.trim().split(" ")[0] : null;
     return !!voiceName && voices.includes(voiceName);
   }
   return false;
@@ -262,31 +277,29 @@ export function prsComment(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Comme
 
 export function prsInfoLine(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Info_line | null {
   // FIXME: add a condition to check that this is NOT a lyric line?
-  if (ctx.match(TT.INF_HDR)) {
-    const field = ctx.previous();
-    const tokens: Token[] = [field];
+  if (!ctx.match(TT.INF_HDR)) return null;
+  const field = ctx.previous();
+  const tokens: Token[] = [field];
 
-    // Save current position to collect tokens consumed by parseInfoLine2
-    const startPos = ctx.current;
+  // Save current position to collect tokens consumed by parseInfoLine2
+  const startPos = ctx.current;
 
-    // Use unified parser to parse the info line content
-    const expressions = parseInfoLine2(ctx);
+  // Use unified parser to parse the info line content
+  const expressions = parseInfoLine2(ctx);
 
-    // Collect all tokens that were consumed by parseInfoLine2
-    for (let i = startPos; i < ctx.current; i++) {
-      tokens.push(ctx.tokens[i]);
-    }
-
-    // Collect any remaining tokens (comments, etc.)
-    while (ctx.match(TT.COMMENT)) {
-      tokens.push(ctx.previous());
-    }
-
-    const rv = new Info_line(ctx.abcContext.generateId(), tokens, undefined, expressions);
-    prnt_arr && prnt_arr.push(rv);
-    return rv;
+  // Collect all tokens that were consumed by parseInfoLine2
+  for (let i = startPos; i < ctx.current; i++) {
+    tokens.push(ctx.tokens[i]);
   }
-  return null;
+
+  // Collect any remaining tokens (comments, etc.)
+  while (ctx.match(TT.COMMENT)) {
+    tokens.push(ctx.previous());
+  }
+
+  const rv = new Info_line(ctx.abcContext.generateId(), tokens, undefined, expressions);
+  prnt_arr && prnt_arr.push(rv);
+  return rv;
 }
 
 export function prsLyricSection(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Lyric_section | null {

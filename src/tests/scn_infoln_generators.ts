@@ -60,8 +60,9 @@ export const genIdentifier = fc
       "brace",
       "brc"
     ),
-    // Random valid identifiers
+    // Random valid identifiers (excluding patterns that look like absolute pitches)
     fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9_]{2,15}$/)
+      .filter(id => !/^[A-Ga-g][#b]?[0-9]/.test(id)) // Exclude absolute pitch patterns
   )
   .map((id) => new Token(TT.IDENTIFIER, id, sharedContext.generateId()));
 
@@ -126,6 +127,27 @@ export const genRParen = fc.constantFrom(new Token(TT.RPAREN, ")", sharedContext
 export const genWhitespace = fc.stringMatching(/^[ \t]+$/).map((ws) => new Token(TT.WS, ws, sharedContext.generateId()));
 
 /**
+ * Generator for AbsolutePitch tokens - NOTE_LETTER + optional ACCIDENTAL + optional NUMBER
+ * Examples: G4, F#5, Bb3, C
+ * Used in tempo markings like Q: G4=120
+ */
+export const genAbsolutePitch = fc
+  .tuple(
+    // Note letter (A-G)
+    fc.constantFrom("A", "B", "C", "D", "E", "F", "G").map((note) => new Token(TT.NOTE_LETTER, note, sharedContext.generateId())),
+    // Optional accidental (# or b)
+    fc.option(fc.constantFrom("#", "b").map((acc) => new Token(TT.ACCIDENTAL, acc, sharedContext.generateId()))),
+    // Optional octave (0-9)
+    fc.option(fc.integer({ min: 0, max: 9 }).map((oct) => new Token(TT.NUMBER, oct.toString(), sharedContext.generateId())))
+  )
+  .map(([note, accidental, octave]) => {
+    const tokens = [note];
+    if (accidental) tokens.push(accidental);
+    if (octave) tokens.push(octave);
+    return tokens;
+  });
+
+/**
  * Generator for specific info line types for more targeted testing
  */
 
@@ -141,8 +163,8 @@ export const genKeyInfoLine2 = fc
           fc.oneof(
             // C is special literal in key context
             fc.constantFrom("C").map((root) => new Token(TT.SPECIAL_LITERAL, root, sharedContext.generateId())),
-            // Other note names are identifiers
-            fc.constantFrom("D", "E", "F", "G", "A", "B").map((root) => new Token(TT.IDENTIFIER, root, sharedContext.generateId()))
+            // Other note names are NOTE_LETTER tokens
+            fc.constantFrom("D", "E", "F", "G", "A", "B").map((root) => new Token(TT.NOTE_LETTER, root, sharedContext.generateId()))
           ),
           fc.option(fc.constantFrom("major", "minor", "maj", "min").map((mode) => new Token(TT.IDENTIFIER, mode, sharedContext.generateId())))
         )
@@ -210,6 +232,8 @@ export const genTempoInfoLine2 = fc
         fc.oneof(
           genStringLiteral,
           fc.tuple(genNumber, genSlash, genNumber, genEql, genNumber).map(([num, slash, denom, eq, bpm]) => [num, slash, denom, eq, bpm]),
+          // AbsolutePitch tempo markings like G4=120
+          fc.tuple(genAbsolutePitch, genEql, genNumber).map(([pitch, eq, bpm]) => [...pitch, eq, bpm]),
           genNumber // standalone BPM
         ),
         genWhitespace
@@ -291,9 +315,16 @@ export const genExprArray = fc.array(fc.oneof(genKVExpr, genBinaryExpr), { minLe
 export const genKeyExprArray = fc.array(
   fc.oneof(
     // Key signature parts
-    fc
-      .constantFrom("C", "D", "E", "F", "G", "A", "B", "none")
-      .map((val) => new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, val, sharedContext.generateId()))),
+    fc.oneof(
+      // C as special literal
+      fc.constant(new KV(sharedContext.generateId(), new Token(TT.SPECIAL_LITERAL, "C", sharedContext.generateId()))),
+      // Other note letters
+      fc
+        .constantFrom("D", "E", "F", "G", "A", "B")
+        .map((val) => new KV(sharedContext.generateId(), new Token(TT.NOTE_LETTER, val, sharedContext.generateId()))),
+      // none as identifier
+      fc.constant(new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, "none", sharedContext.generateId())))
+    ),
     fc
       .constantFrom("major", "minor", "dorian")
       .map((val) => new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, val, sharedContext.generateId()))),

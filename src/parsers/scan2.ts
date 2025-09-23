@@ -204,23 +204,10 @@ export enum TT {
   ANNOTATION,
   BARLINE, //|
   BCKTCK_SPC,
-  CLEF,
-  CLEF_NUM,
-  CLEF_OCTAVE,
   CHRD_LEFT_BRKT,
   CHRD_RIGHT_BRKT,
   DISCARD, // used only by generators
   EQL,
-  KEY_K,
-  KEY_V,
-  KEY_ROOT, // Key signature root note (A-G)
-  KEY_ACCIDENTAL, // Key signature accidental (#, b)
-  KEY_MODE, // Key signature mode (major, minor, dorian, etc.)
-  KEY_EXPLICIT_ACC, // Explicit accidentals in key signature (^c_b=f)
-  KEY_NONE, // Special "none" key signature
-  METER_NUMBER, // Meter number (4, 6, 8, etc.)
-  METER_C, // Common time (C)
-  METER_C_BAR, // Cut time (C|)
   SLASH, // Slash separator (/)
   PLUS, // Addition operator (+)
   LPAREN, // Left parenthesis (
@@ -228,12 +215,6 @@ export enum TT {
   IDENTIFIER, // Unquoted words (treble, major, etc.)
   NUMBER, // Integer or float numbers (1, 4, 120, 1.5)
   SPECIAL_LITERAL, // Special cases (C, C|)
-  METER_SEPARATOR, // Meter separator (/) - DEPRECATED, use SLASH
-  METER_PLUS, // Addition operator (+) - DEPRECATED, use PLUS
-  METER_LPAREN, // Left parenthesis ( - DEPRECATED, use LPAREN
-  METER_RPAREN, // Right parenthesis ) - DEPRECATED, use RPAREN
-  NOTE_LEN_NUM, // Note length numerator (1, 2, 3, etc.)
-  NOTE_LEN_DENOM, // Note length denominator (4, 8, 16, etc.)
   COMMENT,
   DECORATION,
   EOF,
@@ -283,9 +264,6 @@ export enum TT {
   USER_SY_INVOCATION,
   VOICE,
   VOICE_OVRLAY,
-  VX_K,
-  VX_V,
-  VX_ID,
   WS,
   Y_SPC,
   REPEAT_NUMBER, // For repeat numbers (1, 2, 3, etc.)
@@ -295,11 +273,6 @@ export enum TT {
   SY_HDR, // symbol line header
   SY_STAR, // symbol line star
   SY_TXT, // symbol line text
-  TEMPO_TEXT, // Quoted text like "Allegro", "Slowly"
-  TEMPO_NOTE_NUM, // Numerator of note value (1, 3, etc.)
-  TEMPO_NOTE_DENOM, // Denominator of note value (4, 8, etc.)
-  TEMPO_BPM, // The BPM number (120, 40, etc.)
-  TEMPO_NOTE_LETTER, // Note letter in tempo markings like C3=120
 }
 
 export class Token {

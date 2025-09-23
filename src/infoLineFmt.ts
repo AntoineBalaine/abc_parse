@@ -46,11 +46,12 @@ function genericFmt(expr: Info_line) {
   let val = "";
   for (let i = 0; i < value.length; i++) {
     let tok = value[i];
-    if (tok.type === TT.KEY_K || tok.type === TT.VX_K) {
-      let { idx, kv } = KVFmt(i, value);
-      i = idx;
-      val += kv;
-    } else if (tok.type === TT.WS) {
+    // if (tok.type === TT.KEY_K || tok.type === TT.VX_K) {
+    //   let { idx, kv } = KVFmt(i, value);
+    //   i = idx;
+    //   val += kv;
+    // } else
+    if (tok.type === TT.WS) {
       continue;
     } else {
       val += (i === 0 ? "" : " ") + value[i].lexeme;
@@ -77,10 +78,10 @@ function KVFmt(i: number, value: Array<Token>) {
       expect = ExpectState.VALUE;
       continue;
     }
-    if (expect === ExpectState.VALUE && (value[i].type === TT.KEY_V || value[i].type === TT.VX_V)) {
-      val += value[i].lexeme;
-      break;
-    }
+    // if (expect === ExpectState.VALUE && (value[i].type === TT.KEY_V || value[i].type === TT.VX_V)) {
+    //   val += value[i].lexeme;
+    //   break;
+    // }
     if (value[i].type === TT.WS) continue;
     else break;
   }
