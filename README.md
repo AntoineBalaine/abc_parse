@@ -53,3 +53,6 @@ TODO:
     <C-a> => ^a
     <M-a> => _a
 
+# want to add (to the standard):
+- `.//.` symbols to say «repeat two previous bars»
+- chord symbol line: `x: am | g | c | f/ e/g/ :|2`
