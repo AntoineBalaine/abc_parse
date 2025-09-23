@@ -27,6 +27,10 @@ export function parseInfoLine2(ctx: ParseCtx): Array<Expr | Token> {
     }
   }
 
+  while (ctx.match(TT.COMMENT)) {
+    expressions.push(ctx.previous());
+  }
+
   return expressions;
 }
 
