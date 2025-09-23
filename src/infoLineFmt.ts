@@ -1,9 +1,11 @@
-import { Info_line } from "./types/Expr2";
+import { Info_line, AbsolutePitch, KV, Binary, Grouping } from "./types/Expr2";
 import { KeySignature, Meter, MeterType } from "./types/abcjs-ast";
 import { rationalToString } from "./Visitors/fmt2/rational";
 import { Token, TT } from "./parsers/scan2";
+import { ABCContext } from "./parsers/Context";
+import { isToken } from "./helpers";
 
-export function InfoLineFmt(expr: Info_line): string {
+export function InfoLineFmt(expr: Info_line, ctx?: ABCContext): string {
   let rv: string;
   if (expr.parsed) {
     const info = expr.parsed;
@@ -21,11 +23,11 @@ export function InfoLineFmt(expr: Info_line): string {
         rv = "L:" + rationalToString(info.data) + trailingComment(expr);
         break;
       default:
-        rv = genericFmt(expr);
+        rv = genericFmt(expr, ctx);
         break;
     }
   } else {
-    rv = genericFmt(expr);
+    rv = genericFmt(expr, ctx);
   }
   return rv;
 }

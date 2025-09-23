@@ -2,9 +2,11 @@ import { exprIsInRange, getTokenRange, isNote, isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token } from "../parsers/scan2";
 import {
+  AbsolutePitch,
   Annotation,
   BarLine,
   Beam,
+  Binary,
   Chord,
   Comment,
   Decoration,
@@ -14,8 +16,10 @@ import {
   File_header,
   File_structure,
   Grace_group,
+  Grouping,
   Info_line,
   Inline_field,
+  KV,
   Lyric_line,
   Lyric_section,
   Macro_decl,
@@ -296,6 +300,30 @@ export class ExpressionCollector implements Visitor<void> {
   }
 
   visitUserSymbolInvocationExpr(expr: User_symbol_invocation): void {
+    if (this.isInRange(expr)) {
+      this.collected.push(expr);
+    }
+  }
+
+  visitKV(expr: KV): void {
+    if (this.isInRange(expr)) {
+      this.collected.push(expr);
+    }
+  }
+
+  visitBinary(expr: Binary): void {
+    if (this.isInRange(expr)) {
+      this.collected.push(expr);
+    }
+  }
+
+  visitGrouping(expr: Grouping): void {
+    if (this.isInRange(expr)) {
+      this.collected.push(expr);
+    }
+  }
+
+  visitAbsolutePitch(expr: AbsolutePitch): void {
     if (this.isInRange(expr)) {
       this.collected.push(expr);
     }

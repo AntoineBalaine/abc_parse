@@ -2,9 +2,11 @@ import { getTokenRange, isNote, isToken, reduceRanges } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token } from "../parsers/scan2";
 import {
+  AbsolutePitch,
   Annotation,
   BarLine,
   Beam,
+  Binary,
   Chord,
   Comment,
   Decoration,
@@ -13,8 +15,10 @@ import {
   File_header,
   File_structure,
   Grace_group,
+  Grouping,
   Info_line,
   Inline_field,
+  KV,
   Lyric_line,
   Lyric_section,
   Macro_decl,
@@ -261,5 +265,42 @@ export class RangeVisitor implements Visitor<Range> {
 
   visitUserSymbolInvocationExpr(expr: User_symbol_invocation): Range {
     return getTokenRange(expr.variable);
+  }
+
+  // New expression visitor methods for unified info line parsing
+  visitKV(expr: KV): Range {
+    const ranges = [getTokenRange(expr.value)];
+    if (expr.key) {
+      if (expr.key instanceof AbsolutePitch) {
+        ranges.push(expr.key.accept(this));
+      } else {
+        ranges.push(getTokenRange(expr.key));
+      }
+    }
+    if (expr.equals) {
+      ranges.push(getTokenRange(expr.equals));
+    }
+    return ranges.reduce(reduceRanges, <Range>{});
+  }
+
+  visitBinary(expr: Binary): Range {
+    const leftRange = expr.left instanceof Token ? getTokenRange(expr.left) : expr.left.accept(this);
+    const rightRange = expr.right instanceof Token ? getTokenRange(expr.right) : expr.right.accept(this);
+    return [leftRange, getTokenRange(expr.operator), rightRange].reduce(reduceRanges, <Range>{});
+  }
+
+  visitGrouping(expr: Grouping): Range {
+    return expr.expression.accept(this);
+  }
+
+  visitAbsolutePitch(expr: AbsolutePitch): Range {
+    const ranges = [getTokenRange(expr.noteLetter)];
+    if (expr.alteration) {
+      ranges.push(getTokenRange(expr.alteration));
+    }
+    if (expr.octave) {
+      ranges.push(getTokenRange(expr.octave));
+    }
+    return ranges.reduce(reduceRanges, <Range>{});
   }
 }

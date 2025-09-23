@@ -1,11 +1,12 @@
 import { isNote, isToken } from "../helpers";
-import { InfoLineFmt } from "../infoLineFmt";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import {
+  AbsolutePitch,
   Annotation,
   BarLine,
   Beam,
+  Binary,
   Chord,
   Comment,
   Decoration,
@@ -15,8 +16,10 @@ import {
   File_header,
   File_structure,
   Grace_group,
+  Grouping,
   Info_line,
   Inline_field,
+  KV,
   Lyric_line,
   Lyric_section,
   Macro_decl,
@@ -230,7 +233,31 @@ export class AbcFormatter2 implements Visitor<string> {
   }
 
   visitInfoLineExpr(expr: Info_line): string {
-    return InfoLineFmt(expr);
+    const { key } = expr;
+
+    // If we have value2 expressions, format them using the visitor pattern
+    if (expr.value2 && expr.value2.length > 0) {
+      const formattedExpressions = expr.value2.map((expression) => {
+        if (isToken(expression)) {
+          return expression.lexeme;
+        } else {
+          return expression.accept(this);
+        }
+      });
+      return `${key.lexeme}${formattedExpressions.join(" ")}`;
+    }
+
+    // Fallback to original token-based formatting for compatibility
+    let val = "";
+    for (let i = 0; i < expr.value.length; i++) {
+      let tok = expr.value[i];
+      if (tok.type === TT.WS) {
+        continue;
+      } else {
+        val += (i === 0 ? "" : " ") + expr.value[i].lexeme;
+      }
+    }
+    return `${key.lexeme}${val}`;
   }
 
   visitInlineFieldExpr(expr: Inline_field): string {
@@ -339,14 +366,14 @@ export class AbcFormatter2 implements Visitor<string> {
     let formatted = "";
     formatted += this.visitTuneHeaderExpr(expr.tune_header);
     if (expr.tune_body && expr.tune_body.sequence.length) {
-      formatted+="\n";
+      formatted += "\n";
       formatted += this.visitTuneBodyExpr(expr.tune_body);
     }
     return formatted;
   }
 
   visitTuneHeaderExpr(expr: Tune_header): string {
-    const info_lines = expr.info_lines.map(il=> il.accept(this)).join("\n");
+    const info_lines = expr.info_lines.map((il) => il.accept(this)).join("\n");
     return info_lines;
   }
 
@@ -381,7 +408,7 @@ export class AbcFormatter2 implements Visitor<string> {
 
   visitLyricLineExpr(expr: Lyric_line): string {
     const headerStr = expr.header.lexeme;
-    const contentsStr = expr.contents.map(token => token.lexeme).join("");
+    const contentsStr = expr.contents.map((token) => token.lexeme).join("");
     return headerStr + contentsStr;
   }
 
@@ -399,6 +426,47 @@ export class AbcFormatter2 implements Visitor<string> {
 
   visitUserSymbolInvocationExpr(expr: User_symbol_invocation): string {
     return expr.variable.lexeme;
+  }
+
+  // New expression visitor methods for unified info line parsing
+  visitKV(expr: KV): string {
+    if (expr.key && expr.equals) {
+      // Format as key=value (no spaces around =)
+      let keyStr: string;
+      if (expr.key instanceof AbsolutePitch) {
+        keyStr = this.visitAbsolutePitch(expr.key);
+      } else {
+        keyStr = expr.key.lexeme;
+      }
+      return keyStr + expr.equals.lexeme + expr.value.lexeme;
+    } else {
+      // Standalone value (no key)
+      return expr.value.lexeme;
+    }
+  }
+
+  visitBinary(expr: Binary): string {
+    // Format binary expressions without spaces around operators (4/4, 2+3)
+    const leftStr = expr.left instanceof Token ? expr.left.lexeme : expr.left.accept(this);
+    const rightStr = expr.right instanceof Token ? expr.right.lexeme : expr.right.accept(this);
+    return leftStr + expr.operator.lexeme + rightStr;
+  }
+
+  visitGrouping(expr: Grouping): string {
+    // Format as (expression)
+    return "(" + expr.expression.accept(this) + ")";
+  }
+
+  visitAbsolutePitch(expr: AbsolutePitch): string {
+    // Format as note[accidental][octave] - no spaces
+    let result = expr.noteLetter.lexeme;
+    if (expr.alteration) {
+      result += expr.alteration.lexeme;
+    }
+    if (expr.octave) {
+      result += expr.octave.lexeme;
+    }
+    return result;
   }
 }
 

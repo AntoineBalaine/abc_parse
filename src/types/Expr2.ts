@@ -42,6 +42,11 @@ export interface Visitor<R> {
   visitVoiceOverlayExpr(expr: Voice_overlay): R;
   visitTupletExpr(expr: Tuplet): R;
   visitErrorExpr(expr: ErrorExpr): R;
+  // New expression visitor methods for unified info line parsing
+  visitKV(expr: KV): R;
+  visitBinary(expr: Binary): R;
+  visitGrouping(expr: Grouping): R;
+  visitAbsolutePitch(expr: AbsolutePitch): R;
 }
 
 // Tagged union for parsed info line data
@@ -146,7 +151,7 @@ export class AbsolutePitch extends Expr {
     this.octave = octave;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return null as R;
+    return visitor.visitAbsolutePitch(this);
   }
 }
 
@@ -644,8 +649,7 @@ export class KV extends Expr {
   }
 
   accept<R>(visitor: Visitor<R>): R {
-    return null as R;
-    // return visitor.visitKVExpr(this);
+    return visitor.visitKV(this);
   }
 }
 
@@ -666,8 +670,7 @@ export class Binary extends Expr {
   }
 
   accept<R>(visitor: Visitor<R>): R {
-    return null as R;
-    // return visitor.visitBinaryExpr(this);
+    return visitor.visitBinary(this);
   }
 }
 
@@ -684,7 +687,6 @@ export class Grouping extends Expr {
   }
 
   accept<R>(visitor: Visitor<R>): R {
-    return null as R;
-    // return visitor.visitGroupingExpr(this);
+    return visitor.visitGrouping(this);
   }
 }

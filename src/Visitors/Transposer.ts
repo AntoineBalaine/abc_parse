@@ -2,9 +2,11 @@ import { exprIsInRange, getTokenRange, isBeam, isChord, isGraceGroup, isNote, is
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import {
+  AbsolutePitch,
   Annotation,
   BarLine,
   Beam,
+  Binary,
   Chord,
   Comment,
   Decoration,
@@ -14,8 +16,10 @@ import {
   File_header,
   File_structure,
   Grace_group,
+  Grouping,
   Info_line,
   Inline_field,
+  KV,
   Lyric_line,
   Lyric_section,
   Macro_decl,
@@ -285,6 +289,22 @@ export class Transposer implements Visitor<Expr | Token> {
   }
 
   visitUserSymbolInvocationExpr(expr: User_symbol_invocation): Expr | Token {
+    return expr;
+  }
+
+  visitKV(expr: KV): Expr | Token {
+    return expr;
+  }
+
+  visitBinary(expr: Binary): Expr | Token {
+    return expr;
+  }
+
+  visitGrouping(expr: Grouping): Expr | Token {
+    return expr;
+  }
+
+  visitAbsolutePitch(expr: AbsolutePitch): Expr | Token {
     return expr;
   }
 }

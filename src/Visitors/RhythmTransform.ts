@@ -13,10 +13,12 @@ import {
 import { ABCContext } from "../parsers/Context";
 import { Token, TT as TokenType } from "../parsers/scan2";
 import {
+  AbsolutePitch,
   Annotation,
   BarLine,
   Beam,
   Beam_contents,
+  Binary,
   Chord,
   Comment,
   Decoration,
@@ -26,8 +28,10 @@ import {
   File_header,
   File_structure,
   Grace_group,
+  Grouping,
   Info_line,
   Inline_field,
+  KV,
   Lyric_line,
   Lyric_section,
   Macro_decl,
@@ -411,6 +415,22 @@ export class RhythmVisitor implements Visitor<Expr> {
   }
 
   visitUserSymbolInvocationExpr(expr: User_symbol_invocation): Expr {
+    return expr;
+  }
+
+  visitKV(expr: KV): Expr {
+    return expr;
+  }
+
+  visitBinary(expr: Binary): Expr {
+    return expr;
+  }
+
+  visitGrouping(expr: Grouping): Expr {
+    return expr;
+  }
+
+  visitAbsolutePitch(expr: AbsolutePitch): Expr {
     return expr;
   }
 
