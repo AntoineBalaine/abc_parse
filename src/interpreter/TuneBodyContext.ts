@@ -114,7 +114,6 @@ export function createTuneBodyContext(fileHeader: ROHeadrCtx, tuneHeader: ROHead
       staffNum: 0,
       voiceNum: 0,
       lineNum: 0,
-      visualTranspose: tuneHeader.visualTranspose || fileHeader.visualTranspose,
     },
     measureNumber: 1,
     expansionDepth: 0,
@@ -137,8 +136,8 @@ function mergeDefaults(fileHeader: ROHeadrCtx, tuneHeader: ROHeadrCtx): Resolved
     },
 
     // Combine macros and symbols (tune level can add to file level)
-    macros: new Map([...fileHeader.macros, ...tuneHeader.macros]),
-    userSymbols: new Map([...fileHeader.userSymbols, ...tuneHeader.userSymbols]),
+    macros: new Map([...(fileHeader.macros?.entries() || []), ...(tuneHeader.macros?.entries() || [])]),
+    userSymbols: new Map([...(fileHeader.userSymbols?.entries() || []), ...(tuneHeader.userSymbols?.entries() || [])]),
   };
 }
 
