@@ -16,7 +16,7 @@ import {
 } from "./scn_infoln_generators";
 import { expect } from "chai";
 
-describe.only("parseDirective - Directive Parser", () => {
+describe("parseDirective - Directive Parser", () => {
   let context: ABCContext;
 
   beforeEach(() => {
