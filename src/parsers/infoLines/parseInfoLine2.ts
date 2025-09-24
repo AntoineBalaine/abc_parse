@@ -40,22 +40,22 @@ export function parseInfoLine2(ctx: ParseCtx): Array<Expr | Token> {
 function parseExpression(ctx: ParseCtx): Expr | null {
   // Check for KV expression first (identifier followed by =)
   if (ctx.check(TT.IDENTIFIER) && followedBy(ctx, [TT.EQL], [TT.WS])) {
-    return parseKVExpression(ctx);
+    return parseKV(ctx);
   }
 
   // Check for absolute pitch KV expression (NOTE_LETTER + optional ACCIDENTAL + optional NUMBER followed by =)
-  if (ctx.check(TT.NOTE_LETTER) && isAbsolutePitchFollowedByEquals(ctx)) {
-    return parseAbsolutePitchKVExpression(ctx);
+  if (ctx.check(TT.NOTE_LETTER) && isAbsPitchAssignment(ctx)) {
+    return prsAbsPitch(ctx);
   }
 
   // Otherwise try to parse as binary expression or standalone value
-  return parseBinaryExpression(ctx);
+  return prsBinaryExpr(ctx);
 }
 
 /**
  * Parse key-value expressions: key=value
  */
-function parseKVExpression(ctx: ParseCtx): KV | null {
+export function parseKV(ctx: ParseCtx): KV | null {
   const key = ctx.advance();
   const equals = ctx.advance();
 
@@ -71,7 +71,7 @@ function parseKVExpression(ctx: ParseCtx): KV | null {
 /**
  * Parse binary expressions: handles both + and / operators with proper precedence
  */
-function parseBinaryExpression(ctx: ParseCtx): Expr | null {
+export function prsBinaryExpr(ctx: ParseCtx): Expr | null {
   let left = parsePrimary(ctx);
   if (!left) return null;
 
@@ -94,7 +94,7 @@ function parseBinaryExpression(ctx: ParseCtx): Expr | null {
 function parsePrimary(ctx: ParseCtx): Expr | Token | null {
   // Handle parenthesized expressions
   if (ctx.match(TT.LPAREN)) {
-    const expr = parseBinaryExpression(ctx);
+    const expr = prsBinaryExpr(ctx);
     if (!expr) {
       ctx.report("Expected expression after '('");
       return null;
@@ -169,7 +169,7 @@ function parseAbsolutePitch(ctx: ParseCtx): AbsolutePitch | null {
 /**
  * Check if current position has an absolute pitch pattern followed by =
  */
-function isAbsolutePitchFollowedByEquals(ctx: ParseCtx): boolean {
+function isAbsPitchAssignment(ctx: ParseCtx): boolean {
   let offset = 1; // Start after NOTE_LETTER
 
   // Skip optional accidental
@@ -194,7 +194,7 @@ function isAbsolutePitchFollowedByEquals(ctx: ParseCtx): boolean {
 /**
  * Parse absolute pitch key-value expressions: G4=120
  */
-function parseAbsolutePitchKVExpression(ctx: ParseCtx): KV | null {
+function prsAbsPitch(ctx: ParseCtx): KV | null {
   const absolutePitch = parseAbsolutePitch(ctx);
   if (!absolutePitch) {
     return null;

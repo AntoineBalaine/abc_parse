@@ -1,6 +1,6 @@
 import { KeySignature, Meter, ClefProperties, TempoProperties, MetaText, KeyRoot, KeyAccidental, Mode, ClefType } from "../types/abcjs-ast";
 import { VoiceProperties } from "./InfoLineParser";
-import { Rational, createRational } from "../Visitors/fmt2/rational";
+import { IRational, createRational } from "../Visitors/fmt2/rational";
 
 export interface VoiceContext {
   id: string;
@@ -17,7 +17,7 @@ export interface InterpreterContext {
   // Global musical context
   defaultKey: KeySignature;
   defaultMeter?: Meter;
-  defaultNoteLength: Rational;
+  defaultNoteLength: IRational;
   defaultTempo?: TempoProperties;
 
   // Voice and staff management

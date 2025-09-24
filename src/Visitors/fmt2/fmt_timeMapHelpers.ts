@@ -1,10 +1,10 @@
 import { isChord, isNote } from "../../helpers";
 import { Token, TT } from "../../parsers/scan2";
 import { BarLine, Beam, Expr, MultiMeasureRest, System } from "../../types/Expr2";
-import { Rational } from "./rational";
+import { IRational } from "./rational";
 
 export type NodeID = number;
-export type TimeStamp = Rational;
+export type TimeStamp = IRational;
 
 export interface VoiceSplit {
   type: "formatted" | "noformat" | "symbol_line";

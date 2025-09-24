@@ -4,7 +4,7 @@ import { Token, TT } from "../parsers/scan2";
 import { Beam, Chord, MultiMeasureRest, Note, Pitch, Rest, Rhythm, System } from "../types/Expr2";
 import { calculateDuration, DurationContext, isTimeEvent, processBar } from "../Visitors/fmt2/fmt_timeMap";
 import { getNodeId } from "../Visitors/fmt2/fmt_timeMapHelpers";
-import { addRational, createRational, isInfiniteRational, Rational, rationalToNumber, rationalToString } from "../Visitors/fmt2/rational";
+import { addRational, createRational, isInfiniteRational, IRational, rationalToNumber, rationalToString } from "../Visitors/fmt2/rational";
 import * as Generators from "./prs_pbt.generators.spec";
 
 describe("processBar function", () => {
@@ -15,8 +15,8 @@ describe("processBar function", () => {
   });
 
   // Helper function to calculate expected durations for a sequence of time events
-  function calculateExpectedDurations(timeEvents: Array<Note | Beam | MultiMeasureRest | Chord | Rest>): Rational[] {
-    const durations: Rational[] = [];
+  function calculateExpectedDurations(timeEvents: Array<Note | Beam | MultiMeasureRest | Chord | Rest>): IRational[] {
+    const durations: IRational[] = [];
     const context: DurationContext = {};
 
     for (const event of timeEvents) {
@@ -46,7 +46,7 @@ describe("processBar function", () => {
   function logDebugInfo(
     message: string,
     timeEvents?: Array<Note | Beam | MultiMeasureRest | Chord | Rest | Token>,
-    expectedDurations?: Rational[],
+    expectedDurations?: IRational[],
     timeMap?: Map<string, number>
   ): void {
     console.log("===================================");
@@ -73,7 +73,7 @@ describe("processBar function", () => {
   function verifyTimeMap(
     timeMap: Map<string, number>,
     timeEvents: Array<Note | Beam | MultiMeasureRest | Chord | Rest>,
-    expectedDurations: Rational[]
+    expectedDurations: IRational[]
   ): boolean {
     // Check that the time map has the correct number of entries
     if (timeMap.size !== timeEvents.length) {

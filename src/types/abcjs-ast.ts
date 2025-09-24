@@ -3,7 +3,7 @@
  * Based on analysis of ABCJS codebase
  */
 
-import { Rational } from "../Visitors/fmt2/rational";
+import { IRational } from "../Visitors/fmt2/rational";
 
 // ============================================================================
 // Basic Types
@@ -327,8 +327,8 @@ export interface KeyInfo {
 
 export interface Meter {
   type: MeterType;
-  value?: Rational[];
-  beat_division?: Rational[];
+  value?: IRational[];
+  beat_division?: IRational[];
 }
 
 export interface TempoProperties {
@@ -431,7 +431,7 @@ export interface BaseElement extends CharRange {
 
 export interface NoteElement extends BaseElement {
   el_type: ElementType.Note;
-  duration: Rational;
+  duration: IRational;
   pitches?: Pitch[];
   rest?: RestProperties;
   gracenotes?: GraceNote[];
@@ -483,8 +483,8 @@ export interface KeyElement extends BaseElement {
 export interface MeterElement extends BaseElement {
   el_type: ElementType.Meter;
   type: MeterType;
-  value?: Rational[];
-  beat_division?: Rational[];
+  value?: IRational[];
+  beat_division?: IRational[];
 }
 
 export interface TempoElement extends BaseElement {
@@ -655,7 +655,7 @@ export interface Tune {
   millisecondsPerMeasure(bpmOverride?: number): number;
   getBeatsPerMeasure(): number;
   getMeter(): Meter;
-  getMeterFraction(): Rational;
+  getMeterFraction(): IRational;
   getKeySignature(): KeySignature;
   getElementFromChar(char: number): VoiceElement | null;
   getBpm(tempo?: TempoProperties): number;

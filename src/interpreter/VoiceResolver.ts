@@ -1,17 +1,17 @@
 import { Staff, VoiceElement, MusicLine } from "../types/abcjs-ast";
 import { InterpreterContext, VoiceContext } from "./InterpreterContext";
 import { System } from "../types/Expr2";
-import { Rational, createRational, addRational, compareRational } from "../Visitors/fmt2/rational";
+import { IRational, createRational, addRational, compareRational } from "../Visitors/fmt2/rational";
 
 export interface VoiceTiming {
   voiceId: string;
-  currentTime: Rational; // Current time position in the voice
+  currentTime: IRational; // Current time position in the voice
   elements: VoiceElement[];
 }
 
 export interface ResolvedSystem {
   staffs: Staff[];
-  maxTime: Rational; // Total duration of the longest voice
+  maxTime: IRational; // Total duration of the longest voice
 }
 
 /**
@@ -136,7 +136,7 @@ function convertToVoiceElement(element: any): VoiceElement | null {
 /**
  * Calculate total time for a voice using Rational arithmetic
  */
-function calculateVoiceTime(elements: any[]): Rational {
+function calculateVoiceTime(elements: any[]): IRational {
   let totalTime = createRational(0);
 
   for (const element of elements) {
@@ -152,11 +152,11 @@ function calculateVoiceTime(elements: any[]): Rational {
 /**
  * Get the rational duration of an element
  */
-function getElementDuration(element: any): Rational | null {
+function getElementDuration(element: any): IRational | null {
   if (element && element.duration) {
     // If duration is already a Rational, return it
     if (typeof element.duration === "object" && "numerator" in element.duration) {
-      return element.duration as Rational;
+      return element.duration as IRational;
     }
     // If duration is a number, convert to Rational
     if (typeof element.duration === "number") {
@@ -230,8 +230,8 @@ export function resolveVoiceOverlays(elements: VoiceElement[]): VoiceElement[][]
 export function calculateTimingPositions(
   ctx: InterpreterContext,
   elements: VoiceElement[]
-): Array<{ element: VoiceElement; startTime: Rational; endTime: Rational }> {
-  const timedElements: Array<{ element: VoiceElement; startTime: Rational; endTime: Rational }> = [];
+): Array<{ element: VoiceElement; startTime: IRational; endTime: IRational }> {
+  const timedElements: Array<{ element: VoiceElement; startTime: IRational; endTime: IRational }> = [];
   let currentTime = createRational(0);
 
   for (const element of elements) {

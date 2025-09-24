@@ -14,7 +14,7 @@ import {
   genStylesheetDirective,
 } from "./scn_infoln_generators";
 
-describe.only("Directive Scanner Tests", () => {
+describe("Directive Scanner Tests", () => {
   function createCtx(source: string): Ctx {
     return new Ctx(source, new ABCContext(new AbcErrorReporter()));
   }

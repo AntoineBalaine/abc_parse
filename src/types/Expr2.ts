@@ -1,7 +1,7 @@
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import { KeySignature, Meter, TempoProperties, ClefProperties, KeyInfo } from "./abcjs-ast";
-import { Rational } from "../Visitors/fmt2/rational";
+import { IRational } from "../Visitors/fmt2/rational";
 
 /**
  * Visitor is the interface that enables walking the parser's syntax tree.
@@ -58,7 +58,7 @@ export type InfoLineUnion =
   | { type: "title"; data: string }
   | { type: "composer"; data: string }
   | { type: "origin"; data: string }
-  | { type: "note_length"; data: Rational }
+  | { type: "note_length"; data: IRational }
   | { type: "clef"; data: ClefProperties }
   | { type: "directive"; data: { directive: string; args?: string } };
 
@@ -79,7 +79,7 @@ export function isTempoInfo(info: InfoLineUnion): info is { type: "tempo"; data:
   return info.type === "tempo";
 }
 
-export function isNoteLengthInfo(info: InfoLineUnion): info is { type: "note_length"; data: Rational } {
+export function isNoteLengthInfo(info: InfoLineUnion): info is { type: "note_length"; data: IRational } {
   return info.type === "note_length";
 }
 
@@ -243,14 +243,51 @@ export class Tune_header extends Expr {
 
 export class Directive extends Expr {
   token: Token;
-  constructor(id: number, token: Token) {
+  key?: Token;
+  values?: Array<Token | Rational | Pitch | KV | Measurement | Annotation>;
+
+  constructor(id: number, token: Token, key?: Token, values?: Array<Token | Rational | Pitch | KV | Measurement | Annotation>) {
     super(id);
     this.token = token;
+    this.key = key;
+    this.values = values;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitDirectiveExpr(this);
   }
 }
+export class Measurement extends Expr {
+  value: Token; // number token
+  scale: Token; // in, cm, etc.
+  // methods & constructor here
+
+  constructor(id: number, value: Token, scale: Token) {
+    super(id);
+    this.value = value;
+    this.scale = scale;
+  }
+
+  accept<R>(visitor: Visitor<R>): R {
+    return null as R;
+  }
+}
+
+export class Rational extends Expr {
+  numerator: Token;
+  separator: Token;
+  denominator: Token;
+
+  constructor(id: number, numerator: Token, separator: Token, denominator: Token) {
+    super(id);
+    this.numerator = numerator;
+    this.separator = separator;
+    this.denominator = denominator;
+  }
+  accept<R>(visitor: Visitor<R>): R {
+    return null as R;
+  }
+}
+
 export class Comment extends Expr {
   token: Token;
   constructor(id: number, token: Token) {

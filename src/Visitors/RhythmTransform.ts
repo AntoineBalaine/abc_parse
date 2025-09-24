@@ -56,7 +56,7 @@ import {
   YSPACER,
 } from "../types/Expr2";
 import { Range } from "../types/types";
-import { createRational, divideRational, multiplyRational, Rational } from "./fmt2/rational";
+import { createRational, divideRational, multiplyRational, IRational } from "./fmt2/rational";
 import { AbcFormatter2 as AbcFormatter } from "./Formatter2";
 import { ExpressionCollector } from "./RangeCollector";
 import { RangeVisitor } from "./RangeVisitor";
@@ -437,7 +437,7 @@ export class RhythmVisitor implements Visitor<Expr> {
   /**
    * Convert a rhythm expression to a rational number
    */
-  private rhythmToRational(expr: Rhythm): Rational {
+  private rhythmToRational(expr: Rhythm): IRational {
     let numerator = 1;
     let denominator = 1;
 
@@ -465,7 +465,7 @@ export class RhythmVisitor implements Visitor<Expr> {
   /**
    * Convert a rational number back to a rhythm expression
    */
-  private rationalToRhythm(rational: Rational, expr: Rhythm): Rhythm {
+  private rationalToRhythm(rational: IRational, expr: Rhythm): Rhythm {
     // Simplify the rational number
     const { numerator, denominator } = rational;
 

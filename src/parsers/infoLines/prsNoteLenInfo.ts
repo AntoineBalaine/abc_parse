@@ -1,7 +1,7 @@
 import { ParseCtx } from "../parse2";
 import { InfoLineUnion, Expr } from "../../types/Expr2";
 import { Token, TT } from "../scan2";
-import { Rational } from "../../Visitors/fmt2/rational";
+import { IRational } from "../../Visitors/fmt2/rational";
 
 /**
  *  Parse a Note Length (L:) info line expression
@@ -32,7 +32,7 @@ export function prsNoteLenInfo(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): I
   };
 }
 
-function parseNoteLengthData(tokens: Token[]): Rational {
+function parseNoteLengthData(tokens: Token[]): IRational {
   let numerator = 1; // Default numerator
   let denominator = 1; // Default denominator
 

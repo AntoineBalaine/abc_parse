@@ -2,7 +2,7 @@ import { ParseCtx } from "../parse2";
 import { InfoLineUnion, Expr } from "../../types/Expr2";
 import { Token, TT } from "../scan2";
 import { Meter, MeterType } from "../../types/abcjs-ast";
-import { Rational, createRational } from "../../Visitors/fmt2/rational";
+import { IRational, createRational } from "../../Visitors/fmt2/rational";
 
 /**
  *  Parse a Meter (M:) info line expression
@@ -70,8 +70,8 @@ function parseMeterData(tokens: Token[]): Meter {
 }
 
 // TODO: rewrite this awful thing.
-function parseMeterExpression(tokens: Token[]): Rational[] {
-  const fractions: Rational[] = [];
+function parseMeterExpression(tokens: Token[]): IRational[] {
+  const fractions: IRational[] = [];
   let i = 0;
 
   while (i < tokens.length) {

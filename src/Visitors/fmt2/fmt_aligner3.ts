@@ -4,7 +4,7 @@ import { Expr, Rest } from "../../types/Expr2";
 import { AbcFormatter2 } from "../Formatter2";
 import { calculateDuration, DurationContext, isTimeEvent } from "./fmt_timeMap";
 import { getNodeId, isBarLine, isBeam, Location, VoiceSplit } from "./fmt_timeMapHelpers";
-import { addRational, equalRational, greaterRational, isInfiniteRational, isRational, Rational, rationalToString } from "./rational";
+import { addRational, equalRational, greaterRational, isInfiniteRational, isRational, IRational, rationalToString } from "./rational";
 
 class SymbolLnCtx {
   nodes: Array<Expr | Token>;
@@ -25,7 +25,7 @@ class VxCtx {
   nodes: Array<Expr | Token>;
   bar: number = 0;
   pos: number = 0;
-  time: Rational = {
+  time: IRational = {
     numerator: 0,
     denominator: 1, // Changed from 0 to 1 to avoid division by zero
   };
@@ -37,11 +37,11 @@ class VxCtx {
   }
 }
 type BarNumber = number;
-type AlignPt = [Rational | BarNumber, Array<Location>];
+type AlignPt = [IRational | BarNumber, Array<Location>];
 class GCtx {
   list: Array<AlignPt> = [[0, []]];
   barIndexes: Array<number> = [0];
-  push(pt: [Rational | BarNumber, Location], vxCtx: VxCtx | SymbolLnCtx) {
+  push(pt: [IRational | BarNumber, Location], vxCtx: VxCtx | SymbolLnCtx) {
     const key = pt[0];
     const value = pt[1];
     if (typeof key === "number") {
@@ -52,7 +52,7 @@ class GCtx {
     }
   }
 
-  private pushTimeStamp(vxCtx: VxCtx | SymbolLnCtx, key: Rational, value: Location) {
+  private pushTimeStamp(vxCtx: VxCtx | SymbolLnCtx, key: IRational, value: Location) {
     // bar exists?
     if (vxCtx.bar >= this.barIndexes.length) {
       throw Error(`Bar number ${vxCtx.bar} not found in barIndexes (length: ${this.barIndexes.length})`);
@@ -117,7 +117,7 @@ class GCtx {
         result += `\n=== BAR ${key} ===\n`;
         result += `Start nodes: ${locations.map((loc) => `Voice ${loc.voiceIdx}: Node ${loc.nodeID}`).join(", ")}\n`;
       } else {
-        result += `Time ${rationalToString(key as Rational)}: `;
+        result += `Time ${rationalToString(key as IRational)}: `;
         result += locations.map((loc) => `Voice ${loc.voiceIdx}: Node ${loc.nodeID}`).join(", ");
         result += "\n";
       }
@@ -144,14 +144,14 @@ class GCtx {
       const startIdx = barBoundaries[i];
       const endIdx = i < barBoundaries.length - 1 ? barBoundaries[i + 1] : this.list.length;
 
-      let prevTime: Rational | null = null;
+      let prevTime: IRational | null = null;
 
       // Check time points in this bar
       for (let j = startIdx + 1; j < endIdx; j++) {
         const [key, _] = this.list[j];
         if (typeof key !== "number") {
           // It's a time point
-          const time = key as Rational;
+          const time = key as IRational;
 
           if (prevTime !== null && !greaterRational(time, prevTime)) {
             console.error(`Time point ${rationalToString(time)} is not greater than previous time point ${rationalToString(prevTime)}`);

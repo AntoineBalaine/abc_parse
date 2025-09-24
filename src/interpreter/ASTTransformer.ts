@@ -59,7 +59,7 @@ import {
   nextMeasure,
 } from "./InterpreterContext";
 import { parseKey, parseMeter, parseNoteLength, parseVoice, parseTempo, parseTitle, parseComposer, parseOrigin, parseGeneric } from "./InfoLineParser";
-import { createRational, Rational } from "../Visitors/fmt2/rational";
+import { createRational, IRational } from "../Visitors/fmt2/rational";
 
 export class ASTTransformer implements Visitor<any> {
   ctx: ABCContext;
@@ -508,7 +508,7 @@ function processInlineInfoLine(infoLine: Info_line, ctx: InterpreterContext): vo
 }
 
 // Helper methods
-function calculateNoteDuration(rhythm: Rhythm | undefined, ctx: InterpreterContext): Rational {
+function calculateNoteDuration(rhythm: Rhythm | undefined, ctx: InterpreterContext): IRational {
   if (!rhythm) {
     // Use default note length
     return ctx.defaultNoteLength;

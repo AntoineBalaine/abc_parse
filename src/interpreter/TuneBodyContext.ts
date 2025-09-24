@@ -16,7 +16,7 @@ import {
 } from "../types/abcjs-ast";
 import { HeaderCtx, ROHeadrCtx } from "./HeaderContext";
 import { VoiceProperties } from "./InfoLineParser";
-import { Rational, createRational } from "../Visitors/fmt2/rational";
+import { IRational, createRational } from "../Visitors/fmt2/rational";
 
 // Constants for cascading defaults
 const DEFAULT_VOICE_ID = "default";
@@ -43,7 +43,7 @@ interface ResolvedDefaults {
   // Merged from tuneHeader -> fileHeader -> constants
   defaultKey: KeySignature;
   defaultMeter?: Meter;
-  defaultNoteLength: Rational;
+  defaultNoteLength: IRational;
   defaultTempo?: TempoProperties;
   defaultClef: ClefProperties;
   defaultVoiceProperties: VoiceProperties;

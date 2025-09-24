@@ -1,6 +1,6 @@
 import { Info_line } from "../types/Expr2";
 import { Token } from "../parsers/scan2";
-import { Rational, createRational } from "../Visitors/fmt2/rational";
+import { IRational, createRational } from "../Visitors/fmt2/rational";
 import {
   KeySignature,
   Meter,
@@ -140,7 +140,7 @@ export function parseMeter(infoLine: Info_line): Meter {
  * Format: L:1/denominator
  * Examples: L:1/8, L:1/4, L:1/16
  */
-export function parseNoteLength(infoLine: Info_line): Rational {
+export function parseNoteLength(infoLine: Info_line): IRational {
   if (infoLine.key.lexeme !== "L") {
     throw new Error(`Expected L: info line, got ${infoLine.key.lexeme}:`);
   }
@@ -558,8 +558,8 @@ function parseClef(clefStr: string): ClefProperties {
   };
 }
 
-function parseComplexMeter(meterStr: string): Rational[] {
-  const fractions: Rational[] = [];
+function parseComplexMeter(meterStr: string): IRational[] {
+  const fractions: IRational[] = [];
 
   // Split by + and parse each fraction
   const parts = meterStr.split("+");

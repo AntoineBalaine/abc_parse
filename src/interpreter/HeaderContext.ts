@@ -1,13 +1,13 @@
 import { KeySignature, Meter, ClefProperties, TempoProperties } from "../types/abcjs-ast";
 import { VoiceProperties, parseKey, parseMeter, parseNoteLength, parseTempo, parseTitle, parseComposer, parseOrigin } from "./InfoLineParser";
 import { Directive, Info_line, Tune_header } from "../types/Expr2";
-import { Rational } from "../Visitors/fmt2/rational";
+import { IRational } from "../Visitors/fmt2/rational";
 
 export interface HeaderCtx {
   // Musical defaults
   defaultKey: KeySignature;
   defaultMeter: Meter;
-  defaultNoteLength: Rational;
+  defaultNoteLength: IRational;
   defaultTempo: TempoProperties;
   defaultClef: ClefProperties;
   defaultVoiceProperties: VoiceProperties;

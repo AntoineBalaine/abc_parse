@@ -1,21 +1,21 @@
-export interface Rational {
+export interface IRational {
   numerator: number;
   denominator: number;
 }
 
-export function isRational(e: unknown): e is Rational {
+export function isRational(e: unknown): e is IRational {
   return (
     typeof e === "object" &&
     e !== null &&
     "numerator" in e &&
     "denominator" in e &&
-    (e as Rational).numerator !== undefined &&
-    (e as Rational).denominator !== undefined
+    (e as IRational).numerator !== undefined &&
+    (e as IRational).denominator !== undefined
   );
 }
 
 // Helper functions for rational number operations
-export function createRational(numerator: number, denominator: number = 1): Rational {
+export function createRational(numerator: number, denominator: number = 1): IRational {
   if (denominator === 0 && numerator === 0) {
     return { numerator: 0, denominator: 1 }; // Convert 0/0 to 0/1
   }
@@ -46,7 +46,7 @@ export function findGCD(a: number, b: number): number {
 }
 
 // Basic arithmetic operations
-export function addRational(a: Rational, b: Rational): Rational {
+export function addRational(a: IRational, b: IRational): IRational {
   // Handle infinity cases
   if (a.denominator === 0 || b.denominator === 0) {
     return createRational(1, 0); // Infinity
@@ -55,15 +55,15 @@ export function addRational(a: Rational, b: Rational): Rational {
   return createRational(a.numerator * b.denominator + b.numerator * a.denominator, a.denominator * b.denominator);
 }
 
-export function subtractRational(a: Rational, b: Rational): Rational {
+export function subtractRational(a: IRational, b: IRational): IRational {
   return addRational(a, createRational(-b.numerator, b.denominator));
 }
 
-export function multiplyRational(a: Rational, b: Rational): Rational {
+export function multiplyRational(a: IRational, b: IRational): IRational {
   return createRational(a.numerator * b.numerator, a.denominator * b.denominator);
 }
 
-export function divideRational(a: Rational, b: Rational): Rational {
+export function divideRational(a: IRational, b: IRational): IRational {
   // Division by zero results in infinity with appropriate sign
   if (b.numerator === 0) {
     return createRational(a.numerator >= 0 ? 1 : -1, 0);
@@ -73,7 +73,7 @@ export function divideRational(a: Rational, b: Rational): Rational {
 }
 
 // Convert to number (for compatibility with existing code)
-export function rationalToNumber(r: Rational): number {
+export function rationalToNumber(r: IRational): number {
   if (r.denominator === 0) {
     return r.numerator > 0 ? Infinity : -Infinity;
   }
@@ -81,7 +81,7 @@ export function rationalToNumber(r: Rational): number {
 }
 
 // Convert to string representation
-export function rationalToString(r: Rational): string {
+export function rationalToString(r: IRational): string {
   if (r.denominator === 0) {
     return r.numerator >= 0 ? "Infinity" : "-Infinity";
   }
@@ -89,7 +89,7 @@ export function rationalToString(r: Rational): string {
 }
 
 // Compare two rationals
-export function compareRational(a: Rational, b: Rational): number {
+export function compareRational(a: IRational, b: IRational): number {
   // Handle infinity cases
   if (a.denominator === 0 && b.denominator === 0) {
     return Math.sign(a.numerator) - Math.sign(b.numerator); // Compare signs of infinity
@@ -103,21 +103,21 @@ export function compareRational(a: Rational, b: Rational): number {
 }
 
 // Check if a rational represents infinity
-export function isInfiniteRational(r: Rational): boolean {
+export function isInfiniteRational(r: IRational): boolean {
   return r.denominator === 0;
 }
 
 // Check if two rationals are equal
-export function equalRational(a: Rational, b: Rational): boolean {
+export function equalRational(a: IRational, b: IRational): boolean {
   return compareRational(a, b) === 0;
 }
 
-export function greaterRational(a: Rational, b: Rational): boolean {
+export function greaterRational(a: IRational, b: IRational): boolean {
   return compareRational(a, b) > 0;
 }
 
 // Create a rational from a floating-point number (approximate)
-export function rationalFromNumber(num: number, maxDenominator: number = 10000): Rational {
+export function rationalFromNumber(num: number, maxDenominator: number = 10000): IRational {
   if (!isFinite(num)) {
     return createRational(num > 0 ? 1 : -1, 0); // Handle infinity
   }

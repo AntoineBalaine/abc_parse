@@ -2,7 +2,7 @@ import { isChord, isNote } from "../../helpers";
 import { Token } from "../../parsers/scan2";
 import { Beam, Chord, Expr, MultiMeasureRest, Note, Rest, Rhythm, System, Tuplet } from "../../types/Expr2";
 import { BarAlignment, BarTimeMap, Location, NodeID, VoiceSplit, getNodeId, isBarLine, isBeam, isMultiMeasureRest } from "./fmt_timeMapHelpers";
-import { Rational, addRational, createRational, divideRational, isInfiniteRational, multiplyRational, rationalToString } from "./rational";
+import { IRational, addRational, createRational, divideRational, isInfiniteRational, multiplyRational, rationalToString } from "./rational";
 
 export function mapTimePoints(voiceSplits: VoiceSplit[]): BarAlignment[] {
   // Get formatted voices and their indices
@@ -90,7 +90,7 @@ function isTuplet(element: Expr | Token): element is Tuplet {
 // Helper to process a bar
 export function processBar(bar: System, startNodeId: NodeID): BarTimeMap {
   const timeMap = new Map<string, NodeID>();
-  let currentTime: Rational = createRational(0, 1); // Start at 0/1
+  let currentTime: IRational = createRational(0, 1); // Start at 0/1
   const context: DurationContext = {};
 
   for (let i = 0; i < bar.length; i++) {
@@ -181,7 +181,7 @@ function updateBrokenRhythmContext(element: any, context: DurationContext): void
   }
 }
 
-export function calculateDuration(node: Note | Beam | MultiMeasureRest | Chord | Rest, context: DurationContext): Rational {
+export function calculateDuration(node: Note | Beam | MultiMeasureRest | Chord | Rest, context: DurationContext): IRational {
   if (isMultiMeasureRest(node)) {
     // Return "infinity" as a rational
     return createRational(1, 0); // Represents infinity
@@ -205,7 +205,7 @@ export function calculateDuration(node: Note | Beam | MultiMeasureRest | Chord |
     return total;
   }
 
-  let result: Rational;
+  let result: IRational;
 
   if (isChord(node)) {
     result = calculateBaseDuration(node.rhythm, context);
@@ -231,7 +231,7 @@ export function calculateDuration(node: Note | Beam | MultiMeasureRest | Chord |
   return result;
 }
 
-export function calculateNoteDuration(note: Note, context: DurationContext): Rational {
+export function calculateNoteDuration(note: Note, context: DurationContext): IRational {
   const baseDuration = calculateBaseDuration(note.rhythm, context);
 
   // Apply tuplet modification if in tuplet
@@ -242,7 +242,7 @@ export function calculateNoteDuration(note: Note, context: DurationContext): Rat
   return baseDuration;
 }
 
-export function calculateBaseDuration(rhythm: Rhythm | undefined, context: DurationContext): Rational {
+export function calculateBaseDuration(rhythm: Rhythm | undefined, context: DurationContext): IRational {
   let duration = createRational(1, 1); // Default to 1/1
 
   if (!rhythm) {
