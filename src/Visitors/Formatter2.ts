@@ -133,7 +133,10 @@ export class AbcFormatter2 implements Visitor<string> {
   }
 
   visitDirectiveExpr(expr: Directive): string {
-    return expr.token.lexeme;
+    const fmt_key = expr.key?.lexeme || "";
+    const fmt_vals = expr.values?.map((e) => e.accept(this)).join(" ");
+    if (fmt_key) return `%%${[fmt_key, fmt_vals].filter((e) => !!e).join(" ")}`;
+    return `%%${fmt_vals}`;
   }
 
   visitVoiceOverlayExpr(expr: Voice_overlay) {

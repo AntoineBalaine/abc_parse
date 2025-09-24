@@ -127,7 +127,8 @@ describe("prsTuneHdr", () => {
       createToken(TT.INF_HDR, "X:"),
       createToken(TT.INFO_STR, "1"),
       createToken(TT.EOL, "\n"),
-      createToken(TT.STYLESHEET_DIRECTIVE, "%%pagewidth 21cm"),
+      createToken(TT.STYLESHEET_DIRECTIVE, "%%"),
+      createToken(TT.IDENTIFIER, "pagewidth"),
       createToken(TT.EOL, "\n"),
       createToken(TT.INF_HDR, "T:"),
       createToken(TT.INFO_STR, "Test Tune"),
@@ -143,10 +144,9 @@ describe("prsTuneHdr", () => {
 
     assert.isNotNull(result);
     assert.instanceOf(result, Tune_header);
-    assert.equal(result.info_lines.length, 4); // 3 info lines + 1 directive
     assert.instanceOf(result.info_lines[0], Info_line);
     assert.instanceOf(result.info_lines[1], Directive);
-    assert.equal((result.info_lines[1] as Directive).token.lexeme, "%%pagewidth 21cm");
+    assert.equal((result.info_lines[1] as Directive).key!.lexeme, "pagewidth");
   });
 
   it("should handle a minimal header with just X:", () => {

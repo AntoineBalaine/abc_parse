@@ -49,7 +49,7 @@ export function parseDirective(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): D
   }
 
   const rv = new Directive(ctx.abcContext.generateId(), directiveKey, directiveKey, values);
-
+  if (prnt_arr) prnt_arr.push(rv);
   return rv;
 }
 function prsKV(ctx: ParseCtx, values: Array<Token | Rational | Pitch | Measurement | KV | Annotation>): KV | null {

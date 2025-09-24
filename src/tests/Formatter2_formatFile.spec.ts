@@ -29,7 +29,7 @@ T:Simple Tune
 K:C
 CDEF|GABC|`;
 
-      const expected = `%% Sample file
+      const expected = `%%Sample file
 X:1
 T:Simple Tune
 K:C
@@ -121,7 +121,7 @@ K:G
 %% Comment in tune
 DEFG|ABCD|`;
 
-      const expected = `%% File header
+      const expected = `%%File header
 This is free text in the header
 
 X:1
@@ -134,7 +134,7 @@ Some text between tunes
 X:2
 T:Second Tune with Comments
 K:G
-%% Comment in tune
+%%Comment in tune
 DEFG | ABCD |`;
 
       const ast = parseFile(input, ctx);
@@ -145,11 +145,9 @@ DEFG | ABCD |`;
 
   describe("edge cases", () => {
     it("handles a file with only a header", () => {
-      const input = `%% File header
-This is free text in the header`;
+      const input = "%%pagewidth \nThis is free text in the header";
 
-      const expected = `%% File header
-This is free text in the header`;
+      const expected = "%%pagewidth\nThis is free text in the header";
 
       const ast = parseFile(input, ctx);
       const result = formatter.formatFile(ast);

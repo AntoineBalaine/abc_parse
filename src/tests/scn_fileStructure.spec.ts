@@ -14,7 +14,7 @@ T:Title
     fileHeader(ctx);
 
     // Check that we have the expected token types in the right order
-    const expectedTypes = [TT.STYLESHEET_DIRECTIVE, TT.EOL, TT.COMMENT, TT.EOL, TT.INF_HDR, TT.INFO_STR, TT.EOL];
+    const expectedTypes = [TT.STYLESHEET_DIRECTIVE, TT.IDENTIFIER, TT.EOL, TT.COMMENT, TT.EOL, TT.INF_HDR, TT.INFO_STR, TT.EOL];
 
     assert.equal(ctx.tokens.length, expectedTypes.length, `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`);
 
@@ -50,7 +50,7 @@ T:Title
     fileHeader(ctx);
 
     // Check that we have the expected token types in the right order
-    const expectedTypes = [TT.FREE_TXT, TT.EOL, TT.STYLESHEET_DIRECTIVE, TT.EOL];
+    const expectedTypes = [TT.FREE_TXT, TT.EOL, TT.STYLESHEET_DIRECTIVE, TT.IDENTIFIER, TT.EOL];
 
     assert.equal(ctx.tokens.length, expectedTypes.length, `Expected ${expectedTypes.length} tokens but got ${ctx.tokens.length}`);
 
@@ -86,6 +86,7 @@ K:C
       TT.SPECIAL_LITERAL,
       TT.EOL,
       TT.STYLESHEET_DIRECTIVE,
+      TT.IDENTIFIER,
       TT.EOL,
       TT.COMMENT,
       TT.EOL,
