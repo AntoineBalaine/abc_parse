@@ -241,6 +241,7 @@ export enum TT {
   MACRO_INVOCATION,
   MACRO_STR,
   MACRO_VAR,
+  MEASUREMENT_UNIT, // For measurement units (in, cm, pt, etc.)
   NOTE_LETTER,
   OCTAVE,
   RESERVED_CHAR,

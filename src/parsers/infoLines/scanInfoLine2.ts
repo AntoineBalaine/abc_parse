@@ -20,7 +20,7 @@ export function scanInfoLine2(ctx: Ctx): boolean {
     if (tuneBodyPitch(ctx)) continue; // Tune body pitches: ^c, _b, =f (for key info explicit accidentals)
     if (identifier(ctx)) continue; // abc, treble, major
     if (stringLiteral(ctx)) continue; // "Allegro"
-    if (number(ctx)) continue; // 1, 4, 120
+    if (unsignedNumber(ctx)) continue; // 1, 4, 120
     if (singleChar(ctx, "=", TT.EQL)) continue; // =
     if (singleChar(ctx, "+", TT.PLUS)) continue; // +
     if (singleChar(ctx, "/", TT.SLASH)) continue; // /
@@ -35,14 +35,14 @@ export function scanInfoLine2(ctx: Ctx): boolean {
   return true;
 }
 function tuneBodyPitch(ctx: Ctx): boolean {
-  if (!ctx.test(new RegExp(`^${pPitch}[%\n \t]`))) return false;
+  if (!ctx.test(new RegExp(`^${pPitch.source}[%\n \t]`))) return false;
   return pitch(ctx);
 }
 
 /**
  * Helper function to scan a single character and push the corresponding token type
  */
-function singleChar(ctx: Ctx, char: string, tokenType: TT): boolean {
+export function singleChar(ctx: Ctx, char: string, tokenType: TT): boolean {
   if (!ctx.test(char)) return false;
 
   advance(ctx);
@@ -53,10 +53,10 @@ function singleChar(ctx: Ctx, char: string, tokenType: TT): boolean {
 /**
  * Scan identifier: unquoted words like "treble", "major", "clef"
  */
-function identifier(ctx: Ctx): boolean {
-  if (!ctx.test(/[a-zA-Z][a-zA-Z0-9_]*/)) return false;
+export function identifier(ctx: Ctx): boolean {
+  if (!ctx.test(/[a-zA-Z][\-a-zA-Z0-9_]*/)) return false;
 
-  const match = /^[a-zA-Z][a-zA-Z0-9_]*/.exec(ctx.source.substring(ctx.current));
+  const match = /^[a-zA-Z][\-a-zA-Z0-9_]*/.exec(ctx.source.substring(ctx.current));
   if (match) {
     ctx.current += match[0].length;
     ctx.push(TT.IDENTIFIER);
@@ -69,7 +69,7 @@ function identifier(ctx: Ctx): boolean {
  * Scan string literal: quoted text like "Allegro", "Slowly"
  * Includes the quotes in the token
  */
-function stringLiteral(ctx: Ctx): boolean {
+export function stringLiteral(ctx: Ctx): boolean {
   if (!ctx.test(/"/)) return false;
 
   advance(ctx); // consume opening quote
@@ -89,18 +89,22 @@ function stringLiteral(ctx: Ctx): boolean {
 }
 
 /**
- * Scan number: integers that don't start with 0, using existing pNumber pattern
+ * Scan number: integers and floats
+ * Matches: 1, 42, 1.5, 0.25, 120.0
+ * Does not match: .5, 1., leading zeros like 01
  */
-function number(ctx: Ctx): boolean {
-  if (!ctx.test(pNumber)) return false;
+export function unsignedNumber(ctx: Ctx): boolean {
+  // Unified regex pattern for integers and floats
+  // - Integers: [1-9][0-9]* or just 0
+  // - Floats: ([1-9][0-9]*|0)\.[0-9]+
+  const numberPattern = /^(([1-9][0-9]*|0)(\.[0-9]+)?)/;
 
-  const match = new RegExp(`^${pNumber.source}`).exec(ctx.source.substring(ctx.current));
-  if (match) {
-    ctx.current += match[0].length;
-    ctx.push(TT.NUMBER);
-    return true;
-  }
-  return false;
+  const match = numberPattern.exec(ctx.source.substring(ctx.current));
+  if (!match) return false;
+
+  ctx.current += match[0].length;
+  ctx.push(TT.NUMBER);
+  return true;
 }
 
 /**
