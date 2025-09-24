@@ -1,3 +1,4 @@
+import { scanDirective } from "./infoLines/scanDirective";
 import {
   Ctx,
   EOL,
@@ -9,7 +10,6 @@ import {
   macro_decl,
   macro_invocation,
   precededBy,
-  stylesheet_directive,
   tuneStartBeforeSectBrk,
   user_symbol_decl,
   user_symbol_invocation,
@@ -436,7 +436,7 @@ export function scanTune(ctx: Ctx): boolean {
   while (!isAtEnd(ctx) && !ctx.test(pSectionBrk)) {
     ctx.start = ctx.current;
     // Try each tokenizer function in order of precedence
-    if (stylesheet_directive(ctx)) continue;
+    if (scanDirective(ctx)) continue;
     if (comment(ctx)) continue;
     /** NOTE: macros are off for now */
     // if (macro_decl(ctx)) continue;

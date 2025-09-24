@@ -38,6 +38,7 @@ import {
   YSPACER,
 } from "../types/Expr2";
 import { ABCContext } from "./Context";
+import { parseDirective } from "./infoLines/parseDirective";
 import { parseInfoLine2 } from "./infoLines/parseInfoLine2";
 import { Token, TT } from "./scan2";
 import { parseSystemsWithVoices } from "./voices2";
@@ -152,7 +153,7 @@ export function parseFileHeader(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): 
   const contents: Array<Expr | Token> = [];
   while (!ctx.isAtEnd() && !ctx.check(TT.SCT_BRK)) {
     if (prsComment(ctx, contents)) continue;
-    if (prsDirective(ctx, contents)) continue;
+    if (parseDirective(ctx, contents)) continue;
     if (prsMacroDecl(ctx, contents)) continue;
     if (prsUserSymbolDecl(ctx, contents)) continue;
     if (prsInfoLine(ctx, contents)) continue;
@@ -202,7 +203,7 @@ export function prsTuneHdr(ctx: ParseCtx): Tune_header {
   const voices: string[] = [];
   while (!ctx.isAtEnd() && !ctx.check(TT.SCT_BRK)) {
     if (prsComment(ctx, infoLines)) continue;
-    if (prsDirective(ctx, infoLines)) continue;
+    if (parseDirective(ctx, infoLines)) continue;
     if (prsMacroDecl(ctx, infoLines)) continue;
     if (prsUserSymbolDecl(ctx, infoLines)) continue;
     if (alreadyHasVoice(ctx, voices)) {

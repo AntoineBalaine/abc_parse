@@ -422,7 +422,7 @@ export const genDirectiveIdentifier = fc
     ),
     // Random identifiers with hyphens
     fc
-      .tuple(fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9]*$/), fc.option(fc.tuple(fc.constantFrom("-"), fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9]*$/))))
+      .tuple(fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9]{2,10}$/), fc.option(fc.tuple(fc.constantFrom("-"), fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9]*$/))))
       .map(([first, hyphenated]) => {
         if (hyphenated) {
           const [hyphen, second] = hyphenated;

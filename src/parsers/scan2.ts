@@ -1,6 +1,7 @@
 import { Visitor } from "../types/Expr2";
 import { ABCContext } from "./Context";
 import { AbcErrorReporter } from "./ErrorReporter";
+import { scanDirective } from "./infoLines/scanDirective";
 import { scanInfoLine2 } from "./infoLines/scanInfoLine2";
 import { comment, pEOL, pInfoLine, pMacroLine, pSectionBrk, pTuneHeadStrt, pUserSymbol, scanTune, symbol } from "./scan_tunebody";
 
@@ -109,7 +110,7 @@ export function fileHeader(ctx: Ctx) {
     }
 
     // Try each tokenizer function in order of precedence
-    if (stylesheet_directive(ctx)) continue;
+    if (scanDirective(ctx)) continue;
     if (comment(ctx)) continue;
     /** NOTE: macros are off for now */
     // if (macro_decl(ctx)) continue;

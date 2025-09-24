@@ -217,6 +217,32 @@ describe("Scanner Round-trip Tests", () => {
   });
 });
 
+// Filter out WS tokens from directive contexts efficiently
+function filterDirectiveWhitespace(tokens: Array<Token>): Array<Token> {
+  const result: Array<Token> = [];
+  let inDirectiveContext = false;
+
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+
+    // Track directive context
+    if (token.type === TT.STYLESHEET_DIRECTIVE) {
+      inDirectiveContext = true;
+      result.push(token);
+    } else if (token.type === TT.EOL) {
+      inDirectiveContext = false;
+      result.push(token);
+    } else if (token.type === TT.WS && inDirectiveContext) {
+      // Skip WS tokens in directive context (scanner discards them with WS(ctx, true))
+      continue;
+    } else {
+      result.push(token);
+    }
+  }
+
+  return result;
+}
+
 // Reusable round-trip test predicate
 export function createRoundTripPredicate(originalTokens: Array<Token>): boolean {
   // Define interfaces for token types
@@ -261,7 +287,8 @@ export function createRoundTripPredicate(originalTokens: Array<Token>): boolean 
     lexeme: token.lexeme,
   });
 
-  const normalizedOriginal = trimmedTokens.filter((t) => t.type !== TT.DISCARD).map((t) => normalizeToken(t as TokenLike));
+  const filteredTokens = filterDirectiveWhitespace(trimmedTokens.filter((t) => t.type !== TT.DISCARD));
+  const normalizedOriginal = filteredTokens.map((t) => normalizeToken(t as TokenLike));
   const normalizedRescanned = rescannedTokens.filter((t) => t.type !== TT.EOF && t.type !== TT.DISCARD).map(normalizeToken);
 
   if (normalizedOriginal.length !== normalizedRescanned.length) {

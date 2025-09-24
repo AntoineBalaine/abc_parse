@@ -2,7 +2,15 @@ import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Token, TT } from "../parsers/scan2";
-import { genInfoLine2, genKeyInfoLine2, genMeterInfoLine2, genNoteLenInfoLine2, genTempoInfoLine2, genGenericInfoLine } from "./scn_infoln_generators";
+import {
+  genInfoLine2,
+  genKeyInfoLine2,
+  genMeterInfoLine2,
+  genNoteLenInfoLine2,
+  genTempoInfoLine2,
+  genGenericInfoLine,
+  genStylesheetDirective as genStylesheetDirectiveFromInfoLn,
+} from "./scn_infoln_generators";
 
 // Re-export the new generators
 export { genInfoLine2, genKeyInfoLine2, genMeterInfoLine2, genNoteLenInfoLine2, genTempoInfoLine2 };
@@ -134,11 +142,7 @@ export const genInlineField = fc
   .map((tokens) => tokens);
 export const genEOL = fc.constantFrom(new Token(TT.EOL, "\n", sharedContext.generateId()));
 
-// Stylesheet directive generator
-export const genStylesheetDirective = fc.tuple(
-  fc.stringMatching(/^%%[^\n]*$/).map((str) => new Token(TT.STYLESHEET_DIRECTIVE, str, sharedContext.generateId())),
-  genEOL
-);
+export const genStylesheetDirective = fc.tuple(genEOL, genStylesheetDirectiveFromInfoLn).map((e) => e.flat());
 
 // Comment generator
 export const genCommentToken = fc.tuple(
@@ -379,7 +383,7 @@ export function applyTokenFiltering(flatTokens: Token[]): Token[] {
   const result = [];
   let symbols = new Set<String>();
   let macros = new Set<String>(); // Track macro variables
-  let currentContext: "info_line" | "tune_body" | "none" = "none"; // Track current context
+  let currentContext: "info_line" | "tune_body" | "stylesheet_directive" | "none" = "none"; // Track current context
 
   if (flatTokens.length > 0) {
     result.push(flatTokens[0]);
@@ -408,6 +412,8 @@ export function applyTokenFiltering(flatTokens: Token[]): Token[] {
     // Update context tracking based on current token
     if (test(cur, TT.INF_HDR)) {
       currentContext = "info_line";
+    } else if (test(cur, TT.STYLESHEET_DIRECTIVE)) {
+      currentContext = "stylesheet_directive";
     } else if (test(cur, TT.EOL)) {
       currentContext = "none"; // Reset context after end of line
     } else if (currentContext === "none" && !test(cur, TT.WS) && !test(cur, TT.COMMENT)) {
@@ -443,15 +449,67 @@ export function applyTokenFiltering(flatTokens: Token[]): Token[] {
       }
     }
 
+    // Strict validation for stylesheet directive context
+    if (currentContext === "stylesheet_directive") {
+      // Valid tokens in stylesheet directive context - similar to scanDirective.ts
+      const validDirectiveTokens = [
+        TT.STYLESHEET_DIRECTIVE,
+        TT.IDENTIFIER, // directive names and identifiers
+        TT.ANNOTATION, // string literals
+        TT.NUMBER, // numbers (floats & ints)
+        TT.MEASUREMENT_UNIT, // units like "in", "cm", "pt"
+        TT.SLASH, // for rational numbers
+        TT.EQL, // for assignments
+        TT.ACCIDENTAL, // for tune-body pitches
+        TT.NOTE_LETTER, // for tune-body pitches
+        TT.OCTAVE, // for tune-body pitches
+        TT.WS,
+        // TT.EOL,
+        TT.COMMENT,
+        TT.INVALID, // For invalid tokens that should be preserved
+      ];
+
+      if (!validDirectiveTokens.includes(cur.type)) {
+        throw new Error(
+          `Invalid token ${TT[cur.type]}:${cur.lexeme} found in stylesheet directive context. This indicates a problem with directive generators.`
+        );
+      }
+    }
+
     if (test(cur, TT.VOICE) && next && test(next, TT.EOL)) continue;
     if (test(cur, TT.INF_HDR) && !rewind(TT.EOL, i)) continue;
     if (test(cur, TT.INFO_STR) && test(result[result.length - 1], TT.INF_HDR) && !(next && test(next, TT.EOL))) continue;
+
+    if (test(cur, TT.STYLESHEET_DIRECTIVE) && !rewind(TT.EOL, i)) continue;
 
     // Lyric token filtering rules
     if ((test(cur, TT.LY_HDR) || test(cur, TT.LY_SECT_HDR)) && !rewind(TT.EOL, i)) continue;
     if (test(cur, TT.LY_TXT) && rewind(TT.LY_TXT, i)) continue; // prevent multiple lyric tokens in a row.
 
-    // Enhanced whitespace filtering for info lines
+    // Enhanced whitespace filtering for info lines and directives
+    // For directive context, handle whitespace similar to scanDirective behavior
+    if (currentContext === "stylesheet_directive" && test(cur, TT.WS)) {
+      // In directive context, filter redundant whitespace but preserve necessary spacing
+      // Skip whitespace that would create consecutive WS tokens
+      if (test(prev, TT.WS)) continue;
+
+      // Skip whitespace between components that shouldn't have spaces:
+      // - Between NUMBER and MEASUREMENT_UNIT (5cm)
+      // - Between ACCIDENTAL and NOTE_LETTER (^c)
+      // - Between NOTE_LETTER and OCTAVE (a')
+      // - Between components of rational numbers (3/4)
+      // - Between components of assignments (transpose=2)
+      if (next) {
+        const isNumberUnit = test(prev, TT.NUMBER) && test(next, TT.MEASUREMENT_UNIT);
+        const isPitchSequence = (test(prev, TT.ACCIDENTAL) && test(next, TT.NOTE_LETTER)) || (test(prev, TT.NOTE_LETTER) && test(next, TT.OCTAVE));
+        const isRationalSequence = (test(prev, TT.NUMBER) && test(next, TT.SLASH)) || (test(prev, TT.SLASH) && test(next, TT.NUMBER));
+        const isAssignmentSequence = (test(prev, TT.IDENTIFIER) && test(next, TT.EQL)) || (test(prev, TT.EQL) && test(next, TT.NUMBER));
+
+        if (isNumberUnit || isPitchSequence || isRationalSequence || isAssignmentSequence) {
+          continue;
+        }
+      }
+    }
 
     // Macro token filtering rules
     if (test(cur, TT.MACRO_HDR) && !rewind(TT.EOL, i)) continue;
