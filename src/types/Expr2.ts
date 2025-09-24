@@ -47,6 +47,8 @@ export interface Visitor<R> {
   visitBinary(expr: Binary): R;
   visitGrouping(expr: Grouping): R;
   visitAbsolutePitch(expr: AbsolutePitch): R;
+  visitRationalExpr(expr: Rational): R;
+  visitMeasurementExpr(expr: Measurement): R;
 }
 
 // Tagged union for parsed info line data
@@ -268,7 +270,7 @@ export class Measurement extends Expr {
   }
 
   accept<R>(visitor: Visitor<R>): R {
-    return null as R;
+    return visitor.visitMeasurementExpr(this);
   }
 }
 
@@ -284,7 +286,7 @@ export class Rational extends Expr {
     this.denominator = denominator;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return null as R;
+    return visitor.visitRationalExpr(this);
   }
 }
 

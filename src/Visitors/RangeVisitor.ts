@@ -23,10 +23,12 @@ import {
   Lyric_section,
   Macro_decl,
   Macro_invocation,
+  Measurement,
   MultiMeasureRest,
   Music_code,
   Note,
   Pitch,
+  Rational,
   Rest,
   Rhythm,
   Symbol,
@@ -245,13 +247,12 @@ export class RangeVisitor implements Visitor<Range> {
 
   visitLyricLineExpr(expr: Lyric_line): Range {
     const headerRange = getTokenRange(expr.header);
-    const contentsRanges = expr.contents.map(token => getTokenRange(token));
+    const contentsRanges = expr.contents.map((token) => getTokenRange(token));
     return [headerRange, ...contentsRanges].reduce(reduceRanges, <Range>{});
   }
 
   visitMacroDeclExpr(expr: Macro_decl): Range {
-    return [getTokenRange(expr.header), getTokenRange(expr.variable), getTokenRange(expr.content)]
-      .reduce(reduceRanges, <Range>{});
+    return [getTokenRange(expr.header), getTokenRange(expr.variable), getTokenRange(expr.content)].reduce(reduceRanges, <Range>{});
   }
 
   visitMacroInvocationExpr(expr: Macro_invocation): Range {
@@ -259,8 +260,7 @@ export class RangeVisitor implements Visitor<Range> {
   }
 
   visitUserSymbolDeclExpr(expr: User_symbol_decl): Range {
-    return [getTokenRange(expr.header), getTokenRange(expr.variable), getTokenRange(expr.symbol)]
-      .reduce(reduceRanges, <Range>{});
+    return [getTokenRange(expr.header), getTokenRange(expr.variable), getTokenRange(expr.symbol)].reduce(reduceRanges, <Range>{});
   }
 
   visitUserSymbolInvocationExpr(expr: User_symbol_invocation): Range {
@@ -302,5 +302,13 @@ export class RangeVisitor implements Visitor<Range> {
       ranges.push(getTokenRange(expr.octave));
     }
     return ranges.reduce(reduceRanges, <Range>{});
+  }
+
+  visitRationalExpr(expr: Rational): Range {
+    return [getTokenRange(expr.numerator), getTokenRange(expr.separator), getTokenRange(expr.denominator)].reduce(reduceRanges, <Range>{});
+  }
+
+  visitMeasurementExpr(expr: Measurement): Range {
+    return [getTokenRange(expr.value), getTokenRange(expr.scale)].reduce(reduceRanges, <Range>{});
   }
 }

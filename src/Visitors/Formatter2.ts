@@ -24,10 +24,12 @@ import {
   Lyric_section,
   Macro_decl,
   Macro_invocation,
+  Measurement,
   MultiMeasureRest,
   Music_code,
   Note,
   Pitch,
+  Rational,
   Rest,
   Rhythm,
   Symbol,
@@ -470,6 +472,14 @@ export class AbcFormatter2 implements Visitor<string> {
       result += expr.octave.lexeme;
     }
     return result;
+  }
+
+  visitRationalExpr(expr: Rational): string {
+    return expr.numerator.lexeme + expr.separator.lexeme + expr.denominator.lexeme;
+  }
+
+  visitMeasurementExpr(expr: Measurement): string {
+    return expr.value.lexeme + expr.scale.lexeme;
   }
 }
 

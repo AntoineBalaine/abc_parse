@@ -24,10 +24,12 @@ import {
   Lyric_section,
   Macro_decl,
   Macro_invocation,
+  Measurement,
   MultiMeasureRest,
   Music_code,
   Note,
   Pitch,
+  Rational,
   Rest,
   Rhythm,
   Symbol,
@@ -324,6 +326,18 @@ export class ExpressionCollector implements Visitor<void> {
   }
 
   visitAbsolutePitch(expr: AbsolutePitch): void {
+    if (this.isInRange(expr)) {
+      this.collected.push(expr);
+    }
+  }
+
+  visitRationalExpr(expr: Rational): void {
+    if (this.isInRange(expr)) {
+      this.collected.push(expr);
+    }
+  }
+
+  visitMeasurementExpr(expr: Measurement): void {
     if (this.isInRange(expr)) {
       this.collected.push(expr);
     }

@@ -36,11 +36,13 @@ import {
   Lyric_section,
   Macro_decl,
   Macro_invocation,
+  Measurement,
   MultiMeasureRest,
   Music_code,
   music_code,
   Note,
   Pitch,
+  Rational,
   Rest,
   Rhythm,
   Symbol,
@@ -431,6 +433,14 @@ export class RhythmVisitor implements Visitor<Expr> {
   }
 
   visitAbsolutePitch(expr: AbsolutePitch): Expr {
+    return expr;
+  }
+
+  visitRationalExpr(expr: Rational): Expr {
+    return expr;
+  }
+
+  visitMeasurementExpr(expr: Measurement): Expr {
     return expr;
   }
 

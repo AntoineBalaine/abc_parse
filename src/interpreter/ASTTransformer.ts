@@ -32,6 +32,12 @@ import {
   Pitch,
   Rhythm,
   ErrorExpr,
+  KV,
+  AbsolutePitch,
+  Binary,
+  Grouping,
+  Measurement,
+  Rational,
 } from "../types/Expr2";
 import { Token } from "../parsers/scan2";
 import { ABCContext } from "../parsers/Context";
@@ -415,6 +421,30 @@ export class ASTTransformer implements Visitor<any> {
     return null;
   }
   visitToken(token: Token): any {
+    return null;
+  }
+
+  visitKV(expr: KV): any {
+    return null;
+  }
+
+  visitBinary(expr: Binary): any {
+    return null;
+  }
+
+  visitGrouping(expr: Grouping): any {
+    return null;
+  }
+
+  visitAbsolutePitch(expr: AbsolutePitch): any {
+    return null;
+  }
+
+  visitRationalExpr(expr: Rational): any {
+    return null;
+  }
+
+  visitMeasurementExpr(expr: Measurement): any {
     return null;
   }
 }

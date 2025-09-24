@@ -24,10 +24,12 @@ import {
   Lyric_section,
   Macro_decl,
   Macro_invocation,
+  Measurement,
   MultiMeasureRest,
   Music_code,
   Note,
   Pitch,
+  Rational,
   Rest,
   Rhythm,
   Symbol,
@@ -305,6 +307,14 @@ export class Transposer implements Visitor<Expr | Token> {
   }
 
   visitAbsolutePitch(expr: AbsolutePitch): Expr | Token {
+    return expr;
+  }
+
+  visitRationalExpr(expr: Rational): Expr | Token {
+    return expr;
+  }
+
+  visitMeasurementExpr(expr: Measurement): Expr | Token {
     return expr;
   }
 }
