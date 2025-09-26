@@ -259,14 +259,6 @@ export function alreadyHasVoice(ctx: ParseCtx, voices?: Array<string>): boolean 
   return false;
 }
 
-export function prsDirective(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Directive | null {
-  if (ctx.match(TT.STYLESHEET_DIRECTIVE)) {
-    const rv = new Directive(ctx.abcContext.generateId(), ctx.previous());
-    prnt_arr && prnt_arr.push(rv);
-    return rv;
-  }
-  return null;
-}
 export function prsComment(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Comment | null {
   if (ctx.match(TT.COMMENT)) {
     const rv = new Comment(ctx.abcContext.generateId(), ctx.previous());

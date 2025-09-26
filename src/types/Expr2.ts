@@ -244,13 +244,11 @@ export class Tune_header extends Expr {
 }
 
 export class Directive extends Expr {
-  token: Token;
-  key?: Token;
-  values?: Array<Token | Rational | Pitch | KV | Measurement | Annotation>;
+  key: Token;
+  values: Array<Token | Rational | Pitch | KV | Measurement | Annotation>;
 
-  constructor(id: number, token: Token, key?: Token, values?: Array<Token | Rational | Pitch | KV | Measurement | Annotation>) {
+  constructor(id: number, key: Token, values: Array<Token | Rational | Pitch | KV | Measurement | Annotation>) {
     super(id);
-    this.token = token;
     this.key = key;
     this.values = values;
   }

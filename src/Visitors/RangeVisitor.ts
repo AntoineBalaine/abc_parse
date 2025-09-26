@@ -12,6 +12,7 @@ import {
   Decoration,
   Directive,
   ErrorExpr,
+  Expr,
   File_header,
   File_structure,
   Grace_group,
@@ -60,7 +61,11 @@ export class RangeVisitor implements Visitor<Range> {
     return getTokenRange(expr.text);
   }
   visitDirectiveExpr(expr: Directive): Range {
-    return getTokenRange(expr.token);
+    return [expr.key, expr.values]
+      .flatMap((e) => e)
+      .filter((e): e is Token | Annotation | Rational | Pitch | KV | Measurement => !!e)
+      .map((e) => e.accept(this))
+      .reduce(reduceRanges, <Range>{});
   }
   visitBarLineExpr(expr: BarLine): Range {
     return [expr.barline, expr.repeatNumbers]

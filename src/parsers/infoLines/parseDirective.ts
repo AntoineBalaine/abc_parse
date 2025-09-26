@@ -48,7 +48,7 @@ export function parseDirective(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): D
     break;
   }
 
-  const rv = new Directive(ctx.abcContext.generateId(), directiveKey, directiveKey, values);
+  const rv = new Directive(ctx.abcContext.generateId(), directiveKey, values);
   if (prnt_arr) prnt_arr.push(rv);
   return rv;
 }
