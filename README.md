@@ -21,10 +21,22 @@ TODO:
 # scan2 TODOs:
 
 - redefinable symbols `U:`
+- DO NOT parse multiple decorations into a single token
 - macros `m:`
+  - include in parser: should I have an expression for this?
 - `I: decoration`
 - `H: history` and free text
 - `%%begintext` free text til `%%endtext`
+- in-tune lyric lines
+- lyric sections
+```typescript
+  lines: Array<string>
+  W: <line>
+  +: <second_line>
+  w: <new_expression>
+```
+- voice modifiers 
+- line continuations
 
 # parse2 TODOs:
 
