@@ -23,11 +23,11 @@ export function InfoLineFmt(expr: Info_line, ctx?: ABCContext): string {
         rv = "L:" + rationalToString(info.data) + trailingComment(expr);
         break;
       default:
-        rv = genericFmt(expr, ctx);
+        rv = genericFmt(expr);
         break;
     }
   } else {
-    rv = genericFmt(expr, ctx);
+    rv = genericFmt(expr);
   }
   return rv;
 }

@@ -13,8 +13,10 @@ import { genCommentExpr } from "./prs_pbt.generators.spec";
 export const sharedContext = new ABCContext(new AbcErrorReporter());
 
 // Directive expression generator
-export const genDirectiveExpr = ScannerGen.genStylesheetDirective.map(([directive, eol]) => {
-  return new Directive(sharedContext.generateId(), directive);
+export const genDirectiveExpr = ScannerGen.genStylesheetDirective.map((dir) => {
+  const directive = dir.splice(2, dir.length - 1);
+
+  return new Directive(sharedContext.generateId(), dir[1], directive);
 });
 
 // Info line expression generator
