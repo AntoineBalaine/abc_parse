@@ -52,7 +52,7 @@ import {
 import { Token } from "../parsers/scan2";
 
 // Import analyzer functions
-import { analyzeFontDirective } from "./font-analyzer";
+import { analyzeFontSpec } from "./font-analyzer";
 
 /**
  * Main semantic analyzer visitor
@@ -86,7 +86,7 @@ export class SemanticAnalyzer implements Visitor<DirectiveSemanticData | null> {
 
     // Function forwarding - delegate to specific analyzer functions
     if (FontDirectiveNames.includes(directiveName)) {
-      return analyzeFontDirective(expr, this);
+      return analyzeFontSpec(expr, this);
     }
 
     // TODO: Add other directive type handlers here

@@ -81,195 +81,55 @@ export interface ParamSpec {
 }
 
 // ============================================================================
+// Reusable Parameter Specifications
+// ============================================================================
+
+// Base font parameters (face, size, modifiers)
+const FONT_PARAMS: ParamSpec[] = [
+  { type: "font_face", optional: true },
+  { type: "number", optional: true },
+  { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
+];
+
+// Box parameter for font directives that support it
+const BOX_PARAM: ParamSpec = { type: "identifier", optional: true, choices: ["box"] };
+
+// Position choice parameter
+const POSITION_CHOICE_PARAM: ParamSpec = { type: "position_choice", choices: ["auto", "above", "below", "hidden"] };
+// ============================================================================
 // Directive Validation Rules
 // ============================================================================
 
 export const DIRECTIVE_SPECS: Record<string, { params: ParamSpec[] }> = {
-  // Font Directives
-  titlefont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-      { type: "identifier", optional: true, choices: ["box"] },
-    ],
-  },
-  gchordfont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-      { type: "identifier", optional: true, choices: ["box"] },
-    ],
-  },
-  composerfont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-      { type: "identifier", optional: true, choices: ["box"] },
-    ],
-  },
-  subtitlefont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-      { type: "identifier", optional: true, choices: ["box"] },
-    ],
-  },
-  tempofont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-    ],
-  },
-  footerfont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-    ],
-  },
-  headerfont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-    ],
-  },
-  voicefont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-      { type: "identifier", optional: true, choices: ["box"] },
-    ],
-  },
-  partsfont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-      { type: "identifier", optional: true, choices: ["box"] },
-    ],
-  },
-  tripletfont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-    ],
-  },
-  vocalfont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-    ],
-  },
-  textfont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-      { type: "identifier", optional: true, choices: ["box"] },
-    ],
-  },
-  annotationfont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-      { type: "identifier", optional: true, choices: ["box"] },
-    ],
-  },
-  historyfont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-      { type: "identifier", optional: true, choices: ["box"] },
-    ],
-  },
-  infofont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-      { type: "identifier", optional: true, choices: ["box"] },
-    ],
-  },
-  measurefont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-      { type: "identifier", optional: true, choices: ["box"] },
-    ],
-  },
-  repeatfont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-    ],
-  },
-  wordsfont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-    ],
-  },
-  tablabelfont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-    ],
-  },
-  tabnumberfont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-    ],
-  },
-  tabgracefont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-    ],
-  },
-  barlabelfont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-      { type: "identifier", optional: true, choices: ["box"] },
-    ],
-  },
-  barnumberfont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-      { type: "identifier", optional: true, choices: ["box"] },
-    ],
-  },
-  barnumfont: {
-    params: [
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
-      { type: "identifier", optional: true, choices: ["box"] },
-    ],
-  },
+  // Font Directives with Box Support
+  titlefont: { params: [...FONT_PARAMS, BOX_PARAM] },
+  gchordfont: { params: [...FONT_PARAMS, BOX_PARAM] },
+  composerfont: { params: [...FONT_PARAMS, BOX_PARAM] },
+  subtitlefont: { params: [...FONT_PARAMS, BOX_PARAM] },
+  voicefont: { params: [...FONT_PARAMS, BOX_PARAM] },
+  partsfont: { params: [...FONT_PARAMS, BOX_PARAM] },
+  textfont: { params: [...FONT_PARAMS, BOX_PARAM] },
+  annotationfont: { params: [...FONT_PARAMS, BOX_PARAM] },
+  historyfont: { params: [...FONT_PARAMS, BOX_PARAM] },
+  infofont: { params: [...FONT_PARAMS, BOX_PARAM] },
+  measurefont: { params: [...FONT_PARAMS, BOX_PARAM] },
+  barlabelfont: { params: [...FONT_PARAMS, BOX_PARAM] },
+  barnumberfont: { params: [...FONT_PARAMS, BOX_PARAM] },
+  barnumfont: { params: [...FONT_PARAMS, BOX_PARAM] },
 
-  // Layout and Formatting Directives
+  // Font Directives without Box Support
+  tempofont: { params: FONT_PARAMS },
+  footerfont: { params: FONT_PARAMS },
+  headerfont: { params: FONT_PARAMS },
+  tripletfont: { params: FONT_PARAMS },
+  vocalfont: { params: FONT_PARAMS },
+  repeatfont: { params: FONT_PARAMS },
+  wordsfont: { params: FONT_PARAMS },
+  tablabelfont: { params: FONT_PARAMS },
+  tabnumberfont: { params: FONT_PARAMS },
+  tabgracefont: { params: FONT_PARAMS },
+
+  // Layout and Formatting Directives (Boolean flags)
   bagpipes: { params: [] },
   flatbeams: { params: [] },
   jazzchords: { params: [] },
@@ -281,35 +141,18 @@ export const DIRECTIVE_SPECS: Record<string, { params: ParamSpec[] }> = {
   measurebox: { params: [] },
   continueall: { params: [] },
 
-  papersize: {
-    params: [{ type: "identifier" }],
-  },
-  graceslurs: {
-    params: [{ type: "boolean" }],
-  },
-  lineThickness: {
-    params: [{ type: "number" }],
-  },
-  stretchlast: {
-    params: [{ type: "number", optional: true, min: 0, max: 1 }],
-  },
+  // Simple Parameter Directives
+  papersize: { params: [{ type: "identifier" }] },
+  graceslurs: { params: [{ type: "boolean" }] },
+  lineThickness: { params: [{ type: "number" }] },
+  stretchlast: { params: [{ type: "number", optional: true, min: 0, max: 1 }] },
 
   // Position Directives
-  vocal: {
-    params: [{ type: "position_choice", choices: ["auto", "above", "below", "hidden"] }],
-  },
-  dynamic: {
-    params: [{ type: "position_choice", choices: ["auto", "above", "below", "hidden"] }],
-  },
-  gchord: {
-    params: [{ type: "position_choice", choices: ["auto", "above", "below", "hidden"] }],
-  },
-  ornament: {
-    params: [{ type: "position_choice", choices: ["auto", "above", "below", "hidden"] }],
-  },
-  volume: {
-    params: [{ type: "position_choice", choices: ["auto", "above", "below", "hidden"] }],
-  },
+  vocal: { params: [POSITION_CHOICE_PARAM] },
+  dynamic: { params: [POSITION_CHOICE_PARAM] },
+  gchord: { params: [POSITION_CHOICE_PARAM] },
+  ornament: { params: [POSITION_CHOICE_PARAM] },
+  volume: { params: [POSITION_CHOICE_PARAM] },
 
   // Margin and Spacing Directives
   botmargin: { params: [{ type: "measurement" }] },
@@ -369,9 +212,7 @@ export const DIRECTIVE_SPECS: Record<string, { params: ParamSpec[] }> = {
   setfont: {
     params: [
       { type: "identifier" }, // -N format
-      { type: "font_face", optional: true },
-      { type: "number", optional: true },
-      { type: "font_modifier", optional: true, multiple: true, choices: ["bold", "italic", "underline"] },
+      ...FONT_PARAMS,
     ],
   },
 
@@ -405,7 +246,7 @@ export const DIRECTIVE_SPECS: Record<string, { params: ParamSpec[] }> = {
     ],
   },
 
-  // MIDI Directives - No Parameters
+  // MIDI Directives
   midi: {
     params: [{ type: "midi_command" }, { type: "midi_param", optional: true, multiple: true }],
   },

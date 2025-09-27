@@ -6,9 +6,54 @@
  */
 
 import { Directive } from "../types/Expr2";
-import { FontSpec, DIRECTIVE_SPECS, DirectiveSemanticData } from "../types/directive-specs";
+import { FontSpec, DIRECTIVE_SPECS, DirectiveSemanticData, ParamSpec } from "../types/directive-specs";
 import { Token, TT } from "../parsers/scan2";
 import { SemanticAnalyzer } from "./semantic-analyzer";
+
+/**
+ * Validates that a directive has a valid key and returns the directive spec
+ * @param directive The directive to validate
+ * @param analyzer The semantic analyzer for error reporting
+ * @returns The directive spec if valid, null otherwise
+ */
+function isDirectiveKey(directive: Directive, analyzer: SemanticAnalyzer): { params: ParamSpec[] } | null {
+  const directiveName = directive.key;
+  if (!directiveName) {
+    analyzer.report("Missing directive name", directive.id);
+    return null;
+  }
+
+  const spec = DIRECTIVE_SPECS[directiveName.lexeme];
+  if (!spec) {
+    analyzer.report(`Unknown directive: ${directiveName.lexeme}`, directive.id, directive.key);
+    return null;
+  }
+
+  return spec;
+}
+
+/**
+ * Parses a numeric token and validates it as a positive number
+ */
+function parseNumber(
+  value: Token,
+  directive: Directive,
+  analyzer: SemanticAnalyzer,
+  context: { hasExplicitSize: boolean; hasErrors: boolean }
+): number | null {
+  if (!(value.type === TT.NUMBER)) return null;
+  const lexeme = value.lexeme.toLowerCase();
+  const size = parseFloat(lexeme);
+
+  if (!isNaN(size) && size > 0) {
+    context.hasExplicitSize = true;
+    return size;
+  } else {
+    analyzer.report(`Invalid font size: ${lexeme}`, directive.id, value);
+    context.hasErrors = true;
+    return null;
+  }
+}
 
 /**
  * Analyzes a font directive and pushes semantic data to context
@@ -23,53 +68,41 @@ import { SemanticAnalyzer } from "./semantic-analyzer";
  * - modifiers: bold, italic, underline
  * - box: Optional "box" keyword for supported fonts
  */
-export function analyzeFontDirective(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
-  const directiveName = directive.key!;
-  if (!directiveName) {
-    analyzer.report("Missing directive name", directive.id);
-    return null;
-  }
+export function analyzeFontSpec(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
+  const spec = isDirectiveKey(directive, analyzer);
+  if (!spec) return null;
 
-  const spec = DIRECTIVE_SPECS[directiveName.lexeme];
-  if (!spec) {
-    analyzer.report(`Unknown directive: ${directiveName.lexeme}`, directive.id, directive.key);
-    return null;
-  }
-
-  const values = directive.values || [];
   const result: FontSpec = {};
-  let hasErrors = false;
 
   // Track what we've parsed to handle the flexible font syntax
-  let hasExplicitFace = false;
-  let hasExplicitSize = false;
+  let ctx = { hasExplicitSize: false, hasErrors: false, hasExplicitFace: false };
 
-  for (let i = 0; i < values.length; i++) {
-    const value = values[i];
+  for (let i = 0; i < directive.values.length; i++) {
+    const value = directive.values[i];
 
     if (!(value instanceof Token)) {
       analyzer.report(`Expected token, got ${typeof value}`, directive.id);
-      hasErrors = true;
+      ctx.hasErrors = true;
       continue;
     }
 
-    const token = value.lexeme;
+    const lexeme = value.lexeme.toLowerCase();
 
     // Handle special cases first
-    if (token === "*") {
+    if (lexeme === "*") {
       // Asterisk means "keep current font face"
-      hasExplicitFace = true;
+      ctx.hasExplicitFace = true;
       continue;
     }
 
-    if (token.toLowerCase() === "utf8") {
+    if (lexeme.toLowerCase() === "utf8") {
       // UTF-8 specifier - ignore but mark as processed
       continue;
     }
 
     // Handle modifiers
-    if (["bold", "italic", "underline"].includes(token.toLowerCase())) {
-      switch (token.toLowerCase()) {
+    if (["bold", "italic", "underline"].includes(lexeme)) {
+      switch (lexeme) {
         case "bold":
           result.weight = "bold";
           break;
@@ -84,7 +117,7 @@ export function analyzeFontDirective(directive: Directive, analyzer: SemanticAna
     }
 
     // Handle box keyword (only for supported font types)
-    if (token.toLowerCase() === "box") {
+    if (lexeme === "box") {
       const supportsBox = [
         "gchordfont",
         "measurefont",
@@ -100,34 +133,25 @@ export function analyzeFontDirective(directive: Directive, analyzer: SemanticAna
         "barlabelfont",
         "barnumberfont",
         "barnumfont",
-      ].includes(directiveName.lexeme);
+      ].includes(directive.key.lexeme);
 
       if (supportsBox) {
         result.box = true;
       } else {
-        analyzer.report(`Font type "${directiveName.lexeme}" does not support "box" parameter`, directive.id, value);
-        hasErrors = true;
+        analyzer.report(`Font type "${directive.key.lexeme}" does not support "box" parameter`, directive.id, value);
+        ctx.hasErrors = true;
       }
       continue;
     }
 
-    // Handle numeric size
-    if (value.type === TT.NUMBER) {
-      const size = parseFloat(token);
-      if (!isNaN(size) && size > 0) {
-        result.size = size;
-        hasExplicitSize = true;
-      } else {
-        analyzer.report(`Invalid font size: ${token}`, directive.id, value);
-        hasErrors = true;
-      }
-      continue;
-    }
+    const size = parseNumber(value, directive, analyzer, ctx);
+    if (size === null) continue;
+    result.size = size;
 
     // Handle font face (anything else that's not a number or keyword)
-    if (!hasExplicitFace && !hasExplicitSize) {
+    if (!ctx.hasExplicitFace && !ctx.hasExplicitSize) {
       // This must be a font face
-      let fontFace = token;
+      let fontFace = lexeme;
 
       // Remove quotes if present
       if ((fontFace.startsWith('"') && fontFace.endsWith('"')) || (fontFace.startsWith("'") && fontFace.endsWith("'"))) {
@@ -135,13 +159,13 @@ export function analyzeFontDirective(directive: Directive, analyzer: SemanticAna
       }
 
       result.face = fontFace;
-      hasExplicitFace = true;
+      ctx.hasExplicitFace = true;
       continue;
     }
 
     // If we get here, it's an unrecognized parameter
-    analyzer.report(`Unrecognized font parameter: ${token}`, directive.id, value);
-    hasErrors = true;
+    analyzer.report(`Unrecognized font parameter: ${lexeme}`, directive.id, value);
+    ctx.hasErrors = true;
   }
 
   // Set defaults for unspecified properties
@@ -152,17 +176,17 @@ export function analyzeFontDirective(directive: Directive, analyzer: SemanticAna
   // Validate that we have at least some meaningful content
   if (!result.face && !result.size && !result.weight && !result.style && !result.decoration && !result.box) {
     analyzer.report("Font directive has no meaningful parameters", directive.id);
-    hasErrors = true;
+    ctx.hasErrors = true;
   }
 
   // If there were errors, don't push semantic data
-  if (hasErrors) {
+  if (ctx.hasErrors) {
     return null;
   }
 
   // Create and push semantic data
   const semanticData: DirectiveSemanticData = {
-    type: directiveName.lexeme as any, // Type assertion needed for tagged union
+    type: directive.key.lexeme as any, // Type assertion needed for tagged union
     data: result,
   };
 
