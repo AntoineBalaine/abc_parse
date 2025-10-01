@@ -2,6 +2,7 @@ import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import { KeySignature, Meter, TempoProperties, ClefProperties, KeyInfo } from "./abcjs-ast";
 import { IRational } from "../Visitors/fmt2/rational";
+import { VoiceProperties } from "../parsers/infoLines/scanVxInfo";
 
 /**
  * Visitor is the interface that enables walking the parser's syntax tree.
@@ -55,7 +56,7 @@ export interface Visitor<R> {
 export type InfoLineUnion =
   | { type: "key"; data: KeyInfo }
   | { type: "meter"; data: Meter }
-  | { type: "voice"; data: { id: string; properties: { [key: string]: string } } }
+  | { type: "voice"; data: { id: string; properties: VoiceProperties } }
   | { type: "tempo"; data: TempoProperties }
   | { type: "title"; data: string }
   | { type: "composer"; data: string }

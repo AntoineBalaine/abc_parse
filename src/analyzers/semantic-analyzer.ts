@@ -6,8 +6,8 @@
  * and error reporting through context.
  */
 
-import { Visitor } from "../types/Expr2";
-import { DirectiveSemanticData, FontDirectiveNames } from "../types/directive-specs";
+import { InfoLineUnion, Visitor } from "../types/Expr2";
+import { DirectiveSemanticData } from "../types/directive-specs";
 import { ABCContext } from "../parsers/Context";
 import {
   Directive,
@@ -53,17 +53,23 @@ import { Token } from "../parsers/scan2";
 
 // Import analyzer functions
 import { analyzeDirective } from "./directive-analyzer";
+import { analyzeInfoLine } from "./info-line-analyzer";
+
+/**
+ * Unified semantic data type combining directive and info line analysis results
+ */
+export type SemanticData = DirectiveSemanticData | InfoLineUnion;
 
 /**
  * Main semantic analyzer visitor
  */
-export class SemanticAnalyzer implements Visitor<DirectiveSemanticData | null> {
-  data: Map<number, DirectiveSemanticData>;
+export class SemanticAnalyzer implements Visitor<SemanticData | null> {
+  data: Map<number, SemanticData>;
   ctx: ABCContext;
 
   constructor(abcContext: ABCContext) {
     this.ctx = abcContext;
-    this.data = new Map<number, DirectiveSemanticData>();
+    this.data = new Map<number, SemanticData>();
   }
 
   report(message: string, exprId: number, token?: any) {
@@ -77,7 +83,7 @@ export class SemanticAnalyzer implements Visitor<DirectiveSemanticData | null> {
   // Main directive analysis method (function forwarding)
   // ============================================================================
 
-  visitDirectiveExpr(expr: Directive): DirectiveSemanticData | null {
+  visitDirectiveExpr(expr: Directive): SemanticData | null {
     const directiveName = expr.key?.lexeme;
     if (!directiveName) {
       this.report("Directive missing name", expr.id);
@@ -96,34 +102,56 @@ export class SemanticAnalyzer implements Visitor<DirectiveSemanticData | null> {
   }
 
   // ============================================================================
+  // Main info line analysis method (function forwarding)
+  // ============================================================================
+
+  visitInfoLineExpr(expr: Info_line): SemanticData | null {
+    const infoLineKey = expr.key?.lexeme;
+    if (!infoLineKey) {
+      this.report("Info line missing key", expr.id);
+      return null;
+    }
+
+    // Delegate to the info line analyzer
+    const result = analyzeInfoLine(expr, this);
+
+    // Store the result in the data map if successful
+    if (result !== null) {
+      this.data.set(expr.id, result);
+    }
+
+    return result;
+  }
+
+  // ============================================================================
   // Visitor interface implementation (pass-through for non-directive expressions)
   // ============================================================================
 
-  visitToken(token: Token): DirectiveSemanticData | null {
+  visitToken(token: Token): SemanticData | null {
     return null;
   }
 
-  visitAnnotationExpr(expr: Annotation): DirectiveSemanticData | null {
+  visitAnnotationExpr(expr: Annotation): SemanticData | null {
     return null;
   }
 
-  visitBarLineExpr(expr: BarLine): DirectiveSemanticData | null {
+  visitBarLineExpr(expr: BarLine): SemanticData | null {
     return null;
   }
 
-  visitChordExpr(expr: Chord): DirectiveSemanticData | null {
+  visitChordExpr(expr: Chord): SemanticData | null {
     return null;
   }
 
-  visitCommentExpr(expr: Comment): DirectiveSemanticData | null {
+  visitCommentExpr(expr: Comment): SemanticData | null {
     return null;
   }
 
-  visitDecorationExpr(expr: Decoration): DirectiveSemanticData | null {
+  visitDecorationExpr(expr: Decoration): SemanticData | null {
     return null;
   }
 
-  visitFileHeaderExpr(expr: File_header): DirectiveSemanticData | null {
+  visitFileHeaderExpr(expr: File_header): SemanticData | null {
     // Process any directives in the file header
     for (const item of expr.contents) {
       if (item instanceof Directive) {
@@ -133,7 +161,7 @@ export class SemanticAnalyzer implements Visitor<DirectiveSemanticData | null> {
     return null;
   }
 
-  visitFileStructureExpr(expr: File_structure): DirectiveSemanticData | null {
+  visitFileStructureExpr(expr: File_structure): SemanticData | null {
     // Process file header if present
     if (expr.file_header) {
       expr.file_header.accept(this);
@@ -148,67 +176,65 @@ export class SemanticAnalyzer implements Visitor<DirectiveSemanticData | null> {
     return null;
   }
 
-  visitGraceGroupExpr(expr: Grace_group): DirectiveSemanticData | null {
+  visitGraceGroupExpr(expr: Grace_group): SemanticData | null {
     return null;
   }
 
-  visitInfoLineExpr(expr: Info_line): DirectiveSemanticData | null {
+  visitInlineFieldExpr(expr: Inline_field): SemanticData | null {
     return null;
   }
 
-  visitInlineFieldExpr(expr: Inline_field): DirectiveSemanticData | null {
+  visitLyricLineExpr(expr: Lyric_line): SemanticData | null {
     return null;
   }
 
-  visitLyricLineExpr(expr: Lyric_line): DirectiveSemanticData | null {
+  visitLyricSectionExpr(expr: Lyric_section): SemanticData | null {
     return null;
   }
 
-  visitLyricSectionExpr(expr: Lyric_section): DirectiveSemanticData | null {
+  visitMacroDeclExpr(expr: Macro_decl): SemanticData | null {
     return null;
   }
 
-  visitMacroDeclExpr(expr: Macro_decl): DirectiveSemanticData | null {
+  visitMacroInvocationExpr(expr: Macro_invocation): SemanticData | null {
     return null;
   }
 
-  visitMacroInvocationExpr(expr: Macro_invocation): DirectiveSemanticData | null {
+  visitMultiMeasureRestExpr(expr: MultiMeasureRest): SemanticData | null {
     return null;
   }
 
-  visitMultiMeasureRestExpr(expr: MultiMeasureRest): DirectiveSemanticData | null {
+  visitMusicCodeExpr(expr: Music_code): SemanticData | null {
     return null;
   }
 
-  visitMusicCodeExpr(expr: Music_code): DirectiveSemanticData | null {
+  visitNoteExpr(expr: Note): SemanticData | null {
     return null;
   }
 
-  visitNoteExpr(expr: Note): DirectiveSemanticData | null {
+  visitPitchExpr(expr: Pitch): SemanticData | null {
     return null;
   }
 
-  visitPitchExpr(expr: Pitch): DirectiveSemanticData | null {
+  visitRestExpr(expr: Rest): SemanticData | null {
     return null;
   }
 
-  visitRestExpr(expr: Rest): DirectiveSemanticData | null {
+  visitRhythmExpr(expr: Rhythm): SemanticData | null {
     return null;
   }
 
-  visitRhythmExpr(expr: Rhythm): DirectiveSemanticData | null {
+  visitSymbolExpr(expr: Symbol): SemanticData | null {
     return null;
   }
 
-  visitSymbolExpr(expr: Symbol): DirectiveSemanticData | null {
-    return null;
-  }
-
-  visitTuneBodyExpr(expr: Tune_Body): DirectiveSemanticData | null {
+  visitTuneBodyExpr(expr: Tune_Body): SemanticData | null {
     // Process all systems in the tune body
     for (const system of expr.sequence) {
       for (const item of system) {
         if (item instanceof Directive) {
+          item.accept(this);
+        } else if (item instanceof Info_line) {
           item.accept(this);
         }
       }
@@ -216,7 +242,7 @@ export class SemanticAnalyzer implements Visitor<DirectiveSemanticData | null> {
     return null;
   }
 
-  visitTuneExpr(expr: Tune): DirectiveSemanticData | null {
+  visitTuneExpr(expr: Tune): SemanticData | null {
     // Process tune header
     expr.tune_header.accept(this);
 
@@ -227,65 +253,67 @@ export class SemanticAnalyzer implements Visitor<DirectiveSemanticData | null> {
     return null;
   }
 
-  visitTuneHeaderExpr(expr: Tune_header): DirectiveSemanticData | null {
+  visitTuneHeaderExpr(expr: Tune_header): SemanticData | null {
     // Process all info lines and directives in the header
     for (const item of expr.info_lines) {
       if (item instanceof Directive) {
+        item.accept(this);
+      } else if (item instanceof Info_line) {
         item.accept(this);
       }
     }
     return null;
   }
 
-  visitUserSymbolDeclExpr(expr: User_symbol_decl): DirectiveSemanticData | null {
+  visitUserSymbolDeclExpr(expr: User_symbol_decl): SemanticData | null {
     return null;
   }
 
-  visitUserSymbolInvocationExpr(expr: User_symbol_invocation): DirectiveSemanticData | null {
+  visitUserSymbolInvocationExpr(expr: User_symbol_invocation): SemanticData | null {
     return null;
   }
 
-  visitYSpacerExpr(expr: YSPACER): DirectiveSemanticData | null {
+  visitYSpacerExpr(expr: YSPACER): SemanticData | null {
     return null;
   }
 
-  visitBeamExpr(expr: Beam): DirectiveSemanticData | null {
+  visitBeamExpr(expr: Beam): SemanticData | null {
     return null;
   }
 
-  visitVoiceOverlayExpr(expr: Voice_overlay): DirectiveSemanticData | null {
+  visitVoiceOverlayExpr(expr: Voice_overlay): SemanticData | null {
     return null;
   }
 
-  visitTupletExpr(expr: Tuplet): DirectiveSemanticData | null {
+  visitTupletExpr(expr: Tuplet): SemanticData | null {
     return null;
   }
 
-  visitErrorExpr(expr: ErrorExpr): DirectiveSemanticData | null {
+  visitErrorExpr(expr: ErrorExpr): SemanticData | null {
     return null;
   }
 
-  visitKV(expr: KV): DirectiveSemanticData | null {
+  visitKV(expr: KV): SemanticData | null {
     return null;
   }
 
-  visitBinary(expr: Binary): DirectiveSemanticData | null {
+  visitBinary(expr: Binary): SemanticData | null {
     return null;
   }
 
-  visitGrouping(expr: Grouping): DirectiveSemanticData | null {
+  visitGrouping(expr: Grouping): SemanticData | null {
     return null;
   }
 
-  visitAbsolutePitch(expr: AbsolutePitch): DirectiveSemanticData | null {
+  visitAbsolutePitch(expr: AbsolutePitch): SemanticData | null {
     return null;
   }
 
-  visitRationalExpr(expr: Rational): DirectiveSemanticData | null {
+  visitRationalExpr(expr: Rational): SemanticData | null {
     return null;
   }
 
-  visitMeasurementExpr(expr: Measurement): DirectiveSemanticData | null {
+  visitMeasurementExpr(expr: Measurement): SemanticData | null {
     return null;
   }
 }

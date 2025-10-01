@@ -297,7 +297,7 @@ export interface Font {
 
 export interface ClefProperties {
   type?: ClefType;
-  verticalPos: number;
+  verticalPos?: number;
   clefPos?: number;
   transpose?: number;
   stafflines?: number;
