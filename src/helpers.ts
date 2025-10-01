@@ -30,7 +30,7 @@ import {
 import { Range } from "./types/types";
 
 // Check if an element is a token
-export function isToken(element: Expr | Token): element is Token {
+export function isToken(element: unknown): element is Token {
   return element instanceof Token;
 }
 

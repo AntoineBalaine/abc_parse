@@ -373,6 +373,9 @@ export const FontDirectiveNames = Object.keys(DIRECTIVE_SPECS).filter((key) => k
 // Tagged Union Types for Semantic Data
 // ============================================================================
 
+// Extract the type field from the discriminated union
+export type DirectiveType = DirectiveSemanticData["type"];
+
 export type DirectiveSemanticData =
   // Font directives
   | { type: "titlefont"; data: FontSpec }
@@ -556,7 +559,7 @@ export type DrumSoundName = (typeof DRUM_SOUND_NAMES)[number];
 // Validation Helper Functions
 // ============================================================================
 
-export function isValidDirective(name: string): boolean {
+export function isValidDirective(name: string): name is DirectiveType {
   return name in DIRECTIVE_SPECS;
 }
 

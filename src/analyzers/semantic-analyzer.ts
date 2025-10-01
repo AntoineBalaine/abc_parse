@@ -52,7 +52,7 @@ import {
 import { Token } from "../parsers/scan2";
 
 // Import analyzer functions
-import { analyzeFontSpec } from "./font-analyzer";
+import { analyzeDirective } from "./directive-analyzer";
 
 /**
  * Main semantic analyzer visitor
@@ -84,25 +84,15 @@ export class SemanticAnalyzer implements Visitor<DirectiveSemanticData | null> {
       return null;
     }
 
-    // Function forwarding - delegate to specific analyzer functions
-    if (FontDirectiveNames.includes(directiveName)) {
-      return analyzeFontSpec(expr, this);
+    // Delegate to the main directive analyzer
+    const result = analyzeDirective(expr, this);
+
+    // Store the result in the data map if successful
+    if (result !== null) {
+      this.data.set(expr.id, result);
     }
 
-    // TODO: Add other directive type handlers here
-    // if (isMeasurementDirectiveName(directiveName)) {
-    //   return analyzeMeasurementDirective(expr, this.context);
-    // }
-    // if (isMidiDirectiveName(directiveName)) {
-    //   return analyzeMidiDirective(expr, this.context);
-    // }
-    // if (isBooleanDirectiveName(directiveName)) {
-    //   return analyzeBooleanDirective(expr, this.context);
-    // }
-
-    // For now, unhandled directives are ignored
-    this.report(`Unhandled directive type: ${directiveName}`, expr.id, expr.key);
-    return null;
+    return result;
   }
 
   // ============================================================================
