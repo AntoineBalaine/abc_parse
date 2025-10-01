@@ -86,11 +86,10 @@ export function analyzeInfoLine(expr: Info_line, analyzer: SemanticAnalyzer): In
  *   K:F# minor transpose=2 -> Token("F#"), Token("minor"), KV(key="transpose", value="2")
  */
 export function analyzeKeyInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
-  // Use value2 (expressions) if available, otherwise fall back to value (tokens)
-  const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
-
-  if (values.length === 0) {
-    analyzer.report("Key info line requires a value", expr.id);
+  // Key signature is always in expr.value (the token array)
+  // Properties are in expr.value2 (if they exist) or remaining tokens in value
+  if (expr.value.length === 0) {
+    analyzer.report("Key info line requires a key signature", expr.id);
     return null;
   }
 
@@ -103,14 +102,12 @@ export function analyzeKeyInfo(expr: Info_line, analyzer: SemanticAnalyzer): Inf
     },
   };
 
-  let index = 0;
+  let valueIndex = 0;
 
-  /** NOTE: MODIFY, we expect a PITCH expression here. */
-  // 1. Parse key root (required, usually first token)
-  const firstItem = values[index];
-  if (isToken(firstItem)) {
-    const token = firstItem as Token;
-    const keyStr = token.lexeme;
+  // 1. Parse key root from first token in value array
+  const firstToken = expr.value[valueIndex];
+  if (isToken(firstToken)) {
+    const keyStr = firstToken.lexeme;
 
     // Handle "none" special case
     if (keyStr.toLowerCase() === "none") {
@@ -118,57 +115,72 @@ export function analyzeKeyInfo(expr: Info_line, analyzer: SemanticAnalyzer): Inf
       return { type: "key", data: keyInfo };
     }
 
-    // Parse root and optional accidental from combined string (e.g., "F#", "Bb")
-    const root = parseKeyRoot(keyStr[0]);
-    if (root) {
-      keyInfo.keySignature.root = root;
+    // Parse using ABC pitch notation: ^f (F#), _b (Bb), =c (C natural)
+    // Format: [accidental]note where accidental is ^ (sharp) or _ (flat) or = (natural)
+    let keyIndex = 0;
+    let acc = KeyAccidental.None;
+
+    // Check for accidental prefix (ABC notation)
+    if (keyStr[0] === "^") {
+      acc = KeyAccidental.Sharp;
+      keyIndex = 1;
+    } else if (keyStr[0] === "_") {
+      acc = KeyAccidental.Flat;
+      keyIndex = 1;
+    } else if (keyStr[0] === "=") {
+      acc = KeyAccidental.None;
+      keyIndex = 1;
     }
 
-    // Check for accidental in same token
-    if (keyStr.length > 1) {
-      const acc = parseKeyAccidental(keyStr.substring(1));
-      if (acc !== KeyAccidental.None) {
+    // Parse root note
+    if (keyIndex < keyStr.length) {
+      const root = parseKeyRoot(keyStr[keyIndex]);
+      if (root) {
+        keyInfo.keySignature.root = root;
         keyInfo.keySignature.acc = acc;
       }
     }
 
-    index++;
+    valueIndex++;
   }
 
-  // 2. Parse optional mode (second token if not a KV)
-  if (index < values.length) {
-    const item = values[index];
-    if (isToken(item) && !(item instanceof KV)) {
-      const token = item as Token;
+  // 2. Parse optional mode from second token in value array (if not a KV and value2 doesn't exist)
+  if (valueIndex < expr.value.length && !(expr.value2 && expr.value2.length > 0)) {
+    const token = expr.value[valueIndex];
+    if (isToken(token)) {
       const mode = parseKeyMode(token.lexeme);
       if (mode !== null) {
         keyInfo.keySignature.mode = mode;
-        index++;
+        valueIndex++;
+      }
+    }
+  } else if (valueIndex < expr.value.length) {
+    // If value2 exists, check if second token is a mode
+    const token = expr.value[valueIndex];
+    if (isToken(token)) {
+      const mode = parseKeyMode(token.lexeme);
+      if (mode !== null) {
+        keyInfo.keySignature.mode = mode;
+        valueIndex++;
       }
     }
   }
 
-  // 3. Parse KV modifiers (clef, transpose, etc.)
-  while (index < values.length) {
-    const item = values[index];
+  // 3. Parse KV modifiers from value2 (if it exists) or from remaining value tokens
+  const propertySource = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value.slice(valueIndex);
 
-    if (item instanceof KV) {
-      if (isToken(item.key)) {
-        const keyName = (item.key as Token).lexeme.toLowerCase();
+  for (const item of propertySource) {
+    if (item instanceof KV && isToken(item.key)) {
+      const keyName = (item.key as Token).lexeme.toLowerCase();
 
-        if (keyName === "clef") {
-          const clef = parseClefFromKV(item);
-          if (clef) {
-            keyInfo.clef = clef;
-          }
-        } else {
-          applyModifier(item, keyInfo);
+      if (keyName === "clef") {
+        const clef = parseClefFromKV(item);
+        if (clef) {
+          keyInfo.clef = clef;
         }
+      } else {
+        applyModifier(item, keyInfo);
       }
-      index++;
-    } else {
-      // Stop when we hit non-KV, non-token items
-      break;
     }
   }
 

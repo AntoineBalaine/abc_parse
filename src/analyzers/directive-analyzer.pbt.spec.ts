@@ -8,7 +8,7 @@ import * as Gen from "./directive-analyzer.pbt.generators";
 import { Token } from "../parsers/scan2";
 import { Directive } from "../types/Expr2";
 
-describe.only("Directive Analyzer - Property-Based Tests", () => {
+describe("Directive Analyzer - Property-Based Tests", () => {
   let analyzer: SemanticAnalyzer;
   let context: ABCContext;
 
