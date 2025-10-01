@@ -5,7 +5,7 @@ import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Token, TT } from "../parsers/scan2";
 import { Info_line, KV, Binary, Annotation } from "../types/Expr2";
 
-describe.only("Tempo Info Line Analyzer - Example-Based Tests", () => {
+describe("Tempo Info Line Analyzer - Example-Based Tests", () => {
   let analyzer: SemanticAnalyzer;
   let context: ABCContext;
 
