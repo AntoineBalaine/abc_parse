@@ -191,7 +191,7 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     // Unknown Directive
     // ============================================================================
     default:
-      analyzer.report(`Unknown directive: ${key}`, directive.id);
+      analyzer.report(`Unknown directive: ${key}`, directive);
       return null;
   }
 }
@@ -210,7 +210,7 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
  */
 function parseFontDirective(directive: Directive, analyzer: SemanticAnalyzer, options: { supportsBox: boolean }): DirectiveSemanticData | null {
   if (directive.values.length === 0) {
-    analyzer.report(`Directive "${directive.key.lexeme}" requires font parameters`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" requires font parameters`, directive);
     return null;
   }
 
@@ -226,7 +226,7 @@ function parseFontDirective(directive: Directive, analyzer: SemanticAnalyzer, op
   if (isToken(cur) && cur.type === TT.IDENTIFIER && cur.lexeme === "*") {
     advance();
     if (!current()) {
-      analyzer.report("Expected font size number after *", directive.id);
+      analyzer.report("Expected font size number after *", directive);
       return null;
     }
     return parseSizeOnlyFormat(directive, tokens, currentIdx, options, analyzer);
@@ -252,7 +252,7 @@ function parseSizeOnlyFormat(
   const sizeToken = tokens[startIdx];
 
   if (!isToken(sizeToken) || sizeToken.type !== TT.NUMBER) {
-    analyzer.report("Expected number for font size", directive.id);
+    analyzer.report("Expected number for font size", directive);
     return null;
   }
 
@@ -266,12 +266,12 @@ function parseSizeOnlyFormat(
       if (options.supportsBox) {
         result.box = true;
       } else {
-        analyzer.report(`Font type "${directive.key.lexeme}" does not support "box" parameter`, directive.id);
+        analyzer.report(`Font type "${directive.key.lexeme}" does not support "box" parameter`, directive);
       }
     }
 
     if (startIdx + 2 < tokens.length) {
-      analyzer.report("Extra parameters in font definition", directive.id);
+      analyzer.report("Extra parameters in font definition", directive);
     }
   }
 
@@ -301,7 +301,7 @@ function parseFullFontDefinition(
   while (idx < tokens.length) {
     const token = tokens[idx];
     if (!isToken(token)) {
-      analyzer.report("Unexpected token type in font definition", directive.id);
+      analyzer.report("Unexpected token type in font definition", directive);
       idx++;
       continue;
     }
@@ -338,7 +338,7 @@ function parseFullFontDefinition(
           // State transition
           if (token.type === TT.NUMBER) {
             if (size !== undefined) {
-              analyzer.report("Font size specified twice in font definition", directive.id);
+              analyzer.report("Font size specified twice in font definition", directive);
             } else {
               size = parseFloat(token.lexeme);
             }
@@ -353,7 +353,7 @@ function parseFullFontDefinition(
             if (options.supportsBox) {
               box = true;
             } else {
-              analyzer.report(`Font type "${directive.key.lexeme}" does not support "box" parameter`, directive.id);
+              analyzer.report(`Font type "${directive.key.lexeme}" does not support "box" parameter`, directive);
             }
             state = "finished";
           } else if (word === "utf" || word === "utf8" || word === "utf-8") {
@@ -363,7 +363,7 @@ function parseFullFontDefinition(
             }
             state = "size";
           } else {
-            analyzer.report(`Unknown parameter "${token.lexeme}" in font definition`, directive.id);
+            analyzer.report(`Unknown parameter "${token.lexeme}" in font definition`, directive);
           }
         }
         break;
@@ -371,12 +371,12 @@ function parseFullFontDefinition(
       case "size":
         if (token.type === TT.NUMBER) {
           if (size !== undefined) {
-            analyzer.report("Font size specified twice in font definition", directive.id);
+            analyzer.report("Font size specified twice in font definition", directive);
           } else {
             size = parseFloat(token.lexeme);
           }
         } else {
-          analyzer.report("Expected font size in font definition", directive.id);
+          analyzer.report("Expected font size in font definition", directive);
         }
         state = "modifier";
         break;
@@ -392,16 +392,16 @@ function parseFullFontDefinition(
           if (options.supportsBox) {
             box = true;
           } else {
-            analyzer.report(`Font type "${directive.key.lexeme}" does not support "box" parameter`, directive.id);
+            analyzer.report(`Font type "${directive.key.lexeme}" does not support "box" parameter`, directive);
           }
           state = "finished";
         } else {
-          analyzer.report(`Unknown parameter "${token.lexeme}" in font definition`, directive.id);
+          analyzer.report(`Unknown parameter "${token.lexeme}" in font definition`, directive);
         }
         break;
 
       case "finished":
-        analyzer.report(`Extra characters found after "box" in font definition`, directive.id);
+        analyzer.report(`Extra characters found after "box" in font definition`, directive);
         break;
     }
 
@@ -436,7 +436,7 @@ function parseFullFontDefinition(
 
   // Validate that we have meaningful content
   if (!result.face && !result.size && result.weight === "normal" && result.style === "normal" && result.decoration === "none" && !result.box) {
-    analyzer.report("Font directive has no meaningful parameters", directive.id);
+    analyzer.report("Font directive has no meaningful parameters", directive);
     return null;
   }
 
@@ -451,7 +451,7 @@ function parseFullFontDefinition(
  */
 function parseBooleanFlag(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   if (directive.values.length > 0) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects no parameters, but got ${directive.values.length}`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects no parameters, but got ${directive.values.length}`, directive);
   }
 
   return {
@@ -465,18 +465,18 @@ function parseBooleanFlag(directive: Directive, analyzer: SemanticAnalyzer): Dir
  */
 function parseIdentifier(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   if (directive.values.length === 0) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects an identifier parameter`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects an identifier parameter`, directive);
     return null;
   }
 
   const value = directive.values[0];
   if (!(value instanceof Token) || value.type !== TT.IDENTIFIER) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects an identifier`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects an identifier`, directive);
     return null;
   }
 
   if (directive.values.length > 1) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive);
   }
 
   return {
@@ -490,13 +490,13 @@ function parseIdentifier(directive: Directive, analyzer: SemanticAnalyzer): Dire
  */
 function parseBooleanValue(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   if (directive.values.length === 0) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects a boolean parameter`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects a boolean parameter`, directive);
     return null;
   }
 
   const value = directive.values[0];
   if (!(value instanceof Token)) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects a boolean (true/false or 0/1)`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects a boolean (true/false or 0/1)`, directive);
     return null;
   }
 
@@ -508,7 +508,7 @@ function parseBooleanValue(directive: Directive, analyzer: SemanticAnalyzer): Di
     } else if (lexeme === "false") {
       boolValue = false;
     } else {
-      analyzer.report(`Directive "${directive.key.lexeme}" expects true/false or 0/1, got "${value.lexeme}"`, directive.id);
+      analyzer.report(`Directive "${directive.key.lexeme}" expects true/false or 0/1, got "${value.lexeme}"`, directive);
       return null;
     }
   } else if (value.type === TT.NUMBER) {
@@ -518,16 +518,16 @@ function parseBooleanValue(directive: Directive, analyzer: SemanticAnalyzer): Di
     } else if (num === 1) {
       boolValue = true;
     } else {
-      analyzer.report(`Directive "${directive.key.lexeme}" expects 0 or 1, got ${num}`, directive.id);
+      analyzer.report(`Directive "${directive.key.lexeme}" expects 0 or 1, got ${num}`, directive);
       return null;
     }
   } else {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects a boolean (true/false or 0/1)`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects a boolean (true/false or 0/1)`, directive);
     return null;
   }
 
   if (directive.values.length > 1) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive);
   }
 
   return {
@@ -541,34 +541,34 @@ function parseBooleanValue(directive: Directive, analyzer: SemanticAnalyzer): Di
  */
 function parseNumber(directive: Directive, analyzer: SemanticAnalyzer, constraints?: { min?: number; max?: number }): DirectiveSemanticData | null {
   if (directive.values.length === 0) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects a number parameter`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects a number parameter`, directive);
     return null;
   }
 
   const value = directive.values[0];
   if (!(value instanceof Token) || value.type !== TT.NUMBER) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects a number`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects a number`, directive);
     return null;
   }
 
   const num = parseFloat(value.lexeme);
   if (isNaN(num)) {
-    analyzer.report(`Invalid number: ${value.lexeme}`, directive.id);
+    analyzer.report(`Invalid number: ${value.lexeme}`, directive);
     return null;
   }
 
   if (constraints?.min !== undefined && num < constraints.min) {
-    analyzer.report(`Number ${num} is below minimum ${constraints.min}`, directive.id);
+    analyzer.report(`Number ${num} is below minimum ${constraints.min}`, directive);
     return null;
   }
 
   if (constraints?.max !== undefined && num > constraints.max) {
-    analyzer.report(`Number ${num} is above maximum ${constraints.max}`, directive.id);
+    analyzer.report(`Number ${num} is above maximum ${constraints.max}`, directive);
     return null;
   }
 
   if (directive.values.length > 1) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive);
   }
 
   return {
@@ -582,25 +582,25 @@ function parseNumber(directive: Directive, analyzer: SemanticAnalyzer, constrain
  */
 function parsePositionChoice(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   if (directive.values.length === 0) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects a position parameter (auto, above, below, hidden)`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects a position parameter (auto, above, below, hidden)`, directive);
     return null;
   }
 
   const value = directive.values[0];
   if (!(value instanceof Token) || value.type !== TT.IDENTIFIER) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects a position identifier`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects a position identifier`, directive);
     return null;
   }
 
   const lexeme = value.lexeme.toLowerCase();
   const validPositions = ["auto", "above", "below", "hidden"];
   if (!validPositions.includes(lexeme)) {
-    analyzer.report(`Invalid position "${value.lexeme}", expected one of: ${validPositions.join(", ")}`, directive.id);
+    analyzer.report(`Invalid position "${value.lexeme}", expected one of: ${validPositions.join(", ")}`, directive);
     return null;
   }
 
   if (directive.values.length > 1) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive);
   }
 
   return {
@@ -614,7 +614,7 @@ function parsePositionChoice(directive: Directive, analyzer: SemanticAnalyzer): 
  */
 function parseMeasurement(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   if (directive.values.length === 0) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects a measurement parameter`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects a measurement parameter`, directive);
     return null;
   }
 
@@ -624,12 +624,12 @@ function parseMeasurement(directive: Directive, analyzer: SemanticAnalyzer): Dir
   if (value instanceof Measurement) {
     const numValue = parseFloat(value.value.lexeme);
     if (isNaN(numValue)) {
-      analyzer.report(`Invalid measurement value: ${value.value.lexeme}`, directive.id);
+      analyzer.report(`Invalid measurement value: ${value.value.lexeme}`, directive);
       return null;
     }
 
     if (directive.values.length > 1) {
-      analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive.id);
+      analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive);
     }
 
     return {
@@ -645,12 +645,12 @@ function parseMeasurement(directive: Directive, analyzer: SemanticAnalyzer): Dir
   if (value instanceof Token && value.type === TT.NUMBER) {
     const numValue = parseFloat(value.lexeme);
     if (isNaN(numValue)) {
-      analyzer.report(`Invalid number: ${value.lexeme}`, directive.id);
+      analyzer.report(`Invalid number: ${value.lexeme}`, directive);
       return null;
     }
 
     if (directive.values.length > 1) {
-      analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive.id);
+      analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive);
     }
 
     return {
@@ -661,7 +661,7 @@ function parseMeasurement(directive: Directive, analyzer: SemanticAnalyzer): Dir
     };
   }
 
-  analyzer.report(`Directive "${directive.key.lexeme}" expects a measurement (number with optional unit)`, directive.id);
+  analyzer.report(`Directive "${directive.key.lexeme}" expects a measurement (number with optional unit)`, directive);
   return null;
 }
 
@@ -675,13 +675,13 @@ function parseSep(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSe
   for (let i = 0; i < directive.values.length && i < 3; i++) {
     const value = directive.values[i];
     if (!(value instanceof Token) || value.type !== TT.NUMBER) {
-      analyzer.report(`Directive "sep" expects number parameters`, directive.id);
+      analyzer.report(`Directive "sep" expects number parameters`, directive);
       continue;
     }
 
     const num = parseFloat(value.lexeme);
     if (isNaN(num)) {
-      analyzer.report(`Invalid number: ${value.lexeme}`, directive.id);
+      analyzer.report(`Invalid number: ${value.lexeme}`, directive);
       continue;
     }
 
@@ -691,7 +691,7 @@ function parseSep(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSe
   }
 
   if (directive.values.length > 3) {
-    analyzer.report(`Directive "sep" expects at most 3 parameters, ignoring extra parameters`, directive.id);
+    analyzer.report(`Directive "sep" expects at most 3 parameters, ignoring extra parameters`, directive);
   }
 
   return {
@@ -722,7 +722,7 @@ function parseCenter(directive: Directive, analyzer: SemanticAnalyzer): Directiv
  */
 function parseSetfont(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   // TODO: Implement - requires parsing -N suffix and font spec
-  analyzer.report(`Directive "${directive.key.lexeme}" is not yet implemented`, directive.id);
+  analyzer.report(`Directive "${directive.key.lexeme}" is not yet implemented`, directive);
   return null;
 }
 
@@ -740,18 +740,18 @@ function parseNewpage(directive: Directive, analyzer: SemanticAnalyzer): Directi
 
   const value = directive.values[0];
   if (!(value instanceof Token) || value.type !== TT.NUMBER) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects an optional number parameter`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects an optional number parameter`, directive);
     return null;
   }
 
   const pageNum = parseFloat(value.lexeme);
   if (isNaN(pageNum)) {
-    analyzer.report(`Invalid page number: ${value.lexeme}`, directive.id);
+    analyzer.report(`Invalid page number: ${value.lexeme}`, directive);
     return null;
   }
 
   if (directive.values.length > 1) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive);
   }
 
   return {
@@ -821,7 +821,7 @@ function parseDeco(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
  */
 function parseAnnotation(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   if (directive.values.length === 0) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects a text parameter`, directive.id);
+    analyzer.report(`Directive "${directive.key.lexeme}" expects a text parameter`, directive);
     return null;
   }
 
@@ -843,6 +843,6 @@ function parseAnnotation(directive: Directive, analyzer: SemanticAnalyzer): Dire
     };
   }
 
-  analyzer.report(`Directive "${directive.key.lexeme}" expects a string parameter`, directive.id);
+  analyzer.report(`Directive "${directive.key.lexeme}" expects a string parameter`, directive);
   return null;
 }

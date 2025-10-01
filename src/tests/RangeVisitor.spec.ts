@@ -24,7 +24,7 @@ describe("Range Visitor", function () {
       if (parse) {
         expect(parse).to.be.instanceof(Note);
         if (isNote(parse)) {
-          const res = parse.accept(new RangeVisitor(ctx));
+          const res = parse.accept(new RangeVisitor());
           assert.deepEqual(res, expected);
         }
       }
@@ -41,7 +41,7 @@ describe("Range Visitor", function () {
     if (parse) {
       expect(parse).to.be.instanceof(Grace_group);
       if (isGraceGroup(parse)) {
-        const res = parse.accept(new RangeVisitor(ctx));
+        const res = parse.accept(new RangeVisitor());
         assert.deepEqual(res, expected);
       }
     }

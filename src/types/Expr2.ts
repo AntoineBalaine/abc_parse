@@ -9,7 +9,6 @@ import { VoiceProperties } from "../parsers/infoLines/scanVxInfo";
  * Each method of the Visitor allows for traversing one of the expressions of the syntax tree.
  */
 export interface Visitor<R> {
-  ctx: ABCContext;
   visitToken(token: Token): R;
   visitAnnotationExpr(expr: Annotation): R;
   visitBarLineExpr(expr: BarLine): R;

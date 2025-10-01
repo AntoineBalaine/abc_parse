@@ -6,7 +6,7 @@
  * and error reporting through context.
  */
 
-import { InfoLineUnion, Visitor } from "../types/Expr2";
+import { InfoLineUnion, Visitor, Expr } from "../types/Expr2";
 import { DirectiveSemanticData } from "../types/directive-specs";
 import { ABCContext } from "../parsers/Context";
 import {
@@ -72,11 +72,8 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
     this.data = new Map<number, SemanticData>();
   }
 
-  report(message: string, exprId: number, token?: any) {
-    // TODO: Implement error reporting
-    // For now, just log to console
-    // this.ctx.errorReporter.
-    console.error(`Semantic Error [${exprId}]: ${message}`, token);
+  report(message: string, expr: Expr) {
+    this.ctx.errorReporter.analyzerError(message, expr);
   }
 
   // ============================================================================
@@ -86,7 +83,7 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
   visitDirectiveExpr(expr: Directive): SemanticData | null {
     const directiveName = expr.key?.lexeme;
     if (!directiveName) {
-      this.report("Directive missing name", expr.id);
+      this.report("Directive missing name", expr);
       return null;
     }
 
@@ -108,7 +105,7 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
   visitInfoLineExpr(expr: Info_line): SemanticData | null {
     const infoLineKey = expr.key?.lexeme;
     if (!infoLineKey) {
-      this.report("Info line missing key", expr.id);
+      this.report("Info line missing key", expr);
       return null;
     }
 

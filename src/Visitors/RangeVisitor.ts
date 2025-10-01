@@ -50,9 +50,7 @@ import { Range } from "../types/types";
  * {@link Range} being: start line and character `Position`, end line and character `Position`.
  */
 export class RangeVisitor implements Visitor<Range> {
-  ctx: ABCContext;
-  constructor(ctx: ABCContext) {
-    this.ctx = ctx;
+  constructor() {
   }
   visitToken(token: Token): Range {
     return getTokenRange(token);

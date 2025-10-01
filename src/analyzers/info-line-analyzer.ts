@@ -40,7 +40,7 @@ import { VoiceProperties } from "../parsers/infoLines/scanVxInfo";
 export function analyzeInfoLine(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
   const key = expr.key?.lexeme;
   if (!key) {
-    analyzer.report("Info line missing key", expr.id);
+    analyzer.report("Info line missing key", expr);
     return null;
   }
 
@@ -62,7 +62,7 @@ export function analyzeInfoLine(expr: Info_line, analyzer: SemanticAnalyzer): In
     case "O":
       return analyzeOriginInfo(expr, analyzer);
     default:
-      analyzer.report(`Unknown info line key: ${key}`, expr.id);
+      analyzer.report(`Unknown info line key: ${key}`, expr);
       return null;
   }
 }
@@ -89,7 +89,7 @@ export function analyzeKeyInfo(expr: Info_line, analyzer: SemanticAnalyzer): Inf
   // Key signature is always in expr.value (the token array)
   // Properties are in expr.value2 (if they exist) or remaining tokens in value
   if (expr.value.length === 0) {
-    analyzer.report("Key info line requires a key signature", expr.id);
+    analyzer.report("Key info line requires a key signature", expr);
     return null;
   }
 
@@ -344,7 +344,7 @@ export function analyzeMeterInfo(expr: Info_line, analyzer: SemanticAnalyzer): I
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
 
   if (values.length === 0) {
-    analyzer.report("Meter info line requires a value", expr.id);
+    analyzer.report("Meter info line requires a value", expr);
     return null;
   }
 
@@ -406,7 +406,7 @@ export function analyzeMeterInfo(expr: Info_line, analyzer: SemanticAnalyzer): I
     }
   }
 
-  analyzer.report("Invalid meter format", expr.id);
+  analyzer.report("Invalid meter format", expr);
   return null;
 }
 
@@ -506,7 +506,7 @@ export function analyzeNoteLenInfo(expr: Info_line, analyzer: SemanticAnalyzer):
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
 
   if (values.length === 0) {
-    analyzer.report("Note length info line requires a value", expr.id);
+    analyzer.report("Note length info line requires a value", expr);
     return null;
   }
 
@@ -540,7 +540,7 @@ export function analyzeNoteLenInfo(expr: Info_line, analyzer: SemanticAnalyzer):
     }
   }
 
-  analyzer.report("Invalid note length format", expr.id);
+  analyzer.report("Invalid note length format", expr);
   return null;
 }
 
@@ -565,7 +565,7 @@ export function analyzeTempoInfo(expr: Info_line, analyzer: SemanticAnalyzer): I
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
 
   if (values.length === 0) {
-    analyzer.report("Tempo info line requires a value", expr.id);
+    analyzer.report("Tempo info line requires a value", expr);
     return null;
   }
 
@@ -656,7 +656,7 @@ function parseTempoDuration(key: Token | Expr): number[] | undefined {
 export function analyzeVoiceInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
   // Voice ID is always in expr.value (the token array)
   if (expr.value.length === 0) {
-    analyzer.report("Voice info line requires a voice ID", expr.id);
+    analyzer.report("Voice info line requires a voice ID", expr);
     return null;
   }
 
@@ -676,7 +676,7 @@ export function analyzeVoiceInfo(expr: Info_line, analyzer: SemanticAnalyzer): I
     if (item instanceof KV && isToken(item.key) && isToken(item.value)) {
       const key = (item.key as Token).lexeme.toLowerCase();
       const value = (item.value as Token).lexeme;
-      applyVoiceProperty(properties, key, value, analyzer, expr.id);
+      applyVoiceProperty(properties, key, value, analyzer, expr);
     }
   }
 
@@ -694,7 +694,7 @@ function applyVoiceProperty(
   key: string,
   value: string,
   analyzer: SemanticAnalyzer,
-  exprId: number
+  expr: Info_line
 ): void {
   switch (key) {
     case "name":
@@ -789,7 +789,7 @@ function applyVoiceProperty(
       break;
 
     default:
-      analyzer.report(`Unknown voice property: ${key}`, exprId);
+      analyzer.report(`Unknown voice property: ${key}`, expr);
       break;
   }
 }

@@ -97,7 +97,7 @@ export class RhythmVisitor implements Visitor<Expr> {
     this.ctx = ctx;
     this.source = source;
 
-    this.rangeVisitor = new RangeVisitor(this.ctx);
+    this.rangeVisitor = new RangeVisitor();
   }
 
   visitToken(token: Token): Token {

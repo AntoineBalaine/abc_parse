@@ -63,7 +63,7 @@ export class Transposer implements Visitor<Expr | Token> {
   constructor(source: File_structure, ctx: ABCContext) {
     this.ctx = ctx;
     this.source = source;
-    this.rangeVisitor = new RangeVisitor(this.ctx);
+    this.rangeVisitor = new RangeVisitor();
     // Default range covers the entire document
   }
 

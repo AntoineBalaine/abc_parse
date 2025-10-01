@@ -54,7 +54,7 @@ export class ExpressionCollector implements Visitor<void> {
   private collected: Array<Expr | Token> = [];
   private rangeVisitor: RangeVisitor;
   constructor(public ctx: ABCContext, private range: Range) {
-    this.rangeVisitor = new RangeVisitor(ctx);
+    this.rangeVisitor = new RangeVisitor();
   }
 
   private isInRange(expr: Expr | Token): boolean {
