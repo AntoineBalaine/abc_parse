@@ -3,13 +3,7 @@ import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Token, TT } from "../parsers/scan2";
 import { Info_line, Binary, Rational, KV, Grouping } from "../types/Expr2";
-import {
-  KeyRoot,
-  KeyAccidental,
-  Mode,
-  MeterType,
-  ClefType,
-} from "../types/abcjs-ast";
+import { KeyRoot, KeyAccidental, Mode, MeterType, ClefType } from "../types/abcjs-ast";
 
 // Shared context for all generators
 export const sharedContext = new ABCContext(new AbcErrorReporter());
@@ -19,7 +13,8 @@ export const sharedContext = new ABCContext(new AbcErrorReporter());
 // ============================================================================
 
 export const genKeyRoot = fc.constantFrom("A", "B", "C", "D", "E", "F", "G");
-export const genKeyAccidental = fc.constantFrom("", "#", "b");
+// ABC pitch notation: ^ for sharp, _ for flat, empty for natural
+export const genKeyAccidental = fc.constantFrom("", "^", "_");
 
 export const genMode = fc.constantFrom(
   "major",
@@ -47,10 +42,7 @@ export const genKeyInfoSimple = genKeyRoot.map((root) => {
   const tokens = [keyToken];
 
   return {
-    infoLine: new Info_line(
-      sharedContext.generateId(),
-      [new Token(TT.IDENTIFIER, "K", sharedContext.generateId()), ...tokens]
-    ),
+    infoLine: new Info_line(sharedContext.generateId(), [new Token(TT.IDENTIFIER, "K", sharedContext.generateId()), ...tokens]),
     expected: {
       type: "key" as const,
       root: root as KeyRoot,
@@ -61,26 +53,26 @@ export const genKeyInfoSimple = genKeyRoot.map((root) => {
 });
 
 /**
- * Generate K: info line with key root and accidental (e.g., "K:F#", "K:Bb")
+ * Generate K: info line with key root and accidental (e.g., "K:^f", "K:_b")
+ * Uses ABC pitch notation: ^ for sharp, _ for flat
  */
 export const genKeyInfoWithAccidental = fc
   .record({
     root: genKeyRoot,
-    acc: fc.constantFrom("#", "b"),
+    acc: fc.constantFrom("^", "_"),
   })
   .map(({ root, acc }) => {
-    const keyToken = new Token(TT.IDENTIFIER, root + acc, sharedContext.generateId());
+    // ABC pitch notation: accidental comes before the note
+    const keyStr = acc + root.toLowerCase();
+    const keyToken = new Token(TT.IDENTIFIER, keyStr, sharedContext.generateId());
     const tokens = [keyToken];
 
     return {
-      infoLine: new Info_line(
-        sharedContext.generateId(),
-        [new Token(TT.IDENTIFIER, "K", sharedContext.generateId()), ...tokens]
-      ),
+      infoLine: new Info_line(sharedContext.generateId(), [new Token(TT.IDENTIFIER, "K", sharedContext.generateId()), ...tokens]),
       expected: {
         type: "key" as const,
         root: root as KeyRoot,
-        acc: acc === "#" ? KeyAccidental.Sharp : KeyAccidental.Flat,
+        acc: acc === "^" ? KeyAccidental.Sharp : KeyAccidental.Flat,
         mode: Mode.Major,
       },
     };
@@ -96,7 +88,13 @@ export const genKeyInfoWithMode = fc
     mode: genMode,
   })
   .map(({ root, acc, mode }) => {
-    const keyStr = root + acc;
+    // ABC pitch notation: accidental comes before the note (lowercase if accidental present)
+    let keyStr: string;
+    if (acc) {
+      keyStr = acc + root.toLowerCase();
+    } else {
+      keyStr = root;
+    }
     const keyToken = new Token(TT.IDENTIFIER, keyStr, sharedContext.generateId());
     const tokens = [keyToken];
 
@@ -108,14 +106,11 @@ export const genKeyInfoWithMode = fc
     const modeEnum = parseModeForTest(mode);
 
     return {
-      infoLine: new Info_line(
-        sharedContext.generateId(),
-        [new Token(TT.IDENTIFIER, "K", sharedContext.generateId()), ...tokens]
-      ),
+      infoLine: new Info_line(sharedContext.generateId(), [new Token(TT.IDENTIFIER, "K", sharedContext.generateId()), ...tokens]),
       expected: {
         type: "key" as const,
         root: root as KeyRoot,
-        acc: acc === "#" ? KeyAccidental.Sharp : acc === "b" ? KeyAccidental.Flat : KeyAccidental.None,
+        acc: acc === "^" ? KeyAccidental.Sharp : acc === "_" ? KeyAccidental.Flat : KeyAccidental.None,
         mode: modeEnum,
       },
     };
@@ -162,12 +157,7 @@ export const genKeyInfoWithClef = fc
 /**
  * Generate any valid K: info line
  */
-export const genKeyInfo = fc.oneof(
-  genKeyInfoSimple,
-  genKeyInfoWithAccidental,
-  genKeyInfoWithMode,
-  genKeyInfoWithClef
-);
+export const genKeyInfo = fc.oneof(genKeyInfoSimple, genKeyInfoWithAccidental, genKeyInfoWithMode, genKeyInfoWithClef);
 
 // ============================================================================
 // Meter Info Line Generators (M:)
@@ -177,13 +167,10 @@ export const genKeyInfo = fc.oneof(
  * Generate M: info line with common time (e.g., "M:C")
  */
 export const genMeterInfoCommonTime = fc.constant({
-  infoLine: new Info_line(
-    sharedContext.generateId(),
-    [
-      new Token(TT.IDENTIFIER, "M", sharedContext.generateId()),
-      new Token(TT.IDENTIFIER, "C", sharedContext.generateId()),
-    ]
-  ),
+  infoLine: new Info_line(sharedContext.generateId(), [
+    new Token(TT.IDENTIFIER, "M", sharedContext.generateId()),
+    new Token(TT.IDENTIFIER, "C", sharedContext.generateId()),
+  ]),
   expected: {
     type: "meter" as const,
     meterType: MeterType.CommonTime,
@@ -196,13 +183,10 @@ export const genMeterInfoCommonTime = fc.constant({
  * Generate M: info line with cut time (e.g., "M:C|")
  */
 export const genMeterInfoCutTime = fc.constant({
-  infoLine: new Info_line(
-    sharedContext.generateId(),
-    [
-      new Token(TT.IDENTIFIER, "M", sharedContext.generateId()),
-      new Token(TT.IDENTIFIER, "C|", sharedContext.generateId()),
-    ]
-  ),
+  infoLine: new Info_line(sharedContext.generateId(), [
+    new Token(TT.IDENTIFIER, "M", sharedContext.generateId()),
+    new Token(TT.IDENTIFIER, "C|", sharedContext.generateId()),
+  ]),
   expected: {
     type: "meter" as const,
     meterType: MeterType.CutTime,
