@@ -723,3 +723,21 @@ export function isTextLine(line: Line): line is TextLine {
 export function isSubtitleLine(line: Line): line is SubtitleLine {
   return "subtitle" in line;
 }
+
+export interface VoiceProperties {
+  name?: string;
+  clef?: ClefProperties;
+  transpose?: number;
+  octave?: number;
+  middle?: string;
+  stafflines?: number;
+  staffscale?: number;
+  perc?: boolean;
+  instrument?: number;
+  merge?: boolean;
+  stems?: StemDirection;
+  gchord?: ChordPlacement;
+  space?: number;
+  bracket?: BracketBracePosition;
+  brace?: BracketBracePosition;
+}

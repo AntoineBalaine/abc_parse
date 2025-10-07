@@ -60,6 +60,10 @@ export class AbcErrorReporter {
     return this.report(message, expr, ParserErrorType.ANALYZER);
   };
 
+  interpreterError = (message: string, expr: Expr) => {
+    return this.report(message, expr, ParserErrorType.INTERPRETER);
+  };
+
   Scanner2Error = (ctx: Ctx, messag: string) => {
     // this.report(messag, new Token(TT.AMPERSAND, "", null, -1, -1), ParserErrorType.BACKTICK);
   };

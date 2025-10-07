@@ -5,7 +5,6 @@ import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Token, TT } from "../parsers/scan2";
 import { Info_line, KV } from "../types/Expr2";
 import { ClefType, StemDirection, ChordPlacement, BracketBracePosition } from "../types/abcjs-ast";
-import { VoiceProperties } from "../parsers/infoLines/scanVxInfo";
 
 describe("Voice Info Line Analyzer - Example-Based Tests", () => {
   let analyzer: SemanticAnalyzer;

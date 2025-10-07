@@ -4,15 +4,20 @@ import path from "path";
 import { ABCContext } from "../parsers/Context";
 import { AbcError, AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Scanner2 } from "../parsers/scan2";
+import { isToken } from "../helpers";
 
 function formatError(error: AbcError, sourceContent: string): string {
   const lines = sourceContent.split("\n");
-  const errorLine = lines[error.token.line];
-  const position = error.token.position;
+  if (isToken(error.token)) {
+    const errorLine = lines[error.token?.line];
+    const position = error.token?.position;
 
-  return [``, errorLine, " ".repeat(position) + "^", " ".repeat(position) + `${error.message} - line ${error.token.line + 1}:${position + 1}`].join(
-    "\n"
-  );
+    return [``, errorLine, " ".repeat(position) + "^", " ".repeat(position) + `${error.message} - line ${error.token.line + 1}:${position + 1}`].join(
+      "\n"
+    );
+  } else {
+    return "";
+  }
 }
 
 /**

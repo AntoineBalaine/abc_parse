@@ -1,5 +1,5 @@
+import { VoiceProperties } from "../parsers/infoLines/scanVxInfo";
 import { KeySignature, Meter, ClefProperties, TempoProperties, MetaText, KeyRoot, KeyAccidental, Mode, ClefType } from "../types/abcjs-ast";
-import { VoiceProperties } from "./InfoLineParser";
 import { IRational, createRational } from "../Visitors/fmt2/rational";
 
 export interface VoiceContext {

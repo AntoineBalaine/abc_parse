@@ -28,11 +28,11 @@ import {
   StemDirection,
   ChordPlacement,
   BracketBracePosition,
+  VoiceProperties,
 } from "../types/abcjs-ast";
 import { IRational } from "../Visitors/fmt2/rational";
 import { Token, TT } from "../parsers/scan2";
 import { isToken } from "../helpers";
-import { VoiceProperties } from "../parsers/infoLines/scanVxInfo";
 
 /**
  * Main info line analyzer - dispatches to specific analyzers based on key
@@ -689,13 +689,7 @@ export function analyzeVoiceInfo(expr: Info_line, analyzer: SemanticAnalyzer): I
 /**
  * Apply a voice property key-value pair to the VoiceProperties object
  */
-function applyVoiceProperty(
-  properties: VoiceProperties,
-  key: string,
-  value: string,
-  analyzer: SemanticAnalyzer,
-  expr: Info_line
-): void {
+function applyVoiceProperty(properties: VoiceProperties, key: string, value: string, analyzer: SemanticAnalyzer, expr: Info_line): void {
   switch (key) {
     case "name":
       properties.name = value;

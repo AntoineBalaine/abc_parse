@@ -125,6 +125,7 @@ export enum ParserErrorType {
   REPEAT_NUMBER = "REPEAT_NUMBER",
   SYMBOL = "SYMBOL",
   ANALYZER = "ANALYZER",
+  INTERPRETER = "INTERPRETER",
 }
 
 /**
