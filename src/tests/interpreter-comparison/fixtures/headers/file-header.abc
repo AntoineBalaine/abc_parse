@@ -1,0 +1,14 @@
+%%abc-version 2.1
+%%abc-creator Test Suite
+%%abc-copyright Public Domain
+L:1/8
+
+X:1
+T:First Tune
+K:C
+CDEF GABc|
+
+X:2
+T:Second Tune
+K:G
+GABc defg|
