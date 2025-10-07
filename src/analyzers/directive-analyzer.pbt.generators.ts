@@ -476,17 +476,19 @@ export const genAnnotationDirectiveWithObject = fc
     };
   });
 
-// With plain token
+// With plain token(s) - splits text into multiple tokens to match parser behavior
 export const genAnnotationDirectiveWithToken = fc
   .record({
     name: genAnnotationDirectiveName,
     text: genAnnotationText,
   })
   .map(({ name, text }) => {
+    // Split text by spaces to create multiple tokens (matching parser behavior)
+    const words = text.split(' ').filter(word => word.length > 0);
+    const tokens = words.map(word => new Token(TT.IDENTIFIER, word, sharedContext.generateId()));
+
     return {
-      directive: new Directive(sharedContext.generateId(), new Token(TT.IDENTIFIER, name, sharedContext.generateId()), [
-        new Token(TT.ANNOTATION, text, sharedContext.generateId()),
-      ]),
+      directive: new Directive(sharedContext.generateId(), new Token(TT.IDENTIFIER, name, sharedContext.generateId()), tokens),
       expected: {
         type: name,
         data: text,

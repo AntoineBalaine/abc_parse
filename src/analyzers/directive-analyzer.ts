@@ -101,7 +101,7 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     // Number Directives with Constraints
     // ============================================================================
     case "stretchlast":
-      return parseNumber(directive, analyzer, { min: 0, max: 1 });
+      return parseStretchLast(directive, analyzer);
     case "barsperstaff":
       return parseNumber(directive, analyzer, { min: 1 });
     case "measurenb":
@@ -578,6 +578,62 @@ function parseNumber(directive: Directive, analyzer: SemanticAnalyzer, constrain
 }
 
 /**
+ * Parses stretchlast directive: no param (defaults to 1), false, true, or number 0-1
+ */
+function parseStretchLast(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
+  // No parameters: default to 1 (true)
+  if (directive.values.length === 0) {
+    return {
+      type: directive.key.lexeme as any,
+      data: 1,
+    };
+  }
+
+  const value = directive.values[0];
+  if (!(value instanceof Token)) {
+    analyzer.report(`Directive "${directive.key.lexeme}" expects false, true, or a number between 0 and 1`, directive);
+    return null;
+  }
+
+  // Handle boolean keywords
+  if (value.lexeme === "false") {
+    return {
+      type: directive.key.lexeme as any,
+      data: 0,
+    };
+  }
+
+  if (value.lexeme === "true") {
+    return {
+      type: directive.key.lexeme as any,
+      data: 1,
+    };
+  }
+
+  // Handle numeric value
+  if (value.type === TT.NUMBER) {
+    const num = parseFloat(value.lexeme);
+    if (isNaN(num)) {
+      analyzer.report(`Invalid number: ${value.lexeme}`, directive);
+      return null;
+    }
+
+    if (num < 0 || num > 1) {
+      analyzer.report(`stretchlast value must be between 0 and 1 (received ${num})`, directive);
+      return null;
+    }
+
+    return {
+      type: directive.key.lexeme as any,
+      data: num,
+    };
+  }
+
+  analyzer.report(`Directive "${directive.key.lexeme}" expects false, true, or a number between 0 and 1 (received ${value.lexeme})`, directive);
+  return null;
+}
+
+/**
  * Parses position choice directives (auto, above, below, hidden)
  */
 function parsePositionChoice(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
@@ -825,24 +881,22 @@ function parseAnnotation(directive: Directive, analyzer: SemanticAnalyzer): Dire
     return null;
   }
 
-  const value = directive.values[0];
+  const textParts: string[] = [];
 
-  // Check if it's an Annotation object
-  if (value instanceof Annotation) {
-    return {
-      type: directive.key.lexeme as any,
-      data: value.text.lexeme,
-    };
+  // Collect text from all values (parser may split into multiple tokens)
+  for (const value of directive.values) {
+    if (value instanceof Annotation) {
+      textParts.push(value.text.lexeme);
+    } else if (value instanceof Token) {
+      textParts.push(value.lexeme);
+    } else {
+      analyzer.report(`Directive "${directive.key.lexeme}" contains invalid value type`, directive);
+      return null;
+    }
   }
 
-  // Otherwise accept a plain token
-  if (value instanceof Token) {
-    return {
-      type: directive.key.lexeme as any,
-      data: value.lexeme,
-    };
-  }
-
-  analyzer.report(`Directive "${directive.key.lexeme}" expects a string parameter`, directive);
-  return null;
+  return {
+    type: directive.key.lexeme as any,
+    data: textParts.join(' '),
+  };
 }
