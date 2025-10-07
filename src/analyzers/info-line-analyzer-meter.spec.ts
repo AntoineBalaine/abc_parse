@@ -3,7 +3,7 @@ import { SemanticAnalyzer } from "./semantic-analyzer";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Token, TT } from "../parsers/scan2";
-import { Info_line, Binary, Grouping } from "../types/Expr2";
+import { Info_line, Binary, Grouping, KV } from "../types/Expr2";
 import { MeterType } from "../types/abcjs-ast";
 
 describe("Meter Info Line Analyzer - Example-Based Tests", () => {
@@ -22,10 +22,15 @@ describe("Meter Info Line Analyzer - Example-Based Tests", () => {
 
   describe("Special Meter Symbols", () => {
     it("should parse M:C (common time)", () => {
-      const infoLine = new Info_line(context.generateId(), [
-        new Token(TT.IDENTIFIER, "M", context.generateId()),
-        new Token(TT.SPECIAL_LITERAL, "C", context.generateId()),
-      ]);
+      const cToken = new Token(TT.SPECIAL_LITERAL, "C", context.generateId());
+      const cKV = new KV(context.generateId(), cToken);
+
+      const infoLine = new Info_line(
+        context.generateId(),
+        [new Token(TT.IDENTIFIER, "M", context.generateId())],
+        undefined,
+        [cKV]
+      );
 
       const result = analyzer.visitInfoLineExpr(infoLine);
 
@@ -36,10 +41,15 @@ describe("Meter Info Line Analyzer - Example-Based Tests", () => {
     });
 
     it("should parse M:C| (cut time)", () => {
-      const infoLine = new Info_line(context.generateId(), [
-        new Token(TT.IDENTIFIER, "M", context.generateId()),
-        new Token(TT.SPECIAL_LITERAL, "C|", context.generateId()),
-      ]);
+      const cutTimeToken = new Token(TT.SPECIAL_LITERAL, "C|", context.generateId());
+      const cutTimeKV = new KV(context.generateId(), cutTimeToken);
+
+      const infoLine = new Info_line(
+        context.generateId(),
+        [new Token(TT.IDENTIFIER, "M", context.generateId())],
+        undefined,
+        [cutTimeKV]
+      );
 
       const result = analyzer.visitInfoLineExpr(infoLine);
 

@@ -167,10 +167,12 @@ export const genKeyInfo = fc.oneof(genKeyInfoSimple, genKeyInfoWithAccidental, g
  * Generate M: info line with common time (e.g., "M:C")
  */
 export const genMeterInfoCommonTime = fc.constant({
-  infoLine: new Info_line(sharedContext.generateId(), [
-    new Token(TT.IDENTIFIER, "M", sharedContext.generateId()),
-    new Token(TT.IDENTIFIER, "C", sharedContext.generateId()),
-  ]),
+  infoLine: new Info_line(
+    sharedContext.generateId(),
+    [new Token(TT.IDENTIFIER, "M", sharedContext.generateId())],
+    undefined,
+    [new KV(sharedContext.generateId(), new Token(TT.SPECIAL_LITERAL, "C", sharedContext.generateId()))]
+  ),
   expected: {
     type: "meter" as const,
     meterType: MeterType.CommonTime,
@@ -183,10 +185,12 @@ export const genMeterInfoCommonTime = fc.constant({
  * Generate M: info line with cut time (e.g., "M:C|")
  */
 export const genMeterInfoCutTime = fc.constant({
-  infoLine: new Info_line(sharedContext.generateId(), [
-    new Token(TT.IDENTIFIER, "M", sharedContext.generateId()),
-    new Token(TT.IDENTIFIER, "C|", sharedContext.generateId()),
-  ]),
+  infoLine: new Info_line(
+    sharedContext.generateId(),
+    [new Token(TT.IDENTIFIER, "M", sharedContext.generateId())],
+    undefined,
+    [new KV(sharedContext.generateId(), new Token(TT.SPECIAL_LITERAL, "C|", sharedContext.generateId()))]
+  ),
   expected: {
     type: "meter" as const,
     meterType: MeterType.CutTime,

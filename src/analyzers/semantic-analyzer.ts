@@ -153,6 +153,8 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
     for (const item of expr.contents) {
       if (item instanceof Directive) {
         item.accept(this);
+      } else if (item instanceof Info_line) {
+        item.accept(this);
       }
     }
     return null;

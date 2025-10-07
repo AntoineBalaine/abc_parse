@@ -61,7 +61,16 @@ export type InfoLineUnion =
   | { type: "origin"; data: string }
   | { type: "note_length"; data: IRational }
   | { type: "clef"; data: ClefProperties }
-  | { type: "directive"; data: { directive: string; args?: string } };
+  | { type: "directive"; data: { directive: string; args?: string } }
+  | { type: "reference_number"; data: number }
+  | { type: "rhythm"; data: string }
+  | { type: "book"; data: string }
+  | { type: "source"; data: string }
+  | { type: "discography"; data: string }
+  | { type: "notes"; data: string }
+  | { type: "transcription"; data: string }
+  | { type: "history"; data: string }
+  | { type: "author"; data: string };
 
 // Type predicate functions for InfoLineUnion
 export function isKeyInfo(info: InfoLineUnion): info is { type: "key"; data: KeyInfo } {
@@ -102,6 +111,42 @@ export function isClefInfo(info: InfoLineUnion): info is { type: "clef"; data: C
 
 export function isDirectiveInfo(info: InfoLineUnion): info is { type: "directive"; data: { directive: string; args?: string } } {
   return info.type === "directive";
+}
+
+export function isReferenceNumberInfo(info: InfoLineUnion): info is { type: "reference_number"; data: number } {
+  return info.type === "reference_number";
+}
+
+export function isRhythmInfo(info: InfoLineUnion): info is { type: "rhythm"; data: string } {
+  return info.type === "rhythm";
+}
+
+export function isBookInfo(info: InfoLineUnion): info is { type: "book"; data: string } {
+  return info.type === "book";
+}
+
+export function isSourceInfo(info: InfoLineUnion): info is { type: "source"; data: string } {
+  return info.type === "source";
+}
+
+export function isDiscographyInfo(info: InfoLineUnion): info is { type: "discography"; data: string } {
+  return info.type === "discography";
+}
+
+export function isNotesInfo(info: InfoLineUnion): info is { type: "notes"; data: string } {
+  return info.type === "notes";
+}
+
+export function isTranscriptionInfo(info: InfoLineUnion): info is { type: "transcription"; data: string } {
+  return info.type === "transcription";
+}
+
+export function isHistoryInfo(info: InfoLineUnion): info is { type: "history"; data: string } {
+  return info.type === "history";
+}
+
+export function isAuthorInfo(info: InfoLineUnion): info is { type: "author"; data: string } {
+  return info.type === "author";
 }
 
 export abstract class Expr {

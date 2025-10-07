@@ -38,7 +38,7 @@ import { isToken } from "../helpers";
  * Main info line analyzer - dispatches to specific analyzers based on key
  */
 export function analyzeInfoLine(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
-  const key = expr.key?.lexeme;
+  const key = expr.key?.lexeme.charAt(0);
   if (!key) {
     analyzer.report("Info line missing key", expr);
     return null;
@@ -61,6 +61,24 @@ export function analyzeInfoLine(expr: Info_line, analyzer: SemanticAnalyzer): In
       return analyzeComposerInfo(expr, analyzer);
     case "O":
       return analyzeOriginInfo(expr, analyzer);
+    case "X":
+      return analyzeReferenceNumberInfo(expr, analyzer);
+    case "R":
+      return analyzeRhythmInfo(expr, analyzer);
+    case "B":
+      return analyzeBookInfo(expr, analyzer);
+    case "S":
+      return analyzeSourceInfo(expr, analyzer);
+    case "D":
+      return analyzeDiscographyInfo(expr, analyzer);
+    case "N":
+      return analyzeNotesInfo(expr, analyzer);
+    case "Z":
+      return analyzeTranscriptionInfo(expr, analyzer);
+    case "H":
+      return analyzeHistoryInfo(expr, analyzer);
+    case "A":
+      return analyzeAuthorInfo(expr, analyzer);
     default:
       analyzer.report(`Unknown info line key: ${key}`, expr);
       return null;
@@ -350,9 +368,9 @@ export function analyzeMeterInfo(expr: Info_line, analyzer: SemanticAnalyzer): I
 
   const firstItem = values[0];
 
-  // Check for token-based special meters
-  if (isToken(firstItem)) {
-    const token = firstItem as Token;
+  // Check for KV-wrapped special meters (from new parser)
+  if (firstItem instanceof KV && !firstItem.key && isToken(firstItem.value)) {
+    const token = firstItem.value as Token;
     const lexeme = token.lexeme;
 
     // Check for common time (C)
@@ -816,7 +834,7 @@ export function analyzeTitleInfo(expr: Info_line, analyzer: SemanticAnalyzer): I
 
   for (const item of values) {
     if (isToken(item)) {
-      titleParts.push((item as Token).lexeme);
+      titleParts.push(item.lexeme);
     }
   }
 
@@ -875,5 +893,248 @@ export function analyzeOriginInfo(expr: Info_line, analyzer: SemanticAnalyzer): 
   return {
     type: "origin",
     data: originParts.join(" "),
+  };
+}
+
+// ============================================================================
+// Reference Number Info Analyzer (X:)
+// ============================================================================
+
+/**
+ * Analyzes X: (reference number) info lines
+ *
+ * Extracts the numeric reference number
+ */
+export function analyzeReferenceNumberInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+  const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
+
+  if (values.length === 0) {
+    analyzer.report("Reference number (X:) requires a number", expr);
+    return null;
+  }
+
+  const firstToken = values[0];
+  if (!isToken(firstToken)) {
+    analyzer.report("Reference number (X:) expects a number", expr);
+    return null;
+  }
+
+  const num = parseInt(firstToken.lexeme, 10);
+  if (isNaN(num)) {
+    analyzer.report(`Invalid reference number: ${firstToken.lexeme}`, expr);
+    return null;
+  }
+
+  return {
+    type: "reference_number",
+    data: num,
+  };
+}
+
+// ============================================================================
+// Rhythm Info Analyzer (R:)
+// ============================================================================
+
+/**
+ * Analyzes R: (rhythm) info lines
+ *
+ * Just concatenates all tokens into a string
+ */
+export function analyzeRhythmInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+  const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
+
+  const rhythmParts: string[] = [];
+
+  for (const item of values) {
+    if (isToken(item)) {
+      rhythmParts.push((item as Token).lexeme);
+    }
+  }
+
+  return {
+    type: "rhythm",
+    data: rhythmParts.join(" "),
+  };
+}
+
+// ============================================================================
+// Book Info Analyzer (B:)
+// ============================================================================
+
+/**
+ * Analyzes B: (book) info lines
+ *
+ * Just concatenates all tokens into a string
+ */
+export function analyzeBookInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+  const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
+
+  const bookParts: string[] = [];
+
+  for (const item of values) {
+    if (isToken(item)) {
+      bookParts.push((item as Token).lexeme);
+    }
+  }
+
+  return {
+    type: "book",
+    data: bookParts.join(" "),
+  };
+}
+
+// ============================================================================
+// Source Info Analyzer (S:)
+// ============================================================================
+
+/**
+ * Analyzes S: (source) info lines
+ *
+ * Just concatenates all tokens into a string
+ */
+export function analyzeSourceInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+  const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
+
+  const sourceParts: string[] = [];
+
+  for (const item of values) {
+    if (isToken(item)) {
+      sourceParts.push((item as Token).lexeme);
+    }
+  }
+
+  return {
+    type: "source",
+    data: sourceParts.join(" "),
+  };
+}
+
+// ============================================================================
+// Discography Info Analyzer (D:)
+// ============================================================================
+
+/**
+ * Analyzes D: (discography) info lines
+ *
+ * Just concatenates all tokens into a string
+ */
+export function analyzeDiscographyInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+  const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
+
+  const discographyParts: string[] = [];
+
+  for (const item of values) {
+    if (isToken(item)) {
+      discographyParts.push((item as Token).lexeme);
+    }
+  }
+
+  return {
+    type: "discography",
+    data: discographyParts.join(" "),
+  };
+}
+
+// ============================================================================
+// Notes Info Analyzer (N:)
+// ============================================================================
+
+/**
+ * Analyzes N: (notes) info lines
+ *
+ * Just concatenates all tokens into a string
+ */
+export function analyzeNotesInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+  const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
+
+  const notesParts: string[] = [];
+
+  for (const item of values) {
+    if (isToken(item)) {
+      notesParts.push((item as Token).lexeme);
+    }
+  }
+
+  return {
+    type: "notes",
+    data: notesParts.join(" "),
+  };
+}
+
+// ============================================================================
+// Transcription Info Analyzer (Z:)
+// ============================================================================
+
+/**
+ * Analyzes Z: (transcription) info lines
+ *
+ * Just concatenates all tokens into a string
+ */
+export function analyzeTranscriptionInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+  const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
+
+  const transcriptionParts: string[] = [];
+
+  for (const item of values) {
+    if (isToken(item)) {
+      transcriptionParts.push((item as Token).lexeme);
+    }
+  }
+
+  return {
+    type: "transcription",
+    data: transcriptionParts.join(" "),
+  };
+}
+
+// ============================================================================
+// History Info Analyzer (H:)
+// ============================================================================
+
+/**
+ * Analyzes H: (history) info lines
+ *
+ * Just concatenates all tokens into a string
+ */
+export function analyzeHistoryInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+  const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
+
+  const historyParts: string[] = [];
+
+  for (const item of values) {
+    if (isToken(item)) {
+      historyParts.push((item as Token).lexeme);
+    }
+  }
+
+  return {
+    type: "history",
+    data: historyParts.join(" "),
+  };
+}
+
+// ============================================================================
+// Author Info Analyzer (A:)
+// ============================================================================
+
+/**
+ * Analyzes A: (author) info lines
+ *
+ * Just concatenates all tokens into a string
+ */
+export function analyzeAuthorInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+  const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
+
+  const authorParts: string[] = [];
+
+  for (const item of values) {
+    if (isToken(item)) {
+      authorParts.push((item as Token).lexeme);
+    }
+  }
+
+  return {
+    type: "author",
+    data: authorParts.join(" "),
   };
 }
