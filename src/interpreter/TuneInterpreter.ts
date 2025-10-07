@@ -105,7 +105,7 @@ type HeaderContext = { type: "file_header"; target: FileDefaults } | { type: "tu
  * Process info line semantic data and assign to appropriate target
  * @returns Warning message if info line is not valid in this context
  */
-function processInfoLineSemanticData(semanticData: InfoLineUnion, context: HeaderContext): string | null {
+function applyInfoLine(semanticData: InfoLineUnion, context: HeaderContext): string | null {
   // Process properties that work in both file and tune headers
   const metaText = context.type === "file_header" ? context.target.metaText : context.target.tune.metaText;
 
@@ -159,7 +159,7 @@ function processInfoLineSemanticData(semanticData: InfoLineUnion, context: Heade
 /**
  * Process directive semantic data and assign to appropriate target
  */
-function processDirectiveSemanticData(semanticData: SemanticData, directiveName: string, context: HeaderContext): void {
+function applyDirective(semanticData: SemanticData, directiveName: string, context: HeaderContext): void {
   const metaText = context.type === "file_header" ? context.target.metaText : context.target.tune.metaText;
   const formatting = context.type === "file_header" ? context.target.formatting : context.target.tune.formatting;
 
@@ -257,7 +257,7 @@ export class TuneInterpreter implements Visitor<void> {
       if (item instanceof Info_line) {
         const semanticData = this.analyzer.data.get(item.id);
         if (semanticData && isInfoLineSemanticData(semanticData)) {
-          const warning = processInfoLineSemanticData(semanticData, context);
+          const warning = applyInfoLine(semanticData, context);
           if (warning) {
             this.ctx.errorReporter.interpreterError(warning, item);
           }
@@ -265,7 +265,7 @@ export class TuneInterpreter implements Visitor<void> {
       } else if (item instanceof Directive) {
         const semanticData = this.analyzer.data.get(item.id);
         if (semanticData) {
-          processDirectiveSemanticData(semanticData, item.key.lexeme, context);
+          applyDirective(semanticData, item.key.lexeme, context);
         }
       }
     }
@@ -274,6 +274,13 @@ export class TuneInterpreter implements Visitor<void> {
   visitTuneExpr(expr: TuneExpr): void {
     // Create fresh state for this tune
     this.state = createInterpreterState(this.analyzer.data, this.fileDefaults);
+
+    // Initialize tune with file defaults (deep copy to avoid sharing references)
+    this.state.tune.metaText = structuredClone(this.fileDefaults.metaText);
+    this.state.tune.formatting = structuredClone(this.fileDefaults.formatting);
+    if (this.fileDefaults.version) {
+      this.state.tune.version = this.fileDefaults.version;
+    }
 
     // Visit tune header
     expr.tune_header.accept(this);
@@ -329,7 +336,7 @@ export class TuneInterpreter implements Visitor<void> {
     const isInBody = Array.isArray(this.currentVoiceElements);
 
     if (isInBody) {
-      // Inline info line - handle voice switches and key changes
+      // Inline info line in tune body - can change voice, key, meter, tempo, note length, clef
       if (isVoiceInfo(semanticData)) {
         const { id } = semanticData.data;
         setCurrentVoice(this.state, id);
@@ -338,29 +345,39 @@ export class TuneInterpreter implements Visitor<void> {
         const voice = getCurrentVoice(this.state);
         if (voice) {
           voice.currentKey = semanticData.data.keySignature;
+          if (semanticData.data.clef) {
+            voice.currentClef = semanticData.data.clef;
+          }
         }
-      }
-    } else {
-      // Header info line - set tune defaults and metaText
-      if (isKeyInfo(semanticData)) {
+        // Also update tune defaults for future voices
         this.state.tuneDefaults.key = semanticData.data.keySignature;
         if (semanticData.data.clef) {
           this.state.tuneDefaults.clef = semanticData.data.clef;
         }
       } else if (isMeterInfo(semanticData)) {
+        const voice = getCurrentVoice(this.state);
+        if (voice) {
+          voice.currentMeter = semanticData.data;
+        }
         this.state.tuneDefaults.meter = semanticData.data;
       } else if (isNoteLengthInfo(semanticData)) {
         this.state.tuneDefaults.noteLength = semanticData.data;
       } else if (isTempoInfo(semanticData)) {
         this.state.tuneDefaults.tempo = semanticData.data;
-        this.state.tune.metaText.tempo = semanticData.data;
-      } else if (isTitleInfo(semanticData)) {
-        this.state.tune.metaText.title = semanticData.data;
-      } else if (isComposerInfo(semanticData)) {
-        this.state.tune.metaText.composer = semanticData.data;
-      } else if (isOriginInfo(semanticData)) {
-        this.state.tune.metaText.origin = semanticData.data;
-      } else if (isVoiceInfo(semanticData)) {
+      }
+    } else {
+      // Header info line - use the helper function
+      const context: HeaderContext = {
+        type: "tune_header",
+        target: { tune: this.state.tune, tuneDefaults: this.state.tuneDefaults }
+      };
+      const warning = applyInfoLine(semanticData, context);
+      if (warning) {
+        this.ctx.errorReporter.interpreterError(warning, expr);
+      }
+
+      // Handle voice separately since it requires state manipulation
+      if (isVoiceInfo(semanticData)) {
         const { id, properties } = semanticData.data;
         addVoice(this.state, id, properties);
         setCurrentVoice(this.state, id);
@@ -616,11 +633,7 @@ export class TuneInterpreter implements Visitor<void> {
     this.state.tune.staffNum = this.countStaffs();
     this.state.tune.voiceNum = this.state.voices.size;
     this.state.tune.lineNum = this.state.tune.lines.length;
-    this.state.tune.formatting = { ...this.fileDefaults.formatting, ...this.state.tune.formatting };
-
-    if (this.fileDefaults.version) {
-      this.state.tune.version = this.fileDefaults.version;
-    }
+    // Note: metaText and formatting were already initialized from fileDefaults in visitTuneExpr
   }
 
   countStaffs(): number {

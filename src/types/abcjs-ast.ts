@@ -601,6 +601,9 @@ export interface NewPageLine {
   newpage: number;
 }
 
+/**
+ * Where are subtitleLines defined? and text lines, etc?
+ */
 export type Line = MusicLine | SubtitleLine | TextLine | SeparatorLine | NewPageLine;
 
 // ============================================================================
@@ -622,8 +625,8 @@ export interface MetaText {
   "abc-copyright"?: string;
   "abc-creator"?: string;
   "abc-edited-by"?: string;
-  footer?: string;
-  header?: string;
+  footer?: string; // I dunno about footers in abc tunes. We need to check abcjs
+  header?: string; // duno what this refers to.
   tempo?: TempoProperties;
   partOrder?: string;
   unalignedWords?: string;
@@ -635,12 +638,13 @@ export enum MediaType {
 }
 
 export interface Tune {
-  version: string;
-  media: MediaType;
-  metaText: MetaText;
-  metaTextInfo: { [key: string]: CharRange };
-  formatting: { [key: string]: any };
-  lines: Line[];
+  version: string; // from directive `abc-version` in the analyzer
+  media: MediaType; // not sure where this comes from.
+  metaText: MetaText; // all of these are info lines
+  metaTextInfo: { [key: string]: CharRange }; // for these references, we probably will need to use the
+  // range visitor or something similar, which can reduce expressions and find out their ranges.
+  formatting: { [key: string]: any }; // I assume this comes from stylesheet directives.
+  lines: Line[]; // for each of these, we need to find where they come from.
   staffNum: number;
   voiceNum: number;
   lineNum: number;

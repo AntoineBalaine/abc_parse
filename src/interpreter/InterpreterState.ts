@@ -22,10 +22,10 @@ import {
   Mode,
   ClefType,
   MediaType,
+  VoiceProperties,
 } from "../types/abcjs-ast";
 import { IRational, createRational } from "../Visitors/fmt2/rational";
 import { SemanticData } from "../analyzers/semantic-analyzer";
-import { VoiceProperties } from "../parsers/infoLines/scanVxInfo";
 
 // ============================================================================
 // File-level Defaults (shared across all tunes in a file)
