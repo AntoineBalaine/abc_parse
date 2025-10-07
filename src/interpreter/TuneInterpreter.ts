@@ -54,6 +54,15 @@ import {
   isTitleInfo,
   isComposerInfo,
   isOriginInfo,
+  isReferenceNumberInfo,
+  isRhythmInfo,
+  isBookInfo,
+  isSourceInfo,
+  isDiscographyInfo,
+  isNotesInfo,
+  isTranscriptionInfo,
+  isHistoryInfo,
+  isAuthorInfo,
 } from "../types/Expr2";
 import { Token } from "../parsers/scan2";
 import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
@@ -91,7 +100,26 @@ import { ABCContext } from "../parsers/Context";
 // ============================================================================
 
 function isInfoLineSemanticData(data: SemanticData): data is InfoLineUnion {
-  const infoTypes = ["key", "meter", "voice", "tempo", "title", "composer", "origin", "note_length", "clef"];
+  const infoTypes = [
+    "key",
+    "meter",
+    "voice",
+    "tempo",
+    "title",
+    "composer",
+    "origin",
+    "note_length",
+    "clef",
+    "reference_number",
+    "rhythm",
+    "book",
+    "source",
+    "discography",
+    "notes",
+    "transcription",
+    "history",
+    "author",
+  ];
   return infoTypes.includes(data.type);
 }
 
@@ -121,6 +149,38 @@ function applyInfoLine(semanticData: InfoLineUnion, context: HeaderContext): str
     metaText.origin = semanticData.data;
     return null;
   }
+  if (isRhythmInfo(semanticData)) {
+    metaText.rhythm = semanticData.data;
+    return null;
+  }
+  if (isBookInfo(semanticData)) {
+    metaText.book = semanticData.data;
+    return null;
+  }
+  if (isSourceInfo(semanticData)) {
+    metaText.source = semanticData.data;
+    return null;
+  }
+  if (isDiscographyInfo(semanticData)) {
+    metaText.discography = semanticData.data;
+    return null;
+  }
+  if (isNotesInfo(semanticData)) {
+    metaText.notes = semanticData.data;
+    return null;
+  }
+  if (isTranscriptionInfo(semanticData)) {
+    metaText.transcription = semanticData.data;
+    return null;
+  }
+  if (isHistoryInfo(semanticData)) {
+    metaText.history = semanticData.data;
+    return null;
+  }
+  if (isAuthorInfo(semanticData)) {
+    metaText.author = semanticData.data;
+    return null;
+  }
   if (isTempoInfo(semanticData)) {
     metaText.tempo = semanticData.data;
     if (context.type === "tune_header") {
@@ -134,6 +194,11 @@ function applyInfoLine(semanticData: InfoLineUnion, context: HeaderContext): str
     } else {
       context.target.tuneDefaults.noteLength = semanticData.data;
     }
+    return null;
+  }
+  if (isReferenceNumberInfo(semanticData)) {
+    // X: (reference number) is typically not stored in metaText
+    // Could be stored in metaTextInfo if needed
     return null;
   }
 
@@ -211,6 +276,9 @@ export class TuneInterpreter implements Visitor<void> {
   // Working state for body processing
   currentVoiceElements: VoiceElement[] = [];
 
+  // Processing context tracking
+  processingContext: "file_header" | "tune_header" | "tune_body" = "file_header";
+
   constructor(analyzer: SemanticAnalyzer, ctx: ABCContext) {
     this.analyzer = analyzer;
     this.ctx = ctx;
@@ -250,6 +318,9 @@ export class TuneInterpreter implements Visitor<void> {
   }
 
   visitFileHeaderExpr(expr: File_header): void {
+    // Set processing context
+    this.processingContext = "file_header";
+
     // Extract file-level info and directives from semantic data
     const context: HeaderContext = { type: "file_header", target: this.fileDefaults };
 
@@ -282,7 +353,8 @@ export class TuneInterpreter implements Visitor<void> {
       this.state.tune.version = this.fileDefaults.version;
     }
 
-    // Visit tune header
+    // Set processing context and visit tune header
+    this.processingContext = "tune_header";
     expr.tune_header.accept(this);
 
     // Ensure at least one voice exists
@@ -309,6 +381,9 @@ export class TuneInterpreter implements Visitor<void> {
   }
 
   visitTuneBodyExpr(expr: Tune_Body): void {
+    // Set processing context
+    this.processingContext = "tune_body";
+
     // Process each system (line of music)
     for (const system of expr.sequence) {
       this.currentVoiceElements = [];
@@ -332,10 +407,7 @@ export class TuneInterpreter implements Visitor<void> {
     const semanticData = this.state.semanticData.get(expr.id);
     if (!semanticData || !isInfoLineSemanticData(semanticData)) return;
 
-    // Check if we're in tune body (has currentVoiceElements array)
-    const isInBody = Array.isArray(this.currentVoiceElements);
-
-    if (isInBody) {
+    if (this.processingContext === "tune_body") {
       // Inline info line in tune body - can change voice, key, meter, tempo, note length, clef
       if (isVoiceInfo(semanticData)) {
         const { id } = semanticData.data;
@@ -369,7 +441,7 @@ export class TuneInterpreter implements Visitor<void> {
       // Header info line - use the helper function
       const context: HeaderContext = {
         type: "tune_header",
-        target: { tune: this.state.tune, tuneDefaults: this.state.tuneDefaults }
+        target: { tune: this.state.tune, tuneDefaults: this.state.tuneDefaults },
       };
       const warning = applyInfoLine(semanticData, context);
       if (warning) {
