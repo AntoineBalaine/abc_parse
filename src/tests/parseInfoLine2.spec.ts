@@ -20,7 +20,7 @@ import {
 } from "./scn_infoln_generators";
 import { expect } from "chai";
 
-describe("parseInfoLine2 - Unified Info Line Parser", () => {
+describe.only("parseInfoLine2 - Unified Info Line Parser", () => {
   let context: ABCContext;
 
   beforeEach(() => {
@@ -544,6 +544,49 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       const commaKv = secondExpr as KV;
       expect(commaKv.value.lexeme).to.equal(",");
       expect(commaKv.key).to.be.undefined;
+    });
+
+    it.only("should handle voice info line: V:LH clef=bass octave=-2", () => {
+      const tokens = [
+        new Token(TT.INF_HDR, "V:", context.generateId()),
+        new Token(TT.IDENTIFIER, "LH", context.generateId()),
+        new Token(TT.WS, " ", context.generateId()),
+        new Token(TT.IDENTIFIER, "clef", context.generateId()),
+        new Token(TT.EQL, "=", context.generateId()),
+        new Token(TT.IDENTIFIER, "bass", context.generateId()),
+        new Token(TT.WS, " ", context.generateId()),
+        new Token(TT.IDENTIFIER, "octave", context.generateId()),
+        new Token(TT.EQL, "=", context.generateId()),
+        new Token(TT.NUMBER, "-2", context.generateId()),
+      ];
+
+      const ctx = new ParseCtx(tokens, context);
+      const result = prsInfoLine(ctx);
+
+      expect(result).to.not.be.null;
+      expect(result!.key.lexeme).to.equal("V:");
+      expect(result!.value2).to.have.length(3);
+
+      // First expression should be KV for voice name "LH"
+      const firstExpr = result!.value2![0];
+      expect(firstExpr).to.be.an.instanceof(KV);
+      const voiceKv = firstExpr as KV;
+      expect(voiceKv.value.lexeme).to.equal("LH");
+      expect(voiceKv.key).to.be.undefined;
+
+      // Second expression should be KV for clef=bass
+      const secondExpr = result!.value2![1];
+      expect(secondExpr).to.be.an.instanceof(KV);
+      const clefKv = secondExpr as KV;
+      expect((clefKv.key! as Token).lexeme).to.equal("clef");
+      expect(clefKv.value.lexeme).to.equal("bass");
+
+      // Third expression should be KV for octave=-2
+      const thirdExpr = result!.value2![2];
+      expect(thirdExpr).to.be.an.instanceof(KV);
+      const octaveKv = thirdExpr as KV;
+      expect((octaveKv.key! as Token).lexeme).to.equal("octave");
+      expect(octaveKv.value.lexeme).to.equal("-2");
     });
   });
 });

@@ -77,7 +77,7 @@ function compareTokenArraysDetailed(
   return true;
 }
 
-describe("scanInfoLine2 - Unified Info Line Scanner", () => {
+describe.only("scanInfoLine2 - Unified Info Line Scanner", () => {
   let context: ABCContext;
 
   beforeEach(() => {
@@ -185,6 +185,45 @@ describe("scanInfoLine2 - Unified Info Line Scanner", () => {
 
       expect(ctx.tokens[5].type).to.equal(TT.WS);
       expect(ctx.tokens[5].lexeme).to.equal("\t");
+    });
+
+    it.only("should correctly scan voice line V:LH clef=bass octave=-2", () => {
+      const ctx = new Ctx("V:LH clef=bass octave=-2", context);
+      const result = scanInfoLine2(ctx);
+
+      expect(result).to.be.true;
+      expect(ctx.tokens.length).to.equal(10);
+
+      // Verify exact token sequence
+      expect(ctx.tokens[0].type).to.equal(TT.INF_HDR);
+      expect(ctx.tokens[0].lexeme).to.equal("V:");
+
+      expect(ctx.tokens[1].type).to.equal(TT.IDENTIFIER);
+      expect(ctx.tokens[1].lexeme).to.equal("LH");
+
+      expect(ctx.tokens[2].type).to.equal(TT.WS);
+      expect(ctx.tokens[2].lexeme).to.equal(" ");
+
+      expect(ctx.tokens[3].type).to.equal(TT.IDENTIFIER);
+      expect(ctx.tokens[3].lexeme).to.equal("clef");
+
+      expect(ctx.tokens[4].type).to.equal(TT.EQL);
+      expect(ctx.tokens[4].lexeme).to.equal("=");
+
+      expect(ctx.tokens[5].type).to.equal(TT.IDENTIFIER);
+      expect(ctx.tokens[5].lexeme).to.equal("bass");
+
+      expect(ctx.tokens[6].type).to.equal(TT.WS);
+      expect(ctx.tokens[6].lexeme).to.equal(" ");
+
+      expect(ctx.tokens[7].type).to.equal(TT.IDENTIFIER);
+      expect(ctx.tokens[7].lexeme).to.equal("octave");
+
+      expect(ctx.tokens[8].type).to.equal(TT.EQL);
+      expect(ctx.tokens[8].lexeme).to.equal("=");
+
+      expect(ctx.tokens[9].type).to.equal(TT.NUMBER);
+      expect(ctx.tokens[9].lexeme).to.equal("-2");
     });
   });
 

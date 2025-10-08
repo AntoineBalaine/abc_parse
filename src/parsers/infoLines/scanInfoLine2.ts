@@ -97,7 +97,7 @@ export function unsignedNumber(ctx: Ctx): boolean {
   // Unified regex pattern for integers and floats
   // - Integers: [1-9][0-9]* or just 0
   // - Floats: ([1-9][0-9]*|0)\.[0-9]+
-  const numberPattern = /^(([1-9][0-9]*|0)(\.[0-9]+)?)/;
+  const numberPattern = /^[+-]?(([1-9][0-9]*|0)(\.[0-9]+)?)/;
 
   const match = numberPattern.exec(ctx.source.substring(ctx.current));
   if (!match) return false;
