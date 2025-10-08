@@ -246,6 +246,31 @@ V:Left_Hand
 CDEF | GABC |`
           );
         });
+
+        it("formats voice line with multiple key=value pairs without spaces around =", () => {
+          const result = format(
+            `X:1
+V:RH clef=treble
+V:LH clef=bass octave=-2
+V:RH
+CDEF|
+V:LH
+C,D,|`,
+            ctx,
+            formatter
+          );
+
+          assert.equal(
+            result,
+            `X:1
+V:RH clef=treble
+V:LH clef=bass octave=-2
+V:RH
+CDEF |
+V:LH
+C,D, |`
+          );
+        });
       });
     });
 
