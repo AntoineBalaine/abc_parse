@@ -68,3 +68,5 @@ TODO:
 # want to add (to the standard):
 - `.//.` symbols to say «repeat two previous bars»
 - chord symbol line: `x: am | g | c | f/ e/g/ :|2`
+- chord symbol in `W:` lines
+- score fmt with `!` system breaks

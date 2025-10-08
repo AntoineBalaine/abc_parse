@@ -7,25 +7,36 @@ This file tracks time spent on tasks for the ABC Parser project, which is a full
 
 * Tasks Table
 #+NAME: tasks
-| Feature      | Task                                                | Orig. Estimate | Cur. Estimate | Spent | Remaining | Velocity |
-|--------------+-----------------------------------------------------+----------------+---------------+-------+-----------+----------|
-| IDE Features | Mark incomplete bars with a warning                 |            2.5 |           2.5 |   0.0 |       2.5 |     0.00 |
-| Formatter    | Group tuplets as beams in rules resolution          |            4.0 |           4.0 |   0.0 |       4.0 |     0.00 |
-| Scanner      | Handle directive followed by X:<number> as new tune |            3.0 |           3.0 |   0.0 |       3.0 |     0.00 |
-| Parser       | Remove regex matching from tuplet parsing           |            2.0 |           2.0 |   1.0 |       1.0 |     2.00 |
-| scanner      | include info lines in scan2 pbt roundtrip           |            2.0 |           2.0 |   2.0 |       0.0 |     1.00 |
-| parser       | setup PBT tests                                     |            4.0 |           2.0 |   2.0 |       0.0 |     1.00 |
-| Parser       | Add new source of error reporting                   |            4.5 |           4.5 |   0.0 |       4.5 |     0.00 |
-| fmt          | process bar tests                                   |            6.0 |           3.5 |   3.5 |       0.0 |     1.00 |
-| fmt          | fmt2 + new pipeline                                 |           12.0 |          12.0 |  12.0 |       0.0 |     1.00 |
-| fmt          | symbol line                                         |           12.0 |          10.0 |  10.0 |       0.0 |     1.00 |
-| fmt          | parse file structure                                |            4.0 |           4.0 |   3.5 |       0.5 |     1.14 |
-| fmt          | fix visitors                                        |            3.0 |           3.0 |   0.0 |       3.0 |     0.00 |
-| errReport    | fix error reporter                                  |            4.0 |           4.0 |   1.0 |       3.0 |     4.00 |
-| fmt          | chord sorting                                       |            2.0 |           2.0 |   2.0 |       0.0 |     1.00 |
-| edit         | transposer                                          |            1.0 |           4.0 |   4.0 |       0.0 |     1.00 |
-|--------------+-----------------------------------------------------+----------------+---------------+-------+-----------+----------|
-| TOTAL        |                                                     |           66.0 |          62.5 |  41.0 |      21.5 |     1.52 |
+
+| Feature          | Task                                                | Orig. Estimate | Cur. Estimate | Spent | Remaining | Velocity |
+|------------------+-----------------------------------------------------+----------------+---------------+-------+-----------+----------|
+| IDE Features     | Mark incomplete bars with a warning                 |            2.5 |           2.5 |   0.0 |       2.5 |     0.00 |
+| Formatter        | Group tuplets as beams in rules resolution          |            4.0 |           4.0 |   0.0 |       4.0 |     0.00 |
+| Scanner          | Handle directive followed by X:<number> as new tune |            3.0 |           3.0 |   0.0 |       3.0 |     0.00 |
+| Parser           | Remove regex matching from tuplet parsing           |            2.0 |           2.0 |   1.0 |       1.0 |     2.00 |
+| scanner          | include info lines in scan2 pbt roundtrip           |            2.0 |           2.0 |   2.0 |       0.0 |     1.00 |
+| parser           | setup PBT tests                                     |            4.0 |           2.0 |   2.0 |       0.0 |     1.00 |
+| Parser           | Add new source of error reporting                   |            4.5 |           2.0 |   1.0 |       4.5 |     0.00 |
+| fmt              | process bar tests                                   |            6.0 |           3.5 |   3.5 |       0.0 |     1.00 |
+| fmt              | fmt2 + new pipeline                                 |           12.0 |          12.0 |  12.0 |       0.0 |     1.00 |
+| fmt              | symbol line                                         |           12.0 |          10.0 |  10.0 |       0.0 |     1.00 |
+| fmt              | parse file structure                                |            4.0 |           3.5 |   3.5 |       0.0 |     1.00 |
+| fmt              | fix visitors                                        |            3.0 |           3.0 |   3.0 |       0.0 |     1.00 |
+| errReport        | fix error reporter                                  |            4.0 |           3.0 |   3.0 |       0.0 |     1.00 |
+| fmt              | chord sorting                                       |            2.0 |           2.0 |   2.0 |       0.0 |     1.00 |
+| edit             | transposer                                          |            1.0 |           4.0 |   4.0 |       0.0 |     1.00 |
+| analyzer         | static analyzer                                     |             10 |            10 |    10 |       0.0 |     1.00 |
+| interpreter      | meta lines comparative tests w abcjs                |             12 |            12 |    12 |       0.0 |     1.00 |
+| interpreter      | music lines comparative tests w abcjs               |             12 |            12 |     0 |      12.0 |     0.00 |
+| interpreter      | comparative tests abcjs worshop tunes               |              4 |             4 |     0 |       4.0 |     0.00 |
+| chord syln       | integration (scan, parse, fmt, interpret)           |             12 |            12 |     0 |      12.0 |     0.00 |
+| `!` expr         | int.                                                |              6 |             6 |     0 |       6.0 |     0.00 |
+| chord sy in "W:" | int. (scan, parse, fmt) (dependends on renderer)    |              4 |             4 |     0 |       4.0 |     0.00 |
+| chord sy in "W:" | interpret + render                                  |                |               |       |       0.0 |     0.00 |
+| vexflow          | vexflow integration                                 |             20 |            20 |     0 |      20.0 |     0.00 |
+|                  |                                                     |                |               |       |       0.0 |     0.00 |
+|------------------+-----------------------------------------------------+----------------+---------------+-------+-----------+----------|
+| TOTAL            |                                                     |          146.0 |         141.0 |  68.0 |      73.0 |     2.07 |
 #+TBLFM: @>$3=vsum(@2..@-1);%.1f::@>$4=vsum(@2..@-1);%.1f::@>$5=vsum(@2..@-1);%.1f::@>$6=vsum(@2..@-1);%.1f::$6=$4-$5;%.1f::$7=if($5>0, $4/$5, "N/A");%.2f::@>$7=if(@>$5>0, @>$4/@>$5, "N/A");%.2f
 
 * How to Use This File
