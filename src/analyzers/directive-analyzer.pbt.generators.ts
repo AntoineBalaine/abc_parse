@@ -183,28 +183,40 @@ export const genFontDirective = fc.oneof(genFontDirectiveFormat1, genFontDirecti
 // Boolean Flag Directive Generators
 // ============================================================================
 
-export const booleanFlagDirectives = [
+// Parser config directives - can appear in file header, affect parsing but not exposed
+export const parserConfigDirectives = ["landscape", "titlecaps", "continueall", "font"] as const;
+
+// Formatting directives - tune header only, stored in tune.formatting
+export const formattingDirectives = [
   "bagpipes",
   "flatbeams",
   "jazzchords",
   "accentAbove",
   "germanAlphabet",
-  "landscape",
-  "titlecaps",
   "titleleft",
   "measurebox",
-  "continueall",
-  "begintext",
-  "endtext",
-  "beginps",
-  "endps",
-  "font",
   "nobarcheck",
 ] as const;
+
+// All boolean flag directives
+export const booleanFlagDirectives = [...parserConfigDirectives, ...formattingDirectives] as const;
 
 export const genBooleanFlagDirectiveName = fc.constantFrom(...booleanFlagDirectives);
 
 export const genBooleanFlagDirective = genBooleanFlagDirectiveName.map((name) => {
+  return {
+    directive: new Directive(sharedContext.generateId(), new Token(TT.IDENTIFIER, name, sharedContext.generateId()), []),
+    expected: {
+      type: name,
+      data: true,
+    },
+  };
+});
+
+// Generator for parser config directives only (file header allowed)
+export const genParserConfigDirectiveName = fc.constantFrom(...parserConfigDirectives);
+
+export const genParserConfigDirective = genParserConfigDirectiveName.map((name) => {
   return {
     directive: new Directive(sharedContext.generateId(), new Token(TT.IDENTIFIER, name, sharedContext.generateId()), []),
     expected: {
@@ -455,7 +467,12 @@ export const annotationDirectives = ["text", "center", "abc-copyright", "abc-cre
 
 export const genAnnotationDirectiveName = fc.constantFrom(...annotationDirectives);
 
-export const genAnnotationText = fc.string({ minLength: 1, maxLength: 100 }).filter((s) => !s.includes("\n"));
+// Generate safe annotation text - alphanumeric with safe punctuation only
+// Avoid quotes, backslashes, and other characters that could break ABC string syntax
+export const genAnnotationText = fc
+  .stringMatching(/^[A-Za-z0-9 .\-,()':]+$/)
+  .map((s) => s.trim())
+  .filter((s) => s.length > 0 && s.length <= 100);
 
 // With Annotation object
 export const genAnnotationDirectiveWithObject = fc
@@ -464,7 +481,8 @@ export const genAnnotationDirectiveWithObject = fc
     text: genAnnotationText,
   })
   .map(({ name, text }) => {
-    const textToken = new Token(TT.ANNOTATION, text, sharedContext.generateId());
+    // Token lexeme should include quotes for stringification
+    const textToken = new Token(TT.ANNOTATION, `"${text}"`, sharedContext.generateId());
     const annotation = new Annotation(sharedContext.generateId(), textToken);
 
     return {
@@ -476,19 +494,18 @@ export const genAnnotationDirectiveWithObject = fc
     };
   });
 
-// With plain token(s) - splits text into multiple tokens to match parser behavior
+// With plain token(s) - use single ANNOTATION token with the full text (quoted)
 export const genAnnotationDirectiveWithToken = fc
   .record({
     name: genAnnotationDirectiveName,
     text: genAnnotationText,
   })
   .map(({ name, text }) => {
-    // Split text by spaces to create multiple tokens (matching parser behavior)
-    const words = text.split(' ').filter(word => word.length > 0);
-    const tokens = words.map(word => new Token(TT.IDENTIFIER, word, sharedContext.generateId()));
+    // Create single ANNOTATION token with quotes in the lexeme for proper stringification
+    const token = new Token(TT.ANNOTATION, `"${text}"`, sharedContext.generateId());
 
     return {
-      directive: new Directive(sharedContext.generateId(), new Token(TT.IDENTIFIER, name, sharedContext.generateId()), tokens),
+      directive: new Directive(sharedContext.generateId(), new Token(TT.IDENTIFIER, name, sharedContext.generateId()), [token]),
       expected: {
         type: name,
         data: text,

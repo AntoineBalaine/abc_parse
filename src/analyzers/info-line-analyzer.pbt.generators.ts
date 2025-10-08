@@ -42,7 +42,7 @@ export const genKeyInfoSimple = genKeyRoot.map((root) => {
   const tokens = [keyToken];
 
   return {
-    infoLine: new Info_line(sharedContext.generateId(), [new Token(TT.IDENTIFIER, "K", sharedContext.generateId()), ...tokens]),
+    infoLine: new Info_line(sharedContext.generateId(), [new Token(TT.IDENTIFIER, "K:", sharedContext.generateId()), ...tokens]),
     expected: {
       type: "key" as const,
       root: root as KeyRoot,
@@ -68,7 +68,7 @@ export const genKeyInfoWithAccidental = fc
     const tokens = [keyToken];
 
     return {
-      infoLine: new Info_line(sharedContext.generateId(), [new Token(TT.IDENTIFIER, "K", sharedContext.generateId()), ...tokens]),
+      infoLine: new Info_line(sharedContext.generateId(), [new Token(TT.IDENTIFIER, "K:", sharedContext.generateId()), ...tokens]),
       expected: {
         type: "key" as const,
         root: root as KeyRoot,
@@ -106,7 +106,7 @@ export const genKeyInfoWithMode = fc
     const modeEnum = parseModeForTest(mode);
 
     return {
-      infoLine: new Info_line(sharedContext.generateId(), [new Token(TT.IDENTIFIER, "K", sharedContext.generateId()), ...tokens]),
+      infoLine: new Info_line(sharedContext.generateId(), [new Token(TT.IDENTIFIER, "K:", sharedContext.generateId()), ...tokens]),
       expected: {
         type: "key" as const,
         root: root as KeyRoot,
@@ -140,7 +140,7 @@ export const genKeyInfoWithClef = fc
     return {
       infoLine: new Info_line(
         sharedContext.generateId(),
-        [new Token(TT.IDENTIFIER, "K", sharedContext.generateId()), ...tokens],
+        [new Token(TT.IDENTIFIER, "K:", sharedContext.generateId()), ...tokens],
         undefined,
         [clefKV] // Use value2 for expressions
       ),
@@ -167,12 +167,9 @@ export const genKeyInfo = fc.oneof(genKeyInfoSimple, genKeyInfoWithAccidental, g
  * Generate M: info line with common time (e.g., "M:C")
  */
 export const genMeterInfoCommonTime = fc.constant({
-  infoLine: new Info_line(
-    sharedContext.generateId(),
-    [new Token(TT.IDENTIFIER, "M", sharedContext.generateId())],
-    undefined,
-    [new KV(sharedContext.generateId(), new Token(TT.SPECIAL_LITERAL, "C", sharedContext.generateId()))]
-  ),
+  infoLine: new Info_line(sharedContext.generateId(), [new Token(TT.IDENTIFIER, "M:", sharedContext.generateId())], undefined, [
+    new KV(sharedContext.generateId(), new Token(TT.SPECIAL_LITERAL, "C", sharedContext.generateId())),
+  ]),
   expected: {
     type: "meter" as const,
     meterType: MeterType.CommonTime,
@@ -185,12 +182,9 @@ export const genMeterInfoCommonTime = fc.constant({
  * Generate M: info line with cut time (e.g., "M:C|")
  */
 export const genMeterInfoCutTime = fc.constant({
-  infoLine: new Info_line(
-    sharedContext.generateId(),
-    [new Token(TT.IDENTIFIER, "M", sharedContext.generateId())],
-    undefined,
-    [new KV(sharedContext.generateId(), new Token(TT.SPECIAL_LITERAL, "C|", sharedContext.generateId()))]
-  ),
+  infoLine: new Info_line(sharedContext.generateId(), [new Token(TT.IDENTIFIER, "M:", sharedContext.generateId())], undefined, [
+    new KV(sharedContext.generateId(), new Token(TT.SPECIAL_LITERAL, "C|", sharedContext.generateId())),
+  ]),
   expected: {
     type: "meter" as const,
     meterType: MeterType.CutTime,
@@ -219,7 +213,7 @@ export const genMeterInfoNumeric = fc
     return {
       infoLine: new Info_line(
         sharedContext.generateId(),
-        [new Token(TT.IDENTIFIER, "M", sharedContext.generateId())],
+        [new Token(TT.IDENTIFIER, "M:", sharedContext.generateId())],
         undefined,
         [binary] // Use value2 for expressions
       ),
@@ -262,7 +256,7 @@ export const genNoteLenInfo = fc
     return {
       infoLine: new Info_line(
         sharedContext.generateId(),
-        [new Token(TT.IDENTIFIER, "L", sharedContext.generateId())],
+        [new Token(TT.IDENTIFIER, "L:", sharedContext.generateId())],
         undefined,
         [binary] // Use value2 for expressions
       ),
@@ -277,6 +271,200 @@ export const genNoteLenInfo = fc
 // ============================================================================
 // Combined Generator
 // ============================================================================
+
+// ============================================================================
+// MetaText Info Line Generators (T:, C:, O:, R:, B:, S:, D:, N:, Z:, H:, A:)
+// ============================================================================
+
+/**
+ * Generate realistic text for names (titles, composers, authors, etc.)
+ * Alphanumeric with spaces, hyphens, apostrophes
+ * Ensures no leading/trailing spaces
+ */
+const genNameText = fc
+  .stringMatching(/^[A-Za-z][A-Za-z0-9 '\-]{0,40}[A-Za-z0-9]$/)
+  .map((s) => s.trim())
+  .filter((s) => s.length > 0);
+
+/**
+ * Generate realistic rhythm types from ABC standard
+ */
+const genRhythmText = fc.constantFrom(
+  "hornpipe",
+  "double jig",
+  "single jig",
+  "jig",
+  "reel",
+  "slip jig",
+  "polka",
+  "waltz",
+  "march",
+  "mazurka",
+  "strathspey",
+  "barndance",
+  "slide",
+  "air",
+  "48-bar polka",
+  "balkan"
+);
+
+/**
+ * Generate text with alphanumeric, spaces, and common punctuation (for notes, history)
+ * Ensures no leading/trailing spaces
+ * Excludes double quotes and backslashes to avoid ABC string syntax issues
+ */
+const genTextWithPunctuation = fc
+  .stringMatching(/^[A-Za-z0-9 .,'\-()]{1,80}$/)
+  .map((s) => s.trim())
+  .filter((s) => s.length > 0 && !s.includes("\n"));
+
+/**
+ * Generate T: (title) info line
+ */
+export const genTitleInfo = genNameText.map((text) => ({
+  infoLine: new Info_line(
+    sharedContext.generateId(),
+    [new Token(TT.IDENTIFIER, "T:", sharedContext.generateId())],
+    undefined,
+    text.split(" ").map((word) => new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, word, sharedContext.generateId())))
+  ),
+  expected: { type: "title" as const, data: text },
+}));
+
+/**
+ * Generate C: (composer) info line
+ */
+
+export const genComposerInfo = genNameText.map((text) => ({
+  infoLine: new Info_line(
+    sharedContext.generateId(),
+    [new Token(TT.IDENTIFIER, "C:", sharedContext.generateId())],
+    undefined,
+    text.split(" ").map((word) => new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, word, sharedContext.generateId())))
+  ),
+  expected: { type: "composer" as const, data: text },
+}));
+
+/**
+ * Generate O: (origin) info line
+ */
+export const genOriginInfo = genNameText.map((text) => ({
+  infoLine: new Info_line(
+    sharedContext.generateId(),
+    [new Token(TT.IDENTIFIER, "O:", sharedContext.generateId())],
+    undefined,
+    text.split(" ").map((word) => new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, word, sharedContext.generateId())))
+  ),
+  expected: { type: "origin" as const, data: text },
+}));
+
+/**
+ * Generate R: (rhythm) info line
+ */
+export const genRhythmInfo = genRhythmText.map((text) => ({
+  infoLine: new Info_line(
+    sharedContext.generateId(),
+    [new Token(TT.IDENTIFIER, "R:", sharedContext.generateId())],
+    undefined,
+    text.split(" ").map((word) => new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, word, sharedContext.generateId())))
+  ),
+  expected: { type: "rhythm" as const, data: text },
+}));
+
+/**
+ * Generate B: (book) info line
+ */
+export const genBookInfo = genNameText.map((text) => ({
+  infoLine: new Info_line(
+    sharedContext.generateId(),
+    [new Token(TT.IDENTIFIER, "B:", sharedContext.generateId())],
+    undefined,
+    text.split(" ").map((word) => new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, word, sharedContext.generateId())))
+  ),
+  expected: { type: "book" as const, data: text },
+}));
+
+/**
+ * Generate S: (source) info line
+ */
+export const genSourceInfo = genNameText.map((text) => ({
+  infoLine: new Info_line(
+    sharedContext.generateId(),
+    [new Token(TT.IDENTIFIER, "S:", sharedContext.generateId())],
+    undefined,
+    text.split(" ").map((word) => new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, word, sharedContext.generateId())))
+  ),
+  expected: { type: "source" as const, data: text },
+}));
+
+/**
+ * Generate D: (discography) info line
+ */
+export const genDiscographyInfo = genNameText.map((text) => ({
+  infoLine: new Info_line(
+    sharedContext.generateId(),
+    [new Token(TT.IDENTIFIER, "D:", sharedContext.generateId())],
+    undefined,
+    text.split(" ").map((word) => new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, word, sharedContext.generateId())))
+  ),
+  expected: { type: "discography" as const, data: text },
+}));
+
+/**
+ * Generate N: (notes) info line
+ */
+export const genNotesInfo = genTextWithPunctuation.map((text) => ({
+  infoLine: new Info_line(
+    sharedContext.generateId(),
+    [new Token(TT.IDENTIFIER, "N:", sharedContext.generateId())],
+    undefined,
+    text.split(" ").map((word) => new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, word, sharedContext.generateId())))
+  ),
+  expected: { type: "notes" as const, data: text },
+}));
+
+/**
+ * Generate Z: (transcription) info line
+ */
+export const genTranscriptionInfo = genNameText.map((text) => ({
+  infoLine: new Info_line(
+    sharedContext.generateId(),
+    [new Token(TT.IDENTIFIER, "Z:", sharedContext.generateId())],
+    undefined,
+    text.split(" ").map((word) => new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, word, sharedContext.generateId())))
+  ),
+  expected: { type: "transcription" as const, data: text },
+}));
+
+/**
+ * Generate H: (history) info line
+ */
+// NOTE: Use fc.stringMatching with an alphanumeri here, with NO LINEBREAKS. Spaces and punctuation accepted.
+// abandon genInfoLineText.
+export const genHistoryInfo = genTextWithPunctuation.map((text) => ({
+  infoLine: new Info_line(
+    sharedContext.generateId(),
+    [new Token(TT.IDENTIFIER, "H:", sharedContext.generateId())],
+    undefined,
+    text.split(" ").map((word) => new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, word, sharedContext.generateId())))
+  ),
+  expected: { type: "history" as const, data: text },
+}));
+
+/**
+ * Generate A: (author) info line
+ */
+// NOTE: Use fc.stringMatching with an alphanumeri here to simulate a name.
+// abandon genInfoLineText.
+export const genAuthorInfo = genNameText.map((text) => ({
+  infoLine: new Info_line(
+    sharedContext.generateId(),
+    [new Token(TT.IDENTIFIER, "A:", sharedContext.generateId())],
+    undefined,
+    text.split(" ").map((word) => new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, word, sharedContext.generateId())))
+  ),
+  expected: { type: "author" as const, data: text },
+}));
 
 /**
  * Generate any valid info line

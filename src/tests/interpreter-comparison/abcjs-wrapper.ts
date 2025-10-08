@@ -116,6 +116,7 @@ export interface AbcjsRawMetaText {
   discography?: string;
   notes?: string;
   transcription?: string;
+  history?: string;
   "abc-copyright"?: string;
   "abc-creator"?: string;
   "abc-edited-by"?: string;

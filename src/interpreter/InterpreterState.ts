@@ -28,12 +28,24 @@ import { IRational, createRational } from "../Visitors/fmt2/rational";
 import { SemanticData } from "../analyzers/semantic-analyzer";
 
 // ============================================================================
+// Parser Configuration (directives that affect parsing but aren't exposed)
+// ============================================================================
+
+export interface ParserConfig {
+  landscape?: boolean;
+  titlecaps?: boolean;
+  continueall?: boolean;
+  papersize?: string;
+}
+
+// ============================================================================
 // File-level Defaults (shared across all tunes in a file)
 // ============================================================================
 
 export interface FileDefaults {
   noteLength?: IRational;
   formatting: { [key: string]: any };
+  parserConfig: ParserConfig;
   version?: string;
   metaText: Partial<MetaText>;
 }
@@ -76,6 +88,7 @@ export interface InterpreterState {
   // Hierarchical defaults
   fileDefaults: FileDefaults;
   tuneDefaults: TuneDefaults;
+  parserConfig: ParserConfig;
 
   // Working state (mutable during body processing)
   currentLine: number;
@@ -103,6 +116,7 @@ export interface InterpreterState {
 export function createFileDefaults(): FileDefaults {
   return {
     formatting: {},
+    parserConfig: {},
     metaText: {},
   };
 }
@@ -120,6 +134,7 @@ export function createInterpreterState(semanticData: Map<number, SemanticData>, 
     semanticData,
     fileDefaults,
     tuneDefaults: createTuneDefaults(fileDefaults),
+    parserConfig: { ...fileDefaults.parserConfig },
     currentLine: 0,
     currentStaff: 0,
     currentVoice: "default",

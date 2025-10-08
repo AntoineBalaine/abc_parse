@@ -127,7 +127,9 @@ function isInfoLineSemanticData(data: SemanticData): data is InfoLineUnion {
 // Helper Functions for Processing Semantic Data
 // ============================================================================
 
-type HeaderContext = { type: "file_header"; target: FileDefaults } | { type: "tune_header"; target: { tune: Tune; tuneDefaults: TuneDefaults } };
+type HeaderContext =
+  | { type: "file_header"; target: FileDefaults }
+  | { type: "tune_header"; target: { tune: Tune; tuneDefaults: TuneDefaults; parserConfig: import("./InterpreterState").ParserConfig } };
 
 /**
  * Process info line semantic data and assign to appropriate target
@@ -138,7 +140,15 @@ function applyInfoLine(semanticData: InfoLineUnion, context: HeaderContext): str
   const metaText = context.type === "file_header" ? context.target.metaText : context.target.tune.metaText;
 
   if (isTitleInfo(semanticData)) {
-    metaText.title = semanticData.data;
+    let title = semanticData.data;
+
+    // Apply titlecaps transformation if directive is set
+    const parserConfig = context.type === "file_header" ? context.target.parserConfig : context.target.parserConfig;
+    if (parserConfig.titlecaps === true) {
+      title = title.toUpperCase();
+    }
+
+    metaText.title = title;
     return null;
   }
   if (isComposerInfo(semanticData)) {
@@ -223,10 +233,12 @@ function applyInfoLine(semanticData: InfoLineUnion, context: HeaderContext): str
 
 /**
  * Process directive semantic data and assign to appropriate target
+ * @returns Warning message if directive is not valid in this context
  */
-function applyDirective(semanticData: SemanticData, directiveName: string, context: HeaderContext): void {
+function applyDirective(semanticData: SemanticData, directiveName: string, context: HeaderContext): string | null {
   const metaText = context.type === "file_header" ? context.target.metaText : context.target.tune.metaText;
   const formatting = context.type === "file_header" ? context.target.formatting : context.target.tune.formatting;
+  const parserConfig = context.type === "file_header" ? context.target.parserConfig : context.target.parserConfig;
 
   // Handle abc-version specially
   if (semanticData.type === "abc-version") {
@@ -235,19 +247,61 @@ function applyDirective(semanticData: SemanticData, directiveName: string, conte
     } else {
       context.target.tune.version = semanticData.data;
     }
+    return null;
   }
 
   // Handle abc-* metaText directives
+  // Multiple occurrences are concatenated with newline (matching abcjs behavior)
   if (semanticData.type === "abc-copyright") {
-    metaText["abc-copyright"] = semanticData.data;
+    const existing = metaText["abc-copyright"];
+    metaText["abc-copyright"] = existing ? existing + "\n" + semanticData.data : semanticData.data;
+    return null;
   } else if (semanticData.type === "abc-creator") {
-    metaText["abc-creator"] = semanticData.data;
+    const existing = metaText["abc-creator"];
+    metaText["abc-creator"] = existing ? existing + "\n" + semanticData.data : semanticData.data;
+    return null;
   } else if (semanticData.type === "abc-edited-by") {
-    metaText["abc-edited-by"] = semanticData.data;
+    const existing = metaText["abc-edited-by"];
+    metaText["abc-edited-by"] = existing ? existing + "\n" + semanticData.data : semanticData.data;
+    return null;
   }
 
-  // Store all directives in formatting
-  formatting[directiveName] = semanticData;
+  // List of formatting directives that require a tune context
+  const formattingOnlyDirectives = [
+    "bagpipes",
+    "flatbeams",
+    "jazzchords",
+    "accentAbove",
+    "germanAlphabet",
+    "titleleft",
+    "measurebox",
+    "nobarcheck",
+  ];
+
+  // Check if this is a formatting directive in file header
+  if (context.type === "file_header" && formattingOnlyDirectives.includes(directiveName)) {
+    return `Directive %%${directiveName} is not allowed in file header (requires tune context)`;
+  }
+
+  // Categorize directives: parser config, formatting, or ignored
+  // Parser config directives affect parsing but are not exposed in output
+  if (directiveName === "landscape" || directiveName === "titlecaps" || directiveName === "continueall") {
+    if (typeof semanticData.data === "boolean") {
+      parserConfig[directiveName] = semanticData.data;
+    }
+  } else if (directiveName === "papersize") {
+    if (typeof semanticData.data === "string") {
+      parserConfig.papersize = semanticData.data;
+    }
+  } else if (directiveName === "font") {
+    // Ignored directive - abcjs does nothing with it
+    return null;
+  } else {
+    // All other directives go in formatting
+    formatting[directiveName] = semanticData;
+  }
+
+  return null;
 }
 
 // ============================================================================
@@ -336,7 +390,10 @@ export class TuneInterpreter implements Visitor<void> {
       } else if (item instanceof Directive) {
         const semanticData = this.analyzer.data.get(item.id);
         if (semanticData) {
-          applyDirective(semanticData, item.key.lexeme, context);
+          const warning = applyDirective(semanticData, item.key.lexeme, context);
+          if (warning) {
+            this.ctx.errorReporter.interpreterError(warning, item);
+          }
         }
       }
     }
@@ -441,7 +498,7 @@ export class TuneInterpreter implements Visitor<void> {
       // Header info line - use the helper function
       const context: HeaderContext = {
         type: "tune_header",
-        target: { tune: this.state.tune, tuneDefaults: this.state.tuneDefaults },
+        target: { tune: this.state.tune, tuneDefaults: this.state.tuneDefaults, parserConfig: this.state.parserConfig },
       };
       const warning = applyInfoLine(semanticData, context);
       if (warning) {
@@ -460,7 +517,23 @@ export class TuneInterpreter implements Visitor<void> {
   visitDirectiveExpr(expr: Directive): void {
     const semanticData = this.state.semanticData.get(expr.id);
     if (semanticData) {
-      this.state.tune.formatting[expr.key.lexeme] = semanticData;
+      if (this.processingContext === "file_header") {
+        const context: HeaderContext = { type: "file_header", target: this.fileDefaults };
+        const warning = applyDirective(semanticData, expr.key.lexeme, context);
+        if (warning) {
+          this.ctx.errorReporter.interpreterError(warning, expr);
+        }
+      } else {
+        // Tune header or body
+        const context: HeaderContext = {
+          type: "tune_header",
+          target: { tune: this.state.tune, tuneDefaults: this.state.tuneDefaults, parserConfig: this.state.parserConfig },
+        };
+        const warning = applyDirective(semanticData, expr.key.lexeme, context);
+        if (warning) {
+          this.ctx.errorReporter.interpreterError(warning, expr);
+        }
+      }
     }
   }
 

@@ -13,6 +13,8 @@ import { Scanner2 } from "../parsers/scan2";
 import { parse } from "../parsers/parse2";
 import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { TuneInterpreter } from "./TuneInterpreter";
+import { expectNoErrors, parseWithYourParser } from "../tests/interpreter-comparison/test-helpers";
+import fc from "fast-check";
 
 /**
  * Helper to parse ABC input through full pipeline
@@ -28,7 +30,7 @@ function parseABC(input: string) {
   return { tunes: result.tunes, ctx };
 }
 
-describe.only("TuneInterpreter", () => {
+describe("TuneInterpreter", () => {
   describe("Tune Header Info Lines - MetaText", () => {
     it("should parse single title", () => {
       const input = `X:1
@@ -51,6 +53,18 @@ CDEF|`;
       const { tunes } = parseABC(input);
       expect(tunes).to.have.length(1);
       expect(tunes[0].metaText.title).to.exist;
+    });
+
+    it("should apply titlecaps directive to titles", () => {
+      const input = `%%titlecaps
+
+X:1
+T:test title
+K:C`;
+
+      const { tunes } = parseABC(input);
+      expect(tunes).to.have.length(1);
+      expect(tunes[0].metaText.title).to.equal("TEST TITLE");
     });
 
     it("should parse composer", () => {
@@ -251,9 +265,11 @@ T:Test
 K:C
 CDEF|`;
 
-      const { tunes } = parseABC(input);
-      expect(tunes[0].formatting.landscape).to.exist;
-      expect(tunes[0].formatting.landscape.type).to.equal("landscape");
+      const { tunes, ctx } = parseABC(input);
+      // landscape is a parser config directive, allowed in file header
+      // but NOT exposed in tune.formatting (internal only)
+      expect(ctx.errorReporter.hasErrors()).to.be.false;
+      expect(tunes[0].formatting.landscape).to.be.undefined;
     });
 
     it("should parse stretchlast directive", () => {
@@ -269,7 +285,7 @@ CDEF|`;
       expect(tunes[0].formatting.stretchlast.type).to.equal("stretchlast");
     });
 
-    it("should parse flatbeams directive", () => {
+    it("should error on flatbeams directive in file header", () => {
       const input = `%%flatbeams
 
 X:1
@@ -277,7 +293,23 @@ T:Test
 K:C
 CDEF|`;
 
-      const { tunes } = parseABC(input);
+      const { ctx } = parseABC(input);
+      // flatbeams is a formatting directive, requires tune context
+      expect(ctx.errorReporter.hasErrors()).to.be.true;
+      const errors = ctx.errorReporter.getErrors();
+      const hasDirectiveError = errors.some((e) => e.message.includes("flatbeams") && e.message.includes("not allowed in file header"));
+      expect(hasDirectiveError).to.be.true;
+    });
+
+    it("should parse flatbeams directive in tune header", () => {
+      const input = `X:1
+T:Test
+%%flatbeams
+K:C
+CDEF|`;
+
+      const { tunes, ctx } = parseABC(input);
+      expect(ctx.errorReporter.hasErrors()).to.be.false;
       expect(tunes[0].formatting.flatbeams).to.exist;
       expect(tunes[0].formatting.flatbeams.type).to.equal("flatbeams");
     });
@@ -363,14 +395,17 @@ T:Second Tune
 K:G
 GABc|`;
 
-      const { tunes } = parseABC(input);
+      const { tunes, ctx } = parseABC(input);
+      expect(ctx.errorReporter.hasErrors()).to.be.false;
       expect(tunes).to.have.length(2);
 
-      // Both tunes should have inherited formatting
+      // Both tunes should have inherited titlefont (formatting directive)
       expect(tunes[0].formatting.titlefont).to.exist;
-      expect(tunes[0].formatting.landscape).to.exist;
       expect(tunes[1].formatting.titlefont).to.exist;
-      expect(tunes[1].formatting.landscape).to.exist;
+
+      // landscape is a parser config directive, NOT exposed in formatting
+      expect(tunes[0].formatting.landscape).to.be.undefined;
+      expect(tunes[1].formatting.landscape).to.be.undefined;
     });
 
     it("should inherit version from file header", () => {
@@ -496,5 +531,38 @@ CDEF|`;
       const hasUnknownError = errors.some((e) => e.message.includes("Unknown info line key"));
       expect(hasUnknownError).to.be.true;
     });
+  });
+});
+
+describe("Edge Cases from Property-Based Testing", () => {
+  it("should not cause endless loop with complex metaText fields", () => {
+    const input = `X:1
+T:C4
+C:S7 q
+O:EaL
+B:W g R
+S:Evt2g
+D:Wz'6 00 AA
+N:1,'.'..a5'"(
+Z:lK
+H:,').
+A:m 'v
+M:C|
+L:1/32
+K:clef=none`;
+
+    // Parse with our parser - should not hang
+    const { tunes, ctx } = parseWithYourParser(input);
+
+    // Should produce a tune
+    expect(tunes).to.be.an("array");
+    expect(tunes.length).to.be.greaterThan(0);
+    expectNoErrors(ctx, "Your parser");
+
+    // Verify metaText fields were parsed
+    const tune = tunes[0];
+    expect(tune.metaText.title).to.equal("C4");
+    expect(tune.metaText.composer).to.equal("S7 q");
+    expect(tune.metaText.origin).to.equal("EaL");
   });
 });

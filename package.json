@@ -39,7 +39,7 @@
     "start": "tsc && node out/src/Abc.js",
     "start_debug": "tsc && node out/src/Abc.js /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/all/blues_my_naughty_sweetie_gives.abc",
     "start_debug2": "tsc && node out/src/Abc.js /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/visual/triplet-alignment-overlay.abc",
-    "test": "mocha -r ts-node/register src/**/*.spec.ts",
+    "test": "mocha -r ts-node/register 'src/**/*.spec.ts' 'src/**/**/*.spec.ts'",
     "test:scan2": "mocha -r ts-node/register 'src/tests/scan2_*.spec.ts'",
     "test:coverage": "nyc npm run test",
     "file": "ts-node src/Abc.ts /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/all/lazy_river.abc",
