@@ -77,7 +77,7 @@ function compareTokenArraysDetailed(
   return true;
 }
 
-describe.only("scanInfoLine2 - Unified Info Line Scanner", () => {
+describe("scanInfoLine2 - Unified Info Line Scanner", () => {
   let context: ABCContext;
 
   beforeEach(() => {
@@ -187,7 +187,7 @@ describe.only("scanInfoLine2 - Unified Info Line Scanner", () => {
       expect(ctx.tokens[5].lexeme).to.equal("\t");
     });
 
-    it.only("should correctly scan voice line V:LH clef=bass octave=-2", () => {
+    it("should correctly scan voice line V:LH clef=bass octave=-2", () => {
       const ctx = new Ctx("V:LH clef=bass octave=-2", context);
       const result = scanInfoLine2(ctx);
 

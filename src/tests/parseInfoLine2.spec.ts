@@ -20,7 +20,7 @@ import {
 } from "./scn_infoln_generators";
 import { expect } from "chai";
 
-describe.only("parseInfoLine2 - Unified Info Line Parser", () => {
+describe("parseInfoLine2 - Unified Info Line Parser", () => {
   let context: ABCContext;
 
   beforeEach(() => {
@@ -546,7 +546,7 @@ describe.only("parseInfoLine2 - Unified Info Line Parser", () => {
       expect(commaKv.key).to.be.undefined;
     });
 
-    it.only("should handle voice info line: V:LH clef=bass octave=-2", () => {
+    it("should handle voice info line: V:LH clef=bass octave=-2", () => {
       const tokens = [
         new Token(TT.INF_HDR, "V:", context.generateId()),
         new Token(TT.IDENTIFIER, "LH", context.generateId()),
@@ -587,6 +587,52 @@ describe.only("parseInfoLine2 - Unified Info Line Parser", () => {
       const octaveKv = thirdExpr as KV;
       expect((octaveKv.key! as Token).lexeme).to.equal("octave");
       expect(octaveKv.value.lexeme).to.equal("-2");
+    });
+
+    it("should preserve INVALID tokens and format them correctly", () => {
+      const tokens = [
+        new Token(TT.INF_HDR, "V:", context.generateId()),
+        new Token(TT.IDENTIFIER, "LH", context.generateId()),
+        new Token(TT.WS, " ", context.generateId()),
+        new Token(TT.INVALID, "@#$", context.generateId()),
+        new Token(TT.WS, " ", context.generateId()),
+        new Token(TT.IDENTIFIER, "clef", context.generateId()),
+        new Token(TT.EQL, "=", context.generateId()),
+        new Token(TT.IDENTIFIER, "bass", context.generateId()),
+      ];
+
+      const ctx = new ParseCtx(tokens, context);
+      const result = prsInfoLine(ctx);
+
+      expect(result).to.not.be.null;
+      expect(result!.key.lexeme).to.equal("V:");
+      expect(result!.value2).to.have.length(3);
+
+      // First expression should be KV for voice name "LH"
+      const firstExpr = result!.value2![0];
+      expect(firstExpr).to.be.an.instanceof(KV);
+      expect((firstExpr as KV).value.lexeme).to.equal("LH");
+
+      // Second should be the INVALID token preserved as a Token
+      const secondExpr = result!.value2![1];
+      expect(secondExpr).to.be.an.instanceof(Token);
+      expect((secondExpr as Token).type).to.equal(TT.INVALID);
+      expect((secondExpr as Token).lexeme).to.equal("@#$");
+
+      // Third expression should be KV for clef=bass
+      const thirdExpr = result!.value2![2];
+      expect(thirdExpr).to.be.an.instanceof(KV);
+      const clefKv = thirdExpr as KV;
+      expect((clefKv.key! as Token).lexeme).to.equal("clef");
+      expect(clefKv.value.lexeme).to.equal("bass");
+
+      // Test formatting - verify INVALID token is included with proper spacing
+      const { AbcFormatter2 } = require("../Visitors/Formatter2");
+      const formatter = new AbcFormatter2(context);
+      const formattedOutput = formatter.visitInfoLineExpr(result!);
+
+      expect(formattedOutput).to.include("@#$");
+      expect(formattedOutput).to.equal("V:LH @#$ clef=bass");
     });
   });
 });
