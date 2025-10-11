@@ -4,7 +4,7 @@ import { Expr } from "../types/Expr2";
 import { isToken } from "../helpers";
 import { RangeVisitor } from "../Visitors/RangeVisitor";
 
-export type AbcError = { message: string; token?: Token | Expr; origin: ParserErrorType };
+export type AbcError = { message: string; token: Token | Expr; origin: ParserErrorType };
 
 /**
  * Handles warnings and errors from the scanner and parser.
@@ -30,7 +30,7 @@ export class AbcErrorReporter {
     this.warnings = [];
   }
 
-  private report = (message: string, token: Token | Expr | undefined, origin: ParserErrorType) => {
+  private report = (message: string, token: Token | Expr, origin: ParserErrorType) => {
     const err: AbcError = { message, token, origin };
     this.errors.push(err);
     return this.stringifyError(err);
