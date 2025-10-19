@@ -1,47 +1,52 @@
 // abc_parse/src/tests/parseFolder.ts
 import fs from "fs";
 import path from "path";
-import { AbcError } from "../parsers/ErrorReporter";
-import { Parser } from "../parsers/Parser";
-import { Scanner } from "../parsers/Scanner";
 import { ABCContext } from "../parsers/Context";
+import { AbcError, AbcErrorReporter } from "../parsers/ErrorReporter";
+import { Scanner2 } from "../parsers/scan2";
+import { isToken } from "../helpers";
 
 function formatError(error: AbcError, sourceContent: string): string {
   const lines = sourceContent.split("\n");
-  const errorLine = lines[error.token.line];
-  const position = error.token.position;
+  if (isToken(error.token)) {
+    const errorLine = lines[error.token?.line];
+    const position = error.token?.position;
 
-  return [``, errorLine, " ".repeat(position) + "^", " ".repeat(position) + `${error.message} - line ${error.token.line + 1}:${position + 1}`].join(
-    "\n"
-  );
+    return [``, errorLine, " ".repeat(position) + "^", " ".repeat(position) + `${error.message} - line ${error.token.line + 1}:${position + 1}`].join(
+      "\n"
+    );
+  } else {
+    return "";
+  }
 }
 
-function processFile(filePath: string, errorLog: string[]): boolean {
+/**
+ * Uses scan2 instead of the old-version parser.
+ */
+export function processFile2(filePath: string, errorLog: string[]): boolean {
   try {
     const ctx = new ABCContext();
     const content = fs.readFileSync(filePath, "utf-8");
-    const scanner = new Scanner(content, ctx);
-    const tokens = scanner.scanTokens();
-    const parser = new Parser(tokens, ctx);
-    const ast = parser.parse();
 
-    if (ast === null) {
+    const reporter = new AbcErrorReporter();
+    const tokens = Scanner2(content, ctx);
+    if (tokens.length === 0) {
       // Log parsing failure but don't throw
       errorLog.push(`\nFile: ${filePath}`);
       errorLog.push("-".repeat(80));
       errorLog.push("Failed to parse file structure");
-      if (parser.hasErrors()) {
-        const errors = parser.getErrors();
+      if (reporter.hasErrors()) {
+        const errors = reporter.getErrors();
         errors.forEach((error) => {
           errorLog.push(JSON.stringify(error));
         });
       }
       return true;
-    } else if (parser.hasErrors()) {
+    } else if (reporter.hasErrors()) {
       // Log errors from successful parse
       errorLog.push(`\nFile: ${filePath}`);
       errorLog.push("-".repeat(80));
-      const errors = parser.getErrors();
+      const errors = reporter.getErrors();
       errors.forEach((error) => {
         errorLog.push(formatError(error, content));
       });
@@ -57,6 +62,47 @@ function processFile(filePath: string, errorLog: string[]): boolean {
     return true;
   }
 }
+// function processFile(filePath: string, errorLog: string[]): boolean {
+//   try {
+//     const ctx = new ABCContext();
+//     const content = fs.readFileSync(filePath, "utf-8");
+//     const scanner = new Scanner(content, ctx);
+//     const tokens = scanner.scanTokens();
+//     const parser = new Parser(tokens, ctx);
+//     const ast = parser.parse();
+
+//     if (ast === null) {
+//       // Log parsing failure but don't throw
+//       errorLog.push(`\nFile: ${filePath}`);
+//       errorLog.push("-".repeat(80));
+//       errorLog.push("Failed to parse file structure");
+//       if (parser.hasErrors()) {
+//         const errors = parser.getErrors();
+//         errors.forEach((error) => {
+//           errorLog.push(JSON.stringify(error));
+//         });
+//       }
+//       return true;
+//     } else if (parser.hasErrors()) {
+//       // Log errors from successful parse
+//       errorLog.push(`\nFile: ${filePath}`);
+//       errorLog.push("-".repeat(80));
+//       const errors = parser.getErrors();
+//       errors.forEach((error) => {
+//         errorLog.push(formatError(error, content));
+//       });
+//       return true;
+//     }
+//     return false;
+//   } catch (err) {
+//     // Log any other errors
+//     console.error(`Error processing file ${filePath}:`, err);
+//     errorLog.push(`\nFile: ${filePath}`);
+//     errorLog.push("-".repeat(80));
+//     errorLog.push(`Failed to process file: ${err}`);
+//     return true;
+//   }
+// }
 
 function processDirectory(directoryPath: string): void {
   const errorLog: string[] = [];
@@ -73,7 +119,8 @@ function processDirectory(directoryPath: string): void {
       if (stat.isDirectory()) {
         walkDir(filePath);
       } else if (path.extname(file) === ".abc") {
-        const had_error = processFile(filePath, errorLog);
+        console.log("Processing file:", filePath);
+        const had_error = processFile2(filePath, errorLog);
         files_processed += 1;
         if (had_error) {
           failedFiles.push(filePath);

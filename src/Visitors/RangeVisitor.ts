@@ -1,23 +1,35 @@
 import { getTokenRange, isNote, isToken, reduceRanges } from "../helpers";
 import { ABCContext } from "../parsers/Context";
+import { Token } from "../parsers/scan2";
 import {
+  AbsolutePitch,
   Annotation,
   BarLine,
   Beam,
+  Binary,
   Chord,
   Comment,
   Decoration,
+  Directive,
   ErrorExpr,
+  Expr,
   File_header,
   File_structure,
   Grace_group,
+  Grouping,
   Info_line,
   Inline_field,
+  KV,
+  Lyric_line,
   Lyric_section,
+  Macro_decl,
+  Macro_invocation,
+  Measurement,
   MultiMeasureRest,
   Music_code,
   Note,
   Pitch,
+  Rational,
   Rest,
   Rhythm,
   Symbol,
@@ -25,11 +37,12 @@ import {
   Tune_Body,
   Tune_header,
   Tuplet,
+  User_symbol_decl,
+  User_symbol_invocation,
   Visitor,
   Voice_overlay,
   YSPACER,
-} from "../types/Expr";
-import { Token } from "../types/token";
+} from "../types/Expr2";
 import { Range } from "../types/types";
 
 /**
@@ -37,12 +50,20 @@ import { Range } from "../types/types";
  * {@link Range} being: start line and character `Position`, end line and character `Position`.
  */
 export class RangeVisitor implements Visitor<Range> {
-  ctx: ABCContext;
-  constructor(ctx: ABCContext) {
-    this.ctx = ctx;
+  constructor() {
+  }
+  visitToken(token: Token): Range {
+    return getTokenRange(token);
   }
   visitAnnotationExpr(expr: Annotation): Range {
     return getTokenRange(expr.text);
+  }
+  visitDirectiveExpr(expr: Directive): Range {
+    return [expr.key, expr.values]
+      .flatMap((e) => e)
+      .filter((e): e is Token | Annotation | Rational | Pitch | KV | Measurement => !!e)
+      .map((e) => e.accept(this))
+      .reduce(reduceRanges, <Range>{});
   }
   visitBarLineExpr(expr: BarLine): Range {
     return [expr.barline, expr.repeatNumbers]
@@ -70,11 +91,16 @@ export class RangeVisitor implements Visitor<Range> {
     return getTokenRange(expr.decoration);
   }
   visitFileHeaderExpr(expr: File_header): Range {
-    return expr.tokens.map((e) => getTokenRange(e)).reduce(reduceRanges, <Range>{});
+    return expr.contents
+      .map((e) => {
+        if (isToken(e)) return getTokenRange(e);
+        return e.accept(this);
+      })
+      .reduce(reduceRanges, <Range>{});
   }
   visitFileStructureExpr(expr: File_structure): Range {
-    const { file_header, tune } = expr;
-    return tune
+    const { file_header, contents } = expr;
+    return contents
       .map((t) => t.accept(this))
       .concat([file_header?.accept(this)].filter((e): e is Range => !!e))
       .reduce(reduceRanges, <Range>{});
@@ -220,5 +246,72 @@ export class RangeVisitor implements Visitor<Range> {
 
   visitErrorExpr(expr: ErrorExpr) {
     return expr.tokens.map((e) => getTokenRange(e)).reduce(reduceRanges, <Range>{});
+  }
+
+  visitLyricLineExpr(expr: Lyric_line): Range {
+    const headerRange = getTokenRange(expr.header);
+    const contentsRanges = expr.contents.map((token) => getTokenRange(token));
+    return [headerRange, ...contentsRanges].reduce(reduceRanges, <Range>{});
+  }
+
+  visitMacroDeclExpr(expr: Macro_decl): Range {
+    return [getTokenRange(expr.header), getTokenRange(expr.variable), getTokenRange(expr.content)].reduce(reduceRanges, <Range>{});
+  }
+
+  visitMacroInvocationExpr(expr: Macro_invocation): Range {
+    return getTokenRange(expr.variable);
+  }
+
+  visitUserSymbolDeclExpr(expr: User_symbol_decl): Range {
+    return [getTokenRange(expr.header), getTokenRange(expr.variable), getTokenRange(expr.symbol)].reduce(reduceRanges, <Range>{});
+  }
+
+  visitUserSymbolInvocationExpr(expr: User_symbol_invocation): Range {
+    return getTokenRange(expr.variable);
+  }
+
+  // New expression visitor methods for unified info line parsing
+  visitKV(expr: KV): Range {
+    const ranges = [getTokenRange(expr.value)];
+    if (expr.key) {
+      if (expr.key instanceof AbsolutePitch) {
+        ranges.push(expr.key.accept(this));
+      } else {
+        ranges.push(getTokenRange(expr.key));
+      }
+    }
+    if (expr.equals) {
+      ranges.push(getTokenRange(expr.equals));
+    }
+    return ranges.reduce(reduceRanges, <Range>{});
+  }
+
+  visitBinary(expr: Binary): Range {
+    const leftRange = expr.left instanceof Token ? getTokenRange(expr.left) : expr.left.accept(this);
+    const rightRange = expr.right instanceof Token ? getTokenRange(expr.right) : expr.right.accept(this);
+    return [leftRange, getTokenRange(expr.operator), rightRange].reduce(reduceRanges, <Range>{});
+  }
+
+  visitGrouping(expr: Grouping): Range {
+    return expr.expression.accept(this);
+  }
+
+  visitAbsolutePitch(expr: AbsolutePitch): Range {
+    const ranges = [getTokenRange(expr.noteLetter)];
+    if (expr.alteration) {
+      ranges.push(getTokenRange(expr.alteration));
+    }
+    if (expr.octave) {
+      ranges.push(getTokenRange(expr.octave));
+    }
+    return ranges.reduce(reduceRanges, <Range>{});
+  }
+
+  visitRationalExpr(expr: Rational): Range {
+    return [getTokenRange(expr.numerator), getTokenRange(expr.separator), getTokenRange(expr.denominator)].reduce(reduceRanges, <Range>{});
+  }
+
+  visitMeasurementExpr(expr: Measurement): Range {
+    return [getTokenRange(expr.value), getTokenRange(expr.scale)].reduce(reduceRanges, <Range>{});
   }
 }

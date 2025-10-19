@@ -1,12 +1,12 @@
-export * from "./src/Visitors/Formatter";
-export * from "./src/Visitors/SemanticTokens";
-export * from "./src/Visitors/RhythmTransform";
 export * from "./src/helpers";
 export * from "./src/parsers/ErrorReporter";
-export * from "./src/parsers/Parser";
-export * from "./src/parsers/Scanner";
-export * from "./src/parsers/Voices";
-export * from "./src/types/Expr";
-export * from "./src/types/token";
-export * from "./src/types/types";
-
+export * from "./src/parsers/parse2";
+export * from "./src/parsers/scan2";
+export { Scanner2, Token, TT } from "./src/parsers/scan2";
+export * from "./src/parsers/voices2";
+export * from "./src/types/Expr2";
+export * from "./src/Visitors/Formatter2";
+export * from "./src/Visitors/RangeCollector";
+export * from "./src/Visitors/RangeVisitor";
+export * from "./src/Visitors/RhythmTransform";
+export * from "./src/Visitors/Transposer";

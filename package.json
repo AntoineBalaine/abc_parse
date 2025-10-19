@@ -12,9 +12,11 @@
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
     "@jest/globals": "^29.3.1",
     "@types/chai": "^4.3.4",
+    "@types/lodash": "^4.17.16",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.11.18",
     "@typescript-eslint/eslint-plugin": "^6.11.0",
+    "abcjs": "^6.5.2",
     "chai": "^4.3.7",
     "eslint": "^8.54.0",
     "eslint-config-standard-with-typescript": "^39.1.1",
@@ -28,7 +30,7 @@
     "ts-jest": "^29.0.5",
     "ts-mocha": "^10.0.0",
     "ts-node": "^10.9.1",
-    "typescript": "^4.9.5"
+    "typescript": "^5.8.2"
   },
   "scripts": {
     "main": "out/index.js",
@@ -37,11 +39,14 @@
     "start": "tsc && node out/src/Abc.js",
     "start_debug": "tsc && node out/src/Abc.js /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/all/blues_my_naughty_sweetie_gives.abc",
     "start_debug2": "tsc && node out/src/Abc.js /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/visual/triplet-alignment-overlay.abc",
-    "test": "mocha -r ts-node/register src/**/*.spec.ts",
-    "test:coverage": "nyc pnpm run test",
+    "test": "mocha -r ts-node/register 'src/**/*.spec.ts' 'src/**/**/*.spec.ts'",
+    "test:scan2": "mocha -r ts-node/register 'src/tests/scan2_*.spec.ts'",
+    "test:coverage": "nyc npm run test",
     "file": "ts-node src/Abc.ts /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/all/lazy_river.abc",
     "lint": "eslint src --ext ts",
-    "parse-folder": "ts-node src/tests/parseFolder.ts"
+    "parse-folder": "ts-node src/tests/parseFolder.ts",
+    "parse-file": "ts-node src/tests/parseFile.ts",
+    "parse-folder:stringify": "ts-node src/tests/fmt2_parseFolder_stringify.ts"
   },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",
@@ -62,6 +67,8 @@
     "report-dir": "coverage"
   },
   "dependencies": {
-    "@typescript-eslint/parser": "^6.11.0"
+    "@typescript-eslint/parser": "^6.11.0",
+    "fast-check": "^4.0.0",
+    "lodash": "^4.17.21"
   }
 }
