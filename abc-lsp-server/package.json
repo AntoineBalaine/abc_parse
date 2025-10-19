@@ -1,0 +1,14 @@
+{
+  "name": "abc-lsp-server",
+  "version": "0.1.0",
+  "description": "Language Server for ABC music notation",
+  "main": "../out/abc-lsp-server/server.js",
+  "scripts": {
+    "build": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "prepublish": "npm run build"
+  },
+  "dependencies": {
+    "abc-parser": "*"
+  }
+}
