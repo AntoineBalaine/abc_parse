@@ -1,6 +1,6 @@
 import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
-import { Ctx, Scanner2, Token, TT } from "../parsers/scan2";
+import { Ctx, Scanner, Token, TT } from "../parsers/scan2";
 import { pDuration, pitch, pPitch, scanTune } from "../parsers/scan_tunebody";
 import {
   genInfoLine2,
@@ -64,7 +64,7 @@ describe("Scanner Property Tests", () => {
     fc.assert(
       fc.property(genAbcFile, (input) => {
         const ctx = new ABCContext();
-        const tokens = Scanner2(input, ctx);
+        const tokens = Scanner(input, ctx);
         // Property 1: Every section break should correspond to double newlines in input
         const sectionBreaks = tokens.filter((t) => t.type === TT.SCT_BRK);
         const inputBreaks = (input.match(/\n\n/g) || []).length;
@@ -85,7 +85,7 @@ describe("Scanner Property Tests", () => {
     fc.assert(
       fc.property(genAbcFile, (input) => {
         const ctx = new ABCContext();
-        const tokens = Scanner2(input, ctx);
+        const tokens = Scanner(input, ctx);
 
         // Property 2: Tokens should be sequential and non-overlapping
         for (let i = 0; i < tokens.length - 1; i++) {
@@ -113,7 +113,7 @@ describe("Scanner Property Tests", () => {
     fc.assert(
       fc.property(genAbcFile, (input) => {
         const ctx = new ABCContext();
-        const tokens = Scanner2(input, ctx);
+        const tokens = Scanner(input, ctx);
 
         // Property 3: Every X: line should start a new tune section
         const tuneHeaders = tokens.filter((t) => t.type === TT.INF_HDR && t.lexeme.startsWith("X:"));
@@ -129,7 +129,7 @@ describe("Scanner Property Tests", () => {
       fc.property(genAbcFile, (input) => {
         try {
           const ctx = new ABCContext();
-          Scanner2(input, ctx);
+          Scanner(input, ctx);
           return true;
         } catch (e) {
           return false;

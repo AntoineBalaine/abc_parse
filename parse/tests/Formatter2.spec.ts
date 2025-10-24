@@ -1,14 +1,14 @@
 import chai, { assert } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { ParseCtx, parseTune } from "../parsers/parse2";
-import { Scanner2 } from "../parsers/scan2";
+import { Scanner } from "../parsers/scan2";
 import { System } from "../types/Expr2";
-import { AbcFormatter2 } from "../Visitors/Formatter2";
+import { AbcFormatter } from "../Visitors/Formatter2";
 
 const expect = chai.expect;
 
-function format(input: string, ctx: ABCContext, formatter: AbcFormatter2): string {
-  const tokens = Scanner2(input, ctx);
+function format(input: string, ctx: ABCContext, formatter: AbcFormatter): string {
+  const tokens = Scanner(input, ctx);
   const parseCtx = new ParseCtx(tokens, ctx);
   const ast = parseTune(parseCtx);
   if (!ast) {
@@ -26,8 +26,8 @@ function removeTuneHeader(testStr: string): string {
 function RunSystemTest(input: string, test: (systems: System[], expected: string) => void, expected: string): () => void {
   return () => {
     const ctx = new ABCContext();
-    const formatter = new AbcFormatter2(ctx);
-    const tokens = Scanner2(input, ctx);
+    const formatter = new AbcFormatter(ctx);
+    const tokens = Scanner(input, ctx);
     const parseCtx = new ParseCtx(tokens, ctx);
     const ast = parseTune(parseCtx);
     if (!ast || !ast.tune_body) {
@@ -46,12 +46,12 @@ type SystemLineTest = {
 };
 describe("AbcFormatter2", () => {
   describe("AbcFormatter2.format() - single voice rules", () => {
-    let formatter: AbcFormatter2;
+    let formatter: AbcFormatter;
     let ctx: ABCContext;
 
     beforeEach(() => {
       ctx = new ABCContext();
-      formatter = new AbcFormatter2(ctx);
+      formatter = new AbcFormatter(ctx);
     });
 
     describe("basic spacing rules", () => {
@@ -153,21 +153,21 @@ GABG |`
   });
 
   describe("AbcFormatter2 multi-voice alignment", () => {
-    let formatter: AbcFormatter2;
+    let formatter: AbcFormatter;
     let ctx: ABCContext;
 
     beforeEach(() => {
       ctx = new ABCContext();
-      formatter = new AbcFormatter2(ctx);
+      formatter = new AbcFormatter(ctx);
     });
 
     describe("AbcFormatter2 - voice lines with metadata", () => {
-      let formatter: AbcFormatter2;
+      let formatter: AbcFormatter;
       let ctx: ABCContext;
 
       beforeEach(() => {
         ctx = new ABCContext();
-        formatter = new AbcFormatter2(ctx);
+        formatter = new AbcFormatter(ctx);
       });
 
       describe("voice lines with metadata", () => {
@@ -591,12 +591,12 @@ CD EF GA   | CDEF |`
   });
 
   describe("AbcFormatter2 - unmarked lines in multi-voice tunes", () => {
-    let formatter: AbcFormatter2;
+    let formatter: AbcFormatter;
     let ctx: ABCContext;
 
     beforeEach(() => {
       ctx = new ABCContext();
-      formatter = new AbcFormatter2(ctx);
+      formatter = new AbcFormatter(ctx);
     });
 
     it("preserves unmarked lines before voiced content", () => {
@@ -662,13 +662,13 @@ describe("Format Info Lines in Tune Header", function () {
       title: "format a tune header containing info lines only",
       test: (input, expected) => {
         const ctx = new ABCContext();
-        const tokens = Scanner2(input as string, ctx);
+        const tokens = Scanner(input as string, ctx);
         const parseCtx = new ParseCtx(tokens, ctx);
         const ast = parseTune(parseCtx);
         if (!ast) {
           throw new Error("Failed to parse");
         }
-        const formatter = new AbcFormatter2(ctx);
+        const formatter = new AbcFormatter(ctx);
         const fmt = formatter.visitTuneHeaderExpr(ast.tune_header);
         expect(fmt).to.not.be.undefined;
         assert.equal(fmt, expected);
@@ -687,13 +687,13 @@ K:C`,
       title: "format a tune header containing comments",
       test: (input, expected) => {
         const ctx = new ABCContext();
-        const tokens = Scanner2(input as string, ctx);
+        const tokens = Scanner(input as string, ctx);
         const parseCtx = new ParseCtx(tokens, ctx);
         const ast = parseTune(parseCtx);
         if (!ast) {
           throw new Error("Failed to parse");
         }
-        const formatter = new AbcFormatter2(ctx);
+        const formatter = new AbcFormatter(ctx);
         const fmt = formatter.visitTuneHeaderExpr(ast.tune_header);
         expect(fmt).to.not.be.undefined;
         assert.equal(fmt, expected);
@@ -725,13 +725,13 @@ describe("Format Info Lines in Tune Body", function () {
       title: "format a tune body containing info lines",
       test: (input, expected) => {
         const ctx = new ABCContext();
-        const tokens = Scanner2(input as string, ctx);
+        const tokens = Scanner(input as string, ctx);
         const parseCtx = new ParseCtx(tokens, ctx);
         const ast = parseTune(parseCtx);
         if (!ast || !ast.tune_body) {
           throw new Error("Failed to parse or no tune body");
         }
-        const formatter = new AbcFormatter2(ctx);
+        const formatter = new AbcFormatter(ctx);
         const fmt = formatter.visitTuneBodyExpr(ast.tune_body);
         expect(fmt).to.not.be.undefined;
         assert.equal(fmt, expected);
@@ -765,25 +765,25 @@ describe("Formatter2", function () {
 
     it("can visit the tree without modifying source", function () {
       const ctx = new ABCContext();
-      const tokens = Scanner2(input, ctx);
+      const tokens = Scanner(input, ctx);
       const parseCtx = new ParseCtx(tokens, ctx);
       const ast = parseTune(parseCtx);
       if (!ast) {
         throw new Error("Failed to parse");
       }
-      const fmt = new AbcFormatter2(ctx).stringify(ast);
+      const fmt = new AbcFormatter(ctx).stringify(ast);
       assert.equal(removeTuneHeader(fmt).trim(), expected_no_format);
     });
 
     it("removes useless double spaces", function () {
       const ctx = new ABCContext();
-      const tokens = Scanner2(input, ctx);
+      const tokens = Scanner(input, ctx);
       const parseCtx = new ParseCtx(tokens, ctx);
       const ast = parseTune(parseCtx);
       if (!ast) {
         throw new Error("Failed to parse");
       }
-      const fmt = new AbcFormatter2(ctx).format(ast);
+      const fmt = new AbcFormatter(ctx).format(ast);
       assert.equal(removeTuneHeader(fmt).trim(), expected_fmt);
     });
   });
@@ -798,13 +798,13 @@ describe("Formatter2: Stringify", () => {
     sample.forEach(([input, expected]) => {
       it(`should stringify ${input} into ${expected}`, () => {
         const ctx = new ABCContext();
-        const tokens = Scanner2(input, ctx);
+        const tokens = Scanner(input, ctx);
         const parseCtx = new ParseCtx(tokens, ctx);
         const ast = parseTune(parseCtx);
         if (!ast) {
           throw new Error("Failed to parse");
         }
-        const fmt = new AbcFormatter2(ctx).stringify(ast);
+        const fmt = new AbcFormatter(ctx).stringify(ast);
         assert.equal(removeTuneHeader(fmt).trim(), expected);
       });
     });
@@ -815,13 +815,13 @@ describe("Formatter2: Stringify", () => {
     sample.forEach(([input, expected]) => {
       it(`should stringify ${input} into ${expected}`, () => {
         const ctx = new ABCContext();
-        const tokens = Scanner2(input, ctx);
+        const tokens = Scanner(input, ctx);
         const parseCtx = new ParseCtx(tokens, ctx);
         const ast = parseTune(parseCtx);
         if (!ast) {
           throw new Error("Failed to parse");
         }
-        const fmt = new AbcFormatter2(ctx).stringify(ast);
+        const fmt = new AbcFormatter(ctx).stringify(ast);
         assert.equal(removeTuneHeader(fmt).trim(), expected);
       });
     });
@@ -846,8 +846,8 @@ describe("Formatter2: Whitespace handling", () => {
     errorSamples.forEach(({ title, input, expected }) => {
       it(title, () => {
         const ctx = new ABCContext();
-        const formatter = new AbcFormatter2(ctx);
-        const tokens = Scanner2(input, ctx);
+        const formatter = new AbcFormatter(ctx);
+        const tokens = Scanner(input, ctx);
         const parseCtx = new ParseCtx(tokens, ctx);
         const ast = parseTune(parseCtx);
         if (!ast) {
@@ -890,8 +890,8 @@ describe("Formatter2: Error Preservation", () => {
     errorSamples.forEach(({ title, input, expected }) => {
       it(title, () => {
         const ctx = new ABCContext();
-        const formatter = new AbcFormatter2(ctx);
-        const tokens = Scanner2(input, ctx);
+        const formatter = new AbcFormatter(ctx);
+        const tokens = Scanner(input, ctx);
         const parseCtx = new ParseCtx(tokens, ctx);
         const ast = parseTune(parseCtx);
         if (!ast) {
@@ -907,8 +907,8 @@ describe("Formatter2: Error Preservation", () => {
     errorSamples.forEach(({ title, input, expected, fmt_expected }) => {
       it(title, () => {
         const ctx = new ABCContext();
-        const formatter = new AbcFormatter2(ctx);
-        const tokens = Scanner2(input, ctx);
+        const formatter = new AbcFormatter(ctx);
+        const tokens = Scanner(input, ctx);
         const parseCtx = new ParseCtx(tokens, ctx);
         const ast = parseTune(parseCtx);
         if (!ast) {
@@ -926,8 +926,8 @@ describe("Formatter2: Error Preservation", () => {
     const expected = `[V:1] abc ~23 |\n[V:2] def \\e |`;
 
     const ctx = new ABCContext();
-    const formatter = new AbcFormatter2(ctx);
-    const tokens = Scanner2(input, ctx);
+    const formatter = new AbcFormatter(ctx);
+    const tokens = Scanner(input, ctx);
     const parseCtx = new ParseCtx(tokens, ctx);
     const ast = parseTune(parseCtx);
     if (!ast) {
@@ -943,8 +943,8 @@ describe("Formatter2: Error Preservation", () => {
     const expected = "abc ~23 def | g hi";
 
     const ctx = new ABCContext();
-    const formatter = new AbcFormatter2(ctx);
-    const tokens = Scanner2(input, ctx);
+    const formatter = new AbcFormatter(ctx);
+    const tokens = Scanner(input, ctx);
     const parseCtx = new ParseCtx(tokens, ctx);
     const ast = parseTune(parseCtx);
     if (!ast) {

@@ -2,7 +2,7 @@ import chai from "chai";
 import { isToken, isVoiceMarker } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { ParseCtx, parseTune } from "../parsers/parse2";
-import { Scanner2, Token, TT } from "../parsers/scan2";
+import { Scanner, Token, TT } from "../parsers/scan2";
 import { isNewSystem, parseNoVoices, parseSystemsWithVoices, parseVoices, stringifyVoice, VoiceCtx } from "../parsers/voices2";
 import { Info_line, Inline_field, tune_body_code } from "../types/Expr2";
 
@@ -51,7 +51,7 @@ function createVoiceCtx(elements: tune_body_code[], voices: string[] = []): Voic
 // Helper function to parse ABC notation into tokens
 function parseABC(abc: string): Token[] {
   const ctx = new ABCContext();
-  return Scanner2(abc, ctx);
+  return Scanner(abc, ctx);
 }
 
 describe("voices2.ts", () => {
@@ -371,7 +371,7 @@ z16|
 z16|`;
 
       const ctx = new ABCContext();
-      const tokens = Scanner2(sample, ctx);
+      const tokens = Scanner(sample, ctx);
       const parseCtx = new ParseCtx(tokens, ctx);
       const tune = parseTune(parseCtx);
 
@@ -390,7 +390,7 @@ L:1/8
 [V: V1]z16|`;
 
       const ctx = new ABCContext();
-      const tokens = Scanner2(sample, ctx);
+      const tokens = Scanner(sample, ctx);
       const parseCtx = new ParseCtx(tokens, ctx);
       const tune = parseTune(parseCtx);
 
@@ -411,7 +411,7 @@ L:1/8
 [V: V1]z16|`;
 
       const ctx = new ABCContext();
-      const tokens = Scanner2(sample, ctx);
+      const tokens = Scanner(sample, ctx);
       const parseCtx = new ParseCtx(tokens, ctx);
       const tune = parseTune(parseCtx);
 
@@ -433,7 +433,7 @@ L:1/8
 [V: V1]z16|`;
 
       const ctx = new ABCContext();
-      const tokens = Scanner2(sample, ctx);
+      const tokens = Scanner(sample, ctx);
       const parseCtx = new ParseCtx(tokens, ctx);
       const tune = parseTune(parseCtx);
 
@@ -456,7 +456,7 @@ V:LH
 A|`;
 
       const ctx = new ABCContext();
-      const tokens = Scanner2(sample, ctx);
+      const tokens = Scanner(sample, ctx);
       const parseCtx = new ParseCtx(tokens, ctx);
       const tune = parseTune(parseCtx);
 
@@ -477,7 +477,7 @@ K:C
 [V: LH] A|`;
 
       const ctx = new ABCContext();
-      const tokens = Scanner2(sample, ctx);
+      const tokens = Scanner(sample, ctx);
       const parseCtx = new ParseCtx(tokens, ctx);
       const tune = parseTune(parseCtx);
 
@@ -497,7 +497,7 @@ V:2
 CDEF|GABC|`;
 
       const ctx = new ABCContext();
-      const tokens = Scanner2(sample, ctx);
+      const tokens = Scanner(sample, ctx);
       const parseCtx = new ParseCtx(tokens, ctx);
       const tune = parseTune(parseCtx);
 

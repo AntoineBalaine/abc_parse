@@ -3,7 +3,7 @@ import chai from "chai";
 import { RhythmVisitor } from "../Visitors/RhythmTransform";
 import { ABCContext } from "../parsers/Context";
 import { ParseCtx, parseTune } from "../parsers/parse2";
-import { Scanner2 } from "../parsers/scan2";
+import { Scanner } from "../parsers/scan2";
 import { File_header, File_structure } from "../types/Expr2";
 const expect = chai.expect;
 
@@ -17,7 +17,7 @@ export function removeTuneHeader(testStr: string) {
 
 export function buildParse(source: string, ctx: ABCContext): File_structure {
   const fmtHeader = tuneHeader(source);
-  const tokens = Scanner2(fmtHeader, ctx);
+  const tokens = Scanner(fmtHeader, ctx);
   const parseCtx = new ParseCtx(tokens, ctx);
   const parse = parseTune(parseCtx);
 

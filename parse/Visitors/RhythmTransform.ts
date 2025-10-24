@@ -59,7 +59,7 @@ import {
 } from "../types/Expr2";
 import { Range } from "../types/types";
 import { createRational, divideRational, multiplyRational, IRational } from "./fmt2/rational";
-import { AbcFormatter2 as AbcFormatter } from "./Formatter2";
+import { AbcFormatter } from "./Formatter2";
 import { ExpressionCollector } from "./RangeCollector";
 import { RangeVisitor } from "./RangeVisitor";
 

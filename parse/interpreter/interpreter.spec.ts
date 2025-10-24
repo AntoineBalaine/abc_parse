@@ -9,7 +9,7 @@ import { describe, it } from "mocha";
 import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Scanner2 } from "../parsers/scan2";
+import { Scanner } from "../parsers/scan2";
 import { parse } from "../parsers/parse2";
 import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { TuneInterpreter } from "./TuneInterpreter";
@@ -21,7 +21,7 @@ import fc from "fast-check";
  */
 function parseABC(input: string) {
   const ctx = new ABCContext(new AbcErrorReporter());
-  const tokens = Scanner2(input, ctx);
+  const tokens = Scanner(input, ctx);
   const ast = parse(tokens, ctx);
   const analyzer = new SemanticAnalyzer(ctx);
   ast.accept(analyzer);

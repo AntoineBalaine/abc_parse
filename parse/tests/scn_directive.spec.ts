@@ -2,7 +2,7 @@ import * as fc from "fast-check";
 import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Ctx, Scanner2, TT, Token } from "../parsers/scan2";
+import { Ctx, Scanner, TT, Token } from "../parsers/scan2";
 import { scanDirective } from "../parsers/infoLines/scanDirective";
 import {
   genMeasurementUnit,

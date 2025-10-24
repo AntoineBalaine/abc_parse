@@ -2,7 +2,7 @@ import { assert } from "chai";
 import { isNote } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { ParseCtx, parseTune } from "../parsers/parse2";
-import { Scanner2 } from "../parsers/scan2";
+import { Scanner } from "../parsers/scan2";
 import { Beam, System } from "../types/Expr2";
 import { preprocessTune } from "../Visitors/fmt2/fmt_rules_assignment";
 import { mapTimePoints } from "../Visitors/fmt2/fmt_timeMap";
@@ -16,7 +16,7 @@ describe("TimeMapper (fmt2)", () => {
   });
 
   function parseSystem(input: string): System {
-    const tokens = Scanner2(input, ctx);
+    const tokens = Scanner(input, ctx);
     const parseCtx = new ParseCtx(tokens, ctx);
     const ast = parseTune(parseCtx);
     if (!ast) {

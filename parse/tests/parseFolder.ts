@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { ABCContext } from "../parsers/Context";
 import { AbcError, AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Scanner2 } from "../parsers/scan2";
+import { Scanner } from "../parsers/scan2";
 import { isToken } from "../helpers";
 
 function formatError(error: AbcError, sourceContent: string): string {
@@ -29,7 +29,7 @@ export function processFile2(filePath: string, errorLog: string[]): boolean {
     const content = fs.readFileSync(filePath, "utf-8");
 
     const reporter = new AbcErrorReporter();
-    const tokens = Scanner2(content, ctx);
+    const tokens = Scanner(content, ctx);
     if (tokens.length === 0) {
       // Log parsing failure but don't throw
       errorLog.push(`\nFile: ${filePath}`);

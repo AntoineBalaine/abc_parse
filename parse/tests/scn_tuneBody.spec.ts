@@ -1,7 +1,7 @@
 import assert from "assert";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
-import { Ctx, Scanner2, TT } from "../parsers/scan2";
+import { Ctx, Scanner, TT } from "../parsers/scan2";
 import { scanTune } from "../parsers/scan_tunebody";
 
 // Helper function to create a Ctx object for testing
@@ -31,7 +31,7 @@ describe("scanTuneBody", () => {
 
     // Tokenize the input
     const ctx = new ABCContext();
-    const tokens = Scanner2(input, ctx);
+    const tokens = Scanner(input, ctx);
 
     // Debug: Print out all tokens for inspection
     console.log("Actual tokens generated:");

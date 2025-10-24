@@ -1,7 +1,7 @@
 import { ABCContext } from "../../parsers/Context";
 import { Ctx, Token, TT } from "../../parsers/scan2";
 import { System } from "../../types/Expr2";
-import { AbcFormatter2 } from "../Formatter2";
+import { AbcFormatter } from "../Formatter2";
 import { BarAlignment, getNodeId, isBarLine, isToken, Location, NodeID, VoiceSplit } from "./fmt_timeMapHelpers";
 
 export function reconstructSystem(voiceSplits: VoiceSplit[]): System {
@@ -26,7 +26,7 @@ export function reconstructSystem(voiceSplits: VoiceSplit[]): System {
 /**
  * Returns a fn for use in map() that creates a location object with stringified content between start and current node.
  */
-export function createLocationMapper(voiceSplits: VoiceSplit[], barTimeMap: BarAlignment, stringifyVisitor: AbcFormatter2) {
+export function createLocationMapper(voiceSplits: VoiceSplit[], barTimeMap: BarAlignment, stringifyVisitor: AbcFormatter) {
   return (loc: Location) => {
     const startNode = barTimeMap.startNodes.get(loc.voiceIdx)!;
     const voice = voiceSplits[loc.voiceIdx].content;
@@ -42,7 +42,7 @@ export function createLocationMapper(voiceSplits: VoiceSplit[], barTimeMap: BarA
   };
 }
 
-export function stringifyVoiceSlice(voice: System, startId: NodeID, endId: NodeID, stringifyVisitor: AbcFormatter2): string {
+export function stringifyVoiceSlice(voice: System, startId: NodeID, endId: NodeID, stringifyVisitor: AbcFormatter): string {
   const startIdx = voice.findIndex((node) => getNodeId(node) === startId);
   const endIdx = voice.findIndex((node) => getNodeId(node) === endId);
 
@@ -106,7 +106,7 @@ function getBarMap(voiceSplits: VoiceSplit[]): Map<number, BarLocation[]> {
   return barMap;
 }
 
-export function equalizeBarLengths(voiceSplits: Array<VoiceSplit>, ctx: ABCContext, stringifyVisitor: AbcFormatter2): Array<VoiceSplit> {
+export function equalizeBarLengths(voiceSplits: Array<VoiceSplit>, ctx: ABCContext, stringifyVisitor: AbcFormatter): Array<VoiceSplit> {
   const barMap = getBarMap(voiceSplits);
 
   // Get last bar number for each voice

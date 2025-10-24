@@ -2,17 +2,17 @@ import { expect } from "chai";
 import { isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { parse } from "../parsers/parse2";
-import { Scanner2, Token, TT } from "../parsers/scan2";
+import { Scanner, Token, TT } from "../parsers/scan2";
 import { File_header, File_structure, Note, Pitch, Tune, Tune_Body, Tune_header } from "../types/Expr2";
 import { Range } from "../types/types";
-import { AbcFormatter2, toMidiPitch } from "../Visitors/Formatter2";
+import { AbcFormatter, toMidiPitch } from "../Visitors/Formatter2";
 import { ExpressionCollector } from "../Visitors/RangeCollector";
 import { fromMidiPitch, Transposer } from "../Visitors/Transposer";
 
 describe("Transposer", () => {
   describe("fromMidiPitch", () => {
     const ctx = new ABCContext();
-    const formatter = new AbcFormatter2(ctx);
+    const formatter = new AbcFormatter(ctx);
 
     // Test cases for various MIDI pitch values
     const testCases = [
@@ -63,7 +63,7 @@ describe("Transposer", () => {
 
   describe("Roundtrip conversion", () => {
     const ctx = new ABCContext();
-    const formatter = new AbcFormatter2(ctx);
+    const formatter = new AbcFormatter(ctx);
 
     // Test cases for roundtrip conversion (toMidiPitch -> fromMidiPitch)
     const abcNotations = [
@@ -156,7 +156,7 @@ describe("Transposer", () => {
 
   describe("Integration tests - Transposer class", () => {
     const ctx = new ABCContext();
-    const formatter = new AbcFormatter2(ctx);
+    const formatter = new AbcFormatter(ctx);
 
     // Helper function to create a pitch from ABC notation
     const createPitch = (noteLetter: string, alteration?: string, octave?: string): Pitch => {
@@ -319,7 +319,7 @@ describe("Transposer", () => {
 
   describe("Range-based transposition", () => {
     const ctx = new ABCContext();
-    const formatter = new AbcFormatter2(ctx);
+    const formatter = new AbcFormatter(ctx);
 
     // Helper function to create a note with position information
     const createNote = (noteLetter: string, line: number, position: number, alteration?: string, octave?: string): Note => {
@@ -519,7 +519,7 @@ describe("Transposer", () => {
 
   describe("ExpressionCollector", () => {
     const ctx = new ABCContext();
-    const formatter = new AbcFormatter2(ctx);
+    const formatter = new AbcFormatter(ctx);
 
     // Helper function to create a note with position information
     const createNote = (noteLetter: string, line: number, position: number, alteration?: string, octave?: string): Note => {
@@ -686,7 +686,7 @@ describe("Transposer", () => {
       fileStructure.accept(collector);
 
       // Format the collected expressions
-      const formatter = new AbcFormatter2(ctx);
+      const formatter = new AbcFormatter(ctx);
       const formatted = collector
         .getCollectedExpressions()
         .map((e) => (isToken(e) ? e.lexeme : formatter.stringify(e)))
@@ -703,7 +703,7 @@ describe("Transposer", () => {
 
   describe("Range-based transposition with string output", () => {
     const ctx = new ABCContext();
-    const formatter = new AbcFormatter2(ctx);
+    const formatter = new AbcFormatter(ctx);
 
     // Helper function to create a note with position information
     const createNote = (noteLetter: string, line: number, position: number, alteration?: string, octave?: string): Note => {
@@ -830,7 +830,7 @@ describe("Transposer", () => {
       const ctx = new ABCContext();
 
       // Parse the ABC string into tokens
-      const tokens = Scanner2(inpt, ctx);
+      const tokens = Scanner(inpt, ctx);
 
       // Parse tokens into a File_structure
       const fileStructure = parse(tokens, ctx);

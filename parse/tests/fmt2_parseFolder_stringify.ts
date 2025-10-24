@@ -3,8 +3,8 @@ import fs from "fs";
 import path from "path";
 import { ABCContext } from "../parsers/Context";
 import { ParseCtx, parseTune } from "../parsers/parse2";
-import { Scanner2 } from "../parsers/scan2";
-import { AbcFormatter2 } from "../Visitors/Formatter2";
+import { Scanner } from "../parsers/scan2";
+import { AbcFormatter } from "../Visitors/Formatter2";
   // Helper function to remove any whitespace differences that aren't semantically meaningful
   function normalizeWhitespace(text: string): string {
     return text
@@ -18,7 +18,7 @@ import { AbcFormatter2 } from "../Visitors/Formatter2";
     try {
       const content = fs.readFileSync(filePath, "utf-8");
       const ctx = new ABCContext();
-      const tokens = Scanner2(content, ctx);
+      const tokens = Scanner(content, ctx);
 
       // Skip files that can't be parsed
       if (ctx.errorReporter.hasErrors()) {
@@ -37,7 +37,7 @@ import { AbcFormatter2 } from "../Visitors/Formatter2";
         };
       }
 
-      const formatter = new AbcFormatter2(ctx);
+      const formatter = new AbcFormatter(ctx);
       const stringified = formatter.stringify(ast);
 
       // Compare normalized content to account for trivial whitespace differences

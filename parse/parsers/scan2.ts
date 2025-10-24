@@ -45,7 +45,7 @@ export class Ctx {
     this.errorReporter?.Scanner2Error(this, msg);
   }
 }
-export function Scanner2(source: string, abcContext: ABCContext): Array<Token> {
+export function Scanner(source: string, abcContext: ABCContext): Array<Token> {
   const ctx = new Ctx(String.raw`${source}`, abcContext);
   while (!isAtEnd(ctx)) {
     ctx.start = ctx.current;

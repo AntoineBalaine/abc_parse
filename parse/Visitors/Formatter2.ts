@@ -60,7 +60,7 @@ import { resolveRules } from "./fmt2/fmt_rules_assignment";
  * const fmt: string = new AbcFormatter2(new ABCContext()).format(ast);
  * ```
  */
-export class AbcFormatter2 implements Visitor<string> {
+export class AbcFormatter implements Visitor<string> {
   ctx: ABCContext;
   constructor(ctx: ABCContext) {
     this.ctx = ctx;

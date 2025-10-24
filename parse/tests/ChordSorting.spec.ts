@@ -3,9 +3,9 @@ import * as fc from "fast-check";
 import { isNote, isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { parse } from "../parsers/parse2";
-import { Scanner2, Token, TT } from "../parsers/scan2";
+import { Scanner, Token, TT } from "../parsers/scan2";
 import { Annotation, Chord, Note, Pitch } from "../types/Expr2";
-import { AbcFormatter2, getSplits, sortNotes, toMidiPitch } from "../Visitors/Formatter2";
+import { AbcFormatter, getSplits, sortNotes, toMidiPitch } from "../Visitors/Formatter2";
 import * as ParseGen from "./prs_pbt.generators.spec";
 import * as ScanGen from "./scn_pbt.generators.spec";
 
@@ -359,7 +359,7 @@ describe("Chord Note Sorting Functions", () => {
   describe("Integration with formatter", () => {
     it("should correctly re-order notes in a chord when formatting", () => {
       // Create a formatter
-      const formatter = new AbcFormatter2(ctx);
+      const formatter = new AbcFormatter(ctx);
 
       // Create a chord with notes in a specific order (G, C, E)
       const chord = new Chord(ctx.generateId(), [
@@ -393,7 +393,7 @@ describe("Chord Note Sorting Functions", () => {
 
     it("should preserve tokens and annotations when re-ordering chord notes", () => {
       // Create a formatter
-      const formatter = new AbcFormatter2(ctx);
+      const formatter = new AbcFormatter(ctx);
 
       // Create a chord with notes and tokens in a specific order
       const chord = new Chord(ctx.generateId(), [
@@ -431,7 +431,7 @@ describe("Chord Note Sorting Functions", () => {
 
     it("should not re-order notes when no_format is true", () => {
       // Create a formatter
-      const formatter = new AbcFormatter2(ctx);
+      const formatter = new AbcFormatter(ctx);
 
       // Create a chord with notes in a specific order (G, C, E)
       const chord = new Chord(ctx.generateId(), [
@@ -465,7 +465,7 @@ describe("Chord Note Sorting Functions", () => {
 
     it("should handle complex chords with alterations and octaves", () => {
       // Create a formatter
-      const formatter = new AbcFormatter2(ctx);
+      const formatter = new AbcFormatter(ctx);
 
       // Create a chord with complex notes
       const chord = new Chord(ctx.generateId(), [
@@ -518,13 +518,13 @@ a2         |`;
       const abcCtx = new ABCContext();
 
       // Scan the ABC string to get tokens
-      const tokens = Scanner2(abcString, abcCtx);
+      const tokens = Scanner(abcString, abcCtx);
 
       // Parse the tokens to get an AST
       const ast = parse(tokens, abcCtx);
 
       // Create a formatter
-      const formatter = new AbcFormatter2(abcCtx);
+      const formatter = new AbcFormatter(abcCtx);
       formatter.no_format = false;
 
       const formatted = formatter.formatFile(ast);

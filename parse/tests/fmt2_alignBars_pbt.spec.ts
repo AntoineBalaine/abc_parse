@@ -8,7 +8,7 @@ import { Note, Pitch, Rest, Rhythm } from "../types/Expr2";
 import { alignBars } from "../Visitors/fmt2/fmt_aligner";
 import { isTimeEvent, processBar } from "../Visitors/fmt2/fmt_timeMap";
 import { BarAlignment, BarTimeMap, getNodeId, isBeam, Location, NodeID, VoiceSplit } from "../Visitors/fmt2/fmt_timeMapHelpers";
-import { AbcFormatter2 } from "../Visitors/Formatter2";
+import { AbcFormatter } from "../Visitors/Formatter2";
 import * as Generators from "./prs_pbt.generators.spec";
 
 type Clone = {
@@ -19,11 +19,11 @@ type Clone = {
 
 describe("alignBars function - Property-Based Tests", () => {
   let ctx: ABCContext;
-  let stringifyVisitor: AbcFormatter2;
+  let stringifyVisitor: AbcFormatter;
 
   beforeEach(() => {
     ctx = new ABCContext();
-    stringifyVisitor = new AbcFormatter2(ctx);
+    stringifyVisitor = new AbcFormatter(ctx);
   });
 
   /**
@@ -80,7 +80,7 @@ describe("alignBars function - Property-Based Tests", () => {
   function verifyAlignment(
     alignedVoiceSplits: VoiceSplit[],
     barAlignment: BarAlignment,
-    stringifyVisitor: AbcFormatter2,
+    stringifyVisitor: AbcFormatter,
     orig_str: string,
     clone?: Clone
   ): boolean {

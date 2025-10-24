@@ -6,7 +6,7 @@
 
 import { ABCContext } from "../../parsers/Context";
 import { AbcErrorReporter } from "../../parsers/ErrorReporter";
-import { Scanner2 } from "../../parsers/scan2";
+import { Scanner } from "../../parsers/scan2";
 import { parse } from "../../parsers/parse2";
 import { SemanticAnalyzer } from "../../analyzers/semantic-analyzer";
 import { TuneInterpreter } from "../../interpreter/TuneInterpreter";
@@ -26,7 +26,7 @@ export function parseWithYourParser(input: string): { tunes: Tune[]; ctx: ABCCon
   const ctx = new ABCContext(new AbcErrorReporter());
 
   // Scanner (it's a function that returns tokens)
-  const tokens = Scanner2(input, ctx);
+  const tokens = Scanner(input, ctx);
 
   // Parser
   const ast = parse(tokens, ctx);

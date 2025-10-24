@@ -2,7 +2,7 @@ import { assert } from "chai";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
 import { ParseCtx, parseInvalidToken, parseTune } from "../parsers/parse2";
-import { Scanner2, Token, TT } from "../parsers/scan2";
+import { Scanner, Token, TT } from "../parsers/scan2";
 import { ErrorExpr, Tune } from "../types/Expr2";
 
 // Helper function to create a token with the given type and lexeme
@@ -75,7 +75,7 @@ describe("Invalid Token Handling in Parser", () => {
       // Create a simple tune with an invalid token
       const source = "X:1\nA ~123 B";
       const abcContext = new ABCContext();
-      const tokens = Scanner2(source, abcContext);
+      const tokens = Scanner(source, abcContext);
 
       // Parse the tune
       const parseCtx = new ParseCtx(tokens, abcContext);
@@ -119,7 +119,7 @@ describe("Invalid Token Handling in Parser", () => {
       // Create a simple tune with an invalid token
       const source = "X:1\nA ~123 B";
       const abcContext = new ABCContext();
-      const tokens = Scanner2(source, abcContext);
+      const tokens = Scanner(source, abcContext);
 
       // Parse the tune
       const parseCtx = new ParseCtx(tokens, abcContext);
@@ -169,7 +169,7 @@ describe("Invalid Token Handling in Parser", () => {
       // Create a tune with multiple invalid tokens
       const source = "X:1\nA ~123 B @456 C";
       const abcContext = new ABCContext();
-      const tokens = Scanner2(source, abcContext);
+      const tokens = Scanner(source, abcContext);
 
       // Parse the tune
       const parseCtx = new ParseCtx(tokens, abcContext);

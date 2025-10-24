@@ -1,7 +1,7 @@
 import { ABCContext } from "../../parsers/Context";
 import { Token, TT } from "../../parsers/scan2";
 import { Tune } from "../../types/Expr2";
-import { AbcFormatter2 } from "../Formatter2";
+import { AbcFormatter } from "../Formatter2";
 import { aligner, scanAlignPoints } from "./fmt_aligner3";
 import { createLocationMapper } from "./fmt_alignerHelpers";
 import { BarAlignment, findFmtblLines, getNodeId, VoiceSplit } from "./fmt_timeMapHelpers";
@@ -18,7 +18,7 @@ import { BarAlignment, findFmtblLines, getNodeId, VoiceSplit } from "./fmt_timeM
  * Add alignment padding to multi-voice tunes.
  * Does nothing if tune is single-voice.
  */
-export function alignTune(tune: Tune, ctx: ABCContext, stringifyVisitor: AbcFormatter2): Tune {
+export function alignTune(tune: Tune, ctx: ABCContext, stringifyVisitor: AbcFormatter): Tune {
   if (tune.tune_body && tune.tune_header.voices.length > 1) {
     tune.tune_body.sequence = tune.tune_body.sequence.map((system) => {
       // Split system into voices/noformat lines
@@ -46,7 +46,7 @@ export function alignTune(tune: Tune, ctx: ABCContext, stringifyVisitor: AbcForm
  * The padding is inserted at the first whitespace token before the node in the voice.
  * Lastly, compare the whole bars' lengths and add padding to the end of the shorter bars.
  */
-export function alignBars(voiceSplits: VoiceSplit[], barTimeMap: BarAlignment, stringifyVisitor: AbcFormatter2, ctx: ABCContext): VoiceSplit[] {
+export function alignBars(voiceSplits: VoiceSplit[], barTimeMap: BarAlignment, stringifyVisitor: AbcFormatter, ctx: ABCContext): VoiceSplit[] {
   // Get sorted timestamps - convert string keys to rational numbers for sorting
   const timeStamps = Array.from(barTimeMap.map.keys()).sort((a, b) => {
     // Parse the rational numbers from the string keys

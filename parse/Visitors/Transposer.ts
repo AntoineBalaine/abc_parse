@@ -44,7 +44,7 @@ import {
   YSPACER,
 } from "../types/Expr2";
 import { Range } from "../types/types";
-import { AbcFormatter2 as AbcFormatter, toMidiPitch } from "./Formatter2";
+import { AbcFormatter, toMidiPitch } from "./Formatter2";
 import { ExpressionCollector } from "./RangeCollector";
 import { RangeVisitor } from "./RangeVisitor";
 

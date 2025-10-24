@@ -2,25 +2,25 @@ import { expect } from "chai";
 import { isChord } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { ParseCtx, parseTune } from "../parsers/parse2";
-import { Scanner2 } from "../parsers/scan2";
+import { Scanner } from "../parsers/scan2";
 import { System } from "../types/Expr2";
 import { alignBars } from "../Visitors/fmt2/fmt_aligner";
 import { resolveRules } from "../Visitors/fmt2/fmt_rules_assignment";
 import { mapTimePoints } from "../Visitors/fmt2/fmt_timeMap";
 import { findFmtblLines, VoiceSplit } from "../Visitors/fmt2/fmt_timeMapHelpers";
-import { AbcFormatter2 } from "../Visitors/Formatter2";
+import { AbcFormatter } from "../Visitors/Formatter2";
 
 describe("Chord Alignment Tests", () => {
-  let stringifyVisitor: AbcFormatter2;
+  let stringifyVisitor: AbcFormatter;
   let ctx: ABCContext;
 
   beforeEach(() => {
     ctx = new ABCContext();
-    stringifyVisitor = new AbcFormatter2(ctx);
+    stringifyVisitor = new AbcFormatter(ctx);
   });
 
   function format(input: string): string {
-    const tokens = Scanner2(input, ctx);
+    const tokens = Scanner(input, ctx);
     const parseCtx = new ParseCtx(tokens, ctx);
     const ast = parseTune(parseCtx);
     if (!ast) {
@@ -59,7 +59,7 @@ describe("Chord Alignment Tests", () => {
   }
 
   function parseSystem(input: string): System {
-    const tokens = Scanner2(input, ctx);
+    const tokens = Scanner(input, ctx);
     const parseCtx = new ParseCtx(tokens, ctx);
     const ast = parseTune(parseCtx);
     if (!ast) {

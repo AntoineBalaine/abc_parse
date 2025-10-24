@@ -1,7 +1,7 @@
 import * as fc from "fast-check";
 import { ParseCtx, prsBody, parseTune } from "../parsers/parse2";
 import { Token, TT } from "../parsers/scan2";
-import { AbcFormatter2 } from "../Visitors/Formatter2";
+import { AbcFormatter } from "../Visitors/Formatter2";
 import * as ParserGen from "./prs_pbt.generators.spec";
 
 describe("Parser Property Tests", () => {
@@ -46,7 +46,7 @@ describe("Parser Property Tests", () => {
           const parsedExpr = tuneBody.sequence[0][0];
 
           // Compare the original and parsed expressions
-          const formatter = new AbcFormatter2(testContext);
+          const formatter = new AbcFormatter(testContext);
           const originalStr = formatter.stringify(gen.expr);
           const parsedStr = formatter.stringify(parsedExpr);
 
@@ -79,7 +79,7 @@ describe("Parser Property Tests", () => {
           const parsedExpr = tuneBody.sequence[0][0];
 
           // Compare the original and parsed expressions
-          const formatter = new AbcFormatter2(testContext);
+          const formatter = new AbcFormatter(testContext);
           const originalStr = formatter.stringify(gen.expr);
           const parsedStr = formatter.stringify(parsedExpr);
 
@@ -107,7 +107,7 @@ describe("Parser Property Tests", () => {
           const parsedExpr = tuneBody.sequence[0][0];
 
           // Compare the original and parsed expressions
-          const formatter = new AbcFormatter2(testContext);
+          const formatter = new AbcFormatter(testContext);
           const originalStr = formatter.stringify(gen.expr);
           const parsedStr = formatter.stringify(parsedExpr);
           if (originalStr !== parsedStr) {
@@ -142,7 +142,7 @@ describe("Parser Property Tests", () => {
           const parsedExpr = tuneBody.sequence[0][0];
 
           // Compare the original and parsed expressions
-          const formatter = new AbcFormatter2(testContext);
+          const formatter = new AbcFormatter(testContext);
           const originalStr = formatter.stringify(gen.expr);
           const parsedStr = formatter.stringify(parsedExpr);
 
@@ -172,7 +172,7 @@ describe("Parser Property Tests", () => {
           const parsedExprs = tuneBody.sequence[0];
 
           // Compare the original and parsed expressions
-          const formatter = new AbcFormatter2(testContext);
+          const formatter = new AbcFormatter(testContext);
 
           // Convert all expressions to strings and join them
           const originalStr = sequence.exprs.map((expr) => formatter.stringify(expr)).join("");
@@ -208,7 +208,7 @@ describe("Parser Property Tests", () => {
           const parsedExprs = tuneBody.sequence[0];
 
           // Compare the original and parsed expressions
-          const formatter = new AbcFormatter2(testContext);
+          const formatter = new AbcFormatter(testContext);
 
           // Convert all expressions to strings and join them
           const originalStr = scenario.exprs.map((expr) => formatter.stringify(expr)).join("");

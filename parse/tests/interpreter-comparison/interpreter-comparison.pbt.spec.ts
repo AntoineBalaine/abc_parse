@@ -11,7 +11,7 @@ import * as fc from "fast-check";
 import { parseWithAbcjs } from "./abcjs-wrapper";
 import { parseWithYourParser } from "./test-helpers";
 import { ABCContext } from "../../parsers/Context";
-import { AbcFormatter2 } from "../../Visitors/Formatter2";
+import { AbcFormatter } from "../../Visitors/Formatter2";
 import {
   genKeyInfo,
   genMeterInfo,
@@ -55,7 +55,7 @@ const genTuneHeaderString = fc
   .map((fields) => {
     // Create a formatter once
     const ctx = new ABCContext();
-    const formatter = new AbcFormatter2(ctx);
+    const formatter = new AbcFormatter(ctx);
 
     // Stringify each info line
     const lines: string[] = ["X:1"];
@@ -95,7 +95,7 @@ const genFileHeaderString = fc
     if (directives.length === 0) return "";
 
     const ctx = new ABCContext();
-    const formatter = new AbcFormatter2(ctx);
+    const formatter = new AbcFormatter(ctx);
 
     return directives.map((d) => formatter.stringify(d)).join("\n");
   });

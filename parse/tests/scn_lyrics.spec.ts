@@ -1,6 +1,6 @@
 import assert from "assert";
 import { describe, it } from "mocha";
-import { Scanner2, TT } from "../parsers/scan2";
+import { Scanner, TT } from "../parsers/scan2";
 import { field_continuation, lyric_line } from "../parsers/scan_tunebody";
 import { createCtx } from "./scn_tuneBodyTokens.spec";
 import { scanTune } from "../parsers/scan_tunebody";

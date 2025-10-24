@@ -1,7 +1,7 @@
 import { isChord, isNote, isToken } from "../../helpers";
 import { Token, TT } from "../../parsers/scan2";
 import { Expr, Rest } from "../../types/Expr2";
-import { AbcFormatter2 } from "../Formatter2";
+import { AbcFormatter } from "../Formatter2";
 import { calculateDuration, DurationContext, isTimeEvent } from "./fmt_timeMap";
 import { getNodeId, isBarLine, isBeam, Location, VoiceSplit } from "./fmt_timeMapHelpers";
 import { addRational, equalRational, greaterRational, isInfiniteRational, isRational, IRational, rationalToString } from "./rational";
@@ -263,7 +263,7 @@ function advance(ctx: VxCtx | SymbolLnCtx) {
   ctx.pos++;
 }
 
-export function aligner(gCtx: GCtx, voiceSplits: Array<VoiceSplit>, stringifyVisitor: AbcFormatter2): Array<VoiceSplit> {
+export function aligner(gCtx: GCtx, voiceSplits: Array<VoiceSplit>, stringifyVisitor: AbcFormatter): Array<VoiceSplit> {
   for (let i = 0; i < gCtx.list.length; i++) {
     const [_, locations] = gCtx.list[i];
     const maxLength = Math.max(

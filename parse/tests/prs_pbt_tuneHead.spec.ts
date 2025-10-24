@@ -5,7 +5,7 @@ import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { TT } from "../parsers/scan2";
 import { Comment, Directive, Info_line, Macro_decl, User_symbol_decl, Tune_header } from "../types/Expr2";
-import { AbcFormatter2 } from "../Visitors/Formatter2";
+import { AbcFormatter } from "../Visitors/Formatter2";
 import * as ScannerGen from "./scn_pbt.generators.spec";
 import { genCommentExpr } from "./prs_pbt.generators.spec";
 
@@ -54,7 +54,7 @@ describe("Tune Header Round-trip Tests", () => {
     fc.assert(
       fc.property(genCommentExpr, (commentExpr) => {
         // Format the expression without formatting
-        const formatter = new AbcFormatter2(sharedContext);
+        const formatter = new AbcFormatter(sharedContext);
         const formattedString = formatter.stringify(commentExpr, true);
 
         // Parse the formatted string back
@@ -76,7 +76,7 @@ describe("Tune Header Round-trip Tests", () => {
   it("should correctly round-trip Directive expressions", () => {
     fc.assert(
       fc.property(genDirectiveExpr, (directiveExpr) => {
-        const formatter = new AbcFormatter2(sharedContext);
+        const formatter = new AbcFormatter(sharedContext);
         const formattedString = formatter.stringify(directiveExpr, true);
 
         assert.instanceOf(directiveExpr, Directive);
@@ -95,7 +95,7 @@ describe("Tune Header Round-trip Tests", () => {
   it("should correctly round-trip Info_line expressions", () => {
     fc.assert(
       fc.property(genInfoLineExpr, (infoLineExpr) => {
-        const formatter = new AbcFormatter2(sharedContext);
+        const formatter = new AbcFormatter(sharedContext);
         const formattedString = formatter.stringify(infoLineExpr, true);
 
         assert.instanceOf(infoLineExpr, Info_line);
@@ -114,7 +114,7 @@ describe("Tune Header Round-trip Tests", () => {
   it("should correctly round-trip Macro_decl expressions", () => {
     fc.assert(
       fc.property(genMacroDeclExpr, (macroDeclExpr) => {
-        const formatter = new AbcFormatter2(sharedContext);
+        const formatter = new AbcFormatter(sharedContext);
         const formattedString = formatter.stringify(macroDeclExpr, true);
 
         assert.instanceOf(macroDeclExpr, Macro_decl);
@@ -133,7 +133,7 @@ describe("Tune Header Round-trip Tests", () => {
   it("should correctly round-trip User_symbol_decl expressions", () => {
     fc.assert(
       fc.property(genUserSymbolDeclExpr, (userSymbolDeclExpr) => {
-        const formatter = new AbcFormatter2(sharedContext);
+        const formatter = new AbcFormatter(sharedContext);
         const formattedString = formatter.stringify(userSymbolDeclExpr, true);
 
         assert.instanceOf(userSymbolDeclExpr, User_symbol_decl);
@@ -152,7 +152,7 @@ describe("Tune Header Round-trip Tests", () => {
   it("should correctly round-trip complete Tune_header expressions", () => {
     fc.assert(
       fc.property(genTuneHeaderExpr, (tuneHeaderExpr) => {
-        const formatter = new AbcFormatter2(sharedContext);
+        const formatter = new AbcFormatter(sharedContext);
         const formattedString = formatter.stringify(tuneHeaderExpr, true);
 
         assert.instanceOf(tuneHeaderExpr, Tune_header);
