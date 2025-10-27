@@ -197,8 +197,61 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
 }
 
 // ============================================================================
-// Helper Functions (to be implemented)
+// Helper Functions
 // ============================================================================
+
+/**
+ * Check if a word is a UTF-8 marker
+ */
+function isUtf8Marker(word: string): boolean {
+  return word === "utf" || word === "utf8" || word === "utf-8";
+}
+
+/**
+ * Check if a word is a font modifier (bold, italic, underline)
+ */
+function isFontModifier(word: string): boolean {
+  return word === "bold" || word === "italic" || word === "underline";
+}
+
+/**
+ * Check if a token should be treated as part of a font face name
+Concrete Examples:
+Example 1: Multi-word font name
+%%titlefont Times New Roman 12
+
+"Times" → part of face name ✓
+"New" → part of face name ✓
+"Roman" → part of face name ✓
+"12" → NOT part of face (it's a number, so it's the size)
+Result: face = "Times New Roman", size = 12
+Example 2: Hyphenated font name
+%%titlefont Arial-Black 14 bold
+
+"Arial" → part of face name ✓
+"-" → part of face name ✓ (triggers hyphenLast mode)
+"Black" → part of face name ✓ (continues from hyphen)
+"14" → NOT part of face (number = size)
+"bold" → NOT part of face (modifier keyword)
+Result: face = "Arial-Black", size = 14, weight = "bold"
+Example 3: Font name before modifiers
+%%titlefont Helvetica utf8 12 italic
+
+"Helvetica" → part of face name ✓
+"utf8" → NOT part of face (UTF-8 marker → state transition)
+"12" → size
+"italic" → modifier
+Result: face = "Helvetica", size = 12, style = "italic"
+Example 4: Single-word font
+%%titlefont Courier 10
+
+"Courier" → part of face name ✓
+"10" → NOT part of face (number)
+Result: face = "Courier", size = 10
+ */
+function isPartOfFaceName(token: Token, word: string, hyphenLast: boolean): boolean {
+  return hyphenLast || (!isUtf8Marker(word) && token.type !== TT.NUMBER && !isFontModifier(word) && word !== "box");
+}
 
 /**
  * Parses font directives (face, size, bold, italic, underline, box)
@@ -235,6 +288,17 @@ function parseFontDirective(directive: Directive, analyzer: SemanticAnalyzer, op
   // Format 2: number only (with optional box)
   cur = current();
   if (isToken(cur) && cur.type === TT.NUMBER) {
+    // Check if next token is a modifier: then it’s format 3.
+    if (currentIdx + 1 < tokens.length) {
+      const next = tokens[currentIdx + 1];
+      if (isToken(next) && next.type === TT.IDENTIFIER) {
+        const word = next.lexeme.toLowerCase();
+        if (word === "bold" || word === "italic" || word === "underline") {
+          // This is format 3 (size + modifiers), not format 2
+          return parseFullFontDefinition(directive, tokens, options, analyzer);
+        }
+      }
+    }
     return parseSizeOnlyFormat(directive, tokens, currentIdx, options, analyzer);
   }
 
@@ -295,123 +359,89 @@ function parseFullFontDefinition(
   let box: boolean = false;
 
   let state: "face" | "size" | "modifier" | "finished" = "face";
-  let hyphenLast = false;
   let idx = 0;
 
   while (idx < tokens.length) {
     const token = tokens[idx];
-    if (!isToken(token)) {
-      analyzer.report("Unexpected token type in font definition", directive);
-      idx++;
-      continue;
-    }
-
-    const word = token.lexeme.toLowerCase();
 
     switch (state) {
       case "face":
-        // Check if this is a keyword that transitions state
-        if (
-          hyphenLast ||
-          (word !== "utf" &&
-            word !== "utf8" &&
-            word !== "utf-8" &&
-            token.type !== TT.NUMBER &&
-            word !== "bold" &&
-            word !== "italic" &&
-            word !== "underline" &&
-            word !== "box")
-        ) {
-          // Part of face name
-          if (face.length > 0 && token.lexeme === "-") {
+        // Inner loop: consume ALL face name tokens at once
+        let hyphenLast = false;
+        while (idx < tokens.length) {
+          const t = tokens[idx];
+          const w = t.lexeme.toLowerCase();
+
+          if (!isPartOfFaceName(t, w, hyphenLast)) break;
+
+          // Build face name (handle hyphens)
+          if (face.length > 0 && t.lexeme === "-") {
             hyphenLast = true;
-            face[face.length - 1] = face[face.length - 1] + token.lexeme;
+            face[face.length - 1] += t.lexeme;
           } else {
             if (hyphenLast) {
               hyphenLast = false;
-              face[face.length - 1] = face[face.length - 1] + token.lexeme;
+              face[face.length - 1] += t.lexeme;
             } else {
-              face.push(token.lexeme);
+              face.push(t.lexeme);
             }
           }
-        } else {
-          // State transition
-          if (token.type === TT.NUMBER) {
-            if (size !== undefined) {
-              analyzer.report("Font size specified twice in font definition", directive);
-            } else {
-              size = parseFloat(token.lexeme);
-            }
-            state = "modifier";
-          } else if (word === "bold") {
-            weight = "bold";
-          } else if (word === "italic") {
-            style = "italic";
-          } else if (word === "underline") {
-            decoration = "underline";
-          } else if (word === "box") {
-            if (options.supportsBox) {
-              box = true;
-            } else {
-              analyzer.report(`Font type "${directive.key.lexeme}" does not support "box" parameter`, directive);
-            }
-            state = "finished";
-          } else if (word === "utf" || word === "utf8" || word === "utf-8") {
-            // Skip utf8 marker and the "8" if separate
-            if (word === "utf" && idx + 1 < tokens.length) {
-              idx++; // Skip the "8"
-            }
-            state = "size";
-          } else {
-            analyzer.report(`Unknown parameter "${token.lexeme}" in font definition`, directive);
-          }
+          idx++;
+        }
+
+        if (idx >= tokens.length) break;
+
+        if (isUtf8Marker(tokens[idx].lexeme.toLowerCase())) {
+          // Skip UTF-8 marker
+          idx++;
+          state = "size";
+        } else if (tokens[idx].type === TT.NUMBER) {
+          state = "size"; // Let size state consume it
+        } else if (isFontModifier(tokens[idx].lexeme.toLowerCase())) {
+          state = "modifier"; // Let modifier state consume it
+        } else if (tokens[idx].lexeme.toLowerCase() === "box") {
+          state = "modifier"; // Let finished state handle box? Or handle here?
         }
         break;
 
       case "size":
+        // Consume size number
         if (token.type === TT.NUMBER) {
-          if (size !== undefined) {
-            analyzer.report("Font size specified twice in font definition", directive);
-          } else {
-            size = parseFloat(token.lexeme);
-          }
-        } else {
-          analyzer.report("Expected font size in font definition", directive);
+          size = parseFloat(token.lexeme);
+          idx++;
         }
-        state = "modifier";
+        state = "modifier"; // Always transition
         break;
 
       case "modifier":
-        if (word === "bold") {
-          weight = "bold";
-        } else if (word === "italic") {
-          style = "italic";
-        } else if (word === "underline") {
-          decoration = "underline";
-        } else if (word === "box") {
-          if (options.supportsBox) {
-            box = true;
-          } else {
-            analyzer.report(`Font type "${directive.key.lexeme}" does not support "box" parameter`, directive);
-          }
-          state = "finished";
-        } else {
-          analyzer.report(`Unknown parameter "${token.lexeme}" in font definition`, directive);
+        // Inner loop: consume ALL modifiers at once
+        while (idx < tokens.length && isFontModifier(tokens[idx].lexeme.toLowerCase())) {
+          const modWord = tokens[idx].lexeme.toLowerCase();
+          if (modWord === "bold") weight = "bold";
+          else if (modWord === "italic") style = "italic";
+          else if (modWord === "underline") decoration = "underline";
+          idx++;
         }
+
+        // Check for box
+        if (idx < tokens.length && tokens[idx].lexeme.toLowerCase() === "box") {
+          box = true;
+          idx++;
+        }
+        state = "finished";
         break;
 
       case "finished":
-        analyzer.report(`Extra characters found after "box" in font definition`, directive);
+        // Report extra tokens
+        analyzer.report("Extra tokens", directive);
+        idx++;
         break;
     }
-
-    idx++;
   }
 
-  // Build final face string
   let finalFace = face.join(" ");
 
-  // Handle quoted font names
+  // trim start and end quotes
   if ((finalFace.startsWith('"') && finalFace.endsWith('"')) || (finalFace.startsWith("'") && finalFace.endsWith("'"))) {
     finalFace = finalFace.slice(1, -1);
   }
@@ -886,9 +916,19 @@ function parseAnnotation(directive: Directive, analyzer: SemanticAnalyzer): Dire
   // Collect text from all values (parser may split into multiple tokens)
   for (const value of directive.values) {
     if (value instanceof Annotation) {
-      textParts.push(value.text.lexeme);
+      let text = value.text.lexeme;
+      // Strip surrounding quotes if present
+      if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
+        text = text.slice(1, -1);
+      }
+      textParts.push(text);
     } else if (value instanceof Token) {
-      textParts.push(value.lexeme);
+      let text = value.lexeme;
+      // Strip surrounding quotes if present
+      if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
+        text = text.slice(1, -1);
+      }
+      textParts.push(text);
     } else {
       analyzer.report(`Directive "${directive.key.lexeme}" contains invalid value type`, directive);
       return null;
@@ -897,6 +937,6 @@ function parseAnnotation(directive: Directive, analyzer: SemanticAnalyzer): Dire
 
   return {
     type: directive.key.lexeme as any,
-    data: textParts.join(' '),
+    data: textParts.join(" "),
   };
 }

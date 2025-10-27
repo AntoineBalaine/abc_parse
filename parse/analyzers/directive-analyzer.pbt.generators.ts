@@ -121,7 +121,8 @@ export const genFontDirectiveFormat3 = fc
     modifiers: genFontModifiers,
     box: fc.boolean(),
   })
-  .filter(({ face, size, modifiers }) => face !== null || size !== null || modifiers.length > 0) // At least something meaningful
+  // Format 3 must have either a face or modifiers (not just size alone - that's format 2)
+  .filter(({ face, modifiers }) => face !== null || modifiers.length > 0)
   .map(({ name, face, utf8, size, modifiers, box }) => {
     const supportsBox = fontDirectivesWithBox.includes(name as any);
     const tokens: Token[] = [];
@@ -381,7 +382,7 @@ export const genMeasurementDirectiveName = fc.constantFrom(...measurementDirecti
 
 export const genUnit = fc.constantFrom("pt", "in", "cm", "mm");
 
-export const genMeasurementValue = fc.float({ min: 0, max: 100 });
+export const genMeasurementValue = fc.float({ min: 0, max: 100 }).filter((v) => !isNaN(v) && isFinite(v));
 
 // Generate measurement with Measurement object (has unit)
 export const genMeasurementDirectiveWithUnit = fc
@@ -434,30 +435,23 @@ export const genMeasurementDirective = fc.oneof(genMeasurementDirectiveWithUnit,
 // Sep Directive Generator
 // ============================================================================
 
-export const genSepDirective = fc
-  .record({
-    above: fc.option(fc.float({ min: 0, max: 50 })),
-    below: fc.option(fc.float({ min: 0, max: 50 })),
-    length: fc.option(fc.float({ min: 0, max: 100 })),
-  })
-  .map(({ above, below, length }) => {
-    const tokens: Token[] = [];
-    if (above !== null) tokens.push(new Token(TT.NUMBER, above.toString(), sharedContext.generateId()));
-    if (below !== null) tokens.push(new Token(TT.NUMBER, below.toString(), sharedContext.generateId()));
-    if (length !== null) tokens.push(new Token(TT.NUMBER, length.toString(), sharedContext.generateId()));
+export const genSepDirective = fc.array(fc.float({ min: 0, max: 50 }), { maxLength: 3 }).map((values) => {
+  const tokens: Token[] = values.map((v) => new Token(TT.NUMBER, v.toString(), sharedContext.generateId()));
 
-    return {
-      directive: new Directive(sharedContext.generateId(), new Token(TT.IDENTIFIER, "sep", sharedContext.generateId()), tokens),
-      expected: {
-        type: "sep",
-        data: {
-          above: above ?? undefined,
-          below: below ?? undefined,
-          length: length ?? undefined,
-        },
-      },
-    };
-  });
+  // Build expected data based on number of values
+  const data: { above?: number; below?: number; length?: number } = {};
+  if (values.length >= 1) data.above = values[0];
+  if (values.length >= 2) data.below = values[1];
+  if (values.length >= 3) data.length = values[2];
+
+  return {
+    directive: new Directive(sharedContext.generateId(), new Token(TT.IDENTIFIER, "sep", sharedContext.generateId()), tokens),
+    expected: {
+      type: "sep",
+      data,
+    },
+  };
+});
 
 // ============================================================================
 // Annotation Directive Generators (text, center, abc-*)

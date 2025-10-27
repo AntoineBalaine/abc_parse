@@ -77,11 +77,13 @@ describe("Font Directive Analysis", () => {
   });
 
   it("should handle font directive with asterisk (keep current)", () => {
-    // Create a composerfont directive: %%composerfont * 18 underline
+    // Create a composerfont directive: %%composerfont * 18
+    // Note: asterisk format only supports: * <size> [box]
+    // Modifiers like "underline" are not valid after asterisk
     const directive = new Directive(
       4, // id
       new Token(TT.IDENTIFIER, "composerfont", 16), // key
-      [new Token(TT.IDENTIFIER, "*", 17), new Token(TT.NUMBER, "18", 18), new Token(TT.IDENTIFIER, "underline", 19)] // values
+      [new Token(TT.IDENTIFIER, "*", 17), new Token(TT.NUMBER, "18", 18)] // values
     );
 
     const result = analyzer.visitDirectiveExpr(directive);
@@ -92,7 +94,6 @@ describe("Font Directive Analysis", () => {
     const fontData = result?.data as FontSpec;
     expect(fontData.face).to.be.undefined; // Asterisk means keep current
     expect(fontData.size).to.equal(18);
-    expect(fontData.decoration).to.equal("underline");
   });
 
   it("should ignore utf8 keyword", () => {

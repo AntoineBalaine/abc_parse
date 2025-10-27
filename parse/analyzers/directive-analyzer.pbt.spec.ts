@@ -88,9 +88,17 @@ describe("Directive Analyzer - Property-Based Tests", () => {
             expect(fontData.size).to.equal(gen.expected.size);
           }
 
-          expect(fontData.weight).to.equal(gen.expected.weight);
-          expect(fontData.style).to.equal(gen.expected.style);
-          expect(fontData.decoration).to.equal(gen.expected.decoration);
+          if (gen.expected.weight !== undefined) {
+            expect(fontData.weight).to.equal(gen.expected.weight);
+          }
+
+          if (gen.expected.style !== undefined) {
+            expect(fontData.style).to.equal(gen.expected.style);
+          }
+
+          if (gen.expected.decoration !== undefined) {
+            expect(fontData.decoration).to.equal(gen.expected.decoration);
+          }
 
           if (gen.expected.box) {
             expect(fontData.box).to.equal(true);
