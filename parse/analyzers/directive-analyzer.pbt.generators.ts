@@ -303,21 +303,24 @@ export const genNumberDirective = fc.integer({ min: 0, max: numberDirectives.len
   const min = spec.min ?? -100;
   const max = spec.max ?? 100;
 
-  return fc.float({ min, max }).map((value) => {
-    return {
-      directive: new Directive(sharedContext.generateId(), new Token(TT.IDENTIFIER, spec.name, sharedContext.generateId()), [
-        new Token(TT.NUMBER, value.toString(), sharedContext.generateId()),
-      ]),
-      expected: {
-        type: spec.name,
-        data: value,
-      },
-      constraints: {
-        min: spec.min,
-        max: spec.max,
-      },
-    };
-  });
+  return fc
+    .float({ min, max })
+    .filter((value) => !isNaN(value) && isFinite(value))
+    .map((value) => {
+      return {
+        directive: new Directive(sharedContext.generateId(), new Token(TT.IDENTIFIER, spec.name, sharedContext.generateId()), [
+          new Token(TT.NUMBER, value.toString(), sharedContext.generateId()),
+        ]),
+        expected: {
+          type: spec.name,
+          data: value,
+        },
+        constraints: {
+          min: spec.min,
+          max: spec.max,
+        },
+      };
+    });
 });
 
 // ============================================================================
