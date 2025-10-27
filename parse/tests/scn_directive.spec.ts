@@ -311,27 +311,27 @@ describe("Directive Scanner Tests", () => {
       expect(contentTokens.length).to.equal(4);
 
       // Verify each token matches the expected type and lexeme
-      expect(contentTokens[0].type).to.equal(TT.IDENTIFIER); // type 13
+      expect(contentTokens[0].type).to.equal(TT.IDENTIFIER);
       expect(contentTokens[0].lexeme).to.equal("pagewidth");
       expect(contentTokens[0].id).to.be.a("number");
 
-      expect(contentTokens[1].type).to.equal(TT.IDENTIFIER); // type 13
+      expect(contentTokens[1].type).to.equal(TT.IDENTIFIER);
       expect(contentTokens[1].lexeme).to.equal("musicspace");
       expect(contentTokens[1].id).to.be.a("number");
 
-      expect(contentTokens[2].type).to.equal(TT.NUMBER); // type 14
+      expect(contentTokens[2].type).to.equal(TT.NUMBER);
       expect(contentTokens[2].lexeme).to.equal("5");
       expect(contentTokens[2].id).to.be.a("number");
 
-      expect(contentTokens[3].type).to.equal(TT.MEASUREMENT_UNIT); // type 42
+      expect(contentTokens[3].type).to.equal(TT.MEASUREMENT_UNIT);
       expect(contentTokens[3].lexeme).to.equal("cm");
       expect(contentTokens[3].id).to.be.a("number");
 
       // Verify toString method works as expected
-      expect(contentTokens[0].toString()).to.match(/^13 pagewidth \(id: \d+\)$/);
-      expect(contentTokens[1].toString()).to.match(/^13 musicspace \(id: \d+\)$/);
-      expect(contentTokens[2].toString()).to.match(/^14 5 \(id: \d+\)$/);
-      expect(contentTokens[3].toString()).to.match(/^42 cm \(id: \d+\)$/);
+      expect(contentTokens[0].toString()).to.match(/^14 pagewidth \(id: \d+\)$/);
+      expect(contentTokens[1].toString()).to.match(/^14 musicspace \(id: \d+\)$/);
+      expect(contentTokens[2].toString()).to.match(/^15 5 \(id: \d+\)$/);
+      expect(contentTokens[3].toString()).to.match(/^43 cm \(id: \d+\)$/);
     });
   });
 });
