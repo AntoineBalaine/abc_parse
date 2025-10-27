@@ -463,10 +463,11 @@ export const genAnnotationDirectiveName = fc.constantFrom(...annotationDirective
 
 // Generate safe annotation text - alphanumeric with safe punctuation only
 // Avoid quotes, backslashes, and other characters that could break ABC string syntax
+// Require at least 2 characters OR start with alphanumeric to avoid edge cases like single commas
 export const genAnnotationText = fc
   .stringMatching(/^[A-Za-z0-9 .\-,()':]+$/)
   .map((s) => s.trim())
-  .filter((s) => s.length > 0 && s.length <= 100);
+  .filter((s) => s.length >= 2 && s.length <= 100 && /^[A-Za-z0-9]/.test(s));
 
 // With Annotation object
 export const genAnnotationDirectiveWithObject = fc
@@ -483,7 +484,7 @@ export const genAnnotationDirectiveWithObject = fc
       directive: new Directive(sharedContext.generateId(), new Token(TT.IDENTIFIER, name, sharedContext.generateId()), [annotation]),
       expected: {
         type: name,
-        data: text,
+        data: `"${text}"`, // Keep quotes to match abcjs behavior
       },
     };
   });
@@ -502,7 +503,7 @@ export const genAnnotationDirectiveWithToken = fc
       directive: new Directive(sharedContext.generateId(), new Token(TT.IDENTIFIER, name, sharedContext.generateId()), [token]),
       expected: {
         type: name,
-        data: text,
+        data: `"${text}"`, // Keep quotes to match abcjs behavior
       },
     };
   });

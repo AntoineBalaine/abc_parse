@@ -904,6 +904,7 @@ function parseDeco(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
 
 /**
  * Parses annotation directives (quoted string or plain text)
+ * Note: Quotes are preserved to match abcjs behavior
  */
 function parseAnnotation(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   if (directive.values.length === 0) {
@@ -916,19 +917,9 @@ function parseAnnotation(directive: Directive, analyzer: SemanticAnalyzer): Dire
   // Collect text from all values (parser may split into multiple tokens)
   for (const value of directive.values) {
     if (value instanceof Annotation) {
-      let text = value.text.lexeme;
-      // Strip surrounding quotes if present
-      if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
-        text = text.slice(1, -1);
-      }
-      textParts.push(text);
+      textParts.push(value.text.lexeme);
     } else if (value instanceof Token) {
-      let text = value.lexeme;
-      // Strip surrounding quotes if present
-      if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
-        text = text.slice(1, -1);
-      }
-      textParts.push(text);
+      textParts.push(value.lexeme);
     } else {
       analyzer.report(`Directive "${directive.key.lexeme}" contains invalid value type`, directive);
       return null;
