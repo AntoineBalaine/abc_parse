@@ -217,15 +217,12 @@ abc_parse/
 ## TODO List
 
 ### Parser (scan2) TODOs:
-- `%%begintext` free text blocks until `%%endtext`
 - `H: history` and free text parsing
 - Voice overlay line continuation (`&\` at EOL)
+- complete the implementation of voice overlays (`&` in tune body)
+- linebreak directives
+- line continuations (`\\n`)
 - (very low priority )Improve macro support (`m:` - currently unstable)
-
-### Info Lines TODOs:
-- Replace MeterFraction type with RationalNumber
-- Scanner should preserve `=` and `/` tokens in key/value pairs
-- Formatter should handle comments in info lines without including them in InfoLine expressions
 
 ### Formatter TODOs:
 - fix voice/system detection logic (some multi-voice scores are getting aligned where they shouldn’t)
