@@ -1,4 +1,4 @@
-import { ABCContext, File_structure, parse, RangeVisitor, Scanner2, Token, TT } from "abc-parser";
+import { ABCContext, File_structure, parse, RangeVisitor, Scanner, Token, TT } from "abc-parser";
 import { Diagnostic } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { mapAbcErrorsToDiagnostics, mapAbcWarningsToDiagnostics } from "./server_helpers";
@@ -14,7 +14,7 @@ export class AbcDocument {
   public AST: File_structure | null = null;
   public ctx = new ABCContext();
   public rangeVisitor = new RangeVisitor();
-  constructor(public document: TextDocument) {}
+  constructor(public document: TextDocument) { }
   /**
    * Return an array of tokens, or void in case of failure.
    * `analyze()` parses the document,
@@ -32,13 +32,13 @@ export class AbcDocument {
     this.diagnostics = [];
     this.tokens = [];
 
-    this.tokens = Scanner2(source, this.ctx);
+    this.tokens = Scanner(source, this.ctx);
     // Debug: Print out all tokens for inspection
     console.log("Actual tokens generated:");
     this.tokens.forEach((token, i) => {
       console.log(`${i}: ${TT[token.type]} - "${token.lexeme}"`);
     });
-    const tokens = Scanner2(source, this.ctx);
+    const tokens = Scanner(source, this.ctx);
     this.AST = parse(tokens, this.ctx);
     let errs = mapAbcErrorsToDiagnostics(this.ctx.errorReporter.getErrors(), this.rangeVisitor);
     let warnings = mapAbcWarningsToDiagnostics(this.ctx.errorReporter.getWarnings(), this.rangeVisitor);
