@@ -481,14 +481,24 @@ function parseMeterGrouping(grouping: Grouping): IRational[] {
 function sumBinaryAddition(binary: Binary): number {
   let sum = 0;
 
-  const leftNum = extractNumber(binary.left);
-  if (leftNum !== null) {
-    sum += leftNum;
+  // Handle left side - could be a number or another Binary addition
+  if (binary.left instanceof Binary && isToken(binary.left.operator) && (binary.left.operator as Token).lexeme === "+") {
+    sum += sumBinaryAddition(binary.left); // Recursive call for nested additions
+  } else {
+    const leftNum = extractNumber(binary.left);
+    if (leftNum !== null) {
+      sum += leftNum;
+    }
   }
 
-  const rightNum = extractNumber(binary.right);
-  if (rightNum !== null) {
-    sum += rightNum;
+  // Handle right side - could be a number or another Binary addition
+  if (binary.right instanceof Binary && isToken(binary.right.operator) && (binary.right.operator as Token).lexeme === "+") {
+    sum += sumBinaryAddition(binary.right); // Recursive call for nested additions
+  } else {
+    const rightNum = extractNumber(binary.right);
+    if (rightNum !== null) {
+      sum += rightNum;
+    }
   }
 
   return sum;
