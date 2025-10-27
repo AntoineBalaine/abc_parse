@@ -219,6 +219,7 @@ export enum TT {
   SPECIAL_LITERAL, // Special cases (C, C|)
   COMMENT,
   DECORATION,
+  SYSTEM_BREAK, // System break ( ! )
   EOF,
   EOL,
   ESCAPED_CHAR,

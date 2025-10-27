@@ -100,10 +100,15 @@ export const genSlur = fc.constantFrom("(", ")").map((slur) => new Token(TT.SLUR
 // Decoration generator
 export const genDecoration = fc.stringMatching(/^[\~\.HLMOPSTuv]$/).map((deco) => new Token(TT.DECORATION, deco, sharedContext.generateId()));
 
+// System break generator - must be surrounded by whitespace to avoid conflicts with symbols
+export const genSystemBreak = fc
+  .tuple(genWhitespace, fc.constantFrom(new Token(TT.SYSTEM_BREAK, "!", sharedContext.generateId())), genWhitespace)
+  .map(([ws1, rb, ws2]) => [ws1, rb, ws2]);
+
 // Symbol generator
 export const genSymbol = fc.oneof(
   fc.stringMatching(/^![a-zA-Z][^\n!]*!$/).map((sym) => new Token(TT.SYMBOL, sym, sharedContext.generateId())),
-  // FIXME: including the `:` here so that tests don’t break. This is an edge case.
+  // FIXME: including the `:` here so that tests don't break. This is an edge case.
   fc.stringMatching(/^\+[^\n:\+]*\+$/).map((sym) => new Token(TT.SYMBOL, sym, sharedContext.generateId()))
 );
 
@@ -303,6 +308,7 @@ export const baseMusicTokenGenerators = [
   genTuplet, // Now returns an array of tokens directly
   genSlur.map((slur) => [slur]),
   genDecorationWithFollower,
+  genSystemBreak, // Already returns an array with whitespace
   genSymbol.map((sym) => [sym]),
   genYspacer,
   genBcktckSpc.map((bck) => [bck]),

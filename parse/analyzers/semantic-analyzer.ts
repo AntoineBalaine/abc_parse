@@ -48,6 +48,7 @@ import {
   AbsolutePitch,
   Rational,
   Measurement,
+  SystemBreak,
 } from "../types/Expr2";
 import { Token } from "../parsers/scan2";
 
@@ -145,6 +146,10 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
   }
 
   visitDecorationExpr(expr: Decoration): SemanticData | null {
+    return null;
+  }
+
+  visitSystemBreakExpr(expr: SystemBreak): SemanticData | null {
     return null;
   }
 

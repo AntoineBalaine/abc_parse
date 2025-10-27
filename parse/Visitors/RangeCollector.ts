@@ -30,6 +30,7 @@ import {
   Note,
   Pitch,
   Rational,
+  SystemBreak,
   Rest,
   Rhythm,
   Symbol,
@@ -116,6 +117,12 @@ export class ExpressionCollector implements Visitor<void> {
   }
 
   visitDecorationExpr(expr: Decoration): void {
+    if (this.isInRange(expr)) {
+      this.collected.push(expr);
+    }
+  }
+
+  visitSystemBreakExpr(expr: SystemBreak): void {
     if (this.isInRange(expr)) {
       this.collected.push(expr);
     }

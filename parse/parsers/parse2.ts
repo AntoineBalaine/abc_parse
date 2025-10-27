@@ -24,6 +24,7 @@ import {
   MultiMeasureRest,
   Note,
   Pitch,
+  SystemBreak,
   Rest,
   Rhythm,
   Symbol,
@@ -397,6 +398,7 @@ export function parseMusicCode(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): A
       parseBarline(ctx, elements) ||
       parseChord(ctx, elements) ||
       parseDecoration(ctx, elements) ||
+      parseSystemBreak(ctx, elements) ||
       parseGraceGroup(ctx, elements) ||
       parseInlineField(ctx, elements) ||
       parseNote(ctx, elements) ||
@@ -750,6 +752,18 @@ export function parseDecoration(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): 
   const deco = new Decoration(ctx.abcContext.generateId(), ctx.previous());
   prnt_arr && prnt_arr.push(deco);
   return deco;
+}
+
+// Parse a system break
+export function parseSystemBreak(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): SystemBreak | null {
+  if (!ctx.match(TT.SYSTEM_BREAK)) {
+    return null;
+  }
+
+  const symbol = ctx.previous();
+  const systemBreak = new SystemBreak(ctx.abcContext.generateId(), symbol);
+  prnt_arr && prnt_arr.push(systemBreak);
+  return systemBreak;
 }
 
 export class BeamCtx {

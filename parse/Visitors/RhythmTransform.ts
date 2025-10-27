@@ -43,6 +43,7 @@ import {
   Note,
   Pitch,
   Rational,
+  SystemBreak,
   Rest,
   Rhythm,
   Symbol,
@@ -189,6 +190,10 @@ export class RhythmVisitor implements Visitor<Expr> {
   }
 
   visitDecorationExpr(expr: Decoration): Decoration {
+    return expr;
+  }
+
+  visitSystemBreakExpr(expr: SystemBreak): SystemBreak {
     return expr;
   }
 

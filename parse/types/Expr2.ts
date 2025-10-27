@@ -15,6 +15,7 @@ export interface Visitor<R> {
   visitCommentExpr(expr: Comment): R;
   visitDirectiveExpr(expr: Directive): R;
   visitDecorationExpr(expr: Decoration): R;
+  visitSystemBreakExpr(expr: SystemBreak): R;
   visitFileHeaderExpr(expr: File_header): R;
   visitFileStructureExpr(expr: File_structure): R;
   visitGraceGroupExpr(expr: Grace_group): R;
@@ -542,6 +543,7 @@ export type music_code =
   | BarLine
   | Annotation
   | Decoration
+  | SystemBreak
   | Note
   | Grace_group
   | Inline_field
@@ -570,6 +572,7 @@ export type Beam_contents =
   | YSPACER
   | Annotation
   | Decoration
+  | SystemBreak
   | Note
   | Grace_group
   | Chord
@@ -599,6 +602,17 @@ export class Decoration extends Expr {
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitDecorationExpr(this);
+  }
+}
+
+export class SystemBreak extends Expr {
+  symbol: Token;
+  constructor(id: number, symbol: Token) {
+    super(id);
+    this.symbol = symbol;
+  }
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitSystemBreakExpr(this);
   }
 }
 

@@ -30,6 +30,7 @@ import {
   Note,
   Pitch,
   Rational,
+  SystemBreak,
   Rest,
   Rhythm,
   Symbol,
@@ -217,6 +218,10 @@ export class AbcFormatter implements Visitor<string> {
 
   visitDecorationExpr(expr: Decoration): string {
     return expr.decoration.lexeme;
+  }
+
+  visitSystemBreakExpr(expr: SystemBreak): string {
+    return expr.symbol.lexeme;
   }
 
   visitGraceGroupExpr(expr: Grace_group): string {

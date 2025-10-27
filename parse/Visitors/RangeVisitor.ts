@@ -30,6 +30,7 @@ import {
   Note,
   Pitch,
   Rational,
+  SystemBreak,
   Rest,
   Rhythm,
   Symbol,
@@ -88,6 +89,9 @@ export class RangeVisitor implements Visitor<Range> {
   }
   visitDecorationExpr(expr: Decoration): Range {
     return getTokenRange(expr.decoration);
+  }
+  visitSystemBreakExpr(expr: SystemBreak): Range {
+    return getTokenRange(expr.symbol);
   }
   visitFileHeaderExpr(expr: File_header): Range {
     return expr.contents

@@ -30,6 +30,7 @@ import {
   Note,
   Pitch,
   Rational,
+  SystemBreak,
   Rest,
   Rhythm,
   Symbol,
@@ -128,6 +129,9 @@ export class Transposer implements Visitor<Expr | Token> {
     return expr;
   }
   visitDecorationExpr(expr: Decoration): Decoration {
+    return expr;
+  }
+  visitSystemBreakExpr(expr: SystemBreak): SystemBreak {
     return expr;
   }
   visitFileHeaderExpr(expr: File_header): File_header {

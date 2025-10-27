@@ -160,6 +160,34 @@ export function decoration(ctx: Ctx): boolean {
   return false;
 }
 
+export const pSystemBreak = /!/;
+
+/**
+ * Scans for a system break - a standalone bang surrounded by whitespace.
+ * Pattern: ` ! ` where the bang is either:
+ * - At start of source OR preceded by whitespace/newline
+ * - At end of source OR followed by whitespace/newline
+ */
+export function systemBreak(ctx: Ctx): boolean {
+  // Check if current position is a bang
+  if (!ctx.test(pSystemBreak)) return false;
+
+  // Check if preceded by whitespace/newline or at start of source
+  const prevChar = ctx.current > 0 ? ctx.source.charAt(ctx.current - 1) : null;
+  const precededByWsOrStart = prevChar === null || /[ \t\n]/.test(prevChar);
+  if (!precededByWsOrStart) return false;
+
+  // Check if followed by whitespace/newline or at end of source
+  const nextChar = ctx.current + 1 < ctx.source.length ? ctx.source.charAt(ctx.current + 1) : null;
+  const followedByWsOrEnd = nextChar === null || /[ \t\n]/.test(nextChar);
+  if (!followedByWsOrEnd) return false;
+
+  // Consume the bang character
+  advance(ctx);
+  ctx.push(TT.SYSTEM_BREAK);
+  return true;
+}
+
 export function symbol(ctx: Ctx): boolean {
   if (!(ctx.test(/![^\n!]*!/) || ctx.test(/\+[^\n\+]*\+/))) return false;
   var is_plus_symbol = ctx.test("+");
@@ -457,6 +485,7 @@ export function scanTune(ctx: Ctx): boolean {
     if (note(ctx)) continue;
     if (rest(ctx)) continue;
     if (y_spacer(ctx)) continue;
+    if (systemBreak(ctx)) continue;
     if (symbol(ctx)) continue;
     if (ampersand(ctx)) continue;
     if (bcktck_spc(ctx)) continue;

@@ -22,6 +22,7 @@ import {
   BarLine,
   Grace_group,
   Decoration,
+  SystemBreak,
   Symbol,
   Beam,
   Tuplet,
@@ -674,6 +675,7 @@ export class TuneInterpreter implements Visitor<void> {
   visitAnnotationExpr(expr: Annotation): void {}
   visitCommentExpr(expr: Comment): void {}
   visitDecorationExpr(expr: Decoration): void {}
+  visitSystemBreakExpr(expr: SystemBreak): void {}
   visitGraceGroupExpr(expr: Grace_group): void {}
   visitInlineFieldExpr(expr: Inline_field): void {}
   visitLyricLineExpr(expr: Lyric_line): void {}
