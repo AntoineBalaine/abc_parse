@@ -61,6 +61,9 @@ export function fileStructure(ctx: Ctx) {
     if (sectionBreak(ctx)) continue;
     if (fileHeader(ctx)) continue;
     if (scanTune(ctx)) continue;
+    if (scanDirective(ctx)) continue;
+    if (comment(ctx)) continue;
+    if (EOL(ctx)) continue;
     freeText(ctx);
   }
   return ctx.tokens;

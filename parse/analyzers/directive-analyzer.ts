@@ -59,13 +59,18 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     case "titleleft":
     case "measurebox":
     case "continueall":
-    case "begintext":
     case "endtext":
     case "beginps":
     case "endps":
     case "font":
     case "nobarcheck":
       return parseBooleanFlag(directive, analyzer);
+
+    // ============================================================================
+    // Multi-line Text Directive
+    // ============================================================================
+    case "begintext":
+      return parseBeginText(directive, analyzer);
 
     // ============================================================================
     // Simple String Parameter Directives
@@ -929,5 +934,27 @@ function parseAnnotation(directive: Directive, analyzer: SemanticAnalyzer): Dire
   return {
     type: directive.key.lexeme as any,
     data: textParts.join(" "),
+  };
+}
+
+/**
+ * Parses %%begintext directive (multi-line text block)
+ */
+function parseBeginText(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
+  if (directive.values.length === 0) {
+    analyzer.report(`Directive "${directive.key.lexeme}" expects text content`, directive);
+    return null;
+  }
+
+  // The value should be a single FREE_TXT token containing all the text
+  const value = directive.values[0];
+  if (!(value instanceof Token)) {
+    analyzer.report(`Directive "${directive.key.lexeme}" contains invalid value type`, directive);
+    return null;
+  }
+
+  return {
+    type: "begintext",
+    data: value.lexeme,
   };
 }

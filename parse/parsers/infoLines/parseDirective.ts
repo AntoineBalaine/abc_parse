@@ -14,6 +14,7 @@ import { followedBy } from "../../helpers";
  * 4. stringLiteral() - creates Token objects
  * 5. signedNumber() - may create Rational objects if followed by /
  * 6. Single characters (=, /) - creates Token objects
+ * 7. Special case: begintext multi-line directive with FREE_TXT content
  */
 export function parseDirective(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Directive | null {
   if (!ctx.match(TT.STYLESHEET_DIRECTIVE)) {
@@ -25,6 +26,11 @@ export function parseDirective(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): D
   if (ctx.match(TT.IDENTIFIER)) {
     directiveKey = ctx.previous();
   } else return null;
+
+  // Special case: begintext directive expects FREE_TXT token
+  if (directiveKey.lexeme.toLowerCase() === "begintext") {
+    return parseBeginTextDirective(ctx, directiveKey, prnt_arr);
+  }
 
   let values: Array<Token | Rational | Pitch | KV | Measurement | Annotation> = [];
   // Parse remaining tokens following scanner precedence
@@ -124,4 +130,28 @@ function parseRationalOrNumber(ctx: ParseCtx, values: Array<Token | Rational | P
     values.push(numerator);
     return true;
   }
+}
+
+/**
+ * Parse %%begintext directive - expects FREE_TXT token containing text block
+ */
+function parseBeginTextDirective(ctx: ParseCtx, directiveKey: Token, prnt_arr?: Array<Expr | Token>): Directive | null {
+  let values: Array<Token | Rational | Pitch | KV | Measurement | Annotation> = [];
+
+  // Next token should be FREE_TXT containing the text block
+  if (ctx.check(TT.FREE_TXT)) {
+    values.push(ctx.advance());
+  }
+
+  // Optionally consume endtext directive if present
+  if (ctx.check(TT.STYLESHEET_DIRECTIVE)) {
+    ctx.advance(); // consume %%
+    if (ctx.check(TT.IDENTIFIER) && ctx.peek().lexeme.toLowerCase() === "endtext") {
+      ctx.advance(); // consume endtext identifier
+    }
+  }
+
+  const rv = new Directive(ctx.abcContext.generateId(), directiveKey, values);
+  if (prnt_arr) prnt_arr.push(rv);
+  return rv;
 }

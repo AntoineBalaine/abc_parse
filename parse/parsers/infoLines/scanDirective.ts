@@ -13,8 +13,14 @@ import { identifier, stringLiteral, singleChar } from "./scanInfoLine2";
  * - TT.NUMBER + TT.SLASH + TT.NUMBER rational numbers (integer fractions)
  * - Pitch tokens (tune-body pitches using pitch() function)
  * - TT.IDENTIFIER + TT.EQL + TT.NUMBER octave/transpose offset assignments (handled by separate tokens)
+ * - Special case: %%begintext multi-line directive
  */
 export function scanDirective(ctx: Ctx): boolean {
+  // Special case: multi-line text directive
+  if (ctx.test(/^%%begintext/i)) {
+    return scanTextDirective(ctx);
+  }
+
   if (!ctx.test("%%")) return false;
   advance(ctx, 2);
   ctx.push(TT.STYLESHEET_DIRECTIVE);
@@ -52,6 +58,104 @@ function signedNumber(ctx: Ctx): boolean {
 
   ctx.current += match[0].length;
   ctx.push(TT.NUMBER);
+  return true;
+}
+
+/**
+ * Scan text directive block (%%begintext ... %%endtext)
+ *
+ * This is a special multi-line directive that:
+ * 1. Starts with %%begintext (no parameters)
+ * 2. Contains free text on multiple lines
+ * 3. Ends with %%endtext (or EOF if never found)
+ * 4. Lines starting with %% (except %%endtext) have the %% prefix stripped
+ *
+ * Produces: TT.STYLESHEET_DIRECTIVE + TT.IDENTIFIER("begintext") + TT.FREE_TXT (text content) + [TT.STYLESHEET_DIRECTIVE + TT.IDENTIFIER("endtext")]
+ */
+export function scanTextDirective(ctx: Ctx): boolean {
+  // Check if this is %%begintext
+  if (!ctx.test(/^%%begintext/i)) return false;
+
+  advance(ctx, 2); // %%
+  ctx.push(TT.STYLESHEET_DIRECTIVE);
+
+  // Consume "begintext" identifier
+  const identifierMatch = /^begintext/i.exec(ctx.source.substring(ctx.current));
+  if (identifierMatch) {
+    ctx.current += identifierMatch[0].length;
+    ctx.push(TT.IDENTIFIER);
+  }
+
+  // Skip to end of begintext line
+  while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
+    advance(ctx);
+  }
+  if (ctx.test(pEOL)) {
+    advance(ctx); // consume newline
+    ctx.line++;
+  }
+
+  // Remember the starting position and line for the FREE_TXT token
+  const textStartPosition = ctx.current;
+  const textStartLine = ctx.line;
+
+  // Now accumulate text until %%endtext or EOF
+  const textLines: string[] = [];
+  let foundEndText = false;
+
+  while (!isAtEnd(ctx)) {
+    // Check if this line is %%endtext
+    if (ctx.test(/^%%endtext/i)) {
+      foundEndText = true;
+      break;
+    }
+
+    // Capture the current line
+    // const lineStart = ctx.current;
+    let lineContent = "";
+
+    while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
+      lineContent += ctx.source[ctx.current];
+      advance(ctx);
+    }
+
+    textLines.push(lineContent);
+
+    // Consume newline if present
+    if (ctx.test(pEOL)) {
+      advance(ctx);
+      ctx.line++;
+    }
+  }
+
+  // Push the accumulated text as FREE_TXT token
+  const fullText = textLines.join("\n");
+  // Set start to the beginning of the text content and temporarily set line to where text started
+  ctx.start = textStartPosition;
+  const savedLine = ctx.line;
+  ctx.line = textStartLine;
+  ctx.push(TT.FREE_TXT);
+  // Update the token's lexeme to contain the actual text
+  if (ctx.tokens.length > 0) {
+    const textToken = ctx.tokens[ctx.tokens.length - 1];
+    textToken.lexeme = fullText;
+  }
+  // Restore the current line (we're now at %%endtext or EOF)
+  ctx.line = savedLine;
+
+  // If we found %%endtext, consume it
+  if (foundEndText) {
+    ctx.start = ctx.current;
+    advance(ctx, 2); // %%
+    ctx.push(TT.STYLESHEET_DIRECTIVE);
+
+    const endIdentifierMatch = /^endtext/i.exec(ctx.source.substring(ctx.current));
+    if (endIdentifierMatch) {
+      ctx.current += endIdentifierMatch[0].length;
+      ctx.push(TT.IDENTIFIER);
+    }
+  }
+
   return true;
 }
 

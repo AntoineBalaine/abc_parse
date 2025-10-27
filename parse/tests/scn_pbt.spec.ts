@@ -9,6 +9,7 @@ import {
   genMacroScenario,
   genUserSymbolScenario,
   genMixedStatefulScenario,
+  genTextDirective,
 } from "./scn_pbt.generators.spec";
 
 describe("Scanner Property Tests", () => {
@@ -18,10 +19,34 @@ describe("Scanner Property Tests", () => {
     .filter((s) => !s.includes("\n"))
     .map((s) => `%${s}`);
 
-  const genDirective = fc
-    .string()
-    .filter((s) => !s.includes("\n"))
-    .map((s) => `%%${s}`);
+  const genDirective = fc.oneof(
+    // Simple directives (single line)
+    fc
+      .string()
+      .filter((s) => !s.includes("\n"))
+      .map((s) => `%%${s}`),
+    // Text directives (multi-line %%begintext...%%endtext)
+    genTextDirective.map((tokens): string => {
+      // Reconstruct %%begintext directive from tokens
+      let result = "%%begintext\n";
+      const freeText = tokens.find((t) => t.type === TT.FREE_TXT);
+      if (freeText) {
+        // The FREE_TXT token contains text WITHOUT %% prefixes
+        // When reconstructing input, randomly add %% prefix to some lines to test stripping
+        const lines = freeText.lexeme.split("\n");
+        for (const line of lines) {
+          // 50% chance to add %% prefix to test stripping behavior
+          const addPrefix = Math.random() < 0.5;
+          result += (addPrefix ? "%%" : "") + line + "\n";
+        }
+      }
+      const hasEndText = tokens.some((t) => t.lexeme === "endtext");
+      if (hasEndText) {
+        result += "%%endtext";
+      }
+      return result;
+    })
+  );
 
   const genTuneHeader = fc.nat().map((n) => `X:${n}`);
 
@@ -91,9 +116,14 @@ describe("Scanner Property Tests", () => {
         for (let i = 0; i < tokens.length - 1; i++) {
           const current = tokens[i];
           if (current.type === TT.EOL || current.type === TT.SCT_BRK || current.type === TT.EOF) {
-            return true;
+            continue;
           }
           const next = tokens[i + 1];
+          // Skip if next is also structural
+          if (next.type === TT.EOL || next.type === TT.SCT_BRK || next.type === TT.EOF) {
+            continue;
+          }
+
           if (current.line > next.line) {
             return false;
           }

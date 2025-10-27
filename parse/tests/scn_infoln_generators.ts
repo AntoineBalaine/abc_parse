@@ -558,3 +558,40 @@ export const genStylesheetDirective = fc
     genEOL
   )
   .map(([header, content, eol]) => [header, ...content, eol]);
+
+/**
+ * Generator for text directive (%%begintext ... %%endtext)
+ * This is a multi-line directive that:
+ * 1. Starts with %%begintext
+ * 2. Contains multiple lines of free text
+ * 3. Lines starting with %% have the prefix stripped (so FREE_TXT contains text WITHOUT %%)
+ * 4. Ends with %%endtext or EOF
+ * Produces: [TT.STYLESHEET_DIRECTIVE, TT.IDENTIFIER("begintext"), TT.FREE_TXT, [TT.STYLESHEET_DIRECTIVE, TT.IDENTIFIER("endtext")]]
+ */
+export const genTextDirective = fc
+  .tuple(
+    // Generate 1-10 lines of text (these are the lines AFTER %% stripping)
+    fc.array(
+      fc.stringMatching(/^[a-zA-Z0-9 .,'!?;:()\-]+$/).filter((s) => s.length > 0 && s.length < 80),
+      { minLength: 1, maxLength: 10 }
+    )
+  )
+  .map(([textLines]) => {
+    const tokens: Token[] = [];
+
+    // %%begintext
+    tokens.push(new Token(TT.STYLESHEET_DIRECTIVE, "%%", sharedContext.generateId()));
+    tokens.push(new Token(TT.IDENTIFIER, "begintext", sharedContext.generateId()));
+
+    // FREE_TXT token contains text AFTER %% stripping
+    // So we just join the lines directly (no %% prefixes in the token)
+    const fullText = textLines.join("\n");
+
+    // FREE_TXT token containing all the text (without %% prefixes)
+    tokens.push(new Token(TT.FREE_TXT, fullText, sharedContext.generateId()));
+
+    tokens.push(new Token(TT.STYLESHEET_DIRECTIVE, "%%", sharedContext.generateId()));
+    tokens.push(new Token(TT.IDENTIFIER, "endtext", sharedContext.generateId()));
+
+    return tokens;
+  });

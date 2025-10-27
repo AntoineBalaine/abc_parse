@@ -204,7 +204,7 @@ export const DIRECTIVE_SPECS: Record<string, { params: ParamSpec[] }> = {
   setbarnb: { params: [{ type: "number", min: 1 }] },
 
   // Text and Content Directives
-  begintext: { params: [] },
+  begintext: { params: [{ type: "text_block" }] },
   endtext: { params: [] },
   text: { params: [{ type: "annotation" }] },
   center: { params: [{ type: "annotation" }] },
@@ -414,7 +414,6 @@ export type DirectiveSemanticData =
   | { type: "titleleft"; data: true }
   | { type: "measurebox"; data: true }
   | { type: "continueall"; data: true }
-  | { type: "begintext"; data: true }
   | { type: "endtext"; data: true }
   | { type: "beginps"; data: true }
   | { type: "endps"; data: true }
@@ -425,6 +424,7 @@ export type DirectiveSemanticData =
   | { type: "papersize"; data: string }
   | { type: "text"; data: string }
   | { type: "center"; data: string }
+  | { type: "begintext"; data: string }
   | { type: "abc-copyright"; data: string }
   | { type: "abc-creator"; data: string }
   | { type: "abc-edited-by"; data: string }

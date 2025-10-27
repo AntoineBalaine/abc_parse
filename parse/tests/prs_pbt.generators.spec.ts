@@ -9,6 +9,7 @@ import {
   Chord,
   Comment,
   Decoration,
+  Directive,
   Grace_group,
   Inline_field,
   Macro_decl,
@@ -437,5 +438,30 @@ export const genMacroScenario = genMacroDeclExpr.chain(macro_decl => {
 
 export const genCommentExpr = ScannerGen.genCommentToken.map(([comment, eol]) => {
   return new Comment(sharedContext.generateId(), comment);
+});
+
+/**
+ * Generator for text directive expressions (%%begintext ... %%endtext)
+ * Creates both the token array and the Directive expression
+ */
+export const genTextDirectiveExpr = ScannerGen.genTextDirective.map((tokens) => {
+  // Find the key token (begintext identifier)
+  const keyToken = tokens.find((t) => t.type === TT.IDENTIFIER && t.lexeme === "begintext");
+
+  // Find the FREE_TXT token
+  const freeTextToken = tokens.find((t) => t.type === TT.FREE_TXT);
+
+  if (!keyToken || !freeTextToken) {
+    throw new Error("Invalid text directive tokens");
+  }
+
+  // Create the Directive expression
+  // The values array contains just the FREE_TXT token
+  const directive = new Directive(sharedContext.generateId(), keyToken, [freeTextToken]);
+
+  return {
+    tokens,
+    expr: directive,
+  };
 });
 

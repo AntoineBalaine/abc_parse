@@ -42,9 +42,21 @@ export const genUserSymbolDeclExpr = fc
     return new User_symbol_decl(sharedContext.generateId(), header, variable, symbol);
   });
 
+// Text directive expression generator
+export const genTextDirectiveExpr = ScannerGen.genTextDirective.map((tokens) => {
+  const keyToken = tokens.find((t) => t.type === TT.IDENTIFIER && t.lexeme === "begintext");
+  const freeTextToken = tokens.find((t) => t.type === TT.FREE_TXT);
+
+  if (!keyToken || !freeTextToken) {
+    throw new Error("Invalid text directive tokens");
+  }
+
+  return new Directive(sharedContext.generateId(), keyToken, [freeTextToken]);
+});
+
 // Tune header expression generator
 export const genTuneHeaderExpr = fc
-  .array(fc.oneof(genInfoLineExpr, genCommentExpr, genDirectiveExpr, genMacroDeclExpr, genUserSymbolDeclExpr), { minLength: 1, maxLength: 8 })
+  .array(fc.oneof(genInfoLineExpr, genCommentExpr, genDirectiveExpr, genTextDirectiveExpr, genMacroDeclExpr, genUserSymbolDeclExpr), { minLength: 1, maxLength: 8 })
   .map((infoLines) => {
     return new Tune_header(sharedContext.generateId(), infoLines);
   });
@@ -139,6 +151,27 @@ describe("Tune Header Round-trip Tests", () => {
         assert.instanceOf(userSymbolDeclExpr, User_symbol_decl);
         assert.isString(formattedString);
         assert.isTrue(formattedString.length > 0);
+
+        return true;
+      }),
+      {
+        verbose: false,
+        numRuns: 100,
+      }
+    );
+  });
+
+  it("should correctly round-trip Text Directive expressions", () => {
+    fc.assert(
+      fc.property(genTextDirectiveExpr, (textDirectiveExpr) => {
+        const formatter = new AbcFormatter(sharedContext);
+        const formattedString = formatter.stringify(textDirectiveExpr, true);
+
+        assert.instanceOf(textDirectiveExpr, Directive);
+        assert.equal(textDirectiveExpr.key.lexeme, "begintext");
+        assert.isString(formattedString);
+        assert.isTrue(formattedString.length > 0);
+        assert.isTrue(formattedString.includes("%%begintext"));
 
         return true;
       }),

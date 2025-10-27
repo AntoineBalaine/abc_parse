@@ -10,10 +10,11 @@ import {
   genTempoInfoLine2,
   genGenericInfoLine,
   genStylesheetDirective as genStylesheetDirectiveFromInfoLn,
+  genTextDirective,
 } from "./scn_infoln_generators";
 
 // Re-export the new generators
-export { genInfoLine2, genKeyInfoLine2, genMeterInfoLine2, genNoteLenInfoLine2, genTempoInfoLine2 };
+export { genInfoLine2, genKeyInfoLine2, genMeterInfoLine2, genNoteLenInfoLine2, genTempoInfoLine2, genTextDirective };
 
 // Create a shared context for all generators
 export const sharedContext = new ABCContext(new AbcErrorReporter());
