@@ -435,6 +435,9 @@ export class AbcFormatter implements Visitor<string> {
 
   // New expression visitor methods for unified info line parsing
   visitKV(expr: KV): string {
+    // Format the value (could be Token or Expr like Unary)
+    const valueStr = expr.value instanceof Token ? expr.value.lexeme : expr.value.accept(this);
+
     if (expr.key && expr.equals) {
       // Format as key=value (no spaces around =)
       let keyStr: string;
@@ -443,10 +446,10 @@ export class AbcFormatter implements Visitor<string> {
       } else {
         keyStr = expr.key.lexeme;
       }
-      return keyStr + expr.equals.lexeme + expr.value.lexeme;
+      return keyStr + expr.equals.lexeme + valueStr;
     } else {
       // Standalone value (no key)
-      return expr.value.lexeme;
+      return valueStr;
     }
   }
 
@@ -455,6 +458,12 @@ export class AbcFormatter implements Visitor<string> {
     const leftStr = expr.left instanceof Token ? expr.left.lexeme : expr.left.accept(this);
     const rightStr = expr.right instanceof Token ? expr.right.lexeme : expr.right.accept(this);
     return leftStr + expr.operator.lexeme + rightStr;
+  }
+
+  visitUnary(expr: import("../types/Expr2").Unary): string {
+    // Format unary expressions as operator + operand (e.g., -2, +3)
+    const operandStr = expr.operand instanceof Token ? expr.operand.lexeme : expr.operand.accept(this);
+    return expr.operator.lexeme + operandStr;
   }
 
   visitGrouping(expr: Grouping): string {
@@ -609,4 +618,3 @@ export const toMidiPitch = (pitch: Pitch): number => {
 
   return noteNum;
 };
-

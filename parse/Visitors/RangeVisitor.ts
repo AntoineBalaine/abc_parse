@@ -50,8 +50,7 @@ import { Range } from "../types/types";
  * {@link Range} being: start line and character `Position`, end line and character `Position`.
  */
 export class RangeVisitor implements Visitor<Range> {
-  constructor() {
-  }
+  constructor() {}
   visitToken(token: Token): Range {
     return getTokenRange(token);
   }
@@ -272,7 +271,10 @@ export class RangeVisitor implements Visitor<Range> {
 
   // New expression visitor methods for unified info line parsing
   visitKV(expr: KV): Range {
-    const ranges = [getTokenRange(expr.value)];
+    // Handle value which can be Token or Expr
+    const valueRange = expr.value instanceof Token ? getTokenRange(expr.value) : expr.value.accept(this);
+    const ranges = [valueRange];
+
     if (expr.key) {
       if (expr.key instanceof AbsolutePitch) {
         ranges.push(expr.key.accept(this));
@@ -313,5 +315,11 @@ export class RangeVisitor implements Visitor<Range> {
 
   visitMeasurementExpr(expr: Measurement): Range {
     return [getTokenRange(expr.value), getTokenRange(expr.scale)].reduce(reduceRanges, <Range>{});
+  }
+
+  visitUnary(expr: import("../types/Expr2").Unary): Range {
+    const operatorRange = getTokenRange(expr.operator);
+    const operandRange = expr.operand instanceof Token ? getTokenRange(expr.operand) : expr.operand.accept(this);
+    return [operatorRange, operandRange].reduce(reduceRanges, <Range>{});
   }
 }

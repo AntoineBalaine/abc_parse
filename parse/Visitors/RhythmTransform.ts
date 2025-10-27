@@ -444,6 +444,10 @@ export class RhythmVisitor implements Visitor<Expr> {
     return expr;
   }
 
+  visitUnary(expr: import("../types/Expr2").Unary): Expr {
+    return expr;
+  }
+
   /**
    * Convert a rhythm expression to a rational number
    */

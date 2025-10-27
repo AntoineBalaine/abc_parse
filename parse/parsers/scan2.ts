@@ -210,6 +210,7 @@ export enum TT {
   DISCARD, // used only by generators
   EQL,
   SLASH, // Slash separator (/)
+  MINUS, // minus operator (-)
   PLUS, // Addition operator (+)
   LPAREN, // Left parenthesis (
   RPAREN, // Right parenthesis )

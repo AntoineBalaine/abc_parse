@@ -342,4 +342,10 @@ export class ExpressionCollector implements Visitor<void> {
       this.collected.push(expr);
     }
   }
+
+  visitUnary(expr: import("../types/Expr2").Unary): void {
+    if (this.isInRange(expr)) {
+      this.collected.push(expr);
+    }
+  }
 }

@@ -25,12 +25,7 @@ describe("Meter Info Line Analyzer - Example-Based Tests", () => {
       const cToken = new Token(TT.SPECIAL_LITERAL, "C", context.generateId());
       const cKV = new KV(context.generateId(), cToken);
 
-      const infoLine = new Info_line(
-        context.generateId(),
-        [new Token(TT.IDENTIFIER, "M", context.generateId())],
-        undefined,
-        [cKV]
-      );
+      const infoLine = new Info_line(context.generateId(), [new Token(TT.IDENTIFIER, "M", context.generateId())], undefined, [cKV]);
 
       const result = analyzer.visitInfoLineExpr(infoLine);
 
@@ -44,12 +39,7 @@ describe("Meter Info Line Analyzer - Example-Based Tests", () => {
       const cutTimeToken = new Token(TT.SPECIAL_LITERAL, "C|", context.generateId());
       const cutTimeKV = new KV(context.generateId(), cutTimeToken);
 
-      const infoLine = new Info_line(
-        context.generateId(),
-        [new Token(TT.IDENTIFIER, "M", context.generateId())],
-        undefined,
-        [cutTimeKV]
-      );
+      const infoLine = new Info_line(context.generateId(), [new Token(TT.IDENTIFIER, "M", context.generateId())], undefined, [cutTimeKV]);
 
       const result = analyzer.visitInfoLineExpr(infoLine);
 

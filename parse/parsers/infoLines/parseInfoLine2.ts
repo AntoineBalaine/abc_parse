@@ -1,5 +1,5 @@
 import { ParseCtx } from "../parse2";
-import { Expr, KV, Binary, Grouping, AbsolutePitch, Pitch } from "../../types/Expr2";
+import { Expr, KV, Binary, Unary, Grouping, AbsolutePitch, Pitch } from "../../types/Expr2";
 import { Token, TT } from "../scan2";
 import { followedBy } from "../../helpers";
 import { parsePitch } from "../parse2"; // Reuse existing pitch parsing logic
@@ -49,7 +49,14 @@ function parseExpression(ctx: ParseCtx): Expr | null {
   }
 
   // Otherwise try to parse as binary expression or standalone value
-  return prsBinaryExpr(ctx);
+  const result = prsBinaryExpr(ctx);
+
+  // Wrap standalone tokens in KV expressions (tokens that aren't part of binary/unary expressions)
+  if (result instanceof Token) {
+    return new KV(ctx.abcContext.generateId(), result);
+  }
+
+  return result;
 }
 
 /**
@@ -59,12 +66,13 @@ export function parseKV(ctx: ParseCtx): KV | null {
   const key = ctx.advance();
   const equals = ctx.advance();
 
-  if (!isValueToken(ctx.peek())) {
+  // Parse the value as an expression (handles unary operators like -2)
+  const value = parsePrimary(ctx);
+  if (!value) {
     ctx.report("Expected value after '='");
     return null;
   }
 
-  const value = ctx.advance();
   return new KV(ctx.abcContext.generateId(), value, key, equals);
 }
 
@@ -89,9 +97,20 @@ export function prsBinaryExpr(ctx: ParseCtx): Expr | null {
 }
 
 /**
- * Parse primary expressions: numbers, identifiers, parenthesized expressions
+ * Parse primary expressions: numbers, identifiers, parenthesized expressions, unary operators
  */
 function parsePrimary(ctx: ParseCtx): Expr | Token | null {
+  // Handle unary operators (+ and -)
+  if (ctx.match(TT.MINUS) || ctx.match(TT.PLUS)) {
+    const operator = ctx.previous();
+    const operand = parsePrimary(ctx);
+    if (!operand) {
+      ctx.report(`Expected expression after '${operator.lexeme}'`);
+      return null;
+    }
+    return new Unary(ctx.abcContext.generateId(), operator, operand);
+  }
+
   // Handle parenthesized expressions
   if (ctx.match(TT.LPAREN)) {
     const expr = prsBinaryExpr(ctx);
@@ -118,15 +137,10 @@ function parsePrimary(ctx: ParseCtx): Expr | Token | null {
     return parsePitch(ctx);
   }
 
-  // Handle numbers
-  if (ctx.match(TT.NUMBER)) {
-    return ctx.previous();
-  }
-
-  // Handle other value tokens as standalone KV expressions
+  // Handle numbers and other value tokens - return them as Tokens
+  // QUESTION: Shouldn’t we handle unsigned numbers as a unary expression, though?
   if (isValueToken(ctx.peek())) {
-    const value = ctx.advance();
-    return new KV(ctx.abcContext.generateId(), value);
+    return ctx.advance();
   }
 
   return null;

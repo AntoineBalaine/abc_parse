@@ -20,12 +20,13 @@ export function scanInfoLine2(ctx: Ctx): boolean {
     if (tuneBodyPitch(ctx)) continue; // Tune body pitches: ^c, _b, =f (for key info explicit accidentals)
     if (identifier(ctx)) continue; // abc, treble, major
     if (stringLiteral(ctx)) continue; // "Allegro"
-    if (unsignedNumber(ctx)) continue; // 1, 4, 120
     if (singleChar(ctx, "=", TT.EQL)) continue; // =
+    if (singleChar(ctx, "-", TT.MINUS)) continue; // +
     if (singleChar(ctx, "+", TT.PLUS)) continue; // +
     if (singleChar(ctx, "/", TT.SLASH)) continue; // /
     if (singleChar(ctx, "(", TT.LPAREN)) continue; // (
     if (singleChar(ctx, ")", TT.RPAREN)) continue; // )
+    if (unsignedNumber(ctx)) continue; // 1, 4, 120
 
     // Invalid token - use existing helper
     collectInvalidInfoLn(ctx, "Invalid token in info line");
@@ -93,11 +94,11 @@ export function stringLiteral(ctx: Ctx): boolean {
  * Matches: 1, 42, 1.5, 0.25, 120.0
  * Does not match: .5, 1., leading zeros like 01
  */
-export function unsignedNumber(ctx: Ctx): boolean {
+function unsignedNumber(ctx: Ctx): boolean {
   // Unified regex pattern for integers and floats
   // - Integers: [1-9][0-9]* or just 0
   // - Floats: ([1-9][0-9]*|0)\.[0-9]+
-  const numberPattern = /^[+-]?(([1-9][0-9]*|0)(\.[0-9]+)?)/;
+  const numberPattern = /^(([1-9][0-9]*|0)(\.[0-9]+)?)/;
 
   const match = numberPattern.exec(ctx.source.substring(ctx.current));
   if (!match) return false;

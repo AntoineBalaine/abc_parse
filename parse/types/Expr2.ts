@@ -44,6 +44,7 @@ export interface Visitor<R> {
   // New expression visitor methods for unified info line parsing
   visitKV(expr: KV): R;
   visitBinary(expr: Binary): R;
+  visitUnary(expr: Unary): R;
   visitGrouping(expr: Grouping): R;
   visitAbsolutePitch(expr: AbsolutePitch): R;
   visitRationalExpr(expr: Rational): R;
@@ -720,9 +721,9 @@ export class User_symbol_invocation extends Expr {
 export class KV extends Expr {
   key?: Token | AbsolutePitch; // IDENTIFIER (optional)
   equals?: Token; // EQL (optional, only present if key is present)
-  value: Token; // IDENTIFIER, ANNOTATION, NUMBER, or SPECIAL_LITERAL
+  value: Token | Expr; // IDENTIFIER, ANNOTATION, NUMBER, SPECIAL_LITERAL, or any Expr (e.g., Unary)
 
-  constructor(id: number, value: Token, key?: Token | AbsolutePitch, equals?: Token) {
+  constructor(id: number, value: Token | Expr, key?: Token | AbsolutePitch, equals?: Token) {
     super(id);
     this.value = value;
     this.key = key;
@@ -752,6 +753,25 @@ export class Binary extends Expr {
 
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitBinary(this);
+  }
+}
+
+/**
+ * Unary expression for unary operators: -expr or +expr
+ * Used for signed numbers like -2 or +3
+ */
+export class Unary extends Expr {
+  operator: Token; // MINUS or PLUS
+  operand: Expr | Token;
+
+  constructor(id: number, operator: Token, operand: Expr | Token) {
+    super(id);
+    this.operator = operator;
+    this.operand = operand;
+  }
+
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitUnary(this);
   }
 }
 

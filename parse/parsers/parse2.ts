@@ -217,7 +217,7 @@ export function prsTuneHdr(ctx: ParseCtx): Tune_header {
         if (info_line.value2 && info_line.value2.length > 0) {
           const firstExpr = info_line.value2[0];
           // Voice name should be in the first KV expression
-          if (firstExpr instanceof KV && firstExpr.value) {
+          if (firstExpr instanceof KV && firstExpr.value && firstExpr.value instanceof Token) {
             voiceName = firstExpr.value.lexeme.trim();
           } else if (firstExpr instanceof Token && firstExpr.type === TT.NUMBER) {
             voiceName = firstExpr.lexeme.trim();

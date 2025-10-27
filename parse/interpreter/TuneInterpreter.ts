@@ -267,16 +267,7 @@ function applyDirective(semanticData: SemanticData, directiveName: string, conte
   }
 
   // List of formatting directives that require a tune context
-  const formattingOnlyDirectives = [
-    "bagpipes",
-    "flatbeams",
-    "jazzchords",
-    "accentAbove",
-    "germanAlphabet",
-    "titleleft",
-    "measurebox",
-    "nobarcheck",
-  ];
+  const formattingOnlyDirectives = ["bagpipes", "flatbeams", "jazzchords", "accentAbove", "germanAlphabet", "titleleft", "measurebox", "nobarcheck"];
 
   // Check if this is a formatting directive in file header
   if (context.type === "file_header" && formattingOnlyDirectives.includes(directiveName)) {
@@ -704,6 +695,7 @@ export class TuneInterpreter implements Visitor<void> {
   visitAbsolutePitch(expr: AbsolutePitch): void {}
   visitRationalExpr(expr: Rational): void {}
   visitMeasurementExpr(expr: Measurement): void {}
+  visitUnary(expr: import("../types/Expr2").Unary): void {}
 
   // ============================================================================
   // Helper Methods

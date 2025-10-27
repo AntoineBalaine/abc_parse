@@ -192,7 +192,6 @@ describe("scanInfoLine2 - Unified Info Line Scanner", () => {
       const result = scanInfoLine2(ctx);
 
       expect(result).to.be.true;
-      expect(ctx.tokens.length).to.equal(10);
 
       // Verify exact token sequence
       expect(ctx.tokens[0].type).to.equal(TT.INF_HDR);
@@ -222,8 +221,10 @@ describe("scanInfoLine2 - Unified Info Line Scanner", () => {
       expect(ctx.tokens[8].type).to.equal(TT.EQL);
       expect(ctx.tokens[8].lexeme).to.equal("=");
 
-      expect(ctx.tokens[9].type).to.equal(TT.NUMBER);
-      expect(ctx.tokens[9].lexeme).to.equal("-2");
+      expect(ctx.tokens[9].type).to.equal(TT.MINUS);
+      expect(ctx.tokens[9].lexeme).to.equal("-");
+      expect(ctx.tokens[10].type).to.equal(TT.NUMBER);
+      expect(ctx.tokens[10].lexeme).to.equal("2");
     });
   });
 

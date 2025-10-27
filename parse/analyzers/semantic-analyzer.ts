@@ -315,4 +315,11 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
   visitMeasurementExpr(expr: Measurement): SemanticData | null {
     return null;
   }
+
+  visitUnary(expr: import("../types/Expr2").Unary): SemanticData | null {
+    if (expr.operand instanceof Token) {
+      return null;
+    }
+    return expr.operand.accept(this);
+  }
 }

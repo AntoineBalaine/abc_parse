@@ -3,7 +3,7 @@ import { ParseCtx, prsInfoLine } from "../parsers/parse2";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { parseInfoLine2 } from "../parsers/infoLines/parseInfoLine2";
-import { KV, Binary, Grouping, Info_line, AbsolutePitch, Pitch } from "../types/Expr2";
+import { KV, Binary, Unary, Grouping, Info_line, AbsolutePitch, Pitch } from "../types/Expr2";
 import { Token, TT } from "../parsers/scan2";
 import {
   genKVExpr,
@@ -42,7 +42,8 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       expect(expressions[0]).to.be.an.instanceof(KV);
       const kv = expressions[0] as KV;
       expect((kv.key! as Token).lexeme).to.equal("clef");
-      expect(kv.value.lexeme).to.equal("treble");
+      expect(kv.value).to.be.an.instanceof(Token);
+      expect((kv.value as Token).lexeme).to.equal("treble");
     });
 
     it("should parse KV expressions without keys", () => {
@@ -55,7 +56,8 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       expect(expressions[0]).to.be.an.instanceof(KV);
       const kv = expressions[0] as KV;
       expect(kv.key).to.be.undefined;
-      expect(kv.value.lexeme).to.equal("major");
+      expect(kv.value).to.be.an.instanceof(Token);
+      expect((kv.value as Token).lexeme).to.equal("major");
     });
 
     it("should parse binary expressions", () => {
@@ -128,13 +130,16 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       const kv2 = expressions[1] as KV;
       const kv3 = expressions[2] as KV;
 
-      expect(kv1.value.lexeme).to.equal("C");
+      expect(kv1.value).to.be.an.instanceof(Token);
+      expect((kv1.value as Token).lexeme).to.equal("C");
       expect(kv1.key).to.be.undefined;
 
-      expect(kv2.value.lexeme).to.equal("major");
+      expect(kv2.value).to.be.an.instanceof(Token);
+      expect((kv2.value as Token).lexeme).to.equal("major");
       expect(kv2.key).to.be.undefined;
 
-      expect(kv3.value.lexeme).to.equal("treble");
+      expect(kv3.value).to.be.an.instanceof(Token);
+      expect((kv3.value as Token).lexeme).to.equal("treble");
 
       expect((kv3.key! as Token).lexeme).to.equal("clef");
     });
@@ -250,7 +255,8 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       expect(expressions.length).to.equal(1);
       expect(expressions[0]).to.be.an.instanceof(KV);
       const kv = expressions[0] as KV;
-      expect(kv.value.lexeme).to.equal("major");
+      expect(kv.value).to.be.an.instanceof(Token);
+      expect((kv.value as Token).lexeme).to.equal("major");
     });
   });
 
@@ -264,7 +270,8 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       expect(expressions.length).to.equal(1);
       expect(expressions[0]).to.be.an.instanceof(KV);
       const kv = expressions[0] as KV;
-      expect(kv.value.lexeme).to.equal('"Allegro"');
+      expect(kv.value).to.be.an.instanceof(Token);
+      expect((kv.value as Token).lexeme).to.equal('"Allegro"');
     });
 
     it("should handle special literals", () => {
@@ -276,7 +283,8 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       expect(expressions.length).to.equal(1);
       expect(expressions[0]).to.be.an.instanceof(KV);
       const kv = expressions[0] as KV;
-      expect(kv.value.lexeme).to.equal("C|");
+      expect(kv.value).to.be.an.instanceof(Token);
+      expect((kv.value as Token).lexeme).to.equal("C|");
     });
   });
 
@@ -425,7 +433,8 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       const secondExpr = result!.value2![1];
       expect(secondExpr).to.be.an.instanceof(KV);
       const kv = secondExpr as KV;
-      expect(kv.value.lexeme).to.equal("major");
+      expect(kv.value).to.be.an.instanceof(Token);
+      expect((kv.value as Token).lexeme).to.equal("major");
       expect(kv.key).to.be.undefined;
     });
 
@@ -450,7 +459,9 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       // First should be KV for "C"
       const firstExpr = result!.value2![0];
       expect(firstExpr).to.be.an.instanceof(KV);
-      expect((firstExpr as KV).value.lexeme).to.equal("C");
+      const firstKV = firstExpr as KV;
+      expect(firstKV.value).to.be.an.instanceof(Token);
+      expect((firstKV.value as Token).lexeme).to.equal("C");
 
       // Second should be Pitch for "^c"
       const secondExpr = result!.value2![1];
@@ -480,7 +491,8 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       const expr = result!.value2![0];
       expect(expr).to.be.an.instanceof(KV);
       const kv = expr as KV;
-      expect(kv.value.lexeme).to.equal("none");
+      expect(kv.value).to.be.an.instanceof(Token);
+      expect((kv.value as Token).lexeme).to.equal("none");
       expect(kv.key).to.be.undefined;
     });
 
@@ -536,13 +548,15 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       expect(firstExpr).to.be.an.instanceof(KV);
       const kv = firstExpr as KV;
       expect((kv.key! as Token).lexeme).to.equal("clef");
-      expect(kv.value.lexeme).to.equal("Ctreble");
+      expect(kv.value).to.be.an.instanceof(Token);
+      expect((kv.value as Token).lexeme).to.equal("Ctreble");
 
       // Second should be KV expression for comma (octave shift)
       const secondExpr = expressions[1];
       expect(secondExpr).to.be.an.instanceof(KV);
       const commaKv = secondExpr as KV;
-      expect(commaKv.value.lexeme).to.equal(",");
+      expect(commaKv.value).to.be.an.instanceof(Token);
+      expect((commaKv.value as Token).lexeme).to.equal(",");
       expect(commaKv.key).to.be.undefined;
     });
 
@@ -557,7 +571,8 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
         new Token(TT.WS, " ", context.generateId()),
         new Token(TT.IDENTIFIER, "octave", context.generateId()),
         new Token(TT.EQL, "=", context.generateId()),
-        new Token(TT.NUMBER, "-2", context.generateId()),
+        new Token(TT.MINUS, "-", context.generateId()),
+        new Token(TT.NUMBER, "2", context.generateId()),
       ];
 
       const ctx = new ParseCtx(tokens, context);
@@ -571,7 +586,8 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       const firstExpr = result!.value2![0];
       expect(firstExpr).to.be.an.instanceof(KV);
       const voiceKv = firstExpr as KV;
-      expect(voiceKv.value.lexeme).to.equal("LH");
+      expect(voiceKv.value).to.be.an.instanceof(Token);
+      expect((voiceKv.value as Token).lexeme).to.equal("LH");
       expect(voiceKv.key).to.be.undefined;
 
       // Second expression should be KV for clef=bass
@@ -579,14 +595,20 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       expect(secondExpr).to.be.an.instanceof(KV);
       const clefKv = secondExpr as KV;
       expect((clefKv.key! as Token).lexeme).to.equal("clef");
-      expect(clefKv.value.lexeme).to.equal("bass");
+      expect(clefKv.value).to.be.an.instanceof(Token);
+      expect((clefKv.value as Token).lexeme).to.equal("bass");
 
       // Third expression should be KV for octave=-2
       const thirdExpr = result!.value2![2];
       expect(thirdExpr).to.be.an.instanceof(KV);
       const octaveKv = thirdExpr as KV;
       expect((octaveKv.key! as Token).lexeme).to.equal("octave");
-      expect(octaveKv.value.lexeme).to.equal("-2");
+
+      // Value should be a Unary expression
+      expect(octaveKv.value).to.be.an.instanceof(Unary);
+      const unaryValue = octaveKv.value as Unary;
+      expect(unaryValue.operator.lexeme).to.equal("-");
+      expect((unaryValue.operand as Token).lexeme).to.equal("2");
     });
 
     it("should preserve INVALID tokens and format them correctly", () => {
@@ -611,7 +633,9 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       // First expression should be KV for voice name "LH"
       const firstExpr = result!.value2![0];
       expect(firstExpr).to.be.an.instanceof(KV);
-      expect((firstExpr as KV).value.lexeme).to.equal("LH");
+      const firstKV = firstExpr as KV;
+      expect(firstKV.value).to.be.an.instanceof(Token);
+      expect((firstKV.value as Token).lexeme).to.equal("LH");
 
       // Second should be the INVALID token preserved as a Token
       const secondExpr = result!.value2![1];
@@ -624,7 +648,8 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       expect(thirdExpr).to.be.an.instanceof(KV);
       const clefKv = thirdExpr as KV;
       expect((clefKv.key! as Token).lexeme).to.equal("clef");
-      expect(clefKv.value.lexeme).to.equal("bass");
+      expect(clefKv.value).to.be.an.instanceof(Token);
+      expect((clefKv.value as Token).lexeme).to.equal("bass");
 
       // Test formatting - verify INVALID token is included with proper spacing
       const { AbcFormatter } = require("../Visitors/Formatter2");

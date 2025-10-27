@@ -317,6 +317,10 @@ export class Transposer implements Visitor<Expr | Token> {
   visitMeasurementExpr(expr: Measurement): Expr | Token {
     return expr;
   }
+
+  visitUnary(expr: import("../types/Expr2").Unary): Expr | Token {
+    return expr;
+  }
 }
 
 export function fromMidiPitch(midiPitch: number, ctx: ABCContext): Pitch {
