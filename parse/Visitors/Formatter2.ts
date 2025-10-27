@@ -56,8 +56,8 @@ import { resolveRules } from "./fmt2/fmt_rules_assignment";
  *
  * eg:
  * ```typescript
- * const ast = parseTune(Scanner2(source), new ABCContext());
- * const fmt: string = new AbcFormatter2(new ABCContext()).format(ast);
+ * const ast = parseTune(Scanner(source), new ABCContext());
+ * const fmt: string = new AbcFormatter(new ABCContext()).format(ast);
  * ```
  */
 export class AbcFormatter implements Visitor<string> {
@@ -609,3 +609,4 @@ export const toMidiPitch = (pitch: Pitch): number => {
 
   return noteNum;
 };
+

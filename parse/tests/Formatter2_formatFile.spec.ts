@@ -12,7 +12,7 @@ function parseFile(input: string, ctx: ABCContext): File_structure {
   return parse(tokens, ctx);
 }
 
-describe("AbcFormatter2.formatFile()", () => {
+describe("AbcFormatter.formatFile()", () => {
   let formatter: AbcFormatter;
   let ctx: ABCContext;
 

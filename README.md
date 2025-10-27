@@ -55,7 +55,7 @@ npm run watch:lsp
 ### Using the Parser as a Library
 
 ```typescript
-import { parse, Scanner2, ABCContext, AbcFormatter2 } from "abc-parser";
+import { parse, Scanner2, ABCContext, AbcFormatter } from "abc-parser";
 
 const source = `X:1\nT:Example\nK:C\nCDEF|`;
 const ctx = new ABCContext();
@@ -63,7 +63,7 @@ const tokens = Scanner2(source, ctx);
 const ast = parse(tokens, ctx);
 
 // Format the parsed AST
-const formatter = new AbcFormatter2(ctx);
+const formatter = new AbcFormatter(ctx);
 const formatted = formatter.format(ast);
 console.log(formatted);
 ```

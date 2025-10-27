@@ -627,8 +627,8 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       expect(clefKv.value.lexeme).to.equal("bass");
 
       // Test formatting - verify INVALID token is included with proper spacing
-      const { AbcFormatter2 } = require("../Visitors/Formatter2");
-      const formatter = new AbcFormatter2(context);
+      const { AbcFormatter } = require("../Visitors/Formatter2");
+      const formatter = new AbcFormatter(context);
       const formattedOutput = formatter.visitInfoLineExpr(result!);
 
       expect(formattedOutput).to.include("@#$");

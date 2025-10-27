@@ -44,8 +44,8 @@ type SystemLineTest = {
   input: string;
   expected: string;
 };
-describe("AbcFormatter2", () => {
-  describe("AbcFormatter2.format() - single voice rules", () => {
+describe("AbcFormatter", () => {
+  describe("AbcFormatter.format() - single voice rules", () => {
     let formatter: AbcFormatter;
     let ctx: ABCContext;
 
@@ -152,7 +152,7 @@ GABG |`
     });
   });
 
-  describe("AbcFormatter2 multi-voice alignment", () => {
+  describe("AbcFormatter multi-voice alignment", () => {
     let formatter: AbcFormatter;
     let ctx: ABCContext;
 
@@ -161,7 +161,7 @@ GABG |`
       formatter = new AbcFormatter(ctx);
     });
 
-    describe("AbcFormatter2 - voice lines with metadata", () => {
+    describe("AbcFormatter - voice lines with metadata", () => {
       let formatter: AbcFormatter;
       let ctx: ABCContext;
 
@@ -590,7 +590,7 @@ CD EF GA   | CDEF |`
     });
   });
 
-  describe("AbcFormatter2 - unmarked lines in multi-voice tunes", () => {
+  describe("AbcFormatter - unmarked lines in multi-voice tunes", () => {
     let formatter: AbcFormatter;
     let ctx: ABCContext;
 

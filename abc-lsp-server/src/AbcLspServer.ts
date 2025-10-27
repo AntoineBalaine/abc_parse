@@ -1,4 +1,4 @@
-import { AbcFormatter2 as AbcFormatter, RhythmVisitor, Transposer } from "abc-parser";
+import { AbcFormatter, RhythmVisitor, Transposer } from "abc-parser";
 import { HandlerResult, Position, Range, SemanticTokens, SemanticTokensBuilder, TextDocuments, TextEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcDocument } from "./AbcDocument";
