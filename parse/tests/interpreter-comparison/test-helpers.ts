@@ -35,8 +35,8 @@ export function parseWithYourParser(input: string): { tunes: Tune[]; ctx: ABCCon
   const analyzer = new SemanticAnalyzer(ctx);
   ast.accept(analyzer);
 
-  // Interpreter
-  const interpreter = new TuneInterpreter(analyzer, ctx);
+  // Interpreter (pass source text for correct char positions)
+  const interpreter = new TuneInterpreter(analyzer, ctx, input);
   const result = interpreter.interpretFile(ast);
 
   return {

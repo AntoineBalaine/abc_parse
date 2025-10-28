@@ -186,6 +186,9 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
   }
 
   visitInlineFieldExpr(expr: Inline_field): SemanticData | null {
+    // TODO: Implement inline field analysis
+    // Inline fields are tokenized differently than info lines (INFO_STR tokens)
+    // and require special parsing logic
     return null;
   }
 
@@ -210,6 +213,12 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
   }
 
   visitMusicCodeExpr(expr: Music_code): SemanticData | null {
+    // Traverse music code contents to find and analyze inline fields
+    for (const item of expr.contents) {
+      if (item instanceof Inline_field) {
+        item.accept(this);
+      }
+    }
     return null;
   }
 
@@ -240,6 +249,10 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
         if (item instanceof Directive) {
           item.accept(this);
         } else if (item instanceof Info_line) {
+          item.accept(this);
+        } else if (item instanceof Music_code) {
+          item.accept(this);
+        } else if (item instanceof Inline_field) {
           item.accept(this);
         }
       }

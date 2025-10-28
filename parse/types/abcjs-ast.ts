@@ -92,9 +92,11 @@ export enum BarType {
 }
 
 export enum RestType {
-  Normal = "normal",
+  Rest = "rest",
   Invisible = "invisible",
   Spacer = "spacer",
+  Multimeasure = "multimeasure",
+  InvisibleMultimeasure = "invisible-multimeasure",
 }
 
 export enum ChordPlacement {
@@ -399,6 +401,7 @@ export interface GraceNote {
   duration: number;
   verticalPos: number;
   accidental?: AccidentalType;
+  acciaccatura?: boolean; // True for grace notes with slash (e.g., {/A})
   startSlur?: number;
   endSlur?: number[];
 }
@@ -443,6 +446,7 @@ export interface NoteElement extends BaseElement {
   startTriplet?: number;
   endTriplet?: boolean;
   tripletMultiplier?: number;
+  tripletR?: number;
   startTie?: object;
   endTie?: object;
   startSlur?: number;

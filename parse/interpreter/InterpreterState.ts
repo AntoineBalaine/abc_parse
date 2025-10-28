@@ -16,6 +16,7 @@ import {
   TempoProperties,
   ClefProperties,
   MetaText,
+  NoteElement,
   AccidentalType,
   KeyRoot,
   KeyAccidental,
@@ -23,6 +24,7 @@ import {
   ClefType,
   MediaType,
   VoiceProperties,
+  Decorations,
 } from "../types/abcjs-ast";
 import { IRational, createRational } from "../Visitors/fmt2/rational";
 
@@ -74,6 +76,33 @@ export interface VoiceState {
   staffIndex: number;
   voiceIndex: number;
   measureAccidentals: Map<string, AccidentalType>; // Cleared each measure
+
+  // Beam tracking (for automatic beaming)
+  potentialStartBeam?: NoteElement; // First note of potential beam group
+  potentialEndBeam?: NoteElement; // Last note of potential beam group
+
+  // Tie tracking (for connecting same pitches across barlines)
+  pendingTies: Map<number, {}>; // Map of pitch number to tie object
+
+  // Slur tracking (for phrasing marks)
+  pendingStartSlurs: number[]; // Labels for slurs that need to start on next note
+  pendingEndSlurs: number[]; // Labels for slurs that need to end on next note
+  nextSlurLabel: number; // Counter for generating unique slur labels
+
+  // Tuplet tracking (for triplets, quintuplets, etc.)
+  tupletNotesLeft: number; // Number of notes remaining in current tuplet
+  tupletP: number; // p in (p:q:r notation
+  tupletQ: number; // q in (p:q:r notation
+  tupletR: number; // r in (p:q:r notation
+
+  // Decoration tracking (for ornaments and articulations)
+  pendingDecorations: Decorations[]; // Decorations to apply to next note
+
+  // Grace note tracking (for ornamental notes before main note)
+  pendingGraceNotes: any[]; // Grace notes to apply to next note
+
+  // Chord symbol tracking (for guitar chord annotations)
+  pendingChordSymbols: any[]; // Chord symbols to apply to next note
 }
 
 // ============================================================================
@@ -205,13 +234,7 @@ export function getDefaultClef(): ClefProperties {
   };
 }
 
-export function createVoiceState(
-  id: string,
-  properties: VoiceProperties,
-  tuneDefaults: TuneDefaults,
-  staffIndex: number,
-  voiceIndex: number
-): VoiceState {
+export function createVoiceState(id: string, properties: VoiceProperties, tuneDefaults: TuneDefaults, staffIndex: number, voiceIndex: number): VoiceState {
   return {
     id,
     properties,
@@ -221,6 +244,17 @@ export function createVoiceState(
     staffIndex,
     voiceIndex,
     measureAccidentals: new Map(),
+    pendingTies: new Map(),
+    pendingStartSlurs: [],
+    pendingEndSlurs: [],
+    nextSlurLabel: 101, // abcjs starts at 101
+    tupletNotesLeft: 0,
+    tupletP: 0,
+    tupletQ: 0,
+    tupletR: 0,
+    pendingDecorations: [],
+    pendingGraceNotes: [],
+    pendingChordSymbols: [],
   };
 }
 
