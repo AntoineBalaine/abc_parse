@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "prepublish": "npm run build"
+    "prepublish": "npm run build",
+    "lint": "eslint . --ext ts",
+    "lint:fix": "eslint . --ext ts --fix"
   },
   "dependencies": {
     "abc-parser": "*"

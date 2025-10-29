@@ -2,22 +2,27 @@
   "root": true,
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "ecmaVersion": 6,
+    "ecmaVersion": 2020,
     "sourceType": "module"
   },
   "plugins": ["@typescript-eslint"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "prettier"
+  ],
   "rules": {
-    "@typescript-eslint/naming-convention": [
+    "@typescript-eslint/no-unused-vars": [
       "warn",
       {
-        "selector": "import",
-        "format": ["camelCase", "PascalCase"]
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
       }
     ],
-    "@typescript-eslint/semi": "warn",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/no-explicit-any": "warn",
     "eqeqeq": "warn",
-    "no-throw-literal": "warn",
-    "semi": "off"
+    "no-throw-literal": "warn"
   },
-  "ignorePatterns": ["out", "dist", "**/*.d.ts"]
+  "ignorePatterns": ["out", "dist", "**/*.d.ts", "node_modules", "coverage"]
 }

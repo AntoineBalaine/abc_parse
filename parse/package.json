@@ -44,6 +44,7 @@
     "test:coverage": "nyc npm run test",
     "file": "ts-node Abc.ts /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/all/lazy_river.abc",
     "lint": "eslint . --ext ts",
+    "lint:fix": "eslint . --ext ts --fix",
     "parse-folder": "ts-node tests/parseFolder.ts",
     "parse-file": "ts-node tests/parseFile.ts",
     "parse-folder:stringify": "ts-node tests/fmt2_parseFolder_stringify.ts"

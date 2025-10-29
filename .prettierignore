@@ -1,0 +1,25 @@
+# Dependencies
+node_modules
+
+# Build outputs
+out
+dist
+coverage
+*.d.ts
+
+# Logs
+*.log
+
+# Lock files
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Config files
+.git
+.github
+.vscode
+.claude
+
+# Test data and examples
+*.abc
