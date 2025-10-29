@@ -295,7 +295,7 @@ describe("Transposer", () => {
     });
 
     it("should handle multiple consecutive transpositions", () => {
-      let pitch = createPitch("C");
+      const pitch = createPitch("C");
 
       const transposer = new Transposer(createFileStructure(), ctx);
       transposer.distance = 2; // C to D

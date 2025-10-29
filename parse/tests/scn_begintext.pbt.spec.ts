@@ -1,4 +1,3 @@
-import * as fc from "fast-check";
 import { assert } from "chai";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";

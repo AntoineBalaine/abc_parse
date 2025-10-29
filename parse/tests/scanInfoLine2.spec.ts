@@ -1,11 +1,11 @@
+import { expect } from "chai";
 import * as fc from "fast-check";
-import { Ctx, TT } from "../parsers/scan2";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { scanInfoLine2 } from "../parsers/infoLines/scanInfoLine2";
+import { Ctx, TT } from "../parsers/scan2";
 import { info_line } from "../parsers/scan2";
 import { genInfoLine2, genKeyInfoLine2, genMeterInfoLine2, genNoteLenInfoLine2, genTempoInfoLine2, genGenericInfoLine } from "./scn_infoln_generators";
-import { expect } from "chai";
 
 /**
  * Pretty print token arrays for debugging mismatches

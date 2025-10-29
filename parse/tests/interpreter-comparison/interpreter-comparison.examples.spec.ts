@@ -4,18 +4,14 @@
  * Example-based tests comparing our parser+interpreter output with abcjs
  */
 
-import { describe, it } from "mocha";
 import { expect } from "chai";
+import { describe, it } from "mocha";
+import { parseWithAbcjs } from "./abcjs-wrapper";
 import {
   parseWithYourParser,
-  runBothParsers,
   runComparison,
-  expectSimilarOutput,
-  expectSameTuneCount,
   createSimpleTune,
-  logComparisonResult,
 } from "./test-helpers";
-import { parseWithAbcjs } from "./abcjs-wrapper";
 
 describe("Interpreter Comparison - Example Tests", () => {
   describe("MetaText Comparison", () => {

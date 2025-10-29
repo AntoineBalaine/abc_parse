@@ -1,6 +1,6 @@
-import { assert } from "chai";
 import fs from "fs";
 import path from "path";
+import { assert } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { ParseCtx, parseTune } from "../parsers/parse2";
 import { Scanner } from "../parsers/scan2";

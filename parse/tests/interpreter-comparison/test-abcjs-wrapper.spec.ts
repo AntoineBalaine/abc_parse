@@ -4,8 +4,8 @@
  * Tests for the abcjs wrapper to verify it loads and parses correctly
  */
 
-import { describe, it } from "mocha";
 import { expect } from "chai";
+import { describe, it } from "mocha";
 import { parseWithAbcjs } from "./abcjs-wrapper";
 
 describe("abcjs Wrapper", () => {

@@ -6,6 +6,24 @@
  * following the ABCJS builder pattern.
  */
 
+import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
+import { SemanticData } from "../analyzers/semantic-analyzer";
+import { ABCContext } from "../parsers/Context";
+import { Token } from "../parsers/scan2";
+import {
+  Tune,
+  MusicLine,
+  Staff,
+  VoiceElement,
+  NoteElement,
+  BarElement,
+  ElementType,
+  RestType,
+  BarType,
+  Pitch as ABCJSPitch,
+  AccidentalType,
+} from "../types/abcjs-ast";
+import { InfoLineUnion } from "../types/Expr2";
 import {
   Visitor,
   File_structure,
@@ -65,21 +83,7 @@ import {
   isHistoryInfo,
   isAuthorInfo,
 } from "../types/Expr2";
-import { Token } from "../parsers/scan2";
-import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
-import {
-  Tune,
-  MusicLine,
-  Staff,
-  VoiceElement,
-  NoteElement,
-  BarElement,
-  ElementType,
-  RestType,
-  BarType,
-  Pitch as ABCJSPitch,
-  AccidentalType,
-} from "../types/abcjs-ast";
+import { RangeVisitor } from "../Visitors/RangeVisitor";
 import {
   InterpreterState,
   FileDefaults,
@@ -91,10 +95,6 @@ import {
   nextMeasure,
   TuneDefaults,
 } from "./InterpreterState";
-import { SemanticData } from "../analyzers/semantic-analyzer";
-import { InfoLineUnion } from "../types/Expr2";
-import { RangeVisitor } from "../Visitors/RangeVisitor";
-import { ABCContext } from "../parsers/Context";
 
 // ============================================================================
 // Type Guards for SemanticData

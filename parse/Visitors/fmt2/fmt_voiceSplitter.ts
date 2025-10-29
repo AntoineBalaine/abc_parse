@@ -16,7 +16,7 @@ class VoiceSplitter {
     let currentVoice: System = [];
 
     while (!this.isAtEnd()) {
-      let node = this.system[this.current];
+      const node = this.system[this.current];
 
       if (this.isVoiceOverlayMarker()) {
         this.addNode(); // &

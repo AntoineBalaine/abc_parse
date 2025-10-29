@@ -2,8 +2,8 @@ import { assert } from "chai";
 import { describe, it } from "mocha";
 import { prsUserSymbolDecl, parseUserSymbolInvocation } from "../parsers/parse2";
 import { TT } from "../parsers/scan2";
-import { createToken, createParseCtx } from "./prs_music_code.spec";
 import { User_symbol_decl, User_symbol_invocation } from "../types/Expr2";
+import { createToken, createParseCtx } from "./prs_music_code.spec";
 
 describe("prsUserSymbolDecl", () => {
   it("should parse a simple user symbol declaration", () => {

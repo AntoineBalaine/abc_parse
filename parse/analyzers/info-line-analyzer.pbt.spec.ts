@@ -1,11 +1,11 @@
-import * as fc from "fast-check";
 import { expect } from "chai";
-import { SemanticAnalyzer } from "./semantic-analyzer";
+import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { KeyInfo, Meter, MeterType } from "../types/abcjs-ast";
 import { IRational } from "../Visitors/fmt2/rational";
 import * as Gen from "./info-line-analyzer.pbt.generators";
+import { SemanticAnalyzer } from "./semantic-analyzer";
 
 describe("Info Line Analyzer - Property-Based Tests", () => {
   let analyzer: SemanticAnalyzer;

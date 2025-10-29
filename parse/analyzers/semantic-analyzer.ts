@@ -6,9 +6,10 @@
  * and error reporting through context.
  */
 
-import { InfoLineUnion, Visitor, Expr } from "../types/Expr2";
-import { DirectiveSemanticData } from "../types/directive-specs";
 import { ABCContext } from "../parsers/Context";
+import { Token } from "../parsers/scan2";
+import { DirectiveSemanticData } from "../types/directive-specs";
+import { InfoLineUnion, Visitor, Expr } from "../types/Expr2";
 import {
   Directive,
   Annotation,
@@ -50,7 +51,6 @@ import {
   Measurement,
   SystemBreak,
 } from "../types/Expr2";
-import { Token } from "../parsers/scan2";
 
 // Import analyzer functions
 import { analyzeDirective } from "./directive-analyzer";

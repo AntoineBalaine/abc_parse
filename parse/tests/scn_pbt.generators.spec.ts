@@ -8,7 +8,6 @@ import {
   genMeterInfoLine2,
   genNoteLenInfoLine2,
   genTempoInfoLine2,
-  genGenericInfoLine,
   genStylesheetDirective as genStylesheetDirectiveFromInfoLn,
   genTextDirective,
 } from "./scn_infoln_generators";
@@ -388,8 +387,8 @@ function isWithinInfoLine(flatTokens: Token[], index: number): boolean {
 // Reusable token filtering function
 export function applyTokenFiltering(flatTokens: Token[]): Token[] {
   const result = [];
-  let symbols = new Set<String>();
-  let macros = new Set<String>(); // Track macro variables
+  const symbols = new Set<String>();
+  const macros = new Set<String>(); // Track macro variables
   let currentContext: "info_line" | "tune_body" | "stylesheet_directive" | "none" = "none"; // Track current context
 
   if (flatTokens.length > 0) {
@@ -405,7 +404,7 @@ export function applyTokenFiltering(flatTokens: Token[]): Token[] {
     const rewind = (type: TT, strt: number, ignores?: Array<TT>): boolean => {
       let j = strt - 1; // Start from the previous token
       while (j >= 0) {
-        let token = flatTokens[j];
+        const token = flatTokens[j];
         if (test(token, type)) return true;
         if (ignores && ignores.includes(token.type)) {
           j--; // Only decrement if we're ignoring this token

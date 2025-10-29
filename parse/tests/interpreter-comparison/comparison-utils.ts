@@ -6,7 +6,7 @@
 
 import { Tune, MetaText } from "../../types/abcjs-ast";
 import { AbcjsRawTune } from "./abcjs-wrapper";
-import { abcjsToOurFormat, FLOAT_TOLERANCE, durationsEqual } from "./type-converters";
+import { abcjsToOurFormat, FLOAT_TOLERANCE } from "./type-converters";
 
 // ============================================================================
 // Types

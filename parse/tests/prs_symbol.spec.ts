@@ -1,8 +1,8 @@
 import { assert } from "chai";
 import { parseSymbol } from "../parsers/parse2";
 import { TT } from "../parsers/scan2";
-import { createToken, createParseCtx } from "./prs_music_code.spec";
 import { Symbol } from "../types/Expr2";
+import { createToken, createParseCtx } from "./prs_music_code.spec";
 
 describe("parseSymbol", () => {
   it("should parse a symbol", () => {

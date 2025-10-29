@@ -2,8 +2,8 @@ import { assert } from "chai";
 import { describe, it } from "mocha";
 import { prsLyricLine } from "../parsers/parse2";
 import { TT } from "../parsers/scan2";
-import { createToken, createParseCtx } from "./prs_music_code.spec";
 import { Lyric_line } from "../types/Expr2";
+import { createToken, createParseCtx } from "./prs_music_code.spec";
 
 describe("prsLyricLine", () => {
   it("should parse a simple lyric line with w:", () => {

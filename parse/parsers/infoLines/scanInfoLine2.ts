@@ -1,5 +1,5 @@
 import { advance, Ctx, isAtEnd, TT, WS, collectInvalidInfoLn } from "../scan2";
-import { pEOL, pNumber, pPitch, pitch } from "../scan_tunebody";
+import { pEOL, pPitch, pitch } from "../scan_tunebody";
 import { infoHeader } from "./infoLnHelper";
 
 /**

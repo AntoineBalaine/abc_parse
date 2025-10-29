@@ -283,7 +283,7 @@ export class RhythmVisitor implements Visitor<Expr> {
    * update all the token positions
    */
   private syncTokenPositions(expr: Note) {
-    let { end } = getPitchRange(expr.pitch);
+    const { end } = getPitchRange(expr.pitch);
     let { line, character } = end;
     if (!expr.rhythm) {
       return expr;
@@ -508,11 +508,11 @@ export class RhythmVisitor implements Visitor<Expr> {
       }
 
       // Check if denominator is a power of 2
-      let isPowerOfTwo = (denominator & (denominator - 1)) === 0;
+      const isPowerOfTwo = (denominator & (denominator - 1)) === 0;
 
       if (isPowerOfTwo) {
         // If it's a power of 2, use slashes
-        let slashCount = Math.log2(denominator);
+        const slashCount = Math.log2(denominator);
 
         if (slashCount === 1) {
           // 1/2 -> /

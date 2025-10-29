@@ -7,7 +7,6 @@ import {
   advance,
   info_line,
   isAtEnd,
-  macro_decl,
   macro_invocation,
   precededBy,
   tuneStartBeforeSectBrk,
@@ -190,7 +189,7 @@ export function systemBreak(ctx: Ctx): boolean {
 
 export function symbol(ctx: Ctx): boolean {
   if (!(ctx.test(/![^\n!]*!/) || ctx.test(/\+[^\n\+]*\+/))) return false;
-  var is_plus_symbol = ctx.test("+");
+  const is_plus_symbol = ctx.test("+");
   advance(ctx);
   while (!ctx.test(is_plus_symbol ? "+" : "!")) {
     advance(ctx);

@@ -1,9 +1,9 @@
 import { expect } from "chai";
-import { SemanticAnalyzer } from "./semantic-analyzer";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Token, TT } from "../parsers/scan2";
 import { Info_line, KV, Binary, Annotation } from "../types/Expr2";
+import { SemanticAnalyzer } from "./semantic-analyzer";
 
 describe("Tempo Info Line Analyzer - Example-Based Tests", () => {
   let analyzer: SemanticAnalyzer;

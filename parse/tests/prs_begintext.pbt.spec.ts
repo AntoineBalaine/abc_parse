@@ -1,14 +1,13 @@
 import * as fc from "fast-check";
-import { assert } from "chai";
 import { describe, it } from "mocha";
-import { ParseCtx } from "../parsers/parse2";
+import { analyzeDirective } from "../analyzers/directive-analyzer";
+import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { parseDirective } from "../parsers/infoLines/parseDirective";
+import { ParseCtx } from "../parsers/parse2";
 import { Token, TT } from "../parsers/scan2";
 import { Directive } from "../types/Expr2";
 import { AbcFormatter } from "../Visitors/Formatter2";
 import { genTextDirectiveExpr, sharedContext } from "./prs_pbt.generators.spec";
-import { analyzeDirective } from "../analyzers/directive-analyzer";
-import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 
 describe("Parser Property-Based: Text Directive (%%begintext)", () => {
   it("should always successfully parse text directive tokens", () => {

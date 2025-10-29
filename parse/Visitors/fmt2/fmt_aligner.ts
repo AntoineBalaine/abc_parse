@@ -22,7 +22,7 @@ export function alignTune(tune: Tune, ctx: ABCContext, stringifyVisitor: AbcForm
   if (tune.tune_body && tune.tune_header.voices.length > 1) {
     tune.tune_body.sequence = tune.tune_body.sequence.map((system) => {
       // Split system into voices/noformat lines
-      let voiceSplits: Array<VoiceSplit> = findFmtblLines(system);
+      const voiceSplits: Array<VoiceSplit> = findFmtblLines(system);
 
       // Skip if no formattable content
       if (!voiceSplits.some((split) => split.type === "formatted")) {

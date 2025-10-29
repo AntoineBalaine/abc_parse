@@ -1,13 +1,11 @@
 import { assert } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
+import { describe, it } from "mocha";
 import { prsMacroDecl, parseMacroInvocation } from "../parsers/parse2";
 import { TT } from "../parsers/scan2";
-import { createToken, createParseCtx } from "./prs_music_code.spec";
 import { Macro_decl, Macro_invocation } from "../types/Expr2";
-
+import { createToken, createParseCtx } from "./prs_music_code.spec";
 import * as ScannerGen from "./scn_pbt.generators.spec";
-import { createRoundTripPredicate } from "./scn_pbt.spec";
 
 describe("prsMacroDecl", () => {
   it("should parse a simple macro declaration", () => {

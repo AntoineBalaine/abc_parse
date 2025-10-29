@@ -1,13 +1,13 @@
 import { assert } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
+import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { TT } from "../parsers/scan2";
 import { Comment, Directive, Info_line, Macro_decl, User_symbol_decl, Tune_header } from "../types/Expr2";
 import { AbcFormatter } from "../Visitors/Formatter2";
-import * as ScannerGen from "./scn_pbt.generators.spec";
 import { genCommentExpr } from "./prs_pbt.generators.spec";
+import * as ScannerGen from "./scn_pbt.generators.spec";
 
 // Create a shared context for all generators
 export const sharedContext = new ABCContext(new AbcErrorReporter());

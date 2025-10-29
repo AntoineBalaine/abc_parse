@@ -6,12 +6,10 @@
  * and compares the semantic output
  */
 
-import { describe, it } from "mocha";
+import { expect } from "chai";
 import * as fc from "fast-check";
-import { parseWithAbcjs } from "./abcjs-wrapper";
-import { parseWithYourParser } from "./test-helpers";
-import { ABCContext } from "../../parsers/Context";
-import { AbcFormatter } from "../../Visitors/Formatter2";
+import { describe, it } from "mocha";
+import { genAnnotationDirective, genParserConfigDirective } from "../../analyzers/directive-analyzer.pbt.generators";
 import {
   genKeyInfo,
   genMeterInfo,
@@ -28,8 +26,10 @@ import {
   genHistoryInfo,
   genAuthorInfo,
 } from "../../analyzers/info-line-analyzer.pbt.generators";
-import { genAnnotationDirective, genBooleanFlagDirective, genParserConfigDirective } from "../../analyzers/directive-analyzer.pbt.generators";
-import { expect } from "chai";
+import { ABCContext } from "../../parsers/Context";
+import { AbcFormatter } from "../../Visitors/Formatter2";
+import { parseWithAbcjs } from "./abcjs-wrapper";
+import { parseWithYourParser } from "./test-helpers";
 
 /**
  * Generate a complete ABC tune header string from structured generators

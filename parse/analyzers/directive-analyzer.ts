@@ -1,8 +1,8 @@
-import { Directive, Annotation, Measurement } from "../types/Expr2";
-import { DirectiveSemanticData, FontSpec, MeasurementSpec } from "../types/directive-specs";
-import { SemanticAnalyzer } from "./semantic-analyzer";
-import { Token, TT } from "../parsers/scan2";
 import { isToken } from "../helpers";
+import { Token, TT } from "../parsers/scan2";
+import { DirectiveSemanticData, FontSpec } from "../types/directive-specs";
+import { Directive, Annotation, Measurement } from "../types/Expr2";
+import { SemanticAnalyzer } from "./semantic-analyzer";
 
 /**
  * Analyzes directives and produces semantic data.

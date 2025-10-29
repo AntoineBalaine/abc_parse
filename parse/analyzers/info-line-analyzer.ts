@@ -8,21 +8,16 @@
  * InfoLineUnion variants.
  */
 
-import { Info_line, InfoLineUnion, Expr, Pitch, KV, Binary, Rational, Grouping, AbsolutePitch, Annotation } from "../types/Expr2";
-import { SemanticAnalyzer } from "./semantic-analyzer";
+import { isToken } from "../helpers";
+import { Token, TT } from "../parsers/scan2";
 import {
   KeyInfo,
-  KeySignature,
   KeyRoot,
   KeyAccidental,
   Mode,
-  Meter,
   MeterType,
   ClefProperties,
   ClefType,
-  Accidental,
-  AccidentalType,
-  NoteLetter,
   NoteHeadStyle,
   TempoProperties,
   StemDirection,
@@ -30,9 +25,9 @@ import {
   BracketBracePosition,
   VoiceProperties,
 } from "../types/abcjs-ast";
+import { Info_line, InfoLineUnion, Expr, KV, Binary, Rational, Grouping, Annotation } from "../types/Expr2";
 import { IRational } from "../Visitors/fmt2/rational";
-import { Token, TT } from "../parsers/scan2";
-import { isToken } from "../helpers";
+import { SemanticAnalyzer } from "./semantic-analyzer";
 
 /**
  * Main info line analyzer - dispatches to specific analyzers based on key

@@ -15,5 +15,5 @@ if (!fs.existsSync(filePath)) {
 }
 
 console.log(`Processing .abc files in ${filePath}...`);
-let error_log: Array<string> = [];
+const error_log: Array<string> = [];
 processFile2(filePath, error_log);

@@ -7,14 +7,12 @@ import {
   Chord,
   Comment,
   Decoration,
-  Directive,
   ErrorExpr,
   Expr,
   File_header,
   File_structure,
   Grace_group,
   Info_line,
-  InfoLineUnion,
   Inline_field,
   KV,
   Lyric_line,
@@ -250,10 +248,10 @@ export function alreadyHasVoice(ctx: ParseCtx, voices?: Array<string>): boolean 
   if (!voices) {
     return false;
   }
-  var pkd = ctx.peek();
+  const pkd = ctx.peek();
   if (pkd.type === TT.INF_HDR && pkd.lexeme.trim() === "V:") {
-    let i = ctx.current + 1;
-    let info_txt = ctx.tokens[i];
+    const i = ctx.current + 1;
+    const info_txt = ctx.tokens[i];
     const voiceName: string | null = info_txt ? info_txt.lexeme.trim().split(" ")[0] : null;
     return !!voiceName && voices.includes(voiceName);
   }
@@ -306,7 +304,7 @@ export function prsLyricSection(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): 
 
   // Parse consecutive lyric lines
   const lyricHeader = ctx.advance(); // Get the lyric header token
-  let tokens: Token[] = [lyricHeader];
+  const tokens: Token[] = [lyricHeader];
 
   // Collect all tokens that belong to this lyric line
   while (!ctx.isAtEnd()) {
@@ -376,7 +374,7 @@ export function prsBody(ctx: ParseCtx, voices: string[] = []): Tune_Body | null 
 }
 
 export function prcssBms(elmnts: Array<Expr | Token>, abcContext: ABCContext): Array<Expr | Token> {
-  let rv: Array<Expr | Token> = [];
+  const rv: Array<Expr | Token> = [];
   const beamCtx = new BeamCtx(elmnts, abcContext);
   while (!beamCtx.isAtEnd()) {
     const cur = beamCtx.peek();
@@ -543,7 +541,7 @@ export function parseRest(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Rest |
 
   if (isMultiMeasureRest) {
     // For multi-measure rests, only the numerator should be used as the length
-    let length = rhythm?.numerator || null;
+    const length = rhythm?.numerator || null;
 
     // Report an error if the rhythm contains other tokens
     if (rhythm && (rhythm.separator || rhythm.denominator || rhythm.broken)) {
@@ -816,7 +814,7 @@ export function prsBeam(ctx: BeamCtx, prnt_arr?: Array<Expr | Token>): Beam | Ex
     return null;
   }
 
-  let beam: Array<Expr | Token> = [];
+  const beam: Array<Expr | Token> = [];
   let expr = ctx.peek();
   while (!ctx.isAtEnd() && !isBeamBreaker(expr)) {
     beam.push(expr);

@@ -5,16 +5,15 @@
  * Tests metaText and formatting properties from info lines and directives
  */
 
-import { describe, it } from "mocha";
 import { expect } from "chai";
+import { describe, it } from "mocha";
+import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Scanner } from "../parsers/scan2";
 import { parse } from "../parsers/parse2";
-import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
-import { TuneInterpreter } from "./TuneInterpreter";
+import { Scanner } from "../parsers/scan2";
 import { expectNoErrors, parseWithYourParser } from "../tests/interpreter-comparison/test-helpers";
-import fc from "fast-check";
+import { TuneInterpreter } from "./TuneInterpreter";
 
 /**
  * Helper to parse ABC input through full pipeline

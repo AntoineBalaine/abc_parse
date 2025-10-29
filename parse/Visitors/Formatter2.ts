@@ -72,7 +72,7 @@ export class AbcFormatter implements Visitor<string> {
   no_format: boolean = false;
   formatFile(ast: File_structure): string {
     this.no_format = false;
-    let rv = ast.contents
+    const rv = ast.contents
       .map((tune_or_token) => {
         if (tune_or_token instanceof Tune) {
           return this.format(tune_or_token);
@@ -89,10 +89,10 @@ export class AbcFormatter implements Visitor<string> {
   format(ast: Tune): string {
     this.no_format = false;
     // 1. Rules resolution phase
-    let withRules = resolveRules(ast, this.ctx);
+    const withRules = resolveRules(ast, this.ctx);
 
     // 2. align multi-voices tunes
-    let alignedTune = alignTune(withRules, this.ctx, this);
+    const alignedTune = alignTune(withRules, this.ctx, this);
 
     // 3. Print using visitor
     return this.stringify(alignedTune, false);
@@ -171,7 +171,7 @@ export class AbcFormatter implements Visitor<string> {
   }
 
   visitBeamExpr(expr: Beam): string {
-    let fmt = expr.contents
+    const fmt = expr.contents
       .map((content) => {
         if (isToken(content)) {
           return content.lexeme;
@@ -260,7 +260,7 @@ export class AbcFormatter implements Visitor<string> {
     // Fallback to original token-based formatting for compatibility
     let val = "";
     for (let i = 0; i < expr.value.length; i++) {
-      let tok = expr.value[i];
+      const tok = expr.value[i];
       if (tok.type === TT.WS) {
         continue;
       } else {
@@ -532,7 +532,7 @@ export class FmtCtx {
 
 // Export for testing
 export function getSplits(contents: Array<Note | Token | Annotation>): Array<Array<Note | Token | Annotation>> {
-  let splits: Array<Array<Note | Token | Annotation>> = [];
+  const splits: Array<Array<Note | Token | Annotation>> = [];
   const ctx = new FmtCtx(contents);
 
   while (!ctx.isAtEnd()) {

@@ -245,7 +245,7 @@ export function getPitchRange(e: Pitch | Rest): Range {
       },
     };
   } else {
-    let range = {
+    const range = {
       start: {
         line: e.noteLetter.line,
         character: e.noteLetter.position,

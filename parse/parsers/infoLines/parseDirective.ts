@@ -1,8 +1,8 @@
+import { followedBy } from "../../helpers";
+import { Annotation, Directive, Expr, KV, Measurement, Pitch, Rational } from "../../types/Expr2";
 import { parseAnnotation, ParseCtx, parsePitch } from "../parse2";
 import { Token, TT } from "../scan2";
-import { Annotation, Directive, Expr, KV, Measurement, Pitch, Rational } from "../../types/Expr2";
 import { parseKV } from "./parseInfoLine2";
-import { followedBy } from "../../helpers";
 
 /**
  * Parse directive content after %% token has been consumed
@@ -32,7 +32,7 @@ export function parseDirective(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): D
     return parseBeginTextDirective(ctx, directiveKey, prnt_arr);
   }
 
-  let values: Array<Token | Rational | Pitch | KV | Measurement | Annotation> = [];
+  const values: Array<Token | Rational | Pitch | KV | Measurement | Annotation> = [];
   // Parse remaining tokens following scanner precedence
   while (!(ctx.isAtEnd() || ctx.check(TT.EOL) || ctx.check(TT.SCT_BRK) || ctx.check(TT.COMMENT))) {
     if (prsMeasurement(ctx, values)) continue;
@@ -136,7 +136,7 @@ function parseRationalOrNumber(ctx: ParseCtx, values: Array<Token | Rational | P
  * Parse %%begintext directive - expects FREE_TXT token containing text block
  */
 function parseBeginTextDirective(ctx: ParseCtx, directiveKey: Token, prnt_arr?: Array<Expr | Token>): Directive | null {
-  let values: Array<Token | Rational | Pitch | KV | Measurement | Annotation> = [];
+  const values: Array<Token | Rational | Pitch | KV | Measurement | Annotation> = [];
 
   // Next token should be FREE_TXT containing the text block
   if (ctx.check(TT.FREE_TXT)) {

@@ -1,10 +1,10 @@
 // abc_parse/src/tests/parseFolder.ts
 import fs from "fs";
 import path from "path";
+import { isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { AbcError, AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Scanner } from "../parsers/scan2";
-import { isToken } from "../helpers";
 
 function formatError(error: AbcError, sourceContent: string): string {
   const lines = sourceContent.split("\n");

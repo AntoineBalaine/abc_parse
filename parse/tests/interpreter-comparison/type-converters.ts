@@ -4,14 +4,12 @@
  * Bidirectional type converters between abcjs's raw format and our idealized format
  */
 
-import { IRational, createRational } from "../../Visitors/fmt2/rational";
 import { Meter, Tune, MetaText, MusicLine } from "../../types/abcjs-ast";
+import { IRational, createRational } from "../../Visitors/fmt2/rational";
 import {
   AbcjsRawTune,
-  AbcjsRawDuration,
   AbcjsRawMeter,
   AbcjsRawMeterValue,
-  AbcjsRawNoteLength,
   AbcjsRawMetaText,
 } from "./abcjs-wrapper";
 

@@ -1,12 +1,12 @@
-import * as fc from "fast-check";
 import { expect } from "chai";
-import { SemanticAnalyzer } from "./semantic-analyzer";
+import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { FontSpec, MeasurementSpec } from "../types/directive-specs";
-import * as Gen from "./directive-analyzer.pbt.generators";
 import { Token } from "../parsers/scan2";
+import { FontSpec, MeasurementSpec } from "../types/directive-specs";
 import { Directive } from "../types/Expr2";
+import * as Gen from "./directive-analyzer.pbt.generators";
+import { SemanticAnalyzer } from "./semantic-analyzer";
 
 describe("Directive Analyzer - Property-Based Tests", () => {
   let analyzer: SemanticAnalyzer;

@@ -1,7 +1,6 @@
-import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
-import { Meter, TempoProperties, ClefProperties, KeyInfo, VoiceProperties } from "./abcjs-ast";
 import { IRational } from "../Visitors/fmt2/rational";
+import { Meter, TempoProperties, ClefProperties, KeyInfo, VoiceProperties } from "./abcjs-ast";
 
 /**
  * Visitor is the interface that enables walking the parser's syntax tree.

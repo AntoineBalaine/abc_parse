@@ -1,9 +1,9 @@
-import * as fc from "fast-check";
 import { expect } from "chai";
+import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Ctx, Scanner, TT, Token } from "../parsers/scan2";
 import { scanDirective } from "../parsers/infoLines/scanDirective";
+import { Ctx, TT, Token } from "../parsers/scan2";
 import {
   genMeasurementUnit,
   genNumberWithUnit,

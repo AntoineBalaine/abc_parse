@@ -1,70 +1,14 @@
-import {
-  Visitor,
-  Tune,
-  Tune_header,
-  Tune_Body,
-  Info_line,
-  File_structure,
-  File_header,
-  Comment,
-  Directive,
-  Music_code,
-  Note,
-  Rest,
-  Chord,
-  BarLine,
-  Grace_group,
-  Decoration,
-  Symbol,
-  Beam,
-  Tuplet,
-  Annotation,
-  Inline_field,
-  MultiMeasureRest,
-  YSPACER,
-  Voice_overlay,
-  Macro_decl,
-  Macro_invocation,
-  User_symbol_decl,
-  User_symbol_invocation,
-  Lyric_line,
-  Lyric_section,
-  Pitch,
-  Rhythm,
-  ErrorExpr,
-  KV,
-  AbsolutePitch,
-  Binary,
-  Grouping,
-  Measurement,
-  Rational,
-} from "../types/Expr2";
 import { Token } from "../parsers/scan2";
-import { ABCContext } from "../parsers/Context";
 import {
-  Tune as ABCJSTune,
-  MusicLine,
-  Staff,
-  VoiceElement,
-  NoteElement,
-  BarElement,
-  MediaType,
-  MeterType,
-  RestType,
   BarType,
-  ElementType,
 } from "../types/abcjs-ast";
 import {
+  Rhythm,
+} from "../types/Expr2";
+import { IRational } from "../Visitors/fmt2/rational";
+import {
   InterpreterContext,
-  createInterpreterContext,
-  setDefaultKey,
-  setDefaultMeter,
-  setCurrentVoice,
-  addVoice,
-  getCurrentVoice,
-  nextMeasure,
 } from "./InterpreterContext";
-import { createRational, IRational } from "../Visitors/fmt2/rational";
 
 // Process info lines
 

@@ -1,10 +1,10 @@
 import { expect } from "chai";
-import { SemanticAnalyzer } from "./semantic-analyzer";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Token, TT } from "../parsers/scan2";
-import { Info_line, KV } from "../types/Expr2";
 import { ClefType, StemDirection, ChordPlacement, BracketBracePosition } from "../types/abcjs-ast";
+import { Info_line, KV } from "../types/Expr2";
+import { SemanticAnalyzer } from "./semantic-analyzer";
 
 describe("Voice Info Line Analyzer - Example-Based Tests", () => {
   let analyzer: SemanticAnalyzer;

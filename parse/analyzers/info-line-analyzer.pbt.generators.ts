@@ -2,8 +2,8 @@ import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Token, TT } from "../parsers/scan2";
-import { Info_line, Binary, Rational, KV, Grouping } from "../types/Expr2";
 import { KeyRoot, KeyAccidental, Mode, MeterType, ClefType } from "../types/abcjs-ast";
+import { Info_line, Binary, KV } from "../types/Expr2";
 
 // Shared context for all generators
 export const sharedContext = new ABCContext(new AbcErrorReporter());

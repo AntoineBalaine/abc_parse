@@ -1,5 +1,4 @@
 import { getTokenRange, isNote, isToken, reduceRanges } from "../helpers";
-import { ABCContext } from "../parsers/Context";
 import { Token } from "../parsers/scan2";
 import {
   AbsolutePitch,
@@ -12,7 +11,6 @@ import {
   Decoration,
   Directive,
   ErrorExpr,
-  Expr,
   File_header,
   File_structure,
   Grace_group,
@@ -109,7 +107,7 @@ export class RangeVisitor implements Visitor<Range> {
       .reduce(reduceRanges, <Range>{});
   }
   visitGraceGroupExpr(expr: Grace_group): Range {
-    let res = expr.notes
+    const res = expr.notes
       .map((e) => {
         if (isNote(e)) {
           return e.accept(this);
@@ -240,7 +238,7 @@ export class RangeVisitor implements Visitor<Range> {
       .reduce(reduceRanges, <Range>{});
   }
   visitTupletExpr(expr: Tuplet) {
-    let { p, q, r } = expr;
+    const { p, q, r } = expr;
     return [p, q, r]
       .filter((e): e is Token => !!e)
       .map((e) => getTokenRange(e))

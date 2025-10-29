@@ -1,10 +1,10 @@
 import { expect } from "chai";
-import { SemanticAnalyzer } from "./semantic-analyzer";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Directive } from "../types/Expr2";
 import { Token, TT } from "../parsers/scan2";
 import { FontSpec } from "../types/directive-specs";
+import { Directive } from "../types/Expr2";
+import { SemanticAnalyzer } from "./semantic-analyzer";
 
 describe("Font Directive Analysis", () => {
   let analyzer: SemanticAnalyzer;

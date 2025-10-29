@@ -1,10 +1,11 @@
+import { expect } from "chai";
 import * as fc from "fast-check";
-import { ParseCtx } from "../parsers/parse2";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { parseDirective } from "../parsers/infoLines/parseDirective";
-import { Annotation, Directive, KV, Measurement, Pitch, Rational } from "../types/Expr2";
+import { ParseCtx } from "../parsers/parse2";
 import { Token, TT } from "../parsers/scan2";
+import { Annotation, Directive, KV, Measurement, Pitch, Rational } from "../types/Expr2";
 import {
   genDirectiveContent,
   genStylesheetDirective,
@@ -14,7 +15,6 @@ import {
   genDirectiveRational,
   genDirectiveAssignment,
 } from "./scn_infoln_generators";
-import { expect } from "chai";
 
 describe("parseDirective - Directive Parser", () => {
   let context: ABCContext;

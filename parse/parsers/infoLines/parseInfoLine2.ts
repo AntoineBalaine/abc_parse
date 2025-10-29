@@ -1,8 +1,8 @@
-import { ParseCtx } from "../parse2";
-import { Expr, KV, Binary, Unary, Grouping, AbsolutePitch, Pitch } from "../../types/Expr2";
-import { Token, TT } from "../scan2";
 import { followedBy } from "../../helpers";
+import { Expr, KV, Binary, Unary, Grouping, AbsolutePitch } from "../../types/Expr2";
+import { ParseCtx } from "../parse2";
 import { parsePitch } from "../parse2"; // Reuse existing pitch parsing logic
+import { Token, TT } from "../scan2";
 
 /**
  * Unified info line parser using generic expression types

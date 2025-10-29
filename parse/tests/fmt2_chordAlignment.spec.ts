@@ -28,7 +28,7 @@ describe("Chord Alignment Tests", () => {
     }
 
     // 1. Rules resolution phase
-    let withRules = resolveRules(ast, ctx);
+    const withRules = resolveRules(ast, ctx);
 
     // 2. Process each system in the tune body
     if (withRules.tune_body && withRules.tune_header.voices.length > 1) {

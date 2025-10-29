@@ -1,24 +1,23 @@
+import { expect } from "chai";
 import * as fc from "fast-check";
-import { ParseCtx, prsInfoLine } from "../parsers/parse2";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { parseInfoLine2 } from "../parsers/infoLines/parseInfoLine2";
-import { KV, Binary, Unary, Grouping, Info_line, AbsolutePitch, Pitch } from "../types/Expr2";
+import { ParseCtx, prsInfoLine } from "../parsers/parse2";
 import { Token, TT } from "../parsers/scan2";
+import { KV, Binary, Unary, Grouping, Info_line, AbsolutePitch, Pitch } from "../types/Expr2";
 import {
   genKVExpr,
   genBinaryExpr,
   genExprArray,
   genKeyExprArray,
   genMeterExprArray,
-  genInfoLine2,
   genGenericInfoLine,
   genKeyInfoLine2,
   genMeterInfoLine2,
   genNoteLenInfoLine2,
   genTempoInfoLine2,
 } from "./scn_infoln_generators";
-import { expect } from "chai";
 
 describe("parseInfoLine2 - Unified Info Line Parser", () => {
   let context: ABCContext;

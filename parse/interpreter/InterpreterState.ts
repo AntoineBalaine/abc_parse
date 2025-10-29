@@ -8,6 +8,7 @@
  * - Working state (current position during body traversal)
  */
 
+import { SemanticData } from "../analyzers/semantic-analyzer";
 import {
   Tune,
   KeySignature,
@@ -15,7 +16,6 @@ import {
   TempoProperties,
   ClefProperties,
   MetaText,
-  VoiceElement,
   AccidentalType,
   KeyRoot,
   KeyAccidental,
@@ -25,7 +25,6 @@ import {
   VoiceProperties,
 } from "../types/abcjs-ast";
 import { IRational, createRational } from "../Visitors/fmt2/rational";
-import { SemanticData } from "../analyzers/semantic-analyzer";
 
 // ============================================================================
 // Parser Configuration (directives that affect parsing but aren't exposed)

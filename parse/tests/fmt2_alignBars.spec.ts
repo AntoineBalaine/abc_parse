@@ -25,13 +25,13 @@ describe("Formatter2 - align time points", () => {
     }
 
     // 1. Rules resolution phase
-    let withRules = resolveRules(ast, ctx);
+    const withRules = resolveRules(ast, ctx);
 
     // 2. Process each system in the tune body
     if (withRules.tune_body && withRules.tune_header.voices.length > 1) {
       withRules.tune_body.sequence = withRules.tune_body.sequence.map((system) => {
         // Split system into voices/noformat lines
-        let voiceSplits: Array<VoiceSplit> = findFmtblLines(system);
+        const voiceSplits: Array<VoiceSplit> = findFmtblLines(system);
 
         // Skip if no formattable content
         if (!voiceSplits.some((split) => split.type === "formatted")) {

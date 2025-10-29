@@ -74,9 +74,9 @@ function noteAfterTuplet(ruleMap: Map<Expr | Token, SpcRul>, prev: Expr | Token,
 }
 export function assignTuneBodyRules(tune: Tune): Map<Expr | Token, SpcRul> {
   const tuneBody = tune.tune_body!;
-  let ruleMap = new Map<Expr | Token, SpcRul>();
+  const ruleMap = new Map<Expr | Token, SpcRul>();
   // Process each system
-  for (let system of tuneBody.sequence) {
+  for (const system of tuneBody.sequence) {
     for (let i = 0; i < system.length; i++) {
       const newIdx = symLnRules(system, i, ruleMap);
       if (newIdx !== null) {
@@ -108,7 +108,7 @@ export function assignTuneBodyRules(tune: Tune): Map<Expr | Token, SpcRul> {
  */
 export function resolveTuneBody(tuneBody: Tune_Body, ruleMap: Map<Expr | Token, SpcRul>, ctx: ABCContext): Tune_Body {
   for (let s = 0; s < tuneBody.sequence.length; s++) {
-    let system = tuneBody.sequence[s];
+    const system = tuneBody.sequence[s];
     const spacingDecisions = resolveSystem(ruleMap, system);
     for (let i = 0; i < system.length; i++) {
       const node = system[i];
