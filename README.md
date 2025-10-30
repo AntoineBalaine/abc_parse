@@ -1,24 +1,21 @@
 # ABC Parser & Language Server
 
-A full-fledged ABC notation parser and Language Server Protocol (LSP) implementation based on the [ABC 2.2 standard](https://abcnotation.com/wiki/abc:standard:v2.2), with extensions inspired by [ABCJS](https://github.com/paulrosen/abcjs).
+A TypeScript parser and Language Server for ABC music notation. Implements the [ABC 2.2 standard](https://abcnotation.com/wiki/abc:standard:v2.2) with extensions from [ABCJS](https://github.com/paulrosen/abcjs).
 
-This monorepo contains two related packages:
-- **`parse/`** - A TypeScript parser library for ABC music notation
-- **`abc-lsp-server/`** - A Language Server implementation providing IDE features
+This monorepo contains two packages:
+- **`parse/`** - Parser library for ABC notation
+- **`abc-lsp-server/`** - Language Server providing IDE features
 
-## Project Vision
+## Goals
 
-This project aims to create a comprehensive IDE experience for ABC music notation, with a focus on smaller-sized scores (transcriptions, lead sheets, etc.). The full suite of formatting, custom commands, semantic tokens, semantic analysis, and rendering makes writing scores with a computer keyboard practical and efficient.
+Build a complete IDE for ABC music notation, focused on small scores (transcriptions, lead sheets).
 
-**Key Goals:**
-1. Build a complete IDE for ABC notation with syntax highlighting, formatting, and analysis
-2. Provide CLI-level capabilities (part extraction, transposition, format conversion)
-3. Achieve 1:1 output compatibility with ABCJS parser to enable substitution in the rendering pipeline
-4. Extend the ABC standard with practical features while maintaining renderability
+1. Provide syntax highlighting, formatting, and semantic analysis
+2. Support CLI operations (part extraction, transposition, format conversion)
+3. Match ABCJS output exactly to enable substitution in rendering pipelines
+4. Extend ABC standard while maintaining renderability
 
-**Non-goals:**
-- Playback capabilities (ABC is a markup notation, not a programming language)
-- Sheet music rendering (I will NOT implement a rendering library)
+This project does not provide playback or sheet music rendering.
 
 ## Installation & Usage
 
@@ -27,8 +24,6 @@ This project aims to create a comprehensive IDE experience for ABC music notatio
 ```bash
 npm install
 ```
-
-This installs all dependencies for both packages at the root level.
 
 ### Building
 
@@ -47,10 +42,7 @@ npm run watch:parse
 npm run watch:lsp
 ```
 
-### Build Outputs
-
-- **Parser library**: `out/parse/` (can be built and used independently)
-- **LSP server**: `out/abc-lsp-server/` (depends on the parser)
+Build outputs: `out/parse/` (parser, standalone) and `out/abc-lsp-server/` (LSP server, requires parser).
 
 ### Using the Parser as a Library
 
@@ -70,115 +62,75 @@ console.log(formatted);
 
 ### Using the LSP Server
 
-The LSP server is meant to be integrated with editor clients such as [](https://github.com/AntoineBalaine/AbcLsp).
+Integrate the LSP server with editor clients like [AbcLsp](https://github.com/AntoineBalaine/AbcLsp).
 
-**LSP Features:**
-- ✅ Diagnostics (errors and warnings)
-- ✅ Semantic tokens (syntax highlighting)
-- ✅ Document formatting (with barline alignment for multi-voice systems)
-- ✅ Completions (decoration symbols triggered by `!`)
-
-**Custom Commands:**
-- `divideRhythm` / `multiplyRhythm` - Transform note durations
-- `transposeUp` / `transposeDn` - Transpose by octave
+**Features:**
+- Diagnostics (errors and warnings)
+- Semantic tokens (syntax highlighting)
+- Document formatting (barline alignment for multi-voice systems)
+- Completions (decoration symbols triggered by `!`)
+- Custom commands: `divideRhythm`, `multiplyRhythm`, `transposeUp`, `transposeDn`
 
 ## Architecture
 
 ### Parser Pipeline
 
 ```
-Source Text → Scanner (scan2.ts) → Tokens → Parser (parse2.ts) → AST → Visitors (Formatter, etc.)
-                                                                  ↓
-                                                         Semantic Analysis
+Source Text → Scanner → Tokens → Parser → AST → Visitors
+                                            ↓
+                                   Semantic Analysis
 ```
 
-**Key Components:**
+**Components:**
 
-1. **Scanner (Lexer)**: Tokenizes ABC notation into typed tokens
-   - `scan2.ts` - Main scanner
-   - `scan_tunebody.ts` - Tune body specific scanning
-   - `scanInfoLine2.ts` / `scanDirective.ts` - Info line and directive scanning
-
-2. **Parser**: Builds an Abstract Syntax Tree (AST) from tokens
-   - `parse2.ts` - Main parser
-   - `parseInfoLine2.ts` / `parseDirective.ts` - Info line and directive parsing
-
-3. **AST Types**: Strongly-typed expression nodes (`types/Expr2.ts`)
-
-4. **Semantic Analyzer**: Validates info lines and directives grammar
-   - `info-line-analyzer.ts` - Info line validation
-   - `directive-analyzer.ts` - Directive validation
-
-5. **Visitors**: Operate on the AST
-   - `Formatter2.ts` - Pretty printer with barline alignment
-   - `RhythmTransform.ts` - Rhythm manipulation
-   - `Transposer.ts` - Note transposition
-   - `RangeVisitor.ts` / `RangeCollector.ts` - Source range utilities
+1. **Scanner**: Tokenizes ABC notation (`scan2.ts`, `scan_tunebody.ts`, `scanInfoLine2.ts`, `scanDirective.ts`)
+2. **Parser**: Builds AST from tokens (`parse2.ts`, `parseInfoLine2.ts`, `parseDirective.ts`)
+3. **AST Types**: Strongly-typed nodes (`types/Expr2.ts`)
+4. **Semantic Analyzer**: Validates info lines and directives (`info-line-analyzer.ts`, `directive-analyzer.ts`)
+5. **Visitors**: Transform AST (`Formatter2.ts`, `RhythmTransform.ts`, `Transposer.ts`, `RangeVisitor.ts`, `RangeCollector.ts`)
 
 ### ABC Standard Support
 
-The parser respects most of the ABC 2.2 standard and follows ABCJS extensions where practical.
+Implements ABC 2.2 standard with ABCJS extensions.
 
-**Implemented Features:**
-- ✅ Basic notation (notes, rhythms, chords, beams, tuplets)
-- ✅ Info lines (tune headers: X, T, K, M, L, etc.)
-- ✅ Directives (`%%` commands)
-- ✅ Decorations (all standard and ABCJS decorations)
-- ✅ Redefinable symbols (`U:`)
-- ✅ Comments
-- ✅ Barlines and repeats
-- ✅ Grace notes
-- ✅ Lyrics (in-tune lyric lines)
-- ✅ Multi-voice music
-- ✅ Voice modifiers
-- ✅ Field continuation (`+:` for multi-line fields)
+**Supported:**
+- Basic notation (notes, rhythms, chords, beams, tuplets)
+- Info lines (X, T, K, M, L, etc.)
+- Directives (`%%` commands)
+- Decorations (standard and ABCJS)
+- Redefinable symbols (`U:`)
+- Comments, barlines, repeats, grace notes
+- Lyrics, multi-voice music, voice modifiers
+- Field continuation (`+:`)
 
-**Not Yet Implemented:**
-- ❌ Macros (`m:` - experimental, unstable)
-- ❌ Free text blocks (`%%begintext` / `%%endtext`)
-- ❌ Voice overlay line continuation (`&\` at end of line)
+**Missing:**
+- Macros (`m:`)
+- Free text blocks (`%%begintext`/`%%endtext`)
+- Voice overlay line continuation (`&\` at EOL)
 
 ## Compatibility with ABCJS
 
-This project aims for 1:1 output compatibility with ABCJS parser. This would enable:
-- Substituting this parser in the ABCJS rendering pipeline (or using another renderer, for that matter…)
-- Adding extensions to the ABC standard while maintaining renderability
-- Leveraging static typing and property-based testing
+Aims for 1:1 output compatibility with ABCJS to enable parser substitution in rendering pipelines, ABC standard extensions, and property-based testing.
 
-**Current Status:** Experimental - tune header parsing matches ABCJS output. Music body compatibility is a work in progress.
+**Status:** Experimental. Tune headers match ABCJS output; music body compatibility is in progress.
 
-**Why build a separate parser?**
-- ABCJS is the canonical ABC rendering library but lacks static typing
-- ABCJS integrates lexer/parser/interpreter all in one step, making it hard to reuse for non-rendering tasks - such as IDE features (syntax highlighting, formatting, in-score warnings, completions, etc.).
+**Rationale:** ABCJS lacks static typing and tightly couples lexing, parsing, and interpretation, making it unsuitable for IDE features (syntax highlighting, formatting, diagnostics, completions).
 
 ## Development
 
-### Running Tests
-
 ```bash
-# Run parser tests
+# Run tests
 npm run test
-
-# Run tests with coverage
 npm run test:coverage
-```
 
-### Linting
-
-```bash
+# Lint
 npm run lint
-```
 
-### Parsing ABC Files
-
-```bash
-# Parse a folder of ABC files
+# Parse ABC files
 npm run parse-folder -- /path/to/your/abc/files
 ```
 
 ## Contributing
-
-Contributions are welcome! The project should be straightforward to set up:
 
 ```bash
 git clone <repo-url>
@@ -187,51 +139,37 @@ npm install
 npm run build
 ```
 
-The codebase uses TypeScript with strict type checking. Tests use Mocha and property-based testing with fast-check.
+Uses TypeScript with strict checking. Tests use Mocha and fast-check.
 
 ### Monorepo Structure
 
-This repository uses **npm workspaces** to manage both packages in a single monorepo with shared dependencies.
+Uses npm workspaces for shared dependencies.
 
 ```
 abc_parse/
-├── parse/                  # Parser package
-│   ├── parsers/           # Scanner and parser implementations
-│   ├── Visitors/          # AST visitors (formatter, transformers)
-│   ├── analyzers/         # Semantic analysis
-│   ├── types/             # AST type definitions
-│   └── package.json       # Parser package config
-├── abc-lsp-server/        # Language Server package
-│   ├── src/
-│   │   ├── server.ts      # LSP server entry point
-│   │   ├── AbcLspServer.ts # Server implementation
-│   │   ├── AbcDocument.ts  # Document management
-│   │   └── completions.ts  # Completion providers
-│   └── package.json       # LSP package config
-├── out/
-│   ├── parse/             # Built parser library
-│   └── abc-lsp-server/    # Built LSP server
-└── package.json           # Root workspace config
+├── parse/              # Parser (parsers/, Visitors/, analyzers/, types/)
+├── abc-lsp-server/     # LSP server (server.ts, AbcLspServer.ts, AbcDocument.ts, completions.ts)
+└── out/                # Build output
 ```
 
-## TODO List
+## TODO
 
-### Parser (scan2) TODOs:
-- `H: history` and free text parsing
+### Parser
+- `H:` history and free text
 - Voice overlay line continuation (`&\` at EOL)
-- complete the implementation of voice overlays (`&` in tune body)
-- linebreak directives
-- line continuations (`\\n`)
-- (very low priority )Improve macro support (`m:` - currently unstable)
+- Complete voice overlays (`&` in tune body)
+- Linebreak directives
+- Line continuations (`\\n`)
+- Improve macro support (`m:`)
 
-### Formatter TODOs:
-- fix voice/system detection logic (some multi-voice scores are getting aligned where they shouldn’t)
-- Group tuplets as beams in formatter's rules resolution step
+### Formatter
+- Fix voice/system detection (some multi-voice scores align incorrectly)
+- Group tuplets as beams in rules resolution
 - Warn about incomplete voice overlay markers
-- (very low priority) Mark incomplete bars with warnings in the IDE
+- Mark incomplete bars
 
-### want to add (to the standard): 
-- `.//.` symbol for «repeat two previous bars»
+### Standard Extensions
+- `.//.` symbol for repeat two previous bars
 - Chord symbol lines: `x: am | g | c | f/ e/g/ :|2`
 - Chord symbols in `W:` lines
 - Score formatting with `!` system breaks
