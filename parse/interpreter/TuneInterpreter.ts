@@ -154,14 +154,38 @@ const DECORATION_MAP: Record<string, string> = {
  *   "3/2" → 3/2
  *   "0" → 0/1 (grace notes)
  */
+/**
+ * Get broken rhythm multipliers based on the broken rhythm symbol
+ * Returns [currentNoteMultiplier, nextNoteMultiplier]
+ */
+function getBrokenRhythmMultipliers(brokenLexeme: string): [number, number] {
+  const char = brokenLexeme[0];
+  const count = brokenLexeme.length;
+
+  if (char === '>') {
+    // Current note gets longer, next note gets shorter
+    if (count === 3) return [1.875, 0.125]; // >>>
+    if (count === 2) return [1.75, 0.25];   // >>
+    return [1.5, 0.5];                      // >
+  } else if (char === '<') {
+    // Current note gets shorter, next note gets longer
+    if (count === 3) return [0.125, 1.875]; // <<<
+    if (count === 2) return [0.25, 1.75];   // <<
+    return [0.5, 1.5];                      // <
+  }
+  return [1, 1]; // Default (shouldn't happen)
+}
+
 function calculateRhythm(expr: Rhythm | undefined | null): IRational {
   if (!expr) {
     return createRational(1, 1);
   }
 
-  // Handle broken rhythm (< and >) - not yet implemented
+  // Handle broken rhythm (< and >) - returns only numerator/denominator part
+  // The broken rhythm multiplier is handled separately in the note visitor
   if (expr.broken) {
-    // TODO: Implement broken rhythm in later ticket
+    // Broken rhythms don't have additional rhythm notation
+    // Return 1/1 as base, multiplier will be applied by broken rhythm logic
     return createRational(1, 1);
   }
 
@@ -955,7 +979,29 @@ export class TuneInterpreter implements Visitor<void> {
     // Calculate duration: default_length * rhythm_multiplier
     const defaultLength = this.state.tuneDefaults.noteLength;
     const rhythmMultiplier = calculateRhythm(expr.rhythm);
-    const durationRational = multiplyRational(defaultLength, rhythmMultiplier);
+    let durationRational = multiplyRational(defaultLength, rhythmMultiplier);
+
+    const voiceState = this.state.voices.get(this.state.currentVoice);
+
+    // Handle broken rhythm: Apply multiplier from previous note (if any)
+    if (voiceState && voiceState.nextNoteDurationMultiplier !== undefined) {
+      const multiplier = voiceState.nextNoteDurationMultiplier;
+      // Convert multiplier to rational and apply it
+      const multiplierRational = createRational(Math.round(multiplier * 1000), 1000);
+      durationRational = multiplyRational(durationRational, multiplierRational);
+      // Clear the multiplier after applying
+      voiceState.nextNoteDurationMultiplier = undefined;
+    }
+
+    // Handle broken rhythm: Set multiplier for next note (if this note has broken rhythm)
+    if (expr.rhythm && expr.rhythm.broken && voiceState) {
+      const [currentMultiplier, nextMultiplier] = getBrokenRhythmMultipliers(expr.rhythm.broken.lexeme);
+      // Apply current note multiplier
+      const currentMultiplierRational = createRational(Math.round(currentMultiplier * 1000), 1000);
+      durationRational = multiplyRational(durationRational, currentMultiplierRational);
+      // Store next note multiplier for the following note
+      voiceState.nextNoteDurationMultiplier = nextMultiplier;
+    }
 
     const range = this.rangeVisitor.visitNoteExpr(expr);
 
@@ -976,8 +1022,7 @@ export class TuneInterpreter implements Visitor<void> {
 
     this.currentVoiceElements.push(element);
 
-    // Process beaming for this note
-    const voiceState = this.state.voices.get(this.state.currentVoice);
+    // Process beaming for this note (voiceState already retrieved above)
     if (voiceState) {
       // Process chord symbols (first, as they're typically written before everything)
       applyChordSymbols(element, voiceState);
@@ -1015,21 +1060,51 @@ export class TuneInterpreter implements Visitor<void> {
     // Calculate duration: default_length * rhythm_multiplier
     const defaultLength = this.state.tuneDefaults.noteLength;
     const rhythmMultiplier = calculateRhythm(expr.rhythm);
-    const durationRational = multiplyRational(defaultLength, rhythmMultiplier);
+    let durationRational = multiplyRational(defaultLength, rhythmMultiplier);
+
+    const voiceState = this.state.voices.get(this.state.currentVoice);
+
+    // Handle broken rhythm: Apply multiplier from previous note (if any)
+    if (voiceState && voiceState.nextNoteDurationMultiplier !== undefined) {
+      const multiplier = voiceState.nextNoteDurationMultiplier;
+      const multiplierRational = createRational(Math.round(multiplier * 1000), 1000);
+      durationRational = multiplyRational(durationRational, multiplierRational);
+      voiceState.nextNoteDurationMultiplier = undefined;
+    }
+
+    // Handle broken rhythm: Set multiplier for next note (if this rest has broken rhythm)
+    if (expr.rhythm && expr.rhythm.broken && voiceState) {
+      const [currentMultiplier, nextMultiplier] = getBrokenRhythmMultipliers(expr.rhythm.broken.lexeme);
+      const currentMultiplierRational = createRational(Math.round(currentMultiplier * 1000), 1000);
+      durationRational = multiplyRational(durationRational, currentMultiplierRational);
+      voiceState.nextNoteDurationMultiplier = nextMultiplier;
+    }
 
     const range = this.rangeVisitor.visitRestExpr(expr);
 
     // Convert rational to float for abcjs compatibility
     const duration = rationalToNumber(durationRational);
 
-    // Determine rest type from lexeme
+    // Determine rest type from lexeme and duration
+    // abcjs rules:
+    // - 'z' with duration >= 1.0 → "whole", duration < 1.0 → "rest"
+    // - 'x' → "invisible"
+    // - 'y' → "spacer"
+    // - 'Z' → "multimeasure"
+    // - 'X' → "invisible-multimeasure"
     const restLexeme = expr.rest.lexeme;
-    // TODO: account for all cases.
     let restType: RestType;
     if (restLexeme === "x") {
       restType = RestType.Invisible;
+    } else if (restLexeme === "y") {
+      restType = RestType.Spacer;
+    } else if (restLexeme === "Z") {
+      restType = RestType.Multimeasure;
+    } else if (restLexeme === "X") {
+      restType = RestType.InvisibleMultimeasure;
     } else if (restLexeme === "z") {
-      restType = RestType.Rest;
+      // Duration-based: >= 1.0 is whole, < 1.0 is rest
+      restType = duration >= 1.0 ? RestType.Whole : RestType.Rest;
     } else {
       restType = RestType.Rest; // Default
     }
@@ -1044,8 +1119,7 @@ export class TuneInterpreter implements Visitor<void> {
 
     this.currentVoiceElements.push(element);
 
-    // Process beaming for this rest (beams break on rests)
-    const voiceState = this.state.voices.get(this.state.currentVoice);
+    // Process beaming for this rest (beams break on rests, voiceState already retrieved above)
     if (voiceState) {
       processBeaming(element, voiceState, true); // true = is a rest
     }
@@ -1078,7 +1152,25 @@ export class TuneInterpreter implements Visitor<void> {
     // Calculate duration: default_length * rhythm_multiplier
     const defaultLength = this.state.tuneDefaults.noteLength;
     const rhythmMultiplier = calculateRhythm(expr.rhythm);
-    const durationRational = multiplyRational(defaultLength, rhythmMultiplier);
+    let durationRational = multiplyRational(defaultLength, rhythmMultiplier);
+
+    const voiceState = this.state.voices.get(this.state.currentVoice);
+
+    // Handle broken rhythm: Apply multiplier from previous note (if any)
+    if (voiceState && voiceState.nextNoteDurationMultiplier !== undefined) {
+      const multiplier = voiceState.nextNoteDurationMultiplier;
+      const multiplierRational = createRational(Math.round(multiplier * 1000), 1000);
+      durationRational = multiplyRational(durationRational, multiplierRational);
+      voiceState.nextNoteDurationMultiplier = undefined;
+    }
+
+    // Handle broken rhythm: Set multiplier for next note (if this chord has broken rhythm)
+    if (expr.rhythm && expr.rhythm.broken && voiceState) {
+      const [currentMultiplier, nextMultiplier] = getBrokenRhythmMultipliers(expr.rhythm.broken.lexeme);
+      const currentMultiplierRational = createRational(Math.round(currentMultiplier * 1000), 1000);
+      durationRational = multiplyRational(durationRational, currentMultiplierRational);
+      voiceState.nextNoteDurationMultiplier = nextMultiplier;
+    }
 
     const range = this.rangeVisitor.visitChordExpr(expr);
 
@@ -1095,9 +1187,8 @@ export class TuneInterpreter implements Visitor<void> {
 
     this.currentVoiceElements.push(element);
 
-    // Process beaming for this chord
-    // TODO: this is a lot of duplicated code, let’s consolidate into a function.
-    const voiceState = this.state.voices.get(this.state.currentVoice);
+    // Process beaming for this chord (voiceState already retrieved above)
+    // TODO: this is a lot of duplicated code, let's consolidate into a function.
     if (voiceState) {
       // Process chord symbols (first, as they're typically written before everything)
       applyChordSymbols(element, voiceState);

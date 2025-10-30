@@ -103,6 +103,9 @@ export interface VoiceState {
 
   // Chord symbol tracking (for guitar chord annotations)
   pendingChordSymbols: any[]; // Chord symbols to apply to next note
+
+  // Broken rhythm tracking (for dotted rhythms like < and >)
+  nextNoteDurationMultiplier?: number; // Multiplier for next note's duration from broken rhythm
 }
 
 // ============================================================================

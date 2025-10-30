@@ -93,6 +93,7 @@ export enum BarType {
 
 export enum RestType {
   Rest = "rest",
+  Whole = "whole",
   Invisible = "invisible",
   Spacer = "spacer",
   Multimeasure = "multimeasure",
