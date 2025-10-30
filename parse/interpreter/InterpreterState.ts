@@ -105,7 +105,7 @@ export interface VoiceState {
   pendingChordSymbols: any[]; // Chord symbols to apply to next note
 
   // Broken rhythm tracking (for dotted rhythms like < and >)
-  nextNoteDurationMultiplier?: number; // Multiplier for next note's duration from broken rhythm
+  nextNoteDurationMultiplier?: IRational; // Multiplier for next note's duration from broken rhythm
 }
 
 // ============================================================================

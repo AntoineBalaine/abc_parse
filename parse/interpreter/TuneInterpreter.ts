@@ -156,76 +156,124 @@ const DECORATION_MAP: Record<string, string> = {
  */
 /**
  * Get broken rhythm multipliers based on the broken rhythm symbol
- * Returns [currentNoteMultiplier, nextNoteMultiplier]
+ * Returns [currentNoteMultiplier, nextNoteMultiplier] as rationals
+ *
+ * Pattern: first note takes (2 - 1/2^n), second note takes 1/2^n
+ * where n is the number of symbols
+ *
+ * Examples:
+ *   > (n=1): [3/2, 1/2] = [1.5, 0.5]
+ *   >> (n=2): [7/4, 1/4] = [1.75, 0.25]
+ *   >>> (n=3): [15/8, 1/8] = [1.875, 0.125]
  */
-function getBrokenRhythmMultipliers(brokenLexeme: string): [number, number] {
+function getBrokenRhythmMultipliers(brokenLexeme: string): [IRational, IRational] {
   const char = brokenLexeme[0];
   const count = brokenLexeme.length;
 
-  if (char === '>') {
+  // Short note denominator: 2^n (2, 4, 8, ...)
+  const shortNoteDenominator = Math.pow(2, count);
+  const shortNoteNumerator = 1;
+
+  // Long note = 2 - (short note) = (2 * 2^n - 1) / 2^n
+  const longNoteNumerator = 2 * shortNoteDenominator - 1;
+  const longNoteDenominator = shortNoteDenominator;
+
+  if (char === ">") {
     // Current note gets longer, next note gets shorter
-    if (count === 3) return [1.875, 0.125]; // >>>
-    if (count === 2) return [1.75, 0.25];   // >>
-    return [1.5, 0.5];                      // >
-  } else if (char === '<') {
+    return [createRational(longNoteNumerator, longNoteDenominator), createRational(shortNoteNumerator, shortNoteDenominator)];
+  } else if (char === "<") {
     // Current note gets shorter, next note gets longer
-    if (count === 3) return [0.125, 1.875]; // <<<
-    if (count === 2) return [0.25, 1.75];   // <<
-    return [0.5, 1.5];                      // <
+    return [createRational(shortNoteNumerator, shortNoteDenominator), createRational(longNoteNumerator, longNoteDenominator)];
   }
-  return [1, 1]; // Default (shouldn't happen)
+
+  return [createRational(1, 1), createRational(1, 1)]; // Default (shouldn't happen)
 }
 
-function calculateRhythm(expr: Rhythm | undefined | null): IRational {
-  if (!expr) {
-    return createRational(1, 1);
-  }
+/**
+ * Calculate the full duration for a musical element (note/rest/chord)
+ * including broken rhythm handling.
+ *
+ * @param rhythm - The rhythm expression from the AST
+ * @param defaultLength - The default note length from tune state
+ * @param voiceState - Voice state for broken rhythm tracking (optional for stateless calculation)
+ * @returns Duration and optional next-note multiplier
+ */
+function calculateRhythm(
+  rhythm: Rhythm | undefined | null,
+  defaultLength: IRational,
+  voiceState?: VoiceState
+): {
+  duration: IRational; // Final duration for current note
+  nextMultiplier?: IRational; // Multiplier to store for next note (if broken rhythm)
+} {
+  // Step 1: Calculate base rhythm multiplier (without broken rhythm)
+  let baseMultiplier: IRational;
 
-  // Handle broken rhythm (< and >) - returns only numerator/denominator part
-  // The broken rhythm multiplier is handled separately in the note visitor
-  if (expr.broken) {
+  if (!rhythm) {
+    baseMultiplier = createRational(1, 1);
+  } else if (rhythm.broken) {
     // Broken rhythms don't have additional rhythm notation
-    // Return 1/1 as base, multiplier will be applied by broken rhythm logic
-    return createRational(1, 1);
-  }
+    baseMultiplier = createRational(1, 1);
+  } else {
+    // Parse rhythm notation (numerator/denominator)
+    let num = 1;
+    let den = 1;
 
-  let num = 1;
-  let den = 1;
-
-  // Step 1: Parse numerator (if present)
-  if (expr.numerator) {
-    const numValue = parseInt(expr.numerator.lexeme, 10);
-    if (!isNaN(numValue)) {
-      num = numValue;
+    if (rhythm.numerator) {
+      const numValue = parseInt(rhythm.numerator.lexeme, 10);
+      if (!isNaN(numValue)) {
+        num = numValue;
+      }
     }
-  }
 
-  // Step 2: Parse separator and denominator
-  if (expr.separator) {
-    if (expr.separator.lexeme === "/") {
-      // Single slash
-      if (expr.denominator) {
-        const denValue = parseInt(expr.denominator.lexeme, 10);
-        if (!isNaN(denValue) && denValue > 0) {
-          den = denValue;
+    if (rhythm.separator) {
+      if (rhythm.separator.lexeme === "/") {
+        // Single slash
+        if (rhythm.denominator) {
+          const denValue = parseInt(rhythm.denominator.lexeme, 10);
+          if (!isNaN(denValue) && denValue > 0) {
+            den = denValue;
+          } else {
+            // "/" with invalid number → implied /2
+            den = 2;
+          }
         } else {
-          // "/" with no valid number after → implied /2
+          // "/" alone → implied /2
           den = 2;
         }
       } else {
-        // "/" alone → implied /2
-        den = 2;
+        // Multiple slashes: each slash divides by 2
+        const slashCount = rhythm.separator.lexeme.length;
+        den = Math.pow(2, slashCount);
       }
-    } else {
-      // Multiple slashes (e.g., "//" or "///")
-      // Each slash divides by 2
-      const slashCount = expr.separator.lexeme.length;
-      // "//" → 0.25 = 1/4, "///" → 0.125 = 1/8
-      den = Math.pow(2, slashCount);
     }
+
+    baseMultiplier = createRational(num, den);
   }
 
-  return createRational(num, den);
+  // Step 2: Calculate duration = defaultLength * baseMultiplier
+  let duration = multiplyRational(defaultLength, baseMultiplier);
+
+  // Step 3: Apply pending broken rhythm from previous note (if any)
+  let nextMultiplier: IRational | undefined;
+
+  if (voiceState?.nextNoteDurationMultiplier) {
+    duration = multiplyRational(duration, voiceState.nextNoteDurationMultiplier);
+    // Clear the multiplier after applying (side effect on voiceState)
+    voiceState.nextNoteDurationMultiplier = undefined;
+  }
+
+  // Step 4: Handle broken rhythm on current note (if any)
+  if (rhythm?.broken && voiceState) {
+    const [currentMultiplier, nextMult] = getBrokenRhythmMultipliers(rhythm.broken.lexeme);
+    duration = multiplyRational(duration, currentMultiplier);
+    nextMultiplier = nextMult; // To be stored by caller
+  }
+
+  return {
+    duration,
+    nextMultiplier,
+  };
 }
 
 /**
@@ -976,37 +1024,20 @@ export class TuneInterpreter implements Visitor<void> {
       accidental: accidental ? this.convertAccidental(accidental) : undefined,
     };
 
-    // Calculate duration: default_length * rhythm_multiplier
-    const defaultLength = this.state.tuneDefaults.noteLength;
-    const rhythmMultiplier = calculateRhythm(expr.rhythm);
-    let durationRational = multiplyRational(defaultLength, rhythmMultiplier);
-
+    // Calculate duration with broken rhythm handling
     const voiceState = this.state.voices.get(this.state.currentVoice);
+    const defaultLength = this.state.tuneDefaults.noteLength;
+    const rhythmResult = calculateRhythm(expr.rhythm, defaultLength, voiceState);
 
-    // Handle broken rhythm: Apply multiplier from previous note (if any)
-    if (voiceState && voiceState.nextNoteDurationMultiplier !== undefined) {
-      const multiplier = voiceState.nextNoteDurationMultiplier;
-      // Convert multiplier to rational and apply it
-      const multiplierRational = createRational(Math.round(multiplier * 1000), 1000);
-      durationRational = multiplyRational(durationRational, multiplierRational);
-      // Clear the multiplier after applying
-      voiceState.nextNoteDurationMultiplier = undefined;
-    }
-
-    // Handle broken rhythm: Set multiplier for next note (if this note has broken rhythm)
-    if (expr.rhythm && expr.rhythm.broken && voiceState) {
-      const [currentMultiplier, nextMultiplier] = getBrokenRhythmMultipliers(expr.rhythm.broken.lexeme);
-      // Apply current note multiplier
-      const currentMultiplierRational = createRational(Math.round(currentMultiplier * 1000), 1000);
-      durationRational = multiplyRational(durationRational, currentMultiplierRational);
-      // Store next note multiplier for the following note
-      voiceState.nextNoteDurationMultiplier = nextMultiplier;
+    // Store next multiplier if present
+    if (rhythmResult.nextMultiplier && voiceState) {
+      voiceState.nextNoteDurationMultiplier = rhythmResult.nextMultiplier;
     }
 
     const range = this.rangeVisitor.visitNoteExpr(expr);
 
     // Convert rational to float for abcjs compatibility
-    const duration = rationalToNumber(durationRational);
+    const duration = rationalToNumber(rhythmResult.duration);
 
     const startChar = this.toAbsolutePosition(range.start.line, range.start.character);
     const endChar = this.toAbsolutePosition(range.end.line, range.end.character);
@@ -1057,33 +1088,20 @@ export class TuneInterpreter implements Visitor<void> {
   }
 
   visitRestExpr(expr: Rest): void {
-    // Calculate duration: default_length * rhythm_multiplier
-    const defaultLength = this.state.tuneDefaults.noteLength;
-    const rhythmMultiplier = calculateRhythm(expr.rhythm);
-    let durationRational = multiplyRational(defaultLength, rhythmMultiplier);
-
+    // Calculate duration with broken rhythm handling
     const voiceState = this.state.voices.get(this.state.currentVoice);
+    const defaultLength = this.state.tuneDefaults.noteLength;
+    const rhythmResult = calculateRhythm(expr.rhythm, defaultLength, voiceState);
 
-    // Handle broken rhythm: Apply multiplier from previous note (if any)
-    if (voiceState && voiceState.nextNoteDurationMultiplier !== undefined) {
-      const multiplier = voiceState.nextNoteDurationMultiplier;
-      const multiplierRational = createRational(Math.round(multiplier * 1000), 1000);
-      durationRational = multiplyRational(durationRational, multiplierRational);
-      voiceState.nextNoteDurationMultiplier = undefined;
-    }
-
-    // Handle broken rhythm: Set multiplier for next note (if this rest has broken rhythm)
-    if (expr.rhythm && expr.rhythm.broken && voiceState) {
-      const [currentMultiplier, nextMultiplier] = getBrokenRhythmMultipliers(expr.rhythm.broken.lexeme);
-      const currentMultiplierRational = createRational(Math.round(currentMultiplier * 1000), 1000);
-      durationRational = multiplyRational(durationRational, currentMultiplierRational);
-      voiceState.nextNoteDurationMultiplier = nextMultiplier;
+    // Store next multiplier if present
+    if (rhythmResult.nextMultiplier && voiceState) {
+      voiceState.nextNoteDurationMultiplier = rhythmResult.nextMultiplier;
     }
 
     const range = this.rangeVisitor.visitRestExpr(expr);
 
     // Convert rational to float for abcjs compatibility
-    const duration = rationalToNumber(durationRational);
+    const duration = rationalToNumber(rhythmResult.duration);
 
     // Determine rest type from lexeme and duration
     // abcjs rules:
@@ -1149,33 +1167,20 @@ export class TuneInterpreter implements Visitor<void> {
 
     if (pitches.length === 0) return;
 
-    // Calculate duration: default_length * rhythm_multiplier
-    const defaultLength = this.state.tuneDefaults.noteLength;
-    const rhythmMultiplier = calculateRhythm(expr.rhythm);
-    let durationRational = multiplyRational(defaultLength, rhythmMultiplier);
-
+    // Calculate duration with broken rhythm handling
     const voiceState = this.state.voices.get(this.state.currentVoice);
+    const defaultLength = this.state.tuneDefaults.noteLength;
+    const rhythmResult = calculateRhythm(expr.rhythm, defaultLength, voiceState);
 
-    // Handle broken rhythm: Apply multiplier from previous note (if any)
-    if (voiceState && voiceState.nextNoteDurationMultiplier !== undefined) {
-      const multiplier = voiceState.nextNoteDurationMultiplier;
-      const multiplierRational = createRational(Math.round(multiplier * 1000), 1000);
-      durationRational = multiplyRational(durationRational, multiplierRational);
-      voiceState.nextNoteDurationMultiplier = undefined;
-    }
-
-    // Handle broken rhythm: Set multiplier for next note (if this chord has broken rhythm)
-    if (expr.rhythm && expr.rhythm.broken && voiceState) {
-      const [currentMultiplier, nextMultiplier] = getBrokenRhythmMultipliers(expr.rhythm.broken.lexeme);
-      const currentMultiplierRational = createRational(Math.round(currentMultiplier * 1000), 1000);
-      durationRational = multiplyRational(durationRational, currentMultiplierRational);
-      voiceState.nextNoteDurationMultiplier = nextMultiplier;
+    // Store next multiplier if present
+    if (rhythmResult.nextMultiplier && voiceState) {
+      voiceState.nextNoteDurationMultiplier = rhythmResult.nextMultiplier;
     }
 
     const range = this.rangeVisitor.visitChordExpr(expr);
 
     // Convert rational to float for abcjs compatibility
-    const duration = rationalToNumber(durationRational);
+    const duration = rationalToNumber(rhythmResult.duration);
 
     const element: NoteElement = {
       el_type: ElementType.Note,
@@ -1257,9 +1262,11 @@ export class TuneInterpreter implements Visitor<void> {
 
     this.currentVoiceElements.push(element);
 
-    // Beams break at bar lines
+    // Clear broken rhythm state and beams - they don't persist across barlines
     const voiceState = this.state.voices.get(this.state.currentVoice);
     if (voiceState) {
+      // Broken rhythm does not persist across barlines
+      voiceState.nextNoteDurationMultiplier = undefined;
       endBeamGroup(voiceState);
     }
 
