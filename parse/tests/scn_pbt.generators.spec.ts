@@ -136,15 +136,36 @@ export const genGraceGroup = fc
     return tokens;
   });
 
-// Inline field generator
-export const genInlineField = fc
-  .tuple(
+// Inline field generator - wraps info line content in brackets
+export const genInlineField = fc.oneof(
+  // Key info lines wrapped in brackets: [K:G], [K:D minor clef=bass]
+  fc.tuple(
     fc.constantFrom(new Token(TT.INLN_FLD_LFT_BRKT, "[", sharedContext.generateId())),
-    fc.stringMatching(/^[a-zA-Z]:$/).map((hdr) => new Token(TT.INF_HDR, hdr, sharedContext.generateId())),
-    fc.stringMatching(/^[^\]]+$/).map((str) => new Token(TT.INFO_STR, str, sharedContext.generateId())),
+    genKeyInfoLine2,
     fc.constantFrom(new Token(TT.INLN_FLD_RGT_BRKT, "]", sharedContext.generateId()))
-  )
-  .map((tokens) => tokens);
+  ).map(([leftBrkt, keyTokens, rightBrkt]) => [leftBrkt, ...keyTokens, rightBrkt]),
+
+  // Meter info lines wrapped in brackets: [M:3/4], [M:C|]
+  fc.tuple(
+    fc.constantFrom(new Token(TT.INLN_FLD_LFT_BRKT, "[", sharedContext.generateId())),
+    genMeterInfoLine2,
+    fc.constantFrom(new Token(TT.INLN_FLD_RGT_BRKT, "]", sharedContext.generateId()))
+  ).map(([leftBrkt, meterTokens, rightBrkt]) => [leftBrkt, ...meterTokens, rightBrkt]),
+
+  // Note length info lines wrapped in brackets: [L:1/8]
+  fc.tuple(
+    fc.constantFrom(new Token(TT.INLN_FLD_LFT_BRKT, "[", sharedContext.generateId())),
+    genNoteLenInfoLine2,
+    fc.constantFrom(new Token(TT.INLN_FLD_RGT_BRKT, "]", sharedContext.generateId()))
+  ).map(([leftBrkt, lenTokens, rightBrkt]) => [leftBrkt, ...lenTokens, rightBrkt]),
+
+  // Tempo info lines wrapped in brackets: [Q:1/4=120]
+  fc.tuple(
+    fc.constantFrom(new Token(TT.INLN_FLD_LFT_BRKT, "[", sharedContext.generateId())),
+    genTempoInfoLine2,
+    fc.constantFrom(new Token(TT.INLN_FLD_RGT_BRKT, "]", sharedContext.generateId()))
+  ).map(([leftBrkt, tempoTokens, rightBrkt]) => [leftBrkt, ...tempoTokens, rightBrkt])
+);
 export const genEOL = fc.constantFrom(new Token(TT.EOL, "\n", sharedContext.generateId()));
 
 export const genStylesheetDirective = fc.tuple(genEOL, genStylesheetDirectiveFromInfoLn).map((e) => e.flat());

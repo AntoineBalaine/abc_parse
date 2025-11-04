@@ -40,7 +40,7 @@ import {
 } from "../types/Expr2";
 import { ABCContext } from "./Context";
 import { parseDirective } from "./infoLines/parseDirective";
-import { parseInfoLine2 } from "./infoLines/parseInfoLine2";
+import { parseInfoLine2, parseExpression } from "./infoLines/parseInfoLine2";
 import { Token, TT } from "./scan2";
 import { parseSystemsWithVoices } from "./voices2";
 
@@ -749,13 +749,35 @@ function parseInlineField(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Inline
     return null;
   }
 
-  const field = ctx.advance();
-  const text: Array<Token> = [];
-  while (!ctx.isAtEnd() && ctx.peek().type !== TT.INLN_FLD_RGT_BRKT) {
-    text.push(ctx.advance());
+  const field = ctx.advance();  // Get the INF_HDR token (K:, M:, etc.)
+  const tokens: Token[] = [field];
+
+  // Save current position to collect tokens consumed
+  const startPos = ctx.current;
+
+  // Parse expressions until closing bracket (same logic as parseInfoLine2)
+  const expressions: Array<Expr | Token> = [];
+  while (!(ctx.isAtEnd() || ctx.check(TT.INLN_FLD_RGT_BRKT))) {
+    if (ctx.match(TT.WS)) continue;
+
+    const expr = parseExpression(ctx);  // Reuse parseExpression from parseInfoLine2
+    if (expr) {
+      expressions.push(expr);
+    } else {
+      // Fallback to raw token if parsing fails
+      expressions.push(ctx.advance());
+    }
   }
-  ctx.advance();
-  const result = new Inline_field(ctx.abcContext.generateId(), field, text);
+
+  // Collect all tokens that were consumed
+  for (let i = startPos; i < ctx.current; i++) {
+    tokens.push(ctx.tokens[i]);
+  }
+
+  ctx.advance();  // Consume closing bracket ]
+
+  // Create Inline_field with parsed expressions
+  const result = new Inline_field(ctx.abcContext.generateId(), field, tokens, expressions);
   if (prnt_arr) prnt_arr.push(result);
   return result;
 }

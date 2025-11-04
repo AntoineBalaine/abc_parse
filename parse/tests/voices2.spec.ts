@@ -276,7 +276,7 @@ E|F|`;
 
     it("should identify voice markers (Inline_field)", () => {
       const ctx = new ABCContext();
-      const inlineField = new Inline_field(ctx.generateId(), createToken(TT.INF_HDR, "V:"), [createToken(TT.INFO_STR, "Voice1")]);
+      const inlineField = new Inline_field(ctx.generateId(), createToken(TT.INF_HDR, "V:"), [createToken(TT.INFO_STR, "Voice1")], undefined);
 
       expect(isVoiceMarker(inlineField)).to.be.true;
     });
@@ -310,7 +310,7 @@ E|F|`;
 
     it("should extract voice name from Inline_field", () => {
       const ctx = new ABCContext();
-      const inlineField = new Inline_field(ctx.generateId(), createToken(TT.INF_HDR, "V:"), [createToken(TT.INFO_STR, "Voice1")]);
+      const inlineField = new Inline_field(ctx.generateId(), createToken(TT.INF_HDR, "V:"), [createToken(TT.INFO_STR, "Voice1")], undefined);
 
       expect(stringifyVoice(inlineField)).to.equal("Voice1");
     });
@@ -444,10 +444,10 @@ E|F|`;
       const ctx = new ABCContext();
 
       const elements: tune_body_code[] = [
-        new Inline_field(ctx.generateId(), createToken(TT.INF_HDR, "V:"), [createToken(TT.INFO_STR, "Voice1")]),
+        new Inline_field(ctx.generateId(), createToken(TT.INF_HDR, "V:"), [createToken(TT.INFO_STR, "Voice1")], undefined),
         createToken(TT.NOTE_LETTER, "C"),
         createToken(TT.NOTE_LETTER, "D"),
-        new Inline_field(ctx.generateId(), createToken(TT.INF_HDR, "V:"), [createToken(TT.INFO_STR, "Voice2")]),
+        new Inline_field(ctx.generateId(), createToken(TT.INF_HDR, "V:"), [createToken(TT.INFO_STR, "Voice2")], undefined),
         createToken(TT.NOTE_LETTER, "E"),
         createToken(TT.NOTE_LETTER, "F"),
       ];

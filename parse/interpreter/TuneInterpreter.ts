@@ -1407,11 +1407,18 @@ export class TuneInterpreter implements Visitor<void> {
     voiceState.pendingGraceNotes = graceNotes;
   }
   visitInlineFieldExpr(expr: Inline_field): void {
-    // TODO: Implement inline field interpretation
-    // Inline fields require special semantic analysis due to different tokenization
-    // Skipping for now
+    // TODO: Inline fields need to be analyzed by the SemanticAnalyzer first
+    // Similar to how Info_line expressions are analyzed
+    // Once that's done, we can retrieve the semantic data like this:
+    //   const semanticData = this.state.semanticData.get(expr.id);
+    //   if (!semanticData || !isInfoLineSemanticData(semanticData)) return;
+    //
+    // Then handle it exactly like visitInfoLineExpr does for tune_body context
+
+    // For now, inline fields are not analyzed, so we skip them
     return;
   }
+
   visitLyricLineExpr(expr: Lyric_line): void {
     // Lyrics come after a music line and need to be mapped to the notes
     // Parse lyric tokens into syllables with dividers

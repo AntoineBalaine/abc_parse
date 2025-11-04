@@ -276,8 +276,23 @@ export class AbcFormatter implements Visitor<string> {
   }
 
   visitInlineFieldExpr(expr: Inline_field): string {
-    const { field, text } = expr;
-    const formattedText = text.map((val) => val.lexeme).join("");
+    const { field } = expr;
+
+    // If we have value2 expressions, format them using the visitor pattern
+    if (expr.value2 && expr.value2.length > 0) {
+      const formattedExpressions = expr.value2.map((expression) => {
+        if (isToken(expression)) {
+          return expression.lexeme;
+        } else {
+          return expression.accept(this);
+        }
+      });
+      return `[${field.lexeme}${formattedExpressions.join(" ")}]`;
+    }
+
+    // Fallback to original token-based formatting for compatibility
+    // Skip the first token (field) since we're already including it in the output
+    const formattedText = expr.text.slice(1).map((val) => val.lexeme).join("");
     return `[${field.lexeme}${formattedText}]`;
   }
 

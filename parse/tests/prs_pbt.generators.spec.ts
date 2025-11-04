@@ -1,6 +1,7 @@
 import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
+import { ParseCtx } from "../parsers/parse2";
 import { Token, TT } from "../parsers/scan2";
 import {
   Annotation,
@@ -10,6 +11,7 @@ import {
   Comment,
   Decoration,
   Directive,
+  Expr,
   Grace_group,
   Inline_field,
   Macro_decl,
@@ -23,6 +25,7 @@ import {
   Tuplet,
   YSPACER,
 } from "../types/Expr2";
+import { parseExpression } from "../parsers/infoLines/parseInfoLine2";
 import * as ScannerGen from "./scn_pbt.generators.spec";
 
 // Create a shared context for all generators
@@ -293,13 +296,39 @@ export const genTupletExpr = ScannerGen.genTuplet.map((tokens) => {
 });
 
 export const genInlineFieldExpr = ScannerGen.genInlineField.map((tokens) => {
-  // Extract components
+  // Extract field header (INF_HDR token like "K:", "M:", etc.)
   const field = tokens.find((t) => t.type === TT.INF_HDR)!;
-  const text = tokens.filter((t) => t.type === TT.INFO_STR);
+
+  // Find bracket positions
+  const leftBracketIdx = tokens.findIndex((t) => t.type === TT.INLN_FLD_LFT_BRKT);
+  const rightBracketIdx = tokens.findIndex((t) => t.type === TT.INLN_FLD_RGT_BRKT);
+  const fieldIdx = tokens.findIndex((t) => t.type === TT.INF_HDR);
+
+  // text array contains all tokens from field onwards (excluding right bracket)
+  const text = tokens.slice(fieldIdx, rightBracketIdx);
+
+  // Parse the inline field content to create value2 expressions
+  // Content tokens are everything after the field header, before the right bracket
+  const contentTokens = tokens.slice(fieldIdx + 1, rightBracketIdx);
+  const parseCtx = new ParseCtx(contentTokens, sharedContext);
+
+  // Parse expressions using parseExpression (same logic as parseInlineField)
+  const expressions: Array<Expr | Token> = [];
+  while (!parseCtx.isAtEnd()) {
+    if (parseCtx.match(TT.WS)) continue;
+
+    const expr = parseExpression(parseCtx);
+    if (expr) {
+      expressions.push(expr);
+    } else {
+      // Fallback to raw token if parsing fails
+      expressions.push(parseCtx.advance());
+    }
+  }
 
   return {
     tokens,
-    expr: new Inline_field(sharedContext.generateId(), field, text),
+    expr: new Inline_field(sharedContext.generateId(), field, text, expressions.length > 0 ? expressions : undefined),
   };
 });
 

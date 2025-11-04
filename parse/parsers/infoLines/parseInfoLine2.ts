@@ -37,7 +37,7 @@ export function parseInfoLine2(ctx: ParseCtx): Array<Expr | Token> {
 /**
  * Parse a complete expression (KV or binary)
  */
-function parseExpression(ctx: ParseCtx): Expr | null {
+export function parseExpression(ctx: ParseCtx): Expr | null {
   // Check for KV expression first (identifier followed by =)
   if (ctx.check(TT.IDENTIFIER) && followedBy(ctx, [TT.EQL], [TT.WS])) {
     return parseKV(ctx);

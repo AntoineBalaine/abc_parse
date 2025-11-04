@@ -492,10 +492,12 @@ export class Grace_group extends Expr {
 export class Inline_field extends Expr {
   field: Token;
   text: Array<Token>;
-  constructor(id: number, field: Token, text: Array<Token>) {
+  value2?: Array<Expr>;  // Parsed expressions (same as Info_line)
+  constructor(id: number, field: Token, text: Array<Token>, value2?: Array<Expr>) {
     super(id);
     this.field = field;
     this.text = text;
+    this.value2 = value2;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitInlineFieldExpr(this);
