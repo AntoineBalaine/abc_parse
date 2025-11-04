@@ -1,15 +1,4 @@
-import {
-  cloneToken,
-  exprIsInRange,
-  getPitchRange,
-  getTokenRange,
-  isChord,
-  isEmptyRhythm,
-  isNote,
-  isRhythmInRange,
-  isToken,
-  isTune_Body,
-} from "../helpers";
+import { cloneToken, exprIsInRange, getPitchRange, getTokenRange, isChord, isEmptyRhythm, isNote, isRhythmInRange, isToken, isTune_Body } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT as TokenType } from "../parsers/scan2";
 import {
@@ -32,6 +21,7 @@ import {
   Info_line,
   Inline_field,
   KV,
+  Line_continuation,
   Lyric_line,
   Lyric_section,
   Macro_decl,
@@ -378,6 +368,10 @@ export class RhythmVisitor implements Visitor<Expr> {
   }
 
   visitVoiceOverlayExpr(expr: Voice_overlay): Voice_overlay {
+    return expr;
+  }
+
+  visitLineContinuationExpr(expr: Line_continuation): Line_continuation {
     return expr;
   }
 

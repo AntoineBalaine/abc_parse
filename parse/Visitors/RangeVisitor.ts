@@ -18,6 +18,7 @@ import {
   Info_line,
   Inline_field,
   KV,
+  Line_continuation,
   Lyric_line,
   Lyric_section,
   Macro_decl,
@@ -219,6 +220,9 @@ export class RangeVisitor implements Visitor<Range> {
   }
   visitVoiceOverlayExpr(expr: Voice_overlay): Range {
     return expr.contents.map((e) => getTokenRange(e)).reduce(reduceRanges, <Range>{});
+  }
+  visitLineContinuationExpr(expr: Line_continuation): Range {
+    return getTokenRange(expr.token);
   }
   visitYSpacerExpr(expr: YSPACER): Range {
     return [expr.ySpacer, expr.rhythm]

@@ -15,6 +15,7 @@ import {
   Info_line,
   Inline_field,
   KV,
+  Line_continuation,
   Lyric_line,
   Lyric_section,
   Macro_decl,
@@ -34,6 +35,7 @@ import {
   Tuplet,
   User_symbol_decl,
   User_symbol_invocation,
+  Voice_overlay,
   YSPACER,
 } from "../types/Expr2";
 import { ABCContext } from "./Context";
@@ -400,6 +402,8 @@ export function parseMusicCode(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): A
       parseSystemBreak(ctx, elements) ||
       parseGraceGroup(ctx, elements) ||
       parseInlineField(ctx, elements) ||
+      parseLineContinuation(ctx, elements) ||
+      parseVoiceOverlay(ctx, elements) ||
       parseNote(ctx, elements) ||
       parseRest(ctx, elements) ||
       parseSymbol(ctx, elements) ||
@@ -713,6 +717,31 @@ export function parseSymbol(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Symb
   prnt_arr && prnt_arr.push(symbol);
 
   return symbol;
+}
+
+// Parse a line continuation
+export function parseLineContinuation(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Line_continuation | null {
+  if (!ctx.match(TT.LINE_CONT)) {
+    return null;
+  }
+
+  const lineCont = new Line_continuation(ctx.abcContext.generateId(), ctx.previous());
+  prnt_arr && prnt_arr.push(lineCont);
+
+  return lineCont;
+}
+
+// Parse a voice overlay
+export function parseVoiceOverlay(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Voice_overlay | null {
+  if (!ctx.match(TT.VOICE_OVRLAY) && !ctx.match(TT.VOICE)) {
+    return null;
+  }
+
+  const voiceToken = ctx.previous();
+  const voiceOverlay = new Voice_overlay(ctx.abcContext.generateId(), [voiceToken]);
+  prnt_arr && prnt_arr.push(voiceOverlay);
+
+  return voiceOverlay;
 }
 
 function parseInlineField(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Inline_field | null {

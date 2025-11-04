@@ -39,6 +39,7 @@ export interface Visitor<R> {
   visitYSpacerExpr(expr: YSPACER): R;
   visitBeamExpr(expr: Beam): R;
   visitVoiceOverlayExpr(expr: Voice_overlay): R;
+  visitLineContinuationExpr(expr: Line_continuation): R;
   visitTupletExpr(expr: Tuplet): R;
   visitErrorExpr(expr: ErrorExpr): R;
   // New expression visitor methods for unified info line parsing
@@ -385,6 +386,22 @@ export class Voice_overlay extends Expr {
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitVoiceOverlayExpr(this);
+  }
+}
+
+/**
+ * Line continuation expression in tune body.
+ * Syntax: \<space?><comment?><EOL>
+ * Indicates that the current line continues on the next line.
+ */
+export class Line_continuation extends Expr {
+  token: Token;
+  constructor(id: number, token: Token) {
+    super(id);
+    this.token = token;
+  }
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitLineContinuationExpr(this);
   }
 }
 

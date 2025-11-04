@@ -233,6 +233,7 @@ export enum TT {
   INF_CTND, // field continuation
   INFO_STR,
   INF_HDR,
+  LINE_CONT, // line continuation (\)
   INLN_FLD_LFT_BRKT,
   INLN_FLD_RGT_BRKT,
   INVALID, // For invalid tokens that should be preserved

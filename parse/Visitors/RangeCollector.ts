@@ -20,6 +20,7 @@ import {
   Info_line,
   Inline_field,
   KV,
+  Line_continuation,
   Lyric_line,
   Lyric_section,
   Macro_decl,
@@ -247,6 +248,12 @@ export class ExpressionCollector implements Visitor<void> {
   }
 
   visitVoiceOverlayExpr(expr: Voice_overlay): void {
+    if (this.isInRange(expr)) {
+      this.collected.push(expr);
+    }
+  }
+
+  visitLineContinuationExpr(expr: Line_continuation): void {
     if (this.isInRange(expr)) {
       this.collected.push(expr);
     }

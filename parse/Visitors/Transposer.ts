@@ -20,6 +20,7 @@ import {
   Info_line,
   Inline_field,
   KV,
+  Line_continuation,
   Lyric_line,
   Lyric_section,
   Macro_decl,
@@ -247,6 +248,9 @@ export class Transposer implements Visitor<Expr | Token> {
 
   visitVoiceOverlayExpr(expr: Voice_overlay) {
     return expr; // TODO dbl check this
+  }
+  visitLineContinuationExpr(expr: Line_continuation): Line_continuation {
+    return expr;
   }
   visitYSpacerExpr(expr: YSPACER): YSPACER {
     return expr;

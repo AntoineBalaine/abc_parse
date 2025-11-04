@@ -80,6 +80,29 @@ export function ampersand(ctx: Ctx): boolean {
   }
 }
 
+/**
+ * Scans for line continuation in tune body.
+ * Pattern: \<space?><comment?><EOL>
+ * - Backslash followed by optional whitespace (spaces/tabs)
+ * - Optionally followed by a comment (% to end of line)
+ * - Must end with newline
+ *
+ * Note: Only the backslash is captured as the LINE_CONT token.
+ * Spaces, comments, and newlines are scanned separately.
+ */
+export function line_continuation(ctx: Ctx): boolean {
+  // Pattern validates context: \ followed by optional spaces/tabs, optional comment, then newline
+  const pattern = /^\\[ \t]*(%[^\n]*)?\n/;
+  const match = pattern.exec(ctx.source.substring(ctx.current));
+
+  if (!match) return false;
+
+  // Only advance by 1 character (just the backslash)
+  advance(ctx, 1);
+  ctx.push(TT.LINE_CONT);
+  return true;
+}
+
 export function tuplet(ctx: Ctx): boolean {
   const fullMatch = new RegExp(`^${pTuplet.source}`).exec(ctx.source.substring(ctx.current));
   if (!fullMatch) return false;
@@ -465,6 +488,7 @@ export function scanTune(ctx: Ctx): boolean {
     // Try each tokenizer function in order of precedence
     if (scanDirective(ctx)) continue;
     if (comment(ctx)) continue;
+    if (line_continuation(ctx)) continue;
     /** NOTE: macros are off for now */
     // if (macro_decl(ctx)) continue;
     if (user_symbol_decl(ctx)) continue;

@@ -41,6 +41,7 @@ import {
   YSPACER,
   Beam,
   Voice_overlay,
+  Line_continuation,
   Tuplet,
   ErrorExpr,
   KV,
@@ -286,6 +287,10 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
   }
 
   visitVoiceOverlayExpr(expr: Voice_overlay): SemanticData | null {
+    return null;
+  }
+
+  visitLineContinuationExpr(expr: Line_continuation): SemanticData | null {
     return null;
   }
 

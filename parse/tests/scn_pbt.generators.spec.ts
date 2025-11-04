@@ -158,6 +158,39 @@ export const genCommentToken = fc.tuple(
 // Ampersand generator (both forms)
 export const genAmpersand = fc.tuple(fc.constantFrom(new Token(TT.VOICE, "&", sharedContext.generateId())), genWhitespace);
 export const genVoiceOvrlay = fc.constantFrom(new Token(TT.VOICE_OVRLAY, "&\n", sharedContext.generateId()));
+
+// Line continuation generator
+// Pattern: \<space?><comment?><EOL>
+// Note: Only the backslash is captured in the LINE_CONT token.
+// Spaces, comments, and newlines are separate tokens, so we return an array.
+export const genLineContinuation = fc
+  .tuple(
+    fc.option(fc.stringMatching(/^[ \t]+$/), { nil: "" }), // optional spaces/tabs after backslash
+    // Optional comment: single % followed by text that doesn't contain %% anywhere
+    fc.option(fc.stringMatching(/^%[^%\n][^\n]*$/).filter(s => !s.includes("%%")), { nil: "" }),
+    fc.constantFrom("\n") // newline (required for line continuation context)
+  )
+  .map(([spaces, comment, newline]) => {
+    const tokens: Token[] = [];
+
+    // LINE_CONT token - just the backslash
+    tokens.push(new Token(TT.LINE_CONT, "\\", sharedContext.generateId()));
+
+    // Optional whitespace after backslash
+    if (spaces) {
+      tokens.push(new Token(TT.WS, spaces, sharedContext.generateId()));
+    }
+
+    // Optional comment (single % only, not %%)
+    if (comment) {
+      tokens.push(new Token(TT.COMMENT, comment, sharedContext.generateId()));
+    }
+
+    // Required newline
+    tokens.push(new Token(TT.EOL, newline, sharedContext.generateId()));
+
+    return tokens;
+  });
 export const genChord = fc
   .tuple(
     fc.constantFrom(new Token(TT.CHRD_LEFT_BRKT, "[", sharedContext.generateId())),
@@ -304,6 +337,7 @@ export const baseMusicTokenGenerators = [
   // genTie.map((tie) => [tie])
   genAmpersand.map((amp) => amp),
   genVoiceOvrlay.map((ovrlay) => [ovrlay]),
+  genLineContinuation, // Already returns an array of tokens
   genWhitespace.map((ws) => [ws]),
   genTuplet, // Now returns an array of tokens directly
   genSlur.map((slur) => [slur]),

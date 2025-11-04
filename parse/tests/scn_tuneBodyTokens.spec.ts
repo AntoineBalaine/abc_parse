@@ -14,6 +14,7 @@ import {
   decoration,
   grace_grp,
   inline_field,
+  line_continuation,
   note,
   pitch,
   rest,
@@ -760,6 +761,74 @@ describe("scan2", () => {
     it("should return false for non-ampersand", () => {
       const ctx = createCtx("A");
       const result = ampersand(ctx);
+      assert.equal(result, false);
+      assert.equal(ctx.tokens.length, 0);
+    });
+  });
+
+  describe("line_continuation", () => {
+    it("should parse a simple line continuation (backslash + newline)", () => {
+      const ctx = createCtx("\\\n");
+      const result = line_continuation(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.LINE_CONT);
+      assert.equal(ctx.tokens[0].lexeme, "\\");
+    });
+
+    it("should parse line continuation with space", () => {
+      const ctx = createCtx("\\ \n");
+      const result = line_continuation(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.LINE_CONT);
+      assert.equal(ctx.tokens[0].lexeme, "\\");
+    });
+
+    it("should parse line continuation with multiple spaces and tabs", () => {
+      const ctx = createCtx("\\  \t \n");
+      const result = line_continuation(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.LINE_CONT);
+      assert.equal(ctx.tokens[0].lexeme, "\\");
+    });
+
+    it("should parse line continuation with comment", () => {
+      const ctx = createCtx("\\%this is a comment\n");
+      const result = line_continuation(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.LINE_CONT);
+      assert.equal(ctx.tokens[0].lexeme, "\\");
+    });
+
+    it("should parse line continuation with space and comment", () => {
+      const ctx = createCtx("\\ %comment here\n");
+      const result = line_continuation(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.LINE_CONT);
+      assert.equal(ctx.tokens[0].lexeme, "\\");
+    });
+
+    it("should return false for backslash without newline", () => {
+      const ctx = createCtx("\\");
+      const result = line_continuation(ctx);
+      assert.equal(result, false);
+      assert.equal(ctx.tokens.length, 0);
+    });
+
+    it("should return false for backslash with text but no newline", () => {
+      const ctx = createCtx("\\ some text");
+      const result = line_continuation(ctx);
+      assert.equal(result, false);
+      assert.equal(ctx.tokens.length, 0);
+    });
+
+    it("should return false for non-backslash", () => {
+      const ctx = createCtx("A");
+      const result = line_continuation(ctx);
       assert.equal(result, false);
       assert.equal(ctx.tokens.length, 0);
     });

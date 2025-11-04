@@ -14,6 +14,7 @@ import {
   Grace_group,
   Info_line,
   Inline_field,
+  Line_continuation,
   MultiMeasureRest,
   Music_code,
   music_code,
@@ -155,6 +156,9 @@ export function isTune_Body(expr: Expr): expr is Tune_Body {
 }
 export function isVoice_overlay(expr: unknown): expr is Voice_overlay {
   return expr instanceof Voice_overlay;
+}
+export function isLine_continuation(expr: unknown): expr is Line_continuation {
+  return expr instanceof Line_continuation;
 }
 export function isDecoration(expr: unknown): expr is Decoration {
   return expr instanceof Decoration;

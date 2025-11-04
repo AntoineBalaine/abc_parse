@@ -49,6 +49,7 @@ import {
   MultiMeasureRest,
   YSPACER,
   Voice_overlay,
+  Line_continuation,
   Macro_decl,
   Macro_invocation,
   User_symbol_decl,
@@ -689,6 +690,7 @@ export class TuneInterpreter implements Visitor<void> {
   visitYSpacerExpr(expr: YSPACER): void {}
   visitBeamExpr(expr: Beam): void {}
   visitVoiceOverlayExpr(expr: Voice_overlay): void {}
+  visitLineContinuationExpr(expr: Line_continuation): void {}
   visitTupletExpr(expr: Tuplet): void {}
   visitErrorExpr(expr: ErrorExpr): void {}
   visitKV(expr: KV): void {}

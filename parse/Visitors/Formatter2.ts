@@ -20,6 +20,7 @@ import {
   Info_line,
   Inline_field,
   KV,
+  Line_continuation,
   Lyric_line,
   Lyric_section,
   Macro_decl,
@@ -144,6 +145,10 @@ export class AbcFormatter implements Visitor<string> {
 
   visitVoiceOverlayExpr(expr: Voice_overlay) {
     return expr.contents.map((token): string => token.lexeme).join("");
+  }
+
+  visitLineContinuationExpr(expr: Line_continuation) {
+    return expr.token.lexeme;
   }
 
   visitMusicCodeExpr(expr: Music_code): string {
