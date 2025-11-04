@@ -2982,7 +2982,7 @@ K:C
   // Inline Element Tests
   // ============================================================================
 
-  describe.skip('Inline Elements', () => {
+  describe('Inline Elements', () => {
     it('should handle inline key change', () => {
       const abc = `X:1\nK:C\nCDEF[K:G]GAB`;
 

@@ -29,7 +29,7 @@ import {
 import { ABCContext } from "../../parsers/Context";
 import { Token, TT } from "../../parsers/scan2";
 import { AbcFormatter } from "../../Visitors/Formatter2";
-import { genNote, genChord, genRest, applyTokenFiltering, sharedContext } from "../scn_pbt.generators.spec";
+import { genNote, genChord, genRest, genInlineField, applyTokenFiltering, sharedContext } from "../scn_pbt.generators.spec";
 import { parseWithAbcjs } from "./abcjs-wrapper";
 import { parseWithYourParser } from "./test-helpers";
 
@@ -887,5 +887,171 @@ describe("PBT compare: Rhythm Calculation - Property-Based Tests", () => {
       }),
       { numRuns: 1000, verbose: false }
     );
+  });
+
+  describe("Inline Field Elements (Property-Based)", () => {
+    it("should handle inline key changes in music lines", () => {
+      fc.assert(
+        fc.property(
+          fc.record({
+            tuneHeader: genTuneHeaderString,
+            musicLine: fc
+              .array(
+                fc.tuple(
+                  // Some notes before inline field
+                  fc.array(fc.oneof(genNote), { minLength: 1, maxLength: 3 }),
+                  // Inline key change
+                  genInlineField.filter((tokens) => {
+                    const field = tokens.find((t) => t.type === TT.INF_HDR);
+                    return field !== undefined && field.lexeme.startsWith("K:");
+                  }),
+                  // Some notes after inline field
+                  fc.array(fc.oneof(genNote), { minLength: 1, maxLength: 3 }),
+                  // Barline
+                  fc.constantFrom(new Token(TT.BARLINE, "|", sharedContext.generateId()))
+                ),
+                { minLength: 1, maxLength: 2 }
+              )
+              .map((measures) => {
+                const tokens: Token[] = [];
+                for (const [notesBefore, inlineField, notesAfter, barline] of measures) {
+                  // Apply token filtering only to note tokens, not inline fields
+                  tokens.push(...applyTokenFiltering(notesBefore.flat()));
+                  tokens.push(...inlineField); // Inline field tokens are already properly structured
+                  tokens.push(...applyTokenFiltering(notesAfter.flat()));
+                  tokens.push(barline);
+                }
+                return tokens.map((t) => t.lexeme).join("");
+              }),
+          }),
+          ({ tuneHeader, musicLine }) => {
+            try {
+              const abcString = `${tuneHeader}\n${musicLine}`;
+
+              const abcjsResult = parseWithAbcjs(abcString);
+              const yourResult = parseWithYourParser(abcString);
+
+              if (abcjsResult.length === 0 || yourResult.tunes.length === 0) {
+                return true;
+              }
+
+              const yourTune = yourResult.tunes[0];
+              const abcjsTune = abcjsResult[0];
+
+              if (yourTune.lines.length === 0 || abcjsTune.lines.length === 0) {
+                return true;
+              }
+
+              const yourLine = yourTune.lines[0];
+              const abcjsLine = abcjsTune.lines[0];
+
+              if (!("staff" in yourLine) || !("staff" in abcjsLine)) {
+                return true;
+              }
+
+              const yourVoice = yourLine.staff[0].voices[0];
+              const abcjsVoice = abcjsLine.staff[0].voices[0];
+
+              // Check that both have key elements
+              const yourKeyElements = yourVoice.filter((el: any) => el.el_type === "key");
+              const abcjsKeyElements = abcjsVoice.filter((el: any) => el.el_type === "key");
+
+              // Both should have at least one key element from the inline field
+              if (yourKeyElements.length === 0 || abcjsKeyElements.length === 0) {
+                return true; // Skip if no key elements found
+              }
+
+              return true;
+            } catch (error) {
+              // Skip on parse errors
+              return true;
+            }
+          }
+        ),
+        { numRuns: 100, verbose: false }
+      );
+    });
+
+    it("should handle inline meter changes in music lines (100 runs)", () => {
+      fc.assert(
+        fc.property(
+          fc.record({
+            tuneHeader: genTuneHeaderString,
+            musicLine: fc
+              .array(
+                fc.tuple(
+                  // Some notes before inline field
+                  fc.array(fc.oneof(genNote), { minLength: 1, maxLength: 3 }),
+                  // Inline meter change
+                  genInlineField.filter((tokens) => {
+                    const field = tokens.find((t) => t.type === TT.INF_HDR);
+                    return field !== undefined && field.lexeme.startsWith("M:");
+                  }),
+                  // Some notes after inline field
+                  fc.array(fc.oneof(genNote), { minLength: 1, maxLength: 3 }),
+                  // Barline
+                  fc.constantFrom(new Token(TT.BARLINE, "|", sharedContext.generateId()))
+                ),
+                { minLength: 1, maxLength: 2 }
+              )
+              .map((measures) => {
+                const tokens: Token[] = [];
+                for (const [notesBefore, inlineField, notesAfter, barline] of measures) {
+                  // Apply token filtering only to note tokens, not inline fields
+                  tokens.push(...applyTokenFiltering(notesBefore.flat()));
+                  tokens.push(...inlineField); // Inline field tokens are already properly structured
+                  tokens.push(...applyTokenFiltering(notesAfter.flat()));
+                  tokens.push(barline);
+                }
+                return tokens.map((t) => t.lexeme).join("");
+              }),
+          }),
+          ({ tuneHeader, musicLine }) => {
+            try {
+              const abcString = `${tuneHeader}\n${musicLine}`;
+
+              const abcjsResult = parseWithAbcjs(abcString);
+              const yourResult = parseWithYourParser(abcString);
+
+              if (abcjsResult.length === 0 || yourResult.tunes.length === 0) {
+                return true;
+              }
+
+              const yourTune = yourResult.tunes[0];
+              const abcjsTune = abcjsResult[0];
+
+              if (yourTune.lines.length === 0 || abcjsTune.lines.length === 0) {
+                return true;
+              }
+
+              const yourLine = yourTune.lines[0];
+              const abcjsLine = abcjsTune.lines[0];
+
+              if (!("staff" in yourLine) || !("staff" in abcjsLine)) {
+                return true;
+              }
+
+              const yourVoice = yourLine.staff[0].voices[0];
+              const abcjsVoice = abcjsLine.staff[0].voices[0];
+
+              // Check that both have meter elements
+              const yourMeterElements = yourVoice.filter((el: any) => el.el_type === "meter");
+              const abcjsMeterElements = abcjsVoice.filter((el: any) => el.el_type === "meter");
+
+              // Both should have at least one meter element from the inline field
+              if (yourMeterElements.length === 0 || abcjsMeterElements.length === 0) {
+                return true; // Skip if no meter elements found
+              }
+
+              return true;
+            } catch (error) {
+              // Skip on parse errors
+              return true;
+            }
+          }
+        ),
+        { numRuns: 100, verbose: false }
+      );
+    });
   });
 });

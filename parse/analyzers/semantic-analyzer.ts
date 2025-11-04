@@ -186,10 +186,27 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
   }
 
   visitInlineFieldExpr(expr: Inline_field): SemanticData | null {
-    // TODO: Implement inline field analysis
-    // Inline fields are tokenized differently than info lines (INFO_STR tokens)
-    // and require special parsing logic
-    return null;
+    const infoLineKey = expr.field?.lexeme;
+    if (!infoLineKey) {
+      this.report("Inline field missing key", expr);
+      return null;
+    }
+
+    // Inline fields use the same grammar as info lines, so we can reuse the analyzer
+    // Create a temporary Info_line object to reuse the existing analysis logic
+    const tempInfoLine = new Info_line(expr.id, expr.text, undefined, expr.value2);
+    // Set the key to the field for the analyzer
+    (tempInfoLine as any).key = expr.field;
+
+    // Delegate to the info line analyzer
+    const result = analyzeInfoLine(tempInfoLine, this);
+
+    // Store the result in the data map if successful
+    if (result !== null) {
+      this.data.set(expr.id, result);
+    }
+
+    return result;
   }
 
   visitLyricLineExpr(expr: Lyric_line): SemanticData | null {

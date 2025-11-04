@@ -26,6 +26,8 @@ import {
   LyricDivider,
   Decorations,
   ClefProperties,
+  KeyElement,
+  MeterElement,
 } from "../types/abcjs-ast";
 import { InfoLineUnion } from "../types/Expr2";
 import {
@@ -1406,17 +1408,70 @@ export class TuneInterpreter implements Visitor<void> {
     // Store grace notes to be applied to the next note
     voiceState.pendingGraceNotes = graceNotes;
   }
-  visitInlineFieldExpr(expr: Inline_field): void {
-    // TODO: Inline fields need to be analyzed by the SemanticAnalyzer first
-    // Similar to how Info_line expressions are analyzed
-    // Once that's done, we can retrieve the semantic data like this:
-    //   const semanticData = this.state.semanticData.get(expr.id);
-    //   if (!semanticData || !isInfoLineSemanticData(semanticData)) return;
-    //
-    // Then handle it exactly like visitInfoLineExpr does for tune_body context
 
-    // For now, inline fields are not analyzed, so we skip them
-    return;
+  // TODO: create a helper that can be shared with the info lines?
+  visitInlineFieldExpr(expr: Inline_field): void {
+    // Inline fields are analyzed by SemanticAnalyzer and reuse Info_line analysis logic
+    const semanticData = this.state.semanticData.get(expr.id);
+    if (!semanticData || !isInfoLineSemanticData(semanticData)) return;
+
+    // Get character range for the inline field
+    const startChar = expr.field.position;
+    const lastToken = expr.text[expr.text.length - 1];
+    const endChar = lastToken ? lastToken.position + lastToken.lexeme.length : expr.field.position + expr.field.lexeme.length;
+
+    // Inline fields are always in tune_body context (they can only appear in music lines)
+    // Handle the same way as Info_line in tune_body context
+    if (isVoiceInfo(semanticData)) {
+      const { id } = semanticData.data;
+      setCurrentVoice(this.state, id);
+      this.state.currentLine++;
+    } else if (isKeyInfo(semanticData)) {
+      const voice = getCurrentVoice(this.state);
+      if (voice) {
+        voice.currentKey = semanticData.data.keySignature;
+        if (semanticData.data.clef) {
+          voice.currentClef = semanticData.data.clef;
+        }
+      }
+      // Also update tune defaults for future voices
+      this.state.tuneDefaults.key = semanticData.data.keySignature;
+      if (semanticData.data.clef) {
+        this.state.tuneDefaults.clef = semanticData.data.clef;
+      }
+
+      // Create a key element in the voice for rendering
+      const keyElement: KeyElement = {
+        el_type: ElementType.Key,
+        startChar,
+        endChar,
+        root: semanticData.data.keySignature.root,
+        acc: semanticData.data.keySignature.acc,
+        mode: semanticData.data.keySignature.mode,
+        accidentals: semanticData.data.keySignature.accidentals,
+      };
+      this.currentVoiceElements.push(keyElement);
+    } else if (isMeterInfo(semanticData)) {
+      const voice = getCurrentVoice(this.state);
+      if (voice) {
+        voice.currentMeter = semanticData.data;
+      }
+      this.state.tuneDefaults.meter = semanticData.data;
+
+      // Create a meter element in the voice for rendering
+      const meterElement: MeterElement = {
+        el_type: ElementType.Meter,
+        startChar,
+        endChar,
+        type: semanticData.data.type,
+        value: semanticData.data.value,
+      };
+      this.currentVoiceElements.push(meterElement);
+    } else if (isNoteLengthInfo(semanticData)) {
+      this.state.tuneDefaults.noteLength = semanticData.data;
+    } else if (isTempoInfo(semanticData)) {
+      this.state.tuneDefaults.tempo = semanticData.data;
+    }
   }
 
   visitLyricLineExpr(expr: Lyric_line): void {
