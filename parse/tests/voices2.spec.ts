@@ -54,7 +54,138 @@ function parseABC(abc: string): Token[] {
   return Scanner(abc, ctx);
 }
 
+// Import the internal functions for testing (we'll need to export them temporarily)
+import { buildBarMapsFromLines, splitIntoLines } from "../parsers/voices2";
+
 describe("voices2.ts", () => {
+  describe("Helper functions - splitIntoLines", () => {
+    it("should split elements at EOL boundaries", () => {
+      const elements: tune_body_code[] = [
+        createToken(TT.NOTE_LETTER, "C"),
+        createToken(TT.NOTE_LETTER, "D"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.NOTE_LETTER, "E"),
+        createToken(TT.NOTE_LETTER, "F"),
+        createToken(TT.EOL, "\n"),
+      ];
+
+      const lines = splitIntoLines(elements);
+
+      expect(lines).to.have.lengthOf(2);
+      expect(lines[0]).to.have.lengthOf(3); // C, D, EOL
+      expect(lines[1]).to.have.lengthOf(3); // E, F, EOL
+    });
+
+    it("should handle last line without EOL", () => {
+      const elements: tune_body_code[] = [
+        createToken(TT.NOTE_LETTER, "C"),
+        createToken(TT.NOTE_LETTER, "D"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.NOTE_LETTER, "E"),
+      ];
+
+      const lines = splitIntoLines(elements);
+
+      expect(lines).to.have.lengthOf(2);
+      expect(lines[0]).to.have.lengthOf(3); // C, D, EOL
+      expect(lines[1]).to.have.lengthOf(1); // E
+    });
+  });
+
+  describe("Helper functions - buildBarMapsFromLines", () => {
+    it("should map bar numbers for single voice", () => {
+      const sample = `X:1
+K:C
+CD|E|`;
+      const ctx = new ABCContext();
+      const tokens = Scanner(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
+
+      const elements = tune.tune_body?.sequence.flat() || [];
+      const lines = splitIntoLines(elements);
+      const barMap = buildBarMapsFromLines(lines);
+
+      // Should have mapped the music line
+      expect(barMap.size).to.be.greaterThan(0);
+
+      // Find the line with music
+      const musicLineIdx = Array.from(barMap.keys())[0];
+      const range = barMap.get(musicLineIdx);
+
+      expect(range).to.not.be.undefined;
+      // CD| is bar 0, E| increments to bar 1, so we should have bars 0-1
+      expect(range?.start).to.equal(0);
+      expect(range?.end).to.equal(1);
+    });
+
+    it("should track separate bar counters for different voices", () => {
+      const sample = `X:1
+K:A
+V:2
+C|D|
+V:1
+E|F|`;
+      const ctx = new ABCContext();
+      const tokens = Scanner(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
+
+      const elements = tune.tune_body?.sequence.flat() || [];
+      const lines = splitIntoLines(elements);
+      const barMap = buildBarMapsFromLines(lines);
+
+      // Should have mapped both voice lines
+      expect(barMap.size).to.equal(2);
+
+      const ranges = Array.from(barMap.values());
+
+      // Voice 2: bars 0-1
+      const v2Range = ranges.find((r) => r.voice === "2");
+      expect(v2Range).to.not.be.undefined;
+      expect(v2Range?.start).to.equal(0);
+      expect(v2Range?.end).to.equal(1);
+
+      // Voice 1: bars 0-1 (separate counter)
+      const v1Range = ranges.find((r) => r.voice === "1");
+      expect(v1Range).to.not.be.undefined;
+      expect(v1Range?.start).to.equal(0);
+      expect(v1Range?.end).to.equal(1);
+    });
+
+    it("should continue bar count for same voice across lines", () => {
+      const sample = `X:1
+K:A
+V:1
+C|D|
+V:1
+E|F|`;
+      const ctx = new ABCContext();
+      const tokens = Scanner(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
+
+      const elements = tune.tune_body?.sequence.flat() || [];
+      const lines = splitIntoLines(elements);
+      const barMap = buildBarMapsFromLines(lines);
+
+      // Should have mapped both lines
+      expect(barMap.size).to.equal(2);
+
+      const ranges = Array.from(barMap.entries()).sort((a, b) => a[0] - b[0]);
+
+      // First V:1 line: bars 0-1
+      expect(ranges[0][1].voice).to.equal("1");
+      expect(ranges[0][1].start).to.equal(0);
+      expect(ranges[0][1].end).to.equal(1);
+
+      // Second V:1 line: bars 2-3 (continues from first line)
+      expect(ranges[1][1].voice).to.equal("1");
+      expect(ranges[1][1].start).to.equal(2);
+      expect(ranges[1][1].end).to.equal(3);
+    });
+  });
+
   describe("VoiceCtx class", () => {
     it("should initialize with the provided elements and voices", () => {
       const elements: tune_body_code[] = [createToken(TT.NOTE_LETTER, "C"), createToken(TT.NOTE_LETTER, "D")];
@@ -514,6 +645,129 @@ CDEF|GABC|`;
       expect(tune.tune_header.voices).to.have.lengthOf(2);
       expect(tune.tune_header.voices).to.include("1");
       expect(tune.tune_header.voices).to.include("2");
+    });
+
+    it("should group non-sequential voice lines with overlapping bars into same system", () => {
+      const sample = `X:1
+V:1 clef=treble
+V:2 clef=bass
+K:C
+V:2
+CDEF|GABC|defg|abcd|
+V:1
+CDEF|GABC|defg|abcd|`;
+
+      const ctx = new ABCContext();
+      const tokens = Scanner(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
+
+      expect(tune).to.not.be.null;
+      const systems = tune.tune_body?.sequence;
+
+      // Voice 2 plays bars 1-4, Voice 1 plays bars 1-4
+      // These should be in the same system because they overlap (bars 1-4)
+      expect(systems).to.have.lengthOf(1);
+      expect(systems![0].length).to.be.greaterThan(0);
+    });
+
+    it("should group multiple non-sequential overlapping voice lines", () => {
+      const sample = `X:1
+V:1 clef=treble
+V:2 clef=bass
+V:3 clef=alto
+K:C
+V:3
+CDEF|GABC|
+V:1
+CDEF|GABC|
+V:2
+CDEF|GABC|`;
+
+      const ctx = new ABCContext();
+      const tokens = Scanner(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
+
+      expect(tune).to.not.be.null;
+      const systems = tune.tune_body?.sequence;
+
+      // V:3 bars 1-2, V:1 bars 1-2, V:2 bars 1-2
+      // All overlap, so should be one system
+      expect(systems).to.have.lengthOf(1);
+    });
+
+    it("should separate systems when voice lines do not overlap in bar numbers", () => {
+      const sample = `X:1
+V:1 clef=treble
+V:2 clef=bass
+K:C
+V:2
+CDEF|GABC|defg|abcd|
+V:1
+CDEF|GABC|defg|abcd|
+V:2
+efga|bcde|
+V:1
+efga|bcde|`;
+
+      const ctx = new ABCContext();
+      const tokens = Scanner(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
+
+      expect(tune).to.not.be.null;
+      const systems = tune.tune_body?.sequence;
+
+      // System 1: V:2 bars 1-4, V:1 bars 1-4 (overlap)
+      // System 2: V:2 bars 5-6, V:1 bars 5-6 (overlap, but don't overlap with system 1)
+      expect(systems).to.have.lengthOf(2);
+    });
+
+    it("should handle partial bar overlap correctly", () => {
+      const sample = `X:1
+V:1 clef=treble
+V:2 clef=bass
+K:C
+V:1
+CDEF|GABC|defg|abcd|
+V:2
+defg|abcd|efga|bcde|`;
+
+      const ctx = new ABCContext();
+      const tokens = Scanner(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
+
+      expect(tune).to.not.be.null;
+      const systems = tune.tune_body?.sequence;
+
+      // V:1 bars 1-4, V:2 bars 1-4
+      // Bars 1-4 overlap with bars 1-4, so same system
+      expect(systems).to.have.lengthOf(1);
+    });
+
+    it("should handle voice lines starting at different bar numbers with overlap", () => {
+      const sample = `X:1
+V:1 clef=treble
+V:2 clef=bass
+K:C
+V:1
+CDEF|GABC|defg|abcd|efga|bcde|
+V:2
+CDEF|GABC|`;
+
+      const ctx = new ABCContext();
+      const tokens = Scanner(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
+
+      expect(tune).to.not.be.null;
+      const systems = tune.tune_body?.sequence;
+
+      // V:1 bars 1-6, V:2 bars 1-2
+      // Bars 1-2 overlap with 1-6, so same system
+      expect(systems).to.have.lengthOf(1);
     });
   });
 });

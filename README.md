@@ -163,7 +163,6 @@ abc_parse/
 - Improve macro support (`m:`)
 
 ### Formatter
-- Fix voice/system detection (some multi-voice scores align incorrectly)
 - Group tuplets as beams in rules resolution
 - Warn about incomplete voice overlay markers
 - Mark incomplete bars

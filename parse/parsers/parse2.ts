@@ -210,6 +210,7 @@ export function prsTuneHdr(ctx: ParseCtx): Tune_header {
     }
     if (prsInfoLine(ctx, infoLines)) {
       const info_line = infoLines[infoLines.length - 1] as Info_line;
+      if (info_line.key.lexeme.trim() === "K:") break;
       if (info_line.key.lexeme.trim() === "V:") {
         // Extract voice name from value2 (parsed expressions) instead of value (raw tokens)
         let voiceName: string | null = null;

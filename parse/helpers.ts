@@ -315,3 +315,10 @@ export const isEmptyRhythm = (rhythm: Rhythm): boolean => {
 export function isVoiceMarker(node: Expr | Token): node is Info_line | Inline_field {
   return (isInline_field(node) && node.field.lexeme === "V:") || (isInfo_line(node) && node.key.lexeme === "V:");
 }
+
+/**
+ * Check if expression carries time information (music expression)
+ */
+export function isMusicExpr(expr: Expr | Token): boolean {
+  return isBeam(expr) || isNote(expr) || isRest(expr) || isChord(expr) || isYSPACER(expr) || isMultiMeasureRest(expr);
+}

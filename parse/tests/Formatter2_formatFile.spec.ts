@@ -118,7 +118,7 @@ Some text between tunes
 X:2
 T:Second Tune with Comments
 K:G
-%% Comment in tune
+% Comment in tune
 DEFG|ABCD|`;
 
       const expected = `%%File header
@@ -134,7 +134,7 @@ Some text between tunes
 X:2
 T:Second Tune with Comments
 K:G
-%%Comment in tune
+% Comment in tune
 DEFG | ABCD |`;
 
       const ast = parseFile(input, ctx);
