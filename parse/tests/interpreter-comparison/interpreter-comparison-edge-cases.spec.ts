@@ -36,13 +36,13 @@ describe("Interpreter Comparison - Edge Cases from PBT", () => {
         return;
       }
 
-      if (!ourTune.lines || ourTune.lines.length === 0) {
+      if (!ourTune.systems || ourTune.systems.length === 0) {
         console.log("Our parser has no lines");
         return;
       }
 
       const abcjsLine = abcjsTune.lines[0];
-      const ourLine = ourTune.lines[0];
+      const ourLine = ourTune.systems[0];
 
       console.log("\nabcjs line:", JSON.stringify(abcjsLine, null, 2));
       console.log("\nOur line:", JSON.stringify(ourLine, null, 2));
@@ -97,13 +97,13 @@ describe("Interpreter Comparison - Edge Cases from PBT", () => {
         return;
       }
 
-      if (!ourTune.lines || ourTune.lines.length === 0) {
+      if (!ourTune.systems || ourTune.systems.length === 0) {
         console.log("Our parser has no lines");
         return;
       }
 
       const abcjsLine = abcjsTune.lines[0];
-      const ourLine = ourTune.lines[0];
+      const ourLine = ourTune.systems[0];
 
       console.log("\nabcjs line:", JSON.stringify(abcjsLine, null, 2));
       console.log("\nOur line:", JSON.stringify(ourLine, null, 2));

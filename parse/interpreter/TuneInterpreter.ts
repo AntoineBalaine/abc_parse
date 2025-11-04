@@ -12,7 +12,7 @@ import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import {
   Tune,
-  MusicLine,
+  StaffSystem,
   Staff,
   VoiceElement,
   NoteElement,
@@ -98,11 +98,10 @@ import {
   createFileDefaults,
   createInterpreterState,
   getCurrentVoice,
-  setCurrentVoice,
-  addVoice,
   nextMeasure,
   TuneDefaults,
   VoiceState,
+  applyVoice,
 } from "./InterpreterState";
 
 // ============================================================================
@@ -743,9 +742,6 @@ export class TuneInterpreter implements Visitor<void> {
   fileDefaults!: FileDefaults;
   tunes: Tune[] = [];
 
-  // Working state for body processing
-  currentVoiceElements: VoiceElement[] = [];
-
   // Processing context tracking
   processingContext: "file_header" | "tune_header" | "tune_body" = "file_header";
 
@@ -775,6 +771,30 @@ export class TuneInterpreter implements Visitor<void> {
   private toAbsolutePosition(line: number, character: number): number {
     if (line >= this.lineOffsets.length) return character;
     return this.lineOffsets[line] + character;
+  }
+
+  /**
+   * Pushes an element directly to the current voice's output location.
+   *
+   * This uses the cached write location (currentSystemNum, currentStaffNum, currentVoiceIndex)
+   * that was set by the last voice switch via handleVoiceDirective().
+   */
+  private pushElement(element: VoiceElement): void {
+    const { currentSystemNum, currentStaffNum, currentVoiceIndex } = this.state;
+
+    // Write directly to the final output structure
+    const system = this.state.tune.systems[currentSystemNum] as StaffSystem;
+    system.staff[currentStaffNum].voices[currentVoiceIndex].push(element);
+  }
+
+  /**
+   * Gets the current voice's element array for operations that need to read/modify it.
+   * Use sparingly - prefer pushElement() for adding elements.
+   */
+  private getCurrentVoiceElements(): VoiceElement[] {
+    const { currentSystemNum, currentStaffNum, currentVoiceIndex } = this.state;
+    const system = this.state.tune.systems[currentSystemNum] as StaffSystem;
+    return system.staff[currentStaffNum].voices[currentVoiceIndex];
   }
 
   // ============================================================================
@@ -852,10 +872,9 @@ export class TuneInterpreter implements Visitor<void> {
     this.processingContext = "tune_header";
     expr.tune_header.accept(this);
 
-    // Ensure at least one voice exists
+    // For single-voice tunes without V: directives, create a default voice
     if (this.state.voices.size === 0) {
-      addVoice(this.state, "default", {});
-      setCurrentVoice(this.state, "default");
+      applyVoice(this.state, { id: "default", properties: {} });
     }
 
     // Visit tune body if present
@@ -879,23 +898,19 @@ export class TuneInterpreter implements Visitor<void> {
     // Set processing context
     this.processingContext = "tune_body";
 
-    // Process each system (line of music)
-    for (const system of expr.sequence) {
-      this.currentVoiceElements = [];
-
-      // Visit each element in the system
-      for (const element of system) {
+    // Process each ABC text line (not systems - voices control system creation now)
+    for (const abcLine of expr.sequence) {
+      // Visit each element in the ABC text line
+      for (const element of abcLine) {
         if (element instanceof Token) {
           continue; // Skip plain tokens
         }
         element.accept(this);
       }
-
-      // Create music line if we have elements
-      if (this.currentVoiceElements.length > 0) {
-        this.createMusicLine();
-      }
     }
+
+    // Note: No createMusicLine() call needed - elements are written directly
+    // to tune.systems via the multi-staff system
   }
 
   visitInfoLineExpr(expr: Info_line): void {
@@ -905,9 +920,7 @@ export class TuneInterpreter implements Visitor<void> {
     if (this.processingContext === "tune_body") {
       // Inline info line in tune body - can change voice, key, meter, tempo, note length, clef
       if (isVoiceInfo(semanticData)) {
-        const { id } = semanticData.data;
-        setCurrentVoice(this.state, id);
-        this.state.currentLine++;
+        applyVoice(this.state, semanticData.data);
       } else if (isKeyInfo(semanticData)) {
         const voice = getCurrentVoice(this.state);
         if (voice) {
@@ -945,9 +958,7 @@ export class TuneInterpreter implements Visitor<void> {
 
       // Handle voice separately since it requires state manipulation
       if (isVoiceInfo(semanticData)) {
-        const { id, properties } = semanticData.data;
-        addVoice(this.state, id, properties);
-        setCurrentVoice(this.state, id);
+        applyVoice(this.state, semanticData.data);
       }
     }
   }
@@ -989,9 +1000,10 @@ export class TuneInterpreter implements Visitor<void> {
               voiceState.pendingStartSlurs.push(label);
             } else if (content.lexeme === ")") {
               // End slur: pop a label from start slurs and retroactively add to last note
-              if (voiceState.pendingStartSlurs.length > 0 && this.currentVoiceElements.length > 0) {
+              const elements = this.getCurrentVoiceElements();
+              if (voiceState.pendingStartSlurs.length > 0 && elements.length > 0) {
                 const label = voiceState.pendingStartSlurs.pop()!;
-                const lastElement = this.currentVoiceElements[this.currentVoiceElements.length - 1];
+                const lastElement = elements[elements.length - 1];
 
                 // Add endSlur to the last note's first pitch
                 if ("pitches" in lastElement && lastElement.pitches && lastElement.pitches.length > 0) {
@@ -1057,7 +1069,7 @@ export class TuneInterpreter implements Visitor<void> {
       pitches: [pitch],
     };
 
-    this.currentVoiceElements.push(element);
+    this.pushElement(element);
 
     // Process beaming for this note (voiceState already retrieved above)
     if (voiceState) {
@@ -1153,7 +1165,7 @@ export class TuneInterpreter implements Visitor<void> {
       rest: { type: restType },
     };
 
-    this.currentVoiceElements.push(element);
+    this.pushElement(element);
 
     // Process beaming for this rest (beams break on rests, voiceState already retrieved above)
     if (voiceState) {
@@ -1211,7 +1223,7 @@ export class TuneInterpreter implements Visitor<void> {
       pitches,
     };
 
-    this.currentVoiceElements.push(element);
+    this.pushElement(element);
 
     // Process beaming for this chord (voiceState already retrieved above)
     // TODO: this is a lot of duplicated code, let's consolidate into a function.
@@ -1281,7 +1293,7 @@ export class TuneInterpreter implements Visitor<void> {
       type: barType,
     };
 
-    this.currentVoiceElements.push(element);
+    this.pushElement(element);
 
     // Clear beams and broken rhythm at barlines
     const voiceState = this.state.voices.get(this.state.currentVoice);
@@ -1423,9 +1435,7 @@ export class TuneInterpreter implements Visitor<void> {
     // Inline fields are always in tune_body context (they can only appear in music lines)
     // Handle the same way as Info_line in tune_body context
     if (isVoiceInfo(semanticData)) {
-      const { id } = semanticData.data;
-      setCurrentVoice(this.state, id);
-      this.state.currentLine++;
+      applyVoice(this.state, semanticData.data);
     } else if (isKeyInfo(semanticData)) {
       const voice = getCurrentVoice(this.state);
       if (voice) {
@@ -1450,7 +1460,7 @@ export class TuneInterpreter implements Visitor<void> {
         mode: semanticData.data.keySignature.mode,
         accidentals: semanticData.data.keySignature.accidentals,
       };
-      this.currentVoiceElements.push(keyElement);
+      this.pushElement(keyElement);
     } else if (isMeterInfo(semanticData)) {
       const voice = getCurrentVoice(this.state);
       if (voice) {
@@ -1466,7 +1476,7 @@ export class TuneInterpreter implements Visitor<void> {
         type: semanticData.data.type,
         value: semanticData.data.value,
       };
-      this.currentVoiceElements.push(meterElement);
+      this.pushElement(meterElement);
     } else if (isNoteLengthInfo(semanticData)) {
       this.state.tuneDefaults.noteLength = semanticData.data;
     } else if (isTempoInfo(semanticData)) {
@@ -1510,8 +1520,9 @@ export class TuneInterpreter implements Visitor<void> {
     }
 
     // Apply lyrics to notes in the current voice
-    // Go backwards through the current voice elements to find notes
-    const notesWithPitches = this.currentVoiceElements.filter((el) => "pitches" in el && el.pitches && el.pitches.length > 0) as NoteElement[];
+    // Go through the current voice elements to find notes
+    const elements = this.getCurrentVoiceElements();
+    const notesWithPitches = elements.filter((el) => "pitches" in el && el.pitches && el.pitches.length > 0) as NoteElement[];
 
     // Map lyrics to notes (one lyric per note)
     for (let i = 0; i < Math.min(lyrics.length, notesWithPitches.length); i++) {
@@ -1550,7 +1561,7 @@ export class TuneInterpreter implements Visitor<void> {
       rest: { type: restType },
     };
 
-    this.currentVoiceElements.push(element);
+    this.pushElement(element);
   }
   visitSymbolExpr(expr: Symbol): void {}
   visitUserSymbolDeclExpr(expr: User_symbol_decl): void {}
@@ -1703,35 +1714,21 @@ export class TuneInterpreter implements Visitor<void> {
     return total;
   }
 
-  createMusicLine(): void {
-    const voice = getCurrentVoice(this.state);
-    if (!voice) return;
-
-    const staff: Staff = {
-      clef: voice.currentClef,
-      key: voice.currentKey,
-      meter: voice.currentMeter,
-      workingClef: voice.currentClef,
-      voices: [this.currentVoiceElements],
-    };
-
-    const musicLine: MusicLine = {
-      staff: [staff],
-    };
-
-    this.state.tune.lines.push(musicLine);
-  }
-
   finalizeTune(): void {
-    this.state.tune.staffNum = this.countStaffs();
+    // Use the tracked staff count from the multi-staff system
+    this.state.tune.staffNum = this.state.staves.length;
     this.state.tune.voiceNum = this.state.voices.size;
-    this.state.tune.lineNum = this.state.tune.lines.length;
+    this.state.tune.lineNum = this.state.tune.systems.length;
     // Note: metaText and formatting were already initialized from fileDefaults in visitTuneExpr
   }
 
+  /**
+   * Legacy method - kept for backward compatibility but no longer used.
+   * Staff count is now tracked in state.staves.
+   */
   countStaffs(): number {
     let max = 0;
-    for (const line of this.state.tune.lines) {
+    for (const line of this.state.tune.systems) {
       if ("staff" in line) {
         max = Math.max(max, line.staff.length);
       }

@@ -4,14 +4,9 @@
  * Bidirectional type converters between abcjs's raw format and our idealized format
  */
 
-import { Meter, Tune, MetaText, MusicLine } from "../../types/abcjs-ast";
+import { Meter, Tune, MetaText, StaffSystem } from "../../types/abcjs-ast";
 import { IRational, createRational } from "../../Visitors/fmt2/rational";
-import {
-  AbcjsRawTune,
-  AbcjsRawMeter,
-  AbcjsRawMeterValue,
-  AbcjsRawMetaText,
-} from "./abcjs-wrapper";
+import { AbcjsRawTune, AbcjsRawMeter, AbcjsRawMeterValue, AbcjsRawMetaText } from "./abcjs-wrapper";
 
 // ============================================================================
 // Constants
@@ -36,12 +31,12 @@ export function floatToRational(n: number): IRational {
 
   // Common note durations
   const commonDurations: [number, IRational][] = [
-    [1, createRational(1, 1)],     // whole note
-    [0.5, createRational(1, 2)],   // half note
-    [0.25, createRational(1, 4)],  // quarter note
+    [1, createRational(1, 1)], // whole note
+    [0.5, createRational(1, 2)], // half note
+    [0.25, createRational(1, 4)], // quarter note
     [0.125, createRational(1, 8)], // eighth note
     [0.0625, createRational(1, 16)], // sixteenth note
-    [0.75, createRational(3, 4)],  // dotted half
+    [0.75, createRational(3, 4)], // dotted half
     [0.375, createRational(3, 8)], // dotted quarter
     [0.1875, createRational(3, 16)], // dotted eighth
   ];
@@ -83,8 +78,8 @@ export function rationalToFloat(r: IRational): number {
  * Check if two durations are approximately equal
  */
 export function durationsEqual(a: number | IRational, b: number | IRational): boolean {
-  const aFloat = typeof a === 'number' ? a : rationalToFloat(a);
-  const bFloat = typeof b === 'number' ? b : rationalToFloat(b);
+  const aFloat = typeof a === "number" ? a : rationalToFloat(a);
+  const bFloat = typeof b === "number" ? b : rationalToFloat(b);
   return Math.abs(aFloat - bFloat) < FLOAT_TOLERANCE;
 }
 
@@ -105,7 +100,7 @@ export function convertAbcjsMeterValue(abcjsValue: AbcjsRawMeterValue): IRationa
  * Convert abcjs meter to our format
  */
 export function convertAbcjsMeter(abcjsMeter: AbcjsRawMeter): Meter {
-  if (abcjsMeter.type !== 'specified' || !abcjsMeter.value) {
+  if (abcjsMeter.type !== "specified" || !abcjsMeter.value) {
     return {
       type: abcjsMeter.type as any,
     } as Meter;
@@ -115,7 +110,7 @@ export function convertAbcjsMeter(abcjsMeter: AbcjsRawMeter): Meter {
   const values = abcjsMeter.value.map(convertAbcjsMeterValue);
 
   return {
-    type: 'specified',
+    type: "specified",
     value: values,
   } as Meter;
 }
@@ -124,7 +119,7 @@ export function convertAbcjsMeter(abcjsMeter: AbcjsRawMeter): Meter {
  * Convert our meter to abcjs format
  */
 export function convertMeterToAbcjs(meter: Meter): AbcjsRawMeter {
-  if (meter.type !== 'specified' || !meter.value) {
+  if (meter.type !== "specified" || !meter.value) {
     return {
       type: meter.type,
     };
@@ -136,7 +131,7 @@ export function convertMeterToAbcjs(meter: Meter): AbcjsRawMeter {
   }));
 
   return {
-    type: 'specified',
+    type: "specified",
     value: values,
   };
 }
@@ -153,7 +148,7 @@ export function convertAbcjsMetaText(abcjsMetaText: AbcjsRawMetaText): MetaText 
   const metaText: MetaText = {};
 
   // Handle string or array fields
-  const stringOrArrayFields = ['title', 'composer', 'author'] as const;
+  const stringOrArrayFields = ["title", "composer", "author"] as const;
   for (const field of stringOrArrayFields) {
     if (abcjsMetaText[field]) {
       const value = abcjsMetaText[field];
@@ -162,7 +157,20 @@ export function convertAbcjsMetaText(abcjsMetaText: AbcjsRawMetaText): MetaText 
   }
 
   // Handle simple string fields
-  const stringFields = ['rhythm', 'origin', 'book', 'source', 'discography', 'notes', 'transcription', 'abc-copyright', 'abc-creator', 'abc-edited-by', 'partOrder', 'unalignedWords'] as const;
+  const stringFields = [
+    "rhythm",
+    "origin",
+    "book",
+    "source",
+    "discography",
+    "notes",
+    "transcription",
+    "abc-copyright",
+    "abc-creator",
+    "abc-edited-by",
+    "partOrder",
+    "unalignedWords",
+  ] as const;
   for (const field of stringFields) {
     if (abcjsMetaText[field]) {
       metaText[field] = abcjsMetaText[field];
@@ -198,9 +206,9 @@ export function abcjsToOurFormat(abcjsTune: AbcjsRawTune): Tune {
 
   // Convert lines (preserve structure for now)
   const lines = abcjsTune.lines.map((line: any) => {
-    if ('staff' in line) {
+    if ("staff" in line) {
       // Convert music line
-      const musicLine: MusicLine = {
+      const musicLine: StaffSystem = {
         staff: line.staff.map((staff: any) => ({
           ...staff,
           meter: staff.meter ? convertAbcjsMeter(staff.meter) : undefined,
@@ -217,7 +225,7 @@ export function abcjsToOurFormat(abcjsTune: AbcjsRawTune): Tune {
     metaText,
     metaTextInfo: abcjsTune.metaTextInfo,
     formatting: abcjsTune.formatting,
-    lines: lines as any,
+    systems: lines as any,
     staffNum: abcjsTune.staffNum,
     voiceNum: abcjsTune.voiceNum,
     lineNum: abcjsTune.lineNum,
@@ -231,9 +239,9 @@ export function abcjsToOurFormat(abcjsTune: AbcjsRawTune): Tune {
     getTotalBeats: () => 0,
     millisecondsPerMeasure: () => 1000,
     getBeatsPerMeasure: () => 4,
-    getMeter: () => ({ type: 0 } as any),
+    getMeter: () => ({ type: 0 }) as any,
     getMeterFraction: () => createRational(4, 4),
-    getKeySignature: () => ({} as any),
+    getKeySignature: () => ({}) as any,
     getElementFromChar: () => null,
     getBpm: () => 120,
     setTiming: () => [],
@@ -254,8 +262,8 @@ export function ourToAbcjsFormat(ourTune: Tune): AbcjsRawTune {
   const metaText = convertMetaTextToAbcjs(ourTune.metaText);
 
   // Convert lines (preserve structure for now)
-  const lines = ourTune.lines.map((line: any) => {
-    if ('staff' in line) {
+  const lines = ourTune.systems.map((line: any) => {
+    if ("staff" in line) {
       // Convert music line
       return {
         staff: line.staff.map((staff: any) => ({

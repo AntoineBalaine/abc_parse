@@ -575,7 +575,7 @@ export interface Staff {
 // Line Types
 // ============================================================================
 
-export interface MusicLine {
+export interface StaffSystem {
   staff: Staff[];
   vskip?: number;
 }
@@ -609,7 +609,7 @@ export interface NewPageLine {
 /**
  * Where are subtitleLines defined? and text lines, etc?
  */
-export type Line = MusicLine | SubtitleLine | TextLine | SeparatorLine | NewPageLine;
+export type USystem = StaffSystem | SubtitleLine | TextLine | SeparatorLine | NewPageLine;
 
 // ============================================================================
 // Main Tune Structure
@@ -649,7 +649,7 @@ export interface Tune {
   metaTextInfo: { [key: string]: CharRange }; // for these references, we probably will need to use the
   // range visitor or something similar, which can reduce expressions and find out their ranges.
   formatting: { [key: string]: any }; // I assume this comes from stylesheet directives.
-  lines: Line[]; // for each of these, we need to find where they come from.
+  systems: USystem[]; // for each of these, we need to find where they come from.
   staffNum: number;
   voiceNum: number;
   lineNum: number;
@@ -691,7 +691,7 @@ export interface ParseResult {
 export type MusicElement = VoiceElement;
 export type Voice = VoiceElement[];
 export type StaffArray = Staff[];
-export type LineArray = Line[];
+export type LineArray = USystem[];
 
 // ============================================================================
 // Type Guards
@@ -721,15 +721,15 @@ export function isTempoElement(element: VoiceElement): element is TempoElement {
   return element.el_type === ElementType.Tempo;
 }
 
-export function isMusicLine(line: Line): line is MusicLine {
+export function isMusicLine(line: USystem): line is StaffSystem {
   return "staff" in line;
 }
 
-export function isTextLine(line: Line): line is TextLine {
+export function isTextLine(line: USystem): line is TextLine {
   return "text" in line;
 }
 
-export function isSubtitleLine(line: Line): line is SubtitleLine {
+export function isSubtitleLine(line: USystem): line is SubtitleLine {
   return "subtitle" in line;
 }
 

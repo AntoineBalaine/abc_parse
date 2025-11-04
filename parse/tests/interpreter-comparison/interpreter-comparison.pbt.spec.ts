@@ -426,12 +426,12 @@ describe("PBT compare: Music Code - Property-Based", () => {
           const ourTune = ourResult.tunes[0];
 
           // Skip if no music lines
-          if (!abcjsTune.lines || abcjsTune.lines.length === 0 || !ourTune.lines || ourTune.lines.length === 0) {
+          if (!abcjsTune.lines || abcjsTune.lines.length === 0 || !ourTune.systems || ourTune.systems.length === 0) {
             return true;
           }
 
           const abcjsLine = abcjsTune.lines[0];
-          const ourLine = ourTune.lines[0];
+          const ourLine = ourTune.systems[0];
 
           // Type narrow to MusicLine
           if (!("staff" in abcjsLine) || !("staff" in ourLine)) {
@@ -544,12 +544,12 @@ describe("PBT compare: Music Code - Property-Based", () => {
           const abcjsTune = abcjsResult[0];
           const ourTune = ourResult.tunes[0];
 
-          if (!abcjsTune.lines || abcjsTune.lines.length === 0 || !ourTune.lines || ourTune.lines.length === 0) {
+          if (!abcjsTune.lines || abcjsTune.lines.length === 0 || !ourTune.systems || ourTune.systems.length === 0) {
             return true;
           }
 
           const abcjsLine = abcjsTune.lines[0];
-          const ourLine = ourTune.lines[0];
+          const ourLine = ourTune.systems[0];
 
           if (!("staff" in abcjsLine) || !("staff" in ourLine)) {
             return true;
@@ -618,12 +618,12 @@ describe("PBT compare: Music Code - Property-Based", () => {
           const abcjsTune = abcjsResult[0];
           const ourTune = ourResult.tunes[0];
 
-          if (!abcjsTune.lines || abcjsTune.lines.length === 0 || !ourTune.lines || ourTune.lines.length === 0) {
+          if (!abcjsTune.lines || abcjsTune.lines.length === 0 || !ourTune.systems || ourTune.systems.length === 0) {
             return true;
           }
 
           const abcjsLine = abcjsTune.lines[0];
-          const ourLine = ourTune.lines[0];
+          const ourLine = ourTune.systems[0];
 
           if (!("staff" in abcjsLine) || !("staff" in ourLine)) {
             return true;
@@ -704,11 +704,11 @@ describe("PBT compare: Rhythm Calculation - Property-Based Tests", () => {
             const abcjsTune = abcjsResult[0];
 
             // Check if we have music lines
-            if (yourTune.lines.length === 0 || abcjsTune.lines.length === 0) {
+            if (yourTune.systems.length === 0 || abcjsTune.lines.length === 0) {
               return true;
             }
 
-            const yourLine = yourTune.lines[0];
+            const yourLine = yourTune.systems[0];
             const abcjsLine = abcjsTune.lines[0];
 
             if (!("staff" in yourLine) || !("staff" in abcjsLine)) {
@@ -780,11 +780,11 @@ describe("PBT compare: Rhythm Calculation - Property-Based Tests", () => {
           const yourTune = yourResult.tunes[0];
           const abcjsTune = abcjsResult[0];
 
-          if (yourTune.lines.length === 0 || abcjsTune.lines.length === 0) {
+          if (yourTune.systems.length === 0 || abcjsTune.lines.length === 0) {
             return true;
           }
 
-          const yourLine = yourTune.lines[0];
+          const yourLine = yourTune.systems[0];
           const abcjsLine = abcjsTune.lines[0];
 
           if (!("staff" in yourLine) || !("staff" in abcjsLine)) {
@@ -850,11 +850,11 @@ describe("PBT compare: Rhythm Calculation - Property-Based Tests", () => {
           const yourTune = yourResult.tunes[0];
           const abcjsTune = abcjsResult[0];
 
-          if (yourTune.lines.length === 0 || abcjsTune.lines.length === 0) {
+          if (yourTune.systems.length === 0 || abcjsTune.lines.length === 0) {
             return true;
           }
 
-          const yourLine = yourTune.lines[0];
+          const yourLine = yourTune.systems[0];
           const abcjsLine = abcjsTune.lines[0];
 
           if (!("staff" in yourLine) || !("staff" in abcjsLine)) {
@@ -938,11 +938,11 @@ describe("PBT compare: Rhythm Calculation - Property-Based Tests", () => {
               const yourTune = yourResult.tunes[0];
               const abcjsTune = abcjsResult[0];
 
-              if (yourTune.lines.length === 0 || abcjsTune.lines.length === 0) {
+              if (yourTune.systems.length === 0 || abcjsTune.lines.length === 0) {
                 return true;
               }
 
-              const yourLine = yourTune.lines[0];
+              const yourLine = yourTune.systems[0];
               const abcjsLine = abcjsTune.lines[0];
 
               if (!("staff" in yourLine) || !("staff" in abcjsLine)) {
@@ -1020,11 +1020,11 @@ describe("PBT compare: Rhythm Calculation - Property-Based Tests", () => {
               const yourTune = yourResult.tunes[0];
               const abcjsTune = abcjsResult[0];
 
-              if (yourTune.lines.length === 0 || abcjsTune.lines.length === 0) {
+              if (yourTune.systems.length === 0 || abcjsTune.lines.length === 0) {
                 return true;
               }
 
-              const yourLine = yourTune.lines[0];
+              const yourLine = yourTune.systems[0];
               const abcjsLine = abcjsTune.lines[0];
 
               if (!("staff" in yourLine) || !("staff" in abcjsLine)) {

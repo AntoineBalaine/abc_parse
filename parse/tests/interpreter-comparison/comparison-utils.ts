@@ -16,7 +16,7 @@ export interface Difference {
   path: string;
   yours: any;
   abcjs: any;
-  severity: 'critical' | 'minor' | 'type-mismatch';
+  severity: "critical" | "minor" | "type-mismatch";
   message?: string;
 }
 
@@ -84,14 +84,14 @@ export function normalizeTune(tune: Tune | AbcjsRawTune): NormalizedTune {
 
   // Extract comparable fields
   return {
-    version: ourFormatTune.version || '2.1',
-    media: typeof ourFormatTune.media === 'string' ? ourFormatTune.media : 'screen',
+    version: ourFormatTune.version || "2.1",
+    media: typeof ourFormatTune.media === "string" ? ourFormatTune.media : "screen",
     metaText: normalizeMetaText(ourFormatTune.metaText),
     formatting: ourFormatTune.formatting || {},
     staffNum: ourFormatTune.staffNum || 0,
     voiceNum: ourFormatTune.voiceNum || 0,
     lineNum: ourFormatTune.lineNum || 0,
-    lines: ourFormatTune.lines || [],
+    lines: ourFormatTune.systems || [],
   };
 }
 
@@ -106,7 +106,7 @@ function normalizeMetaText(metaText: MetaText): Record<string, any> {
 
     // Normalize string/array fields to string for comparison
     if (Array.isArray(value)) {
-      normalized[key] = Array.isArray(value[0]) ? value[0] : value.join(' ');
+      normalized[key] = Array.isArray(value[0]) ? value[0] : value.join(" ");
     } else {
       normalized[key] = value;
     }
@@ -121,7 +121,7 @@ function normalizeMetaText(metaText: MetaText): Record<string, any> {
 function isAbcjsRawTune(tune: any): tune is AbcjsRawTune {
   // Check if it has abcjs-specific structure
   // For now, assume all tunes without our specific methods are raw
-  return !tune.getBeatLength || typeof tune.getBeatLength !== 'function';
+  return !tune.getBeatLength || typeof tune.getBeatLength !== "function";
 }
 
 // ============================================================================
@@ -131,11 +131,7 @@ function isAbcjsRawTune(tune: any): tune is AbcjsRawTune {
 /**
  * Compare two tunes and return detailed comparison result
  */
-export function compareTunes(
-  yourTune: Tune,
-  abcjsTune: AbcjsRawTune,
-  options: { strict?: boolean } = {}
-): ComparisonResult {
+export function compareTunes(yourTune: Tune, abcjsTune: AbcjsRawTune, options: { strict?: boolean } = {}): ComparisonResult {
   const differences: Difference[] = [];
   const typeDiscrepancies: TypeDiscrepancy[] = [];
 
@@ -144,11 +140,11 @@ export function compareTunes(
   const theirs = normalizeTune(abcjsTune);
 
   // Compare basic fields
-  compareField(differences, 'version', yours.version, theirs.version, options.strict);
-  compareField(differences, 'media', yours.media, theirs.media, options.strict);
-  compareField(differences, 'staffNum', yours.staffNum, theirs.staffNum, true);
-  compareField(differences, 'voiceNum', yours.voiceNum, theirs.voiceNum, true);
-  compareField(differences, 'lineNum', yours.lineNum, theirs.lineNum, true);
+  compareField(differences, "version", yours.version, theirs.version, options.strict);
+  compareField(differences, "media", yours.media, theirs.media, options.strict);
+  compareField(differences, "staffNum", yours.staffNum, theirs.staffNum, true);
+  compareField(differences, "voiceNum", yours.voiceNum, theirs.voiceNum, true);
+  compareField(differences, "lineNum", yours.lineNum, theirs.lineNum, true);
 
   // Compare metaText
   compareMetaText(differences, yours.metaText, theirs.metaText, options.strict);
@@ -176,21 +172,15 @@ export function compareTunes(
 /**
  * Compare a single field
  */
-function compareField(
-  differences: Difference[],
-  path: string,
-  yours: any,
-  theirs: any,
-  strict: boolean = false
-): void {
+function compareField(differences: Difference[], path: string, yours: any, theirs: any, strict: boolean = false): void {
   // Handle numbers with tolerance
-  if (typeof yours === 'number' && typeof theirs === 'number') {
+  if (typeof yours === "number" && typeof theirs === "number") {
     if (Math.abs(yours - theirs) > FLOAT_TOLERANCE) {
       differences.push({
         path,
         yours,
         abcjs: theirs,
-        severity: strict ? 'critical' : 'minor',
+        severity: strict ? "critical" : "minor",
         message: `Numeric values differ: ${yours} vs ${theirs}`,
       });
     }
@@ -198,13 +188,13 @@ function compareField(
   }
 
   // Handle strings
-  if (typeof yours === 'string' && typeof theirs === 'string') {
+  if (typeof yours === "string" && typeof theirs === "string") {
     if (yours !== theirs) {
       differences.push({
         path,
         yours,
         abcjs: theirs,
-        severity: strict ? 'critical' : 'minor',
+        severity: strict ? "critical" : "minor",
         message: `String values differ`,
       });
     }
@@ -217,7 +207,7 @@ function compareField(
       path,
       yours,
       abcjs: theirs,
-      severity: 'type-mismatch',
+      severity: "type-mismatch",
       message: `Type mismatch: ${typeof yours} vs ${typeof theirs}`,
     });
     return;
@@ -231,7 +221,7 @@ function compareField(
       path,
       yours,
       abcjs: theirs,
-      severity: 'minor',
+      severity: "minor",
       message: `One value is undefined/null`,
     });
   }
@@ -240,12 +230,7 @@ function compareField(
 /**
  * Compare metaText objects
  */
-function compareMetaText(
-  differences: Difference[],
-  yours: Record<string, any>,
-  theirs: Record<string, any>,
-  strict: boolean = false
-): void {
+function compareMetaText(differences: Difference[], yours: Record<string, any>, theirs: Record<string, any>, strict: boolean = false): void {
   // Get all keys from both objects
   const allKeys = new Set([...Object.keys(yours), ...Object.keys(theirs)]);
 
@@ -257,12 +242,7 @@ function compareMetaText(
 /**
  * Compare formatting objects (shallow comparison for now)
  */
-function compareFormatting(
-  differences: Difference[],
-  yours: Record<string, any>,
-  theirs: Record<string, any>,
-  strict: boolean = false
-): void {
+function compareFormatting(differences: Difference[], yours: Record<string, any>, theirs: Record<string, any>, strict: boolean = false): void {
   const yourKeys = Object.keys(yours);
   const theirKeys = Object.keys(theirs);
 
@@ -272,21 +252,21 @@ function compareFormatting(
 
   if (yourOnly.length > 0) {
     differences.push({
-      path: 'formatting',
+      path: "formatting",
       yours: yourOnly,
       abcjs: [],
-      severity: 'minor',
-      message: `Keys only in your parser: ${yourOnly.join(', ')}`,
+      severity: "minor",
+      message: `Keys only in your parser: ${yourOnly.join(", ")}`,
     });
   }
 
   if (theirOnly.length > 0) {
     differences.push({
-      path: 'formatting',
+      path: "formatting",
       yours: [],
       abcjs: theirOnly,
-      severity: 'minor',
-      message: `Keys only in abcjs: ${theirOnly.join(', ')}`,
+      severity: "minor",
+      message: `Keys only in abcjs: ${theirOnly.join(", ")}`,
     });
   }
 
@@ -306,7 +286,7 @@ function calculateStats(tune: NormalizedTune): ParseStats {
 
   // Count elements in lines
   for (const line of tune.lines) {
-    if ('staff' in line) {
+    if ("staff" in line) {
       for (const staff of line.staff) {
         for (const voice of staff.voices) {
           elementCount += voice.length;
@@ -332,15 +312,11 @@ function calculateStats(tune: NormalizedTune): ParseStats {
 /**
  * Check if two tunes are approximately equal
  */
-export function tunesApproximatelyEqual(
-  yourTune: Tune,
-  abcjsTune: AbcjsRawTune,
-  options: { strict?: boolean; tolerance?: number } = {}
-): boolean {
+export function tunesApproximatelyEqual(yourTune: Tune, abcjsTune: AbcjsRawTune, options: { strict?: boolean; tolerance?: number } = {}): boolean {
   const result = compareTunes(yourTune, abcjsTune, options);
 
   // Allow minor differences and type mismatches (which are expected)
-  const criticalDifferences = result.differences.filter(d => d.severity === 'critical');
+  const criticalDifferences = result.differences.filter((d) => d.severity === "critical");
 
   return criticalDifferences.length === 0;
 }
@@ -379,5 +355,5 @@ export function formatComparisonResult(result: ComparisonResult): string {
   lines.push(`    Lines:  ${result.metadata.abcjs.lineCount}`);
   lines.push(`    Elements: ${result.metadata.abcjs.elementCount}`);
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
