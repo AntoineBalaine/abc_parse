@@ -232,7 +232,7 @@ export function getDefaultKeySignature(): KeySignature {
 export function getDefaultClef(): ClefProperties {
   return {
     type: ClefType.Treble,
-    verticalPos: 6,
+    verticalPos: 0,
     clefPos: 0,
   };
 }

@@ -213,7 +213,7 @@ export function nextMeasure(ctx: InterpreterContext): void {
 function getDefaultClef(): ClefProperties {
   return {
     type: ClefType.Treble,
-    verticalPos: 6,
+    verticalPos: 0,
     clefPos: 0,
   };
 }

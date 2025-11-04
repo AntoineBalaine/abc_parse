@@ -1220,6 +1220,39 @@ CDEF|`;
       expect(tunes).to.have.length(1);
     });
 
+    it("KNOWN ISSUE: abcjs applies broken rhythm across barline", () => {
+      // This documents a discrepancy between our parser and abcjs
+      // Pattern: note with broken rhythm immediately before barline: "a<|"
+      //
+      // ABC notation standard: broken rhythm should NOT persist across barlines
+      // Our parser behavior: broken rhythm cleared at barline (duration = 1.0)
+      // abcjs behavior: broken rhythm applied across barline (duration = 1.5)
+      //
+      // We filter this pattern from PBT generators to avoid false failures
+      const abcString = "X:1\nL:4/4\nK:C\na<|z|";
+
+      const abcjsResult = parseWithAbcjs(abcString);
+      const ourResult = parseWithYourParser(abcString);
+
+      // Get the first music line
+      const abcjsLine = abcjsResult[0].lines[0] as any;
+      const ourLine = ourResult.tunes[0].lines[0] as any;
+
+      // Get the rest element (third element after note and barline)
+      const abcjsRest = abcjsLine.staff[0].voices[0][2];
+      const ourRest = ourLine.staff[0].voices[0][2];
+
+      // Document the discrepancy
+      expect(abcjsRest.duration).to.equal(1.5); // abcjs applies broken rhythm across barline
+      expect(ourRest.duration).to.equal(1.0); // our parser clears broken rhythm at barline
+
+      // Both should recognize it as a rest element
+      expect(abcjsRest.el_type).to.equal("note");
+      expect(abcjsRest.rest).to.exist;
+      expect(ourRest.el_type).to.equal("note");
+      expect(ourRest.rest).to.exist;
+    });
+
   });
 
   describe("Rhythm Notation - Phase 5", () => {

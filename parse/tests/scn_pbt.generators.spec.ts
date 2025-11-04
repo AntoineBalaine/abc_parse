@@ -584,6 +584,12 @@ export function applyTokenFiltering(flatTokens: Token[]): Token[] {
 
     if (test(cur, TT.INF_CTND) && !rewind(TT.EOL, i)) throw new Error("INF_CTND not preceded by EOL");
 
+    // Filter: Remove broken rhythm immediately before barline
+    // This prevents patterns like "a<|" which create discrepancies with abcjs behavior
+    if (test(cur, TT.BARLINE) && result.length > 0 && test(result[result.length - 1], TT.RHY_BRKN)) {
+      result.pop(); // Remove the broken rhythm token
+    }
+
     if ((test(cur, TT.EOL) && rewind(TT.EOL, i, [TT.WS])) || both(TT.WS) || both(TT.BARLINE)) {
       continue;
     }

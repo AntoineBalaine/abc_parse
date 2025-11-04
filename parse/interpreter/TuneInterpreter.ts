@@ -25,6 +25,7 @@ import {
   LyricProperties,
   LyricDivider,
   Decorations,
+  ClefProperties,
 } from "../types/abcjs-ast";
 import { InfoLineUnion } from "../types/Expr2";
 import {
@@ -1017,15 +1018,18 @@ export class TuneInterpreter implements Visitor<void> {
     const octaveOffset = octave ? this.getOctaveOffset(octave) : 0;
     const pitchNumber = basePitch + octaveOffset;
 
+    // Get current voice state for clef and rhythm calculations
+    const voiceState = this.state.voices.get(this.state.currentVoice);
+    const clef = voiceState?.currentClef;
+
     const pitch: ABCJSPitch = {
       pitch: pitchNumber,
       name: (accidental || "") + noteLetter,
-      verticalPos: pitchNumber, // verticalPos is same as pitch in abcjs
+      verticalPos: this.calculateVerticalPos(pitchNumber, clef),
       accidental: accidental ? this.convertAccidental(accidental) : undefined,
     };
 
     // Calculate duration with broken rhythm handling
-    const voiceState = this.state.voices.get(this.state.currentVoice);
     const defaultLength = this.state.tuneDefaults.noteLength;
     const rhythmResult = calculateRhythm(expr.rhythm, defaultLength, voiceState);
 
@@ -1091,6 +1095,8 @@ export class TuneInterpreter implements Visitor<void> {
     // Calculate duration with broken rhythm handling
     const voiceState = this.state.voices.get(this.state.currentVoice);
     const defaultLength = this.state.tuneDefaults.noteLength;
+
+    // Calculate full duration (with broken rhythm from previous note)
     const rhythmResult = calculateRhythm(expr.rhythm, defaultLength, voiceState);
 
     // Store next multiplier if present
@@ -1103,13 +1109,13 @@ export class TuneInterpreter implements Visitor<void> {
     // Convert rational to float for abcjs compatibility
     const duration = rationalToNumber(rhythmResult.duration);
 
-    // Determine rest type from lexeme and duration
-    // abcjs rules:
-    // - 'z' with duration >= 1.0 → "whole", duration < 1.0 → "rest"
+    // Determine rest type from lexeme
+    // Initial classification (abcjs compatible):
     // - 'x' → "invisible"
     // - 'y' → "spacer"
     // - 'Z' → "multimeasure"
     // - 'X' → "invisible-multimeasure"
+    // - 'z' → "rest" (may be upgraded to "whole" below)
     const restLexeme = expr.rest.lexeme;
     let restType: RestType;
     if (restLexeme === "x") {
@@ -1121,10 +1127,20 @@ export class TuneInterpreter implements Visitor<void> {
     } else if (restLexeme === "X") {
       restType = RestType.InvisibleMultimeasure;
     } else if (restLexeme === "z") {
-      // Duration-based: >= 1.0 is whole, < 1.0 is rest
-      restType = duration >= 1.0 ? RestType.Whole : RestType.Rest;
+      restType = RestType.Rest; // Initial classification
     } else {
       restType = RestType.Rest; // Default
+    }
+
+    // Post-processing for 'z' rests (abcjs logic):
+    // If rest has FINAL duration==1 (after broken rhythm) and measure duration <=1, upgrade to "whole"
+    // This matches abcjs behavior from abc_parse_music.js line 550-554
+    // Note: Uses final duration, not base duration!
+    if (restLexeme === "z" && duration === 1.0) {
+      const measureDuration = this.getMeasureDuration(voiceState);
+      if (measureDuration <= 1.0) {
+        restType = RestType.Whole;
+      }
     }
 
     const element: NoteElement = {
@@ -1146,6 +1162,10 @@ export class TuneInterpreter implements Visitor<void> {
   visitChordExpr(expr: Chord): void {
     const pitches: ABCJSPitch[] = [];
 
+    // Get current voice state for clef
+    const voiceState = this.state.voices.get(this.state.currentVoice);
+    const clef = voiceState?.currentClef;
+
     for (const content of expr.contents) {
       if (content instanceof Note) {
         const noteLetter = content.pitch.noteLetter.lexeme;
@@ -1159,7 +1179,7 @@ export class TuneInterpreter implements Visitor<void> {
         pitches.push({
           pitch: pitchNumber,
           name: (accidental || "") + noteLetter,
-          verticalPos: pitchNumber, // verticalPos is same as pitch in abcjs
+          verticalPos: this.calculateVerticalPos(pitchNumber, clef),
           accidental: accidental ? this.convertAccidental(accidental) : undefined,
         });
       }
@@ -1168,7 +1188,6 @@ export class TuneInterpreter implements Visitor<void> {
     if (pitches.length === 0) return;
 
     // Calculate duration with broken rhythm handling
-    const voiceState = this.state.voices.get(this.state.currentVoice);
     const defaultLength = this.state.tuneDefaults.noteLength;
     const rhythmResult = calculateRhythm(expr.rhythm, defaultLength, voiceState);
 
@@ -1262,7 +1281,7 @@ export class TuneInterpreter implements Visitor<void> {
 
     this.currentVoiceElements.push(element);
 
-    // Clear broken rhythm state and beams - they don't persist across barlines
+    // Clear beams and broken rhythm at barlines
     const voiceState = this.state.voices.get(this.state.currentVoice);
     if (voiceState) {
       // Broken rhythm does not persist across barlines
@@ -1342,6 +1361,9 @@ export class TuneInterpreter implements Visitor<void> {
     const voiceState = this.state.voices.get(this.state.currentVoice);
     if (!voiceState) return;
 
+    // Get current clef for vertical position calculations
+    const clef = voiceState.currentClef;
+
     // FIXME: why must this be untyped?
     const graceNotes: any[] = [];
     let isFirstNote = true;
@@ -1364,7 +1386,7 @@ export class TuneInterpreter implements Visitor<void> {
         pitch: pitchNumber,
         name: (accidental || "") + noteLetter,
         duration: 0.125, // Grace notes are typically 1/8th notes in abcjs
-        verticalPos: pitchNumber,
+        verticalPos: this.calculateVerticalPos(pitchNumber, clef),
       };
 
       // Add accidental if present
@@ -1577,6 +1599,46 @@ export class TuneInterpreter implements Visitor<void> {
       default:
         return AccidentalType.Natural;
     }
+  }
+
+  /**
+   * Calculate vertical position on staff based on pitch and clef
+   * The pitch number represents the absolute musical pitch (invariant to clef)
+   * The verticalPos represents the position on the staff (varies with clef)
+   *
+   * Formula: verticalPos = pitch - clef.verticalPos
+   *
+   * Example for note 'a' (pitch=12):
+   * - Treble clef (verticalPos=0): verticalPos = 12 - 0 = 12
+   * - Bass clef (verticalPos=-12): verticalPos = 12 - (-12) = 24
+   */
+  calculateVerticalPos(pitch: number, clef?: ClefProperties): number {
+    if (!clef || clef.verticalPos === undefined) {
+      return pitch; // Default: no adjustment
+    }
+    return pitch - clef.verticalPos;
+  }
+
+  /**
+   * Get the duration of a full measure based on the current meter
+   * For example, M:2/1 means a measure contains 2 whole notes, so duration = 2.0
+   * M:4/4 means a measure contains 4 quarter notes = 1 whole note, so duration = 1.0
+   * Default is 4/4 = 1.0
+   */
+  getMeasureDuration(voiceState?: VoiceState): number {
+    const meter = voiceState?.currentMeter || this.state.tuneDefaults.meter;
+
+    if (!meter || !meter.value || meter.value.length === 0) {
+      return 1.0; // Default: 4/4 = 1 whole note
+    }
+
+    // Sum all the fractions in the meter
+    let total = 0;
+    for (const fraction of meter.value) {
+      total += rationalToNumber(fraction);
+    }
+
+    return total;
   }
 
   createMusicLine(): void {
