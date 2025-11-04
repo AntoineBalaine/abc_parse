@@ -35,7 +35,7 @@ export function scanInfoLine2(ctx: Ctx): boolean {
 
   return true;
 }
-function tuneBodyPitch(ctx: Ctx): boolean {
+export function tuneBodyPitch(ctx: Ctx): boolean {
   if (!ctx.test(new RegExp(`^${pPitch.source}[%\n \t]`))) return false;
   return pitch(ctx);
 }
@@ -94,7 +94,7 @@ export function stringLiteral(ctx: Ctx): boolean {
  * Matches: 1, 42, 1.5, 0.25, 120.0
  * Does not match: .5, 1., leading zeros like 01
  */
-function unsignedNumber(ctx: Ctx): boolean {
+export function unsignedNumber(ctx: Ctx): boolean {
   // Unified regex pattern for integers and floats
   // - Integers: [1-9][0-9]* or just 0
   // - Floats: ([1-9][0-9]*|0)\.[0-9]+
@@ -113,7 +113,7 @@ function unsignedNumber(ctx: Ctx): boolean {
  * These are special cases in meter info lines
  * Must be followed by whitespace, end of line, or comment
  */
-function specialLiteral(ctx: Ctx): boolean {
+export function specialLiteral(ctx: Ctx): boolean {
   // Check C| first since it contains C - must be followed by WS/EOL/comment
   if (ctx.test(/C\|(?=\s|$|%)/)) {
     advance(ctx, 2);
@@ -133,7 +133,7 @@ function specialLiteral(ctx: Ctx): boolean {
  * Examples: G4, F#5, Bb3, C
  * Used in tempo markings like Q: G4=120
  */
-function absolutePitch(ctx: Ctx): boolean {
+export function absolutePitch(ctx: Ctx): boolean {
   // Must start with note letter (A-G, case insensitive)
   if (!ctx.test(/[A-Ga-g][#b]?[0-9]?[= \t%\n]/)) return false;
 

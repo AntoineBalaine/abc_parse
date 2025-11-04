@@ -704,8 +704,50 @@ describe("scan2", () => {
       assert.equal(ctx.tokens.length, 4);
       assert.equal(ctx.tokens[0].type, TT.INLN_FLD_LFT_BRKT);
       assert.equal(ctx.tokens[1].type, TT.INF_HDR);
-      assert.equal(ctx.tokens[2].type, TT.INFO_STR);
+      assert.equal(ctx.tokens[2].type, TT.IDENTIFIER);
       assert.equal(ctx.tokens[3].type, TT.INLN_FLD_RGT_BRKT);
+    });
+
+    it("should tokenize inline key change with structured tokens", () => {
+      const ctx = createCtx("[K:G]");
+      const result = inline_field(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 4);
+      assert.equal(ctx.tokens[0].type, TT.INLN_FLD_LFT_BRKT);
+      assert.equal(ctx.tokens[1].type, TT.INF_HDR);
+      assert.equal(ctx.tokens[2].type, TT.IDENTIFIER);  // G should be IDENTIFIER not INFO_STR
+      assert.equal(ctx.tokens[2].lexeme, "G");
+      assert.equal(ctx.tokens[3].type, TT.INLN_FLD_RGT_BRKT);
+    });
+
+    it("should tokenize inline meter change with structured tokens", () => {
+      const ctx = createCtx("[M:3/4]");
+      const result = inline_field(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 6);
+      assert.equal(ctx.tokens[0].type, TT.INLN_FLD_LFT_BRKT);
+      assert.equal(ctx.tokens[1].type, TT.INF_HDR);
+      assert.equal(ctx.tokens[2].type, TT.NUMBER);      // 3
+      assert.equal(ctx.tokens[2].lexeme, "3");
+      assert.equal(ctx.tokens[3].type, TT.SLASH);       // /
+      assert.equal(ctx.tokens[4].type, TT.NUMBER);      // 4
+      assert.equal(ctx.tokens[4].lexeme, "4");
+      assert.equal(ctx.tokens[5].type, TT.INLN_FLD_RGT_BRKT);
+    });
+
+    it("should tokenize inline tempo with structured tokens", () => {
+      const ctx = createCtx("[Q:1/4=120]");
+      const result = inline_field(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 8);
+      assert.equal(ctx.tokens[0].type, TT.INLN_FLD_LFT_BRKT);
+      assert.equal(ctx.tokens[1].type, TT.INF_HDR);
+      assert.equal(ctx.tokens[2].type, TT.NUMBER);      // 1
+      assert.equal(ctx.tokens[3].type, TT.SLASH);       // /
+      assert.equal(ctx.tokens[4].type, TT.NUMBER);      // 4
+      assert.equal(ctx.tokens[5].type, TT.EQL);         // =
+      assert.equal(ctx.tokens[6].type, TT.NUMBER);      // 120
+      assert.equal(ctx.tokens[7].type, TT.INLN_FLD_RGT_BRKT);
     });
 
     it("should return false for non-inline field", () => {

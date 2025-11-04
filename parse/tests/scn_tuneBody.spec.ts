@@ -158,7 +158,9 @@ describe("scanTuneBody", () => {
       TT.WS,
       TT.INLN_FLD_LFT_BRKT,
       TT.INF_HDR,
-      TT.INFO_STR,
+      TT.NUMBER,        // 3 (structured tokenization now)
+      TT.SLASH,         // /
+      TT.NUMBER,        // 4
       TT.INLN_FLD_RGT_BRKT,
       TT.WS,
       TT.NOTE_LETTER,

@@ -1,5 +1,14 @@
 import { scanDirective } from "./infoLines/scanDirective";
 import {
+  absolutePitch,
+  identifier,
+  singleChar,
+  specialLiteral,
+  stringLiteral,
+  tuneBodyPitch,
+  unsignedNumber,
+} from "./infoLines/scanInfoLine2";
+import {
   Ctx,
   EOL,
   TT,
@@ -374,18 +383,39 @@ export function grace_grp(ctx: Ctx): boolean {
 export function inline_field(ctx: Ctx): boolean {
   if (!ctx.test(pInlineField)) return false;
   advance(ctx);
-  ctx.push(TT.INLN_FLD_LFT_BRKT);
+  ctx.push(TT.INLN_FLD_LFT_BRKT);  // [
+
+  // Scan the field header (K:, M:, etc.)
   while (!isAtEnd(ctx) && !ctx.test(":")) {
     advance(ctx);
   }
-  advance(ctx);
+  advance(ctx);  // consume the :
   ctx.push(TT.INF_HDR);
-  while (!isAtEnd(ctx) && !ctx.test("]")) {
-    advance(ctx);
+
+  // KEY CHANGE: Tokenize content using scanInfoLine2 logic
+  // Reuse the same helper functions for structured tokenization
+  while (!(isAtEnd(ctx) || ctx.test("]"))) {
+    if (WS(ctx)) continue;
+    if (specialLiteral(ctx)) continue;      // C, C|
+    if (absolutePitch(ctx)) continue;       // G4, F#5
+    if (tuneBodyPitch(ctx)) continue;       // ^c, _b
+    if (identifier(ctx)) continue;          // treble, major
+    if (stringLiteral(ctx)) continue;       // "Allegro"
+    if (singleChar(ctx, "=", TT.EQL)) continue;
+    if (singleChar(ctx, "-", TT.MINUS)) continue;
+    if (singleChar(ctx, "+", TT.PLUS)) continue;
+    if (singleChar(ctx, "/", TT.SLASH)) continue;
+    if (singleChar(ctx, "(", TT.LPAREN)) continue;
+    if (singleChar(ctx, ")", TT.RPAREN)) continue;
+    if (unsignedNumber(ctx)) continue;
+
+    // Invalid token
+    collectInvalidToken(ctx);
+    break;
   }
-  ctx.push(TT.INFO_STR);
-  advance(ctx);
-  ctx.push(TT.INLN_FLD_RGT_BRKT);
+
+  advance(ctx);  // consume the ]
+  ctx.push(TT.INLN_FLD_RGT_BRKT);  // ]
   return true;
 }
 
