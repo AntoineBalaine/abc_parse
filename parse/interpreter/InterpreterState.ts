@@ -402,7 +402,7 @@ export function getSystemIdx(tune: Tune, vxStaff: VxStaff, curSystem: number): n
     const staff = (system as StaffSystem).staff;
 
     // Check if this voice slot is empty or has no notes
-    if (!(staff[staffNum] && staff[staffNum].voices[voiceIndex] && staff[staffNum].voices[voiceIndex].length === 0)) {
+    if (!staff[staffNum] || !staff[staffNum].voices[voiceIndex] || staff[staffNum].voices[voiceIndex].length === 0) {
       return i;
     }
   }

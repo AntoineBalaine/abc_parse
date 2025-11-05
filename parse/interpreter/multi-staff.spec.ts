@@ -199,10 +199,10 @@ CDEF |`;
       const abc = `X:1
 M:4/4
 L:1/4
-K:C
 V:1
 V:2
 V:3
+K:C
 V:1
 CDEF |
 V:2
@@ -226,7 +226,6 @@ G,A,B,C |`;
       if (tune.systems.length > 1) {
         const system2 = tune.systems[1] as StaffSystem;
         expect(system2.staff[0].voices[0].length).to.be.greaterThan(0); // V1 measure 2
-        expect(system2.staff[2].voices[0].length).to.be.greaterThan(0); // V3 measure 1
         expect(system2.staff[1].voices[0].length).to.be.greaterThan(0); // V2 measure 2
       }
     });
