@@ -30,9 +30,9 @@ describe("Multi-Staff Implementation", () => {
       const abc = `X:1
 M:4/4
 L:1/4
-K:C
 V:1
 V:2
+K:C
 V:1
 CDEF |
 V:2

@@ -8,6 +8,7 @@
 
 import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { SemanticData } from "../analyzers/semantic-analyzer";
+import { isComment, isInfo_line } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import {
@@ -797,6 +798,23 @@ export class TuneInterpreter implements Visitor<void> {
     return system.staff[currentStaffNum].voices[currentVoiceIndex];
   }
 
+  /**
+   * Ensures a voice is active before processing music elements.
+   * If no voice has been set, creates a default voice (for single-voice tunes without V: directives).
+   * This implements lazy voice creation - we only create a default voice when music is encountered.
+   */
+  private ensureVoice(): void {
+    if (this.state.voices.size === 0) {
+      // No voices declared yet, create default voice for single-voice tunes
+      // Use empty string as voice name to match abcjs behavior
+      applyVoice(this.state, { id: "", properties: {} });
+    } else if (!this.state.voices.has(this.state.currentVoice)) {
+      // Voice was declared but not switched to yet - switch to first declared voice
+      const firstVoiceId = Array.from(this.state.voices.keys())[0];
+      applyVoice(this.state, { id: firstVoiceId, properties: this.state.voices.get(firstVoiceId)!.properties });
+    }
+  }
+
   // ============================================================================
   // Public API
   // ============================================================================
@@ -872,11 +890,6 @@ export class TuneInterpreter implements Visitor<void> {
     this.processingContext = "tune_header";
     expr.tune_header.accept(this);
 
-    // For single-voice tunes without V: directives, create a default voice
-    if (this.state.voices.size === 0) {
-      applyVoice(this.state, { id: "default", properties: {} });
-    }
-
     // Visit tune body if present
     if (expr.tune_body) {
       expr.tune_body.accept(this);
@@ -902,9 +915,7 @@ export class TuneInterpreter implements Visitor<void> {
     for (const abcLine of expr.sequence) {
       // Visit each element in the ABC text line
       for (const element of abcLine) {
-        if (element instanceof Token) {
-          continue; // Skip plain tokens
-        }
+        if (!(isComment(element) || isInfo_line(element) || element instanceof Lyric_line || element instanceof ErrorExpr)) this.ensureVoice();
         element.accept(this);
       }
     }
@@ -989,36 +1000,6 @@ export class TuneInterpreter implements Visitor<void> {
   visitMusicCodeExpr(expr: Music_code): void {
     // Visit each content element
     for (const content of expr.contents) {
-      if (content instanceof Token) {
-        // Handle slur tokens
-        if (content.type === TT.SLUR) {
-          const voiceState = this.state.voices.get(this.state.currentVoice);
-          if (voiceState) {
-            if (content.lexeme === "(") {
-              // Start slur: generate a new label and add to pending
-              const label = voiceState.nextSlurLabel++;
-              voiceState.pendingStartSlurs.push(label);
-            } else if (content.lexeme === ")") {
-              // End slur: pop a label from start slurs and retroactively add to last note
-              const elements = this.getCurrentVoiceElements();
-              if (voiceState.pendingStartSlurs.length > 0 && elements.length > 0) {
-                const label = voiceState.pendingStartSlurs.pop()!;
-                const lastElement = elements[elements.length - 1];
-
-                // Add endSlur to the last note's first pitch
-                if ("pitches" in lastElement && lastElement.pitches && lastElement.pitches.length > 0) {
-                  const pitch = lastElement.pitches[0];
-                  if (!pitch.endSlur) {
-                    pitch.endSlur = [];
-                  }
-                  pitch.endSlur.push(label);
-                }
-              }
-            }
-          }
-        }
-        continue;
-      }
       content.accept(this);
     }
   }
@@ -1315,7 +1296,34 @@ export class TuneInterpreter implements Visitor<void> {
     // Pitch is handled inline in visitNoteExpr
   }
 
-  visitToken(token: Token): void {}
+  visitToken(token: Token): void {
+    if (token.type === TT.SLUR) {
+      const voiceState = this.state.voices.get(this.state.currentVoice);
+      if (voiceState) {
+        if (token.lexeme === "(") {
+          // Start slur: generate a new label and add to pending
+          const label = voiceState.nextSlurLabel++;
+          voiceState.pendingStartSlurs.push(label);
+        } else if (token.lexeme === ")") {
+          // End slur: pop a label from start slurs and retroactively add to last note
+          const elements = this.getCurrentVoiceElements();
+          if (voiceState.pendingStartSlurs.length > 0 && elements.length > 0) {
+            const label = voiceState.pendingStartSlurs.pop()!;
+            const lastElement = elements[elements.length - 1];
+
+            // Add endSlur to the last note's first pitch
+            if ("pitches" in lastElement && lastElement.pitches && lastElement.pitches.length > 0) {
+              const pitch = lastElement.pitches[0];
+              if (!pitch.endSlur) {
+                pitch.endSlur = [];
+              }
+              pitch.endSlur.push(label);
+            }
+          }
+        }
+      }
+    }
+  }
   visitAnnotationExpr(expr: Annotation): void {
     const voiceState = this.state.voices.get(this.state.currentVoice);
     if (!voiceState) return;
@@ -1577,9 +1585,6 @@ export class TuneInterpreter implements Visitor<void> {
     // The beaming will be handled automatically by processBeaming()
     // as we visit each note/chord/rest within the beam
     for (const content of expr.contents) {
-      if (content instanceof Token) {
-        continue;
-      }
       content.accept(this);
     }
 
