@@ -328,10 +328,10 @@ describe("Directive Scanner Tests", () => {
       expect(contentTokens[3].id).to.be.a("number");
 
       // Verify toString method works as expected
-      expect(contentTokens[0].toString()).to.match(/^14 pagewidth \(id: \d+\)$/);
-      expect(contentTokens[1].toString()).to.match(/^14 musicspace \(id: \d+\)$/);
-      expect(contentTokens[2].toString()).to.match(/^15 5 \(id: \d+\)$/);
-      expect(contentTokens[3].toString()).to.match(/^45 cm \(id: \d+\)$/);
+      expect(contentTokens[0].toString()).to.match(/^pagewidth \(id: \d+\)$/);
+      expect(contentTokens[1].toString()).to.match(/^musicspace \(id: \d+\)$/);
+      expect(contentTokens[2].toString()).to.match(/^5 \(id: \d+\)$/);
+      expect(contentTokens[3].toString()).to.match(/^cm \(id: \d+\)$/);
     });
   });
 });

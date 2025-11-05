@@ -299,7 +299,7 @@ export class Token {
     return visitor.visitToken(this);
   }
   public toString = () => {
-    return `${this.type} ${this.lexeme} (id: ${this.id})`;
+    return `${this.lexeme} (id: ${this.id})`;
   };
 
   constructor(type: TT, ctx: Ctx | string, id: number) {
