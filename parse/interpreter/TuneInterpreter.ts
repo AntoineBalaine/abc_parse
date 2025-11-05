@@ -29,6 +29,7 @@ import {
   ClefProperties,
   KeyElement,
   MeterElement,
+  BracketBracePosition,
 } from "../types/abcjs-ast";
 import { InfoLineUnion } from "../types/Expr2";
 import {
@@ -721,6 +722,50 @@ function applyDirective(semanticData: SemanticData, directiveName: string, conte
 }
 
 // ============================================================================
+// Score/Staves Directive Handler
+// ============================================================================
+
+/**
+ * Internal type from directive analyzer (richer than StaffInfo)
+ */
+interface InternalStaffInfo {
+  index: number;
+  numVoices: number;
+  voices: string[];
+  bracket?: BracketBracePosition;
+  brace?: BracketBracePosition;
+  connectBarLines?: BracketBracePosition;
+}
+
+interface InternalVxStaff {
+  staffNum: number;
+  index: number;
+}
+
+/**
+ * Handles %%score and %%staves directives by populating the interpreter state
+ * with pre-defined staff/voice assignments.
+ *
+ * This function is called when a %%score or %%staves directive is encountered,
+ * and it directly populates the state's staves and vxStaff maps with the
+ * parsed staff layout information.
+ *
+ * @param state - The interpreter state to update
+ * @param data - Parsed staff layout data from the directive analyzer
+ */
+function handleScoreDirective(state: InterpreterState, data: { staves: InternalStaffInfo[]; voiceAssignments: Map<string, InternalVxStaff> }): void {
+  // Convert internal format to interpreter format
+  state.staves = data.staves.map((staff) => ({
+    index: staff.index,
+    numVoices: staff.numVoices,
+    bracket: staff.bracket,
+    brace: staff.brace,
+    connectBarLines: staff.connectBarLines,
+  }));
+  state.vxStaff = data.voiceAssignments;
+}
+
+// ============================================================================
 // Parse Result
 // ============================================================================
 
@@ -977,6 +1022,13 @@ export class TuneInterpreter implements Visitor<void> {
   visitDirectiveExpr(expr: Directive): void {
     const semanticData = this.state.semanticData.get(expr.id);
     if (semanticData) {
+      // Handle score/staves directives specially - they configure staff layout
+      if (semanticData.type === "score" || semanticData.type === "staves") {
+        // Type assertion: we know this is our internal format, not StaffLayoutSpec[]
+        handleScoreDirective(this.state, semanticData.data as any);
+        return;
+      }
+
       if (this.processingContext === "file_header") {
         const context: HeaderContext = { type: "file_header", target: this.fileDefaults };
         const warning = applyDirective(semanticData, expr.key.lexeme, context);

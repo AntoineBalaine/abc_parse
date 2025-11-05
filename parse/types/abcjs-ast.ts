@@ -562,8 +562,8 @@ export interface Staff {
   workingClef: ClefProperties;
   voices: VoiceElement[][];
   title?: string[];
-  bracket?: object;
-  brace?: object;
+  bracket?: BracketBracePosition;
+  brace?: BracketBracePosition;
   connectBarLines?: boolean;
   barNumber?: number;
   spacing_below_offset?: number;

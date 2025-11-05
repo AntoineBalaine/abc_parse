@@ -1,8 +1,10 @@
 import { isToken } from "../helpers";
+import { StaffInfo, VxStaff } from "../interpreter/InterpreterState";
 import { Token, TT } from "../parsers/scan2";
 import { DirectiveSemanticData, FontSpec } from "../types/directive-specs";
 import { Directive, Annotation, Measurement } from "../types/Expr2";
 import { SemanticAnalyzer } from "./semantic-analyzer";
+import { BracketBracePosition } from "../types/abcjs-ast";
 
 /**
  * Analyzes directives and produces semantic data.
@@ -852,19 +854,273 @@ function parseNewpage(directive: Directive, analyzer: SemanticAnalyzer): Directi
 }
 
 /**
+ * Mutable context object used during staff directive parsing.
+ * Groups all the state that needs to be modified by helper functions
+ * during the parsing of %%score and %%staves directives.
+ */
+interface StaffParsingContext {
+  /** The staffs being built during parsing */
+  staves: StaffInfo[];
+  /** Maps voice IDs to their staff assignments */
+  vxStaff: Map<string, VxStaff>;
+  /** Whether the next staff should continue bar lines from the previous staff */
+  continueBar: boolean;
+  /** The ID of the most recently processed voice */
+  lastVoiceId: string | null;
+  /** State tracking for grouping symbols */
+  openParen: boolean;
+  justOpenParen: boolean;
+  openBracket: boolean;
+  justOpenBracket: boolean;
+  openBrace: boolean;
+  justOpenBrace: boolean;
+}
+
+/**
+ * Adds a voice to the staff parsing context.
+ * Creates a new staff if needed and assigns the voice to it.
+ */
+function addVoiceToStaff(
+  ctx: StaffParsingContext,
+  voiceId: string,
+  newStaff: boolean,
+  bracket?: BracketBracePosition,
+  brace?: BracketBracePosition,
+  connectBar?: boolean
+): void {
+  // Create new staff if needed
+  if (newStaff || ctx.staves.length === 0) {
+    ctx.staves.push({ index: ctx.staves.length, numVoices: 0 });
+  }
+
+  const staff = ctx.staves[ctx.staves.length - 1];
+
+  // Apply grouping properties (only if not already set)
+  if (bracket !== undefined && staff.bracket === undefined) {
+    staff.bracket = bracket;
+  }
+  if (brace !== undefined && staff.brace === undefined) {
+    staff.brace = brace;
+  }
+  if (connectBar) {
+    staff.connectBarLines = BracketBracePosition.End;
+  }
+
+  // Add voice if not already added
+  if (!ctx.vxStaff.has(voiceId)) {
+    ctx.vxStaff.set(voiceId, {
+      staffNum: staff.index,
+      index: staff.numVoices,
+    });
+    staff.numVoices++;
+  }
+}
+
+/**
+ * Handles bar line connections between staffs.
+ * Updates the continueBar flag and sets appropriate connection types on staffs.
+ */
+function addContinueBar(ctx: StaffParsingContext): void {
+  ctx.continueBar = true;
+  if (ctx.lastVoiceId !== null) {
+    const lastVoice = ctx.vxStaff.get(ctx.lastVoiceId);
+    if (lastVoice) {
+      let ty: BracketBracePosition = BracketBracePosition.Start;
+      if (lastVoice.staffNum > 0) {
+        const prevStaff = ctx.staves[lastVoice.staffNum - 1];
+        if (prevStaff.connectBarLines === BracketBracePosition.Start || prevStaff.connectBarLines === BracketBracePosition.Continue) {
+          ty = BracketBracePosition.Continue;
+        }
+      }
+      ctx.staves[lastVoice.staffNum].connectBarLines = ty;
+    }
+  }
+}
+
+/**
+ * Core parsing logic for %%score and %%staves directives.
+ *
+ * These directives control how voices are grouped onto staffs and how staffs are visually grouped.
+ *
+ * Syntax:
+ * - Space: separates staffs
+ * - ( ): groups voices on same staff
+ * - { }: brace decoration (piano)
+ * - [ ]: bracket decoration (ensemble)
+ * - |: connects barlines between staffs
+ *
+ * @param directive - The directive to parse
+ * @param analyzer - Semantic analyzer for error reporting
+ * @param autoConnectBars - If true (%%staves), automatically connect barlines between all staffs
+ * @returns Parsed staff layout information or null on error
+ */
+function parseStaffDirective(
+  directive: Directive,
+  analyzer: SemanticAnalyzer,
+  autoConnectBars: boolean
+): { staves: StaffInfo[]; voiceAssignments: Map<string, VxStaff> } | null {
+  const ctx: StaffParsingContext = {
+    staves: [],
+    vxStaff: new Map<string, VxStaff>(),
+    continueBar: false,
+    lastVoiceId: null,
+    openParen: false,
+    justOpenParen: false,
+    openBracket: false,
+    justOpenBracket: false,
+    openBrace: false,
+    justOpenBrace: false,
+  };
+
+  // Process each token in directive.values
+  for (const value of directive.values) {
+    // We only process Token objects
+    if (!isToken(value)) {
+      analyzer.report("Score/staves directive should only contain voice IDs and grouping symbols", directive);
+      continue;
+    }
+
+    // Handle each token type
+    switch (value.type) {
+      case TT.LPAREN:
+        if (ctx.openParen) {
+          analyzer.report("Cannot nest parentheses in score/staves directive", directive);
+        }
+        ctx.openParen = true;
+        ctx.justOpenParen = true;
+        break;
+
+      case TT.RPAREN:
+        if (!ctx.openParen || ctx.justOpenParen) {
+          analyzer.report("Unexpected close parenthesis in score/staves directive", directive);
+        }
+        ctx.openParen = false;
+        break;
+
+      case TT.LBRACKET:
+        if (ctx.openBracket) {
+          analyzer.report("Cannot nest brackets in score/staves directive", directive);
+        }
+        ctx.openBracket = true;
+        ctx.justOpenBracket = true;
+        break;
+
+      case TT.RBRACKET:
+        if (!ctx.openBracket || ctx.justOpenBracket) {
+          analyzer.report("Unexpected close bracket in score/staves directive", directive);
+        }
+        ctx.openBracket = false;
+        // Set 'end' marker on the last voice's staff
+        if (ctx.lastVoiceId !== null) {
+          const lastVoice = ctx.vxStaff.get(ctx.lastVoiceId);
+          if (lastVoice) {
+            ctx.staves[lastVoice.staffNum].bracket = BracketBracePosition.End;
+          }
+        }
+        break;
+
+      case TT.LBRACE:
+        if (ctx.openBrace) {
+          analyzer.report("Cannot nest braces in score/staves directive", directive);
+        }
+        ctx.openBrace = true;
+        ctx.justOpenBrace = true;
+        break;
+
+      case TT.RBRACE:
+        if (!ctx.openBrace || ctx.justOpenBrace) {
+          analyzer.report("Unexpected close brace in score/staves directive", directive);
+        }
+        ctx.openBrace = false;
+        // Set 'end' marker on the last voice's staff
+        if (ctx.lastVoiceId !== null) {
+          const lastVoice = ctx.vxStaff.get(ctx.lastVoiceId);
+          if (lastVoice) {
+            ctx.staves[lastVoice.staffNum].brace = BracketBracePosition.End;
+          }
+        }
+        break;
+
+      case TT.PIPE:
+        addContinueBar(ctx);
+        break;
+
+      case TT.IDENTIFIER:
+        // This is a voice ID
+        const voiceId = value.lexeme;
+
+        // Decide whether to create a new staff
+        // Key logic: inside parentheses (and not just opened) → same staff
+        const newStaff = !ctx.openParen || ctx.justOpenParen;
+
+        // Determine bracket/brace decoration
+        const bracket = ctx.justOpenBracket ? BracketBracePosition.Start : ctx.openBracket ? BracketBracePosition.Continue : undefined;
+        const brace = ctx.justOpenBrace ? BracketBracePosition.Start : ctx.openBrace ? BracketBracePosition.Continue : undefined;
+
+        // Add the voice
+        addVoiceToStaff(ctx, voiceId, newStaff, bracket, brace, ctx.continueBar);
+
+        // Reset "just opened" flags
+        ctx.justOpenParen = false;
+        ctx.justOpenBracket = false;
+        ctx.justOpenBrace = false;
+        ctx.continueBar = false;
+        ctx.lastVoiceId = voiceId;
+
+        // For %%staves, automatically add bar connections after each voice
+        if (autoConnectBars) {
+          addContinueBar(ctx);
+        }
+        break;
+
+      default:
+        analyzer.report(`Unexpected token type ${TT[value.type]} in score/staves directive`, directive);
+        break;
+    }
+  }
+
+  // Validation: check for unclosed groupings
+  if (ctx.openParen) {
+    analyzer.report("Unclosed parenthesis in score/staves directive", directive);
+  }
+  if (ctx.openBracket) {
+    analyzer.report("Unclosed bracket in score/staves directive", directive);
+  }
+  if (ctx.openBrace) {
+    analyzer.report("Unclosed brace in score/staves directive", directive);
+  }
+
+  return { staves: ctx.staves, voiceAssignments: ctx.vxStaff };
+}
+
+/**
  * Parses %%staves directive (staff layout)
  */
 function parseStaves(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
-  // TODO: Implement
-  throw new Error("Not implemented");
+  const result = parseStaffDirective(directive, analyzer, true);
+  if (!result) return null;
+
+  // Store the full data as an opaque object that the interpreter will use
+  // Type system expects StaffLayoutSpec[] but we're passing richer data
+  return {
+    type: "staves",
+    data: result as any,
+  };
 }
 
 /**
  * Parses %%score directive (staff layout)
  */
 function parseScore(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
-  // TODO: Implement
-  throw new Error("Not implemented");
+  const result = parseStaffDirective(directive, analyzer, false);
+  if (!result) return null;
+
+  // Store the full data as an opaque object that the interpreter will use
+  // Type system expects StaffLayoutSpec[] but we're passing richer data
+  return {
+    type: "score",
+    data: result as any,
+  };
 }
 
 /**

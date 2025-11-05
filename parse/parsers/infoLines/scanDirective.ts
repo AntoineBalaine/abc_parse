@@ -28,6 +28,16 @@ export function scanDirective(ctx: Ctx): boolean {
   while (!(isAtEnd(ctx) || ctx.test(pEOL) || ctx.test("%"))) {
     if (numberWithUnit(ctx)) continue; // number + unit (must come before number)
     if (tuneBodyPitch(ctx)) continue; // ABC pitches (^c, _b, =f)
+
+    // Score/staves directive grouping symbols (check BEFORE identifier)
+    if (singleChar(ctx, "(", TT.LPAREN)) continue;
+    if (singleChar(ctx, ")", TT.RPAREN)) continue;
+    if (singleChar(ctx, "{", TT.LBRACE)) continue;
+    if (singleChar(ctx, "}", TT.RBRACE)) continue;
+    if (singleChar(ctx, "[", TT.LBRACKET)) continue;
+    if (singleChar(ctx, "]", TT.RBRACKET)) continue;
+    if (singleChar(ctx, "|", TT.PIPE)) continue;
+
     if (identifier(ctx)) continue; // identifiers with hyphens
     if (stringLiteral(ctx)) continue; // "quoted strings"
     if (signedNumber(ctx)) continue; // signed integers and floats (including negative)

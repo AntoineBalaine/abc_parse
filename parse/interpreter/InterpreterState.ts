@@ -27,6 +27,7 @@ import {
   Decorations,
   Staff,
   StaffSystem,
+  BracketBracePosition,
 } from "../types/abcjs-ast";
 import { IRational, createRational } from "../Visitors/fmt2/rational";
 
@@ -73,14 +74,18 @@ export interface TuneDefaults {
  * Information about a single staff in the output.
  * Tracks how many voices are assigned to this staff and visual grouping properties.
  *
- * Note: bracket/brace/connectBarLines types match the Staff interface in abcjs-ast.ts
+ * The bracket/brace/connectBarLines properties use 'start'/'continue'/'end' markers
+ * to indicate multi-staff groupings. For example:
+ * - Staff 0: brace='start' (begins the brace)
+ * - Staff 1: brace='continue' (continues the brace)
+ * - Staff 2: brace='end' (ends the brace)
  */
 export interface StaffInfo {
   index: number; // Staff number (0, 1, 2...)
   numVoices: number; // How many voices are assigned to this staff
-  bracket?: object; // Bracket grouping for ensemble scores (abcjs uses object type)
-  brace?: object; // Brace grouping for piano scores (abcjs uses object type)
-  connectBarLines?: boolean; // Bar line connections (abcjs uses boolean type)
+  bracket?: BracketBracePosition; // Bracket grouping for ensemble scores
+  brace?: BracketBracePosition; // Brace grouping for piano scores
+  connectBarLines?: BracketBracePosition; // Bar line connections
 }
 
 /**
@@ -444,10 +449,17 @@ export function ensureVxStaff(state: InterpreterState, systemIdx: number, vxStaf
       voices: [],
     };
 
-    // Copy bracket/brace info from StaffInfo if present
-    if (staffInfo.bracket) newStaff.bracket = staffInfo.bracket;
-    if (staffInfo.brace) newStaff.brace = staffInfo.brace;
-    if (staffInfo.connectBarLines) newStaff.connectBarLines = staffInfo.connectBarLines;
+    // Copy bracket/brace/connectBarLines info from StaffInfo if present
+    if (staffInfo.bracket) {
+      newStaff.bracket = staffInfo.bracket;
+    }
+    if (staffInfo.brace) {
+      newStaff.brace = staffInfo.brace;
+    }
+    if (staffInfo.connectBarLines) {
+      // abcjs uses boolean - we'll use true for any connection marker
+      newStaff.connectBarLines = true;
+    }
 
     system.staff[staffNum] = newStaff;
   }

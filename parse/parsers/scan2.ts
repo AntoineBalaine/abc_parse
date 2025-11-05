@@ -217,6 +217,11 @@ export enum TT {
   PLUS, // Addition operator (+)
   LPAREN, // Left parenthesis (
   RPAREN, // Right parenthesis )
+  LBRACE, // Left brace {
+  RBRACE, // Right brace }
+  LBRACKET, // Left bracket [
+  RBRACKET, // Right bracket ]
+  PIPE, // Pipe symbol | (for directive context, different from BARLINE)
   IDENTIFIER, // Unquoted words (treble, major, etc.)
   NUMBER, // Integer or float numbers (1, 4, 120, 1.5)
   SPECIAL_LITERAL, // Special cases (C, C|)

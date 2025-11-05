@@ -347,6 +347,200 @@ CDEF | GABA |`;
     });
   });
 
+  describe("%%score directive", () => {
+    it("should create piano score with brace grouping", () => {
+      const abc = `X:1
+M:4/4
+L:1/4
+%%score {RH LH}
+V:RH name="Right Hand"
+V:LH name="Left Hand" clef=bass
+K:C
+V:RH
+CDEF |
+V:LH
+C,D,E,F, |`;
+
+      const tune = interpretABC(abc);
+
+      // Should have one system with 2 staffs
+      const system = tune.systems[0] as StaffSystem;
+      expect(system.staff.length).to.equal(2);
+
+      // Both voices should be on separate staffs (as specified by %%score)
+      expect(system.staff[0].voices[0].length).to.equal(5); // RH
+      expect(system.staff[1].voices[0].length).to.equal(5); // LH
+
+      // Staffs should have brace decoration
+      expect(system.staff[0].brace).to.exist;
+      expect(system.staff[0].brace).to.equal("start");
+      expect(system.staff[1].brace).to.exist;
+      expect(system.staff[1].brace).to.equal("end");
+    });
+
+    it("should group voices on same staff with parentheses", () => {
+      const abc = `X:1
+M:4/4
+L:1/4
+%%score (S A) (T B)
+V:S
+V:A
+V:T
+V:B
+K:C
+V:S
+CDEF |
+V:A
+GABC |
+V:T
+C,D,E,F, |
+V:B
+G,,A,,B,,C, |`;
+
+      const tune = interpretABC(abc);
+
+      // Should have 2 staffs
+      const system = tune.systems[0] as StaffSystem;
+      expect(system.staff.length).to.equal(2);
+
+      // Staff 0 should have 2 voices (S and A)
+      expect(system.staff[0].voices.length).to.equal(2);
+      expect(system.staff[0].voices[0].length).to.equal(5); // S
+      expect(system.staff[0].voices[1].length).to.equal(5); // A
+
+      // Staff 1 should have 2 voices (T and B)
+      expect(system.staff[1].voices.length).to.equal(2);
+      expect(system.staff[1].voices[0].length).to.equal(5); // T
+      expect(system.staff[1].voices[1].length).to.equal(5); // B
+    });
+
+    it("should create choir score with bracket grouping", () => {
+      const abc = `X:1
+M:4/4
+L:1/4
+%%score [(S A) (T B)]
+V:S
+V:A
+V:T
+V:B
+K:C
+V:S
+CDEF |
+V:A
+GABC |
+V:T
+C,D,E,F, |
+V:B
+G,,A,,B,,C, |`;
+
+      const tune = interpretABC(abc);
+
+      const system = tune.systems[0] as StaffSystem;
+      expect(system.staff.length).to.equal(2);
+
+      // Should have bracket decoration
+      expect(system.staff[0].bracket).to.exist;
+      expect(system.staff[0].bracket).to.equal("start");
+      expect(system.staff[1].bracket).to.exist;
+      expect(system.staff[1].bracket).to.equal("end");
+    });
+
+    it("should handle mixed brace and bracket", () => {
+      const abc = `X:1
+M:4/4
+L:1/4
+%%score {RH LH} [V1 V2]
+V:RH
+V:LH
+V:V1
+V:V2
+K:C
+V:RH
+CDEF |
+V:LH
+C,D,E,F, |
+V:V1
+GABA |
+V:V2
+G,A,B,C |`;
+
+      const tune = interpretABC(abc);
+
+      const system = tune.systems[0] as StaffSystem;
+      expect(system.staff.length).to.equal(4);
+
+      // Piano staffs with brace (2 separate staffs connected by brace)
+      expect(system.staff[0].brace).to.exist;
+      expect(system.staff[0].brace).to.equal("start");
+      expect(system.staff[1].brace).to.exist;
+      expect(system.staff[1].brace).to.equal("end");
+
+      // Other staffs with bracket (2 separate staffs connected by bracket)
+      expect(system.staff[2].bracket).to.exist;
+      expect(system.staff[2].bracket).to.equal("start");
+      expect(system.staff[3].bracket).to.exist;
+      expect(system.staff[3].bracket).to.equal("end");
+    });
+
+    it("should respect explicit bar line connections with pipe", () => {
+      const abc = `X:1
+M:4/4
+L:1/4
+%%score (S A) | (T B)
+V:S
+V:A
+V:T
+V:B
+K:C
+V:S
+CDEF |
+V:A
+GABC |
+V:T
+C,D,E,F, |
+V:B
+G,,A,,B,,C, |`;
+
+      const tune = interpretABC(abc);
+
+      const system = tune.systems[0] as StaffSystem;
+
+      // Staffs should have bar line connections
+      expect(system.staff[0].connectBarLines).to.be.true;
+      expect(system.staff[1].connectBarLines).to.be.true;
+    });
+  });
+
+  describe("%%staves directive", () => {
+    it("should automatically connect bar lines", () => {
+      const abc = `X:1
+M:4/4
+L:1/4
+%%staves (S A) (T B)
+V:S
+V:A
+V:T
+V:B
+K:C
+V:S
+CDEF |
+V:A
+GABC |
+V:T
+C,D,E,F, |
+V:B
+G,,A,,B,,C, |`;
+
+      const tune = interpretABC(abc);
+
+      const system = tune.systems[0] as StaffSystem;
+
+      // All staffs should have bar line connections (automatic for %%staves)
+      expect(system.staff[0].connectBarLines).to.be.true;
+      expect(system.staff[1].connectBarLines).to.be.true;
+    });
+  });
+
   describe("Voice assignment timing", () => {
     it("should assign voices to staffs when declared in header", () => {
       const abc = `X:1

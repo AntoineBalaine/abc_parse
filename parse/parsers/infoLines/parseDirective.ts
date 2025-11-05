@@ -41,6 +41,7 @@ export function parseDirective(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): D
     if (parseAnnotation(ctx, values)) continue;
     if (parseIdentifier(ctx, values)) continue;
     if (parseRationalOrNumber(ctx, values)) continue;
+    if (parseGroupingSymbol(ctx, values)) continue;
     if (ctx.check(TT.WS)) {
       ctx.advance();
       continue;
@@ -100,6 +101,26 @@ function parseIdentifier(ctx: ParseCtx, values: Array<Token | Rational | Pitch |
 
   values.push(ctx.advance());
   return true;
+}
+
+/**
+ * Parse grouping symbols for %%score and %%staves directives
+ * Handles: ( ) { } [ ] |
+ */
+function parseGroupingSymbol(ctx: ParseCtx, values: Array<Token | Rational | Pitch | Measurement | KV | Annotation>): boolean {
+  if (
+    ctx.check(TT.LPAREN) ||
+    ctx.check(TT.RPAREN) ||
+    ctx.check(TT.LBRACE) ||
+    ctx.check(TT.RBRACE) ||
+    ctx.check(TT.LBRACKET) ||
+    ctx.check(TT.RBRACKET) ||
+    ctx.check(TT.PIPE)
+  ) {
+    values.push(ctx.advance());
+    return true;
+  }
+  return false;
 }
 
 /**
