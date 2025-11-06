@@ -2,7 +2,7 @@
  * Unified Interpreter State
  *
  * This module defines the state structure for interpreting ABC notation into ABCJS Tune format.
- * Instead of multiple context types, we use a single hierarchical state that tracks:
+ * Because we need to track state at multiple levels, we use a single hierarchical state that tracks:
  * - File-level defaults (shared across all tunes)
  * - Tune-level defaults (inherited from file, overridden per tune)
  * - Working state (current position during body traversal)
@@ -71,8 +71,8 @@ export interface TuneDefaults {
  * Information about a single staff in the output.
  * Tracks how many voices are assigned to this staff and visual grouping properties.
  *
- * The bracket/brace/connectBarLines properties use 'start'/'continue'/'end' markers
- * to indicate multi-staff groupings. For example:
+ * Because multi-staff groupings need to span multiple staves, the bracket/brace/connectBarLines
+ * properties use 'start'/'continue'/'end' markers to indicate groupings. For example:
  * - Staff 0: brace='start' (begins the brace)
  * - Staff 1: brace='continue' (continues the brace)
  * - Staff 2: brace='end' (ends the brace)
@@ -334,7 +334,8 @@ export function nextMeasure(state: InterpreterState): void {
 }
 
 /**
- * Resolve a property with hierarchical precedence:
+ * Resolves a property with hierarchical precedence.
+ * Because properties can be defined at multiple levels, we apply the precedence:
  * voiceOverride > tuneDefaults > fileDefaults
  */
 export function resolveProperty<T>(fileValue: T | undefined, tuneValue: T | undefined, voiceValue: T | undefined): T | undefined {
@@ -353,8 +354,8 @@ export function resolveProperty<T>(fileValue: T | undefined, tuneValue: T | unde
  * - Subsequent voices → create new staff (unless `merge` property is set)
  * - `V:X merge` → adds voice to the most recently created staff
  *
- * This function is called when a voice is encountered that hasn't been
- * explicitly assigned to a staff (e.g., via %%score directive).
+ * We call this function when we encounter a voice that hasn't been explicitly
+ * assigned to a staff (e.g., via %%score directive).
  */
 export function assignStaff(state: InterpreterState, voiceId: string, properties?: VoiceProperties): void {
   if (state.staves.length === 0) {
@@ -381,15 +382,14 @@ export function assignStaff(state: InterpreterState, voiceId: string, properties
  * Finds an available system for a voice to write to, or returns the index
  * for a new system if all existing systems have content for this voice.
  *
- * This implements the "find-or-create" pattern from abcjs:
- * - Search from `startFrom` for the first system where this voice slot is empty
+ * Because voices can be written in any order and need to fill systems incrementally,
+ * we implement the "find-or-create" pattern from abcjs:
+ * - Search from `curSystem` for the first system where this voice slot is empty
  * - If all systems have content, return tune.systems.length (create new system)
- *
- * This allows voices to be written in any order and fill systems incrementally.
  */
 export function getSystemIdx(tune: Tune, vxStaff: VxStaff, curSystem: number): number {
   const { staffNum, index: voiceIndex } = vxStaff;
-  // Search from startFrom for first available slot
+  // Search from curSystem for first available slot
   for (let i = curSystem; i < tune.systems.length; i++) {
     const system = tune.systems[i];
 
@@ -513,9 +513,7 @@ export function switchToVoice(state: InterpreterState, voiceId: string): void {
 }
 
 /**
- * Switch to this voice,
- * creating it if missing,
- * creatig its system/staff slot if missing.
+ * Switches to a voice, creating it if missing, and creating its system/staff slot if missing.
  *
  * This function:
  * 1. Creates voice state if it doesn't exist
@@ -523,7 +521,7 @@ export function switchToVoice(state: InterpreterState, voiceId: string): void {
  * 3. Updates voice properties if provided
  * 4. Switches to the voice for writing
  *
- * Call this whenever a V: directive is encountered (header, body, or inline field).
+ * We call this whenever a V: directive is encountered (header, body, or inline field).
  */
 export function applyVoice(state: InterpreterState, voice: { id: string; properties: VoiceProperties }): void {
   const { id: voiceId, properties } = voice;

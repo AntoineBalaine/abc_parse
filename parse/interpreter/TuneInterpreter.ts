@@ -149,7 +149,7 @@ const DECORATION_MAP: Record<string, string> = {
 };
 
 /**
- * Calculate rhythm multiplier from a Rhythm expression.
+ * Calculates the rhythm multiplier from a Rhythm expression.
  *
  * Examples:
  *   "2" → 2/1
@@ -161,11 +161,12 @@ const DECORATION_MAP: Record<string, string> = {
  *   "0" → 0/1 (grace notes)
  */
 /**
- * Get broken rhythm multipliers based on the broken rhythm symbol
- * Returns [currentNoteMultiplier, nextNoteMultiplier] as rationals
+ * Gets the broken rhythm multipliers based on the broken rhythm symbol.
+ * Returns [currentNoteMultiplier, nextNoteMultiplier] as rationals.
  *
- * Pattern: first note takes (2 - 1/2^n), second note takes 1/2^n
- * where n is the number of symbols
+ * Because the ABC notation uses a pattern where the first note takes (2 - 1/2^n)
+ * and the second note takes 1/2^n (where n is the number of symbols), we calculate
+ * the appropriate multipliers.
  *
  * Examples:
  *   > (n=1): [3/2, 1/2] = [1.5, 0.5]
@@ -196,7 +197,7 @@ function getBrokenRhythmMultipliers(brokenLexeme: string): [IRational, IRational
 }
 
 /**
- * Calculate the full duration for a musical element (note/rest/chord)
+ * Calculates the full duration for a musical element (note/rest/chord)
  * including broken rhythm handling.
  *
  * @param rhythm - The rhythm expression from the AST
@@ -292,7 +293,7 @@ function calculateRhythm(
  */
 
 /**
- * Check if a note can be beamed (duration < 1/4)
+ * Checks whether a note can be beamed (duration < 1/4).
  */
 function canBeam(duration: IRational): boolean {
   // duration < 1/4
@@ -302,7 +303,7 @@ function canBeam(duration: IRational): boolean {
 }
 
 /**
- * End the current beam group (if any) by setting startBeam and endBeam properties
+ * Ends the current beam group (if any) by setting startBeam and endBeam properties.
  */
 function endBeamGroup(voiceState: VoiceState): void {
   if (voiceState.potentialStartBeam && voiceState.potentialEndBeam) {
@@ -314,8 +315,9 @@ function endBeamGroup(voiceState: VoiceState): void {
 }
 
 /**
- * Process beaming for a note element
- * Call this after creating each note element
+ * Processes beaming for a note element.
+ * Because beaming needs to be determined after each note is created,
+ * we call this after creating each note element.
  */
 function processBeaming(noteElement: NoteElement, voiceState: VoiceState, isRest: boolean): void {
   const duration = noteElement.duration;
@@ -353,8 +355,8 @@ function processBeaming(noteElement: NoteElement, voiceState: VoiceState, isRest
  */
 
 /**
- * Process tie start for a note/chord
- * When a note has a tie (-), mark it with startTie and add to pendingTies
+ * Processes tie start for a note or chord.
+ * When a note has a tie (-), we mark it with startTie and add it to pendingTies.
  */
 function processTieStart(pitches: any[], voiceState: VoiceState): void {
   for (const pitch of pitches) {
@@ -366,8 +368,8 @@ function processTieStart(pitches: any[], voiceState: VoiceState): void {
 }
 
 /**
- * Process tie end for a note/chord
- * In abcjs, a tie connects to the NEXT note/chord, and:
+ * Processes tie end for a note or chord.
+ * Because in abcjs a tie connects to the NEXT note/chord, we need to handle two cases:
  * - If the next note/chord has the same pitch, that pitch gets endTie
  * - If the next note/chord has different pitches, ALL pending ties end (on ANY pitch in the chord)
  * This matches abcjs behavior where C2-|D2 sets endTie on D.
@@ -402,9 +404,9 @@ function processTieEnd(pitches: any[], voiceState: VoiceState): void {
  */
 
 /**
- * Apply start slurs to pitches
- * When we encounter '(' tokens, we add labels to pendingStartSlurs.
- * This function applies those labels to the current note's pitches.
+ * Applies start slurs to pitches.
+ * When we encounter '(' tokens, we add labels to pendingStartSlurs, and then
+ * this function applies those labels to the current note's pitches.
  */
 function applyStartSlurs(pitches: any[], voiceState: VoiceState): void {
   if (voiceState.pendingStartSlurs.length === 0) return;
@@ -422,9 +424,9 @@ function applyStartSlurs(pitches: any[], voiceState: VoiceState): void {
 }
 
 /**
- * Apply end slurs to pitches
- * When we encounter ')' tokens, we add labels to pendingEndSlurs.
- * This function applies those labels to the current note's pitches.
+ * Applies end slurs to pitches.
+ * When we encounter ')' tokens, we add labels to pendingEndSlurs, and then
+ * this function applies those labels to the current note's pitches.
  */
 function applyEndSlurs(pitches: any[], voiceState: VoiceState): void {
   if (voiceState.pendingEndSlurs.length === 0) return;
@@ -446,7 +448,7 @@ function applyEndSlurs(pitches: any[], voiceState: VoiceState): void {
  */
 
 /**
- * Apply pending decorations to a note element
+ * Applies pending decorations to a note element.
  * Decorations are ornaments and articulations like staccato, trill, etc.
  */
 function applyDecorations(element: NoteElement, voiceState: VoiceState): void {
@@ -464,8 +466,8 @@ function applyDecorations(element: NoteElement, voiceState: VoiceState): void {
  */
 
 /**
- * Apply pending grace notes to a note element
- * Grace notes are ornamental notes that precede the main note
+ * Applies pending grace notes to a note element.
+ * Grace notes are ornamental notes that precede the main note.
  */
 function applyGraceNotes(element: NoteElement, voiceState: VoiceState): void {
   if (voiceState.pendingGraceNotes.length === 0) return;
@@ -482,8 +484,7 @@ function applyGraceNotes(element: NoteElement, voiceState: VoiceState): void {
  */
 
 /**
- * Apply pending chord symbols to a note element
- * Chord symbols are guitar chord annotations like "C", "Dm", "G7"
+ * Applies pending chord symbols to a note element.
  */
 function applyChordSymbols(element: NoteElement, voiceState: VoiceState): void {
   if (voiceState.pendingChordSymbols.length === 0) return;
@@ -500,9 +501,9 @@ function applyChordSymbols(element: NoteElement, voiceState: VoiceState): void {
  */
 
 /**
- * Apply tuplet properties to a note element
- * If we're in an active tuplet, mark the first note with startTriplet and tripletMultiplier,
- * and the last note with endTriplet.
+ * Applies tuplet properties to a note element.
+ * Because tuplet notation spans multiple notes, we mark the first note with startTriplet
+ * and tripletMultiplier, and we mark the last note with endTriplet.
  */
 function applyTuplet(element: NoteElement, voiceState: VoiceState): void {
   if (voiceState.tupletNotesLeft <= 0) return;
@@ -558,8 +559,8 @@ type HeaderContext =
   | { type: "tune_header"; target: { tune: Tune; tuneDefaults: TuneDefaults; parserConfig: import("./InterpreterState").ParserConfig } };
 
 /**
- * Process info line semantic data and assign to appropriate target
- * @returns Warning message if info line is not valid in this context
+ * Processes info line semantic data and assigns it to the appropriate target.
+ * @returns Warning message if the info line is not valid in this context
  */
 function applyInfoLine(semanticData: InfoLineUnion, context: HeaderContext): string | null {
   // Process properties that work in both file and tune headers
@@ -658,8 +659,8 @@ function applyInfoLine(semanticData: InfoLineUnion, context: HeaderContext): str
 }
 
 /**
- * Process directive semantic data and assign to appropriate target
- * @returns Warning message if directive is not valid in this context
+ * Processes directive semantic data and assigns it to the appropriate target.
+ * @returns Warning message if the directive is not valid in this context
  */
 function applyDirective(semanticData: SemanticData, directiveName: string, context: HeaderContext): string | null {
   const metaText = context.type === "file_header" ? context.target.metaText : context.target.tune.metaText;
@@ -746,9 +747,9 @@ interface InternalVxStaff {
  * Handles %%score and %%staves directives by populating the interpreter state
  * with pre-defined staff/voice assignments.
  *
- * This function is called when a %%score or %%staves directive is encountered,
- * and it directly populates the state's staves and vxStaff maps with the
- * parsed staff layout information.
+ * Because %%score and %%staves directives define the staff layout before any music is encountered,
+ * we directly populate the state's staves and vxStaff maps with the parsed staff layout information
+ * when these directives are encountered.
  *
  * @param state - The interpreter state to update
  * @param data - Parsed staff layout data from the directive analyzer
@@ -820,8 +821,9 @@ export class TuneInterpreter implements Visitor<void> {
   /**
    * Pushes an element directly to the current voice's output location.
    *
-   * This uses the cached write location (currentSystemNum, currentStaffNum, currentVoiceIndex)
-   * that was set by the last voice switch via handleVoiceDirective().
+   * Because we cache the write location (currentSystemNum, currentStaffNum, currentVoiceIndex)
+   * during the last voice switch via handleVoiceDirective(), we can write elements directly
+   * to their final positions.
    */
   private pushElement(element: VoiceElement): void {
     const { currentSystemNum, currentStaffNum, currentVoiceIndex } = this.state;
@@ -832,8 +834,9 @@ export class TuneInterpreter implements Visitor<void> {
   }
 
   /**
-   * Gets the current voice's element array for operations that need to read/modify it.
-   * Use sparingly - prefer pushElement() for adding elements.
+   * Gets the current voice's element array for operations that need to read or modify it.
+   * Because most operations should write directly to the output, we should use this sparingly
+   * and prefer pushElement() for adding elements.
    */
   private getCurrentVoiceElements(): VoiceElement[] {
     const { currentSystemNum, currentStaffNum, currentVoiceIndex } = this.state;
@@ -843,8 +846,8 @@ export class TuneInterpreter implements Visitor<void> {
 
   /**
    * Ensures a voice is active before processing music elements.
-   * If no voice has been set, creates a default voice (for single-voice tunes without V: directives).
-   * This implements lazy voice creation - we only create a default voice when music is encountered.
+   * Because single-voice tunes may not have V: directives, we need to create a default voice
+   * when music is first encountered. This implements lazy voice creation.
    */
   private voiceState(): void {
     if (this.state.voices.size === 0) {
@@ -1753,7 +1756,7 @@ export class TuneInterpreter implements Visitor<void> {
   }
 
   /**
-   * Calculate vertical position on staff based on pitch and clef
+   * Calculates the vertical position on staff based on pitch and clef.
    * The pitch number represents the absolute musical pitch (invariant to clef)
    * The verticalPos represents the position on the staff (varies with clef)
    *
@@ -1771,7 +1774,7 @@ export class TuneInterpreter implements Visitor<void> {
   }
 
   /**
-   * Get the duration of a full measure based on the current meter
+   * Gets the duration of a full measure based on the current meter.
    * For example, M:2/1 means a measure contains 2 whole notes, so duration = 2.0
    * M:4/4 means a measure contains 4 quarter notes = 1 whole note, so duration = 1.0
    * Default is 4/4 = 1.0
@@ -1798,19 +1801,5 @@ export class TuneInterpreter implements Visitor<void> {
     this.state.tune.voiceNum = this.state.voices.size;
     this.state.tune.lineNum = this.state.tune.systems.length;
     // Note: metaText and formatting were already initialized from fileDefaults in visitTuneExpr
-  }
-
-  /**
-   * Legacy method - kept for backward compatibility but no longer used.
-   * Staff count is now tracked in state.staves.
-   */
-  countStaffs(): number {
-    let max = 0;
-    for (const line of this.state.tune.systems) {
-      if ("staff" in line) {
-        max = Math.max(max, line.staff.length);
-      }
-    }
-    return max;
   }
 }
