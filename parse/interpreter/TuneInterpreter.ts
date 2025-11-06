@@ -103,9 +103,9 @@ import {
   nextMeasure,
   TuneDefaults,
   VoiceState,
-  applyVoice,
-  addVoice,
+  initVxState,
   initVxNomenclature,
+  switchToVoice,
 } from "./InterpreterState";
 
 /**
@@ -821,11 +821,25 @@ export class TuneInterpreter implements Visitor<void> {
   /**
    * Pushes an element directly to the current voice's output location.
    *
-   * Because we cache the write location (currentSystemNum, currentStaffNum, currentVoiceIndex)
-   * during the last voice switch via handleVoiceDirective(), we can write elements directly
-   * to their final positions.
+   * This ensures that voice state exists (creating a default voice for single-voice tunes if needed),
+   * ensures the voice nomenclature and structures are created (systems/staffs/voices arrays),
+   * then writes to the cached location (currentSystemNum, currentStaffNum, currentVoiceIndex).
    */
   private pushElement(element: VoiceElement): void {
+    const voiceId = this.state.currentVoice;
+    const vxNomenclature = this.state.vxNomenclatures.get(voiceId);
+
+    // Switch if: no nomenclature, no switch yet (pointers are -1), or pointing to different voice
+    if (
+      !vxNomenclature ||
+      this.state.currentStaffNum === -1 ||
+      this.state.currentVoiceIndex === -1 ||
+      vxNomenclature.staffNum !== this.state.currentStaffNum ||
+      vxNomenclature.index !== this.state.currentVoiceIndex
+    ) {
+      switchToVoice(this.state, voiceId);
+    }
+
     const { currentSystemNum, currentStaffNum, currentVoiceIndex } = this.state;
 
     // Write directly to the final output structure
@@ -845,26 +859,8 @@ export class TuneInterpreter implements Visitor<void> {
   }
 
   /**
-   * Ensures a voice is active before processing music elements.
-   * Because single-voice tunes may not have V: directives, we need to create a default voice
-   * when music is first encountered. This implements lazy voice creation.
+   * Public API
    */
-  private voiceState(): void {
-    if (this.state.voices.size === 0) {
-      // No voices declared yet, create default voice for single-voice tunes
-      // Use empty string as voice name to match abcjs behavior
-      applyVoice(this.state, { id: "", properties: {} });
-    } else if (!this.state.voices.has(this.state.currentVoice)) {
-      // Voice was declared but not switched to yet - switch to first declared voice
-      const firstVoiceId = Array.from(this.state.voices.keys())[0];
-      applyVoice(this.state, { id: firstVoiceId, properties: this.state.voices.get(firstVoiceId)!.properties });
-    }
-  }
-
-  // ============================================================================
-  // Public API
-  // ============================================================================
-
   interpretFile(fileStructure: File_structure): ParseResult {
     this.tunes = [];
     this.fileDefaults = createFileDefaults();
@@ -875,10 +871,9 @@ export class TuneInterpreter implements Visitor<void> {
     return { tunes: this.tunes };
   }
 
-  // ============================================================================
-  // Visitor Implementation
-  // ============================================================================
-
+  /**
+   * Visitor Implementation
+   */
   visitFileStructureExpr(expr: File_structure): void {
     // Process file header first
     if (expr.file_header) {
@@ -961,7 +956,9 @@ export class TuneInterpreter implements Visitor<void> {
     for (const abcLine of expr.sequence) {
       // Visit each element in the ABC text line
       for (const element of abcLine) {
-        if (!(isComment(element) || isInfo_line(element) || element instanceof Lyric_line || element instanceof ErrorExpr)) this.voiceState();
+        if (!(isComment(element) || isInfo_line(element) || element instanceof Lyric_line || element instanceof ErrorExpr)) {
+          initVxState(this.state, this.state.voices.get(this.state.currentVoice));
+        }
         element.accept(this);
       }
     }
@@ -977,7 +974,7 @@ export class TuneInterpreter implements Visitor<void> {
     if (this.processingContext === "tune_body") {
       // Inline info line in tune body - can change voice, key, meter, tempo, note length, clef
       if (isVoiceInfo(semanticData)) {
-        applyVoice(this.state, semanticData.data);
+        initVxState(this.state, semanticData.data);
       } else if (isKeyInfo(semanticData)) {
         const voice = getCurrentVoice(this.state);
         if (voice) {
@@ -1017,22 +1014,9 @@ export class TuneInterpreter implements Visitor<void> {
       // In header: register voice with properties but DON'T switch to it
       // (abcjs only creates actual staff structures when voices write elements in body)
       if (isVoiceInfo(semanticData)) {
-        const { id, properties } = semanticData.data;
-        // Create voice state if doesn't exist
-        if (!this.state.voices.has(id)) {
-          addVoice(this.state, id, properties || {});
-        } else if (properties) {
-          // Update properties if voice already exists
-          const voice = this.state.voices.get(id)!;
-          if (properties.clef) {
-            voice.currentClef = properties.clef;
-          }
-          if (properties.name !== undefined) {
-            voice.properties.name = properties.name;
-          }
-          voice.properties = { ...voice.properties, ...properties };
-        }
+        initVxState(this.state, semanticData.data);
 
+        const { id } = semanticData.data;
         // Assign to staff (but don't switch) - this creates StaffInfo entry
         // but doesn't create actual system/staff structures yet
         if (!this.state.vxNomenclatures.has(id)) {
@@ -1519,7 +1503,7 @@ export class TuneInterpreter implements Visitor<void> {
     // Inline fields are always in tune_body context (they can only appear in music lines)
     // Handle the same way as Info_line in tune_body context
     if (isVoiceInfo(semanticData)) {
-      applyVoice(this.state, semanticData.data);
+      initVxState(this.state, semanticData.data);
     } else if (isKeyInfo(semanticData)) {
       const voice = getCurrentVoice(this.state);
       if (voice) {

@@ -212,9 +212,9 @@ export function createInterpreterState(semanticData: Map<number, SemanticData>, 
     voiceCurrentSystem: new Map(),
 
     // Current write location (will be set on first voice switch)
-    currentSystemNum: 0,
-    currentStaffNum: 0,
-    currentVoiceIndex: 0,
+    currentSystemNum: -1,
+    currentStaffNum: -1,
+    currentVoiceIndex: -1,
 
     tune: createEmptyTune(),
     openSlurs: [],
@@ -281,7 +281,7 @@ export function getDefaultClef(): ClefProperties {
   };
 }
 
-export function createVoiceState(id: string, properties: VoiceProperties, tuneDefaults: TuneDefaults): VoiceState {
+export function newVxState(id: string, properties: VoiceProperties, tuneDefaults: TuneDefaults): VoiceState {
   return {
     id,
     properties,
@@ -308,19 +308,6 @@ export function createVoiceState(id: string, properties: VoiceProperties, tuneDe
  */
 export function getCurrentVoice(state: InterpreterState): VoiceState | undefined {
   return state.voices.get(state.currentVoice);
-}
-
-export function addVoice(state: InterpreterState, id: string, properties: VoiceProperties): void {
-  const voice = createVoiceState(id, properties, state.tuneDefaults);
-  state.voices.set(id, voice);
-}
-
-export function setCurrentVoice(state: InterpreterState, id: string): void {
-  if (!state.voices.has(id)) {
-    // Auto-create voice if it doesn't exist
-    addVoice(state, id, {});
-  }
-  state.currentVoice = id;
 }
 
 export function clearMeasureAccidentals(state: InterpreterState): void {
@@ -358,25 +345,31 @@ export function resolveProperty<T>(fileValue: T | undefined, tuneValue: T | unde
  * We call this function when we encounter a voice that hasn't been explicitly
  * assigned to a staff (e.g., via %%score directive).
  */
-export function initVxNomenclature(state: InterpreterState, voiceId: string, properties?: VoiceProperties): void {
+export function initVxNomenclature(state: InterpreterState, voiceId: string, properties?: VoiceProperties): VxNomenclature {
+  let rv: VxNomenclature;
+
   if (state.stavesNomenclatures.length === 0) {
     // First voice creates first staff
     state.stavesNomenclatures.push({ index: 0, numVoices: 1 });
-    state.vxNomenclatures.set(voiceId, { staffNum: 0, index: 0 });
+    rv = { staffNum: 0, index: 0 };
+    state.vxNomenclatures.set(voiceId, rv);
   } else if (properties?.merge) {
     // "V:X merge" adds to last staff
     const lastStaff = state.stavesNomenclatures[state.stavesNomenclatures.length - 1];
-    state.vxNomenclatures.set(voiceId, {
+    rv = {
       staffNum: lastStaff.index,
       index: lastStaff.numVoices,
-    });
+    };
+    state.vxNomenclatures.set(voiceId, rv);
     lastStaff.numVoices++;
   } else {
     // Default: create new staff for this voice
     const newStaffIndex = state.stavesNomenclatures.length;
     state.stavesNomenclatures.push({ index: newStaffIndex, numVoices: 1 });
-    state.vxNomenclatures.set(voiceId, { staffNum: newStaffIndex, index: 0 });
+    rv = { staffNum: newStaffIndex, index: 0 };
+    state.vxNomenclatures.set(voiceId, rv);
   }
+  return rv;
 }
 
 /**
@@ -439,15 +432,29 @@ export function initVxSlot(state: InterpreterState, systemIdx: number, vxStaff: 
 
   const system = tune.systems[systemIdx] as StaffSystem;
 
-  // Ensure staff exists in this system
-  if (!system.staff[staffNum]) {
-    const staffNom = state.stavesNomenclatures[staffNum];
+  // Ensure all staffs up to and including staffNum exist (avoid gaps/undefined)
+  while (system.staff.length <= staffNum) {
+    const currentStaffNum = system.staff.length;
+    const staffNom = state.stavesNomenclatures[currentStaffNum];
+
+    // Get the voice that should be on this staff to determine its properties
+    // Find the first voice assigned to this staff
+    let voiceForStaff = voiceState;
+    for (const [vid, vxNom] of state.vxNomenclatures.entries()) {
+      if (vxNom.staffNum === currentStaffNum) {
+        const v = state.voices.get(vid);
+        if (v) {
+          voiceForStaff = v;
+          break;
+        }
+      }
+    }
 
     const newStaff: Staff = {
-      clef: voiceState.currentClef,
-      key: voiceState.currentKey,
-      meter: voiceState.currentMeter,
-      workingClef: voiceState.currentClef,
+      clef: voiceForStaff.currentClef,
+      key: voiceForStaff.currentKey,
+      meter: voiceForStaff.currentMeter,
+      workingClef: voiceForStaff.currentClef,
       voices: [],
     };
 
@@ -463,7 +470,7 @@ export function initVxSlot(state: InterpreterState, systemIdx: number, vxStaff: 
       newStaff.connectBarLines = true;
     }
 
-    system.staff[staffNum] = newStaff;
+    system.staff.push(newStaff);
   }
 
   // Ensure voice array exists in this staff
@@ -487,20 +494,18 @@ export function initVxSlot(state: InterpreterState, systemIdx: number, vxStaff: 
  * tune.systems[currentSystemNum].staff[currentStaffNum].voices[currentVoiceIndex]
  */
 export function switchToVoice(state: InterpreterState, voiceID: string): void {
+  const voiceState = initVxState(state, { id: voiceID });
+  // Get voice nomenclature - if not initialized yet, do lazy initialization
+  let vxNomenclature = state.vxNomenclatures.get(voiceID);
+  if (!vxNomenclature) {
+    // Lazy initialization: voice was declared in header but nomenclature not initialized yet.
+    // This matches abcjs behavior where staff structures are created only when
+    // voices actually write elements in the body.
+    vxNomenclature = initVxNomenclature(state, voiceID, voiceState.properties);
+  }
+
   // Find next available system slot for this voice
   const systemIdx = getSystemIdx(state, voiceID);
-
-  // Get or create voice metadata
-  const vxNomenclature = state.vxNomenclatures.get(voiceID);
-  if (!vxNomenclature) {
-    throw new Error(`Voice ${voiceID} nomenclature un-initialized.`);
-  }
-
-  // Get voice state
-  const voiceState = state.voices.get(voiceID);
-  if (!voiceState) {
-    throw new Error(`Voice state not found for ${voiceID}`);
-  }
 
   // Ensure the structure exists
   initVxSlot(state, systemIdx, vxNomenclature, voiceState);
@@ -511,48 +516,46 @@ export function switchToVoice(state: InterpreterState, voiceID: string): void {
   state.currentVoiceIndex = vxNomenclature.index;
   state.currentVoice = voiceID;
 
-  // Next time we switch to this voice, start searching from current system first,
-  // then move to next if current is full. This ensures voices can continue
-  // writing to the same system if it still has space.
-  // Note: We DON'T increment systemNum here because we want to check the current
-  // system first on the next switch. The findOrCreateSystemForVoice function
-  // will correctly detect if this slot already has content and move to the next.
-  state.voiceCurrentSystem.set(voiceID, systemIdx);
+  // Next time we switch to this voice, start searching from the NEXT system
+  // because we just wrote to the current system. Other voices can still write
+  // to the current system (interleaving).
+  state.voiceCurrentSystem.set(voiceID, systemIdx + 1);
 }
 
 /**
- * Switches to a voice, creating it if missing, and creating its system/staff slot if missing.
+ * - Creates voice state if it doesn't exist
+ * - Updates voice properties if provided
+ * - Sets this voice as the "current voice"
  *
- * This function:
- * 1. Creates voice state if it doesn't exist
- * 2. Assigns voice to staff (nomenclature) if not already assigned
- * 3. Updates voice properties if provided
- * 4. Switches to the voice for writing
+ * We call this whenever a V: directive is encountered in the body or as an inline field.
+ * For header V: directives, we use addVoice() instead to avoid initializing nomenclature.
  *
- * We call this whenever a V: directive is encountered (header, body, or inline field).
+ * This matches abcjs behavior where V: directives don't create structures until
+ * musical elements are actually written to that voice.
  */
-export function applyVoice(state: InterpreterState, voice: { id: string; properties: VoiceProperties }): void {
+export function initVxState(state: InterpreterState, voice: { id: string; properties?: VoiceProperties } = { id: "" }): VoiceState {
   const { id: voiceId, properties } = voice;
   // 1. Create voice state if doesn't exist
-  if (!state.voices.has(voiceId)) {
-    addVoice(state, voiceId, properties || {});
+
+  let vx = state.voices.get(voiceId);
+
+  if (!vx) {
+    vx = newVxState(voiceId, properties || {}, state.tuneDefaults);
+    state.voices.set(voiceId, vx);
   } else if (properties) {
-    const voice = state.voices.get(voiceId)!;
     if (properties.clef) {
-      voice.currentClef = properties.clef;
+      vx.currentClef = properties.clef;
     }
     if (properties.name !== undefined) {
-      voice.properties.name = properties.name;
+      vx.properties.name = properties.name;
     }
 
-    voice.properties = { ...voice.properties, ...properties };
+    vx.properties = { ...vx.properties, ...properties };
   }
 
-  // 2. Check if it has a nomenclature
-  if (!state.vxNomenclatures.has(voiceId)) {
-    initVxNomenclature(state, voiceId, properties);
-  }
-
-  // 3. Switch running state to point to this voice
-  switchToVoice(state, voiceId);
+  // 2. Mark this voice as "pending" current voice
+  // Actual switch (nomenclature initialization and structure creation) happens lazily
+  // when first element is written
+  state.currentVoice = voiceId;
+  return vx;
 }

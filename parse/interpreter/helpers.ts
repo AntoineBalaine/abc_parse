@@ -1,27 +1,5 @@
 import { Token } from "../parsers/scan2";
-import {
-  BarType,
-} from "../types/abcjs-ast";
-import {
-  Rhythm,
-} from "../types/Expr2";
-import { IRational } from "../Visitors/fmt2/rational";
-import {
-  InterpreterContext,
-} from "./InterpreterContext";
-
-// Process info lines
-
-// Helper methods
-function calculateNoteDuration(rhythm: Rhythm | undefined, ctx: InterpreterContext): IRational {
-  if (!rhythm) {
-    // Use default note length
-    return ctx.defaultNoteLength;
-  }
-
-  // TODO: Calculate duration from rhythm
-  return ctx.defaultNoteLength;
-}
+import { BarType } from "../types/abcjs-ast";
 
 function determineBarType(barTokens: Token[]): BarType {
   const barString = barTokens.map((t) => t.lexeme).join("");
