@@ -104,6 +104,8 @@ import {
   TuneDefaults,
   VoiceState,
   applyVoice,
+  addVoice,
+  assignStaff,
 } from "./InterpreterState";
 
 // ============================================================================
@@ -848,7 +850,7 @@ export class TuneInterpreter implements Visitor<void> {
    * If no voice has been set, creates a default voice (for single-voice tunes without V: directives).
    * This implements lazy voice creation - we only create a default voice when music is encountered.
    */
-  private ensureVoice(): void {
+  private voiceState(): void {
     if (this.state.voices.size === 0) {
       // No voices declared yet, create default voice for single-voice tunes
       // Use empty string as voice name to match abcjs behavior
@@ -960,7 +962,7 @@ export class TuneInterpreter implements Visitor<void> {
     for (const abcLine of expr.sequence) {
       // Visit each element in the ABC text line
       for (const element of abcLine) {
-        if (!(isComment(element) || isInfo_line(element) || element instanceof Lyric_line || element instanceof ErrorExpr)) this.ensureVoice();
+        if (!(isComment(element) || isInfo_line(element) || element instanceof Lyric_line || element instanceof ErrorExpr)) this.voiceState();
         element.accept(this);
       }
     }
@@ -1013,8 +1015,31 @@ export class TuneInterpreter implements Visitor<void> {
       }
 
       // Handle voice separately since it requires state manipulation
+      // In header: register voice with properties but DON'T switch to it
+      // (abcjs only creates actual staff structures when voices write elements in body)
       if (isVoiceInfo(semanticData)) {
-        applyVoice(this.state, semanticData.data);
+        const { id, properties } = semanticData.data;
+        // Create voice state if doesn't exist
+        if (!this.state.voices.has(id)) {
+          addVoice(this.state, id, properties || {});
+        } else if (properties) {
+          // Update properties if voice already exists
+          const voice = this.state.voices.get(id)!;
+          if (properties.clef) {
+            voice.currentClef = properties.clef;
+          }
+          if (properties.name !== undefined) {
+            voice.properties.name = properties.name;
+          }
+          voice.properties = { ...voice.properties, ...properties };
+        }
+
+        // Assign to staff (but don't switch) - this creates StaffInfo entry
+        // but doesn't create actual system/staff structures yet
+        if (!this.state.vxStaff.has(id)) {
+          const voice = this.state.voices.get(id)!;
+          assignStaff(this.state, id, voice.properties);
+        }
       }
     }
   }

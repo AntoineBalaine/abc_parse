@@ -541,6 +541,47 @@ G,,A,,B,,C, |`;
     });
   });
 
+  describe("Repeated voice switching", () => {
+    it("should create new systems when same voice is switched to multiple times", () => {
+      const abc = `X:1
+M:4/4
+L:1/4
+V:1
+K:C
+V:1
+D||
+V:1
+[cA]|`;
+
+      const tune = interpretABC(abc);
+
+      // Should have 2 systems (one for each V:1 section)
+      expect(tune.systems.length).to.equal(2);
+
+      const system1 = tune.systems[0] as StaffSystem;
+      const system2 = tune.systems[1] as StaffSystem;
+
+      // System 1 should have D||
+      expect(system1.staff[0].voices[0].length).to.equal(2); // D + ||
+
+      // System 2 should have [cA]|
+      expect(system2.staff[0].voices[0].length).to.equal(2); // [cA] + |
+
+      // Total elements should be 4
+      let total = 0;
+      tune.systems.forEach((sys) => {
+        if ("staff" in sys) {
+          (sys as StaffSystem).staff.forEach((staff) => {
+            staff.voices.forEach((voice) => {
+              total += voice.length;
+            });
+          });
+        }
+      });
+      expect(total).to.equal(4);
+    });
+  });
+
   describe("Voice assignment timing", () => {
     it("should assign voices to staffs when declared in header", () => {
       const abc = `X:1
