@@ -11,10 +11,6 @@
 
 import { IRational } from "../Visitors/fmt2/rational";
 
-// ============================================================================
-// Basic Semantic Types
-// ============================================================================
-
 export interface FontSpec {
   face?: string;
   size?: number;
@@ -47,10 +43,9 @@ export interface StaffLayoutSpec {
   connectBarLines?: boolean;
 }
 
-// ============================================================================
-// Parameter Type Specifications
-// ============================================================================
-
+/**
+ * Parameter Type Specifications
+ */
 export type ParamType =
   | "identifier" // Simple identifier token
   | "annotation" // Quoted string
@@ -80,11 +75,13 @@ export interface ParamSpec {
   max?: number; // Maximum value for numbers
 }
 
-// ============================================================================
-// Reusable Parameter Specifications
-// ============================================================================
+/**
+ * Reusable Parameter Specifications
+ */
 
-// Base font parameters (face, size, modifiers)
+/**
+ * Base font parameters (face, size, modifiers)
+ */
 const FONT_PARAMS: ParamSpec[] = [
   { type: "font_face", optional: true },
   { type: "number", optional: true },
@@ -94,12 +91,14 @@ const FONT_PARAMS: ParamSpec[] = [
 // Box parameter for font directives that support it
 const BOX_PARAM: ParamSpec = { type: "identifier", optional: true, choices: ["box"] };
 
-// Position choice parameter
+/**
+ * Position choice parameter
+ */
 const POSITION_CHOICE_PARAM: ParamSpec = { type: "position_choice", choices: ["auto", "above", "below", "hidden"] };
-// ============================================================================
-// Directive Validation Rules
-// ============================================================================
 
+/**
+ * Directive Validation Rules
+ */
 export const DIRECTIVE_SPECS: Record<string, { params: ParamSpec[] }> = {
   // Font Directives with Box Support
   titlefont: { params: [...FONT_PARAMS, BOX_PARAM] },
@@ -259,10 +258,9 @@ export const DIRECTIVE_SPECS: Record<string, { params: ParamSpec[] }> = {
   nobarcheck: { params: [] },
 };
 
-// ============================================================================
-// MIDI Command Specifications
-// ============================================================================
-
+/**
+ * MIDI Command Specifications
+ */
 export const MIDI_COMMAND_SPECS: Record<string, { params: ParamSpec[] }> = {
   // No parameters
   nobarlines: { params: [] },
@@ -369,11 +367,13 @@ export const MIDI_COMMAND_SPECS: Record<string, { params: ParamSpec[] }> = {
 
 export const FontDirectiveNames = Object.keys(DIRECTIVE_SPECS).filter((key) => key.endsWith("font"));
 
-// ============================================================================
-// Tagged Union Types for Semantic Data
-// ============================================================================
+/**
+ * Tagged Union Types for Semantic Data
+ */
 
-// Extract the type field from the discriminated union
+/**
+ * Extract the type field from the discriminated union
+ */
 export type DirectiveType = DirectiveSemanticData["type"];
 
 export type DirectiveSemanticData =
@@ -555,10 +555,6 @@ export const DRUM_SOUND_NAMES = [
 
 export type DrumSoundName = (typeof DRUM_SOUND_NAMES)[number];
 
-// ============================================================================
-// Validation Helper Functions
-// ============================================================================
-
 export function isValidDirective(name: string): name is DirectiveType {
   return name in DIRECTIVE_SPECS;
 }
@@ -582,10 +578,6 @@ export function getDirectiveSpec(name: string): { params: ParamSpec[] } | undefi
 export function getMidiCommandSpec(command: string): { params: ParamSpec[] } | undefined {
   return MIDI_COMMAND_SPECS[command];
 }
-
-// ============================================================================
-// Type Guards for Semantic Data
-// ============================================================================
 
 // export function isFontDirective(data: DirectiveSemanticData): data is { type: string; data: FontSpec } {
 //   return data.type.endsWith("font");

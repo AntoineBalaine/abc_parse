@@ -108,9 +108,9 @@ import {
   assignStaff,
 } from "./InterpreterState";
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
+/**
+ * Helper Functions
+ */
 
 /**
  * Tuplet Q lookup table (abcjs tripletQ)
@@ -348,9 +348,9 @@ function processBeaming(noteElement: NoteElement, voiceState: VoiceState, isRest
   }
 }
 
-// ============================================================================
-// Tie Processing
-// ============================================================================
+/**
+ * Tie Processing
+ */
 
 /**
  * Process tie start for a note/chord
@@ -397,9 +397,9 @@ function processTieEnd(pitches: any[], voiceState: VoiceState): void {
   }
 }
 
-// ============================================================================
-// Slur Processing
-// ============================================================================
+/**
+ * Slur Processing
+ */
 
 /**
  * Apply start slurs to pitches
@@ -441,9 +441,9 @@ function applyEndSlurs(pitches: any[], voiceState: VoiceState): void {
   voiceState.pendingEndSlurs = [];
 }
 
-// ============================================================================
-// Decoration Processing
-// ============================================================================
+/**
+ * Decoration Processing
+ */
 
 /**
  * Apply pending decorations to a note element
@@ -459,9 +459,9 @@ function applyDecorations(element: NoteElement, voiceState: VoiceState): void {
   voiceState.pendingDecorations = [];
 }
 
-// ============================================================================
-// Grace Note Processing
-// ============================================================================
+/**
+ * Grace Note Processing
+ */
 
 /**
  * Apply pending grace notes to a note element
@@ -477,9 +477,9 @@ function applyGraceNotes(element: NoteElement, voiceState: VoiceState): void {
   voiceState.pendingGraceNotes = [];
 }
 
-// ============================================================================
-// Chord Symbol Processing
-// ============================================================================
+/**
+ * Chord Symbol Processing
+ */
 
 /**
  * Apply pending chord symbols to a note element
@@ -495,9 +495,9 @@ function applyChordSymbols(element: NoteElement, voiceState: VoiceState): void {
   voiceState.pendingChordSymbols = [];
 }
 
-// ============================================================================
-// Tuplet Processing
-// ============================================================================
+/**
+ * Tuplet Processing
+ */
 
 /**
  * Apply tuplet properties to a note element
@@ -523,10 +523,9 @@ function applyTuplet(element: NoteElement, voiceState: VoiceState): void {
   }
 }
 
-// ============================================================================
-// Type Guards for SemanticData
-// ============================================================================
-
+/**
+ * Type Guards for SemanticData
+ */
 function isInfoLineSemanticData(data: SemanticData): data is InfoLineUnion {
   const infoTypes = [
     "key",
@@ -551,10 +550,9 @@ function isInfoLineSemanticData(data: SemanticData): data is InfoLineUnion {
   return infoTypes.includes(data.type);
 }
 
-// ============================================================================
-// Helper Functions for Processing Semantic Data
-// ============================================================================
-
+/**
+ * Helper Functions for Processing Semantic Data
+ */
 type HeaderContext =
   | { type: "file_header"; target: FileDefaults }
   | { type: "tune_header"; target: { tune: Tune; tuneDefaults: TuneDefaults; parserConfig: import("./InterpreterState").ParserConfig } };
@@ -723,9 +721,9 @@ function applyDirective(semanticData: SemanticData, directiveName: string, conte
   return null;
 }
 
-// ============================================================================
-// Score/Staves Directive Handler
-// ============================================================================
+/**
+ * Score/Staves Directive Handler
+ */
 
 /**
  * Internal type from directive analyzer (richer than StaffInfo)
@@ -767,19 +765,17 @@ function handleScoreDirective(state: InterpreterState, data: { staves: InternalS
   state.vxStaff = data.voiceAssignments;
 }
 
-// ============================================================================
-// Parse Result
-// ============================================================================
-
+/**
+ * Parse Result
+ */
 export interface ParseResult {
   tunes: Tune[];
   warnings?: string[];
 }
 
-// ============================================================================
-// Main Tune Interpreter
-// ============================================================================
-
+/**
+ * Main Tune Interpreter
+ */
 export class TuneInterpreter implements Visitor<void> {
   analyzer: SemanticAnalyzer;
   ctx: ABCContext;

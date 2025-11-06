@@ -31,10 +31,9 @@ import {
 } from "../types/abcjs-ast";
 import { IRational, createRational } from "../Visitors/fmt2/rational";
 
-// ============================================================================
-// Parser Configuration (directives that affect parsing but aren't exposed)
-// ============================================================================
-
+/**
+ * Parser Configuration (directives that affect parsing but aren't exposed)
+ */
 export interface ParserConfig {
   landscape?: boolean;
   titlecaps?: boolean;
@@ -42,10 +41,9 @@ export interface ParserConfig {
   papersize?: string;
 }
 
-// ============================================================================
-// File-level Defaults (shared across all tunes in a file)
-// ============================================================================
-
+/**
+ * File-level Defaults (shared across all tunes in a file)
+ */
 export interface FileDefaults {
   noteLength?: IRational;
   formatting: { [key: string]: any };
@@ -54,10 +52,9 @@ export interface FileDefaults {
   metaText: Partial<MetaText>;
 }
 
-// ============================================================================
-// Tune-level Defaults (per-tune, inherited from file)
-// ============================================================================
-
+/**
+ * Tune-level Defaults (per-tune, inherited from file)
+ */
 export interface TuneDefaults {
   key: KeySignature;
   meter?: Meter;
@@ -66,9 +63,9 @@ export interface TuneDefaults {
   clef: ClefProperties;
 }
 
-// ============================================================================
-// Multi-Staff Support Structures
-// ============================================================================
+/**
+ * Multi-Staff Support Structures
+ */
 
 /**
  * Information about a single staff in the output.
@@ -96,10 +93,9 @@ export interface VxStaff {
   index: number; // Position within the staff's voices array (0, 1, 2...)
 }
 
-// ============================================================================
-// Voice State (per voice within a tune)
-// ============================================================================
-
+/**
+ * Voice State (per voice within a tune)
+ */
 export interface VoiceState {
   id: string;
   properties: VoiceProperties;
@@ -141,10 +137,9 @@ export interface VoiceState {
 
 type VoiceID = string;
 
-// ============================================================================
-// Main Interpreter State (per tune being processed)
-// ============================================================================
-
+/**
+ * Main Interpreter State (per tune being processed)
+ */
 export interface InterpreterState {
   // Semantic data from analyzer (shared reference)
   semanticData: Map<number, SemanticData>;
@@ -181,10 +176,9 @@ export interface InterpreterState {
   inTie: Map<string, any>;
 }
 
-// ============================================================================
-// Factory Functions
-// ============================================================================
-
+/**
+ * Factory Functions
+ */
 export function createFileDefaults(): FileDefaults {
   return {
     formatting: {},
@@ -266,10 +260,9 @@ export function createEmptyTune(): Tune {
   };
 }
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
+/**
+ * Helper Functions
+ */
 export function getDefaultKeySignature(): KeySignature {
   return {
     root: KeyRoot.C,
@@ -309,10 +302,9 @@ export function createVoiceState(id: string, properties: VoiceProperties, tuneDe
   };
 }
 
-// ============================================================================
-// State Management Functions
-// ============================================================================
-
+/**
+ * State Management Functions
+ */
 export function getCurrentVoice(state: InterpreterState): VoiceState | undefined {
   return state.voices.get(state.currentVoice);
 }
@@ -349,9 +341,9 @@ export function resolveProperty<T>(fileValue: T | undefined, tuneValue: T | unde
   return voiceValue ?? tuneValue ?? fileValue;
 }
 
-// ============================================================================
-// Multi-Staff Helper Functions
-// ============================================================================
+/**
+ * Multi-Staff Helper Functions
+ */
 
 /**
  * Assigns a voice to a staff automatically based on ABC specification rules.

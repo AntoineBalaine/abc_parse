@@ -5,10 +5,6 @@
 
 import { IRational } from "../Visitors/fmt2/rational";
 
-// ============================================================================
-// Basic Types
-// ============================================================================
-
 export enum ClefType {
   Treble = "treble",
   Bass = "bass",
@@ -262,10 +258,6 @@ export enum ElementType {
   Overlay = "overlay",
 }
 
-// ============================================================================
-// Core Structures
-// ============================================================================
-
 export interface CharRange {
   startChar: number;
   endChar: number;
@@ -294,10 +286,9 @@ export interface Font {
   decoration: FontDecoration;
 }
 
-// ============================================================================
-// Musical Properties
-// ============================================================================
-
+/**
+ * Musical Properties
+ */
 export interface ClefProperties {
   type?: ClefType;
   verticalPos?: number;
@@ -380,10 +371,9 @@ export interface SlurProperties {
   style?: SlurStyle;
 }
 
-// ============================================================================
-// Pitch and Note Properties
-// ============================================================================
-
+/**
+ * Pitch and Note Properties
+ */
 export interface Pitch {
   pitch: number; // Vertical position (0 = middle C)
   name: string; // Note name with accidentals (e.g., "^F", "_B")
@@ -424,10 +414,6 @@ export interface MidiGracePitch {
   cents?: number;
   durationInMeasures: number;
 }
-
-// ============================================================================
-// Element Types
-// ============================================================================
 
 export interface BaseElement extends CharRange {
   el_type: ElementType;
@@ -551,10 +537,6 @@ export type VoiceElement =
   | TransposeElement
   | OverlayElement;
 
-// ============================================================================
-// Staff and Voice Structure
-// ============================================================================
-
 export interface Staff {
   clef: ClefProperties;
   key: KeySignature;
@@ -570,10 +552,6 @@ export interface Staff {
   stafflines?: number;
   staffscale?: number;
 }
-
-// ============================================================================
-// Line Types
-// ============================================================================
 
 export interface StaffSystem {
   staff: Staff[];
@@ -610,10 +588,6 @@ export interface NewPageLine {
  * Where are subtitleLines defined? and text lines, etc?
  */
 export type USystem = StaffSystem | SubtitleLine | TextLine | SeparatorLine | NewPageLine;
-
-// ============================================================================
-// Main Tune Structure
-// ============================================================================
 
 export interface MetaText {
   title?: string | TextFieldProperties[];
@@ -675,27 +649,13 @@ export interface Tune {
   getSelectableArray(): any[];
 }
 
-// ============================================================================
-// Parser Output Type
-// ============================================================================
-
+/**
+ * Parser Output Type
+ */
 export interface ParseResult {
   tune: Tune;
   warnings?: string[];
 }
-
-// ============================================================================
-// Utility Types
-// ============================================================================
-
-export type MusicElement = VoiceElement;
-export type Voice = VoiceElement[];
-export type StaffArray = Staff[];
-export type LineArray = USystem[];
-
-// ============================================================================
-// Type Guards
-// ============================================================================
 
 export function isNoteElement(element: VoiceElement): element is NoteElement {
   return element.el_type === ElementType.Note;
