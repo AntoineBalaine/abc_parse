@@ -1,5 +1,5 @@
 import { isToken } from "../helpers";
-import { StaffInfo, VxStaff } from "../interpreter/InterpreterState";
+import { StaffNomenclature, VxNomenclature } from "../interpreter/InterpreterState";
 import { Token, TT } from "../parsers/scan2";
 import { DirectiveSemanticData, FontSpec } from "../types/directive-specs";
 import { Directive, Annotation, Measurement } from "../types/Expr2";
@@ -860,9 +860,9 @@ function parseNewpage(directive: Directive, analyzer: SemanticAnalyzer): Directi
  */
 interface StaffParsingContext {
   /** The staffs being built during parsing */
-  staves: StaffInfo[];
+  staves: StaffNomenclature[];
   /** Maps voice IDs to their staff assignments */
-  vxStaff: Map<string, VxStaff>;
+  vxStaff: Map<string, VxNomenclature>;
   /** Whether the next staff should continue bar lines from the previous staff */
   continueBar: boolean;
   /** The ID of the most recently processed voice */
@@ -958,10 +958,10 @@ function parseStaffDirective(
   directive: Directive,
   analyzer: SemanticAnalyzer,
   autoConnectBars: boolean
-): { staves: StaffInfo[]; voiceAssignments: Map<string, VxStaff> } | null {
+): { staves: StaffNomenclature[]; voiceAssignments: Map<string, VxNomenclature> } | null {
   const ctx: StaffParsingContext = {
     staves: [],
-    vxStaff: new Map<string, VxStaff>(),
+    vxStaff: new Map<string, VxNomenclature>(),
     continueBar: false,
     lastVoiceId: null,
     openParen: false,

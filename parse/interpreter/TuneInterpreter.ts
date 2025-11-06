@@ -105,7 +105,7 @@ import {
   VoiceState,
   applyVoice,
   addVoice,
-  assignStaff,
+  initVxNomenclature,
 } from "./InterpreterState";
 
 /**
@@ -756,14 +756,14 @@ interface InternalVxStaff {
  */
 function handleScoreDirective(state: InterpreterState, data: { staves: InternalStaffInfo[]; voiceAssignments: Map<string, InternalVxStaff> }): void {
   // Convert internal format to interpreter format
-  state.staves = data.staves.map((staff) => ({
+  state.stavesNomenclatures = data.staves.map((staff) => ({
     index: staff.index,
     numVoices: staff.numVoices,
     bracket: staff.bracket,
     brace: staff.brace,
     connectBarLines: staff.connectBarLines,
   }));
-  state.vxStaff = data.voiceAssignments;
+  state.vxNomenclatures = data.voiceAssignments;
 }
 
 /**
@@ -1035,9 +1035,9 @@ export class TuneInterpreter implements Visitor<void> {
 
         // Assign to staff (but don't switch) - this creates StaffInfo entry
         // but doesn't create actual system/staff structures yet
-        if (!this.state.vxStaff.has(id)) {
+        if (!this.state.vxNomenclatures.has(id)) {
           const voice = this.state.voices.get(id)!;
-          assignStaff(this.state, id, voice.properties);
+          initVxNomenclature(this.state, id, voice.properties);
         }
       }
     }
@@ -1797,7 +1797,7 @@ export class TuneInterpreter implements Visitor<void> {
 
   finalizeTune(): void {
     // Use the tracked staff count from the multi-staff system
-    this.state.tune.staffNum = this.state.staves.length;
+    this.state.tune.staffNum = this.state.stavesNomenclatures.length;
     this.state.tune.voiceNum = this.state.voices.size;
     this.state.tune.lineNum = this.state.tune.systems.length;
     // Note: metaText and formatting were already initialized from fileDefaults in visitTuneExpr

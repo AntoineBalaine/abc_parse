@@ -77,7 +77,7 @@ export interface TuneDefaults {
  * - Staff 1: brace='continue' (continues the brace)
  * - Staff 2: brace='end' (ends the brace)
  */
-export interface StaffInfo {
+export interface StaffNomenclature {
   index: number; // Staff number (0, 1, 2...)
   numVoices: number; // How many voices are assigned to this staff
   bracket?: BracketBracePosition; // Bracket grouping for ensemble scores
@@ -88,7 +88,7 @@ export interface StaffInfo {
 /**
  * Maps a voice ID to its staff and position within that staff.
  */
-export interface VxStaff {
+export interface VxNomenclature {
   staffNum: number; // Which staff this voice writes to (0, 1, 2...)
   index: number; // Position within the staff's voices array (0, 1, 2...)
 }
@@ -136,13 +136,14 @@ export interface VoiceState {
 }
 
 type VoiceID = string;
+type ExprID = number;
 
 /**
  * Main Interpreter State (per tune being processed)
  */
 export interface InterpreterState {
   // Semantic data from analyzer (shared reference)
-  semanticData: Map<number, SemanticData>;
+  semanticData: Map<ExprID, SemanticData>;
 
   // Hierarchical defaults
   fileDefaults: FileDefaults;
@@ -157,8 +158,8 @@ export interface InterpreterState {
   voices: Map<VoiceID, VoiceState>;
 
   // Multi-staff tracking
-  staves: StaffInfo[]; // Staff configuration (one per staff)
-  vxStaff: Map<VoiceID, VxStaff>; // Maps voice ID to staff/index
+  stavesNomenclatures: StaffNomenclature[]; // Staff configuration (one per staff)
+  vxNomenclatures: Map<VoiceID, VxNomenclature>; // Maps voice ID to staff/index
   voiceCurrentSystem: Map<VoiceID, number>; // Tracks where each voice last wrote
 
   // Current write location (cached for performance)
@@ -206,8 +207,8 @@ export function createInterpreterState(semanticData: Map<number, SemanticData>, 
     voices: new Map(),
 
     // Multi-staff tracking (initially empty)
-    staves: [],
-    vxStaff: new Map(),
+    stavesNomenclatures: [],
+    vxNomenclatures: new Map(),
     voiceCurrentSystem: new Map(),
 
     // Current write location (will be set on first voice switch)
@@ -357,24 +358,24 @@ export function resolveProperty<T>(fileValue: T | undefined, tuneValue: T | unde
  * We call this function when we encounter a voice that hasn't been explicitly
  * assigned to a staff (e.g., via %%score directive).
  */
-export function assignStaff(state: InterpreterState, voiceId: string, properties?: VoiceProperties): void {
-  if (state.staves.length === 0) {
+export function initVxNomenclature(state: InterpreterState, voiceId: string, properties?: VoiceProperties): void {
+  if (state.stavesNomenclatures.length === 0) {
     // First voice creates first staff
-    state.staves.push({ index: 0, numVoices: 1 });
-    state.vxStaff.set(voiceId, { staffNum: 0, index: 0 });
+    state.stavesNomenclatures.push({ index: 0, numVoices: 1 });
+    state.vxNomenclatures.set(voiceId, { staffNum: 0, index: 0 });
   } else if (properties?.merge) {
     // "V:X merge" adds to last staff
-    const lastStaff = state.staves[state.staves.length - 1];
-    state.vxStaff.set(voiceId, {
+    const lastStaff = state.stavesNomenclatures[state.stavesNomenclatures.length - 1];
+    state.vxNomenclatures.set(voiceId, {
       staffNum: lastStaff.index,
       index: lastStaff.numVoices,
     });
     lastStaff.numVoices++;
   } else {
     // Default: create new staff for this voice
-    const newStaffIndex = state.staves.length;
-    state.staves.push({ index: newStaffIndex, numVoices: 1 });
-    state.vxStaff.set(voiceId, { staffNum: newStaffIndex, index: 0 });
+    const newStaffIndex = state.stavesNomenclatures.length;
+    state.stavesNomenclatures.push({ index: newStaffIndex, numVoices: 1 });
+    state.vxNomenclatures.set(voiceId, { staffNum: newStaffIndex, index: 0 });
   }
 }
 
@@ -387,7 +388,16 @@ export function assignStaff(state: InterpreterState, voiceId: string, properties
  * - Search from `curSystem` for the first system where this voice slot is empty
  * - If all systems have content, return tune.systems.length (create new system)
  */
-export function getSystemIdx(tune: Tune, vxStaff: VxStaff, curSystem: number): number {
+export function getSystemIdx(state: InterpreterState, voiceId: string): number {
+  // Extract needed values from state
+  const vxStaff = state.vxNomenclatures.get(voiceId);
+  if (!vxStaff) {
+    throw new Error(`Voice ${voiceId} not assigned to staff. Call assignStaff first.`);
+  }
+
+  const curSystem = state.voiceCurrentSystem.get(voiceId) ?? 0;
+  const tune = state.tune;
+
   const { staffNum, index: voiceIndex } = vxStaff;
   // Search from curSystem for first available slot
   for (let i = curSystem; i < tune.systems.length; i++) {
@@ -416,7 +426,7 @@ export function getSystemIdx(tune: Tune, vxStaff: VxStaff, curSystem: number): n
  *
  * This function is idempotent - safe to call multiple times for the same location.
  */
-export function ensureVxStaff(state: InterpreterState, systemIdx: number, vxStaff: VxStaff, voiceState: VoiceState): void {
+export function initVxSlot(state: InterpreterState, systemIdx: number, vxStaff: VxNomenclature, voiceState: VoiceState): void {
   const { staffNum, index: voiceIndex } = vxStaff;
   const tune = state.tune;
   // Ensure system exists
@@ -431,7 +441,7 @@ export function ensureVxStaff(state: InterpreterState, systemIdx: number, vxStaf
 
   // Ensure staff exists in this system
   if (!system.staff[staffNum]) {
-    const staffInfo = state.staves[staffNum];
+    const staffNom = state.stavesNomenclatures[staffNum];
 
     const newStaff: Staff = {
       clef: voiceState.currentClef,
@@ -442,13 +452,13 @@ export function ensureVxStaff(state: InterpreterState, systemIdx: number, vxStaf
     };
 
     // Copy bracket/brace/connectBarLines info from StaffInfo if present
-    if (staffInfo.bracket) {
-      newStaff.bracket = staffInfo.bracket;
+    if (staffNom.bracket) {
+      newStaff.bracket = staffNom.bracket;
     }
-    if (staffInfo.brace) {
-      newStaff.brace = staffInfo.brace;
+    if (staffNom.brace) {
+      newStaff.brace = staffNom.brace;
     }
-    if (staffInfo.connectBarLines) {
+    if (staffNom.connectBarLines) {
       // abcjs uses boolean - we'll use true for any connection marker
       newStaff.connectBarLines = true;
     }
@@ -476,32 +486,30 @@ export function ensureVxStaff(state: InterpreterState, systemIdx: number, vxStaf
  * After calling this, elements can be written directly to:
  * tune.systems[currentSystemNum].staff[currentStaffNum].voices[currentVoiceIndex]
  */
-export function switchToVoice(state: InterpreterState, voiceId: string): void {
+export function switchToVoice(state: InterpreterState, voiceID: string): void {
+  // Find next available system slot for this voice
+  const systemIdx = getSystemIdx(state, voiceID);
+
   // Get or create voice metadata
-  const vxStaff = state.vxStaff.get(voiceId);
-  if (!vxStaff) {
-    throw new Error(`Voice ${voiceId} not assigned to staff. Call assignVoiceToStaffAutomatically first.`);
+  const vxNomenclature = state.vxNomenclatures.get(voiceID);
+  if (!vxNomenclature) {
+    throw new Error(`Voice ${voiceID} nomenclature un-initialized.`);
   }
 
-  const curSystem = state.voiceCurrentSystem.get(voiceId) ?? 0;
-
-  // Find next available system slot for this voice
-  const systemIdx = getSystemIdx(state.tune, vxStaff, curSystem);
-
   // Get voice state
-  const voiceState = state.voices.get(voiceId);
+  const voiceState = state.voices.get(voiceID);
   if (!voiceState) {
-    throw new Error(`Voice state not found for ${voiceId}`);
+    throw new Error(`Voice state not found for ${voiceID}`);
   }
 
   // Ensure the structure exists
-  ensureVxStaff(state, systemIdx, vxStaff, voiceState);
+  initVxSlot(state, systemIdx, vxNomenclature, voiceState);
 
   // Cache the write location for subsequent element creation
   state.currentSystemNum = systemIdx;
-  state.currentStaffNum = vxStaff.staffNum;
-  state.currentVoiceIndex = vxStaff.index;
-  state.currentVoice = voiceId;
+  state.currentStaffNum = vxNomenclature.staffNum;
+  state.currentVoiceIndex = vxNomenclature.index;
+  state.currentVoice = voiceID;
 
   // Next time we switch to this voice, start searching from current system first,
   // then move to next if current is full. This ensures voices can continue
@@ -509,7 +517,7 @@ export function switchToVoice(state: InterpreterState, voiceId: string): void {
   // Note: We DON'T increment systemNum here because we want to check the current
   // system first on the next switch. The findOrCreateSystemForVoice function
   // will correctly detect if this slot already has content and move to the next.
-  state.voiceCurrentSystem.set(voiceId, systemIdx);
+  state.voiceCurrentSystem.set(voiceID, systemIdx);
 }
 
 /**
@@ -517,7 +525,7 @@ export function switchToVoice(state: InterpreterState, voiceId: string): void {
  *
  * This function:
  * 1. Creates voice state if it doesn't exist
- * 2. Assigns voice to staff if not already assigned
+ * 2. Assigns voice to staff (nomenclature) if not already assigned
  * 3. Updates voice properties if provided
  * 4. Switches to the voice for writing
  *
@@ -540,11 +548,11 @@ export function applyVoice(state: InterpreterState, voice: { id: string; propert
     voice.properties = { ...voice.properties, ...properties };
   }
 
-  // 2. Check if already assigned to staff
-  if (!state.vxStaff.has(voiceId)) {
-    assignStaff(state, voiceId, properties);
+  // 2. Check if it has a nomenclature
+  if (!state.vxNomenclatures.has(voiceId)) {
+    initVxNomenclature(state, voiceId, properties);
   }
 
-  // 3. Switch to this voice
+  // 3. Switch running state to point to this voice
   switchToVoice(state, voiceId);
 }
