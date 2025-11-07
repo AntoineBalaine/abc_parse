@@ -101,6 +101,89 @@ The library initializes default fonts for various elements:
 - vocalfont: "Times New Roman", 13px, bold
 - wordsfont: "Times New Roman", 16px
 
+### Custom Font Registration: %%setfont
+
+The `%%setfont` directive allows you to register up to 9 custom font configurations that can be referenced inline within text directives using dollar sign notation.
+
+#### Syntax
+
+```
+%%setfont-N <font-spec>
+```
+
+Where:
+- `N` is a number from 1 to 9
+- `<font-spec>` follows the same format as other font directives (face, size, modifiers)
+
+#### Inline Font Switching
+
+Once registered, these fonts can be used within text content using special dollar sign syntax:
+
+- `$N` - Switch to registered font N (where N is 1-9)
+- `$0` - Switch back to the default font
+- `$$` - Escape sequence for a literal dollar sign
+
+#### Where Font Switching Works
+
+Inline font switching is supported in these directives:
+- `%%text` - Free text blocks
+- `%%center` - Centered text
+
+#### Examples
+
+**Basic font registration and usage:**
+```
+%%setfont-1 Times 18 bold
+%%setfont-2 Courier 10 italic
+%%setfont-3 Helvetica 14 underline
+
+%%text This is normal text, $1this is bold Times 18$0, back to normal
+%%text More text with $2italic Courier$0 mixed in
+%%center $1Big Bold Title$0
+```
+
+**Mixed formatting in a single line:**
+```
+%%setfont-1 Arial 16 bold
+%%setfont-2 "Courier New" 12 italic
+
+%%text Regular text, $1bold emphasis$0, then $2code snippet$0, and back to regular.
+```
+
+**Escaping dollar signs:**
+```
+%%text This costs $$$50 (displays as: This costs $$50)
+%%text Price: $$100 $1Special: $$50$0 (displays dollar signs and uses font switching)
+```
+
+#### How It Works
+
+When text containing `$N` markers is processed:
+
+1. The text is split on `$` characters
+2. For each segment after a `$`:
+   - If it starts with `0`, use the default font
+   - If it starts with `1-9`, use the corresponding registered font (if available)
+   - If the font number isn't registered, treat it as literal text
+3. The result is an array of text segments, each with its associated font configuration
+
+#### Implementation Notes
+
+- Because fonts are registered, they persist throughout the tune
+- If you reference an unregistered font (e.g., `$5` without `%%setfont-5`), it's treated as literal text
+- The `$$` escape must be handled to allow literal dollar signs in text
+- Font switching only affects the specific text directive where it appears
+
+#### Interpreter Considerations
+
+Because this directive enables inline font switching, the interpreter needs to:
+
+1. **Store registered fonts**: When analyzing `%%setfont-N` directives, the semantic analyzer must store the font configurations in a map or array accessible during interpretation
+2. **Parse inline syntax**: When interpreting `%%text` or `%%center` directives, the interpreter must parse the `$N` syntax and split the text into segments
+3. **Create structured output**: Each text segment should be output with its associated font information, creating an array of `{ font?: FontSpec, text: string }` objects
+
+The semantic analyzer parses and stores the font registrations, but the interpreter must handle the actual text parsing and font application when rendering text directives.
+
 ## Layout and Formatting Directives
 
 | Directive | Arguments | Description |
