@@ -1303,6 +1303,16 @@ function parseMidi(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
     "gchordbars",
   ];
 
+  const midiCmdParam2Integer = ["ratio", "snt", "bendvelocity", "pitchbend", "control", "temperamentlinear"];
+
+  const midiCmdParam4Integer = ["beat"];
+
+  const midiCmdParam5Integer = ["drone"];
+
+  const midiCmdParam1String1Integer = ["portamento"];
+
+  const midiCmdParam1Integer1OptionalInteger = ["program"];
+
   const remainingValues = directive.values.slice(1);
 
   // Parse parameters based on command category
@@ -1335,6 +1345,97 @@ function parseMidi(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
       return null;
     }
     params.push(parseInt(token.lexeme, 10));
+  } else if (midiCmdParam2Integer.includes(command)) {
+    // Two integer parameters expected
+    if (remainingValues.length !== 2) {
+      analyzer.report(`MIDI command '${command}' expects two parameters`, directive);
+      return null;
+    }
+    const token1 = remainingValues[0];
+    const token2 = remainingValues[1];
+    if (!isToken(token1) || token1.type !== TT.NUMBER) {
+      analyzer.report(`MIDI command '${command}' expects two integer parameters`, directive);
+      return null;
+    }
+    if (!isToken(token2) || token2.type !== TT.NUMBER) {
+      analyzer.report(`MIDI command '${command}' expects two integer parameters`, directive);
+      return null;
+    }
+    params.push(parseInt(token1.lexeme, 10));
+    params.push(parseInt(token2.lexeme, 10));
+  } else if (midiCmdParam4Integer.includes(command)) {
+    // Four integer parameters expected
+    if (remainingValues.length !== 4) {
+      analyzer.report(`MIDI command '${command}' expects four parameters`, directive);
+      return null;
+    }
+    for (let i = 0; i < 4; i++) {
+      const token = remainingValues[i];
+      if (!isToken(token) || token.type !== TT.NUMBER) {
+        analyzer.report(`MIDI command '${command}' expects four integer parameters`, directive);
+        return null;
+      }
+      params.push(parseInt(token.lexeme, 10));
+    }
+  } else if (midiCmdParam5Integer.includes(command)) {
+    // Five integer parameters expected
+    if (remainingValues.length !== 5) {
+      analyzer.report(`MIDI command '${command}' expects five parameters`, directive);
+      return null;
+    }
+    for (let i = 0; i < 5; i++) {
+      const token = remainingValues[i];
+      if (!isToken(token) || token.type !== TT.NUMBER) {
+        analyzer.report(`MIDI command '${command}' expects five integer parameters`, directive);
+        return null;
+      }
+      params.push(parseInt(token.lexeme, 10));
+    }
+  } else if (midiCmdParam1String1Integer.includes(command)) {
+    // One string and one integer parameter expected
+    if (remainingValues.length !== 2) {
+      analyzer.report(`MIDI command '${command}' expects two parameters`, directive);
+      return null;
+    }
+    const stringToken = remainingValues[0];
+    const intToken = remainingValues[1];
+    if (!isToken(stringToken) || stringToken.type !== TT.IDENTIFIER) {
+      analyzer.report(`MIDI command '${command}' expects one string and one integer parameter`, directive);
+      return null;
+    }
+    // Because portamento only accepts "on" or "off", we validate strictly
+    const stringValue = stringToken.lexeme.toLowerCase();
+    if (stringValue !== "on" && stringValue !== "off") {
+      analyzer.report(`MIDI command '${command}' expects 'on' or 'off' as first parameter`, directive);
+      return null;
+    }
+    if (!isToken(intToken) || intToken.type !== TT.NUMBER) {
+      analyzer.report(`MIDI command '${command}' expects one string and one integer parameter`, directive);
+      return null;
+    }
+    params.push(stringToken.lexeme);
+    params.push(parseInt(intToken.lexeme, 10));
+  } else if (midiCmdParam1Integer1OptionalInteger.includes(command)) {
+    // One integer and one optional integer parameter expected
+    if (remainingValues.length !== 1 && remainingValues.length !== 2) {
+      analyzer.report(`MIDI command '${command}' expects one or two parameters`, directive);
+      return null;
+    }
+    const token1 = remainingValues[0];
+    if (!isToken(token1) || token1.type !== TT.NUMBER) {
+      analyzer.report(`MIDI command '${command}' expects integer parameter`, directive);
+      return null;
+    }
+    params.push(parseInt(token1.lexeme, 10));
+
+    if (remainingValues.length === 2) {
+      const token2 = remainingValues[1];
+      if (!isToken(token2) || token2.type !== TT.NUMBER) {
+        analyzer.report(`MIDI command '${command}' expects integer parameter`, directive);
+        return null;
+      }
+      params.push(parseInt(token2.lexeme, 10));
+    }
   } else {
     // Unknown MIDI command
     analyzer.report(`Unknown MIDI command: ${command}`, directive);
