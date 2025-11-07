@@ -2,9 +2,10 @@ import { isToken } from "../helpers";
 import { StaffNomenclature, VxNomenclature } from "../interpreter/InterpreterState";
 import { Token, TT } from "../parsers/scan2";
 import { DirectiveSemanticData, FontSpec } from "../types/directive-specs";
-import { Directive, Annotation, Measurement } from "../types/Expr2";
+import { Directive, Annotation, Measurement, Rational } from "../types/Expr2";
 import { SemanticAnalyzer } from "./semantic-analyzer";
 import { BracketBracePosition } from "../types/abcjs-ast";
+import { IRational } from "../Visitors/fmt2/rational";
 
 /**
  * Analyzes directives and produces semantic data.
@@ -1259,7 +1260,7 @@ function parseMidi(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
 
   // Because MIDI commands are case-insensitive, we normalize to lowercase
   const command = firstValue.lexeme.toLowerCase();
-  const params: (string | number)[] = [];
+  const params: (string | number | IRational)[] = [];
 
   // Define command categories based on parameter signatures
   // These arrays match the reference implementation in abc_parse_directive.js
@@ -1312,6 +1313,8 @@ function parseMidi(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
   const midiCmdParam1String1Integer = ["portamento"];
 
   const midiCmdParam1Integer1OptionalInteger = ["program"];
+
+  const midiCmdParamFraction = ["expand", "grace", "trim"];
 
   const remainingValues = directive.values.slice(1);
 
@@ -1436,6 +1439,41 @@ function parseMidi(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
       }
       params.push(parseInt(token2.lexeme, 10));
     }
+  } else if (midiCmdParamFraction.includes(command)) {
+    // Fraction parameter expected (e.g., 3/4)
+    // Because the parser creates Rational objects when it sees number/number,
+    // we expect a single Rational object in remainingValues
+    if (remainingValues.length !== 1) {
+      analyzer.report(`MIDI command '${command}' expects fraction parameter (e.g., 3/4)`, directive);
+      return null;
+    }
+
+    const value = remainingValues[0];
+
+    // Check if it's a Rational object
+    if (!(value instanceof Rational)) {
+      analyzer.report(`MIDI command '${command}' expects fraction parameter (e.g., 3/4)`, directive);
+      return null;
+    }
+
+    // Extract numerator and denominator from the Rational AST node
+    const numerator = value.numerator;
+    const denominator = value.denominator;
+
+    // Validate that both are numbers
+    if (!isToken(numerator) || numerator.type !== TT.NUMBER) {
+      analyzer.report(`MIDI command '${command}' expects fraction parameter (e.g., 3/4)`, directive);
+      return null;
+    }
+    if (!isToken(denominator) || denominator.type !== TT.NUMBER) {
+      analyzer.report(`MIDI command '${command}' expects fraction parameter (e.g., 3/4)`, directive);
+      return null;
+    }
+
+    // Convert to IRational format
+    const num = parseInt(numerator.lexeme, 10);
+    const denom = parseInt(denominator.lexeme, 10);
+    params.push({ numerator: num, denominator: denom } as IRational);
   } else {
     // Unknown MIDI command
     analyzer.report(`Unknown MIDI command: ${command}`, directive);

@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Token, TT } from "../parsers/scan2";
-import { Directive } from "../types/Expr2";
+import { Directive, Rational } from "../types/Expr2";
 import { SemanticAnalyzer } from "./semantic-analyzer";
 
 describe("Directive Analyzer - MIDI Part 1 (Simple Commands)", () => {
@@ -622,6 +622,226 @@ describe("Directive Analyzer - MIDI Part 2 (Multi-Parameter Commands)", () => {
       const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
         new Token(TT.IDENTIFIER, "program", context.generateId()),
         new Token(TT.IDENTIFIER, "abc", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+  });
+});
+
+describe("Directive Analyzer - MIDI Part 3 (Fraction Parameters)", () => {
+  let analyzer: SemanticAnalyzer;
+  let context: ABCContext;
+
+  beforeEach(() => {
+    const errorReporter = new AbcErrorReporter();
+    context = new ABCContext(errorReporter);
+    analyzer = new SemanticAnalyzer(context);
+  });
+
+  describe("Fraction-parameter MIDI commands", () => {
+    it("should parse %%midi expand 3/4", () => {
+      const rational = new Rational(
+        context.generateId(),
+        new Token(TT.NUMBER, "3", context.generateId()),
+        new Token(TT.SLASH, "/", context.generateId()),
+        new Token(TT.NUMBER, "4", context.generateId())
+      );
+
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "expand", context.generateId()),
+        rational,
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.type).to.equal("midi");
+      expect(result!.data).to.deep.equal({
+        command: "expand",
+        params: [{ numerator: 3, denominator: 4 }],
+      });
+    });
+
+    it("should parse %%midi expand 1/2", () => {
+      const rational = new Rational(
+        context.generateId(),
+        new Token(TT.NUMBER, "1", context.generateId()),
+        new Token(TT.SLASH, "/", context.generateId()),
+        new Token(TT.NUMBER, "2", context.generateId())
+      );
+
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "expand", context.generateId()),
+        rational,
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.data).to.deep.equal({
+        command: "expand",
+        params: [{ numerator: 1, denominator: 2 }],
+      });
+    });
+
+    it("should parse %%midi grace 1/8", () => {
+      const rational = new Rational(
+        context.generateId(),
+        new Token(TT.NUMBER, "1", context.generateId()),
+        new Token(TT.SLASH, "/", context.generateId()),
+        new Token(TT.NUMBER, "8", context.generateId())
+      );
+
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "grace", context.generateId()),
+        rational,
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.type).to.equal("midi");
+      expect(result!.data).to.deep.equal({
+        command: "grace",
+        params: [{ numerator: 1, denominator: 8 }],
+      });
+    });
+
+    it("should parse %%midi grace 1/16", () => {
+      const rational = new Rational(
+        context.generateId(),
+        new Token(TT.NUMBER, "1", context.generateId()),
+        new Token(TT.SLASH, "/", context.generateId()),
+        new Token(TT.NUMBER, "16", context.generateId())
+      );
+
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "grace", context.generateId()),
+        rational,
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.data).to.deep.equal({
+        command: "grace",
+        params: [{ numerator: 1, denominator: 16 }],
+      });
+    });
+
+    it("should parse %%midi trim 2/3", () => {
+      const rational = new Rational(
+        context.generateId(),
+        new Token(TT.NUMBER, "2", context.generateId()),
+        new Token(TT.SLASH, "/", context.generateId()),
+        new Token(TT.NUMBER, "3", context.generateId())
+      );
+
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "trim", context.generateId()),
+        rational,
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.type).to.equal("midi");
+      expect(result!.data).to.deep.equal({
+        command: "trim",
+        params: [{ numerator: 2, denominator: 3 }],
+      });
+    });
+
+    it("should parse %%midi trim 5/4", () => {
+      const rational = new Rational(
+        context.generateId(),
+        new Token(TT.NUMBER, "5", context.generateId()),
+        new Token(TT.SLASH, "/", context.generateId()),
+        new Token(TT.NUMBER, "4", context.generateId())
+      );
+
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "trim", context.generateId()),
+        rational,
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.data).to.deep.equal({
+        command: "trim",
+        params: [{ numerator: 5, denominator: 4 }],
+      });
+    });
+  });
+
+  describe("Error cases for fraction commands", () => {
+    it("should report error when expand command is missing parameter", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "expand", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+
+    it("should report error when expand command receives a plain number instead of fraction", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "expand", context.generateId()),
+        new Token(TT.NUMBER, "3", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+
+    it("should report error when grace command receives two separate numbers instead of fraction", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "grace", context.generateId()),
+        new Token(TT.NUMBER, "1", context.generateId()),
+        new Token(TT.NUMBER, "8", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+
+    it("should report error when trim command receives non-numeric parameter", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "trim", context.generateId()),
+        new Token(TT.IDENTIFIER, "abc", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+
+    it("should report error when expand command receives too many parameters", () => {
+      const rational1 = new Rational(
+        context.generateId(),
+        new Token(TT.NUMBER, "3", context.generateId()),
+        new Token(TT.SLASH, "/", context.generateId()),
+        new Token(TT.NUMBER, "4", context.generateId())
+      );
+
+      const rational2 = new Rational(
+        context.generateId(),
+        new Token(TT.NUMBER, "1", context.generateId()),
+        new Token(TT.SLASH, "/", context.generateId()),
+        new Token(TT.NUMBER, "2", context.generateId())
+      );
+
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "expand", context.generateId()),
+        rational1,
+        rational2,
       ]);
 
       const result = analyzer.visitDirectiveExpr(directive);
