@@ -264,6 +264,56 @@ describe("parseDirective - Directive Parser", () => {
     });
   });
 
+  describe("Header/Footer directives (%%header, %%footer)", () => {
+    it("should parse %%header directive with FREE_TXT token", () => {
+      const tokens = [
+        new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
+        new Token(TT.IDENTIFIER, "header", context.generateId()),
+        new Token(TT.FREE_TXT, "Page $P", context.generateId()),
+      ];
+
+      const ctx = new ParseCtx(tokens, context);
+      const result = parseDirective(ctx);
+
+      expect(result).to.not.be.null;
+      expect(result!.key?.lexeme).to.equal("header");
+      expect(result!.values).to.have.length(1);
+      expect((result!.values![0] as Token).type).to.equal(TT.FREE_TXT);
+      expect((result!.values![0] as Token).lexeme).to.equal("Page $P");
+    });
+
+    it("should parse %%footer directive with tab-separated content", () => {
+      const tokens = [
+        new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
+        new Token(TT.IDENTIFIER, "footer", context.generateId()),
+        new Token(TT.FREE_TXT, "Left\tCenter\tRight", context.generateId()),
+      ];
+
+      const ctx = new ParseCtx(tokens, context);
+      const result = parseDirective(ctx);
+
+      expect(result).to.not.be.null;
+      expect(result!.key?.lexeme).to.equal("footer");
+      expect((result!.values![0] as Token).lexeme).to.equal("Left\tCenter\tRight");
+    });
+
+    it("should parse %%header with empty content", () => {
+      const tokens = [
+        new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
+        new Token(TT.IDENTIFIER, "header", context.generateId()),
+        new Token(TT.FREE_TXT, "", context.generateId()),
+      ];
+
+      const ctx = new ParseCtx(tokens, context);
+      const result = parseDirective(ctx);
+
+      expect(result).to.not.be.null;
+      expect(result!.key?.lexeme).to.equal("header");
+      expect(result!.values).to.have.length(1);
+      expect((result!.values![0] as Token).lexeme).to.equal("");
+    });
+  });
+
   describe("Error handling", () => {
     it("should return null for non-directive input", () => {
       const tokens = [new Token(TT.IDENTIFIER, "not-directive", context.generateId())];

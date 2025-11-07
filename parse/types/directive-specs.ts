@@ -493,8 +493,8 @@ export type DirectiveSemanticData =
   | { type: "setfont"; data: { number: number; font: FontSpec } }
   | { type: "staves"; data: StaffLayoutSpec[] }
   | { type: "score"; data: StaffLayoutSpec[] }
-  | { type: "header"; data: { left?: string; center?: string; right?: string } }
-  | { type: "footer"; data: { left?: string; center?: string; right?: string } }
+  | { type: "header"; data: { left: string; center: string; right: string } }
+  | { type: "footer"; data: { left: string; center: string; right: string } }
   | { type: "midi"; data: MidiSpec }
   | { type: "percmap"; data: PercMapSpec }
   | { type: "deco"; data: { name: string; definition?: string } };

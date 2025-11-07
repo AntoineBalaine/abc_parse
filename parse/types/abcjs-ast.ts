@@ -604,8 +604,8 @@ export interface MetaText {
   "abc-copyright"?: string;
   "abc-creator"?: string;
   "abc-edited-by"?: string;
-  footer?: string; // I dunno about footers in abc tunes. We need to check abcjs
-  header?: string; // duno what this refers to.
+  footer?: { left: string; center: string; right: string };
+  header?: { left: string; center: string; right: string };
   tempo?: TempoProperties;
   partOrder?: string;
   unalignedWords?: string;

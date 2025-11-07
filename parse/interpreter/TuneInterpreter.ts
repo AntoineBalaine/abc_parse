@@ -694,6 +694,14 @@ function applyDirective(semanticData: SemanticData, directiveName: string, conte
     const existing = metaText["abc-edited-by"];
     metaText["abc-edited-by"] = existing ? existing + "\n" + semanticData.data : semanticData.data;
     return null;
+  } else if (semanticData.type === "header") {
+    // Store header data in metaText (tab-separated left/center/right)
+    metaText.header = semanticData.data;
+    return null;
+  } else if (semanticData.type === "footer") {
+    // Store footer data in metaText (tab-separated left/center/right)
+    metaText.footer = semanticData.data;
+    return null;
   }
 
   // List of formatting directives that require a tune context

@@ -255,6 +255,57 @@ describe("Directive Scanner Tests", () => {
     });
   });
 
+  describe("Header/Footer directives (%%header, %%footer)", () => {
+    it("should scan %%header directive with FREE_TXT token", () => {
+      const ctx = createCtx("%%header Page $P");
+      const result = scanDirective(ctx);
+
+      expect(result).to.equal(true);
+      expect(ctx.tokens[0].type).to.equal(TT.STYLESHEET_DIRECTIVE);
+      expect(ctx.tokens[1].type).to.equal(TT.IDENTIFIER);
+      expect(ctx.tokens[1].lexeme).to.equal("header");
+      expect(ctx.tokens[2].type).to.equal(TT.FREE_TXT);
+      expect(ctx.tokens[2].lexeme).to.equal("Page $P");
+    });
+
+    it("should scan %%header with tab-separated sections", () => {
+      const ctx = createCtx("%%header Left\tCenter\tRight");
+      const result = scanDirective(ctx);
+
+      expect(result).to.equal(true);
+      expect(ctx.tokens[2].type).to.equal(TT.FREE_TXT);
+      expect(ctx.tokens[2].lexeme).to.equal("Left\tCenter\tRight");
+    });
+
+    it("should scan %%footer directive with FREE_TXT token", () => {
+      const ctx = createCtx("%%footer Page $P of $N");
+      const result = scanDirective(ctx);
+
+      expect(result).to.equal(true);
+      expect(ctx.tokens[1].lexeme).to.equal("footer");
+      expect(ctx.tokens[2].type).to.equal(TT.FREE_TXT);
+      expect(ctx.tokens[2].lexeme).to.equal("Page $P of $N");
+    });
+
+    it("should handle empty header/footer", () => {
+      const ctx = createCtx("%%header");
+      const result = scanDirective(ctx);
+
+      expect(result).to.equal(true);
+      expect(ctx.tokens[2].type).to.equal(TT.FREE_TXT);
+      expect(ctx.tokens[2].lexeme).to.equal("");
+    });
+
+    it("should preserve field codes in header", () => {
+      const ctx = createCtx("%%header $T\t\tPage $P");
+      const result = scanDirective(ctx);
+
+      expect(result).to.equal(true);
+      expect(ctx.tokens[2].type).to.equal(TT.FREE_TXT);
+      expect(ctx.tokens[2].lexeme).to.equal("$T\t\tPage $P");
+    });
+  });
+
   describe("Property-based testing", () => {
     it("measurement unit generator creates valid tokens", () => {
       fc.assert(

@@ -27,8 +27,8 @@ export function parseDirective(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): D
     directiveKey = ctx.previous();
   } else return null;
 
-  const options = ["begintext", "text", "center"];
-  // Special case: begintext, text, and center directives expect FREE_TXT token
+  const options = ["begintext", "text", "center", "header", "footer"];
+  // Special case: begintext, text, center, header, and footer directives expect FREE_TXT token
   if (options.includes(directiveKey.lexeme.toLowerCase())) {
     return parseTextDirective(ctx, directiveKey, prnt_arr);
   }

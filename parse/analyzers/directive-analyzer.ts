@@ -1124,19 +1124,76 @@ function parseScore(directive: Directive, analyzer: SemanticAnalyzer): Directive
 }
 
 /**
+ * Parses %%header and %%footer directives (tab-separated left/center/right)
+ * Reference: abcjs abc_parse_directive.js lines 1142-1160
+ *
+ * Because the text content may contain special characters like tabs that serve as delimiters,
+ * we need to parse the tab-separated values and map them to left/center/right structure.
+ */
+function parseHeaderFooter(
+  directive: Directive,
+  analyzer: SemanticAnalyzer,
+  type: "header" | "footer"
+): DirectiveSemanticData | null {
+  if (directive.values.length === 0) {
+    analyzer.report(`Directive "${type}" expects a text parameter`, directive);
+    return null;
+  }
+
+  // Extract text from first value (Token with FREE_TXT type)
+  const value = directive.values[0];
+  let text: string;
+
+  if (value instanceof Token) {
+    text = value.lexeme;
+  } else if (value instanceof Annotation) {
+    text = value.text.lexeme;
+  } else {
+    analyzer.report(`Directive "${type}" contains invalid value type`, directive);
+    return null;
+  }
+
+  // Remove surrounding quotes if present
+  if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
+    text = text.slice(1, -1);
+  }
+
+  // Split by tab character
+  const parts = text.split("\t");
+
+  // Build result structure based on number of parts
+  let result: { left: string; center: string; right: string };
+
+  if (parts.length === 1) {
+    result = { left: "", center: parts[0], right: "" };
+  } else if (parts.length === 2) {
+    result = { left: parts[0], center: parts[1], right: "" };
+  } else {
+    result = { left: parts[0], center: parts[1], right: parts[2] };
+
+    if (parts.length > 3) {
+      analyzer.report(`Too many tabs in ${type}: ${parts.length} sections found (expected 1-3)`, directive);
+    }
+  }
+
+  return {
+    type: type,
+    data: result,
+  };
+}
+
+/**
  * Parses %%header directive (tab-separated left/center/right)
  */
 function parseHeader(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
-  // TODO: Implement
-  throw new Error("Not implemented");
+  return parseHeaderFooter(directive, analyzer, "header");
 }
 
 /**
  * Parses %%footer directive (tab-separated left/center/right)
  */
 function parseFooter(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
-  // TODO: Implement
-  throw new Error("Not implemented");
+  return parseHeaderFooter(directive, analyzer, "footer");
 }
 
 /**

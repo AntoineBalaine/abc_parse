@@ -416,6 +416,132 @@ CDEF|`;
       // TODO: Add abcjs comparison
     });
 
+    it("should parse header directive with single section", () => {
+      const input = `%%header Page $P
+
+X:1
+T:Test
+K:C
+CDEF|`;
+
+      const yourTune = parseWithYourParser(input).tunes[0];
+      const abcjsTune = parseWithAbcjs(input)[0];
+
+      expect(yourTune.metaText.header).to.deep.equal({
+        left: "",
+        center: "Page $P",
+        right: "",
+      });
+      expect(abcjsTune.metaText.header).to.deep.equal({
+        left: "",
+        center: "Page $P",
+        right: "",
+      });
+    });
+
+    it("should parse header directive with three sections", () => {
+      const input = `%%header Left\tCenter\tRight
+
+X:1
+T:Test
+K:C
+CDEF|`;
+
+      const yourTune = parseWithYourParser(input).tunes[0];
+      const abcjsTune = parseWithAbcjs(input)[0];
+
+      expect(yourTune.metaText.header).to.deep.equal({
+        left: "Left",
+        center: "Center",
+        right: "Right",
+      });
+      expect(abcjsTune.metaText.header).to.deep.equal({
+        left: "Left",
+        center: "Center",
+        right: "Right",
+      });
+    });
+
+    it("should parse footer directive with field codes", () => {
+      const input = `%%footer $T\tPage $P\t$C
+
+X:1
+T:Test
+K:C
+CDEF|`;
+
+      const yourTune = parseWithYourParser(input).tunes[0];
+      const abcjsTune = parseWithAbcjs(input)[0];
+
+      expect(yourTune.metaText.footer).to.deep.equal({
+        left: "$T",
+        center: "Page $P",
+        right: "$C",
+      });
+      expect(abcjsTune.metaText.footer).to.deep.equal({
+        left: "$T",
+        center: "Page $P",
+        right: "$C",
+      });
+    });
+
+    it("should parse footer directive with empty middle section", () => {
+      const input = `%%footer $T\t\tPage $P
+
+X:1
+T:Test
+K:C
+CDEF|`;
+
+      const yourTune = parseWithYourParser(input).tunes[0];
+      const abcjsTune = parseWithAbcjs(input)[0];
+
+      expect(yourTune.metaText.footer).to.deep.equal({
+        left: "$T",
+        center: "",
+        right: "Page $P",
+      });
+      expect(abcjsTune.metaText.footer).to.deep.equal({
+        left: "$T",
+        center: "",
+        right: "Page $P",
+      });
+    });
+
+    it("should handle header and footer in tune header", () => {
+      const input = `X:1
+T:Test
+%%header Title Header
+%%footer Footer Text
+K:C
+CDEF|`;
+
+      const yourTune = parseWithYourParser(input).tunes[0];
+      const abcjsTune = parseWithAbcjs(input)[0];
+
+      expect(yourTune.metaText.header).to.deep.equal({
+        left: "",
+        center: "Title Header",
+        right: "",
+      });
+      expect(abcjsTune.metaText.header).to.deep.equal({
+        left: "",
+        center: "Title Header",
+        right: "",
+      });
+
+      expect(yourTune.metaText.footer).to.deep.equal({
+        left: "",
+        center: "Footer Text",
+        right: "",
+      });
+      expect(abcjsTune.metaText.footer).to.deep.equal({
+        left: "",
+        center: "Footer Text",
+        right: "",
+      });
+    });
+
     it.skip("should inherit file header defaults", () => {
       const input = `L:1/16
 %%scale 0.75

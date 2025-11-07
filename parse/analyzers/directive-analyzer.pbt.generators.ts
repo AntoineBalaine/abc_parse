@@ -526,6 +526,67 @@ export const genTextDirective = fc
 export const genAnnotationDirective = fc.oneof(genAnnotationDirectiveWithObject, genAnnotationDirectiveWithToken, genTextDirective);
 
 // ============================================================================
+// Header/Footer Directive Generators
+// ============================================================================
+
+export const genHeaderFooterDirectiveName = fc.constantFrom("header", "footer");
+
+// Generate text that might contain field codes
+const genFieldCode = fc.constantFrom("$P", "$N", "$T", "$C", "$A", "$D", "$F");
+const genPlainText = fc.string({ minLength: 0, maxLength: 20 }).filter((s) => !s.includes("\t") && !s.includes("\n"));
+const genSectionText = fc.oneof(genFieldCode, genPlainText, fc.constant(""));
+
+// Generate header/footer with 1, 2, or 3 tab-separated sections
+export const genHeaderFooterDirective = fc
+  .record({
+    name: genHeaderFooterDirectiveName,
+    numSections: fc.integer({ min: 1, max: 3 }),
+    left: genSectionText,
+    center: genSectionText,
+    right: genSectionText,
+  })
+  .map(({ name, numSections, left, center, right }) => {
+    // Build tab-separated text based on number of sections
+    let text: string;
+    let expectedLeft: string;
+    let expectedCenter: string;
+    let expectedRight: string;
+
+    if (numSections === 1) {
+      text = center;
+      expectedLeft = "";
+      expectedCenter = center;
+      expectedRight = "";
+    } else if (numSections === 2) {
+      text = `${left}\t${center}`;
+      expectedLeft = left;
+      expectedCenter = center;
+      expectedRight = "";
+    } else {
+      text = `${left}\t${center}\t${right}`;
+      expectedLeft = left;
+      expectedCenter = center;
+      expectedRight = right;
+    }
+
+    // Because the scanner handles header/footer directives specially with FREE_TXT tokens,
+    // we create a FREE_TXT token with tab-separated text
+    const token = new Token(TT.FREE_TXT, text, sharedContext.generateId());
+
+    return {
+      directive: new Directive(sharedContext.generateId(), new Token(TT.IDENTIFIER, name, sharedContext.generateId()), [token]),
+      expected: {
+        type: name,
+        data: {
+          left: expectedLeft,
+          center: expectedCenter,
+          right: expectedRight,
+        },
+      },
+    };
+  });
+
+// ============================================================================
 // Newpage Directive Generator
 // ============================================================================
 
@@ -555,5 +616,6 @@ export const genAnyDirective = fc.oneof(
   genMeasurementDirective,
   genSepDirective,
   genAnnotationDirective,
+  genHeaderFooterDirective,
   genNewpageDirective
 );

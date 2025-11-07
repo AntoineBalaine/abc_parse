@@ -120,6 +120,8 @@ export interface AbcjsRawMetaText {
   "abc-copyright"?: string;
   "abc-creator"?: string;
   "abc-edited-by"?: string;
+  header?: { left: string; center: string; right: string };
+  footer?: { left: string; center: string; right: string };
   tempo?: any;
   partOrder?: string;
   unalignedWords?: string;

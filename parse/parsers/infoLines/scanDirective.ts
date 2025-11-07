@@ -21,8 +21,8 @@ export function scanDirective(ctx: Ctx): boolean {
     return scanTextDirective(ctx);
   }
 
-  // Special case: single-line text directives (%%text and %%center)
-  if (ctx.test(/^%%(text|center)\b/i)) {
+  // Special case: single-line text directives (%%text, %%center, %%header, %%footer)
+  if (ctx.test(/^%%(text|center|header|footer)\b/i)) {
     return scanSingleLineTextDirective(ctx);
   }
 
@@ -175,16 +175,16 @@ export function scanTextDirective(ctx: Ctx): boolean {
 }
 
 /**
- * Scan single-line text directive (%%text or %%center)
+ * Scan single-line text directive (%%text, %%center, %%header, or %%footer)
  *
- * Because text directives should capture all remaining text on the line as a single value,
+ * Because these directives should capture all remaining text on the line as a single value,
  * we create a FREE_TXT token with the combined text content.
  *
- * Produces: TT.STYLESHEET_DIRECTIVE + TT.IDENTIFIER("text"|"center") + TT.FREE_TXT(text content)
+ * Produces: TT.STYLESHEET_DIRECTIVE + TT.IDENTIFIER("text"|"center"|"header"|"footer") + TT.FREE_TXT(text content)
  */
 function scanSingleLineTextDirective(ctx: Ctx): boolean {
-  // Check if this is %%text or %%center
-  const match = /^%%(text|center)\b/i.exec(ctx.source.substring(ctx.current));
+  // Check if this is %%text, %%center, %%header, or %%footer
+  const match = /^%%(text|center|header|footer)\b/i.exec(ctx.source.substring(ctx.current));
   if (!match) return false;
 
   advance(ctx, 2); // %%
