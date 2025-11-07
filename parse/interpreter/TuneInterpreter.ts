@@ -784,6 +784,99 @@ function handleScoreDirective(state: InterpreterState, data: { staves: InternalS
  * @param state - The interpreter state to update
  * @param semanticData - Parsed text directive data from the directive analyzer
  */
+/**
+ * Parses text content with inline font switches ($N syntax).
+ *
+ * Because text content can contain $N switches to change fonts inline,
+ * we need to split the text into segments and assign the appropriate font
+ * to each segment.
+ *
+ * Syntax:
+ * - $N: Switch to registered font N (1-9)
+ * - $0: Return to default font
+ * - $$: Literal dollar sign
+ *
+ * Example: "Normal $1bold$0 text" with font 1 registered as bold
+ * Returns: [
+ *   { text: "Normal ", font: defaultFont },
+ *   { text: "bold", font: registeredFonts[1] },
+ *   { text: " text", font: defaultFont }
+ * ]
+ */
+function parseFontChangeLine(
+  text: string,
+  registeredFonts: Map<number, any>,
+  defaultFont: any | undefined
+): Array<{ text: string; font: any | undefined }> {
+  // Use a placeholder for $$ escaping (character unlikely to appear in text)
+  const ESCAPE_PLACEHOLDER = "\x03";
+  text = text.replace(/\$\$/g, ESCAPE_PLACEHOLDER);
+
+  const segments: Array<{ text: string; font: any | undefined }> = [];
+  const parts = text.split("$");
+
+  // First part (before any $) uses default font
+  if (parts.length > 0 && parts[0].length > 0) {
+    segments.push({ text: parts[0], font: defaultFont });
+  }
+
+  // Process remaining parts (after $)
+  for (let i = 1; i < parts.length; i++) {
+    const part = parts[i];
+
+    if (part.length === 0) {
+      // Empty segment after $, treat as literal
+      if (segments.length > 0) {
+        segments[segments.length - 1].text += "$";
+      } else {
+        segments.push({ text: "$", font: defaultFont });
+      }
+      continue;
+    }
+
+    const firstChar = part[0];
+    const fontNum = parseInt(firstChar, 10);
+
+    // Check if first character is a digit
+    if (firstChar >= "0" && firstChar <= "9") {
+      const segmentText = part.substring(1);
+
+      if (fontNum === 0) {
+        // $0: Return to default font
+        if (segmentText.length > 0) {
+          segments.push({ text: segmentText, font: defaultFont });
+        }
+      } else if (registeredFonts.has(fontNum)) {
+        // $N: Use registered font N
+        if (segmentText.length > 0) {
+          segments.push({ text: segmentText, font: registeredFonts.get(fontNum) });
+        }
+      } else {
+        // Font not registered, treat as literal
+        if (segments.length > 0) {
+          segments[segments.length - 1].text += "$" + part;
+        } else {
+          segments.push({ text: "$" + part, font: defaultFont });
+        }
+      }
+    } else {
+      // Not a digit, treat as literal $
+      if (segments.length > 0) {
+        segments[segments.length - 1].text += "$" + part;
+      } else {
+        segments.push({ text: "$" + part, font: defaultFont });
+      }
+    }
+  }
+
+  // Restore $$ as $ in all segments
+  for (const segment of segments) {
+    segment.text = segment.text.replace(new RegExp(ESCAPE_PLACEHOLDER, "g"), "$");
+  }
+
+  return segments;
+}
+
 function handleTextDirective(
   state: InterpreterState,
   semanticData: SemanticData,
@@ -800,15 +893,40 @@ function handleTextDirective(
     text = text.slice(1, -1);
   }
 
-  // Create TextLine entry with TextFieldProperties
-  const txtFieldProps: TextFieldProperties = {
-    text: text,
-    center: isCenter,
-    startChar: abcRange.startChar,
-    endChar: abcRange.endChar,
-  };
+  // Parse text for inline font switches ($N syntax)
+  // Because the text may contain $1, $2, etc. to switch fonts inline,
+  // we need to split it into segments with appropriate font assignments.
+  const defaultFont = state.fileDefaults.formatting.textfont;
+  const segments = parseFontChangeLine(text, state.registeredFonts, defaultFont);
+
+  // Create TextFieldProperties for each segment
+  const textFields: TextFieldProperties[] = segments.map((segment) => {
+    const field: TextFieldProperties = {
+      text: segment.text,
+      center: isCenter,
+      startChar: abcRange.startChar,
+      endChar: abcRange.endChar,
+    };
+
+    // Apply font if specified
+    // Because TextFieldProperties.font is a Font object, not individual properties,
+    // we need to construct the Font object from the FontSpec returned by the analyzer.
+    if (segment.font) {
+      field.font = {
+        face: segment.font.face || "",
+        size: segment.font.size || 12,
+        weight: segment.font.weight || "normal",
+        style: segment.font.style || "normal",
+        decoration: segment.font.decoration || "none",
+      };
+    }
+
+    return field;
+  });
+
+  // Create TextLine with all segments
   const textLine: TextLine = {
-    text: [txtFieldProps],
+    text: textFields,
   };
 
   // Add the TextLine to the tune's systems array
@@ -1083,6 +1201,21 @@ export class TuneInterpreter implements Visitor<void> {
       if (semanticData.type === "score" || semanticData.type === "staves") {
         // Type assertion: we know this is our internal format, not StaffLayoutSpec[]
         handleScoreDirective(this.state, semanticData.data as any);
+        return;
+      }
+
+      // Handle setfont directives - register fonts for inline font switching
+      // Because fonts need to be registered before they can be used in text/center directives,
+      // we process setfont directives in all contexts (file header, tune header, and body).
+      if (semanticData.type === "setfont") {
+        const { number, font } = semanticData.data as { number: number; font: any };
+        // Store in file defaults if in file header (state doesn't exist yet),
+        // otherwise store in tune state (which shares the same Map reference)
+        if (this.processingContext === "file_header") {
+          this.fileDefaults.registeredFonts.set(number, font);
+        } else {
+          this.state.registeredFonts.set(number, font);
+        }
         return;
       }
 

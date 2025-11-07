@@ -50,6 +50,9 @@ export interface FileDefaults {
   parserConfig: ParserConfig;
   version?: string;
   metaText: Partial<MetaText>;
+  // Font registration (setfont directive support)
+  // Maps font numbers (1-9) to font specifications, shared across all tunes
+  registeredFonts: Map<number, any>;
 }
 
 /**
@@ -157,6 +160,10 @@ export interface InterpreterState {
   // Voice tracking
   voices: Map<VoiceID, VoiceState>;
 
+  // Font registration (setfont directive support)
+  // Maps font numbers (1-9) to font specifications for inline font switching
+  registeredFonts: Map<number, any>;
+
   // Multi-staff tracking
   stavesNomenclatures: StaffNomenclature[]; // Staff configuration (one per staff)
   vxNomenclatures: Map<VoiceID, VxNomenclature>; // Maps voice ID to staff/index
@@ -185,6 +192,7 @@ export function createFileDefaults(): FileDefaults {
     formatting: {},
     parserConfig: {},
     metaText: {},
+    registeredFonts: new Map(),
   };
 }
 
@@ -205,6 +213,8 @@ export function createInterpreterState(semanticData: Map<number, SemanticData>, 
     currentVoice: "",
     measureNumber: 1,
     voices: new Map(),
+    // Share registered fonts from file defaults so file-level registrations are available in tunes
+    registeredFonts: fileDefaults.registeredFonts,
 
     // Multi-staff tracking (initially empty)
     stavesNomenclatures: [],

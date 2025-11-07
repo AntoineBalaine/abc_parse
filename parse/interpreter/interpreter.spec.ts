@@ -764,4 +764,256 @@ CDEF|`;
       expect(textLine.text[0].text).to.equal("Body text");
     });
   });
+
+  describe("Setfont Directive and Inline Font Switching", () => {
+    it("should register font with setfont-1 directive", () => {
+      const input = `X:1
+T:Test
+K:C
+%%setfont-1 Times 18 bold
+CDEF|`;
+
+      const { tunes, ctx } = parseABC(input);
+      expect(tunes).to.have.length(1);
+      expectNoErrors(ctx, "parser");
+    });
+
+    it("should apply inline font switching with $1", () => {
+      const input = `X:1
+T:Test
+K:C
+%%setfont-1 Times 18 bold
+%%text Normal $1bold$0 normal
+CDEF|`;
+
+      const { tunes } = parseABC(input);
+      expect(tunes).to.have.length(1);
+
+      const systems = tunes[0].systems;
+      const textLines = systems.filter((system) => "text" in system);
+      expect(textLines).to.have.length(1);
+
+      const textLine = textLines[0];
+      expect(textLine.text).to.be.an("array");
+      expect(textLine.text).to.have.length(3);
+
+      // First segment: "Normal " (default font)
+      expect(textLine.text[0].text).to.equal("Normal ");
+      expect(textLine.text[0].font).to.be.undefined;
+
+      // Second segment: "bold" (font 1)
+      expect(textLine.text[1].text).to.equal("bold");
+      expect(textLine.text[1].font).to.exist;
+      expect(textLine.text[1].font?.face).to.equal("Times");
+      expect(textLine.text[1].font?.size).to.equal(18);
+      expect(textLine.text[1].font?.weight).to.equal("bold");
+
+      // Third segment: " normal" (back to default)
+      expect(textLine.text[2].text).to.equal(" normal");
+      expect(textLine.text[2].font).to.be.undefined;
+    });
+
+    it("should handle multiple font switches in one line", () => {
+      const input = `X:1
+T:Test
+K:C
+%%setfont-1 Times 18 bold
+%%setfont-2 Arial 14 italic
+%%setfont-3 Courier 12
+%%text $1bold$0 $2italic$0 $3mono$0
+CDEF|`;
+
+      const { tunes } = parseABC(input);
+      const systems = tunes[0].systems;
+      const textLines = systems.filter((system) => "text" in system);
+      expect(textLines).to.have.length(1);
+
+      const textLine = textLines[0];
+      expect(textLine.text).to.have.length(5); // 5 segments
+
+      // Check each segment has the right font
+      // Segment 0: "bold" with font 1
+      expect(textLine.text[0].text).to.equal("bold");
+      expect(textLine.text[0].font?.face).to.equal("Times");
+
+      // Segment 1: " " with default font
+      expect(textLine.text[1].text).to.equal(" ");
+
+      // Segment 2: "italic" with font 2
+      expect(textLine.text[2].text).to.equal("italic");
+      expect(textLine.text[2].font?.face).to.equal("Arial");
+      expect(textLine.text[2].font?.style).to.equal("italic");
+
+      // Segment 3: " " with default font
+      expect(textLine.text[3].text).to.equal(" ");
+
+      // Segment 4: "mono" with font 3
+      expect(textLine.text[4].text).to.equal("mono");
+      expect(textLine.text[4].font?.face).to.equal("Courier");
+    });
+
+    it("should handle dollar sign escaping with $$", () => {
+      const input = `X:1
+T:Test
+K:C
+%%text Price: $$100
+CDEF|`;
+
+      const { tunes } = parseABC(input);
+      const systems = tunes[0].systems;
+      const textLines = systems.filter((system) => "text" in system);
+      expect(textLines).to.have.length(1);
+
+      const textLine = textLines[0];
+      expect(textLine.text).to.have.length(1);
+      expect(textLine.text[0].text).to.equal("Price: $100");
+    });
+
+    it("should treat unregistered font reference as literal text", () => {
+      const input = `X:1
+T:Test
+K:C
+%%text Normal $5unregistered text
+CDEF|`;
+
+      const { tunes } = parseABC(input);
+      const systems = tunes[0].systems;
+      const textLines = systems.filter((system) => "text" in system);
+      expect(textLines).to.have.length(1);
+
+      const textLine = textLines[0];
+      expect(textLine.text).to.have.length(1);
+      // Because font 5 is not registered, $5 should be treated as literal
+      expect(textLine.text[0].text).to.equal("Normal $5unregistered text");
+    });
+
+    it("should support inline font switching in %%center directives", () => {
+      const input = `X:1
+T:Test
+K:C
+%%setfont-1 Times 18 bold
+%%center Normal $1bold$0 centered
+CDEF|`;
+
+      const { tunes } = parseABC(input);
+      const systems = tunes[0].systems;
+      const textLines = systems.filter((system) => "text" in system);
+      expect(textLines).to.have.length(1);
+
+      const textLine = textLines[0];
+      expect(textLine.text).to.have.length(3);
+
+      // All segments should have center=true
+      expect(textLine.text[0].center).to.be.true;
+      expect(textLine.text[1].center).to.be.true;
+      expect(textLine.text[2].center).to.be.true;
+
+      // Check font switching still works
+      expect(textLine.text[1].font?.face).to.equal("Times");
+      expect(textLine.text[1].font?.weight).to.equal("bold");
+    });
+
+    it("should handle all 9 font registrations", () => {
+      const input = `X:1
+T:Test
+K:C
+%%setfont-1 Font1 12
+%%setfont-2 Font2 12
+%%setfont-3 Font3 12
+%%setfont-4 Font4 12
+%%setfont-5 Font5 12
+%%setfont-6 Font6 12
+%%setfont-7 Font7 12
+%%setfont-8 Font8 12
+%%setfont-9 Font9 12
+%%text $1a$2b$3c$4d$5e$6f$7g$8h$9i$0
+CDEF|`;
+
+      const { tunes } = parseABC(input);
+      const systems = tunes[0].systems;
+      const textLines = systems.filter((system) => "text" in system);
+      expect(textLines).to.have.length(1);
+
+      const textLine = textLines[0];
+      expect(textLine.text).to.have.length(9); // 9 fonts (no segment for empty $0 at end)
+
+      // Verify each segment has the correct font
+      for (let i = 0; i < 9; i++) {
+        expect(textLine.text[i].font?.face).to.equal(`Font${i + 1}`);
+      }
+    });
+
+    it("should allow font registration in file header", () => {
+      const input = `X:1
+T:Test
+%%setfont-1 Times 18 bold
+K:C
+%%text $1bold$0
+CDEF|`;
+
+      const { tunes, ctx } = parseABC(input);
+      expect(tunes).to.have.length(1);
+      expectNoErrors(ctx, "parser");
+
+      const systems = tunes[0].systems;
+      const textLines = systems.filter((system) => "text" in system);
+
+      expect(textLines).to.have.length(1);
+      const textLine = textLines[0];
+      expect(textLine.text).to.have.length(1);
+      expect(textLine.text[0].text).to.equal("bold");
+      expect(textLine.text[0].font).to.exist;
+      expect(textLine.text[0].font?.face).to.equal("Times");
+    });
+
+    it("should handle font with italic modifier", () => {
+      const input = `X:1
+T:Test
+K:C
+%%setfont-1 Helvetica 14 italic
+%%text $1italic text$0
+CDEF|`;
+
+      const { tunes } = parseABC(input);
+      const systems = tunes[0].systems;
+      const textLines = systems.filter((system) => "text" in system);
+      const textLine = textLines[0];
+
+      expect(textLine.text[0].font?.style).to.equal("italic");
+    });
+
+    it("should handle font with underline modifier", () => {
+      const input = `X:1
+T:Test
+K:C
+%%setfont-1 Courier 12 underline
+%%text $1underlined$0
+CDEF|`;
+
+      const { tunes } = parseABC(input);
+      const systems = tunes[0].systems;
+      const textLines = systems.filter((system) => "text" in system);
+      const textLine = textLines[0];
+
+      expect(textLine.text[0].font?.decoration).to.equal("underline");
+    });
+
+    it("should handle empty font switch segments", () => {
+      const input = `X:1
+T:Test
+K:C
+%%setfont-1 Times 18 bold
+%%text $1$0text
+CDEF|`;
+
+      const { tunes } = parseABC(input);
+      const systems = tunes[0].systems;
+      const textLines = systems.filter((system) => "text" in system);
+      const textLine = textLines[0];
+
+      // Because $1 and $0 have no text between them, only $0text should create a segment
+      expect(textLine.text).to.have.length(1);
+      expect(textLine.text[0].text).to.equal("text");
+    });
+  });
 });

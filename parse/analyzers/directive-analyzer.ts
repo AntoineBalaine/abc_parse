@@ -13,6 +13,13 @@ import { BracketBracePosition } from "../types/abcjs-ast";
 export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   const key = directive.key.lexeme;
 
+  // Handle pattern-based directives before the switch
+  // Because setfont-1, setfont-2, etc. are tokenized as distinct identifiers,
+  // we need to check for the pattern match before the switch statement.
+  if (/^setfont-[1-9]$/i.test(key)) {
+    return parseSetfont(directive, analyzer);
+  }
+
   switch (key) {
     // ============================================================================
     // Font Directives with Box Support
@@ -165,8 +172,6 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
       return parseText(directive, analyzer);
     case "center":
       return parseCenter(directive, analyzer);
-    case "setfont":
-      return parseSetfont(directive, analyzer);
     case "newpage":
       return parseNewpage(directive, analyzer);
     case "staves":
@@ -432,7 +437,11 @@ function parseFullFontDefinition(
 
         // Check for box
         if (idx < tokens.length && tokens[idx].lexeme.toLowerCase() === "box") {
-          box = true;
+          if (options.supportsBox) {
+            box = true;
+          } else {
+            analyzer.report(`Font type "${directive.key.lexeme}" does not support "box" parameter`, directive);
+          }
           idx++;
         }
         state = "finished";
@@ -812,11 +821,43 @@ function parseCenter(directive: Directive, analyzer: SemanticAnalyzer): Directiv
 /**
  * Parses %%setfont directive (font number + font spec)
  * Format: %%setfont-N <font-spec>
+ *
+ * Because the directive name includes a numeric suffix (1-9), we need to extract it
+ * from the directive key. The scanner tokenizes "setfont-1" as a single IDENTIFIER.
  */
 function parseSetfont(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
-  // TODO: Implement - requires parsing -N suffix and font spec
-  analyzer.report(`Directive "${directive.key.lexeme}" is not yet implemented`, directive);
-  return null;
+  // Extract font number from directive key (e.g., "setfont-1" -> 1)
+  const match = /^setfont-([1-9])$/i.exec(directive.key.lexeme);
+
+  if (!match) {
+    analyzer.report(`Invalid setfont directive format. Expected %%setfont-N where N is 1-9, got "${directive.key.lexeme}"`, directive);
+    return null;
+  }
+
+  const fontNumber = parseInt(match[1], 10);
+
+  // Validate font specification is provided
+  if (directive.values.length === 0) {
+    analyzer.report(`Directive "${directive.key.lexeme}" requires font parameters`, directive);
+    return null;
+  }
+
+  // Parse the font specification using existing font parsing logic
+  // setfont does not support the box parameter
+  const fontResult = parseFullFontDefinition(directive, directive.values, { supportsBox: false }, analyzer);
+
+  if (!fontResult) {
+    return null;
+  }
+
+  // Return setfont-specific data structure
+  return {
+    type: "setfont",
+    data: {
+      number: fontNumber,
+      font: fontResult.data as FontSpec,
+    },
+  };
 }
 
 /**
