@@ -1239,10 +1239,115 @@ function parseFooter(directive: Directive, analyzer: SemanticAnalyzer): Directiv
 
 /**
  * Parses %%midi directive (command + parameters)
+ * Reference: abcjs abc_parse_directive.js lines 538-725 (parseMidiCommand)
+ *
+ * Because MIDI directives have many subcommands with varying parameter requirements,
+ * we categorize commands by their parameter signatures and validate accordingly.
  */
 function parseMidi(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
-  // TODO: Implement
-  throw new Error("Not implemented");
+  // Validate that a command is provided
+  if (directive.values.length === 0) {
+    analyzer.report("MIDI directive requires a command", directive);
+    return null;
+  }
+
+  const firstValue = directive.values[0];
+  if (!isToken(firstValue) || firstValue.type !== TT.IDENTIFIER) {
+    analyzer.report("MIDI directive requires a command name", directive);
+    return null;
+  }
+
+  // Because MIDI commands are case-insensitive, we normalize to lowercase
+  const command = firstValue.lexeme.toLowerCase();
+  const params: (string | number)[] = [];
+
+  // Define command categories based on parameter signatures
+  // These arrays match the reference implementation in abc_parse_directive.js
+  const midiCmdParam0 = [
+    "nobarlines",
+    "barlines",
+    "beataccents",
+    "nobeataccents",
+    "droneon",
+    "droneoff",
+    "drumon",
+    "drumoff",
+    "fermatafixed",
+    "fermataproportional",
+    "gchordon",
+    "gchordoff",
+    "controlcombo",
+    "temperamentnormal",
+    "noportamento",
+  ];
+
+  const midiCmdParam1String = ["gchord", "ptstress", "beatstring"];
+
+  const midiCmdParam1Integer = [
+    "bassvol",
+    "chordvol",
+    "c",
+    "channel",
+    "beatmod",
+    "deltaloudness",
+    "drumbars",
+    "gracedivider",
+    "makechordchannels",
+    "randomchordattack",
+    "chordattack",
+    "stressmodel",
+    "transpose",
+    "rtranspose",
+    "vol",
+    "volinc",
+    "gchordbars",
+  ];
+
+  const remainingValues = directive.values.slice(1);
+
+  // Parse parameters based on command category
+  if (midiCmdParam0.includes(command)) {
+    // No parameters expected
+    if (remainingValues.length > 0) {
+      analyzer.report(`MIDI command '${command}' expects no parameters`, directive);
+    }
+    // params remains empty
+  } else if (midiCmdParam1String.includes(command)) {
+    // One string parameter expected
+    if (remainingValues.length !== 1) {
+      analyzer.report(`MIDI command '${command}' expects one string parameter`, directive);
+      return null;
+    }
+    if (!isToken(remainingValues[0])) {
+      analyzer.report(`MIDI command '${command}' expects string parameter`, directive);
+      return null;
+    }
+    params.push(remainingValues[0].lexeme);
+  } else if (midiCmdParam1Integer.includes(command)) {
+    // One integer parameter expected
+    if (remainingValues.length !== 1) {
+      analyzer.report(`MIDI command '${command}' expects one integer parameter`, directive);
+      return null;
+    }
+    const token = remainingValues[0];
+    if (!isToken(token) || token.type !== TT.NUMBER) {
+      analyzer.report(`MIDI command '${command}' expects integer parameter`, directive);
+      return null;
+    }
+    params.push(parseInt(token.lexeme, 10));
+  } else {
+    // Unknown MIDI command
+    analyzer.report(`Unknown MIDI command: ${command}`, directive);
+    return null;
+  }
+
+  return {
+    type: "midi",
+    data: {
+      command: command,
+      params: params,
+    },
+  };
 }
 
 /**
