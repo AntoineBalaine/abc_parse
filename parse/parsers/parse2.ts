@@ -360,6 +360,7 @@ export function prsBody(ctx: ParseCtx, voices: string[] = []): Tune_Body | null 
   // Parse until end of file or section break
   while (!ctx.isAtEnd() && !ctx.check(TT.SCT_BRK)) {
     if (prsComment(ctx, elmnts)) continue;
+    if (parseDirective(ctx, elmnts)) continue;
     if (prsLyricLine(ctx, elmnts)) continue;
     if (prsLyricSection(ctx)) continue;
     if (parseMacroInvocation(ctx, elmnts)) continue;
@@ -749,7 +750,7 @@ function parseInlineField(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Inline
     return null;
   }
 
-  const field = ctx.advance();  // Get the INF_HDR token (K:, M:, etc.)
+  const field = ctx.advance(); // Get the INF_HDR token (K:, M:, etc.)
   const tokens: Token[] = [field];
 
   // Save current position to collect tokens consumed
@@ -760,7 +761,7 @@ function parseInlineField(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Inline
   while (!(ctx.isAtEnd() || ctx.check(TT.INLN_FLD_RGT_BRKT))) {
     if (ctx.match(TT.WS)) continue;
 
-    const expr = parseExpression(ctx);  // Reuse parseExpression from parseInfoLine2
+    const expr = parseExpression(ctx); // Reuse parseExpression from parseInfoLine2
     if (expr) {
       expressions.push(expr);
     } else {
@@ -774,7 +775,7 @@ function parseInlineField(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Inline
     tokens.push(ctx.tokens[i]);
   }
 
-  ctx.advance();  // Consume closing bracket ]
+  ctx.advance(); // Consume closing bracket ]
 
   // Create Inline_field with parsed expressions
   const result = new Inline_field(ctx.abcContext.generateId(), field, tokens, expressions);

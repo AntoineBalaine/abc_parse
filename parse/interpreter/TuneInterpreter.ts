@@ -30,6 +30,8 @@ import {
   KeyElement,
   MeterElement,
   BracketBracePosition,
+  TextLine,
+  TextFieldProperties,
 } from "../types/abcjs-ast";
 import { InfoLineUnion } from "../types/Expr2";
 import {
@@ -92,6 +94,7 @@ import {
   isHistoryInfo,
   isAuthorInfo,
 } from "../types/Expr2";
+import { Range } from "../types/types";
 import { IRational, createRational, multiplyRational, rationalToNumber } from "../Visitors/fmt2/rational";
 import { RangeVisitor } from "../Visitors/RangeVisitor";
 import {
@@ -767,6 +770,44 @@ function handleScoreDirective(state: InterpreterState, data: { staves: InternalS
 }
 
 /**
+ * Because %%text and %%center directives create text entries in the tune's systems array,
+ * we handle them specially to create TextLine entries with appropriate formatting.
+ *
+ * @param state - The interpreter state to update
+ * @param semanticData - Parsed text directive data from the directive analyzer
+ */
+function handleTextDirective(
+  state: InterpreterState,
+  semanticData: SemanticData,
+  abcRange: {
+    startChar: number;
+    endChar: number;
+  }
+): void {
+  let text = semanticData.data as string;
+  const isCenter = semanticData.type === "center";
+
+  // Strip surrounding quotes if present (the analyzer includes quotes in the text)
+  if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
+    text = text.slice(1, -1);
+  }
+
+  // Create TextLine entry with TextFieldProperties
+  const txtFieldProps: TextFieldProperties = {
+    text: text,
+    center: isCenter,
+    startChar: abcRange.startChar,
+    endChar: abcRange.endChar,
+  };
+  const textLine: TextLine = {
+    text: [txtFieldProps],
+  };
+
+  // Add the TextLine to the tune's systems array
+  state.tune.systems.push(textLine);
+}
+
+/**
  * Parse Result
  */
 export interface ParseResult {
@@ -1034,6 +1075,19 @@ export class TuneInterpreter implements Visitor<void> {
       if (semanticData.type === "score" || semanticData.type === "staves") {
         // Type assertion: we know this is our internal format, not StaffLayoutSpec[]
         handleScoreDirective(this.state, semanticData.data as any);
+        return;
+      }
+
+      // Handle text/center directives specially - they create TextLine entries in systems[]
+      // Only process these in tune context (not file header)
+      if ((semanticData.type === "text" || semanticData.type === "center") && this.processingContext !== "file_header") {
+        const range = expr.accept(this.rangeVisitor);
+
+        const abc_range = {
+          startChar: this.toAbsolutePosition(range.start.line, range.start.character),
+          endChar: this.toAbsolutePosition(range.end.line, range.end.character),
+        };
+        handleTextDirective(this.state, semanticData, abc_range);
         return;
       }
 

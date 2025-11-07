@@ -27,9 +27,10 @@ export function parseDirective(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): D
     directiveKey = ctx.previous();
   } else return null;
 
-  // Special case: begintext directive expects FREE_TXT token
-  if (directiveKey.lexeme.toLowerCase() === "begintext") {
-    return parseBeginTextDirective(ctx, directiveKey, prnt_arr);
+  const options = ["begintext", "text", "center"];
+  // Special case: begintext, text, and center directives expect FREE_TXT token
+  if (options.includes(directiveKey.lexeme.toLowerCase())) {
+    return parseTextDirective(ctx, directiveKey, prnt_arr);
   }
 
   const values: Array<Token | Rational | Pitch | KV | Measurement | Annotation> = [];
@@ -154,18 +155,20 @@ function parseRationalOrNumber(ctx: ParseCtx, values: Array<Token | Rational | P
 }
 
 /**
- * Parse %%begintext directive - expects FREE_TXT token containing text block
+ * Parse text directives (%%begintext, %%text, %%center) - expects FREE_TXT token
+ * Because the scanner handles text capture for these directives,
+ * we simply consume the FREE_TXT token that contains the text content.
  */
-function parseBeginTextDirective(ctx: ParseCtx, directiveKey: Token, prnt_arr?: Array<Expr | Token>): Directive | null {
+function parseTextDirective(ctx: ParseCtx, directiveKey: Token, prnt_arr?: Array<Expr | Token>): Directive | null {
   const values: Array<Token | Rational | Pitch | KV | Measurement | Annotation> = [];
 
-  // Next token should be FREE_TXT containing the text block
+  // Next token should be FREE_TXT containing the text content
   if (ctx.check(TT.FREE_TXT)) {
     values.push(ctx.advance());
   }
 
-  // Optionally consume endtext directive if present
-  if (ctx.check(TT.STYLESHEET_DIRECTIVE)) {
+  // For begintext, optionally consume endtext directive if present
+  if (directiveKey.lexeme.toLowerCase() === "begintext" && ctx.check(TT.STYLESHEET_DIRECTIVE)) {
     ctx.advance(); // consume %%
     if (ctx.check(TT.IDENTIFIER) && ctx.peek().lexeme.toLowerCase() === "endtext") {
       ctx.advance(); // consume endtext identifier

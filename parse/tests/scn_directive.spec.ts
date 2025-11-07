@@ -188,6 +188,73 @@ describe("Directive Scanner Tests", () => {
     });
   });
 
+  describe("Text directives (%%text, %%center)", () => {
+    it("should scan %%text directive with FREE_TXT token", () => {
+      const ctx = createCtx("%%text This is some text");
+      const result = scanDirective(ctx);
+
+      expect(result).to.equal(true);
+      expect(ctx.tokens[0].type).to.equal(TT.STYLESHEET_DIRECTIVE);
+      expect(ctx.tokens[0].lexeme).to.equal("%%");
+      expect(ctx.tokens[1].type).to.equal(TT.IDENTIFIER);
+      expect(ctx.tokens[1].lexeme).to.equal("text");
+      expect(ctx.tokens[2].type).to.equal(TT.FREE_TXT);
+      expect(ctx.tokens[2].lexeme).to.equal("This is some text");
+    });
+
+    it("should scan %%center directive with FREE_TXT token", () => {
+      const ctx = createCtx("%%center Centered text");
+      const result = scanDirective(ctx);
+
+      expect(result).to.equal(true);
+      expect(ctx.tokens[0].type).to.equal(TT.STYLESHEET_DIRECTIVE);
+      expect(ctx.tokens[1].type).to.equal(TT.IDENTIFIER);
+      expect(ctx.tokens[1].lexeme).to.equal("center");
+      expect(ctx.tokens[2].type).to.equal(TT.FREE_TXT);
+      expect(ctx.tokens[2].lexeme).to.equal("Centered text");
+    });
+
+    it("should handle %%text with special characters", () => {
+      const ctx = createCtx("%%text Hello, world! This is a test.");
+      const result = scanDirective(ctx);
+
+      expect(result).to.equal(true);
+      expect(ctx.tokens[2].type).to.equal(TT.FREE_TXT);
+      expect(ctx.tokens[2].lexeme).to.equal("Hello, world! This is a test.");
+    });
+
+    it("should capture text content including trailing spaces", () => {
+      const ctx = createCtx("%%text Some text with spaces");
+      const result = scanDirective(ctx);
+
+      expect(result).to.equal(true);
+      expect(ctx.tokens[2].type).to.equal(TT.FREE_TXT);
+      expect(ctx.tokens[2].lexeme).to.equal("Some text with spaces");
+    });
+
+    it("should handle empty text directive with FREE_TXT token", () => {
+      const ctx = createCtx("%%text");
+      const result = scanDirective(ctx);
+
+      expect(result).to.equal(true);
+      expect(ctx.tokens[0].type).to.equal(TT.STYLESHEET_DIRECTIVE);
+      expect(ctx.tokens[1].type).to.equal(TT.IDENTIFIER);
+      expect(ctx.tokens[1].lexeme).to.equal("text");
+      // FREE_TXT token is created even for empty text
+      expect(ctx.tokens[2].type).to.equal(TT.FREE_TXT);
+      expect(ctx.tokens[2].lexeme).to.equal("");
+    });
+
+    it("should handle %%text with numbers and punctuation", () => {
+      const ctx = createCtx("%%text Version 2.0 - updated 2024");
+      const result = scanDirective(ctx);
+
+      expect(result).to.equal(true);
+      expect(ctx.tokens[2].type).to.equal(TT.FREE_TXT);
+      expect(ctx.tokens[2].lexeme).to.equal("Version 2.0 - updated 2024");
+    });
+  });
+
   describe("Property-based testing", () => {
     it("measurement unit generator creates valid tokens", () => {
       fc.assert(

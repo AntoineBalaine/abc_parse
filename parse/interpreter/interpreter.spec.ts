@@ -564,4 +564,119 @@ K:clef=none`;
     expect(tune.metaText.composer).to.equal("S7 q");
     expect(tune.metaText.origin).to.equal("EaL");
   });
+
+  describe("Text Content Directives - TextLine Entries", () => {
+    it("should create TextLine entry for %%text directive", () => {
+      const input = `X:1
+T:Test
+K:C
+%%text This is some text
+CDEF|`;
+
+      const { tunes } = parseABC(input);
+      expect(tunes).to.have.length(1);
+
+      // Because text directives create entries in systems[], we need to verify the entry
+      const systems = tunes[0].systems;
+      const textLines = systems.filter((system) => "text" in system);
+
+      expect(textLines).to.have.length(1);
+      const textLine = textLines[0];
+      expect(textLine.text).to.be.an("array");
+      expect(textLine.text).to.have.length(1);
+      expect(textLine.text[0].text).to.equal("This is some text");
+      expect(textLine.text[0].center).to.be.false;
+    });
+
+    it("should create TextLine entry for %%center directive with center flag", () => {
+      const input = `X:1
+T:Test
+K:C
+%%center Centered text
+CDEF|`;
+
+      const { tunes } = parseABC(input);
+      expect(tunes).to.have.length(1);
+
+      const systems = tunes[0].systems;
+      const textLines = systems.filter((system) => "text" in system);
+
+      expect(textLines).to.have.length(1);
+      const textLine = textLines[0];
+      expect(textLine.text).to.be.an("array");
+      expect(textLine.text).to.have.length(1);
+      expect(textLine.text[0].text).to.equal("Centered text");
+      expect(textLine.text[0].center).to.be.true;
+    });
+
+    it("should create multiple TextLine entries for multiple text directives", () => {
+      const input = `X:1
+T:Test
+K:C
+%%text First line
+%%center Second line centered
+%%text Third line
+CDEF|`;
+
+      const { tunes } = parseABC(input);
+      expect(tunes).to.have.length(1);
+
+      const systems = tunes[0].systems;
+      const textLines = systems.filter((system) => "text" in system);
+
+      expect(textLines).to.have.length(3);
+
+      // First text line (left-aligned)
+      const firstLine = textLines[0];
+      expect(firstLine.text[0].text).to.equal("First line");
+      expect(firstLine.text[0].center).to.be.false;
+
+      // Second text line (centered)
+      const secondLine = textLines[1];
+      expect(secondLine.text[0].text).to.equal("Second line centered");
+      expect(secondLine.text[0].center).to.be.true;
+
+      // Third text line (left-aligned)
+      const thirdLine = textLines[2];
+      expect(thirdLine.text[0].text).to.equal("Third line");
+      expect(thirdLine.text[0].center).to.be.false;
+    });
+
+    it("should handle text directives in tune header", () => {
+      const input = `X:1
+T:Test
+%%text Header text
+K:C
+CDEF|`;
+
+      const { tunes } = parseABC(input);
+      expect(tunes).to.have.length(1);
+
+      const systems = tunes[0].systems;
+      const textLines = systems.filter((system) => "text" in system);
+
+      expect(textLines).to.have.length(1);
+      const textLine = textLines[0];
+      expect(textLine.text[0].text).to.equal("Header text");
+    });
+
+    it("should handle text directives in tune body", () => {
+      const input = `X:1
+T:Test
+K:C
+CDEF|
+%%text Body text
+CDEF|`;
+
+      const { tunes } = parseABC(input);
+      expect(tunes).to.have.length(1);
+
+      const systems = tunes[0].systems;
+      const textLines = systems.filter((system) => "text" in system);
+
+      expect(textLines).to.have.length(1);
+      const textLine = textLines[0];
+      expect(textLine.text[0].text).to.equal("Body text");
+    });
+  });
 });

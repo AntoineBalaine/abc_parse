@@ -194,6 +194,76 @@ describe("parseDirective - Directive Parser", () => {
     });
   });
 
+  describe("Text directives (%%text, %%center)", () => {
+    it("should parse %%text directive with FREE_TXT token", () => {
+      const tokens = [
+        new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
+        new Token(TT.IDENTIFIER, "text", context.generateId()),
+        new Token(TT.FREE_TXT, "This is some text", context.generateId()),
+      ];
+
+      const ctx = new ParseCtx(tokens, context);
+      const result = parseDirective(ctx);
+
+      expect(result).to.not.be.null;
+      expect(result).to.be.an.instanceof(Directive);
+      expect(result!.key?.lexeme).to.equal("text");
+      expect(result!.values).to.have.length(1);
+      expect(result!.values![0]).to.be.an.instanceof(Token);
+      expect((result!.values![0] as Token).type).to.equal(TT.FREE_TXT);
+      expect((result!.values![0] as Token).lexeme).to.equal("This is some text");
+    });
+
+    it("should parse %%center directive with FREE_TXT token", () => {
+      const tokens = [
+        new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
+        new Token(TT.IDENTIFIER, "center", context.generateId()),
+        new Token(TT.FREE_TXT, "Centered text", context.generateId()),
+      ];
+
+      const ctx = new ParseCtx(tokens, context);
+      const result = parseDirective(ctx);
+
+      expect(result).to.not.be.null;
+      expect(result).to.be.an.instanceof(Directive);
+      expect(result!.key?.lexeme).to.equal("center");
+      expect(result!.values).to.have.length(1);
+      expect(result!.values![0]).to.be.an.instanceof(Token);
+      expect((result!.values![0] as Token).type).to.equal(TT.FREE_TXT);
+      expect((result!.values![0] as Token).lexeme).to.equal("Centered text");
+    });
+
+    it("should handle empty text directive", () => {
+      const tokens = [
+        new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
+        new Token(TT.IDENTIFIER, "text", context.generateId()),
+      ];
+
+      const ctx = new ParseCtx(tokens, context);
+      const result = parseDirective(ctx);
+
+      expect(result).to.not.be.null;
+      expect(result!.key?.lexeme).to.equal("text");
+      expect(result!.values).to.have.length(0);
+    });
+
+    it("should parse text directive with special characters", () => {
+      const tokens = [
+        new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
+        new Token(TT.IDENTIFIER, "text", context.generateId()),
+        new Token(TT.FREE_TXT, "Text with punctuation: hello, world!", context.generateId()),
+      ];
+
+      const ctx = new ParseCtx(tokens, context);
+      const result = parseDirective(ctx);
+
+      expect(result).to.not.be.null;
+      expect(result!.key?.lexeme).to.equal("text");
+      expect(result!.values).to.have.length(1);
+      expect((result!.values![0] as Token).lexeme).to.equal("Text with punctuation: hello, world!");
+    });
+  });
+
   describe("Error handling", () => {
     it("should return null for non-directive input", () => {
       const tokens = [new Token(TT.IDENTIFIER, "not-directive", context.generateId())];

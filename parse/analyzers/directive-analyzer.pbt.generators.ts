@@ -188,16 +188,7 @@ export const genFontDirective = fc.oneof(genFontDirectiveFormat1, genFontDirecti
 export const parserConfigDirectives = ["landscape", "titlecaps", "continueall", "font"] as const;
 
 // Formatting directives - tune header only, stored in tune.formatting
-export const formattingDirectives = [
-  "bagpipes",
-  "flatbeams",
-  "jazzchords",
-  "accentAbove",
-  "germanAlphabet",
-  "titleleft",
-  "measurebox",
-  "nobarcheck",
-] as const;
+export const formattingDirectives = ["bagpipes", "flatbeams", "jazzchords", "accentAbove", "germanAlphabet", "titleleft", "measurebox", "nobarcheck"] as const;
 
 // All boolean flag directives
 export const booleanFlagDirectives = [...parserConfigDirectives, ...formattingDirectives] as const;
@@ -460,9 +451,10 @@ export const genSepDirective = fc.array(fc.float({ min: 0, max: 50 }), { maxLeng
 // Annotation Directive Generators (text, center, abc-*)
 // ============================================================================
 
-export const annotationDirectives = ["text", "center", "abc-copyright", "abc-creator", "abc-edited-by", "abc-version", "abc-charset"] as const;
+export const annotationDirectives = ["abc-copyright", "abc-creator", "abc-edited-by", "abc-version", "abc-charset"] as const;
 
 export const genAnnotationDirectiveName = fc.constantFrom(...annotationDirectives);
+export const genTextDirectiveName = fc.constantFrom("text", "center");
 
 // Generate safe annotation text - alphanumeric with safe punctuation only
 // Avoid quotes, backslashes, and other characters that could break ABC string syntax
@@ -511,7 +503,27 @@ export const genAnnotationDirectiveWithToken = fc
     };
   });
 
-export const genAnnotationDirective = fc.oneof(genAnnotationDirectiveWithObject, genAnnotationDirectiveWithToken);
+// Text directives (%%text, %%center) use FREE_TXT tokens from the scanner
+export const genTextDirective = fc
+  .record({
+    name: genTextDirectiveName,
+    text: genAnnotationText,
+  })
+  .map(({ name, text }) => {
+    // Because the scanner handles text/center directives specially with FREE_TXT tokens,
+    // we create a FREE_TXT token without quotes
+    const token = new Token(TT.FREE_TXT, text, sharedContext.generateId());
+
+    return {
+      directive: new Directive(sharedContext.generateId(), new Token(TT.IDENTIFIER, name, sharedContext.generateId()), [token]),
+      expected: {
+        type: name,
+        data: text, // No quotes for FREE_TXT
+      },
+    };
+  });
+
+export const genAnnotationDirective = fc.oneof(genAnnotationDirectiveWithObject, genAnnotationDirectiveWithToken, genTextDirective);
 
 // ============================================================================
 // Newpage Directive Generator

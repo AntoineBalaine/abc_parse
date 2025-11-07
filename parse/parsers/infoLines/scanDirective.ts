@@ -21,6 +21,11 @@ export function scanDirective(ctx: Ctx): boolean {
     return scanTextDirective(ctx);
   }
 
+  // Special case: single-line text directives (%%text and %%center)
+  if (ctx.test(/^%%(text|center)\b/i)) {
+    return scanSingleLineTextDirective(ctx);
+  }
+
   if (!ctx.test("%%")) return false;
   advance(ctx, 2);
   ctx.push(TT.STYLESHEET_DIRECTIVE);
@@ -165,6 +170,38 @@ export function scanTextDirective(ctx: Ctx): boolean {
       ctx.push(TT.IDENTIFIER);
     }
   }
+
+  return true;
+}
+
+/**
+ * Scan single-line text directive (%%text or %%center)
+ *
+ * Because text directives should capture all remaining text on the line as a single value,
+ * we create a FREE_TXT token with the combined text content.
+ *
+ * Produces: TT.STYLESHEET_DIRECTIVE + TT.IDENTIFIER("text"|"center") + TT.FREE_TXT(text content)
+ */
+function scanSingleLineTextDirective(ctx: Ctx): boolean {
+  // Check if this is %%text or %%center
+  const match = /^%%(text|center)\b/i.exec(ctx.source.substring(ctx.current));
+  if (!match) return false;
+
+  advance(ctx, 2); // %%
+  ctx.push(TT.STYLESHEET_DIRECTIVE);
+
+  // Consume the directive name (text or center)
+  const directiveName = match[1];
+  ctx.current += directiveName.length;
+  ctx.push(TT.IDENTIFIER);
+
+  // Skip whitespace after directive name (without pushing tokens)
+  WS(ctx, true);
+
+  while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
+    advance(ctx);
+  }
+  ctx.push(TT.FREE_TXT);
 
   return true;
 }
