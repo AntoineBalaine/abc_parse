@@ -36,7 +36,7 @@ import {
   FontStyle,
   FontDecoration,
 } from "../types/abcjs-ast";
-import { FontSpec, MeasurementSpec } from "../types/directive-specs";
+import { FontSpec, MeasurementSpec, MidiSpec } from "../types/directive-specs";
 import { InfoLineUnion } from "../types/Expr2";
 import {
   Visitor,
@@ -582,31 +582,47 @@ function applyInfoLine(semanticData: InfoLineUnion, context: HeaderContext): str
       title = title.toUpperCase();
     }
 
-    metaText.title = title;
+    // Only set title if not already set (keep the first T: line as main title)
+    // Subsequent T: lines in the header are subtitles (ABC 2.1 spec)
+    if (!metaText.title) {
+      metaText.title = title;
+    }
     return null;
   }
   if (isComposerInfo(semanticData)) {
-    metaText.composer = semanticData.data;
+    // Multiple C: lines are concatenated with newlines (matching abcjs behavior)
+    const existing = metaText.composer;
+    metaText.composer = existing ? existing + "\n" + semanticData.data : semanticData.data;
     return null;
   }
   if (isOriginInfo(semanticData)) {
-    metaText.origin = semanticData.data;
+    // Multiple O: lines are concatenated with newlines (matching abcjs behavior)
+    const existing = metaText.origin;
+    metaText.origin = existing ? existing + "\n" + semanticData.data : semanticData.data;
     return null;
   }
   if (isRhythmInfo(semanticData)) {
-    metaText.rhythm = semanticData.data;
+    // Multiple R: lines are concatenated with newlines (matching abcjs behavior)
+    const existing = metaText.rhythm;
+    metaText.rhythm = existing ? existing + "\n" + semanticData.data : semanticData.data;
     return null;
   }
   if (isBookInfo(semanticData)) {
-    metaText.book = semanticData.data;
+    // Multiple B: lines are concatenated with newlines (matching abcjs behavior)
+    const existing = metaText.book;
+    metaText.book = existing ? existing + "\n" + semanticData.data : semanticData.data;
     return null;
   }
   if (isSourceInfo(semanticData)) {
-    metaText.source = semanticData.data;
+    // Multiple S: lines are concatenated with newlines (matching abcjs behavior)
+    const existing = metaText.source;
+    metaText.source = existing ? existing + "\n" + semanticData.data : semanticData.data;
     return null;
   }
   if (isDiscographyInfo(semanticData)) {
-    metaText.discography = semanticData.data;
+    // Multiple D: lines are concatenated with newlines (matching abcjs behavior)
+    const existing = metaText.discography;
+    metaText.discography = existing ? existing + "\n" + semanticData.data : semanticData.data;
     return null;
   }
   if (isNotesInfo(semanticData)) {
@@ -616,11 +632,15 @@ function applyInfoLine(semanticData: InfoLineUnion, context: HeaderContext): str
     return null;
   }
   if (isTranscriptionInfo(semanticData)) {
-    metaText.transcription = semanticData.data;
+    // Multiple Z: lines are concatenated with newlines (matching abcjs behavior)
+    const existing = metaText.transcription;
+    metaText.transcription = existing ? existing + "\n" + semanticData.data : semanticData.data;
     return null;
   }
   if (isHistoryInfo(semanticData)) {
-    metaText.history = semanticData.data;
+    // Multiple H: lines are concatenated with newlines (matching abcjs behavior)
+    const existing = metaText.history;
+    metaText.history = existing ? existing + "\n" + semanticData.data : semanticData.data;
     return null;
   }
   if (isAuthorInfo(semanticData)) {
@@ -658,6 +678,13 @@ function applyInfoLine(semanticData: InfoLineUnion, context: HeaderContext): str
     context.target.tuneDefaults.key = semanticData.data.keySignature;
     if (semanticData.data.clef) {
       context.target.tuneDefaults.clef = semanticData.data.clef;
+    }
+
+    // Automatically enable bagpipes formatting for HP/Hp keys (matching abcjs behavior)
+    // In abcjs, K:HP and K:Hp automatically call parseDirective.addDirective("bagpipes")
+    const keyRoot = semanticData.data.keySignature.root;
+    if (keyRoot === "HP" || keyRoot === "Hp") {
+      context.target.tune.formatting.bagpipes = true;
     }
   } else if (isMeterInfo(semanticData)) {
     context.target.tuneDefaults.meter = semanticData.data;
@@ -745,6 +772,9 @@ function applyDirective(semanticData: SemanticData, directiveName: string, conte
   const formatting = context.type === "file_header" ? context.target.formatting : context.target.tune.formatting;
   const parserConfig = context.type === "file_header" ? context.target.parserConfig : context.target.parserConfig;
 
+  // Normalize directive name to lowercase for case-insensitive matching (ABC spec allows both %%MIDI and %%midi)
+  directiveName = directiveName.toLowerCase();
+
   // Handle abc-version specially
   if (semanticData.type === "abc-version") {
     if (context.type === "file_header") {
@@ -800,6 +830,29 @@ function applyDirective(semanticData: SemanticData, directiveName: string, conte
   } else if (directiveName === "font") {
     // Ignored directive - abcjs does nothing with it
     return null;
+  } else if (directiveName === "midi") {
+    // Special handling for MIDI directives
+    // Because MIDI directives accumulate state (e.g., drummap builds up a mapping),
+    // we need to handle them differently than simple value directives.
+    const midiData = semanticData.data as MidiSpec;
+
+    // Initialize formatting.midi if it doesn't exist
+    if (!formatting.midi) {
+      formatting.midi = {};
+    }
+
+    // Handle drummap command: builds up a pitch-to-MIDI-note mapping
+    if (midiData.command === "drummap") {
+      if (!formatting.midi.drummap) {
+        formatting.midi.drummap = {};
+      }
+      // Format: drummap <note> <midi-number>
+      const [noteName, midiNumber] = midiData.params;
+      if (typeof noteName === "string" && typeof midiNumber === "number") {
+        formatting.midi.drummap[noteName] = midiNumber;
+      }
+    }
+    // TODO: Handle other MIDI commands (transpose, program, etc.)
   } else {
     const data = semanticData.data;
     // All other directives go in formatting
@@ -810,7 +863,7 @@ function applyDirective(semanticData: SemanticData, directiveName: string, conte
       // MeasurementSpec directives: extract numeric value
       formatting[directiveName as keyof typeof formatting] = data.value;
     } else {
-      // Fallback for directives not yet categorized (midi, percmap, etc.)
+      // Fallback for directives not yet categorized (percmap, etc.)
       formatting[directiveName as keyof typeof formatting] = data;
     }
   }

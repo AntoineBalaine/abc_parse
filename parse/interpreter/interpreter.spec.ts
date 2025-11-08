@@ -42,7 +42,7 @@ CDEF|`;
       expect(tunes[0].metaText.title).to.equal("Test Title");
     });
 
-    it("should parse multiple titles", () => {
+    it("should parse multiple titles and use first as main title", () => {
       const input = `X:1
 T:Main Title
 T:Subtitle
@@ -51,7 +51,7 @@ CDEF|`;
 
       const { tunes } = parseABC(input);
       expect(tunes).to.have.length(1);
-      expect(tunes[0].metaText.title).to.exist;
+      expect(tunes[0].metaText.title).to.equal("Main Title");
     });
 
     it("should apply titlecaps directive to titles", () => {
@@ -75,6 +75,18 @@ CDEF|`;
 
       const { tunes } = parseABC(input);
       expect(tunes[0].metaText.composer).to.equal("Test Composer");
+    });
+
+    it("should concatenate multiple composer lines with newlines", () => {
+      const input = `X:1
+T:Test
+C:Words by Person A
+C:Music by Person B
+K:C
+CDEF|`;
+
+      const { tunes } = parseABC(input);
+      expect(tunes[0].metaText.composer).to.equal("Words by Person A\nMusic by Person B");
     });
 
     it("should concatenate multiple notes lines with newlines", () => {

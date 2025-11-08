@@ -21,7 +21,9 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     return parseSetfont(directive, analyzer);
   }
 
-  switch (key) {
+  const keyLower = key.toLowerCase();
+
+  switch (keyLower) {
     // ============================================================================
     // Font Directives with Box Support
     // ============================================================================
@@ -353,7 +355,7 @@ function parseSizeOnlyFormat(
   }
 
   return {
-    type: directive.key.lexeme as any,
+    type: directive.key.lexeme.toLowerCase() as any,
     data: result,
   };
 }
@@ -525,7 +527,7 @@ function parseFullFontDefinition(
   }
 
   return {
-    type: directive.key.lexeme as any,
+    type: directive.key.lexeme.toLowerCase() as any,
     data: result,
   };
 }
@@ -539,7 +541,7 @@ function parseBooleanFlag(directive: Directive, analyzer: SemanticAnalyzer): Dir
   }
 
   return {
-    type: directive.key.lexeme as any,
+    type: directive.key.lexeme.toLowerCase() as any,
     data: true,
   };
 }
@@ -564,7 +566,7 @@ function parseIdentifier(directive: Directive, analyzer: SemanticAnalyzer): Dire
   }
 
   return {
-    type: directive.key.lexeme as any,
+    type: directive.key.lexeme.toLowerCase() as any,
     data: value.lexeme,
   };
 }
@@ -615,7 +617,7 @@ function parseBooleanValue(directive: Directive, analyzer: SemanticAnalyzer): Di
   }
 
   return {
-    type: directive.key.lexeme as any,
+    type: directive.key.lexeme.toLowerCase() as any,
     data: boolValue,
   };
 }
@@ -656,7 +658,7 @@ function parseNumber(directive: Directive, analyzer: SemanticAnalyzer, constrain
   }
 
   return {
-    type: directive.key.lexeme as any,
+    type: directive.key.lexeme.toLowerCase() as any,
     data: num,
   };
 }
@@ -668,7 +670,7 @@ function parseStretchLast(directive: Directive, analyzer: SemanticAnalyzer): Dir
   // No parameters: default to 1 (true)
   if (directive.values.length === 0) {
     return {
-      type: directive.key.lexeme as any,
+      type: directive.key.lexeme.toLowerCase() as any,
       data: 1,
     };
   }
@@ -682,14 +684,14 @@ function parseStretchLast(directive: Directive, analyzer: SemanticAnalyzer): Dir
   // Handle boolean keywords
   if (value.lexeme === "false") {
     return {
-      type: directive.key.lexeme as any,
+      type: directive.key.lexeme.toLowerCase() as any,
       data: 0,
     };
   }
 
   if (value.lexeme === "true") {
     return {
-      type: directive.key.lexeme as any,
+      type: directive.key.lexeme.toLowerCase() as any,
       data: 1,
     };
   }
@@ -708,7 +710,7 @@ function parseStretchLast(directive: Directive, analyzer: SemanticAnalyzer): Dir
     }
 
     return {
-      type: directive.key.lexeme as any,
+      type: directive.key.lexeme.toLowerCase() as any,
       data: num,
     };
   }
@@ -744,7 +746,7 @@ function parsePositionChoice(directive: Directive, analyzer: SemanticAnalyzer): 
   }
 
   return {
-    type: directive.key.lexeme as any,
+    type: directive.key.lexeme.toLowerCase() as any,
     data: lexeme as "auto" | "above" | "below" | "hidden",
   };
 }
@@ -773,7 +775,7 @@ function parseMeasurement(directive: Directive, analyzer: SemanticAnalyzer): Dir
     }
 
     return {
-      type: directive.key.lexeme as any,
+      type: directive.key.lexeme.toLowerCase() as any,
       data: {
         value: numValue,
         unit: value.scale.lexeme as "pt" | "in" | "cm" | "mm",
@@ -794,7 +796,7 @@ function parseMeasurement(directive: Directive, analyzer: SemanticAnalyzer): Dir
     }
 
     return {
-      type: directive.key.lexeme as any,
+      type: directive.key.lexeme.toLowerCase() as any,
       data: {
         value: numValue,
       },
@@ -835,7 +837,7 @@ function parseSep(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSe
   }
 
   return {
-    type: directive.key.lexeme as any,
+    type: directive.key.lexeme.toLowerCase() as any,
     data: result,
   };
 }
@@ -905,7 +907,7 @@ function parseNewpage(directive: Directive, analyzer: SemanticAnalyzer): Directi
   if (directive.values.length === 0) {
     // No page number specified
     return {
-      type: directive.key.lexeme as any,
+      type: directive.key.lexeme.toLowerCase() as any,
       data: null,
     };
   }
@@ -927,7 +929,7 @@ function parseNewpage(directive: Directive, analyzer: SemanticAnalyzer): Directi
   }
 
   return {
-    type: directive.key.lexeme as any,
+    type: directive.key.lexeme.toLowerCase() as any,
     data: pageNum,
   };
 }
@@ -1286,6 +1288,7 @@ function parseMidi(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
   }
 
   const firstValue = directive.values[0];
+
   if (!isToken(firstValue) || firstValue.type !== TT.IDENTIFIER) {
     analyzer.report("MIDI directive requires a command name", directive);
     return null;
@@ -1573,43 +1576,33 @@ function parseMidi(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
       }
     }
   } else if (command === "drummap") {
-    // Special case: drummap accepts 2 or 3 tokens
-    // 2 tokens: note midi_number (e.g., "C 36")
-    // 3 tokens: accidental note midi_number (e.g., "^ F 42")
-    // Because the scanner tokenizes accidentals as separate tokens,
-    // we need to handle both formats and concatenate the accidental with the note.
-    if (remainingValues.length === 2) {
-      const noteToken = remainingValues[0];
-      const midiToken = remainingValues[1];
-
-      if (!isToken(noteToken) || !isToken(midiToken) || midiToken.type !== TT.NUMBER) {
-        analyzer.report("MIDI drummap expects note name and MIDI number", directive);
-        return null;
-      }
-
-      params.push(noteToken.lexeme);
-      params.push(parseInt(midiToken.lexeme, 10));
-    } else if (remainingValues.length === 3) {
-      // Format: accidental note midi_number (e.g., ^ F 42)
-      // Because the 3-token format requires accidental + note + midi_number,
-      // we need to validate that the second token is a note name (not a number).
-      const acciToken = remainingValues[0];
-      const noteToken = remainingValues[1];
-      const midiToken = remainingValues[2];
-
-      if (!isToken(acciToken) || !isToken(noteToken) || noteToken.type === TT.NUMBER || !isToken(midiToken) || midiToken.type !== TT.NUMBER) {
-        analyzer.report("MIDI drummap expects note name and MIDI number", directive);
-        return null;
-      }
-
-      // Combine accidental and note
-      params.push(acciToken.lexeme + noteToken.lexeme);
-      params.push(parseInt(midiToken.lexeme, 10));
-    } else {
-      // Because drummap only accepts 2 or 3 parameters, we report an error for any other count
-      analyzer.report("MIDI drummap expects two or three parameters: note and MIDI number", directive);
+    // Special case: drummap accepts pitch + midi_number
+    // Because the parser creates Pitch expressions for notes (not raw tokens),
+    // we need to extract the note name from the Pitch object.
+    if (remainingValues.length !== 2) {
+      analyzer.report("MIDI drummap expects note and MIDI number", directive);
       return null;
     }
+
+    const pitchValue = remainingValues[0];
+    const midiToken = remainingValues[1];
+
+    // Because the first parameter is a Pitch expression, we need to extract the note name
+    if (!(pitchValue instanceof Pitch)) {
+      analyzer.report("MIDI drummap expects pitch as first parameter", directive);
+      return null;
+    }
+
+    // Extract note name from Pitch: alteration (if present) + noteLetter
+    const noteName = (pitchValue.alteration?.lexeme || '') + pitchValue.noteLetter.lexeme;
+    params.push(noteName);
+
+    // Validate and parse MIDI number
+    if (!isToken(midiToken) || midiToken.type !== TT.NUMBER) {
+      analyzer.report("MIDI drummap expects MIDI number as second parameter", directive);
+      return null;
+    }
+    params.push(parseInt(midiToken.lexeme, 10));
   } else if (midiCmdParam1StringVariableIntegers.includes(command)) {
     // One string parameter followed by variable number of integers (at least 1)
     // Because drum and chordname define patterns/chords with arbitrary length,
@@ -1642,13 +1635,14 @@ function parseMidi(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
     return null;
   }
 
-  return {
+  const result = {
     type: "midi",
     data: {
       command: command,
       params: params,
     },
   };
+  return result as any;
 }
 
 /**
@@ -1810,7 +1804,7 @@ function parseAnnotation(directive: Directive, analyzer: SemanticAnalyzer): Dire
   }
 
   return {
-    type: directive.key.lexeme as any,
+    type: directive.key.lexeme.toLowerCase() as any,
     data: textParts.join(" "),
   };
 }

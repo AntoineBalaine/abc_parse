@@ -58,6 +58,7 @@ export enum KeyRoot {
   F = "F",
   G = "G",
   HP = "HP",
+  Hp = "Hp",
 }
 
 export enum KeyAccidental {
