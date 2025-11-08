@@ -17,7 +17,7 @@ import { runComparison } from "../test-helpers";
 // Test Configuration
 // ============================================================================
 
-const EXAMPLE_SCORES_DIR = path.resolve(__dirname, "../../../example_scores");
+const EXAMPLE_SCORES_DIR = path.resolve(__dirname, "../../../../example_scores");
 
 // Files that cause issues (infinite loops, crashes, etc.) and should be skipped
 const EXCLUDED_FILES = [

@@ -15,7 +15,7 @@ import { parseWithAbcjs } from "../abcjs-wrapper";
 // Test Configuration
 // ============================================================================
 
-const EXAMPLE_SCORES_DIR = path.resolve(__dirname, "../../../example_scores");
+const EXAMPLE_SCORES_DIR = path.resolve(__dirname, "../../../../example_scores");
 
 // Files that we already know cause issues - skip them
 const EXCLUDED_FILES = [
