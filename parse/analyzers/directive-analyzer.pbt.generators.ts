@@ -775,6 +775,54 @@ export const genPercmapDirectiveWithDrumName = fc
 
 export const genPercmapDirective = fc.oneof(genPercmapDirectiveWithMidiNumber, genPercmapDirectiveWithDrumName);
 
+// ============================================================================
+// Deco Directive Generators
+// ============================================================================
+
+export const genDecorationName = fc.oneof(
+  fc.constantFrom("fermata", "trill", "mordent", "turn", "staccato", "accent", "tenuto", "marcato"),
+  fc.stringMatching(/^[a-z][a-z0-9_-]{0,15}$/).filter((s) => s.length > 0)
+);
+
+export const genDecorationDefinition = fc
+  .array(fc.oneof(fc.constantFrom("abc", "def", "xyz", "123", "456", "postscript", "code"), fc.integer({ min: 0, max: 100 }).map((n) => n.toString())), {
+    minLength: 0,
+    maxLength: 10,
+  })
+  .map((parts) => (parts.length > 0 ? parts.join(" ") : undefined));
+
+export const genDecoDirective = fc
+  .record({
+    name: genDecorationName,
+    definition: genDecorationDefinition,
+  })
+  .map(({ name, definition }) => {
+    const tokens: Token[] = [new Token(TT.IDENTIFIER, name, sharedContext.generateId())];
+
+    // Because the definition is optional, we only add tokens if definition is not undefined
+    if (definition !== undefined) {
+      const defParts = definition.split(" ");
+      for (const part of defParts) {
+        // Because parts can be numbers or identifiers, we check if it's a number
+        if (/^\d+$/.test(part)) {
+          tokens.push(new Token(TT.NUMBER, part, sharedContext.generateId()));
+        } else {
+          tokens.push(new Token(TT.IDENTIFIER, part, sharedContext.generateId()));
+        }
+      }
+    }
+
+    return {
+      directive: new Directive(sharedContext.generateId(), new Token(TT.IDENTIFIER, "deco", sharedContext.generateId()), tokens),
+      expected: {
+        type: "deco",
+        name,
+        definition,
+      },
+    };
+  });
+
+// ============================================================================
 // Combined Generator (all directive types)
 // ============================================================================
 
@@ -791,4 +839,5 @@ export const genAnyDirective = fc.oneof(
   genHeaderFooterDirective,
   genNewpageDirective,
   genPercmapDirective,
+  genDecoDirective
 );

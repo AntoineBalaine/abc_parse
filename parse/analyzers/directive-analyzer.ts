@@ -1,7 +1,7 @@
 import { isToken } from "../helpers";
 import { StaffNomenclature, VxNomenclature } from "../interpreter/InterpreterState";
 import { Token, TT } from "../parsers/scan2";
-import { DirectiveSemanticData, FontSpec } from "../types/directive-specs";
+import { DirectiveSemanticData, FontSpec, DRUM_SOUND_NAMES, DrumSoundName } from "../types/directive-specs";
 import { Directive, Annotation, Measurement, Rational, KV } from "../types/Expr2";
 import { SemanticAnalyzer } from "./semantic-analyzer";
 import { BracketBracePosition } from "../types/abcjs-ast";
@@ -1700,10 +1700,56 @@ function parsePercmap(directive: Directive, analyzer: SemanticAnalyzer): Directi
 
 /**
  * Parses %%deco directive (decoration definition)
+ *
+ * Because custom decorations require complex PostScript processing that is typically not supported,
+ * we parse and store the decoration name and definition but report a warning that the feature
+ * is not fully implemented. This matches the abcjs reference behavior.
+ *
+ * Syntax: %%deco <name> <definition>
+ * Reference: abcjs abc_parse_directive.js lines 963-967
  */
 function parseDeco(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
-  // TODO: Implement
-  throw new Error("Not implemented");
+  // Because the decoration name is mandatory, we validate that at least one parameter exists
+  if (directive.values.length === 0) {
+    analyzer.report("deco directive requires a decoration name", directive);
+    return null;
+  }
+
+  // Extract the decoration name (first parameter must be an identifier)
+  const nameToken = directive.values[0];
+  if (!isToken(nameToken) || nameToken.type !== TT.IDENTIFIER) {
+    analyzer.report("deco directive expects decoration name as first parameter", directive);
+    return null;
+  }
+
+  const name = nameToken.lexeme;
+  let definition: string | undefined;
+
+  // Because the definition is optional, we collect remaining tokens if present
+  if (directive.values.length > 1) {
+    const defParts: string[] = [];
+    for (let i = 1; i < directive.values.length; i++) {
+      const value = directive.values[i];
+      if (isToken(value)) {
+        defParts.push(value.lexeme);
+      } else if (value instanceof Annotation) {
+        defParts.push(value.text.lexeme);
+      }
+    }
+    definition = defParts.join(" ");
+  }
+
+  // Because decoration redefinition requires PostScript processing that is not implemented,
+  // we report an informational warning matching the abcjs behavior
+  analyzer.report("Decoration redefinition is parsed but not fully implemented", directive);
+
+  return {
+    type: "deco",
+    data: {
+      name: name,
+      definition: definition,
+    },
+  };
 }
 
 /**

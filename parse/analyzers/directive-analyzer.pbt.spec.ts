@@ -497,6 +497,71 @@ describe("Directive Analyzer - Property-Based Tests", () => {
   });
 
   // ============================================================================
+  // Deco Directive Properties
+  // ============================================================================
+
+  describe("Deco Directive", () => {
+    it("should correctly parse deco directive with valid name", () => {
+      fc.assert(
+        fc.property(Gen.genDecoDirective, (gen) => {
+          const result = analyzer.visitDirectiveExpr(gen.directive);
+
+          if (!result) return false;
+
+          expect(result.type).to.equal("deco");
+          expect(result.data).to.have.property("name");
+          expect((result.data as any).name).to.equal(gen.expected.name);
+
+          return true;
+        }),
+        { numRuns: 100 }
+      );
+    });
+
+    it("should correctly parse deco directive with optional definition", () => {
+      fc.assert(
+        fc.property(Gen.genDecoDirective, (gen) => {
+          const result = analyzer.visitDirectiveExpr(gen.directive);
+
+          if (!result) return false;
+
+          expect(result.type).to.equal("deco");
+
+          if (gen.expected.definition !== undefined) {
+            expect((result.data as any).definition).to.equal(gen.expected.definition);
+          } else {
+            expect((result.data as any).definition).to.be.undefined;
+          }
+
+          return true;
+        }),
+        { numRuns: 100 }
+      );
+    });
+
+    it("should always report a warning for deco directives", () => {
+      fc.assert(
+        fc.property(Gen.genDecoDirective, (gen) => {
+          const errorReporter = new AbcErrorReporter();
+          const ctx = new ABCContext(errorReporter);
+          const testAnalyzer = new SemanticAnalyzer(ctx);
+
+          const result = testAnalyzer.visitDirectiveExpr(gen.directive);
+
+          // Because decoration redefinition is not fully supported, we expect a warning
+          if (result !== null) {
+            expect(errorReporter.getErrors().length).to.be.greaterThan(0);
+            expect(errorReporter.getErrors().some((e) => e.message.includes("parsed but not fully implemented"))).to.be.true;
+          }
+
+          return true;
+        }),
+        { numRuns: 100 }
+      );
+    });
+  });
+
+  // ============================================================================
   // Cross-cutting Properties
   // ============================================================================
 
