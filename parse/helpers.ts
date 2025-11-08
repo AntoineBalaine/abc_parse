@@ -14,12 +14,15 @@ import {
   Grace_group,
   Info_line,
   Inline_field,
+  KV,
   Line_continuation,
+  Measurement,
   MultiMeasureRest,
   Music_code,
   music_code,
   Note,
   Pitch,
+  Rational,
   Rest,
   Rhythm,
   Symbol,
@@ -169,6 +172,19 @@ export function isTuplet(expr: unknown): expr is Tuplet {
 export function isErrorExpr(expr: unknown): expr is ErrorExpr {
   return expr instanceof ErrorExpr;
 }
+
+export function isMeasurement(expr: unknown): expr is Measurement {
+  return expr instanceof Measurement;
+}
+
+export function isKV(expr: unknown): expr is KV {
+  return expr instanceof KV;
+}
+
+export function isRational(expr: unknown): expr is Rational {
+  return expr instanceof Rational;
+}
+
 export const mergeTokens = (tokens: Token[], ctx: ABCContext) => {
   return tokens
     .map((t) => cloneToken(t, ctx))

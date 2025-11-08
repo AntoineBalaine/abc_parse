@@ -2,7 +2,7 @@ import { isToken } from "../helpers";
 import { StaffNomenclature, VxNomenclature } from "../interpreter/InterpreterState";
 import { Token, TT } from "../parsers/scan2";
 import { DirectiveSemanticData, FontSpec, DRUM_SOUND_NAMES, DrumSoundName } from "../types/directive-specs";
-import { Directive, Annotation, Measurement, Rational, KV } from "../types/Expr2";
+import { Directive, Annotation, Measurement, Rational, KV, Pitch } from "../types/Expr2";
 import { SemanticAnalyzer } from "./semantic-analyzer";
 import { BracketBracePosition } from "../types/abcjs-ast";
 import { IRational } from "../Visitors/fmt2/rational";
@@ -360,7 +360,7 @@ function parseSizeOnlyFormat(
 
 function parseFullFontDefinition(
   directive: Directive,
-  tokens: Array<Token | any>,
+  tokens: (Token | Annotation | Pitch | KV | Rational | Measurement)[],
   options: { supportsBox: boolean },
   analyzer: SemanticAnalyzer
 ): DirectiveSemanticData | null {
@@ -377,12 +377,27 @@ function parseFullFontDefinition(
   while (idx < tokens.length) {
     const token = tokens[idx];
 
+    // Type guard: only Tokens are expected in font definitions
+    if (!isToken(token)) {
+      analyzer.report(`Unexpected non-token value in font directive`, directive);
+      idx++;
+      continue;
+    }
+
     switch (state) {
       case "face":
         // Inner loop: consume ALL face name tokens at once
         let hyphenLast = false;
         while (idx < tokens.length) {
           const t = tokens[idx];
+
+          // Type guard for face name parsing
+          if (!isToken(t)) {
+            analyzer.report(`Unexpected non-token value in font face name`, directive);
+            idx++;
+            continue;
+          }
+
           const w = t.lexeme.toLowerCase();
 
           if (!isPartOfFaceName(t, w, hyphenLast)) break;
@@ -404,15 +419,23 @@ function parseFullFontDefinition(
 
         if (idx >= tokens.length) break;
 
-        if (isUtf8Marker(tokens[idx].lexeme.toLowerCase())) {
+        // Type guard before checking next token
+        const nextToken = tokens[idx];
+        if (!isToken(nextToken)) {
+          analyzer.report(`Unexpected non-token value in font directive`, directive);
+          idx++;
+          break;
+        }
+
+        if (isUtf8Marker(nextToken.lexeme.toLowerCase())) {
           // Skip UTF-8 marker
           idx++;
           state = "size";
-        } else if (tokens[idx].type === TT.NUMBER) {
+        } else if (nextToken.type === TT.NUMBER) {
           state = "size"; // Let size state consume it
-        } else if (isFontModifier(tokens[idx].lexeme.toLowerCase())) {
+        } else if (isFontModifier(nextToken.lexeme.toLowerCase())) {
           state = "modifier"; // Let modifier state consume it
-        } else if (tokens[idx].lexeme.toLowerCase() === "box") {
+        } else if (nextToken.lexeme.toLowerCase() === "box") {
           state = "modifier"; // Let finished state handle box? Or handle here?
         }
         break;
@@ -428,8 +451,19 @@ function parseFullFontDefinition(
 
       case "modifier":
         // Inner loop: consume ALL modifiers at once
-        while (idx < tokens.length && isFontModifier(tokens[idx].lexeme.toLowerCase())) {
-          const modWord = tokens[idx].lexeme.toLowerCase();
+        while (idx < tokens.length) {
+          const modToken = tokens[idx];
+
+          // Type guard for modifier parsing
+          if (!isToken(modToken)) {
+            analyzer.report(`Unexpected non-token value in font modifiers`, directive);
+            idx++;
+            continue;
+          }
+
+          if (!isFontModifier(modToken.lexeme.toLowerCase())) break;
+
+          const modWord = modToken.lexeme.toLowerCase();
           if (modWord === "bold") weight = "bold";
           else if (modWord === "italic") style = "italic";
           else if (modWord === "underline") decoration = "underline";
@@ -437,13 +471,16 @@ function parseFullFontDefinition(
         }
 
         // Check for box
-        if (idx < tokens.length && tokens[idx].lexeme.toLowerCase() === "box") {
-          if (options.supportsBox) {
-            box = true;
-          } else {
-            analyzer.report(`Font type "${directive.key.lexeme}" does not support "box" parameter`, directive);
+        if (idx < tokens.length) {
+          const boxToken = tokens[idx];
+          if (isToken(boxToken) && boxToken.lexeme.toLowerCase() === "box") {
+            if (options.supportsBox) {
+              box = true;
+            } else {
+              analyzer.report(`Font type "${directive.key.lexeme}" does not support "box" parameter`, directive);
+            }
+            idx++;
           }
-          idx++;
         }
         state = "finished";
         break;
@@ -1172,11 +1209,7 @@ function parseScore(directive: Directive, analyzer: SemanticAnalyzer): Directive
  * Because the text content may contain special characters like tabs that serve as delimiters,
  * we need to parse the tab-separated values and map them to left/center/right structure.
  */
-function parseHeaderFooter(
-  directive: Directive,
-  analyzer: SemanticAnalyzer,
-  type: "header" | "footer"
-): DirectiveSemanticData | null {
+function parseHeaderFooter(directive: Directive, analyzer: SemanticAnalyzer, type: "header" | "footer"): DirectiveSemanticData | null {
   if (directive.values.length === 0) {
     analyzer.report(`Directive "${type}" expects a text parameter`, directive);
     return null;
