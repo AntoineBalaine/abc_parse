@@ -1561,6 +1561,20 @@ export class TuneInterpreter implements Visitor<void> {
           voiceState.pendingStartSlurs.push(label);
         } else if (token.lexeme === ")") {
           // End slur: pop a label from start slurs and retroactively add to last note
+          // Because slurs can only be attached to notes, we need to check if any music has been processed yet
+          if (
+            this.state.currentSystemNum === -1 ||
+            this.state.currentStaffNum === -1 ||
+            this.state.currentVoiceIndex === -1
+          ) {
+            // No music notes have been processed yet, so we skip slur attachment
+            // Pop the pending slur to keep the stack consistent
+            if (voiceState.pendingStartSlurs.length > 0) {
+              voiceState.pendingStartSlurs.pop();
+            }
+            return;
+          }
+
           const elements = this.getCurrentVoiceElements();
           if (voiceState.pendingStartSlurs.length > 0 && elements.length > 0) {
             const label = voiceState.pendingStartSlurs.pop()!;
