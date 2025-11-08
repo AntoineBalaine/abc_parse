@@ -406,6 +406,48 @@ CDEF|`;
       expect(tunes[0].formatting.flatbeams).to.exist;
       expect(tunes[0].formatting.flatbeams).to.equal(true);
     });
+
+    it("should parse scale directive in tune header", () => {
+      const input = `X:1
+T:Test
+%%scale 0.9
+K:C
+CDEF|`;
+
+      const { tunes, ctx } = parseABC(input);
+      expect(ctx.errorReporter.hasErrors()).to.be.false;
+      expect(tunes[0].formatting.scale).to.exist;
+      expect(tunes[0].formatting.scale).to.equal(0.9);
+    });
+
+    it("should parse bagpipes directive in tune header", () => {
+      const input = `X:1
+T:Test
+%%bagpipes
+K:C
+CDEF|`;
+
+      const { tunes, ctx } = parseABC(input);
+      expect(ctx.errorReporter.hasErrors()).to.be.false;
+      expect(tunes[0].formatting.bagpipes).to.exist;
+      expect(tunes[0].formatting.bagpipes).to.equal(true);
+    });
+
+    it.skip("should parse midi directive with drummap in tune header", () => {
+      // TODO: MIDI directive implementation needs more work
+      const input = `X:1
+T:Test
+%%midi drummap D 44
+K:C
+CDEF|`;
+
+      const { tunes, ctx } = parseABC(input);
+      expect(ctx.errorReporter.hasErrors()).to.be.false;
+      expect(tunes[0].formatting.midi).to.exist;
+      expect(tunes[0].formatting.midi).to.deep.equal({
+        drummap: { D: 44 },
+      });
+    });
   });
 
   describe("File Header Directives - Version", () => {

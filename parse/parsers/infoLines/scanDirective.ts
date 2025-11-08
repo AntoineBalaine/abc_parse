@@ -61,12 +61,13 @@ function tuneBodyPitch(ctx: Ctx): boolean {
 
 /**
  * Scan signed number: positive or negative integers and floats
- * Examples: 1, -1, 42, -12, 1.5, -0.25
+ * Examples: 1, -1, 42, -12, 1.5, -0.25, .9, -.5
  * Produces: TT.NUMBER
  */
 function signedNumber(ctx: Ctx): boolean {
   // Pattern for signed numbers: optional minus sign followed by number
-  const signedNumberPattern = /^-?(([1-9][0-9]*|0)(\.[0-9]+)?)/;
+  // Supports both standard notation (0.9) and shorthand notation (.9)
+  const signedNumberPattern = /^-?(([0-9]+(\.[0-9]+)?)|(\.[0-9]+))/;
 
   const match = signedNumberPattern.exec(ctx.source.substring(ctx.current));
   if (!match) return false;

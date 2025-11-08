@@ -78,6 +78,31 @@ export const genNumber = fc
   .map((num) => new Token(TT.NUMBER, num, sharedContext.generateId()));
 
 /**
+ * Generator for NUMBER tokens - decimal numbers (floats)
+ * Includes both standard notation (0.9) and shorthand notation without leading zero (.9)
+ */
+export const genDecimalNumber = fc
+  .oneof(
+    // Common decimal values in directives (especially scale)
+    fc.constantFrom("0.5", "0.75", "0.9", "1.0", "1.5", "2.0"),
+    // Shorthand notation without leading zero (newly supported)
+    fc.constantFrom(".5", ".75", ".9"),
+    // Random decimals with leading digit
+    fc
+      .tuple(fc.integer({ min: 0, max: 99 }), fc.integer({ min: 0, max: 99 }))
+      .map(([whole, frac]) => `${whole}.${frac}`),
+    // Random decimals without leading zero
+    fc.integer({ min: 1, max: 99 }).map((frac) => `.${frac}`)
+  )
+  .map((num) => new Token(TT.NUMBER, num, sharedContext.generateId()));
+
+/**
+ * Generator for NUMBER tokens - integers or decimals
+ * Use this when a directive accepts any numeric value
+ */
+export const genNumericValue = fc.oneof(genNumber, genDecimalNumber);
+
+/**
  * Generator for ANNOTATION tokens - quoted text like "Allegro", "Slowly"
  */
 export const genStringLiteral = fc
@@ -497,7 +522,7 @@ export const genDirectiveContent = fc
       genDirectiveRational,
       genDirectivePitch, // Use local pitch generator
       genDirectiveAssignment,
-      genNumber.map((token) => [token])
+      genNumericValue.map((token) => [token]) // Includes both integers and decimals (.9 format)
     ),
     { minLength: 1, maxLength: 8 }
   )
