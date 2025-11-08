@@ -830,7 +830,9 @@ function isBracketBracePosition(value: string): boolean {
 /**
  * Analyzes T: (title) info lines
  *
- * Just concatenates all tokens into a string
+ * Concatenates all tokens into a string and trims whitespace.
+ * Because ABC notation allows optional whitespace after the colon (T: title or T:title),
+ * we trim the result to match abcjs behavior.
  */
 export function analyzeTitleInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
@@ -845,7 +847,7 @@ export function analyzeTitleInfo(expr: Info_line, analyzer: SemanticAnalyzer): I
 
   return {
     type: "title",
-    data: titleParts.join(" "),
+    data: titleParts.join(" ").trim(),
   };
 }
 
@@ -856,7 +858,9 @@ export function analyzeTitleInfo(expr: Info_line, analyzer: SemanticAnalyzer): I
 /**
  * Analyzes C: (composer) info lines
  *
- * Just concatenates all tokens into a string
+ * Concatenates all tokens into a string and trims whitespace.
+ * Because ABC notation allows optional whitespace after the colon,
+ * we trim the result to match abcjs behavior.
  */
 export function analyzeComposerInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
@@ -865,13 +869,13 @@ export function analyzeComposerInfo(expr: Info_line, analyzer: SemanticAnalyzer)
 
   for (const item of values) {
     if (isToken(item)) {
-      composerParts.push((item as Token).lexeme);
+      composerParts.push(item.lexeme);
     }
   }
 
   return {
     type: "composer",
-    data: composerParts.join(" "),
+    data: composerParts.join(" ").trim(),
   };
 }
 
@@ -882,7 +886,9 @@ export function analyzeComposerInfo(expr: Info_line, analyzer: SemanticAnalyzer)
 /**
  * Analyzes O: (origin) info lines
  *
- * Just concatenates all tokens into a string
+ * Concatenates all tokens into a string and trims whitespace.
+ * Because ABC notation allows optional whitespace after the colon,
+ * we trim the result to match abcjs behavior.
  */
 export function analyzeOriginInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
@@ -891,13 +897,13 @@ export function analyzeOriginInfo(expr: Info_line, analyzer: SemanticAnalyzer): 
 
   for (const item of values) {
     if (isToken(item)) {
-      originParts.push((item as Token).lexeme);
+      originParts.push(item.lexeme);
     }
   }
 
   return {
     type: "origin",
-    data: originParts.join(" "),
+    data: originParts.join(" ").trim(),
   };
 }
 
@@ -952,13 +958,13 @@ export function analyzeRhythmInfo(expr: Info_line, analyzer: SemanticAnalyzer): 
 
   for (const item of values) {
     if (isToken(item)) {
-      rhythmParts.push((item as Token).lexeme);
+      rhythmParts.push(item.lexeme);
     }
   }
 
   return {
     type: "rhythm",
-    data: rhythmParts.join(" "),
+    data: rhythmParts.join(" ").trim(),
   };
 }
 
@@ -978,13 +984,13 @@ export function analyzeBookInfo(expr: Info_line, analyzer: SemanticAnalyzer): In
 
   for (const item of values) {
     if (isToken(item)) {
-      bookParts.push((item as Token).lexeme);
+      bookParts.push(item.lexeme);
     }
   }
 
   return {
     type: "book",
-    data: bookParts.join(" "),
+    data: bookParts.join(" ").trim(),
   };
 }
 
@@ -1004,13 +1010,13 @@ export function analyzeSourceInfo(expr: Info_line, analyzer: SemanticAnalyzer): 
 
   for (const item of values) {
     if (isToken(item)) {
-      sourceParts.push((item as Token).lexeme);
+      sourceParts.push(item.lexeme);
     }
   }
 
   return {
     type: "source",
-    data: sourceParts.join(" "),
+    data: sourceParts.join(" ").trim(),
   };
 }
 
@@ -1030,13 +1036,13 @@ export function analyzeDiscographyInfo(expr: Info_line, analyzer: SemanticAnalyz
 
   for (const item of values) {
     if (isToken(item)) {
-      discographyParts.push((item as Token).lexeme);
+      discographyParts.push(item.lexeme);
     }
   }
 
   return {
     type: "discography",
-    data: discographyParts.join(" "),
+    data: discographyParts.join(" ").trim(),
   };
 }
 
@@ -1056,13 +1062,13 @@ export function analyzeNotesInfo(expr: Info_line, analyzer: SemanticAnalyzer): I
 
   for (const item of values) {
     if (isToken(item)) {
-      notesParts.push((item as Token).lexeme);
+      notesParts.push(item.lexeme);
     }
   }
 
   return {
     type: "notes",
-    data: notesParts.join(" "),
+    data: notesParts.join(" ").trim(),
   };
 }
 
@@ -1082,13 +1088,13 @@ export function analyzeTranscriptionInfo(expr: Info_line, analyzer: SemanticAnal
 
   for (const item of values) {
     if (isToken(item)) {
-      transcriptionParts.push((item as Token).lexeme);
+      transcriptionParts.push(item.lexeme);
     }
   }
 
   return {
     type: "transcription",
-    data: transcriptionParts.join(" "),
+    data: transcriptionParts.join(" ").trim(),
   };
 }
 
@@ -1108,13 +1114,13 @@ export function analyzeHistoryInfo(expr: Info_line, analyzer: SemanticAnalyzer):
 
   for (const item of values) {
     if (isToken(item)) {
-      historyParts.push((item as Token).lexeme);
+      historyParts.push(item.lexeme);
     }
   }
 
   return {
     type: "history",
-    data: historyParts.join(" "),
+    data: historyParts.join(" ").trim(),
   };
 }
 
@@ -1134,12 +1140,12 @@ export function analyzeAuthorInfo(expr: Info_line, analyzer: SemanticAnalyzer): 
 
   for (const item of values) {
     if (isToken(item)) {
-      authorParts.push((item as Token).lexeme);
+      authorParts.push(item.lexeme);
     }
   }
 
   return {
     type: "author",
-    data: authorParts.join(" "),
+    data: authorParts.join(" ").trim(),
   };
 }

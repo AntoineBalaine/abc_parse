@@ -611,6 +611,71 @@ export interface MetaText {
   unalignedWords?: string;
 }
 
+/**
+ * Because tune.formatting properties are assigned throughout the abcjs parser,
+ * we define this interface to capture all possible formatting properties.
+ * These come from stylesheet directives and other formatting commands in ABC notation.
+ */
+export interface TuneFormatting {
+  composerfont?: Font;
+  subtitlefont?: Font;
+  tempofont?: Font;
+  titlefont?: Font;
+  footerfont?: Font;
+  headerfont?: Font;
+  voicefont?: Font;
+  tablabelfont?: Font;
+  tabnumberfont?: Font;
+  tabgracefont?: Font;
+  annotationfont?: Font;
+  gchordfont?: Font;
+  historyfont?: Font;
+  infofont?: Font;
+  measurefont?: Font;
+  partsfont?: Font;
+  repeatfont?: Font;
+  textfont?: Font;
+  tripletfont?: Font;
+  vocalfont?: Font;
+  wordsfont?: Font;
+
+  // Numeric properties
+  scale?: number;
+  lineThickness?: number;
+  stretchlast?: number;
+  fontboxpadding?: number;
+  stafftopmargin?: number;
+  pagewidth?: number;
+  pageheight?: number;
+  landscape?: number;
+
+  // Boolean properties
+  bagpipes?: boolean;
+  flatbeams?: boolean;
+  jazzchords?: boolean;
+  accentAbove?: boolean;
+  germanAlphabet?: boolean;
+  graceSlurs?: boolean;
+  titleleft?: boolean;
+  measurebox?: boolean;
+
+  // MIDI configuration
+  midi?: {
+    drummap?: { [key: string]: number };
+  };
+
+  // Percussion mapping
+  percmap?: { [key: string]: any };
+
+  // String properties (various directive parameters)
+  map?: string;
+  playtempo?: string;
+  auquality?: string;
+  continuous?: string;
+  nobarcheck?: string;
+  // [key: string]: any;
+}
+
 export enum MediaType {
   Screen = "screen",
   Print = "print",
@@ -622,7 +687,7 @@ export interface Tune {
   metaText: MetaText; // all of these are info lines
   metaTextInfo: { [key: string]: CharRange }; // for these references, we probably will need to use the
   // range visitor or something similar, which can reduce expressions and find out their ranges.
-  formatting: { [key: string]: any }; // I assume this comes from stylesheet directives.
+  formatting: TuneFormatting; // from stylesheet directives and formatting commands in ABC notation
   systems: USystem[]; // for each of these, we need to find where they come from.
   staffNum: number;
   voiceNum: number;

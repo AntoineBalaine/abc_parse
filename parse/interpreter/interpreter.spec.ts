@@ -312,7 +312,10 @@ CDEF|`;
 
       const { tunes } = parseABC(input);
       expect(tunes[0].formatting.titlefont).to.exist;
-      expect(tunes[0].formatting.titlefont.type).to.equal("titlefont");
+      expect(tunes[0].formatting.titlefont).to.deep.include({
+        face: "Times-Bold",
+        size: 20,
+      });
     });
 
     it("should parse composerfont directive", () => {
@@ -325,7 +328,10 @@ CDEF|`;
 
       const { tunes } = parseABC(input);
       expect(tunes[0].formatting.composerfont).to.exist;
-      expect(tunes[0].formatting.composerfont.type).to.equal("composerfont");
+      expect(tunes[0].formatting.composerfont).to.deep.include({
+        face: "Helvetica",
+        size: 12,
+      });
     });
 
     it("should parse tempofont directive", () => {
@@ -338,7 +344,10 @@ CDEF|`;
 
       const { tunes } = parseABC(input);
       expect(tunes[0].formatting.tempofont).to.exist;
-      expect(tunes[0].formatting.tempofont.type).to.equal("tempofont");
+      expect(tunes[0].formatting.tempofont).to.deep.include({
+        face: "Courier",
+        size: 10,
+      });
     });
 
     it("should parse landscape directive", () => {
@@ -366,7 +375,7 @@ CDEF|`;
 
       const { tunes } = parseABC(input);
       expect(tunes[0].formatting.stretchlast).to.exist;
-      expect(tunes[0].formatting.stretchlast.type).to.equal("stretchlast");
+      expect(tunes[0].formatting.stretchlast).to.equal(1);
     });
 
     it("should error on flatbeams directive in file header", () => {
@@ -395,7 +404,7 @@ CDEF|`;
       const { tunes, ctx } = parseABC(input);
       expect(ctx.errorReporter.hasErrors()).to.be.false;
       expect(tunes[0].formatting.flatbeams).to.exist;
-      expect(tunes[0].formatting.flatbeams.type).to.equal("flatbeams");
+      expect(tunes[0].formatting.flatbeams).to.equal(true);
     });
   });
 

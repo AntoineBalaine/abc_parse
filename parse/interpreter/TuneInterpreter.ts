@@ -32,7 +32,11 @@ import {
   BracketBracePosition,
   TextLine,
   TextFieldProperties,
+  FontWeight,
+  FontStyle,
+  FontDecoration,
 } from "../types/abcjs-ast";
+import { FontSpec, MeasurementSpec } from "../types/directive-specs";
 import { InfoLineUnion } from "../types/Expr2";
 import {
   Visitor,
@@ -662,6 +666,75 @@ function applyInfoLine(semanticData: InfoLineUnion, context: HeaderContext): str
 }
 
 /**
+ * Type predicate: Check if directive is a measurement directive
+ */
+function isMeasurementDirective(type: string, data: unknown): data is MeasurementSpec {
+  const measurementDirectives = [
+    "botmargin",
+    "botspace",
+    "composerspace",
+    "indent",
+    "leftmargin",
+    "linesep",
+    "musicspace",
+    "partsspace",
+    "pageheight",
+    "pagewidth",
+    "rightmargin",
+    "stafftopmargin",
+    "staffsep",
+    "staffwidth",
+    "subtitlespace",
+    "sysstaffsep",
+    "systemsep",
+    "textspace",
+    "titlespace",
+    "topmargin",
+    "topspace",
+    "vocalspace",
+    "wordsspace",
+  ];
+  return measurementDirectives.includes(type) && typeof data === "object" && data !== null && "value" in data;
+}
+
+/**
+ * Type predicate: Check if directive is a number directive
+ */
+function isNumberDirective(type: string, data: unknown): data is number {
+  const numberDirectives = ["lineThickness", "stretchlast", "voicescale", "scale", "barsperstaff", "measurenb", "barnumbers", "setbarnb", "fontboxpadding"];
+  return numberDirectives.includes(type) && typeof data === "number";
+}
+
+/**
+ * Type predicate: Check if directive is a boolean directive
+ */
+function isBooleanDirective(type: string, data: unknown): data is boolean {
+  const booleanDirectives = [
+    "bagpipes",
+    "flatbeams",
+    "jazzchords",
+    "accentAbove",
+    "germanAlphabet",
+    "titleleft",
+    "measurebox",
+    "graceslurs",
+    "staffnonote",
+    "printtempo",
+    "partsbox",
+    "freegchord",
+  ];
+  return booleanDirectives.includes(type) && typeof data === "boolean";
+}
+
+/**
+ * Type predicate: Check if directive is a string directive
+ */
+function isStringDirective(type: string, data: unknown): data is string {
+  const stringDirectives = ["map", "playtempo", "auquality", "continuous"];
+  return stringDirectives.includes(type) && typeof data === "string";
+}
+
+/**
  * Processes directive semantic data and assigns it to the appropriate target.
  * @returns Warning message if the directive is not valid in this context
  */
@@ -726,8 +799,18 @@ function applyDirective(semanticData: SemanticData, directiveName: string, conte
     // Ignored directive - abcjs does nothing with it
     return null;
   } else {
+    const data = semanticData.data;
     // All other directives go in formatting
-    formatting[directiveName] = semanticData;
+    // Because our semantic analyzer wraps directive values in {type, data} objects,
+    // we need to extract just the data to match abcjs behavior
+
+    if (isMeasurementDirective(semanticData.type, data)) {
+      // MeasurementSpec directives: extract numeric value
+      formatting[directiveName as keyof typeof formatting] = data.value;
+    } else {
+      // Fallback for directives not yet categorized (midi, percmap, etc.)
+      formatting[directiveName as keyof typeof formatting] = data;
+    }
   }
 
   return null;
@@ -805,14 +888,14 @@ function handleScoreDirective(state: InterpreterState, data: { staves: InternalS
  */
 function parseFontChangeLine(
   text: string,
-  registeredFonts: Map<number, any>,
-  defaultFont: any | undefined
-): Array<{ text: string; font: any | undefined }> {
+  registeredFonts: Map<number, FontSpec>,
+  defaultFont: FontSpec | undefined
+): Array<{ text: string; font: FontSpec | undefined }> {
   // Use a placeholder for $$ escaping (character unlikely to appear in text)
   const ESCAPE_PLACEHOLDER = "\x03";
   text = text.replace(/\$\$/g, ESCAPE_PLACEHOLDER);
 
-  const segments: Array<{ text: string; font: any | undefined }> = [];
+  const segments: Array<{ text: string; font: FontSpec | undefined }> = [];
   const parts = text.split("$");
 
   // First part (before any $) uses default font
@@ -896,8 +979,9 @@ function handleTextDirective(
   // Parse text for inline font switches ($N syntax)
   // Because the text may contain $1, $2, etc. to switch fonts inline,
   // we need to split it into segments with appropriate font assignments.
-  const defaultFont = state.fileDefaults.formatting.textfont;
-  const segments = parseFontChangeLine(text, state.registeredFonts, defaultFont);
+  // Note: $0 resets to no font (undefined), not to textfont default.
+  // This matches abcjs behavior where $0 creates segments with no font property.
+  const segments = parseFontChangeLine(text, state.registeredFonts, undefined);
 
   // Create TextFieldProperties for each segment
   const textFields: TextFieldProperties[] = segments.map((segment) => {
@@ -915,9 +999,9 @@ function handleTextDirective(
       field.font = {
         face: segment.font.face || "",
         size: segment.font.size || 12,
-        weight: segment.font.weight || "normal",
-        style: segment.font.style || "normal",
-        decoration: segment.font.decoration || "none",
+        weight: segment.font.weight === "bold" ? FontWeight.Bold : FontWeight.Normal,
+        style: segment.font.style === "italic" ? FontStyle.Italic : FontStyle.Normal,
+        decoration: segment.font.decoration === "underline" ? FontDecoration.Underline : FontDecoration.None,
       };
     }
 
@@ -1208,7 +1292,7 @@ export class TuneInterpreter implements Visitor<void> {
       // Because fonts need to be registered before they can be used in text/center directives,
       // we process setfont directives in all contexts (file header, tune header, and body).
       if (semanticData.type === "setfont") {
-        const { number, font } = semanticData.data as { number: number; font: any };
+        const { number, font } = semanticData.data;
         // Store in file defaults if in file header (state doesn't exist yet),
         // otherwise store in tune state (which shares the same Map reference)
         if (this.processingContext === "file_header") {
@@ -1562,11 +1646,7 @@ export class TuneInterpreter implements Visitor<void> {
         } else if (token.lexeme === ")") {
           // End slur: pop a label from start slurs and retroactively add to last note
           // Because slurs can only be attached to notes, we need to check if any music has been processed yet
-          if (
-            this.state.currentSystemNum === -1 ||
-            this.state.currentStaffNum === -1 ||
-            this.state.currentVoiceIndex === -1
-          ) {
+          if (this.state.currentSystemNum === -1 || this.state.currentStaffNum === -1 || this.state.currentVoiceIndex === -1) {
             // No music notes have been processed yet, so we skip slur attachment
             // Pop the pending slur to keep the stack consistent
             if (voiceState.pendingStartSlurs.length > 0) {
@@ -1799,17 +1879,10 @@ export class TuneInterpreter implements Visitor<void> {
     // Apply lyrics to notes in the current voice
     // Because lyrics can only be attached to notes, we need to check if any music has been processed yet
     // If no system/staff/voice has been initialized (indices still at -1), there are no notes to attach lyrics to
-    if (
-      this.state.currentSystemNum === -1 ||
-      this.state.currentStaffNum === -1 ||
-      this.state.currentVoiceIndex === -1
-    ) {
+    if (this.state.currentSystemNum === -1 || this.state.currentStaffNum === -1 || this.state.currentVoiceIndex === -1) {
       // No music notes have been processed yet, so we skip lyric attachment
       // This matches abcjs behavior: "Can't add words before the first line of music"
-      this.ctx.errorReporter.interpreterError(
-        "Cannot add lyrics before the first line of music",
-        expr
-      );
+      this.ctx.errorReporter.interpreterError("Cannot add lyrics before the first line of music", expr);
       return;
     }
 

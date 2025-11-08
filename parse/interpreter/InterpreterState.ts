@@ -30,6 +30,7 @@ import {
   BracketBracePosition,
 } from "../types/abcjs-ast";
 import { IRational, createRational } from "../Visitors/fmt2/rational";
+import { ABCJS_FORMATTING_DEFAULTS } from "./FormattingDefaults";
 
 /**
  * Parser Configuration (directives that affect parsing but aren't exposed)
@@ -189,7 +190,9 @@ export interface InterpreterState {
  */
 export function createFileDefaults(): FileDefaults {
   return {
-    formatting: {},
+    // Because abcjs includes comprehensive default font settings,
+    // we clone them to ensure consistent output structure
+    formatting: structuredClone(ABCJS_FORMATTING_DEFAULTS),
     parserConfig: {},
     metaText: {},
     registeredFonts: new Map(),
@@ -234,7 +237,7 @@ export function createInterpreterState(semanticData: Map<number, SemanticData>, 
 
 export function createEmptyTune(): Tune {
   return {
-    version: "2.2",
+    version: "1.1.0",
     media: MediaType.Screen,
     metaText: {},
     metaTextInfo: {},
