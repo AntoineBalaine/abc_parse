@@ -1620,10 +1620,82 @@ function parseMidi(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
 
 /**
  * Parses %%percmap directive (note mapping for percussion)
+ *
+ * Because the percmap directive maps ABC notes to MIDI percussion sounds,
+ * we need to validate that the drum sound is either a valid MIDI number (35-81)
+ * or a recognized drum sound name from the DRUM_SOUND_NAMES array.
+ *
+ * Syntax: %%percmap <abc-note> <drum-sound> [note-head]
  */
 function parsePercmap(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
-  // TODO: Implement
-  throw new Error("Not implemented");
+  // Because percmap expects 2 or 3 parameters (note, sound, optional note head),
+  // we need to validate the parameter count first.
+  if (directive.values.length < 2 || directive.values.length > 3) {
+    analyzer.report("percmap directive expects 2 or 3 parameters: abc-note, drum-sound, [note-head]", directive);
+    return null;
+  }
+
+  // Extract the ABC note (first parameter)
+  const noteToken = directive.values[0];
+  if (!isToken(noteToken)) {
+    analyzer.report("percmap expects ABC note as first parameter", directive);
+    return null;
+  }
+  const note = noteToken.lexeme;
+
+  // Parse the drum sound (second parameter)
+  // Because the drum sound can be either a MIDI number or a drum name,
+  // we need to check the token type and validate accordingly.
+  const soundToken = directive.values[1];
+  if (!isToken(soundToken)) {
+    analyzer.report("percmap expects drum sound as second parameter", directive);
+    return null;
+  }
+
+  let sound: number;
+
+  // Because the sound token might be a number, we try to parse it as a MIDI number first
+  if (soundToken.type === TT.NUMBER) {
+    const midiNum = parseInt(soundToken.lexeme, 10);
+    if (midiNum < 35 || midiNum > 81) {
+      analyzer.report(`MIDI percussion sound must be between 35 and 81 (got ${midiNum})`, directive);
+      return null;
+    }
+    sound = midiNum;
+  } else {
+    // Because the sound is not a number, we try to match it as a drum name
+    const drumName = soundToken.lexeme.toLowerCase();
+    const drumIndex = DRUM_SOUND_NAMES.indexOf(drumName as DrumSoundName);
+
+    if (drumIndex === -1) {
+      analyzer.report(`Unknown drum sound name: ${soundToken.lexeme}`, directive);
+      return null;
+    }
+
+    // Because drum names are indexed starting at 0 and map to MIDI notes starting at 35,
+    // we need to add 35 to convert the array index to the MIDI note number.
+    sound = drumIndex + 35;
+  }
+
+  // Extract optional note head (third parameter)
+  let noteHead: string | undefined;
+  if (directive.values.length === 3) {
+    const headToken = directive.values[2];
+    if (!isToken(headToken)) {
+      analyzer.report("percmap expects note head style as third parameter", directive);
+      return null;
+    }
+    noteHead = headToken.lexeme;
+  }
+
+  return {
+    type: "percmap",
+    data: {
+      note: note,
+      sound: sound,
+      noteHead: noteHead,
+    },
+  };
 }
 
 /**

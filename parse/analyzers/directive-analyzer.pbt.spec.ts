@@ -431,6 +431,72 @@ describe("Directive Analyzer - Property-Based Tests", () => {
   });
 
   // ============================================================================
+  // Percmap Directive Properties
+  // ============================================================================
+
+  describe("Percmap Directives", () => {
+    it("should correctly parse percmap with MIDI numbers", () => {
+      fc.assert(
+        fc.property(Gen.genPercmapDirectiveWithMidiNumber, (gen) => {
+          const result = analyzer.visitDirectiveExpr(gen.directive);
+
+          if (!result) return false;
+
+          expect(result.type).to.equal("percmap");
+          expect(result.data).to.deep.equal({
+            note: gen.expected.note,
+            sound: gen.expected.sound,
+            noteHead: gen.expected.noteHead,
+          });
+
+          return true;
+        }),
+        { numRuns: 100 }
+      );
+    });
+
+    it("should correctly parse percmap with drum names (case-insensitive)", () => {
+      fc.assert(
+        fc.property(Gen.genPercmapDirectiveWithDrumName, (gen) => {
+          const result = analyzer.visitDirectiveExpr(gen.directive);
+
+          if (!result) return false;
+
+          expect(result.type).to.equal("percmap");
+          expect(result.data).to.deep.equal({
+            note: gen.expected.note,
+            sound: gen.expected.sound,
+            noteHead: gen.expected.noteHead,
+          });
+
+          return true;
+        }),
+        { numRuns: 100 }
+      );
+    });
+
+    it("should correctly parse percmap with all formats", () => {
+      fc.assert(
+        fc.property(Gen.genPercmapDirective, (gen) => {
+          const result = analyzer.visitDirectiveExpr(gen.directive);
+
+          if (!result) return false;
+
+          expect(result.type).to.equal("percmap");
+          expect(result.data).to.deep.equal({
+            note: gen.expected.note,
+            sound: gen.expected.sound,
+            noteHead: gen.expected.noteHead,
+          });
+
+          return true;
+        }),
+        { numRuns: 200 }
+      );
+    });
+  });
+
+  // ============================================================================
   // Cross-cutting Properties
   // ============================================================================
 

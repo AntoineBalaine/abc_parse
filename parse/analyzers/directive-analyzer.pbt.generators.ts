@@ -603,6 +603,178 @@ export const genNewpageDirective = fc.option(fc.integer({ min: 1, max: 100 })).m
 });
 
 // ============================================================================
+// Percmap Directive Generator
+// ============================================================================
+
+// Because drum sound names are case-insensitive, we need to generate them with various cases
+const genDrumSoundName = fc.constantFrom(
+  "acoustic-bass-drum",
+  "bass-drum-1",
+  "side-stick",
+  "acoustic-snare",
+  "hand-clap",
+  "electric-snare",
+  "low-floor-tom",
+  "closed-hi-hat",
+  "high-floor-tom",
+  "pedal-hi-hat",
+  "low-tom",
+  "open-hi-hat",
+  "low-mid-tom",
+  "hi-mid-tom",
+  "crash-cymbal-1",
+  "high-tom",
+  "ride-cymbal-1",
+  "chinese-cymbal",
+  "ride-bell",
+  "tambourine",
+  "splash-cymbal",
+  "cowbell",
+  "crash-cymbal-2",
+  "vibraslap",
+  "ride-cymbal-2",
+  "hi-bongo",
+  "low-bongo",
+  "mute-hi-conga",
+  "open-hi-conga",
+  "low-conga",
+  "high-timbale",
+  "low-timbale",
+  "high-agogo",
+  "low-agogo",
+  "cabasa",
+  "maracas",
+  "short-whistle",
+  "long-whistle",
+  "short-guiro",
+  "long-guiro",
+  "claves",
+  "hi-wood-block",
+  "low-wood-block",
+  "mute-cuica",
+  "open-cuica",
+  "mute-triangle",
+  "open-triangle"
+);
+
+// Because we want to test case insensitivity, we generate drum names with random casing
+const genDrumSoundNameAnyCase = genDrumSoundName.chain((name) =>
+  fc.oneof(fc.constant(name), fc.constant(name.toUpperCase()), fc.constant(name.charAt(0).toUpperCase() + name.slice(1)))
+);
+
+// Because ABC notes can have accidentals and octave markers, we generate various formats
+const genAbcNote = fc.oneof(
+  fc.constantFrom("C", "D", "E", "F", "G", "A", "B", "c", "d", "e", "f", "g", "a", "b"),
+  fc.constantFrom("^C", "_B", "=G", "^F", "_E"),
+  fc.constantFrom("C,", "D,", "c'", "d'")
+);
+
+const genNoteHead = fc.constantFrom("x", "triangle", "diamond", "square", "normal");
+
+export const genPercmapDirectiveWithMidiNumber = fc
+  .record({
+    note: genAbcNote,
+    midiNum: fc.integer({ min: 35, max: 81 }),
+    noteHead: fc.option(genNoteHead, { nil: undefined }),
+  })
+  .map(({ note, midiNum, noteHead }) => {
+    const tokens = [new Token(TT.IDENTIFIER, note, sharedContext.generateId()), new Token(TT.NUMBER, midiNum.toString(), sharedContext.generateId())];
+
+    if (noteHead !== undefined) {
+      tokens.push(new Token(TT.IDENTIFIER, noteHead, sharedContext.generateId()));
+    }
+
+    return {
+      directive: new Directive(sharedContext.generateId(), new Token(TT.IDENTIFIER, "percmap", sharedContext.generateId()), tokens),
+      expected: {
+        type: "percmap",
+        note,
+        sound: midiNum,
+        noteHead,
+      },
+    };
+  });
+
+export const genPercmapDirectiveWithDrumName = fc
+  .record({
+    note: genAbcNote,
+    drumName: genDrumSoundNameAnyCase,
+    noteHead: fc.option(genNoteHead, { nil: undefined }),
+  })
+  .map(({ note, drumName, noteHead }) => {
+    const tokens = [new Token(TT.IDENTIFIER, note, sharedContext.generateId()), new Token(TT.IDENTIFIER, drumName, sharedContext.generateId())];
+
+    if (noteHead !== undefined) {
+      tokens.push(new Token(TT.IDENTIFIER, noteHead, sharedContext.generateId()));
+    }
+
+    // Because drum names map to MIDI numbers starting at 35, we need to calculate the expected sound
+    // by finding the lowercase drum name in the array and adding 35
+    const drumSoundNames = [
+      "acoustic-bass-drum",
+      "bass-drum-1",
+      "side-stick",
+      "acoustic-snare",
+      "hand-clap",
+      "electric-snare",
+      "low-floor-tom",
+      "closed-hi-hat",
+      "high-floor-tom",
+      "pedal-hi-hat",
+      "low-tom",
+      "open-hi-hat",
+      "low-mid-tom",
+      "hi-mid-tom",
+      "crash-cymbal-1",
+      "high-tom",
+      "ride-cymbal-1",
+      "chinese-cymbal",
+      "ride-bell",
+      "tambourine",
+      "splash-cymbal",
+      "cowbell",
+      "crash-cymbal-2",
+      "vibraslap",
+      "ride-cymbal-2",
+      "hi-bongo",
+      "low-bongo",
+      "mute-hi-conga",
+      "open-hi-conga",
+      "low-conga",
+      "high-timbale",
+      "low-timbale",
+      "high-agogo",
+      "low-agogo",
+      "cabasa",
+      "maracas",
+      "short-whistle",
+      "long-whistle",
+      "short-guiro",
+      "long-guiro",
+      "claves",
+      "hi-wood-block",
+      "low-wood-block",
+      "mute-cuica",
+      "open-cuica",
+      "mute-triangle",
+      "open-triangle",
+    ];
+    const drumIndex = drumSoundNames.indexOf(drumName.toLowerCase());
+    const expectedSound = drumIndex + 35;
+
+    return {
+      directive: new Directive(sharedContext.generateId(), new Token(TT.IDENTIFIER, "percmap", sharedContext.generateId()), tokens),
+      expected: {
+        type: "percmap",
+        note,
+        sound: expectedSound,
+        noteHead,
+      },
+    };
+  });
+
+export const genPercmapDirective = fc.oneof(genPercmapDirectiveWithMidiNumber, genPercmapDirectiveWithDrumName);
+
 // Combined Generator (all directive types)
 // ============================================================================
 
@@ -617,5 +789,6 @@ export const genAnyDirective = fc.oneof(
   genSepDirective,
   genAnnotationDirective,
   genHeaderFooterDirective,
-  genNewpageDirective
+  genNewpageDirective,
+  genPercmapDirective,
 );
