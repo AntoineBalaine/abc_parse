@@ -610,7 +610,9 @@ function applyInfoLine(semanticData: InfoLineUnion, context: HeaderContext): str
     return null;
   }
   if (isNotesInfo(semanticData)) {
-    metaText.notes = semanticData.data;
+    // Multiple N: lines are concatenated with newlines (matching abcjs behavior)
+    const existing = metaText.notes;
+    metaText.notes = existing ? existing + "\n" + semanticData.data : semanticData.data;
     return null;
   }
   if (isTranscriptionInfo(semanticData)) {

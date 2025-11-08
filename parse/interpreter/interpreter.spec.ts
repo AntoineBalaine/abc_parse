@@ -77,6 +77,19 @@ CDEF|`;
       expect(tunes[0].metaText.composer).to.equal("Test Composer");
     });
 
+    it("should concatenate multiple notes lines with newlines", () => {
+      const input = `X:1
+T:Test
+N:First line of notes
+N:Second line of notes
+N:Third line of notes
+K:C
+CDEF|`;
+
+      const { tunes } = parseABC(input);
+      expect(tunes[0].metaText.notes).to.equal("First line of notes\nSecond line of notes\nThird line of notes");
+    });
+
     it("should parse origin", () => {
       const input = `X:1
 T:Test
