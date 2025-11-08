@@ -2,7 +2,7 @@ import { isToken } from "../helpers";
 import { StaffNomenclature, VxNomenclature } from "../interpreter/InterpreterState";
 import { Token, TT } from "../parsers/scan2";
 import { DirectiveSemanticData, FontSpec } from "../types/directive-specs";
-import { Directive, Annotation, Measurement, Rational } from "../types/Expr2";
+import { Directive, Annotation, Measurement, Rational, KV } from "../types/Expr2";
 import { SemanticAnalyzer } from "./semantic-analyzer";
 import { BracketBracePosition } from "../types/abcjs-ast";
 import { IRational } from "../Visitors/fmt2/rational";
@@ -1316,6 +1316,8 @@ function parseMidi(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
 
   const midiCmdParamFraction = ["expand", "grace", "trim"];
 
+  const midiCmdParam1Integer1OptionalString = ["bassprog", "chordprog"];
+
   const remainingValues = directive.values.slice(1);
 
   // Parse parameters based on command category
@@ -1474,6 +1476,67 @@ function parseMidi(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
     const num = parseInt(numerator.lexeme, 10);
     const denom = parseInt(denominator.lexeme, 10);
     params.push({ numerator: num, denominator: denom } as IRational);
+  } else if (midiCmdParam1Integer1OptionalString.includes(command)) {
+    // One integer and one optional octave=N parameter expected
+    // Because the parser creates KV objects for key=value patterns,
+    // we expect either 1 parameter (program number) or 2 parameters (program number + KV object)
+    if (remainingValues.length !== 1 && remainingValues.length !== 2) {
+      analyzer.report(`MIDI command '${command}' expects one or two parameters`, directive);
+      return null;
+    }
+
+    // First parameter: program number (integer)
+    const progToken = remainingValues[0];
+    if (!isToken(progToken) || progToken.type !== TT.NUMBER) {
+      analyzer.report(`MIDI command '${command}' expects integer program number`, directive);
+      return null;
+    }
+    params.push(parseInt(progToken.lexeme, 10));
+
+    // Second parameter (optional): octave=N
+    if (remainingValues.length === 2) {
+      const octaveParam = remainingValues[1];
+
+      // Because the parser creates KV objects for octave=N patterns,
+      // we check if it's a KV object
+      if (octaveParam instanceof KV) {
+        const kv = octaveParam as KV;
+
+        // Validate key is "octave" (case-insensitive)
+        if (!kv.key || !isToken(kv.key)) {
+          analyzer.report(`MIDI command '${command}' expects octave=N format`, directive);
+          return null;
+        }
+
+        const keyName = (kv.key as Token).lexeme.toLowerCase();
+        if (keyName !== "octave") {
+          analyzer.report(`MIDI command '${command}' expects octave=N format`, directive);
+          return null;
+        }
+
+        // Validate value is a number
+        if (!isToken(kv.value) || kv.value.type !== TT.NUMBER) {
+          analyzer.report(`MIDI command '${command}' expects octave=N format`, directive);
+          return null;
+        }
+
+        let octave = parseInt((kv.value as Token).lexeme, 10);
+
+        // Validate octave range and clamp if out of range
+        if (octave < -1) {
+          analyzer.report(`Octave value must be between -1 and 3 (got ${octave}, clamping to -1)`, directive);
+          octave = -1;
+        } else if (octave > 3) {
+          analyzer.report(`Octave value must be between -1 and 3 (got ${octave}, clamping to 3)`, directive);
+          octave = 3;
+        }
+
+        params.push(octave);
+      } else {
+        analyzer.report(`MIDI command '${command}' expects octave=N format`, directive);
+        return null;
+      }
+    }
   } else {
     // Unknown MIDI command
     analyzer.report(`Unknown MIDI command: ${command}`, directive);
