@@ -1260,3 +1260,473 @@ describe("Directive Analyzer - MIDI Part 4 (Octave Parameter Commands)", () => {
     });
   });
 });
+
+describe("Directive Analyzer - MIDI Part 5 (Special Cases)", () => {
+  let analyzer: SemanticAnalyzer;
+  let context: ABCContext;
+
+  beforeEach(() => {
+    const errorReporter = new AbcErrorReporter();
+    context = new ABCContext(errorReporter);
+    analyzer = new SemanticAnalyzer(context);
+  });
+
+  describe("drummap command with 2-token format", () => {
+    it("should parse %%midi drummap C 36", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drummap", context.generateId()),
+        new Token(TT.IDENTIFIER, "C", context.generateId()),
+        new Token(TT.NUMBER, "36", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.type).to.equal("midi");
+      expect(result!.data).to.deep.equal({
+        command: "drummap",
+        params: ["C", 36],
+      });
+    });
+
+    it("should parse %%midi drummap D 38", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drummap", context.generateId()),
+        new Token(TT.IDENTIFIER, "D", context.generateId()),
+        new Token(TT.NUMBER, "38", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.data).to.deep.equal({
+        command: "drummap",
+        params: ["D", 38],
+      });
+    });
+
+    it("should parse %%midi drummap F 41", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drummap", context.generateId()),
+        new Token(TT.IDENTIFIER, "F", context.generateId()),
+        new Token(TT.NUMBER, "41", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.data).to.deep.equal({
+        command: "drummap",
+        params: ["F", 41],
+      });
+    });
+  });
+
+  describe("drummap command with 3-token format (accidentals)", () => {
+    it("should parse %%midi drummap ^ F 42 (sharp F)", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drummap", context.generateId()),
+        new Token(TT.IDENTIFIER, "^", context.generateId()),
+        new Token(TT.IDENTIFIER, "F", context.generateId()),
+        new Token(TT.NUMBER, "42", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.type).to.equal("midi");
+      expect(result!.data).to.deep.equal({
+        command: "drummap",
+        params: ["^F", 42],
+      });
+    });
+
+    it("should parse %%midi drummap _ B 46 (flat B)", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drummap", context.generateId()),
+        new Token(TT.IDENTIFIER, "_", context.generateId()),
+        new Token(TT.IDENTIFIER, "B", context.generateId()),
+        new Token(TT.NUMBER, "46", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.data).to.deep.equal({
+        command: "drummap",
+        params: ["_B", 46],
+      });
+    });
+
+    it("should parse %%midi drummap = G 43 (natural G)", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drummap", context.generateId()),
+        new Token(TT.IDENTIFIER, "=", context.generateId()),
+        new Token(TT.IDENTIFIER, "G", context.generateId()),
+        new Token(TT.NUMBER, "43", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.data).to.deep.equal({
+        command: "drummap",
+        params: ["=G", 43],
+      });
+    });
+  });
+
+  describe("drum command with variable integers", () => {
+    it("should parse %%midi drum d 76 77 77 77", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drum", context.generateId()),
+        new Token(TT.IDENTIFIER, "d", context.generateId()),
+        new Token(TT.NUMBER, "76", context.generateId()),
+        new Token(TT.NUMBER, "77", context.generateId()),
+        new Token(TT.NUMBER, "77", context.generateId()),
+        new Token(TT.NUMBER, "77", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.type).to.equal("midi");
+      expect(result!.data).to.deep.equal({
+        command: "drum",
+        params: ["d", 76, 77, 77, 77],
+      });
+    });
+
+    it("should parse %%midi drum d2 76 77", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drum", context.generateId()),
+        new Token(TT.IDENTIFIER, "d2", context.generateId()),
+        new Token(TT.NUMBER, "76", context.generateId()),
+        new Token(TT.NUMBER, "77", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.data).to.deep.equal({
+        command: "drum",
+        params: ["d2", 76, 77],
+      });
+    });
+
+    it("should parse %%midi drum d3 76 77 77 77 77", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drum", context.generateId()),
+        new Token(TT.IDENTIFIER, "d3", context.generateId()),
+        new Token(TT.NUMBER, "76", context.generateId()),
+        new Token(TT.NUMBER, "77", context.generateId()),
+        new Token(TT.NUMBER, "77", context.generateId()),
+        new Token(TT.NUMBER, "77", context.generateId()),
+        new Token(TT.NUMBER, "77", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.data).to.deep.equal({
+        command: "drum",
+        params: ["d3", 76, 77, 77, 77, 77],
+      });
+    });
+
+    it("should handle negative integers in drum patterns", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drum", context.generateId()),
+        new Token(TT.IDENTIFIER, "d", context.generateId()),
+        new Token(TT.NUMBER, "-1", context.generateId()),
+        new Token(TT.NUMBER, "76", context.generateId()),
+        new Token(TT.NUMBER, "-2", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.data).to.deep.equal({
+        command: "drum",
+        params: ["d", -1, 76, -2],
+      });
+    });
+  });
+
+  describe("chordname command with variable integers", () => {
+    it("should parse %%midi chordname maj7 0 4 7 11", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "chordname", context.generateId()),
+        new Token(TT.IDENTIFIER, "maj7", context.generateId()),
+        new Token(TT.NUMBER, "0", context.generateId()),
+        new Token(TT.NUMBER, "4", context.generateId()),
+        new Token(TT.NUMBER, "7", context.generateId()),
+        new Token(TT.NUMBER, "11", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.type).to.equal("midi");
+      expect(result!.data).to.deep.equal({
+        command: "chordname",
+        params: ["maj7", 0, 4, 7, 11],
+      });
+    });
+
+    it("should parse %%midi chordname min 0 3 7", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "chordname", context.generateId()),
+        new Token(TT.IDENTIFIER, "min", context.generateId()),
+        new Token(TT.NUMBER, "0", context.generateId()),
+        new Token(TT.NUMBER, "3", context.generateId()),
+        new Token(TT.NUMBER, "7", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.data).to.deep.equal({
+        command: "chordname",
+        params: ["min", 0, 3, 7],
+      });
+    });
+
+    it("should parse %%midi chordname dim7 0 3 6 9", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "chordname", context.generateId()),
+        new Token(TT.IDENTIFIER, "dim7", context.generateId()),
+        new Token(TT.NUMBER, "0", context.generateId()),
+        new Token(TT.NUMBER, "3", context.generateId()),
+        new Token(TT.NUMBER, "6", context.generateId()),
+        new Token(TT.NUMBER, "9", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.data).to.deep.equal({
+        command: "chordname",
+        params: ["dim7", 0, 3, 6, 9],
+      });
+    });
+
+    it("should handle negative integers in chord definitions", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "chordname", context.generateId()),
+        new Token(TT.IDENTIFIER, "custom", context.generateId()),
+        new Token(TT.NUMBER, "0", context.generateId()),
+        new Token(TT.NUMBER, "-1", context.generateId()),
+        new Token(TT.NUMBER, "5", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect(result!.data).to.deep.equal({
+        command: "chordname",
+        params: ["custom", 0, -1, 5],
+      });
+    });
+  });
+
+  describe("Error cases for drummap", () => {
+    it("should report error when drummap is missing MIDI number", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drummap", context.generateId()),
+        new Token(TT.IDENTIFIER, "C", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+
+    it("should report error when drummap is missing note name", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drummap", context.generateId()),
+        new Token(TT.NUMBER, "36", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+
+    it("should report error when drummap has non-numeric MIDI number", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drummap", context.generateId()),
+        new Token(TT.IDENTIFIER, "C", context.generateId()),
+        new Token(TT.IDENTIFIER, "abc", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+
+    it("should report error when drummap has no parameters", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drummap", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+
+    it("should report error when drummap has too many parameters", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drummap", context.generateId()),
+        new Token(TT.IDENTIFIER, "C", context.generateId()),
+        new Token(TT.NUMBER, "36", context.generateId()),
+        new Token(TT.NUMBER, "38", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+  });
+
+  describe("Error cases for drum", () => {
+    it("should report error when drum is missing integer parameters", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drum", context.generateId()),
+        new Token(TT.IDENTIFIER, "d", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+
+    it("should report error when drum is missing string parameter", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drum", context.generateId()),
+        new Token(TT.NUMBER, "76", context.generateId()),
+        new Token(TT.NUMBER, "77", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+
+    it("should report error when drum has non-numeric parameter after string", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drum", context.generateId()),
+        new Token(TT.IDENTIFIER, "d", context.generateId()),
+        new Token(TT.NUMBER, "76", context.generateId()),
+        new Token(TT.IDENTIFIER, "abc", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+
+    it("should report error when drum has no parameters", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "drum", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+  });
+
+  describe("Error cases for chordname", () => {
+    it("should report error when chordname is missing integer parameters", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "chordname", context.generateId()),
+        new Token(TT.IDENTIFIER, "maj7", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+
+    it("should report error when chordname is missing string parameter", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "chordname", context.generateId()),
+        new Token(TT.NUMBER, "0", context.generateId()),
+        new Token(TT.NUMBER, "4", context.generateId()),
+        new Token(TT.NUMBER, "7", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+
+    it("should report error when chordname has non-numeric parameter after string", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "chordname", context.generateId()),
+        new Token(TT.IDENTIFIER, "maj7", context.generateId()),
+        new Token(TT.NUMBER, "0", context.generateId()),
+        new Token(TT.IDENTIFIER, "abc", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+
+    it("should report error when chordname has no parameters", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "chordname", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.be.null;
+    });
+  });
+
+  describe("Case insensitivity for drummap, drum, and chordname", () => {
+    it("should accept uppercase command names for drummap", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "DRUMMAP", context.generateId()),
+        new Token(TT.IDENTIFIER, "C", context.generateId()),
+        new Token(TT.NUMBER, "36", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect((result!.data as any).command).to.equal("drummap");
+      expect((result!.data as any).params).to.deep.equal(["C", 36]);
+    });
+
+    it("should accept mixed-case command names for drum", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "Drum", context.generateId()),
+        new Token(TT.IDENTIFIER, "d", context.generateId()),
+        new Token(TT.NUMBER, "76", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect((result!.data as any).command).to.equal("drum");
+    });
+
+    it("should accept uppercase command names for chordname", () => {
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
+        new Token(TT.IDENTIFIER, "CHORDNAME", context.generateId()),
+        new Token(TT.IDENTIFIER, "maj7", context.generateId()),
+        new Token(TT.NUMBER, "0", context.generateId()),
+        new Token(TT.NUMBER, "4", context.generateId()),
+        new Token(TT.NUMBER, "7", context.generateId()),
+      ]);
+
+      const result = analyzer.visitDirectiveExpr(directive);
+
+      expect(result).to.not.be.null;
+      expect((result!.data as any).command).to.equal("chordname");
+    });
+  });
+});

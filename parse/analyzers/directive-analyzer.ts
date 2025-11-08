@@ -1318,6 +1318,8 @@ function parseMidi(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
 
   const midiCmdParam1Integer1OptionalString = ["bassprog", "chordprog"];
 
+  const midiCmdParam1StringVariableIntegers = ["drum", "chordname"];
+
   const remainingValues = directive.values.slice(1);
 
   // Parse parameters based on command category
@@ -1536,6 +1538,70 @@ function parseMidi(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
         analyzer.report(`MIDI command '${command}' expects octave=N format`, directive);
         return null;
       }
+    }
+  } else if (command === "drummap") {
+    // Special case: drummap accepts 2 or 3 tokens
+    // 2 tokens: note midi_number (e.g., "C 36")
+    // 3 tokens: accidental note midi_number (e.g., "^ F 42")
+    // Because the scanner tokenizes accidentals as separate tokens,
+    // we need to handle both formats and concatenate the accidental with the note.
+    if (remainingValues.length === 2) {
+      const noteToken = remainingValues[0];
+      const midiToken = remainingValues[1];
+
+      if (!isToken(noteToken) || !isToken(midiToken) || midiToken.type !== TT.NUMBER) {
+        analyzer.report("MIDI drummap expects note name and MIDI number", directive);
+        return null;
+      }
+
+      params.push(noteToken.lexeme);
+      params.push(parseInt(midiToken.lexeme, 10));
+    } else if (remainingValues.length === 3) {
+      // Format: accidental note midi_number (e.g., ^ F 42)
+      // Because the 3-token format requires accidental + note + midi_number,
+      // we need to validate that the second token is a note name (not a number).
+      const acciToken = remainingValues[0];
+      const noteToken = remainingValues[1];
+      const midiToken = remainingValues[2];
+
+      if (!isToken(acciToken) || !isToken(noteToken) || noteToken.type === TT.NUMBER || !isToken(midiToken) || midiToken.type !== TT.NUMBER) {
+        analyzer.report("MIDI drummap expects note name and MIDI number", directive);
+        return null;
+      }
+
+      // Combine accidental and note
+      params.push(acciToken.lexeme + noteToken.lexeme);
+      params.push(parseInt(midiToken.lexeme, 10));
+    } else {
+      // Because drummap only accepts 2 or 3 parameters, we report an error for any other count
+      analyzer.report("MIDI drummap expects two or three parameters: note and MIDI number", directive);
+      return null;
+    }
+  } else if (midiCmdParam1StringVariableIntegers.includes(command)) {
+    // One string parameter followed by variable number of integers (at least 1)
+    // Because drum and chordname define patterns/chords with arbitrary length,
+    // we need to validate at least one integer is present after the string.
+    if (remainingValues.length < 2) {
+      analyzer.report(`MIDI command '${command}' expects string parameter and at least one integer parameter`, directive);
+      return null;
+    }
+
+    // First parameter: string (must NOT be a number)
+    const stringToken = remainingValues[0];
+    if (!isToken(stringToken) || stringToken.type === TT.NUMBER) {
+      analyzer.report(`MIDI command '${command}' expects string parameter`, directive);
+      return null;
+    }
+    params.push(stringToken.lexeme);
+
+    // Remaining parameters: integers
+    for (let i = 1; i < remainingValues.length; i++) {
+      const token = remainingValues[i];
+      if (!isToken(token) || token.type !== TT.NUMBER) {
+        analyzer.report(`MIDI command '${command}' expects integer parameters after string`, directive);
+        return null;
+      }
+      params.push(parseInt(token.lexeme, 10));
     }
   } else {
     // Unknown MIDI command
