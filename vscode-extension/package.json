@@ -1,0 +1,139 @@
+{
+  "name": "abc-ls",
+  "displayName": "abc-ls",
+  "description": "",
+  "version": "0.0.3",
+  "publisher": "antoinebalaine",
+  "repository": "https://github.com/AntoineBalaine/AbcLsp",
+  "engines": {
+    "vscode": "^1.84.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:abc"
+  ],
+  "extensionDependencies": [
+    "alensiljak.abcjs-vscode"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "abc.divideRhythm",
+        "title": "abc: Divide Rhythms"
+      },
+      {
+        "command": "abc.multiplyRhythm",
+        "title": "abc: Multiply Rhythms"
+      },
+      {
+        "command": "abc.transposeUp",
+        "title": "abc: Octaviate up"
+      },
+      {
+        "command": "abc.transposeDn",
+        "title": "abc: Octaviate down"
+      },
+      {
+        "command": "abc.startMIDIInput",
+        "title": "abc: MIDI Input: Start MIDI input",
+        "group": "MIDI Input",
+        "description": "Start MIDI Input. You can also use the `Start MIDI Input` button on the right of the status bar. MIDI input device is set using `abc: MIDI Playback: Set input device` command.`"
+      },
+      {
+        "command": "abc.stopMIDIInput",
+        "title": "abc: MIDI Input: Stop MIDI input",
+        "group": "MIDI Input",
+        "description": "Stop MIDI Input. You can also use the `Stop MIDI Input` button on the right of the status bar."
+      },
+      {
+        "command": "abc.setInputMIDIDevice",
+        "title": "abc: MIDI Input: Set input device",
+        "group": "MIDI Input",
+        "description": "Set workspace-folder specific MIDI input device for input. You can also change this manually (for more scopes) in settings under `abc › Midi Input: Input`."
+      },
+      {
+        "command": "abc.restartMIDIInput",
+        "title": "abc: MIDI Input: Restart MIDI Input",
+        "group": "MIDI Input",
+        "description": "Restart MIDI Input. Try this if the input stops working after changing your MIDI Input device/port."
+      }
+    ],
+    "configurationDefaults": {
+      "[abc]": {
+        "editor.semanticHighlighting.enabled": true
+      }
+    },
+    "configuration": {
+      "title": "abc",
+      "properties": {
+        "abc.midiInput.input": {
+          "type": "string",
+          "default": "",
+          "group": "MIDI Input",
+          "description": "MIDI Device used for input. If none specified, the first valid device is used. After changing, please run the `abc: MIDI Input: Restart MIDI Input` command. You can alternatively use the command `abc: MIDI Input: Set output device` to select a device from a list.",
+          "scope": "resource"
+        },
+        "abc.midiInput.chordMode": {
+          "type": "boolean",
+          "default": false,
+          "group": "MIDI Input",
+          "description": "Chord mode in music entry. Registers notes that are pressed and held together as a chord instead of sequential notes.",
+          "scope": "resource"
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "abc",
+        "aliases": [
+          "abc",
+          "ABC"
+        ],
+        "extensions": [
+          ".abc"
+        ],
+        "capabilities": {
+          "documentFormattingProvider": "true"
+        },
+        "configuration": "./language-configuration.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package-bundle",
+    "build": "tsc -p ./ && node esbuild.js --production",
+    "compile": "tsc -p ./",
+    "watch": "npm run watch-bundle",
+    "watch-bundle": "node esbuild.js --watch",
+    "package-bundle": "node esbuild.js --production",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "_test": "node ./out/test/runTest.js",
+    "package": "vsce package --out ..",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.3",
+    "@types/node": "18.x",
+    "@types/vscode": "^1.84.0",
+    "@typescript-eslint/eslint-plugin": "^6.9.0",
+    "@typescript-eslint/parser": "^6.9.0",
+    "@vscode/test-electron": "^2.3.6",
+    "esbuild": "^0.25.10",
+    "eslint": "^8.52.0",
+    "glob": "^10.3.10",
+    "mocha": "^10.2.0",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "abc-parser": "*",
+    "jzz": "^1.7.4",
+    "jzz-midi-smf": "^1.8.1",
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.11"
+  }
+}

@@ -3,3 +3,5 @@ dist
 coverage
 error.log
 out
+pnpm-lock.yaml
+*.vsix
