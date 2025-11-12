@@ -138,6 +138,10 @@ export class AbcFormatter implements Visitor<string> {
 
   visitDirectiveExpr(expr: Directive): string {
     const fmt_key = expr.key?.lexeme || "";
+
+    if (fmt_key.toLowerCase() === "begintext") {
+      return `%%${fmt_key}\n${expr.values.map((e) => e.accept(this))}\n%%endtext`;
+    }
     const fmt_vals = expr.values?.map((e) => e.accept(this)).join(" ");
     if (fmt_key) return `%%${[fmt_key, fmt_vals].filter((e) => !!e).join(" ")}`;
     return `%%${fmt_vals}`;
@@ -292,7 +296,10 @@ export class AbcFormatter implements Visitor<string> {
 
     // Fallback to original token-based formatting for compatibility
     // Skip the first token (field) since we're already including it in the output
-    const formattedText = expr.text.slice(1).map((val) => val.lexeme).join("");
+    const formattedText = expr.text
+      .slice(1)
+      .map((val) => val.lexeme)
+      .join("");
     return `[${field.lexeme}${formattedText}]`;
   }
 
@@ -626,9 +633,12 @@ export const toMidiPitch = (pitch: Pitch): number => {
   // Handle alterations (sharps, flats, naturals)
   if (pitch.alteration) {
     const alt = pitch.alteration.lexeme;
-    if (alt === "^") noteNum += 1; // Sharp
-    else if (alt === "^^") noteNum += 2; // Double sharp
-    else if (alt === "_") noteNum -= 1; // Flat
+    if (alt === "^")
+      noteNum += 1; // Sharp
+    else if (alt === "^^")
+      noteNum += 2; // Double sharp
+    else if (alt === "_")
+      noteNum -= 1; // Flat
     else if (alt === "__") noteNum -= 2; // Double flat
     // Natural (=) doesn't change the pitch
   }
