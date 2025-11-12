@@ -3,6 +3,7 @@ import { HandlerResult, Position, Range, SemanticTokens, SemanticTokensBuilder, 
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcDocument } from "./AbcDocument";
 import { LspEventListener, mapTTtoStandardScope } from "./server_helpers";
+import { renderAbcToSvg, SvgRenderOptions, SvgRenderResult } from "./svg-renderer";
 
 /**
  * Type definition for a selection range in a document
@@ -20,6 +21,14 @@ export interface SelectionRange {
 export interface AbcTransformParams {
   selection: SelectionRange;
   uri: string;
+}
+
+/**
+ * Parameters for SVG rendering request
+ */
+export interface SvgRenderParams {
+  uri: string;
+  options?: SvgRenderOptions;
 }
 
 /**
@@ -167,5 +176,31 @@ export class AbcLspServer {
     const lineText = doc.getText().split("\n")[line];
     const charIndex = lineText.indexOf(String.fromCharCode(char));
     return lineText.charAt(char);
+  }
+
+  /**
+   * Handler for SVG rendering request
+   *
+   * Because the LSP server runs in Node.js, we render ABC to SVG strings
+   * and return them to the client. The client can then use these SVGs
+   * to generate PDFs, PNGs, or display them directly.
+   *
+   * @param uri Document URI
+   * @param options Rendering options (staffwidth, scale, padding, etc.)
+   * @returns Result containing SVG strings and metadata
+   */
+  onRenderSvg(uri: string, options?: SvgRenderOptions): HandlerResult<SvgRenderResult, void> {
+    const abcDocument = this.abcDocuments.get(uri);
+    if (!abcDocument) {
+      throw new Error(`Document not found: ${uri}`);
+    }
+
+    // Get the ABC content from the document
+    const abcContent = abcDocument.document.getText();
+
+    // Render ABC to SVG using the svg-renderer module
+    const result = renderAbcToSvg(abcContent, options || {});
+
+    return result;
   }
 }
