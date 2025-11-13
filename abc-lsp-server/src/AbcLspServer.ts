@@ -3,7 +3,7 @@ import { HandlerResult, Position, Range, SemanticTokens, SemanticTokensBuilder, 
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcDocument } from "./AbcDocument";
 import { LspEventListener, mapTTtoStandardScope } from "./server_helpers";
-import { renderAbcToSvg, SvgRenderOptions, SvgRenderResult } from "./svg-renderer";
+import { renderAbcToSvg, SvgRenderResult } from "./svg-renderer";
 
 /**
  * Type definition for a selection range in a document
@@ -28,7 +28,6 @@ export interface AbcTransformParams {
  */
 export interface SvgRenderParams {
   uri: string;
-  options?: SvgRenderOptions;
 }
 
 /**
@@ -41,7 +40,10 @@ export class AbcLspServer {
    * Uses the document's uri as key to index the scores.
    */
   abcDocuments: Map<string, AbcDocument> = new Map();
-  constructor(private documents: TextDocuments<TextDocument>, private listener: LspEventListener) {
+  constructor(
+    private documents: TextDocuments<TextDocument>,
+    private listener: LspEventListener
+  ) {
     this.documents.onDidChangeContent((change) => {
       this.onDidChangeContent(change.document.uri);
     });
@@ -181,15 +183,10 @@ export class AbcLspServer {
   /**
    * Handler for SVG rendering request
    *
-   * Because the LSP server runs in Node.js, we render ABC to SVG strings
-   * and return them to the client. The client can then use these SVGs
-   * to generate PDFs, PNGs, or display them directly.
-   *
    * @param uri Document URI
-   * @param options Rendering options (staffwidth, scale, padding, etc.)
    * @returns Result containing SVG strings and metadata
    */
-  onRenderSvg(uri: string, options?: SvgRenderOptions): HandlerResult<SvgRenderResult, void> {
+  onRenderSvg(uri: string): HandlerResult<SvgRenderResult, void> {
     const abcDocument = this.abcDocuments.get(uri);
     if (!abcDocument) {
       throw new Error(`Document not found: ${uri}`);
@@ -198,8 +195,7 @@ export class AbcLspServer {
     // Get the ABC content from the document
     const abcContent = abcDocument.document.getText();
 
-    // Render ABC to SVG using the svg-renderer module
-    const result = renderAbcToSvg(abcContent, options || {});
+    const result = renderAbcToSvg(abcContent);
 
     return result;
   }

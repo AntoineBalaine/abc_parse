@@ -8,11 +8,10 @@
     "noFallthroughCasesInSwitch": true /* Report errors for fallthrough cases in switch statement. */,
     "noImplicitReturns": true /* Report error when not all code paths in function return a value. */,
     "outDir": "../out/abc-lsp-server",
-    "rootDir": "src",
     "sourceMap": true,
     "strict": true,
     "target": "es2020"
   },
-  "include": ["./src/**/*.ts"],
+  "include": ["./src/**/*.ts", "../parse/types/abcjs-ast.ts", "../parse/analyzers/semantic-analyzer.ts", "../parse/interpreter/TuneInterpreter.ts"],
   "exclude": ["node_modules", ".vscode-test"]
 }
