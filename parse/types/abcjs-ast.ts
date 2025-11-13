@@ -646,6 +646,29 @@ export interface TuneFormatting {
   pageheight?: number;
   landscape?: number;
 
+  // Staff and spacing properties
+  staffwidth?: number;
+  botmargin?: number;
+  topmargin?: number;
+  leftmargin?: number;
+  rightmargin?: number;
+  titlespace?: number;
+  subtitlespace?: number;
+  composerspace?: number;
+  partsspace?: number;
+  textspace?: number;
+  wordsspace?: number;
+  vocalspace?: number;
+  musicspace?: number;
+  staffsep?: number;
+  sysstaffsep?: number;
+  systemsep?: number;
+  topspace?: number;
+  botspace?: number;
+  linesep?: number;
+  indent?: number;
+  vskip?: number;
+
   // Boolean properties
   bagpipes?: boolean;
   flatbeams?: boolean;

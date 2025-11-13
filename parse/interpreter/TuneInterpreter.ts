@@ -721,6 +721,7 @@ function isMeasurementDirective(type: string, data: unknown): data is Measuremen
     "topmargin",
     "topspace",
     "vocalspace",
+    "vskip",
     "wordsspace",
   ];
   return measurementDirectives.includes(type) && typeof data === "object" && data !== null && "value" in data;

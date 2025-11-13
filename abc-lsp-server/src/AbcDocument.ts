@@ -40,8 +40,8 @@ export class AbcDocument {
     });
     const tokens = Scanner(source, this.ctx);
     this.AST = parse(tokens, this.ctx);
-    let errs = mapAbcErrorsToDiagnostics(this.ctx.errorReporter.getErrors(), this.rangeVisitor);
-    let warnings = mapAbcWarningsToDiagnostics(this.ctx.errorReporter.getWarnings(), this.rangeVisitor);
+    const errs = mapAbcErrorsToDiagnostics(this.ctx.errorReporter.getErrors(), this.rangeVisitor);
+    const warnings = mapAbcWarningsToDiagnostics(this.ctx.errorReporter.getWarnings(), this.rangeVisitor);
     this.diagnostics = errs.concat(warnings);
 
     if (!this.AST) {
