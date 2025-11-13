@@ -1,0 +1,19 @@
+{
+  "name": "abc-cli",
+  "version": "0.1.0",
+  "description": "Command-line tool for ABC music notation",
+  "main": "../out/abc-cli/abcls-cli.js",
+  "bin": {
+    "abcls": "../out/abc-cli/abcls-cli.js"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "watch": "tsc --build --watch",
+    "prepublish": "npm run build"
+  },
+  "dependencies": {
+    "abc-parser": "*",
+    "abc-lsp-server": "*",
+    "commander": "^12.0.0"
+  }
+}
