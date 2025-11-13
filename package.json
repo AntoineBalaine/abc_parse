@@ -5,15 +5,18 @@
   "workspaces": [
     "parse",
     "abc-lsp-server",
+    "abc-cli",
     "vscode-extension"
   ],
   "scripts": {
-    "build": "npm run build:parse && npm run build:lsp && npm run build:vscode",
+    "build": "npm run build:parse && npm run build:lsp && npm run build:cli && npm run build:vscode",
     "build:parse": "npm run build -w parse",
     "build:lsp": "npm run build -w abc-lsp-server",
+    "build:cli": "npm run build -w abc-cli",
     "build:vscode": "npm run build -w vscode-extension",
     "watch:parse": "npm run watch -w parse",
     "watch:lsp": "npm run watch -w abc-lsp-server",
+    "watch:cli": "npm run watch -w abc-cli",
     "watch:vscode": "npm run watch -w vscode-extension",
     "package:vscode": "npm run package -w vscode-extension",
     "test": "npm run test -w parse",

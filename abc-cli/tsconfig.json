@@ -1,0 +1,21 @@
+{
+  "extends": "../parse/tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../out/abc-cli",
+    "rootDir": ".",
+    "composite": true,
+    "tsBuildInfoFile": "../out/abc-cli/.tsbuildinfo",
+    "skipLibCheck": true,
+    "noResolve": false,
+    "baseUrl": ".",
+    "paths": {
+      "../../../out/parse/*": ["../out/parse/*"],
+      "../../../out/abc-lsp-server/*": ["../out/abc-lsp-server/*"]
+    }
+  },
+  "include": ["*.ts", "commands/**/*.ts", "utils/**/*.ts"],
+  "references": [
+    { "path": "../parse" },
+    { "path": "../abc-lsp-server" }
+  ]
+}
