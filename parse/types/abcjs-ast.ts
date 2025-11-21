@@ -311,8 +311,6 @@ export interface KeySignature {
   acc: KeyAccidental;
   mode: Mode;
   accidentals: Accidental[];
-  impliedNaturals?: Accidental[];
-  explicitAccidentals?: Accidental[];
 }
 
 export interface KeyInfo {
@@ -468,8 +466,6 @@ export interface KeyElement extends BaseElement {
   acc: KeyAccidental;
   mode: Mode;
   accidentals: Accidental[];
-  impliedNaturals?: Accidental[];
-  explicitAccidentals?: Accidental[];
 }
 
 export interface MeterElement extends BaseElement {
