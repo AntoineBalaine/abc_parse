@@ -13,7 +13,6 @@ import {
   TextDocuments,
   createConnection,
 } from "vscode-languageserver/node";
-
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcLspServer, AbcTransformParams, SvgRenderParams } from "./AbcLspServer";
 import { DECORATION_SYMBOLS } from "./completions";
@@ -105,7 +104,7 @@ connection.onRequest("transposeDn", (params: AbcTransformParams) => {
   return abcServer.onTranspose(params.uri, -12, params.selection);
 });
 connection.onRequest("abc/renderSvg", (params: SvgRenderParams) => {
-  return abcServer.onRenderSvg(params.uri, params.options);
+  return abcServer.onRenderSvg(params.uri);
 });
 
 connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {

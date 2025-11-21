@@ -7,6 +7,7 @@
     "build": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "prepublish": "npm run build",
+    "test": "ts-mocha --paths -p tsconfig.json 'src/**/*.spec.ts'",
     "lint": "eslint . --ext ts",
     "lint:fix": "eslint . --ext ts --fix"
   },

@@ -1,4 +1,4 @@
-import { AbcError, getTokenRange, RangeVisitor, TT } from "abc-parser";
+import { AbcError, RangeVisitor, TT } from "abc-parser";
 import { Diagnostic, PublishDiagnosticsParams } from "vscode-languageserver";
 
 /**
