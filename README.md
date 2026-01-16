@@ -152,6 +152,18 @@ abc_parse/
 └── out/                # Build output
 ```
 
+## Docker
+
+Run Claude Code in a Docker container:
+
+```bash
+# Build the image
+docker build -t abc-claude .
+
+# Run the container with the workspace mounted
+docker run -it -v $(pwd):/workspace abc-claude
+```
+
 ## TODO
 
 ### Parser
