@@ -133,7 +133,7 @@ export function parse(tokens: Token[], abcContext: ABCContext): File_structure {
   }
   return new File_structure(ctx.abcContext.generateId(), fileHeader, seq);
 }
-function isTuneStart(token: Token): boolean {
+export function isTuneStart(token: Token): boolean {
   return token.type === TT.INF_HDR && token.lexeme.trim() === "X:";
 }
 export function parseFileHeader(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): null | File_header {
@@ -173,7 +173,7 @@ export function parseFileHeader(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): 
   return rv;
 }
 
-function isTune(ctx: ParseCtx) {
+export function isTune(ctx: ParseCtx) {
   let pos = ctx.current;
   let tok = ctx.tokens[pos];
   while (!(pos >= ctx.tokens.length || tok.type === TT.EOF)) {
@@ -745,7 +745,7 @@ export function parseVoiceOverlay(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>)
   return voiceOverlay;
 }
 
-function parseInlineField(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Inline_field | null {
+export function parseInlineField(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Inline_field | null {
   if (!ctx.match(TT.INLN_FLD_LFT_BRKT)) {
     return null;
   }

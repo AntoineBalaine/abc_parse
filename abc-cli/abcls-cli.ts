@@ -9,6 +9,7 @@ import { Command } from "commander";
 import { formatCommand } from "./commands/format";
 import { checkCommand } from "./commands/check";
 import { renderCommand } from "./commands/render";
+import { abcx2abcCommand } from "./commands/abcx2abc";
 
 const program = new Command();
 
@@ -18,6 +19,7 @@ program.name("abcls").description("Command-line tool for ABC music notation").ve
 program.addCommand(formatCommand);
 program.addCommand(checkCommand);
 program.addCommand(renderCommand);
+program.addCommand(abcx2abcCommand);
 
 // Parse command-line arguments
 program.parse(process.argv);

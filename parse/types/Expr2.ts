@@ -50,6 +50,7 @@ export interface Visitor<R> {
   visitAbsolutePitch(expr: AbsolutePitch): R;
   visitRationalExpr(expr: Rational): R;
   visitMeasurementExpr(expr: Measurement): R;
+  visitChordSymbolExpr(expr: ChordSymbol): R;
 }
 
 // Tagged union for parsed info line data
@@ -821,5 +822,22 @@ export class Grouping extends Expr {
 
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitGrouping(this);
+  }
+}
+
+/**
+ * ABCx chord symbol expression (e.g., Am7, Cmaj7#11, Bb/D)
+ * Used in ABCx format for chord sheet transcriptions
+ */
+export class ChordSymbol extends Expr {
+  token: Token;
+
+  constructor(id: number, token: Token) {
+    super(id);
+    this.token = token;
+  }
+
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitChordSymbolExpr(this);
   }
 }

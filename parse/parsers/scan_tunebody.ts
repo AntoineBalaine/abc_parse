@@ -543,13 +543,14 @@ export function scanTune(ctx: Ctx): boolean {
 }
 
 // Collect invalid characters into a token
-export function collectInvalidToken(ctx: Ctx): boolean {
+// Accepts an otional recovery predicate; defaults to isRecoveryPoint
+export function collectInvalidToken(ctx: Ctx, recoveryPredicate: (ctx: Ctx) => boolean = isRecoveryPoint): boolean {
   // Store the starting position to ensure we capture all characters
   const startPos = ctx.current;
 
   // Advance until we find a character that could start a valid token
   // or until we reach the end of the line or input
-  while (!isAtEnd(ctx) && !ctx.test(pEOL) && !isRecoveryPoint(ctx)) {
+  while (!isAtEnd(ctx) && !ctx.test(pEOL) && !recoveryPredicate(ctx)) {
     advance(ctx);
   }
 

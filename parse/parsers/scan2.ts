@@ -286,6 +286,7 @@ export enum TT {
   SY_HDR, // symbol line header
   SY_STAR, // symbol line star
   SY_TXT, // symbol line text
+  CHORD_SYMBOL, // ABCx chord symbol (e.g., Am7, Cmaj7#11, Bb/D)
 }
 
 export class Token {

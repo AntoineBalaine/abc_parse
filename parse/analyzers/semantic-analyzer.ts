@@ -15,6 +15,7 @@ import {
   Annotation,
   BarLine,
   Chord,
+  ChordSymbol,
   Comment,
   Decoration,
   File_header,
@@ -361,5 +362,10 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
       return null;
     }
     return expr.operand.accept(this);
+  }
+
+  // ChordSymbol is ABCx-specific - ABCx files must be converted to ABC before analysis
+  visitChordSymbolExpr(expr: ChordSymbol): SemanticData | null {
+    return null;
   }
 }

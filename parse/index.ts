@@ -11,3 +11,5 @@ export * from "./Visitors/RangeCollector";
 export * from "./Visitors/RangeVisitor";
 export * from "./Visitors/RhythmTransform";
 export * from "./Visitors/Transposer";
+// ABCx chord sheet notation support (unified exports)
+export * from "./abcx";

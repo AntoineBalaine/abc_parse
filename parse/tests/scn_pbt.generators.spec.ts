@@ -732,3 +732,39 @@ export const genMixedStatefulScenario = fc
       return applyTokenFiltering(allTokens);
     });
   });
+
+// ABCx Chord Symbol generator
+// Pattern: Root[#b]?[quality][extensions][alterations][/bass]
+// Examples: C, Am, G7, Cmaj7, Dm7b5, F#m7, Bb/D, Cmaj7#11, am, cmaj7, C-7, C°7, Cø7
+// Note: lowercase 'b' is excluded as it conflicts with the flat accidental
+// Quality symbols:
+// - maj, min, dim, aug, sus, add, m, M: standard ABC quality indicators
+// - `-`: alternate notation for minor (e.g., C-7 = Cm7)
+// - `°`: diminished symbol (e.g., C°7 = Cdim7)
+// - `ø`, `Ø`: half-diminished symbols (e.g., Cø7 = Cm7b5)
+export const genChordSymbolToken = fc
+  .tuple(
+    // Root note (A-G or a,c,d,e,f,g - excluding lowercase 'b')
+    fc.constantFrom("A", "B", "C", "D", "E", "F", "G", "a", "c", "d", "e", "f", "g"),
+    // Optional accidental
+    fc.constantFrom("", "#", "b"),
+    // Optional quality (ordered longest-first)
+    fc.constantFrom("", "maj", "min", "dim", "aug", "sus", "add", "m", "M", "-", "°", "ø", "Ø"),
+    // Optional extension number
+    fc.constantFrom("", "7", "9", "11", "13", "6"),
+    // Optional alteration
+    fc.constantFrom("", "#5", "b5", "#9", "b9"),
+    // Optional bass note
+    fc.oneof(
+      fc.constant(""),
+      fc.tuple(
+        fc.constant("/"),
+        fc.constantFrom("A", "B", "C", "D", "E", "F", "G", "a", "c", "d", "e", "f", "g"),
+        fc.constantFrom("", "#", "b")
+      ).map(([slash, note, acc]) => `${slash}${note}${acc}`)
+    )
+  )
+  .map(([root, accidental, quality, extension, alteration, bass]) => {
+    const chord = `${root}${accidental}${quality}${extension}${alteration}${bass}`;
+    return new Token(TT.CHORD_SYMBOL, chord, sharedContext.generateId());
+  });
