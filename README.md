@@ -185,6 +185,10 @@ docker run -it -v $(pwd):/workspace abc-claude
 - Chord symbols in `W:` lines
 - Score formatting with `!` system breaks
 
+### Format Conversion
+- MusicXML to ABC conversion (research porting xml2abc or alternative approaches)
+- ABC to MusicXML conversion (research porting abc2xml or leveraging existing parser pipeline)
+
 ## Related Projects
 
 - [AbcLsp](https://github.com/AntoineBalaine/AbcLsp) - LSP client implementation
