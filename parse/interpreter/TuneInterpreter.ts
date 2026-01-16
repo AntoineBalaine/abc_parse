@@ -51,6 +51,7 @@ import {
   Note,
   Rest,
   Chord,
+  ChordSymbol,
   BarLine,
   Grace_group,
   Decoration,
@@ -2040,6 +2041,8 @@ export class TuneInterpreter implements Visitor<void> {
   visitRationalExpr(expr: Rational): void {}
   visitMeasurementExpr(expr: Measurement): void {}
   visitUnary(expr: import("../types/Expr2").Unary): void {}
+  // ChordSymbol is ABCx-specific - ABCx files must be converted to ABC before interpretation
+  visitChordSymbolExpr(expr: ChordSymbol): void {}
 
   // ============================================================================
   // Helper Methods

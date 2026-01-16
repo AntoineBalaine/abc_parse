@@ -8,6 +8,7 @@ import {
   Beam,
   Binary,
   Chord,
+  ChordSymbol,
   Comment,
   Decoration,
   Directive,
@@ -327,6 +328,10 @@ export class Transposer implements Visitor<Expr | Token> {
   }
 
   visitUnary(expr: import("../types/Expr2").Unary): Expr | Token {
+    return expr;
+  }
+
+  visitChordSymbolExpr(expr: ChordSymbol): Expr | Token {
     return expr;
   }
 }

@@ -7,6 +7,7 @@ import {
   Beam,
   Binary,
   Chord,
+  ChordSymbol,
   Comment,
   Decoration,
   Directive,
@@ -327,5 +328,9 @@ export class RangeVisitor implements Visitor<Range> {
     const operatorRange = getTokenRange(expr.operator);
     const operandRange = expr.operand instanceof Token ? getTokenRange(expr.operand) : expr.operand.accept(this);
     return [operatorRange, operandRange].reduce(reduceRanges, <Range>{});
+  }
+
+  visitChordSymbolExpr(expr: ChordSymbol): Range {
+    return getTokenRange(expr.token);
   }
 }

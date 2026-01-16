@@ -9,6 +9,7 @@ import {
   Beam_contents,
   Binary,
   Chord,
+  ChordSymbol,
   Comment,
   Decoration,
   Directive,
@@ -444,6 +445,10 @@ export class RhythmVisitor implements Visitor<Expr> {
   }
 
   visitUnary(expr: import("../types/Expr2").Unary): Expr {
+    return expr;
+  }
+
+  visitChordSymbolExpr(expr: ChordSymbol): Expr {
     return expr;
   }
 

@@ -98,6 +98,8 @@ export function mapTTtoStandardScope(type: number): number {
     case TT.REPEAT_DASH:
     case TT.REPEAT_X:
       return standardTokenScopes.comment;
+    case TT.CHORD_SYMBOL:
+      return standardTokenScopes.type;
     default:
       return -1;
   }

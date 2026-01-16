@@ -8,6 +8,7 @@ import {
   BarLine,
   Beam,
   Chord,
+  ChordSymbol,
   Comment,
   Decoration,
   Directive,
@@ -491,6 +492,17 @@ export const genTextDirectiveExpr = ScannerGen.genTextDirective.map((tokens) => 
   return {
     tokens,
     expr: directive,
+  };
+});
+
+/**
+ * Generator for ABCx ChordSymbol expressions
+ * Uses genChordSymbolToken from scanner generators
+ */
+export const genChordSymbolExpr = ScannerGen.genChordSymbolToken.map((token) => {
+  return {
+    tokens: [token],
+    expr: new ChordSymbol(sharedContext.generateId(), token),
   };
 });
 

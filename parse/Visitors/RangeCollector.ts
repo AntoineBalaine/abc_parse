@@ -8,6 +8,7 @@ import {
   Beam,
   Binary,
   Chord,
+  ChordSymbol,
   Comment,
   Decoration,
   Directive,
@@ -358,6 +359,12 @@ export class ExpressionCollector implements Visitor<void> {
   }
 
   visitUnary(expr: import("../types/Expr2").Unary): void {
+    if (this.isInRange(expr)) {
+      this.collected.push(expr);
+    }
+  }
+
+  visitChordSymbolExpr(expr: ChordSymbol): void {
     if (this.isInRange(expr)) {
       this.collected.push(expr);
     }

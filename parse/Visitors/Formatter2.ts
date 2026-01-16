@@ -8,6 +8,7 @@ import {
   Beam,
   Binary,
   Chord,
+  ChordSymbol,
   Comment,
   Decoration,
   Directive,
@@ -125,7 +126,9 @@ export class AbcFormatter implements Visitor<string> {
     const formattedTunes = expr.contents.map((tune): string => {
       return tune.accept(this);
     });
-    return formattedFile + formattedTunes.join(formattedFile.length > 0 ? "\n" : "");
+    // Section breaks between tunes are represented by blank lines (\n\n)
+    const tunesJoined = formattedTunes.join("\n\n");
+    return formattedFile + (formattedFile.length > 0 && tunesJoined.length > 0 ? "\n\n" : "") + tunesJoined;
   }
 
   visitFileHeaderExpr(expr: File_header): string {
@@ -521,6 +524,10 @@ export class AbcFormatter implements Visitor<string> {
 
   visitMeasurementExpr(expr: Measurement): string {
     return expr.value.lexeme + expr.scale.lexeme;
+  }
+
+  visitChordSymbolExpr(expr: ChordSymbol): string {
+    return expr.token.lexeme;
   }
 }
 

@@ -2,8 +2,12 @@ import { AbcFormatter, RhythmVisitor, Transposer } from "abc-parser";
 import { HandlerResult, Position, Range, SemanticTokens, SemanticTokensBuilder, TextDocuments, TextEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcDocument } from "./AbcDocument";
+import { AbcxDocument } from "./AbcxDocument";
 import { LspEventListener, mapTTtoStandardScope } from "./server_helpers";
 import { renderAbcToSvg, SvgRenderResult } from "./svg-renderer";
+
+/** Common interface for both ABC and ABCx documents */
+type DocumentType = AbcDocument | AbcxDocument;
 
 /**
  * Type definition for a selection range in a document
@@ -38,8 +42,9 @@ export class AbcLspServer {
   /**
    * A hashmap of abc scores stored by the server.
    * Uses the document's uri as key to index the scores.
+   * Supports both ABC (.abc) and ABCx (.abcx) documents.
    */
-  abcDocuments: Map<string, AbcDocument> = new Map();
+  abcDocuments: Map<string, DocumentType> = new Map();
   constructor(
     private documents: TextDocuments<TextDocument>,
     private listener: LspEventListener
@@ -54,6 +59,13 @@ export class AbcLspServer {
   }
 
   /**
+   * Checks if a URI refers to an ABCx file
+   */
+  private isAbcxFile(uri: string): boolean {
+    return uri.toLowerCase().endsWith(".abcx");
+  }
+
+  /**
    * Get the updated changes in the document,
    * parse it and send diagnostics to the client.
    * @param uri
@@ -63,7 +75,10 @@ export class AbcLspServer {
     if (!abcDocument) {
       const document = this.documents.get(uri);
       if (document) {
-        abcDocument = new AbcDocument(document);
+        // Create appropriate document type based on file extension
+        abcDocument = this.isAbcxFile(uri)
+          ? new AbcxDocument(document)
+          : new AbcDocument(document);
         this.abcDocuments.set(uri, abcDocument);
       }
     }
