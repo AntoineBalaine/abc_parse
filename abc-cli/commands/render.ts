@@ -4,8 +4,7 @@
 
 import { Command } from "commander";
 import { readAbcFile } from "../utils/shared";
-// @ts-expect-error - Importing from compiled output (relative to output location)
-import { renderAbcToSvg } from "../../abc-lsp-server/svg-renderer";
+import { renderAbcToSvg } from "../../abc-lsp-server/src/svg-renderer";
 import { Scanner, parse, ABCContext, AbcFormatter, Tune, Info_line } from "../../parse/index";
 
 /**

@@ -87,6 +87,12 @@ export function renderAbcToSvg(abcContent: string): SvgRenderResult {
     const svgs: string[] = [];
 
     svgElements.forEach((svgElement: Element) => {
+      // Because abcjs generates SVG for browser embedding (inline in HTML),
+      // it doesn't include the xmlns attribute required for standalone SVG files.
+      // We add it here so the SVG renders correctly in browsers when opened directly.
+      if (!svgElement.getAttribute("xmlns")) {
+        svgElement.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      }
       // Get the outer HTML of the SVG element
       svgs.push(svgElement.outerHTML);
     });
