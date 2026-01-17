@@ -534,12 +534,13 @@ function parseFullFontDefinition(
 
 /**
  * Parses boolean flag directives (no parameters expected)
+ *
+ * Following abcjs behavior, these directives simply set a flag to true
+ * and silently ignore any trailing parameters. This matches how abcjs handles
+ * directives like flatbeams, landscape, titlecaps, measurebox, jazzchords, bagpipes.
  */
-function parseBooleanFlag(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
-  if (directive.values.length > 0) {
-    analyzer.report(`Directive "${directive.key.lexeme}" expects no parameters, but got ${directive.values.length}`, directive);
-  }
-
+function parseBooleanFlag(directive: Directive, _analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
+  // Silently ignore any parameters - this matches abcjs behavior
   return {
     type: directive.key.lexeme.toLowerCase() as any,
     data: true,
@@ -1126,8 +1127,9 @@ function parseStaffDirective(
         addContinueBar(ctx);
         break;
 
+      case TT.NUMBER:
       case TT.IDENTIFIER:
-        // This is a voice ID
+        // This is a voice ID (can be alphanumeric identifier or numeric)
         const voiceId = value.lexeme;
 
         // Decide whether to create a new staff

@@ -1937,9 +1937,9 @@ export class TuneInterpreter implements Visitor<void> {
     // Because lyrics can only be attached to notes, we need to check if any music has been processed yet
     // If no system/staff/voice has been initialized (indices still at -1), there are no notes to attach lyrics to
     if (this.state.currentSystemNum === -1 || this.state.currentStaffNum === -1 || this.state.currentVoiceIndex === -1) {
-      // No music notes have been processed yet, so we skip lyric attachment
-      // This matches abcjs behavior: "Can't add words before the first line of music"
-      this.ctx.errorReporter.interpreterError("Cannot add lyrics before the first line of music", expr);
+      // No music notes have been processed yet, so we silently skip lyric attachment
+      // This matches abcjs behavior which logs "Can't add words before the first line of music"
+      // but doesn't fail parsing. We silently ignore to be lenient with non-standard ABC files.
       return;
     }
 

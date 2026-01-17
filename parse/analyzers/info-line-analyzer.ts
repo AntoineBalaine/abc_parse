@@ -74,6 +74,8 @@ export function analyzeInfoLine(expr: Info_line, analyzer: SemanticAnalyzer): In
       return analyzeHistoryInfo(expr, analyzer);
     case "A":
       return analyzeAuthorInfo(expr, analyzer);
+    case "P":
+      return analyzePartsInfo(expr, analyzer);
     default:
       analyzer.report(`Unknown info line key: ${key}`, expr);
       return null;
@@ -346,10 +348,14 @@ function noteHeadStyle(styleStr: string): NoteHeadStyle {
  * - KV with value "C" or "C|" for special meters
  * - Binary expressions for numeric meters: 4/4, 6/8, etc.
  * - Grouping expressions for compound meters: (2+3)/8
+ * - Token for special symbols: C, C|, o, c, o., c., none
  *
  * Examples:
  *   M:C       -> KV(value="C") or Token("C")
  *   M:C|      -> KV(value="C|") or Token("C|")
+ *   M:o       -> Token("o") - tempus perfectum
+ *   M:c       -> Token("c") - tempus imperfectum
+ *   M:none    -> Token("none") - no meter
  *   M:4/4     -> Binary(4, /, 4)
  *   M:6/8     -> Binary(6, /, 8)
  */
@@ -366,29 +372,14 @@ export function analyzeMeterInfo(expr: Info_line, analyzer: SemanticAnalyzer): I
   // Check for KV-wrapped special meters (from new parser)
   if (firstItem instanceof KV && !firstItem.key && isToken(firstItem.value)) {
     const token = firstItem.value as Token;
-    const lexeme = token.lexeme;
+    const result = parseSpecialMeter(token.lexeme);
+    if (result) return result;
+  }
 
-    // Check for common time (C)
-    if (lexeme === "C") {
-      return {
-        type: "meter",
-        data: {
-          type: MeterType.CommonTime,
-          value: [{ numerator: 4, denominator: 4 }],
-        },
-      };
-    }
-
-    // Check for cut time (C|)
-    if (lexeme === "C|") {
-      return {
-        type: "meter",
-        data: {
-          type: MeterType.CutTime,
-          value: [{ numerator: 2, denominator: 2 }],
-        },
-      };
-    }
+  // Check for raw Token (special meters or identifiers)
+  if (isToken(firstItem)) {
+    const result = parseSpecialMeter(firstItem.lexeme);
+    if (result) return result;
   }
 
   // Check for Binary expression (4/4)
@@ -420,6 +411,91 @@ export function analyzeMeterInfo(expr: Info_line, analyzer: SemanticAnalyzer): I
   }
 
   analyzer.report("Invalid meter format", expr);
+  return null;
+}
+
+/**
+ * Parses special meter symbols (C, C|, o, c, o., c., none)
+ * Returns null if the lexeme is not a special meter symbol.
+ */
+function parseSpecialMeter(lexeme: string): InfoLineUnion | null {
+  // Check for common time (C)
+  if (lexeme === "C") {
+    return {
+      type: "meter",
+      data: {
+        type: MeterType.CommonTime,
+        value: [{ numerator: 4, denominator: 4 }],
+      },
+    };
+  }
+
+  // Check for cut time (C|)
+  if (lexeme === "C|") {
+    return {
+      type: "meter",
+      data: {
+        type: MeterType.CutTime,
+        value: [{ numerator: 2, denominator: 2 }],
+      },
+    };
+  }
+
+  // Check for tempus perfectum (o) - mensural notation
+  if (lexeme === "o") {
+    return {
+      type: "meter",
+      data: {
+        type: MeterType.CommonTime, // Treat as 3/1 conceptually
+        value: [{ numerator: 3, denominator: 1 }],
+      },
+    };
+  }
+
+  // Check for tempus imperfectum (c) - mensural notation
+  if (lexeme === "c") {
+    return {
+      type: "meter",
+      data: {
+        type: MeterType.CommonTime, // Treat as 2/1 conceptually
+        value: [{ numerator: 2, denominator: 1 }],
+      },
+    };
+  }
+
+  // Check for tempus perfectum prolatio (o.) - mensural notation
+  if (lexeme === "o.") {
+    return {
+      type: "meter",
+      data: {
+        type: MeterType.CommonTime, // Treat as 9/8 conceptually
+        value: [{ numerator: 9, denominator: 8 }],
+      },
+    };
+  }
+
+  // Check for tempus imperfectum prolatio (c.) - mensural notation
+  if (lexeme === "c.") {
+    return {
+      type: "meter",
+      data: {
+        type: MeterType.CommonTime, // Treat as 6/8 conceptually
+        value: [{ numerator: 6, denominator: 8 }],
+      },
+    };
+  }
+
+  // Check for no meter (none or empty)
+  if (lexeme.toLowerCase() === "none" || lexeme === "") {
+    return {
+      type: "meter",
+      data: {
+        type: MeterType.Specified,
+        value: [], // Empty meter
+      },
+    };
+  }
+
   return null;
 }
 
@@ -715,10 +791,21 @@ export function analyzeVoiceInfo(expr: Info_line, analyzer: SemanticAnalyzer): I
 function applyVoiceProperty(properties: VoiceProperties, key: string, value: string, analyzer: SemanticAnalyzer, expr: Info_line): void {
   switch (key) {
     case "name":
+    case "nm":
       properties.name = value;
       break;
 
+    case "subname":
+    case "sname":
+    case "snm":
+      // Subname for subsequent lines - store as name if no name set
+      if (!properties.name) {
+        properties.name = value;
+      }
+      break;
+
     case "clef":
+    case "cl":
       properties.clef = getClefInfo(value);
       break;
 
@@ -755,6 +842,13 @@ function applyVoiceProperty(properties: VoiceProperties, key: string, value: str
       }
       break;
 
+    case "scale":
+      const scaleValue = parseFloat(value);
+      if (!isNaN(scaleValue)) {
+        properties.staffscale = scaleValue;
+      }
+      break;
+
     case "perc":
       properties.perc = value.toLowerCase() === "true" || value === "1";
       break;
@@ -778,6 +872,12 @@ function applyVoiceProperty(properties: VoiceProperties, key: string, value: str
       break;
 
     case "gchord":
+    case "gchords":
+    case "gch":
+      // In abcjs, gchords can be a boolean to suppress chords
+      if (value === "0" || value.toLowerCase() === "false") {
+        // Suppress chords - could be stored as a property
+      }
       if (isChordPlacement(value)) {
         properties.gchord = value as ChordPlacement;
       }
@@ -802,6 +902,15 @@ function applyVoiceProperty(properties: VoiceProperties, key: string, value: str
     case "brc":
       if (isBracketBracePosition(value)) {
         properties.brace = value as BracketBracePosition;
+      }
+      break;
+
+    case "cue":
+      // Cue notes - "on" sets scale to 0.6
+      if (value === "on") {
+        properties.staffscale = 0.6;
+      } else if (value === "off") {
+        properties.staffscale = 1;
       }
       break;
 
@@ -1147,5 +1256,30 @@ export function analyzeAuthorInfo(expr: Info_line, analyzer: SemanticAnalyzer): 
   return {
     type: "author",
     data: authorParts.join(" ").trim(),
+  };
+}
+/**
+ * Analyzes P: (parts) info lines
+ *
+ * The P: field defines the order of parts in a tune. It contains a sequence
+ * of part labels (typically single letters like A, B, C) that can be repeated
+ * or grouped (e.g., "AABB", "(AB)3", "A(B1B2)3").
+ *
+ * Just concatenates all tokens into a string.
+ */
+export function analyzePartsInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+  const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
+
+  const partsParts: string[] = [];
+
+  for (const item of values) {
+    if (isToken(item)) {
+      partsParts.push(item.lexeme);
+    }
+  }
+
+  return {
+    type: "parts",
+    data: partsParts.join(" ").trim(),
   };
 }

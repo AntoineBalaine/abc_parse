@@ -73,7 +73,8 @@ export type InfoLineUnion =
   | { type: "notes"; data: string }
   | { type: "transcription"; data: string }
   | { type: "history"; data: string }
-  | { type: "author"; data: string };
+  | { type: "author"; data: string }
+  | { type: "parts"; data: string };
 
 // Type predicate functions for InfoLineUnion
 export function isKeyInfo(info: InfoLineUnion): info is { type: "key"; data: KeyInfo } {
@@ -150,6 +151,10 @@ export function isHistoryInfo(info: InfoLineUnion): info is { type: "history"; d
 
 export function isAuthorInfo(info: InfoLineUnion): info is { type: "author"; data: string } {
   return info.type === "author";
+}
+
+export function isPartsInfo(info: InfoLineUnion): info is { type: "parts"; data: string } {
+  return info.type === "parts";
 }
 
 export abstract class Expr {
