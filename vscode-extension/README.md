@@ -16,9 +16,13 @@ Language features for [ABC music notation](https://abcnotation.com/)
 - `Divide rhythms`, and `Multiply rhythms` commands: select some notes and the commands will divide/multiple their time value by two.
 - Single note midi input from you midi keyboard (Chord-input from midi will come at some point)
 
-## Requirements
+- Live preview of ABC and ABCx scores (integrated renderer)
+- Export to HTML and SVG
+- Print preview
 
-You might want to use this in conjunction with the [AbcJS](https://github.com/abcjs-music/abcjs-vscode) extension. It provides - amongst others - live preview of the score.
+## ABCx Support
+
+ABCx is a simplified ABC format that focuses on chord symbols. The extension automatically converts ABCx files to standard ABC for rendering.
 
 ## Known Issues
 
@@ -35,3 +39,11 @@ You might want to use this in conjunction with the [AbcJS](https://github.com/ab
 ## Release Notes
 
 AbcLsp isn't yet ready for release!
+
+## Attribution
+
+The renderer component is based on [abcjs-vscode](https://github.com/abcjs-music/abcjs-vscode) by Alen Siljak, licensed under GPL-3.0-or-later.
+
+## License
+
+This extension is licensed under GPL-3.0-or-later. See the LICENSE file for details.

@@ -87,6 +87,10 @@
             },
         }
 
+        // Merge initial configuration from extension
+        var initialConfig = {initialConfig};
+        Object.assign(options, initialConfig);
+
         var abc = `{editorContent}`;
 
         function optionChanged() {
@@ -180,7 +184,8 @@
                     break;
 
                 case 'configurationChange':
-                    options = message.content
+                    // Merge config with existing options to preserve clickListener, startingTune, format
+                    Object.assign(options, message.content);
                     drawTune(abc);
                     break;
 

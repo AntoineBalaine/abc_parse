@@ -22,3 +22,7 @@ package-lock.json
 !./README.md
 !./CHANGELOG.md
 !./package.json
+!./abcjs-renderer/resources/**
+!./abcjs-renderer/abc.tmGrammar.json
+!./abcjs-renderer/snippets.json
+!./abcjs-renderer/LICENSE.md

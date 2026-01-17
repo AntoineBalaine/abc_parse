@@ -11,11 +11,9 @@
   "categories": [
     "Programming Languages"
   ],
+  "license": "GPL-3.0-or-later",
   "activationEvents": [
     "onLanguage:abc"
-  ],
-  "extensionDependencies": [
-    "alensiljak.abcjs-vscode"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -59,6 +57,26 @@
         "title": "abc: MIDI Input: Restart MIDI Input",
         "group": "MIDI Input",
         "description": "Restart MIDI Input. Try this if the input stops working after changing your MIDI Input device/port."
+      },
+      {
+        "command": "abc.showPreview",
+        "title": "ABC: Show Preview",
+        "group": "Renderer"
+      },
+      {
+        "command": "abc.exportHtml",
+        "title": "ABC: Export as HTML",
+        "group": "Renderer"
+      },
+      {
+        "command": "abc.exportSvg",
+        "title": "ABC: Export as SVG",
+        "group": "Renderer"
+      },
+      {
+        "command": "abc.printPreview",
+        "title": "ABC: Print Preview",
+        "group": "Renderer"
       }
     ],
     "configurationDefaults": {
@@ -82,6 +100,66 @@
           "group": "MIDI Input",
           "description": "Chord mode in music entry. Registers notes that are pressed and held together as a chord instead of sequential notes.",
           "scope": "resource"
+        },
+        "abc.renderer.responsive": {
+          "type": "string",
+          "default": "resize",
+          "enum": ["", "resize"],
+          "group": "Renderer",
+          "description": "Responsive rendering mode. 'resize' adapts to container width.",
+          "scope": "resource"
+        },
+        "abc.renderer.print": {
+          "type": "boolean",
+          "default": false,
+          "group": "Renderer",
+          "description": "Enable print formatting mode.",
+          "scope": "resource"
+        },
+        "abc.renderer.oneSvgPerLine": {
+          "type": "boolean",
+          "default": false,
+          "group": "Renderer",
+          "description": "Render each stave system as a separate SVG.",
+          "scope": "resource"
+        },
+        "abc.renderer.jazzchords": {
+          "type": "boolean",
+          "default": false,
+          "group": "Renderer",
+          "description": "Use jazz-style chord symbol formatting.",
+          "scope": "resource"
+        },
+        "abc.renderer.showDebug": {
+          "type": "boolean",
+          "default": false,
+          "group": "Renderer",
+          "description": "Show debug grid and boxes.",
+          "scope": "resource"
+        },
+        "abc.renderer.tablature": {
+          "type": "string",
+          "default": "",
+          "enum": ["", "Violin", "Guitar"],
+          "group": "Renderer",
+          "description": "Show tablature for the specified instrument.",
+          "scope": "resource"
+        },
+        "abc.renderer.visualTranspose": {
+          "type": "integer",
+          "default": 0,
+          "minimum": -12,
+          "maximum": 12,
+          "group": "Renderer",
+          "description": "Transpose the rendered score by semitones.",
+          "scope": "resource"
+        },
+        "abc.renderer.showTransposedSource": {
+          "type": "boolean",
+          "default": false,
+          "group": "Renderer",
+          "description": "Show transposed ABC source code.",
+          "scope": "resource"
         }
       }
     },
@@ -100,6 +178,13 @@
           "documentFormattingProvider": "true"
         },
         "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "abc",
+        "scopeName": "source.abc",
+        "path": "./abcjs-renderer/abc.tmGrammar.json"
       }
     ]
   },

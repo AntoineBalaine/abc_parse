@@ -6,6 +6,7 @@ import * as path from "path";
 import { ExtensionContext } from "vscode";
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
 import { registerCommands } from "./extensionCommands";
+import { registerRendererCommands } from "./renderer";
 
 let client: LanguageClient;
 
@@ -42,6 +43,9 @@ export function activate(context: ExtensionContext) {
 
   // register list of extension's commands
   registerCommands(context, client);
+
+  // register renderer commands (preview, export, print)
+  registerRendererCommands(context);
 
   // Start the client. This will also launch the server
   client.start();
