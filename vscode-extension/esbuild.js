@@ -47,9 +47,16 @@ async function main() {
     sourcesContent: false,
     platform: "node",
     outfile: "dist/server.js",
-    external: ["vscode", "jsdom"],
+    external: ["vscode"],
     logLevel: "silent",
     plugins: [esbuildProblemMatcherPlugin],
+    // Shim import.meta.url for svgdom which uses it to locate font files
+    define: {
+      "import.meta.url": "_importMetaUrl",
+    },
+    banner: {
+      js: "const _importMetaUrl = require('url').pathToFileURL(__filename).href;",
+    },
   });
 
   if (watch) {

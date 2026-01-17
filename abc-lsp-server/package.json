@@ -14,9 +14,9 @@
   "dependencies": {
     "abc-parser": "*",
     "abcjs": "^6.5.2",
-    "jsdom": "^23.0.0"
+    "svgdom": "^0.1.23"
   },
   "devDependencies": {
-    "@types/jsdom": "^21.1.6"
+    "@types/svgdom": "^0.1.2"
   }
 }

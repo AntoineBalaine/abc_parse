@@ -71,6 +71,24 @@ Integrate the LSP server with editor clients like [AbcLsp](https://github.com/An
 - Completions (decoration symbols triggered by `!`)
 - Custom commands: `divideRhythm`, `multiplyRhythm`, `transposeUp`, `transposeDn`
 
+### Using the CLI
+
+```bash
+# Render ABC to SVG
+node out/abc-cli/abcls-cli.js render file.abc > output.svg
+
+# Render specific tunes by X: number
+node out/abc-cli/abcls-cli.js render file.abc -t 1,2,3 > output.svg
+
+# Format ABC files
+node out/abc-cli/abcls-cli.js format file.abc
+
+# Check ABC files for errors
+node out/abc-cli/abcls-cli.js check file.abc
+```
+
+Note: SVG rendering via the CLI is experimental. The server-side DOM implementation (svgdom) has known inaccuracies in bounding box calculations (~15% deviation from browser values), which may cause minor positioning issues with text elements (lyrics, chord symbols) and path elements (slurs, ties). For production rendering, use abcjs directly in a browser environment.
+
 ## Architecture
 
 ### Parser Pipeline

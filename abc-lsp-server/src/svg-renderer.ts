@@ -2,7 +2,8 @@
  * svg-renderer.ts
  *
  * Module for rendering ABC notation to SVG strings using abcjs.
- * Because abcjs requires a DOM environment, we use jsdom to provide one in Node.js.
+ * Because abcjs requires a DOM environment, we use svgdom to provide one in Node.js.
+ * svgdom is a lightweight DOM implementation with SVG support including getBBox().
  *
  * Because all formatting should come from ABC directives (%%staffwidth, %%scale, etc.),
  * we don't expose rendering options. The renderer only controls technical defaults
@@ -10,7 +11,7 @@
  */
 
 import * as abcjs from "abcjs";
-import { JSDOM } from "jsdom";
+import { createHTMLWindow } from "svgdom";
 
 /**
  * Result of SVG rendering
@@ -40,16 +41,14 @@ export interface SvgRenderResult {
  * @returns Result containing SVG strings and metadata
  */
 export function renderAbcToSvg(abcContent: string): SvgRenderResult {
-  // Create a fake DOM environment for abcjs
-  const dom = new JSDOM('<!DOCTYPE html><html><body><div id="abc-container"></div></body></html>');
-  const window = dom.window;
+  // Create a fake DOM environment for abcjs using svgdom
+  const window = createHTMLWindow();
   const document = window.document;
 
-  // Get the container element
-  const container = document.getElementById("abc-container");
-  if (!container) {
-    throw new Error("Failed to create DOM container for ABC rendering");
-  }
+  // Create container element for abcjs to render into
+  const container = document.createElement("div");
+  container.id = "abc-container";
+  document.body.appendChild(container);
 
   const warnings: string[] = [];
 
@@ -60,7 +59,7 @@ export function renderAbcToSvg(abcContent: string): SvgRenderResult {
   const originalNavigatorDescriptor = Object.getOwnPropertyDescriptor(global, "navigator");
 
   try {
-    // Patch global with jsdom window using defineProperty to override read-only properties
+    // Patch global with svgdom window using defineProperty to override read-only properties
     Object.defineProperty(global, "window", {
       value: window,
       writable: true,
