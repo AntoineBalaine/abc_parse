@@ -13,6 +13,9 @@
  * like padding and responsive SVG mode.
  */
 
+import * as abcjs from "abcjs";
+import { createHTMLWindow } from "svgdom";
+
 /**
  * Result of SVG rendering
  */
