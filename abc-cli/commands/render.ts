@@ -4,7 +4,7 @@
 
 import { Command } from "commander";
 import { readAbcFile } from "../utils/shared";
-import { renderAbcToSvg } from "../../abc-lsp-server/src/svg-renderer";
+import { renderAbcToSvg, SvgRenderError } from "../svg-renderer";
 import { Scanner, parse, ABCContext, AbcFormatter, Tune, Info_line } from "../../parse/index";
 
 /**
@@ -62,7 +62,7 @@ export const renderCommand = new Command("render")
   .option("-t, --tune <numbers...>", "Render only the specified tunes by X:number (supports comma-separated, dash-separated or repeated flags)")
   .option("--ignore-parse-errors", "Continue rendering even if the ABC file has parsing errors")
   .option("--ignore-missing-tunes", "Continue rendering even if some requested tunes are not found")
-  .action((file: string, options: { tune?: string | string[]; ignoreParseErrors?: boolean; ignoreMissingTunes?: boolean }) => {
+  .action(async (file: string, options: { tune?: string | string[]; ignoreParseErrors?: boolean; ignoreMissingTunes?: boolean }) => {
     // Read the ABC file
     const content = readAbcFile(file);
 
@@ -135,7 +135,7 @@ export const renderCommand = new Command("render")
       }
 
       // Render the content (either filtered or original)
-      const result = renderAbcToSvg(contentToRender);
+      const result = await renderAbcToSvg(contentToRender);
 
       // Output warnings to stderr
       if (result.metadata.warnings) {
@@ -151,7 +151,11 @@ export const renderCommand = new Command("render")
       // Output to stdout
       console.log(svgOutput);
     } catch (error: any) {
-      console.error(`Error rendering SVG: ${error.message}`);
+      if (error instanceof SvgRenderError) {
+        console.error(error.toString());
+      } else {
+        console.error(`Error rendering SVG: ${error.message}`);
+      }
       process.exit(1);
     }
   });

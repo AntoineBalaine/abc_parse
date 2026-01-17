@@ -4,8 +4,6 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
 import { LspEventListener, mapTTtoStandardScope } from "./server_helpers";
-import { renderAbcToSvg, SvgRenderResult } from "./svg-renderer";
-
 /** Common interface for both ABC and ABCx documents */
 type DocumentType = AbcDocument | AbcxDocument;
 
@@ -24,13 +22,6 @@ export interface SelectionRange {
  */
 export interface AbcTransformParams {
   selection: SelectionRange;
-  uri: string;
-}
-
-/**
- * Parameters for SVG rendering request
- */
-export interface SvgRenderParams {
   uri: string;
 }
 
@@ -195,23 +186,4 @@ export class AbcLspServer {
     return lineText.charAt(char);
   }
 
-  /**
-   * Handler for SVG rendering request
-   *
-   * @param uri Document URI
-   * @returns Result containing SVG strings and metadata
-   */
-  onRenderSvg(uri: string): HandlerResult<SvgRenderResult, void> {
-    const abcDocument = this.abcDocuments.get(uri);
-    if (!abcDocument) {
-      throw new Error(`Document not found: ${uri}`);
-    }
-
-    // Get the ABC content from the document
-    const abcContent = abcDocument.document.getText();
-
-    const result = renderAbcToSvg(abcContent);
-
-    return result;
-  }
 }

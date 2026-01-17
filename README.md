@@ -2,9 +2,11 @@
 
 A TypeScript parser and Language Server for ABC music notation. Implements the [ABC 2.2 standard](https://abcnotation.com/wiki/abc:standard:v2.2) with extensions from [ABCJS](https://github.com/paulrosen/abcjs).
 
-This monorepo contains two packages:
-- **`parse/`** - Parser library for ABC notation
-- **`abc-lsp-server/`** - Language Server providing IDE features
+This monorepo contains four packages:
+- `parse/` - Parser library for ABC notation
+- `abc-lsp-server/` - Language Server providing IDE features
+- `abc-cli/` - Command-line tool for rendering, formatting, and validation
+- `vscode-extension/` - VSCode extension (LSP client)
 
 ## Goals
 
@@ -165,8 +167,10 @@ Uses npm workspaces for shared dependencies.
 
 ```
 abc_parse/
-├── parse/              # Parser (parsers/, Visitors/, analyzers/, types/)
+├── parse/              # Parser library (parsers/, Visitors/, analyzers/, types/)
 ├── abc-lsp-server/     # LSP server (server.ts, AbcLspServer.ts, AbcDocument.ts, completions.ts)
+├── abc-cli/            # CLI tool (render, format, check commands)
+├── vscode-extension/   # VSCode extension (LSP client)
 └── out/                # Build output
 ```
 

@@ -5,13 +5,13 @@
  * Because abcjs requires a DOM environment, we use svgdom to provide one in Node.js.
  * svgdom is a lightweight DOM implementation with SVG support including getBBox().
  *
+ * Note: svgdom's getBBox() has ~15% deviation from browser values, which may cause
+ * minor positioning issues with text and path elements.
+ *
  * Because all formatting should come from ABC directives (%%staffwidth, %%scale, etc.),
  * we don't expose rendering options. The renderer only controls technical defaults
  * like padding and responsive SVG mode.
  */
-
-import * as abcjs from "abcjs";
-import { createHTMLWindow } from "svgdom";
 
 /**
  * Result of SVG rendering
@@ -32,6 +32,64 @@ export interface SvgRenderResult {
 }
 
 /**
+ * Custom error class for SVG rendering failures
+ */
+export class SvgRenderError extends Error {
+  constructor(
+    message: string,
+    public readonly details: string,
+    public readonly helpText: string
+  ) {
+    super(message);
+    this.name = "SvgRenderError";
+  }
+
+  toString(): string {
+    return `${this.message}\n\nDetails: ${this.details}\n\n${this.helpText}`;
+  }
+}
+
+/**
+ * Load svgdom lazily and provide helpful error messages if it fails
+ */
+async function loadSvgdom(): Promise<{ createHTMLWindow: () => any }> {
+  try {
+    return await import("svgdom");
+  } catch (error: any) {
+    throw new SvgRenderError(
+      "Failed to load SVG rendering library.",
+      error.message || String(error),
+      `This usually means the 'svgdom' package is not installed or failed to build.
+If you installed abcls globally, try reinstalling:
+  npm uninstall -g abcls && npm install -g abcls
+
+If you're running from source:
+  cd <path-to-abc_parse>/abc-cli && npm install`
+    );
+  }
+}
+
+/**
+ * Load abcjs lazily
+ */
+async function loadAbcjs(): Promise<typeof import("abcjs")> {
+  try {
+    return await import("abcjs");
+  } catch (error: any) {
+    throw new SvgRenderError(
+      "Failed to load ABC rendering library.",
+      error.message || String(error),
+      `This usually means the 'abcjs' package is not installed.
+If you installed abcls globally, try reinstalling:
+  npm uninstall -g abcls && npm install -g abcls
+
+If you're running from source:
+  cd <path-to-abc_parse>/abc-cli && npm install`
+    );
+  }
+}
+
+/**
  * Render ABC notation to SVG strings
  *
  * Because all formatting comes from ABC directives, we only set technical defaults
@@ -40,7 +98,11 @@ export interface SvgRenderResult {
  * @param abcContent The ABC notation content to render
  * @returns Result containing SVG strings and metadata
  */
-export function renderAbcToSvg(abcContent: string): SvgRenderResult {
+export async function renderAbcToSvg(abcContent: string): Promise<SvgRenderResult> {
+  // Lazy load dependencies to provide better error messages
+  const { createHTMLWindow } = await loadSvgdom();
+  const abcjs = await loadAbcjs();
+
   // Create a fake DOM environment for abcjs using svgdom
   const window = createHTMLWindow();
   const document = window.document;
@@ -85,7 +147,7 @@ export function renderAbcToSvg(abcContent: string): SvgRenderResult {
     const svgElements = container.querySelectorAll("svg");
     const svgs: string[] = [];
 
-    svgElements.forEach((svgElement: Element) => {
+    svgElements.forEach((svgElement: any) => {
       // Because abcjs generates SVG for browser embedding (inline in HTML),
       // it doesn't include the xmlns attribute required for standalone SVG files.
       // We add it here so the SVG renders correctly in browsers when opened directly.
@@ -109,7 +171,12 @@ export function renderAbcToSvg(abcContent: string): SvgRenderResult {
       },
     };
   } catch (error: any) {
-    throw new Error(`Failed to render ABC to SVG: ${error.message || error}`);
+    throw new SvgRenderError(
+      "SVG rendering failed.",
+      error.message || String(error),
+      `The ABC content may be valid but contains elements that cannot be rendered
+in a headless environment. Try rendering in a browser instead.`
+    );
   } finally {
     // Restore original property descriptors
     if (originalWindowDescriptor) {
