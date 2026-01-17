@@ -93,7 +93,8 @@
           "ABC"
         ],
         "extensions": [
-          ".abc"
+          ".abc",
+          ".abcx"
         ],
         "capabilities": {
           "documentFormattingProvider": "true"
