@@ -47,7 +47,7 @@ async function main() {
     sourcesContent: false,
     platform: "node",
     outfile: "dist/server.js",
-    external: ["vscode"],
+    external: ["vscode", "jsdom"],
     logLevel: "silent",
     plugins: [esbuildProblemMatcherPlugin],
   });

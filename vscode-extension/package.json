@@ -131,6 +131,7 @@
   },
   "dependencies": {
     "abc-parser": "*",
+    "jsdom": "^23.0.0",
     "jzz": "^1.7.4",
     "jzz-midi-smf": "^1.8.1",
     "vscode-languageclient": "^9.0.1",
