@@ -76,6 +76,16 @@ export function analyzeInfoLine(expr: Info_line, analyzer: SemanticAnalyzer): In
       return analyzeAuthorInfo(expr, analyzer);
     case "P":
       return analyzePartsInfo(expr, analyzer);
+    case "I":
+      return analyzeInstructionInfo(expr, analyzer);
+    case "F":
+      return analyzeFileUrlInfo(expr, analyzer);
+    case "G":
+      return analyzeGroupInfo(expr, analyzer);
+    case "E":
+      return analyzeElemskipInfo(expr, analyzer);
+    case "m":
+      return analyzeMacroInfo(expr, analyzer);
     default:
       analyzer.report(`Unknown info line key: ${key}`, expr);
       return null;
@@ -1281,5 +1291,142 @@ export function analyzePartsInfo(expr: Info_line, analyzer: SemanticAnalyzer): I
   return {
     type: "parts",
     data: partsParts.join(" ").trim(),
+  };
+}
+
+// ============================================================================
+// Instruction Info Analyzer (I:)
+// ============================================================================
+
+/**
+ * Analyzes I: (instruction) info lines
+ *
+ * The I: field is used for passing directives inline within the ABC notation.
+ * It can contain various instructions like MIDI settings, transposition, etc.
+ *
+ * Just concatenates all tokens into a string.
+ */
+export function analyzeInstructionInfo(expr: Info_line, _analyzer: SemanticAnalyzer): InfoLineUnion | null {
+  const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
+
+  const instructionParts: string[] = [];
+
+  for (const item of values) {
+    if (isToken(item)) {
+      instructionParts.push(item.lexeme);
+    }
+  }
+
+  return {
+    type: "instruction",
+    data: instructionParts.join(" ").trim(),
+  };
+}
+
+// ============================================================================
+// File URL Info Analyzer (F:)
+// ============================================================================
+
+/**
+ * Analyzes F: (file URL) info lines
+ *
+ * The F: field specifies the URL of the original file.
+ * Just concatenates all tokens into a string.
+ */
+export function analyzeFileUrlInfo(expr: Info_line, _analyzer: SemanticAnalyzer): InfoLineUnion | null {
+  const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
+
+  const urlParts: string[] = [];
+
+  for (const item of values) {
+    if (isToken(item)) {
+      urlParts.push(item.lexeme);
+    }
+  }
+
+  return {
+    type: "file_url",
+    data: urlParts.join(" ").trim(),
+  };
+}
+
+// ============================================================================
+// Group Info Analyzer (G:)
+// ============================================================================
+
+/**
+ * Analyzes G: (group) info lines
+ *
+ * The G: field specifies the group or category of the tune.
+ * Just concatenates all tokens into a string.
+ */
+export function analyzeGroupInfo(expr: Info_line, _analyzer: SemanticAnalyzer): InfoLineUnion | null {
+  const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
+
+  const groupParts: string[] = [];
+
+  for (const item of values) {
+    if (isToken(item)) {
+      groupParts.push(item.lexeme);
+    }
+  }
+
+  return {
+    type: "group",
+    data: groupParts.join(" ").trim(),
+  };
+}
+
+// ============================================================================
+// Elemskip Info Analyzer (E:)
+// ============================================================================
+
+/**
+ * Analyzes E: (elemskip) info lines
+ *
+ * The E: field is a deprecated field sometimes used for element skipping.
+ * Just concatenates all tokens into a string.
+ */
+export function analyzeElemskipInfo(expr: Info_line, _analyzer: SemanticAnalyzer): InfoLineUnion | null {
+  const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
+
+  const elemskipParts: string[] = [];
+
+  for (const item of values) {
+    if (isToken(item)) {
+      elemskipParts.push(item.lexeme);
+    }
+  }
+
+  return {
+    type: "elemskip",
+    data: elemskipParts.join(" ").trim(),
+  };
+}
+
+// ============================================================================
+// Macro Info Analyzer (m:)
+// ============================================================================
+
+/**
+ * Analyzes m: (macro) info lines
+ *
+ * The m: field defines a macro that can be expanded in the tune body.
+ * Just concatenates all tokens into a string.
+ */
+export function analyzeMacroInfo(expr: Info_line, _analyzer: SemanticAnalyzer): InfoLineUnion | null {
+  const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
+
+  const macroParts: string[] = [];
+
+  for (const item of values) {
+    if (isToken(item)) {
+      macroParts.push(item.lexeme);
+    }
+  }
+
+  return {
+    type: "macro",
+    data: macroParts.join(" ").trim(),
   };
 }

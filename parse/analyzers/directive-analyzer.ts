@@ -76,7 +76,16 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     case "endps":
     case "font":
     case "nobarcheck":
+    case "staffbreak":
+    case "slurgraces":
+    case "exprabove":
+    case "exprbelow":
       return parseBooleanFlag(directive, analyzer);
+
+    // Multi-column and title format directives (accept identifier parameter)
+    case "multicol":
+    case "titleformat":
+      return parseIdentifier(directive, analyzer);
 
     // ============================================================================
     // Multi-line Text Directive
@@ -88,12 +97,15 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     // Simple String Parameter Directives
     // ============================================================================
     case "papersize":
-    case "map":
     case "playtempo":
     case "auquality":
     case "continuous":
     case "voicecolor":
       return parseIdentifier(directive, analyzer);
+
+    // Map directive - accepts multiple parameters
+    case "map":
+      return parseMapDirective(directive, analyzer);
 
     // ============================================================================
     // Boolean Value Directives
@@ -112,6 +124,8 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     case "voicescale":
     case "scale":
     case "fontboxpadding":
+    case "bar":
+    case "bar10":
       return parseNumber(directive, analyzer);
 
     // ============================================================================
@@ -573,6 +587,25 @@ function parseIdentifier(directive: Directive, analyzer: SemanticAnalyzer): Dire
 }
 
 /**
+ * Parses the map directive which accepts multiple parameters for voice/staff mappings.
+ * The map directive is used for various mapping purposes and can have variable syntax.
+ */
+function parseMapDirective(directive: Directive, _analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
+  const values: string[] = [];
+
+  for (const item of directive.values) {
+    if (isToken(item)) {
+      values.push(item.lexeme);
+    }
+  }
+
+  return {
+    type: "map" as any,
+    data: values.join(" "),
+  };
+}
+
+/**
  * Parses directives that expect a boolean value (true/false or 0/1)
  */
 function parseBooleanValue(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
@@ -811,20 +844,30 @@ function parseMeasurement(directive: Directive, analyzer: SemanticAnalyzer): Dir
 /**
  * Parses %%sep directive (space above, space below, line length)
  * Format: %%sep [above] [below] [length]
+ *
+ * Parameters can be either plain numbers or measurements with units (cm, in, pt, mm).
  */
 function parseSep(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   const result: { above?: number; below?: number; length?: number } = {};
 
   for (let i = 0; i < directive.values.length && i < 3; i++) {
     const value = directive.values[i];
-    if (!(value instanceof Token) || value.type !== TT.NUMBER) {
+    let num: number;
+
+    // Handle Measurement objects (e.g., 0.4cm, 6cm)
+    if (value instanceof Measurement) {
+      num = parseFloat(value.value.lexeme);
+      // Note: we ignore the unit for now, treating all as points
+    } else if (isToken(value) && value.type === TT.NUMBER) {
+      // Handle plain number Tokens
+      num = parseFloat(value.lexeme);
+    } else {
       analyzer.report(`Directive "sep" expects number parameters`, directive);
       continue;
     }
 
-    const num = parseFloat(value.lexeme);
     if (isNaN(num)) {
-      analyzer.report(`Invalid number: ${value.lexeme}`, directive);
+      analyzer.report(`Invalid number in sep directive`, directive);
       continue;
     }
 
@@ -1665,12 +1708,20 @@ function parsePercmap(directive: Directive, analyzer: SemanticAnalyzer): Directi
   }
 
   // Extract the ABC note (first parameter)
-  const noteToken = directive.values[0];
-  if (!isToken(noteToken)) {
+  // The note can be either a Pitch object (when accidentals are used, e.g., ^B, _c)
+  // or a plain Token (for simple notes like D, E, F)
+  const noteValue = directive.values[0];
+  let note: string;
+
+  if (noteValue instanceof Pitch) {
+    // Extract note name from Pitch: alteration (if present) + noteLetter
+    note = (noteValue.alteration?.lexeme || "") + noteValue.noteLetter.lexeme;
+  } else if (isToken(noteValue)) {
+    note = noteValue.lexeme;
+  } else {
     analyzer.report("percmap expects ABC note as first parameter", directive);
     return null;
   }
-  const note = noteToken.lexeme;
 
   // Parse the drum sound (second parameter)
   // Because the drum sound can be either a MIDI number or a drum name,
