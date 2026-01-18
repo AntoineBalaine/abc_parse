@@ -1,0 +1,86 @@
+* Change Log
+
+All notable changes to the "abcjs-editor" extension will be documented in this file.
+
+Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+
+** 2.7
+
+Grammar additions and adjustments to improve code coloring.
+
+** 2.6.0
+
+Grammar update. Thanks Antoine Balaine!
+
+** 2.5.0
+
+Updating abcjs to v6.1.6
+
+** 2.4.1
+
+Added showDebug setting.
+
+** 2.4.0
+
+Added Export HTML command.
+
+** 2.3.0
+
+Added Export SVG command.
+
+** 2.2.1
+
+Added oneSvgPerLine setting.
+
+** 2.2.0
+
+Configuration settings for sheet formatting and rendering.
+
+** 2.1.0
+
+Added Print Preview and Export options.
+
+** 2.0.0
+
+Under-the-hood housekeeping.
+Converted source code to TypeScript. 
+Extracted the viewer into a separate page for easier editing.
+
+** 1.3.1
+
+Update abcjs to v6.1.3. Add option to show transposed ABC string. Add option to show tablature. Add snippet for creating a new tune.
+
+** 1.3.0
+
+Update abcjs to v6.0.4. Add option for transpose. Add font for chords.
+
+** 1.2.0
+
+Title taken from the filename. Multiple files support.
+
+** 1.1.0
+
+Updated the abcjs to v6.0.2.
+
+** 1.0.x
+
+Updating the abcjs library the latest beta version.
+
+** 0.4.0
+
+Updating the abcjs library to 6.0.0-beta.31.
+
+** 0.3.0
+
+Recognizing Parts syntax.
+
+** 0.2.x
+
+Updating the abcjs to v6.0.0-beta.28. The text is now visible on dark background.
+
+** 0.0.x
+
+Prototyping!
+Initial release of abcjs-vscode.
+Code coloring and sheet rendering from the text in the editor.
+It is possible to select the notes by clicking the sheet.
