@@ -58,6 +58,11 @@
             padding: 10px;
             margin-top: 10px;
         }
+
+        body.light-mode {
+            background-color: white;
+            color: black;
+        }
     </style>
 </head>
 
@@ -187,6 +192,14 @@
                     // Merge config with existing options to preserve clickListener, startingTune, format
                     Object.assign(options, message.content);
                     drawTune(abc);
+                    break;
+
+                case 'setTheme':
+                    if (message.theme === 'light') {
+                        document.body.classList.add('light-mode');
+                    } else {
+                        document.body.classList.remove('light-mode');
+                    }
                     break;
 
                 case 'requestSvg':

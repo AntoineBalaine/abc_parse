@@ -65,6 +65,11 @@
         "group": "Renderer"
       },
       {
+        "command": "abc.showPreviewLight",
+        "title": "ABC: Show Preview (Light)",
+        "group": "Renderer"
+      },
+      {
         "command": "abc.exportHtml",
         "title": "ABC: Export as HTML",
         "group": "Renderer"

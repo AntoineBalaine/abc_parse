@@ -22,6 +22,12 @@ export function registerRendererCommands(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(previewCommand);
 
+  // Show Preview (Light) command
+  const previewLightCommand = vscode.commands.registerCommand("abc.showPreviewLight", () =>
+    showPreview(context, "light")
+  );
+  context.subscriptions.push(previewLightCommand);
+
   // Export HTML command
   const exportHtmlCommand = vscode.commands.registerCommand(
     "abc.exportHtml",

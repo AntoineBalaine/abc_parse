@@ -7,6 +7,7 @@ All notable changes to the AbcLsp extension will be documented in this file.
 ### Added
 - Live preview for ABC and ABCx scores using integrated abcjs renderer
   - `ABC: Show Preview` - opens a side panel with rendered score
+  - `ABC: Show Preview (Light)` - opens preview with white background
   - Real-time updates as you edit
   - Configurable options: responsive mode, jazz chords, tablature, transposition
 - Export functionality

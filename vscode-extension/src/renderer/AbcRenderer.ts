@@ -29,7 +29,7 @@ export function getOutputChannel(): vscode.OutputChannel {
 /**
  * Show the preview panel
  */
-export async function showPreview(context: vscode.ExtensionContext) {
+export async function showPreview(context: vscode.ExtensionContext, theme?: "light" | "dark") {
   initializePanel(context);
 
   if (panel) {
@@ -40,6 +40,13 @@ export async function showPreview(context: vscode.ExtensionContext) {
       command: "configurationChange",
       content: options,
     });
+    // Set theme if specified
+    if (theme) {
+      await panel.webview.postMessage({
+        command: "setTheme",
+        theme: theme,
+      });
+    }
   }
 }
 
