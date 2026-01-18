@@ -22,7 +22,61 @@ Language features for [ABC music notation](https://abcnotation.com/)
 
 ## ABCx Support
 
-ABCx is a simplified ABC format that focuses on chord symbols. The extension automatically converts ABCx files to standard ABC for rendering.
+ABCx is a simplified ABC format designed for chord sheets and lead sheets. Instead of writing full musical notation, you write chord symbols directly in the tune body. The extension automatically converts `.abcx` files to standard ABC for rendering.
+
+### File Structure
+
+ABCx files use the same header fields as standard ABC:
+
+```abcx
+X:1
+T:Song Title
+C:Composer
+M:4/4
+L:1/4
+K:C
+C Am | F G |
+Em Am | Dm G |
+```
+
+### Chord Symbol Syntax
+
+Chord symbols follow this pattern: `Root[accidental][quality][extension][alteration][/bass]`
+
+| Component  | Options                            | Example        |
+|------------|------------------------------------|----------------|
+| Root       | A-G (or lowercase a,c,d,e,f,g)     | C, A, g        |
+| Accidental | # or b                             | F#, Bb         |
+| Quality    | maj, min, m, M, dim, aug, sus, add | Am, Cmaj, Bdim |
+| Extension  | 7, 9, 11, 13, 6                    | G7, Am9        |
+| Alteration | #5, b5, #9, b9                     | Dm7b5          |
+| Bass       | /[note]                            | C/E, Bb/D      |
+
+Examples: `C`, `Am`, `G7`, `Cmaj7`, `Dm7b5`, `F#m7`, `Bb/D`, `A-7b5/D`
+
+### Other Supported Elements
+
+- Barlines: `|`, `||`, `|]`, `[|`, `:|`, `|:`, `::`, `[1`, `[2`
+- Annotations: `"text above staff"`
+- Multi-measure rests: `Z4` (4 bars rest)
+- Inline fields: `[K:G]`, `[M:3/4]`
+- Part markers: `P:A`, `P:Chorus`
+- Comments: `% this is a comment`
+
+### Example
+
+```
+X:1
+T:Autumn Leaves
+M:4/4
+K:G
+P:A
+Am7 | D7 | Gmaj7 | Cmaj7 |
+F#m7b5 | B7 | Em | Em |
+P:B
+Am7 | D7 | Gmaj7 | Cmaj7 |
+F#m7b5 | B7 | Em | Em ||
+```
 
 ## Known Issues
 
