@@ -36,9 +36,20 @@ ABCx is a simplified ABC format that focuses on chord symbols. The extension aut
 - Arranging routine capabilities
 - Live preview of the score
 
+## Development
+
+To build and install the extension locally:
+
+```bash
+cd vscode-extension
+npm run build && npm run package && code --install-extension <extension_vsix> --force
+```
+
+Then reload VSCode to pick up the changes.
+
 ## Release Notes
 
-AbcLsp isn't yet ready for release!
+See [CHANGELOG.md](./CHANGELOG.md) for release notes.
 
 ## Attribution
 
