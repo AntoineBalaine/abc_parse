@@ -8,9 +8,8 @@ import * as os from "os";
 import { pathToFileURL } from "url";
 
 // Import ABC parser for ABCx conversion
-import { ABCContext, AbcErrorReporter, Scanner, parse } from "abc-parser";
-import { AbcxToAbcConverter } from "abc-parser/Visitors/AbcxToAbcConverter";
-import { AbcFormatter } from "abc-parser/Visitors/Formatter2";
+import { ABCContext, AbcErrorReporter } from "abc-parser";
+import { convertAbcxToAbc as abcxToAbc } from "abc-parser/Visitors/AbcxToAbcConverter";
 
 let panel: vscode.WebviewPanel | undefined;
 let outputChannel: vscode.OutputChannel;
@@ -230,14 +229,7 @@ function convertAbcxToAbc(content: string): string {
   try {
     const errorReporter = new AbcErrorReporter();
     const ctx = new ABCContext(errorReporter);
-    const tokens = Scanner(content, ctx);
-    const ast = parse(tokens, ctx);
-
-    const converter = new AbcxToAbcConverter(ctx);
-    const abcAst = converter.convert(ast);
-
-    const formatter = new AbcFormatter(ctx);
-    return formatter.stringify(abcAst);
+    return abcxToAbc(content, ctx);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     outputChannel.appendLine(`ABCx conversion error: ${message}`);
