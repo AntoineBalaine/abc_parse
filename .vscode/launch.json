@@ -23,5 +23,20 @@
       "skipFiles": ["<node_internals>/**"],
       "cwd": "${workspaceFolder}/parse"
     },
+    {
+      "name": "Run VSCode Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/vscode-extension"],
+      "outFiles": ["${workspaceFolder}/vscode-extension/dist/**/*.js"],
+      "preLaunchTask": "watch-extension"
+    },
+    {
+      "name": "Run VSCode Extension (no build)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/vscode-extension"],
+      "outFiles": ["${workspaceFolder}/vscode-extension/dist/**/*.js"]
+    }
   ]
 }

@@ -1,0 +1,30 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "watch-extension",
+      "type": "shell",
+      "command": "npm run watch-bundle",
+      "options": {
+        "cwd": "${workspaceFolder}/vscode-extension"
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "never"
+      },
+      "problemMatcher": {
+        "owner": "typescript",
+        "source": "esbuild",
+        "pattern": {
+          "regexp": "^✘ \\[ERROR\\] (.*)$",
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\\[watch\\] build started$",
+          "endsPattern": "^\\[watch\\] build finished$"
+        }
+      }
+    }
+  ]
+}
