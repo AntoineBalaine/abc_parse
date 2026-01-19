@@ -96,7 +96,7 @@ To build and install the extension locally:
 
 ```bash
 cd vscode-extension
-npm run build && npm run package && code --install-extension <extension_vsix> --force
+npm run build && npm run package:vscode && code --install-extension <extension_vsix> --force
 ```
 
 Then reload VSCode to pick up the changes.
