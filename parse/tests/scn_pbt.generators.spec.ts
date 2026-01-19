@@ -98,7 +98,7 @@ export const genTuplet = fc
 export const genSlur = fc.constantFrom("(", ")").map((slur) => new Token(TT.SLUR, slur, sharedContext.generateId()));
 
 // Decoration generator
-export const genDecoration = fc.stringMatching(/^[\~\.HLMOPRSTuv]$/).map((deco) => new Token(TT.DECORATION, deco, sharedContext.generateId()));
+export const genDecoration = fc.stringMatching(/^[\~\.HJLMOPRSTuv]$/).map((deco) => new Token(TT.DECORATION, deco, sharedContext.generateId()));
 
 // System break generator - must be surrounded by whitespace to avoid conflicts with symbols
 export const genSystemBreak = fc

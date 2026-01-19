@@ -173,6 +173,15 @@ describe("scan2", () => {
       assert.equal(ctx.tokens[0].type, TT.DECORATION);
       assert.equal(ctx.tokens[0].lexeme, "~.RH");
     });
+
+    it("should parse J decoration (slide)", () => {
+      const ctx = createCtx("JA");
+      const result = decoration(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.DECORATION);
+      assert.equal(ctx.tokens[0].lexeme, "J");
+    });
   });
 
   describe("symbol", () => {

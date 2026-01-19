@@ -35,7 +35,7 @@ const pAccidental = /^((\^[\^\/]?)|(_[_\/]?)|=)/;
 export const pPitch = new RegExp(`((\\^[\\^\\/]?)|(_[_\\/]?)|=)?[a-gA-G][,']*`);
 export const pString = /"[^\n]*"/;
 export const pChord = new RegExp(`\\[((${pString.source})+|(${pPitch.source})+)\\]`);
-export const pDeco = /[\~\.HLMOPRSTuv]/;
+export const pDeco = /[\~\.HJLMOPRSTuv]/;
 
 export const pTuplet = new RegExp(`\\(${pNumber.source}(:(${pNumber.source})?)?(:(${pNumber.source})?)?`);
 const pNote = new RegExp(`-?${pDeco.source}?${pPitch.source}${pDuration.source}?-?`);
