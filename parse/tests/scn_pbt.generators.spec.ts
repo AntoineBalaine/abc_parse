@@ -98,7 +98,7 @@ export const genTuplet = fc
 export const genSlur = fc.constantFrom("(", ")").map((slur) => new Token(TT.SLUR, slur, sharedContext.generateId()));
 
 // Decoration generator
-export const genDecoration = fc.stringMatching(/^[\~\.HLMOPSTuv]$/).map((deco) => new Token(TT.DECORATION, deco, sharedContext.generateId()));
+export const genDecoration = fc.stringMatching(/^[\~\.HLMOPRSTuv]$/).map((deco) => new Token(TT.DECORATION, deco, sharedContext.generateId()));
 
 // System break generator - must be surrounded by whitespace to avoid conflicts with symbols
 export const genSystemBreak = fc
@@ -256,7 +256,7 @@ export const genGraceGroupWithFollower = fc
 export const genDecorationWithFollower = fc
   .tuple(
     // The decoration
-    fc.stringMatching(/^[\~\.HLMOPSTuv]+$/).map((deco) => new Token(TT.DECORATION, deco, sharedContext.generateId())),
+    fc.stringMatching(/^[\~\.HLMOPRSTuv]+$/).map((deco) => new Token(TT.DECORATION, deco, sharedContext.generateId())),
 
     // The follower - either a note or a chord
     fc.oneof(

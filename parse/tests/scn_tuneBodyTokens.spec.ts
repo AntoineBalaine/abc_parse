@@ -155,6 +155,24 @@ describe("scan2", () => {
       assert.equal(ctx.tokens[3].type, TT.DECORATION);
       assert.equal(ctx.tokens[4].type, TT.REST);
     });
+
+    it("should parse R decoration (roll)", () => {
+      // R is a single-letter decoration for "roll" ornament
+      const ctx = createCtx("RD");
+      const result = decoration(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.DECORATION);
+      assert.equal(ctx.tokens[0].lexeme, "R");
+    });
+
+    it("should parse R alongside other decorations", () => {
+      const ctx = createCtx("~.RHA");
+      const result = decoration(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.DECORATION);
+      assert.equal(ctx.tokens[0].lexeme, "~.RH");
+    });
   });
 
   describe("symbol", () => {
