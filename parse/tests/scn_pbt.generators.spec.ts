@@ -120,12 +120,12 @@ export const genYspacer = fc
 // Backtick spacer generator
 export const genBcktckSpc = fc.constantFrom(new Token(TT.BCKTCK_SPC, "`", sharedContext.generateId()));
 
-// Grace notes generator
+// Grace notes generator - supports optional rhythm values like {B2c/d/}
 export const genGraceGroup = fc
   .tuple(
     fc.constantFrom(new Token(TT.GRC_GRP_LEFT_BRACE, "{", sharedContext.generateId())),
     fc.option(fc.constantFrom(new Token(TT.GRC_GRP_SLSH, "/", sharedContext.generateId()))),
-    fc.array(genPitch, { minLength: 1, maxLength: 4 }),
+    fc.array(genNote, { minLength: 1, maxLength: 4 }),
     fc.constantFrom(new Token(TT.GRC_GRP_RGHT_BRACE, "}", sharedContext.generateId()))
   )
   .map(([leftBrace, slashOpt, notes, rightBrace]) => {

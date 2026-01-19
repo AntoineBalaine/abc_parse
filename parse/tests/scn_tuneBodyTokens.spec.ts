@@ -712,6 +712,26 @@ describe("scan2", () => {
       assert.equal(result, false);
       assert.equal(ctx.tokens.length, 0);
     });
+
+    it("should parse grace notes with rhythm values", () => {
+      // Grace notes can have rhythm values like B2, c/, d/
+      const ctx = createCtx("{B2c/d/}");
+      const result = grace_grp(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.GRC_GRP_LEFT_BRACE);
+      assert.equal(ctx.tokens[ctx.tokens.length - 1].type, TT.GRC_GRP_RGHT_BRACE);
+      // Should have note letters B, c, d with rhythm tokens
+      const noteLetters = ctx.tokens.filter((t) => t.type === TT.NOTE_LETTER);
+      assert.equal(noteLetters.length, 3);
+    });
+
+    it("should parse acciaccatura grace notes with rhythm", () => {
+      const ctx = createCtx("{/B2}");
+      const result = grace_grp(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.GRC_GRP_LEFT_BRACE);
+      assert.equal(ctx.tokens[1].type, TT.GRC_GRP_SLSH);
+    });
   });
 
   describe("inline_field", () => {

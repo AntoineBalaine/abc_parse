@@ -46,7 +46,7 @@ inline field is a left bracket, followed by a letter, followed by a colon
 followed by any text, followed by a right bracket
 */
 export const pInlineField = /\[[ \t]*[a-zA-Z][ \t]*:[^\]]*\]/;
-export const pGraceGrp = new RegExp(`{\/?(${pPitch.source})+}`);
+export const pGraceGrp = new RegExp(`{\/?(${pPitch.source}(${pDuration.source})?[ \\t]*)+}`);
 
 export function note(ctx: Ctx): boolean {
   tie(ctx);
