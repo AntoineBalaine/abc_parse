@@ -135,6 +135,9 @@ export interface VoiceState {
   // Chord symbol tracking (for guitar chord annotations)
   pendingChordSymbols: any[]; // Chord symbols to apply to next note
 
+  // Nostem tracking (for stemless notes, e.g., C0)
+  pendingNostem: boolean; // Whether next note should have no stem
+
   // Broken rhythm tracking (for dotted rhythms like < and >)
   nextNoteDurationMultiplier?: IRational; // Multiplier for next note's duration from broken rhythm
 }
@@ -313,6 +316,7 @@ export function newVxState(id: string, properties: VoiceProperties, tuneDefaults
     pendingDecorations: [],
     pendingGraceNotes: [],
     pendingChordSymbols: [],
+    pendingNostem: false,
   };
 }
 

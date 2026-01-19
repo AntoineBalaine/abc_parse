@@ -16,6 +16,7 @@ import {
   grace_grp,
   inline_field,
   line_continuation,
+  noStemZero,
   note,
   pitch,
   rest,
@@ -265,6 +266,79 @@ describe("scan2", () => {
       assert.equal(ctx.tokens[0].type, TT.NOTE_LETTER);
       assert.equal(ctx.tokens[1].type, TT.RHY_BRKN);
       assert.equal(ctx.tokens[2].type, TT.NOTE_LETTER);
+    });
+
+    it("should not parse zero as rhythm (zero is NOSTEM directive)", () => {
+      const ctx = createCtx("0");
+      const result = rhythm(ctx);
+      // rhythm() no longer matches leading 0 - use noStemZero() instead
+      assert.equal(result, false);
+      assert.equal(ctx.tokens.length, 0);
+    });
+
+    it("should parse zero on note as NOSTEM token", () => {
+      const ctx = createCtx("C0");
+      const result = note(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 2);
+      assert.equal(ctx.tokens[0].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[0].lexeme, "C");
+      // Zero after note is parsed as NOSTEM, not RHY_NUMER
+      assert.equal(ctx.tokens[1].type, TT.NOSTEM);
+      assert.equal(ctx.tokens[1].lexeme, "0");
+    });
+
+    it("should parse NOSTEM followed by rhythm (C02)", () => {
+      const ctx = createCtx("C02");
+      const result = note(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 3);
+      assert.equal(ctx.tokens[0].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[1].type, TT.NOSTEM);
+      assert.equal(ctx.tokens[2].type, TT.RHY_NUMER);
+      assert.equal(ctx.tokens[2].lexeme, "2");
+    });
+
+    it("should parse NOSTEM followed by fractional rhythm (C0/2)", () => {
+      const ctx = createCtx("C0/2");
+      const result = note(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 4);
+      assert.equal(ctx.tokens[0].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[1].type, TT.NOSTEM);
+      assert.equal(ctx.tokens[2].type, TT.RHY_SEP);
+      assert.equal(ctx.tokens[3].type, TT.RHY_DENOM);
+    });
+  });
+
+  describe("noStemZero", () => {
+    it("should parse standalone 0 as NOSTEM", () => {
+      const ctx = createCtx("0");
+      const result = noStemZero(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.NOSTEM);
+      assert.equal(ctx.tokens[0].lexeme, "0");
+    });
+
+    it("should parse 0 even when followed by digit (like 02)", () => {
+      const ctx = createCtx("02");
+      const result = noStemZero(ctx);
+      // noStemZero always matches a single 0, rhythm() parses the rest
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.NOSTEM);
+      assert.equal(ctx.current, 1); // Only consumed the 0
+    });
+
+    it("should parse 0 followed by non-digit", () => {
+      const ctx = createCtx("0/2");
+      const result = noStemZero(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.NOSTEM);
+      // /2 should remain unparsed
+      assert.equal(ctx.current, 1);
     });
   });
 

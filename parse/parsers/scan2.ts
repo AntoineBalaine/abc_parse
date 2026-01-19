@@ -262,6 +262,7 @@ export enum TT {
   RHY_DENOM,
   RHY_NUMER,
   RHY_SEP,
+  NOSTEM, // Zero rhythm (0) as nostem directive, not duration
   SCT_BRK,
   SLUR,
   DOTTED_SLUR, // .( for dotted slur

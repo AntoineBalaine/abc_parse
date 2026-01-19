@@ -26,7 +26,9 @@ export const pInfoLnCtd = /[ \t]*\+:[ \t]*/;
 
 export const pTuneHeadStrt = /[ \t]*X:/;
 export const pTuneStart = new RegExp(`^(?:(?!\n[ \t]*\n).)*${pTuneHeadStrt.source}`, "s");
-export const pDuration = /(\/+)|(([1-9][0-9]*)?\/[1-9][0-9]*)|([1-9][0-9]*)|([>]+|[<]+)/;
+// Duration pattern: slashes, fractions, integers (including 0 for no-stem), broken rhythm
+// Note: 0 is allowed as numerator (no-stem) but not as denominator
+export const pDuration = /(\/+)|(([1-9][0-9]*)?\/[1-9][0-9]*)|([0-9]+)|([>]+|[<]+)/;
 export const pSectionBrk = /\n([ \t]*\n)+/;
 export const pNumber = /[1-9][0-9]*/;
 export const pRest = /[zZxX]/;
@@ -54,6 +56,7 @@ export function note(ctx: Ctx): boolean {
     ctx.report("Expected pitch");
     return false;
   }
+  noStemZero(ctx);
   rhythm(ctx);
   tie(ctx);
   return true;
@@ -223,10 +226,28 @@ export function symbol(ctx: Ctx): boolean {
   return true;
 }
 
+/**
+ * Scan nostem directive: a 0 after a pitch indicates "no stem"
+ * This is separate from rhythm because 0 is a renderer directive, not a duration.
+ *
+ * Tokenization:
+ * - C0 → NOTE_LETTER(C) + NOSTEM(0)
+ * - C02 → NOTE_LETTER(C) + NOSTEM(0) + RHY_NUMER(2)
+ * - C0/2 → NOTE_LETTER(C) + NOSTEM(0) + RHY_SEP(/) + RHY_DENOM(2)
+ */
+export function noStemZero(ctx: Ctx): boolean {
+  if (!ctx.test(/^0/)) return false;
+  advance(ctx);
+  ctx.push(TT.NOSTEM);
+  return true;
+}
+
 export function rhythm(ctx: Ctx): boolean {
   if (!ctx.test(pDuration)) return false;
   let parsed = false;
-  if (ctx.test(pNumber)) {
+  // Match positive integers only (1-9 followed by more digits)
+  // Zero is handled separately by noStemZero() as a nostem directive
+  if (ctx.test(/[1-9]/)) {
     advance(ctx);
     while (ctx.test(/[0-9]/)) {
       advance(ctx);
@@ -354,6 +375,7 @@ export function chord(ctx: Ctx): boolean {
   advance(ctx);
   // tie(ctx);
   ctx.push(TT.CHRD_RIGHT_BRKT);
+  noStemZero(ctx);
   rhythm(ctx);
   return true;
 }

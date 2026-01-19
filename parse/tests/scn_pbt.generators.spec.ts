@@ -45,7 +45,9 @@ export const genRhythm = fc.oneof(
       new Token(TT.RHY_SEP, sep, sharedContext.generateId()),
       new Token(TT.RHY_DENOM, denom, sharedContext.generateId()),
     ]),
-  fc.stringMatching(/^[1-9][0-9]*$/).map((num) => [new Token(TT.RHY_NUMER, num.toString(), sharedContext.generateId())]),
+  // Numerator only - note: 0 is supported by scanner but not generated in PBT
+  // because the formatter/interpreter doesn't fully handle zero-duration notes yet
+  fc.stringMatching(/^[1-9][0-9]*$/).map((num) => [new Token(TT.RHY_NUMER, num, sharedContext.generateId())]),
   fc.stringMatching(/^([>]+|[<]+)$/).map((arrows) => [new Token(TT.RHY_BRKN, arrows, sharedContext.generateId())])
 );
 

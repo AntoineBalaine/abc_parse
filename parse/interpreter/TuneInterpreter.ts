@@ -1421,6 +1421,12 @@ export class TuneInterpreter implements Visitor<void> {
       accidental: accidental ? this.convertAccidental(accidental) : undefined,
     };
 
+    // Apply nostem if pending (from TT.NOSTEM token, e.g., C0)
+    if (voiceState?.pendingNostem) {
+      (pitch as any).noStem = true;
+      voiceState.pendingNostem = false;
+    }
+
     // Calculate duration with broken rhythm handling
     const defaultLength = this.state.tuneDefaults.noteLength;
     const rhythmResult = calculateRhythm(expr.rhythm, defaultLength, voiceState);
@@ -1579,6 +1585,14 @@ export class TuneInterpreter implements Visitor<void> {
 
     if (pitches.length === 0) return;
 
+    // Apply nostem if pending (from TT.NOSTEM token after chord, e.g., [CEG]0)
+    if (voiceState?.pendingNostem) {
+      for (const pitch of pitches) {
+        (pitch as any).noStem = true;
+      }
+      voiceState.pendingNostem = false;
+    }
+
     // Calculate duration with broken rhythm handling
     const defaultLength = this.state.tuneDefaults.noteLength;
     const rhythmResult = calculateRhythm(expr.rhythm, defaultLength, voiceState);
@@ -1735,6 +1749,12 @@ export class TuneInterpreter implements Visitor<void> {
       if (voiceState) {
         const label = voiceState.nextSlurLabel++;
         voiceState.pendingStartSlurs.push({ label, style: "dotted" });
+      }
+    } else if (token.type === TT.NOSTEM) {
+      // Nostem directive (0 after pitch): next note should have no stem
+      const voiceState = this.state.voices.get(this.state.currentVoice);
+      if (voiceState) {
+        voiceState.pendingNostem = true;
       }
     }
   }
