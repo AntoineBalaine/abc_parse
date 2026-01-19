@@ -61,7 +61,8 @@ export const genIdentifier = fc
       "brc"
     ),
     // Random valid identifiers (excluding patterns that look like absolute pitches)
-    fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9_]{2,15}$/).filter((id) => !/^[A-Ga-g][#b]?[0-9]/.test(id)) // Exclude absolute pitch patterns
+    // Exclude: note+digit (A3), note+accidental (Ab, F#), note+accidental+anything (Aba_A, F#m)
+    fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9_]{2,15}$/).filter((id) => !/^[A-Ga-g]([#b]|[0-9])/.test(id))
   )
   .map((id) => new Token(TT.IDENTIFIER, id, sharedContext.generateId()));
 
@@ -175,13 +176,13 @@ export const genAbsolutePitch = fc
  * Generator for specific info line types for more targeted testing
  */
 
-// Key info: K: C major clef=treble transpose=0
+// Key info: K: C major clef=treble transpose=0, K:F#m, K:Bb
 export const genKeyInfoLine2 = fc
   .tuple(
     fc.constantFrom(new Token(TT.INF_HDR, "K:", sharedContext.generateId())),
     fc.option(genWhitespace),
     fc.oneof(
-      // Simple key signatures
+      // Simple key signatures without accidentals
       fc
         .tuple(
           fc.oneof(
@@ -193,6 +194,14 @@ export const genKeyInfoLine2 = fc
           fc.option(fc.constantFrom("major", "minor", "maj", "min").map((mode) => new Token(TT.IDENTIFIER, mode, sharedContext.generateId())))
         )
         .map(([root, mode]) => (mode ? [root, new Token(TT.WS, " ", sharedContext.generateId()), mode] : [root])),
+      // Key signatures with accidentals: F#, Bb, C#, etc.
+      fc
+        .tuple(
+          fc.constantFrom("A", "B", "C", "D", "E", "F", "G").map((root) => new Token(TT.NOTE_LETTER, root, sharedContext.generateId())),
+          fc.constantFrom("#", "b").map((acc) => new Token(TT.ACCIDENTAL, acc, sharedContext.generateId())),
+          fc.option(fc.constantFrom("major", "minor", "maj", "min", "m").map((mode) => new Token(TT.IDENTIFIER, mode, sharedContext.generateId())))
+        )
+        .map(([root, acc, mode]) => (mode ? [root, acc, mode] : [root, acc])),
       // Special "none" case
       fc.constantFrom([new Token(TT.IDENTIFIER, "none", sharedContext.generateId())])
     ),

@@ -130,12 +130,22 @@ export function specialLiteral(ctx: Ctx): boolean {
 
 /**
  * Scan absolute pitch: note letter + optional accidental + optional numeric octave
- * Examples: G4, F#5, Bb3, C
- * Used in tempo markings like Q: G4=120
+ * Examples: G4, F#5, Bb3, C, F#m (for key signatures)
+ * Used in tempo markings like Q: G4=120 and key signatures like K:F#m
+ *
+ * Important: A letter can only follow if there's an accidental or octave.
+ * This prevents "Aa_" from being split as "A" (note) + "a_" (identifier).
+ * - F#m → F (note) + # (accidental) + m (mode) - OK, accidental present
+ * - Aa_ → Aa_ (identifier) - letter directly after note, no match
  */
 export function absolutePitch(ctx: Ctx): boolean {
-  // Must start with note letter (A-G, case insensitive)
-  if (!ctx.test(/[A-Ga-g][#b]?[0-9]?[= \t%\n]/)) return false;
+  // Pattern breakdown:
+  // 1. Note letter: [A-Ga-g]
+  // 2. One of:
+  //    - Accidental + optional octave + (terminator or letter): [#b][0-9]?[= \t%\n\]a-zA-Z]
+  //    - Octave + (terminator or letter): [0-9][= \t%\n\]a-zA-Z]
+  //    - Just terminator (no accidental, no octave): [= \t%\n\]]
+  if (!ctx.test(/[A-Ga-g]([#b][0-9]?[= \t%\n\]a-zA-Z]|[0-9][= \t%\n\]a-zA-Z]|[= \t%\n\]])/)) return false;
 
   advance(ctx); // consume note letter
   ctx.push(TT.NOTE_LETTER);

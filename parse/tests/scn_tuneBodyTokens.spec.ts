@@ -771,7 +771,7 @@ describe("scan2", () => {
       assert.equal(ctx.tokens.length, 4);
       assert.equal(ctx.tokens[0].type, TT.INLN_FLD_LFT_BRKT);
       assert.equal(ctx.tokens[1].type, TT.INF_HDR);
-      assert.equal(ctx.tokens[2].type, TT.IDENTIFIER);  // G should be IDENTIFIER not INFO_STR
+      assert.equal(ctx.tokens[2].type, TT.NOTE_LETTER);  // G is key root (note letter)
       assert.equal(ctx.tokens[2].lexeme, "G");
       assert.equal(ctx.tokens[3].type, TT.INLN_FLD_RGT_BRKT);
     });
@@ -811,6 +811,33 @@ describe("scan2", () => {
       const result = inline_field(ctx);
       assert.equal(result, false);
       assert.equal(ctx.tokens.length, 0);
+    });
+
+    it("should tokenize inline key change with accidentals like F#m", () => {
+      const ctx = createCtx("[K:F#m]");
+      const result = inline_field(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.INLN_FLD_LFT_BRKT);
+      assert.equal(ctx.tokens[1].type, TT.INF_HDR);
+      // F should be NOTE_LETTER, # should be ACCIDENTAL, m should be IDENTIFIER
+      const noteToken = ctx.tokens.find((t) => t.type === TT.NOTE_LETTER);
+      const accToken = ctx.tokens.find((t) => t.type === TT.ACCIDENTAL);
+      const modeToken = ctx.tokens.find((t) => t.type === TT.IDENTIFIER && t.lexeme === "m");
+      assert.ok(noteToken, "Should have NOTE_LETTER for F");
+      assert.equal(noteToken?.lexeme, "F");
+      assert.ok(accToken, "Should have ACCIDENTAL for #");
+      assert.equal(accToken?.lexeme, "#");
+      assert.ok(modeToken, "Should have IDENTIFIER for mode m");
+    });
+
+    it("should tokenize inline key change with Bb", () => {
+      const ctx = createCtx("[K:Bb]");
+      const result = inline_field(ctx);
+      assert.equal(result, true);
+      const noteToken = ctx.tokens.find((t) => t.type === TT.NOTE_LETTER);
+      const accToken = ctx.tokens.find((t) => t.type === TT.ACCIDENTAL);
+      assert.equal(noteToken?.lexeme, "B");
+      assert.equal(accToken?.lexeme, "b");
     });
   });
 
