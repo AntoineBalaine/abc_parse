@@ -5,3 +5,6 @@ error.log
 out
 pnpm-lock.yaml
 *.vsix
+
+# Native build
+native/build/

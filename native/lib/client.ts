@@ -28,7 +28,7 @@ function getDefaultLibraryPath(): string {
     case "darwin":
       return path.join(
         home,
-        "Library/Application Support/MuseHub/MuseSampler/lib/libMuseSamplerCoreLib.dylib"
+        "Library/Application Support/MuseSampler/lib/libMuseSamplerCoreLib.dylib"
       );
     case "linux":
       return path.join(
