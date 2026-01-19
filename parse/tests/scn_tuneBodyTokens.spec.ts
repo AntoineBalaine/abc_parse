@@ -508,6 +508,24 @@ describe("scan2", () => {
       assert.equal(result, false);
       assert.equal(ctx.tokens.length, 0);
     });
+
+    it("should parse escaped quotes in annotations", () => {
+      // Annotation containing an escaped quote: "D\""
+      const ctx = createCtx('"D\\""');
+      const result = annotation(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.ANNOTATION);
+      assert.equal(ctx.tokens[0].lexeme, '"D\\""');
+    });
+
+    it("should parse multiple escaped characters", () => {
+      // Contains escaped quote and escaped backslash
+      const ctx = createCtx('"test\\"\\\\"');
+      const result = annotation(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].lexeme, '"test\\"\\\\"');
+    });
   });
 
   describe("symbol line", () => {

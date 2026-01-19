@@ -412,18 +412,26 @@ export function inline_field(ctx: Ctx): boolean {
 }
 
 export function annotation(ctx: Ctx): boolean {
-  if (!ctx.test(/"[^"\n]*"/)) return false;
-  advance(ctx);
-  while (!ctx.test('"')) {
-    if (ctx.test(pEOL)) {
-      ctx.report("Unterminated string");
-      return false;
+  // Match opening quote, then any chars (including escaped chars), then closing quote
+  // Pattern supports escaped quotes like "D\"" but rejects newlines
+  if (!ctx.test(/"([^"\\\n]|\\.)*"/)) return false;
+  advance(ctx); // consume opening quote
+  while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
+    if (ctx.test("\\")) {
+      advance(ctx); // consume backslash
+      if (!isAtEnd(ctx) && !ctx.test(pEOL)) {
+        advance(ctx); // consume escaped character
+      }
+    } else if (ctx.test('"')) {
+      advance(ctx); // consume closing quote
+      ctx.push(TT.ANNOTATION);
+      return true;
+    } else {
+      advance(ctx);
     }
-    advance(ctx);
   }
-  advance(ctx);
-  ctx.push(TT.ANNOTATION);
-  return true;
+  ctx.report("Unterminated string");
+  return false;
 }
 
 /**

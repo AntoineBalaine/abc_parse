@@ -270,10 +270,15 @@ export const genDecorationWithFollower = fc
   });
 
 export const genAnnotation = fc
-  .stringMatching(/^[^"\n]*$/) // String without quotes or newlines
-  .map((text) => {
-    // Create the complete quoted annotation
-    const quotedText = `"${text}"`;
+  .tuple(
+    fc.stringMatching(/^[^"\n\\]*$/), // Safe characters: no quotes, newlines, or backslashes
+    fc.boolean() // Whether to include an escaped quote
+  )
+  .map(([text, includeEscapedQuote]) => {
+    // Create annotation with optional escaped quote
+    // For PBT, we support escaped quotes like "D\""
+    const content = includeEscapedQuote ? `${text}\\"` : text;
+    const quotedText = `"${content}"`;
     return new Token(TT.ANNOTATION, quotedText, sharedContext.generateId());
   });
 
