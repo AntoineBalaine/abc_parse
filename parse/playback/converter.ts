@@ -5,7 +5,7 @@
  * into MuseSampler events for playback.
  */
 
-import { IRational, rationalToNumber } from "../Visitors/fmt2/rational";
+import { IRational, rationalToNumber, isRational } from "../Visitors/fmt2/rational";
 import {
   Tune,
   NoteElement,
@@ -52,20 +52,31 @@ const DEFAULT_BEAT_LENGTH: IRational = { numerator: 1, denominator: 8 };
 const FERMATA_MULTIPLIER = 2.0;
 
 /**
+ * Converts a duration to a number value.
+ * Handles both IRational objects and plain numbers.
+ */
+function durationToNumber(duration: IRational | number): number {
+  if (typeof duration === "number") {
+    return duration;
+  }
+  return rationalToNumber(duration);
+}
+
+/**
  * Converts a duration fraction to microseconds.
  *
- * @param duration - Note duration as a fraction of a whole note
+ * @param duration - Note duration as a fraction of a whole note (IRational or number)
  * @param tempo - Tempo in BPM (beats per minute)
  * @param beatLength - Beat length as a fraction of a whole note
  * @returns Duration in microseconds
  */
 export function durationToMicroseconds(
-  duration: IRational,
+  duration: IRational | number,
   tempo: number,
   beatLength: IRational
 ): bigint {
   // Duration in whole notes
-  const wholeNotes = rationalToNumber(duration);
+  const wholeNotes = durationToNumber(duration);
 
   // Beat length in whole notes
   const beatLengthWholeNotes = rationalToNumber(beatLength);
@@ -142,6 +153,15 @@ function processVoice(
 
   for (const element of voice) {
     if (isNoteElement(element)) {
+      // Skip elements with invalid duration
+      const hasDuration = element.duration !== undefined && element.duration !== null;
+      const isValidDuration = hasDuration && (
+        typeof element.duration === "number" || isRational(element.duration)
+      );
+      if (!isValidDuration) {
+        continue;
+      }
+
       // Calculate duration
       let duration_us = durationToMicroseconds(element.duration, tempo, beatLength);
 
