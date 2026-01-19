@@ -219,6 +219,9 @@ export const genLineContinuation = fc
 
     return tokens;
   });
+// Chord generator - uses genPitch (not genNote) because rhythm values inside chord brackets
+// can cause issues with downstream formatter/interpreter. The scanner supports rhythm inside
+// chords (tested via example-based tests) but we don't generate them in PBT for stability.
 export const genChord = fc
   .tuple(
     fc.constantFrom(new Token(TT.CHRD_LEFT_BRKT, "[", sharedContext.generateId())),

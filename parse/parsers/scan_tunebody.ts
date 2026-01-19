@@ -36,7 +36,9 @@ const pAccidental = /^((\^[\^\/]?)|(_[_\/]?)|=)/;
 // export const pPitch = /[\^=_]?[a-gA-G][,']*/;
 export const pPitch = new RegExp(`((\\^[\\^\\/]?)|(_[_\\/]?)|=)?[a-gA-G][,']*`);
 export const pString = /"[^\n]*"/;
-export const pChord = new RegExp(`\\[((${pString.source})+|(${pPitch.source})+)\\]`);
+// Chord pattern: [ followed by pitches (with optional rhythm) and/or strings, then ]
+// Note: rhythm values inside chords are allowed (scanner parses them, interpreter handles them)
+export const pChord = new RegExp(`\\[((${pString.source})+|(${pPitch.source}(?:${pDuration.source})?)+)\\]`);
 export const pDeco = /[\~\.HJLMOPRSTuv]/;
 
 export const pTuplet = new RegExp(`\\(${pNumber.source}(:(${pNumber.source})?)?(:(${pNumber.source})?)?`);
@@ -363,12 +365,25 @@ export function chord(ctx: Ctx): boolean {
   if (!ctx.test(pChord)) return false;
   advance(ctx);
   ctx.push(TT.CHRD_LEFT_BRKT);
+  // Store reference to the opening bracket token for warning location
+  const chordStartToken = ctx.tokens[ctx.tokens.length - 1];
+
+  // Track rhythm values inside chord for warnings
+  let notesWithRhythm = 0;
+  const rhythmTypes = [TT.RHY_NUMER, TT.RHY_SEP, TT.RHY_DENOM, TT.RHY_BRKN];
+
   while (!isAtEnd(ctx) && !ctx.test("]")) {
     if (ctx.test(pString)) {
       annotation(ctx);
       continue;
     } else {
+      const tokenCountBefore = ctx.tokens.length;
       note(ctx);
+      // Check if rhythm tokens were added
+      const hasRhythm = ctx.tokens.slice(tokenCountBefore).some((t) => rhythmTypes.includes(t.type));
+      if (hasRhythm) {
+        notesWithRhythm++;
+      }
       continue;
     }
   }
@@ -377,6 +392,14 @@ export function chord(ctx: Ctx): boolean {
   ctx.push(TT.CHRD_RIGHT_BRKT);
   noStemZero(ctx);
   rhythm(ctx);
+
+  // Emit warnings for rhythm values inside chord brackets
+  if (notesWithRhythm === 1) {
+    ctx.errorReporter?.ScannerWarning("Rhythm on note in chord - prefer writing rhythm after ] bracket", chordStartToken);
+  } else if (notesWithRhythm > 1) {
+    ctx.errorReporter?.ScannerWarning("Multiple rhythm values in chord - only first note's rhythm is used", chordStartToken);
+  }
+
   return true;
 }
 

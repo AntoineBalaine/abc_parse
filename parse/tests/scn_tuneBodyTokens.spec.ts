@@ -776,6 +776,46 @@ describe("scan2", () => {
       assert.equal(ctx.tokens[3].type, TT.CHRD_RIGHT_BRKT);
       assert.equal(ctx.tokens[3].lexeme, "]");
     });
+
+    it("should parse chord with rhythm values inside brackets", () => {
+      const ctx = createCtx("[F/A]");
+      const result = chord(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 5);
+      assert.equal(ctx.tokens[0].type, TT.CHRD_LEFT_BRKT);
+      assert.equal(ctx.tokens[1].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[1].lexeme, "F");
+      assert.equal(ctx.tokens[2].type, TT.RHY_SEP);
+      assert.equal(ctx.tokens[2].lexeme, "/");
+      assert.equal(ctx.tokens[3].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[3].lexeme, "A");
+      assert.equal(ctx.tokens[4].type, TT.CHRD_RIGHT_BRKT);
+    });
+
+    it("should warn when single note in chord has rhythm", () => {
+      const errorReporter = new AbcErrorReporter();
+      const ctx = new Ctx("[F2A]", new ABCContext(errorReporter));
+      chord(ctx);
+      assert.equal(errorReporter.getWarnings().length, 1);
+      assert.ok(errorReporter.getWarnings()[0].message.includes("prefer writing rhythm after ] bracket"));
+    });
+
+    it("should warn when multiple notes in chord have rhythm", () => {
+      const errorReporter = new AbcErrorReporter();
+      const ctx = new Ctx("[F2A2]", new ABCContext(errorReporter));
+      chord(ctx);
+      assert.equal(errorReporter.getWarnings().length, 1);
+      assert.ok(errorReporter.getWarnings()[0].message.includes("Multiple rhythm values in chord"));
+    });
+
+    it("should not warn when rhythm is after closing bracket", () => {
+      const errorReporter = new AbcErrorReporter();
+      const ctx = new Ctx("[FA]2", new ABCContext(errorReporter));
+      chord(ctx);
+      assert.equal(errorReporter.getWarnings().length, 0);
+      // Verify the rhythm token is after the bracket
+      assert.equal(ctx.tokens[ctx.tokens.length - 1].type, TT.RHY_NUMER);
+    });
   });
 
   describe("grace_grp", () => {

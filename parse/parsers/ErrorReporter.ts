@@ -68,6 +68,14 @@ export class AbcErrorReporter {
     // this.report(messag, new Token(TT.AMPERSAND, "", null, -1, -1), ParserErrorType.BACKTICK);
   };
 
+  /**
+   * Add a scanner warning (non-fatal issue that should be reported to user)
+   */
+  ScannerWarning = (message: string, token: Token) => {
+    const warning: AbcError = { message, token, origin: ParserErrorType.SCANNER };
+    this.warnings.push(warning);
+  };
+
   private stringifyError({ message, token, origin }: AbcError) {
     let where = "";
     let line: number | string = "?";
