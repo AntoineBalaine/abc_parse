@@ -2358,6 +2358,51 @@ K:C
         }
       }
     });
+
+    it("should handle dotted slur with style property", () => {
+      // Dotted slur: .( creates a slur with style: 'dotted'
+      const input = `X:1
+T:Dotted Slur Test
+K:C
+.(CDE)|`;
+
+      const yourTune = parseWithYourParser(input).tunes[0];
+
+      const yourLine = yourTune.systems[0];
+
+      if (!("staff" in yourLine)) {
+        throw new Error("Expected MusicLine with staff property");
+      }
+
+      const yourVoice = yourLine.staff[0].voices[0];
+
+      // Find C, D, E notes
+      const yourNotes = yourVoice.filter((el: any) => "pitches" in el && el.pitches && el.pitches.length > 0);
+
+      expect(yourNotes.length).to.equal(3);
+
+      // C should have startSlur with style: 'dotted'
+      if ("pitches" in yourNotes[0] && yourNotes[0].pitches && yourNotes[0].pitches[0]) {
+        const pitch = yourNotes[0].pitches[0];
+        if ("startSlur" in pitch && pitch.startSlur) {
+          expect(pitch.startSlur).to.be.an("array");
+          expect(pitch.startSlur.length).to.equal(1);
+          if (pitch.startSlur[0]) {
+            expect(pitch.startSlur[0]).to.have.property("label");
+            expect(pitch.startSlur[0]).to.have.property("style", "dotted");
+          }
+        }
+      }
+
+      // E should have endSlur
+      if ("pitches" in yourNotes[2] && yourNotes[2].pitches && yourNotes[2].pitches[0]) {
+        const pitch = yourNotes[2].pitches[0];
+        if ("endSlur" in pitch && pitch.endSlur) {
+          expect(pitch.endSlur).to.be.an("array");
+          expect(pitch.endSlur.length).to.equal(1);
+        }
+      }
+    });
   });
 
   describe("Ticket #19: Tuplets", () => {

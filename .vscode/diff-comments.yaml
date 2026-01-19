@@ -1,6 +1,6 @@
 - id: c6f109fd-718d-4a12-a244-b75ef7870394
   content: >-
-    The pipeline should probably be updated: do we need to integrate this into
+    ✓ The pipeline should probably be updated: do we need to integrate this into
     the interpreter? Is there any risk that the formatter would remove any line
     breaks in the free text string?
   fileName: parse/parsers/scan2.ts
@@ -13,7 +13,7 @@
   content: >-
     ✓ This is in the wrong location - it appears after the optional comment parse,
     which can't happen at all, and it should be in its own function. Also, this
-    should probably be moved to the scanInfoLine2.ts file. 
+    should probably be moved to the scanInfoLine2.ts file.
   fileName: parse/parsers/scan2.ts
   lineNumber: 375
   hash: 787910ad5a155836ecae794261fa9471e0692019
@@ -22,7 +22,7 @@
   completed: false
 - id: 5fac422d-dc1f-4792-b941-431340cfc949
   content: >-
-    ✓ Why are you not calling `rhythm()`? Do not omit the rhythms, they should be
+    ✓ Why are you not calling `rhythm()`? Do not omit the rhythms, they should be
     included in the tooken stream.
   fileName: parse/parsers/scan_tunebody.ts
   lineNumber: 365

@@ -97,6 +97,11 @@ export const genTuplet = fc
 // Slur generator
 export const genSlur = fc.constantFrom("(", ")").map((slur) => new Token(TT.SLUR, slur, sharedContext.generateId()));
 
+// Dotted slur generator - creates single DOTTED_SLUR token with lexeme ".("
+export const genDottedSlur = fc.constant([
+  new Token(TT.DOTTED_SLUR, ".(", sharedContext.generateId())
+]);
+
 // Decoration generator
 export const genDecoration = fc.stringMatching(/^[\~\.HJLMOPRSTuv]$/).map((deco) => new Token(TT.DECORATION, deco, sharedContext.generateId()));
 
@@ -367,6 +372,7 @@ export const baseMusicTokenGenerators = [
   genWhitespace.map((ws) => [ws]),
   genTuplet, // Now returns an array of tokens directly
   genSlur.map((slur) => [slur]),
+  genDottedSlur, // Already returns array of tokens
   genDecorationWithFollower,
   genSystemBreak, // Already returns an array with whitespace
   genSymbol.map((sym) => [sym]),

@@ -12,6 +12,7 @@ import {
   chord,
   comment,
   decoration,
+  dotted_slur,
   grace_grp,
   inline_field,
   line_continuation,
@@ -1005,6 +1006,33 @@ describe("scan2", () => {
     it("should return false for non-parenthesis", () => {
       const ctx = createCtx("A");
       const result = slur(ctx);
+      assert.equal(result, false);
+      assert.equal(ctx.tokens.length, 0);
+    });
+  });
+
+  describe("dotted slur", () => {
+    it("should parse dotted slur opening .( pattern as single token", () => {
+      const ctx = createCtx(".(");
+      const result = dotted_slur(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens.length, 1);
+      assert.equal(ctx.tokens[0].type, TT.DOTTED_SLUR);
+      assert.equal(ctx.tokens[0].lexeme, ".(");
+    });
+
+    it("should not match regular dot followed by note", () => {
+      const ctx = createCtx(".A");
+      const result = dotted_slur(ctx);
+      // Should NOT match - not a .( pattern
+      assert.equal(result, false);
+      assert.equal(ctx.tokens.length, 0);
+    });
+
+    it("should not match regular slur", () => {
+      const ctx = createCtx("(A)");
+      const result = dotted_slur(ctx);
+      // Should NOT match - not a .( pattern
       assert.equal(result, false);
       assert.equal(ctx.tokens.length, 0);
     });

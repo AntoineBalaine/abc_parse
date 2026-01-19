@@ -318,6 +318,16 @@ export function slur(ctx: Ctx): boolean {
   return true;
 }
 
+export function dotted_slur(ctx: Ctx): boolean {
+  // Check for .( pattern (dotted slur opening)
+  // Emit as single token to prevent formatter from inserting whitespace between . and (
+  if (!ctx.test(/\.\(/)) return false;
+  advance(ctx); // consume .
+  advance(ctx); // consume (
+  ctx.push(TT.DOTTED_SLUR);
+  return true;
+}
+
 export function rest(ctx: Ctx): boolean {
   if (!ctx.test(pRest)) return false;
 
@@ -530,6 +540,7 @@ export function scanTune(ctx: Ctx): boolean {
     if (annotation(ctx)) continue;
     if (inline_field(ctx)) continue;
     if (tuplet(ctx)) continue;
+    if (dotted_slur(ctx)) continue;
     if (slur(ctx)) continue;
     if (grace_grp(ctx)) continue;
     if (chord(ctx)) continue;

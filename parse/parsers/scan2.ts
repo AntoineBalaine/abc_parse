@@ -264,6 +264,7 @@ export enum TT {
   RHY_SEP,
   SCT_BRK,
   SLUR,
+  DOTTED_SLUR, // .( for dotted slur
   STYLESHEET_DIRECTIVE, // %%
   SYMBOL, // ![a-zA-Z]!
   TIE,

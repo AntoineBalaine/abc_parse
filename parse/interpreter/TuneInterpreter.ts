@@ -413,8 +413,8 @@ function processTieEnd(pitches: any[], voiceState: VoiceState): void {
 
 /**
  * Applies start slurs to pitches.
- * When we encounter '(' tokens, we add labels to pendingStartSlurs, and then
- * this function applies those labels to the current note's pitches.
+ * When we encounter '(' or '.(' tokens, we add slur info to pendingStartSlurs, and then
+ * this function applies those to the current note's pitches.
  */
 function applyStartSlurs(pitches: any[], voiceState: VoiceState): void {
   if (voiceState.pendingStartSlurs.length === 0) return;
@@ -422,7 +422,8 @@ function applyStartSlurs(pitches: any[], voiceState: VoiceState): void {
   for (const pitch of pitches) {
     if (pitch.pitch !== undefined) {
       // Apply all pending start slurs to this pitch
-      pitch.startSlur = voiceState.pendingStartSlurs.map((label) => ({ label }));
+      // Each slur has { label, style? } - spread to include style if present
+      pitch.startSlur = voiceState.pendingStartSlurs.map((slur) => ({ ...slur }));
       break; // Only apply to first pitch
     }
   }
@@ -1699,7 +1700,7 @@ export class TuneInterpreter implements Visitor<void> {
         if (token.lexeme === "(") {
           // Start slur: generate a new label and add to pending
           const label = voiceState.nextSlurLabel++;
-          voiceState.pendingStartSlurs.push(label);
+          voiceState.pendingStartSlurs.push({ label });
         } else if (token.lexeme === ")") {
           // End slur: pop a label from start slurs and retroactively add to last note
           // Because slurs can only be attached to notes, we need to check if any music has been processed yet
@@ -1714,7 +1715,7 @@ export class TuneInterpreter implements Visitor<void> {
 
           const elements = this.getCurrentVoiceElements();
           if (voiceState.pendingStartSlurs.length > 0 && elements.length > 0) {
-            const label = voiceState.pendingStartSlurs.pop()!;
+            const slur = voiceState.pendingStartSlurs.pop()!;
             const lastElement = elements[elements.length - 1];
 
             // Add endSlur to the last note's first pitch
@@ -1723,10 +1724,17 @@ export class TuneInterpreter implements Visitor<void> {
               if (!pitch.endSlur) {
                 pitch.endSlur = [];
               }
-              pitch.endSlur.push(label);
+              pitch.endSlur.push(slur.label);
             }
           }
         }
+      }
+    } else if (token.type === TT.DOTTED_SLUR) {
+      // Dotted slur opening (.(): same as regular slur but with style: 'dotted'
+      const voiceState = this.state.voices.get(this.state.currentVoice);
+      if (voiceState) {
+        const label = voiceState.nextSlurLabel++;
+        voiceState.pendingStartSlurs.push({ label, style: "dotted" });
       }
     }
   }

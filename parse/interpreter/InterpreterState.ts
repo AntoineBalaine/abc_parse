@@ -116,7 +116,7 @@ export interface VoiceState {
   pendingTies: Map<number, {}>; // Map of pitch number to tie object
 
   // Slur tracking (for phrasing marks)
-  pendingStartSlurs: number[]; // Labels for slurs that need to start on next note
+  pendingStartSlurs: { label: number; style?: "dotted" }[]; // Slurs that need to start on next note
   pendingEndSlurs: number[]; // Labels for slurs that need to end on next note
   nextSlurLabel: number; // Counter for generating unique slur labels
 
