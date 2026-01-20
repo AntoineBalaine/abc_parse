@@ -2,8 +2,9 @@ import { AbcFormatter, RhythmVisitor, Transposer } from "abc-parser";
 import { HandlerResult, Position, Range, SemanticTokens, SemanticTokensBuilder, TextDocuments, TextEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcDocument } from "./AbcDocument";
-import { AbcxDocument } from "./AbcxDocument";
+import { AbctFormatter } from "./abct/AbctFormatter";
 import { AbctDocument } from "./AbctDocument";
+import { AbcxDocument } from "./AbcxDocument";
 import { LspEventListener, mapTTtoStandardScope, mapAbctTokenToScope } from "./server_helpers";
 
 /** Common interface for ABC, ABCx, and ABCT documents */
@@ -159,13 +160,34 @@ export class AbcLspServer {
   /**
    * Handler for Formatting request
    *
-   * Find the requested document and format it using the {@link AbcFormatter}.
-   * returns an array of {@link TextEdit}s.
-   * Only works for ABC and ABCx documents (not ABCT).
+   * Find the requested document and format it using the appropriate formatter.
+   * For ABC/ABCx documents, uses {@link AbcFormatter}.
+   * For ABCT documents, uses {@link AbctFormatter}.
+   * Returns an array of {@link TextEdit}s.
    */
   onFormat(uri: string): HandlerResult<TextEdit[], void> {
     const abcDocument = this.abcDocuments.get(uri); // find doc in previously parsed docs
-    if (!abcDocument || !abcDocument.tokens || !hasCtx(abcDocument)) {
+    if (!abcDocument || !abcDocument.tokens) {
+      return [];
+    }
+
+    // Handle ABCT documents with their own formatter
+    if (abcDocument instanceof AbctDocument) {
+      if (!abcDocument.AST || abcDocument.diagnostics.length > 0) {
+        return [];
+      }
+      const formatter = new AbctFormatter();
+      const source = abcDocument.document.getText();
+      const formatted = formatter.format(abcDocument.AST, source);
+      const edit = TextEdit.replace(
+        Range.create(Position.create(0, 0), Position.create(Number.MAX_VALUE, Number.MAX_VALUE)),
+        formatted
+      );
+      return [edit];
+    }
+
+    // Handle ABC and ABCx documents - need hasCtx for ctx property access
+    if (!hasCtx(abcDocument)) {
       return [];
     }
     if (abcDocument.ctx.errorReporter.hasErrors()) {
