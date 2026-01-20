@@ -36,7 +36,11 @@ export function scanInfoLine2(ctx: Ctx): boolean {
   return true;
 }
 export function tuneBodyPitch(ctx: Ctx): boolean {
-  if (!ctx.test(new RegExp(`^${pPitch.source}[%\n \t]`))) return false;
+  // Pattern requires pitch followed by: terminator OR accidental-before-note OR end-of-input
+  // Terminators: whitespace, comment, newline, closing bracket
+  // Accidental-before-note: ^/_ /= followed by a note letter (for consecutive accidentals like K:^c_B^G)
+  // This prevents matching A_00 as pitch+invalid (would match A because _ is followed by digit, not note)
+  if (!ctx.test(new RegExp(`^${pPitch.source}([%\\n \\t\\]]|[\\^_=][A-Ga-g]|$)`))) return false;
   return pitch(ctx);
 }
 
@@ -53,12 +57,18 @@ export function singleChar(ctx: Ctx, char: string, tokenType: TT): boolean {
 
 /**
  * Scan identifier: unquoted words like "treble", "major", "clef"
+ * Important: Identifiers stop at underscore or caret followed by a note letter
+ * to allow parsing explicit accidentals in key signatures (e.g., K:DMix_B_e)
  */
 export function identifier(ctx: Ctx): boolean {
+  // Initial test: must start with a letter followed by more identifier chars
+  // Note: The detailed matching is done in the exec below
   if (!ctx.test(/[a-zA-Z][\-a-zA-Z0-9_]*/)) return false;
 
-  const match = /^[a-zA-Z][\-a-zA-Z0-9_]*/.exec(ctx.source.substring(ctx.current));
-  if (match) {
+  // Match identifier but stop at underscore/caret followed by note letter
+  // This allows K:DMix_B_e to parse as D + Mix + _B + _e
+  const match = /^[a-zA-Z](?:[\-a-zA-Z0-9]|_(?![A-Ga-g])|\^(?![A-Ga-g]))*/.exec(ctx.source.substring(ctx.current));
+  if (match && match[0].length > 0) {
     ctx.current += match[0].length;
     ctx.push(TT.IDENTIFIER);
     return true;
@@ -133,10 +143,13 @@ export function specialLiteral(ctx: Ctx): boolean {
  * Examples: G4, F#5, Bb3, C, F#m (for key signatures)
  * Used in tempo markings like Q: G4=120 and key signatures like K:F#m
  *
- * Important: A letter can only follow if there's an accidental or octave.
+ * Important: A letter can only follow if there's an accidental or octave,
+ * OR if it's an uppercase note (A-G) followed by a mode identifier.
  * This prevents "Aa_" from being split as "A" (note) + "a_" (identifier).
  * - F#m → F (note) + # (accidental) + m (mode) - OK, accidental present
  * - Aa_ → Aa_ (identifier) - letter directly after note, no match
+ * - DMix → D (note) + Mix (identifier) - OK, uppercase note + mode identifier
+ * - Ador → A (note) + dor (identifier) - OK, uppercase note + mode identifier
  */
 export function absolutePitch(ctx: Ctx): boolean {
   // Pattern breakdown:
@@ -145,7 +158,10 @@ export function absolutePitch(ctx: Ctx): boolean {
   //    - Accidental + optional octave + (terminator or letter): [#b][0-9]?[= \t%\n\]a-zA-Z]
   //    - Octave + (terminator or letter): [0-9][= \t%\n\]a-zA-Z]
   //    - Just terminator (no accidental, no octave): [= \t%\n\]]
-  if (!ctx.test(/[A-Ga-g]([#b][0-9]?[= \t%\n\]a-zA-Z]|[0-9][= \t%\n\]a-zA-Z]|[= \t%\n\]])/)) return false;
+  // OR: Uppercase note (A-G) followed by mode start (any letter except A-G which would be another note)
+  // Mode names like Mix, Dor, Phr, Lyd, Loc, Ion, Aeo, min, maj, m start with letters other than A-G
+  // Wrap entire pattern in non-capturing group so ctx.test()'s ^ anchor applies to both alternatives
+  if (!ctx.test(/(?:[A-Ga-g]([#b][0-9]?[= \t%\n\]a-zA-Z]|[0-9][= \t%\n\]a-zA-Z]|[= \t%\n\]])|[A-G][H-Zh-z])/)) return false;
 
   advance(ctx); // consume note letter
   ctx.push(TT.NOTE_LETTER);

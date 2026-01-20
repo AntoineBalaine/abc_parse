@@ -263,6 +263,78 @@ describe("scanInfoLine2 - Unified Info Line Scanner", () => {
       );
     });
 
+    // Example-based tests for explicit accidental key signatures
+    it("should parse key with explicit accidentals only (K:^c_B)", () => {
+      const input = "K:^c_B\n";
+      const ctx = new Ctx(input, context);
+      const result = scanInfoLine2(ctx);
+
+      expect(result).to.be.true;
+      expect(ctx.tokens[0].type).to.equal(TT.INF_HDR);
+      expect(ctx.tokens[0].lexeme).to.equal("K:");
+      // ^c produces ACCIDENTAL + NOTE_LETTER
+      expect(ctx.tokens[1].type).to.equal(TT.ACCIDENTAL);
+      expect(ctx.tokens[1].lexeme).to.equal("^");
+      expect(ctx.tokens[2].type).to.equal(TT.NOTE_LETTER);
+      expect(ctx.tokens[2].lexeme).to.equal("c");
+      // _B produces ACCIDENTAL + NOTE_LETTER
+      expect(ctx.tokens[3].type).to.equal(TT.ACCIDENTAL);
+      expect(ctx.tokens[3].lexeme).to.equal("_");
+      expect(ctx.tokens[4].type).to.equal(TT.NOTE_LETTER);
+      expect(ctx.tokens[4].lexeme).to.equal("B");
+    });
+
+    it("should parse key with single explicit accidental (K:^G)", () => {
+      const input = "K:^G\n";
+      const ctx = new Ctx(input, context);
+      const result = scanInfoLine2(ctx);
+
+      expect(result).to.be.true;
+      expect(ctx.tokens[0].type).to.equal(TT.INF_HDR);
+      expect(ctx.tokens[1].type).to.equal(TT.ACCIDENTAL);
+      expect(ctx.tokens[1].lexeme).to.equal("^");
+      expect(ctx.tokens[2].type).to.equal(TT.NOTE_LETTER);
+      expect(ctx.tokens[2].lexeme).to.equal("G");
+    });
+
+    it("should parse key with mode and explicit overrides (K:DMix_B_e)", () => {
+      const input = "K:DMix_B_e\n";
+      const ctx = new Ctx(input, context);
+      const result = scanInfoLine2(ctx);
+
+      expect(result).to.be.true;
+      expect(ctx.tokens[0].type).to.equal(TT.INF_HDR);
+      // D is NOTE_LETTER (uppercase note followed by mode identifier)
+      expect(ctx.tokens[1].type).to.equal(TT.NOTE_LETTER);
+      expect(ctx.tokens[1].lexeme).to.equal("D");
+      // Mix is IDENTIFIER
+      expect(ctx.tokens[2].type).to.equal(TT.IDENTIFIER);
+      expect(ctx.tokens[2].lexeme).to.equal("Mix");
+      // _B is ACCIDENTAL + NOTE_LETTER
+      expect(ctx.tokens[3].type).to.equal(TT.ACCIDENTAL);
+      expect(ctx.tokens[3].lexeme).to.equal("_");
+      expect(ctx.tokens[4].type).to.equal(TT.NOTE_LETTER);
+      expect(ctx.tokens[4].lexeme).to.equal("B");
+      // _e is ACCIDENTAL + NOTE_LETTER
+      expect(ctx.tokens[5].type).to.equal(TT.ACCIDENTAL);
+      expect(ctx.tokens[5].lexeme).to.equal("_");
+      expect(ctx.tokens[6].type).to.equal(TT.NOTE_LETTER);
+      expect(ctx.tokens[6].lexeme).to.equal("e");
+    });
+
+    it("should parse voice with identifier correctly (V:SnareDrum)", () => {
+      const input = "V:SnareDrum\n";
+      const ctx = new Ctx(input, context);
+      const result = scanInfoLine2(ctx);
+
+      expect(result).to.be.true;
+      expect(ctx.tokens[0].type).to.equal(TT.INF_HDR);
+      expect(ctx.tokens[0].lexeme).to.equal("V:");
+      // SnareDrum should be a single IDENTIFIER, not split
+      expect(ctx.tokens[1].type).to.equal(TT.IDENTIFIER);
+      expect(ctx.tokens[1].lexeme).to.equal("SnareDrum");
+    });
+
     it("should handle meter info lines", () => {
       fc.assert(
         fc.property(genMeterInfoLine2, (tokens) => {

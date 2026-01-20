@@ -61,8 +61,14 @@ export const genIdentifier = fc
       "brc"
     ),
     // Random valid identifiers (excluding patterns that look like absolute pitches)
-    // Exclude: note+digit (A3), note+accidental (Ab, F#), note+accidental+anything (Aba_A, F#m)
-    fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9_]{2,15}$/).filter((id) => !/^[A-Ga-g]([#b]|[0-9])/.test(id))
+    // Exclude: note+digit (A3), note+accidental (Ab, F#), note+mode (AH, Dm)
+    // Also exclude: identifiers containing _/^ followed by note letter (since scanner stops there)
+    fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9_]{2,15}$/).filter(
+      (id) =>
+        !/^[A-Ga-g]([#b]|[0-9])/.test(id) && // note + accidental/digit at start
+        !/^[A-G][H-Zh-z]/.test(id) && // uppercase note + mode start (e.g. AH, Dm)
+        !/[_^][A-Ga-g]/.test(id) // underscore/caret + note letter anywhere
+    )
   )
   .map((id) => new Token(TT.IDENTIFIER, id, sharedContext.generateId()));
 
