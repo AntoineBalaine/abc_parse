@@ -11,7 +11,8 @@
     "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "declaration": true
+    "declaration": true,
+    "types": ["node", "mocha"]
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules", "out"]
