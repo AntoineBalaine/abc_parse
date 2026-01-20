@@ -2,12 +2,34 @@
 // These types match the structure produced by the Peggy grammar
 
 // ============================================================================
+// Source Location Types
+// ============================================================================
+
+/**
+ * Position in source code (from Peggy's location())
+ */
+export interface Pos {
+  line: number;
+  column: number;
+  offset: number;
+}
+
+/**
+ * Source location range (from Peggy's location())
+ */
+export interface Loc {
+  start: Pos;
+  end: Pos;
+}
+
+// ============================================================================
 // Program Structure
 // ============================================================================
 
 export interface Program {
   type: "program";
   statements: Statement[];
+  loc: Loc;
 }
 
 export type Statement = Assignment | Expr;
@@ -15,7 +37,10 @@ export type Statement = Assignment | Expr;
 export interface Assignment {
   type: "assignment";
   id: string;
+  idLoc: Loc; // Location of the identifier (for variable highlighting)
+  eqLoc: Loc; // Location of the = operator
   value: Expr;
+  loc: Loc;
 }
 
 // ============================================================================
@@ -43,24 +68,31 @@ export type Expr =
 export interface Pipe {
   type: "pipe";
   left: Expr;
+  opLoc: Loc; // Location of the | operator
   right: Expr;
+  loc: Loc;
 }
 
 export interface Concat {
   type: "concat";
   left: Expr;
+  opLoc: Loc; // Location of the + operator
   right: Expr;
+  loc: Loc;
 }
 
 export interface Update {
   type: "update";
   selector: Selector | LocationSelector;
+  opLoc: Loc; // Location of the |= operator
   transform: Expr;
+  loc: Loc;
 }
 
 export interface Application {
   type: "application";
   terms: Expr[];
+  loc: Loc;
 }
 
 // ============================================================================
@@ -70,18 +102,24 @@ export interface Application {
 export interface Or {
   type: "or";
   left: Expr;
+  kwLoc: Loc; // Location of the 'or' keyword
   right: Expr;
+  loc: Loc;
 }
 
 export interface And {
   type: "and";
   left: Expr;
+  kwLoc: Loc; // Location of the 'and' keyword
   right: Expr;
+  loc: Loc;
 }
 
 export interface Not {
   type: "not";
+  kwLoc: Loc; // Location of the 'not' keyword
   operand: Expr;
+  loc: Loc;
 }
 
 export type ComparisonOp = ">=" | "<=" | "==" | "!=" | ">" | "<";
@@ -89,8 +127,10 @@ export type ComparisonOp = ">=" | "<=" | "==" | "!=" | ">" | "<";
 export interface Comparison {
   type: "comparison";
   op: ComparisonOp;
+  opLoc: Loc; // Location of the comparison operator
   left: Expr;
   right: Expr;
+  loc: Loc;
 }
 
 // ============================================================================
@@ -99,7 +139,9 @@ export interface Comparison {
 
 export interface Selector {
   type: "selector";
+  atLoc: Loc; // Location of the @ symbol
   path: SelectorPath;
+  loc: Loc;
 }
 
 export interface LocationSelector {
@@ -107,44 +149,57 @@ export interface LocationSelector {
   line: number;
   col?: number;
   end?: RangeEnd;
+  loc: Loc;
 }
 
 export interface SelectorPath {
   id: string;
+  idLoc: Loc; // Location of the selector id
   value?: string | number | Range;
+  valueLoc?: Loc; // Location of the value (if present)
 }
 
 export interface VoiceRef {
   type: "voice_ref";
   voiceType: string;
+  typeLoc: Loc; // Location of the type (e.g., 'V')
   name: string | number;
+  nameLoc: Loc; // Location of the name
+  loc: Loc;
 }
 
 export interface List {
   type: "list";
   items: Expr[];
+  loc: Loc;
 }
 
 export interface AbcLiteral {
   type: "abc_literal";
   content: string;
+  loc: Loc;
 }
 
 export interface FileRef {
   type: "file_ref";
   path: string;
+  pathLoc: Loc; // Location of the path
   location: Location | null;
+  locationLoc: Loc | null; // Location of the :line:col part
   selector: SelectorPath | null;
+  loc: Loc;
 }
 
 export interface NumberLiteral {
   type: "number";
   value: string; // String because it can be a fraction like "1/2"
+  loc: Loc;
 }
 
 export interface Identifier {
   type: "identifier";
   name: string;
+  loc: Loc;
 }
 
 // ============================================================================

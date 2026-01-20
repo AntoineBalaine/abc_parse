@@ -124,3 +124,6 @@ function isPeggyError(e: unknown): e is PeggySyntaxError {
 
 // Re-export AST types for convenience
 export * from "./ast";
+
+// Re-export tokenization utilities
+export { extractTokens, AbctTokenType, AbctToken } from "./tokenize";

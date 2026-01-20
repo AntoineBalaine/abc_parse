@@ -1,5 +1,6 @@
 import { AbcError, RangeVisitor, TT } from "abc-parser";
 import { Diagnostic, PublishDiagnosticsParams } from "vscode-languageserver";
+import { AbctTokenType } from "../../abct/src/tokenize";
 
 /**
  * convert errors from an {@link AbcErrorReporter} to the server's {@link Diagnostic}s
@@ -110,6 +111,38 @@ export function mapTTtoStandardScope(type: number): number {
 }
 
 export type LspEventListener = (type: "diagnostics", params: PublishDiagnosticsParams) => void;
+
+/**
+ * Map ABCT token types to standard semantic token scopes.
+ */
+export function mapAbctTokenToScope(type: AbctTokenType): number {
+  switch (type) {
+    case AbctTokenType.COMMENT:
+      return standardTokenScopes.comment;
+    case AbctTokenType.KEYWORD:
+      return standardTokenScopes.keyword;
+    case AbctTokenType.OPERATOR:
+      return standardTokenScopes.operator;
+    case AbctTokenType.ABC_LITERAL:
+      return standardTokenScopes.string;
+    case AbctTokenType.NUMBER:
+      return standardTokenScopes.number;
+    case AbctTokenType.IDENTIFIER:
+      return standardTokenScopes.function;
+    case AbctTokenType.VARIABLE:
+      return standardTokenScopes.variable;
+    case AbctTokenType.FILE_REF:
+      return standardTokenScopes.string;
+    case AbctTokenType.SELECTOR:
+      return standardTokenScopes.decorator;
+    case AbctTokenType.VOICE_REF:
+      return standardTokenScopes.type;
+    case AbctTokenType.PUNCTUATION:
+      return -1; // No highlighting for punctuation
+    default:
+      return -1;
+  }
+}
 
 /**
  * These are the standard scope names that are used for syntax highlighting.

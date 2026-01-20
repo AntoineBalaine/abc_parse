@@ -3,9 +3,10 @@ import { HandlerResult, Position, Range, SemanticTokens, SemanticTokensBuilder, 
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
-import { LspEventListener, mapTTtoStandardScope } from "./server_helpers";
-/** Common interface for both ABC and ABCx documents */
-type DocumentType = AbcDocument | AbcxDocument;
+import { AbctDocument } from "./AbctDocument";
+import { LspEventListener, mapTTtoStandardScope, mapAbctTokenToScope } from "./server_helpers";
+/** Common interface for ABC, ABCx, and ABCT documents */
+type DocumentType = AbcDocument | AbcxDocument | AbctDocument;
 
 /**
  * Type definition for a selection range in a document
@@ -57,6 +58,13 @@ export class AbcLspServer {
   }
 
   /**
+   * Checks if a URI refers to an ABCT file
+   */
+  private isAbctFile(uri: string): boolean {
+    return uri.toLowerCase().endsWith(".abct");
+  }
+
+  /**
    * Get the updated changes in the document,
    * parse it and send diagnostics to the client.
    * @param uri
@@ -67,9 +75,13 @@ export class AbcLspServer {
       const document = this.documents.get(uri);
       if (document) {
         // Create appropriate document type based on file extension
-        abcDocument = this.isAbcxFile(uri)
-          ? new AbcxDocument(document)
-          : new AbcDocument(document);
+        if (this.isAbctFile(uri)) {
+          abcDocument = new AbctDocument(document);
+        } else if (this.isAbcxFile(uri)) {
+          abcDocument = new AbcxDocument(document);
+        } else {
+          abcDocument = new AbcDocument(document);
+        }
         this.abcDocuments.set(uri, abcDocument);
       }
     }
@@ -98,31 +110,48 @@ export class AbcLspServer {
 
     const builder = new SemanticTokensBuilder();
 
-    for (const token of abcDocument.tokens) {
-      const scope = mapTTtoStandardScope(token.type);
-      if (scope === -1) continue;
-
-      // Handle multi-line tokens by splitting them across lines
-      if (token.lexeme.includes("\n")) {
-        const lines = token.lexeme.split("\n");
-        for (let i = 0; i < lines.length; i++) {
-          if (lines[i].length === 0) continue;
+    // ABCT documents have a different token format
+    if (abcDocument instanceof AbctDocument) {
+      for (const token of abcDocument.tokens) {
+        const scope = mapAbctTokenToScope(token.type);
+        if (scope >= 0) {
           builder.push(
-            token.line + i,
-            i === 0 ? token.position : 0,
-            lines[i].length,
+            token.line - 1, // Convert from 1-based to 0-based
+            token.column - 1, // Convert from 1-based to 0-based
+            token.length,
             scope,
             0
           );
         }
-      } else {
-        builder.push(
-          token.line,
-          token.position,
-          token.lexeme.length,
-          scope,
-          0
-        );
+      }
+    } else {
+      // ABC and ABCx documents
+      for (const token of abcDocument.tokens) {
+        const scope = mapTTtoStandardScope(token.type);
+        if (scope === -1) continue;
+
+        // Handle multi-line tokens by splitting them across lines
+        if (token.lexeme.includes("\n")) {
+          const lines = token.lexeme.split("\n");
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].length === 0) continue;
+            builder.push(
+              token.line + i,
+              i === 0 ? token.position : 0,
+              lines[i].length,
+              scope,
+              0
+            );
+          }
+        } else {
+          builder.push(
+            token.line,
+            token.position,
+            token.lexeme.length,
+            scope,
+            0
+          );
+        }
       }
     }
 

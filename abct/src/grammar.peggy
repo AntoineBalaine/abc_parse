@@ -1,10 +1,25 @@
 // ABCT Grammar - A DSL for transforming ABC music notation
 // Based on the spec at plans/9.abct-language-spec.md
+// Includes source location tracking for semantic highlighting
 
 {{
-  // Helper to build left-associative binary expressions
-  function buildBinaryLeft(head, tail, makeNode) {
-    return tail.reduce((left, element) => makeNode(left, element), head);
+  // Helper to build left-associative binary expressions with location tracking
+  // Each element in tail should be { opLoc, right } for binary expressions
+  // or { kwLoc, right } for logical expressions
+  function buildBinaryLeft(head, tail, type, locKey) {
+    return tail.reduce((left, element) => {
+      const node = {
+        type,
+        left,
+        right: element.right,
+        loc: {
+          start: left.loc.start,
+          end: element.right.loc.end
+        }
+      };
+      node[locKey] = element[locKey];
+      return node;
+    }, head);
   }
 }}
 
@@ -13,16 +28,29 @@
 // ============================================================================
 
 program
-  = statements:statement* _ { return { type: "program", statements }; }
+  = statements:statement* _ {
+      const loc = location();
+      return { type: "program", statements, loc };
+    }
 
 statement
   = _ a:assignment { return a; }
   / _ e:expr { return e; }
 
 assignment
-  = id:identifier _ "=" _ value:expr {
-      return { type: "assignment", id, value };
+  = id:identifier_with_loc _ eqLoc:eq_op _ value:expr {
+      return {
+        type: "assignment",
+        id: id.name,
+        idLoc: id.loc,
+        eqLoc,
+        value,
+        loc: { start: id.loc.start, end: value.loc.end }
+      };
     }
+
+eq_op
+  = "=" { return location(); }
 
 // ============================================================================
 // Expression Hierarchy (lowest to highest precedence)
@@ -33,43 +61,66 @@ expr
 
 // Pipe operator: lowest precedence
 pipeline
-  = head:concat_term tail:(_ "|" !("=") _ concat_term)* {
-      return buildBinaryLeft(head, tail.map(t => t[4]), (left, right) => ({
-        type: "pipe",
-        left,
-        right
-      }));
+  = head:concat_term tail:(_ opLoc:pipe_op _ right:concat_term { return { opLoc, right }; })* {
+      return tail.length === 0 ? head : buildBinaryLeft(head, tail, "pipe", "opLoc");
     }
+
+pipe_op
+  = "|" !("=") { return location(); }
 
 // Concatenation: second lowest
 concat_term
-  = head:update_term tail:(_ "+" _ update_term)* {
-      return buildBinaryLeft(head, tail.map(t => t[3]), (left, right) => ({
-        type: "concat",
-        left,
-        right
-      }));
+  = head:update_term tail:(_ opLoc:concat_op _ right:update_term { return { opLoc, right }; })* {
+      return tail.length === 0 ? head : buildBinaryLeft(head, tail, "concat", "opLoc");
     }
+
+concat_op
+  = "+" { return location(); }
 
 // Update operator: binds selector to single application
 update_term
-  = sel:(selector / location_selector) _ "|=" _ transform:application {
-      return { type: "update", selector: sel, transform };
+  = sel:(selector / location_selector) _ opLoc:update_op _ transform:application {
+      return {
+        type: "update",
+        selector: sel,
+        opLoc,
+        transform,
+        loc: { start: sel.loc.start, end: transform.loc.end }
+      };
     }
   / application
 
+update_op
+  = "|=" { return location(); }
+
 // Selector: @ followed by selector path
 selector
-  = "@" path:selector_path { return { type: "selector", path }; }
+  = atLoc:at_symbol path:selector_path {
+      return {
+        type: "selector",
+        atLoc,
+        path,
+        loc: { start: atLoc.start, end: path.idLoc.end }
+      };
+    }
+
+at_symbol
+  = "@" { return location(); }
 
 // Application: one or more logical terms (function name + args)
 // Whitespace separates terms in an application (no newlines - use ws not _)
 application
   = head:logical tail:(ws logical)* {
       const terms = [head, ...tail.map(t => t[1])];
-      return terms.length === 1
-        ? terms[0]
-        : { type: "application", terms };
+      if (terms.length === 1) {
+        return terms[0];
+      }
+      const last = terms[terms.length - 1];
+      return {
+        type: "application",
+        terms,
+        loc: { start: head.loc.start, end: last.loc.end }
+      };
     }
 
 // ============================================================================
@@ -80,40 +131,55 @@ logical
   = or_term
 
 or_term
-  = head:and_term tail:(_ "or" _ and_term)* {
-      return buildBinaryLeft(head, tail.map(t => t[3]), (left, right) => ({
-        type: "or",
-        left,
-        right
-      }));
+  = head:and_term tail:(_ kwLoc:or_kw _ right:and_term { return { kwLoc, right }; })* {
+      return tail.length === 0 ? head : buildBinaryLeft(head, tail, "or", "kwLoc");
     }
+
+or_kw
+  = "or" { return location(); }
 
 and_term
-  = head:not_term tail:(_ "and" _ not_term)* {
-      return buildBinaryLeft(head, tail.map(t => t[3]), (left, right) => ({
-        type: "and",
-        left,
-        right
-      }));
+  = head:not_term tail:(_ kwLoc:and_kw _ right:not_term { return { kwLoc, right }; })* {
+      return tail.length === 0 ? head : buildBinaryLeft(head, tail, "and", "kwLoc");
     }
 
+and_kw
+  = "and" { return location(); }
+
 not_term
-  = "not" _ operand:not_term { return { type: "not", operand }; }
+  = kwLoc:not_kw _ operand:not_term {
+      return {
+        type: "not",
+        kwLoc,
+        operand,
+        loc: { start: kwLoc.start, end: operand.loc.end }
+      };
+    }
   / comparison
 
+not_kw
+  = "not" { return location(); }
+
 comparison
-  = left:atom _ op:cmp_op _ right:atom {
-      return { type: "comparison", op, left, right };
+  = left:atom _ opLoc:cmp_op_loc _ right:atom {
+      return {
+        type: "comparison",
+        op: opLoc.op,
+        opLoc: opLoc.loc,
+        left,
+        right,
+        loc: { start: left.loc.start, end: right.loc.end }
+      };
     }
   / atom
 
-cmp_op
-  = ">=" { return ">="; }
-  / "<=" { return "<="; }
-  / "==" { return "=="; }
-  / "!=" { return "!="; }
-  / ">" { return ">"; }
-  / "<" { return "<"; }
+cmp_op_loc
+  = ">=" { return { op: ">=", loc: location() }; }
+  / "<=" { return { op: "<=", loc: location() }; }
+  / "==" { return { op: "==", loc: location() }; }
+  / "!=" { return { op: "!=", loc: location() }; }
+  / ">" { return { op: ">", loc: location() }; }
+  / "<" { return { op: "<", loc: location() }; }
 
 // ============================================================================
 // Atoms
@@ -122,26 +188,45 @@ cmp_op
 atom
   = "(" _ e:expr _ ")" { return e; }
   / "[" _ items:list_items? _ "]" {
-      return { type: "list", items: items || [] };
+      const loc = location();
+      return { type: "list", items: items || [], loc };
     }
   / abc_literal
   / location_selector
   / selector
   / voice_ref
   / file_ref
-  / n:number { return { type: "number", value: n }; }
-  / id:identifier { return { type: "identifier", name: id }; }
+  / number_literal
+  / identifier_atom
+
+number_literal
+  = n:number {
+      return { type: "number", value: n, loc: location() };
+    }
+
+identifier_atom
+  = id:identifier_with_loc {
+      return { type: "identifier", name: id.name, loc: id.loc };
+    }
 
 // Location selector: :line or :line:col for piped input
 location_selector
-  = ":" loc:location {
-      return { type: "location_selector", ...loc };
+  = ":" loc:location_value {
+      const srcLoc = location();
+      return { type: "location_selector", ...loc, loc: srcLoc };
     }
 
 // Voice reference: V:name or V:number (used in lists like distribute [V:S, V:A])
 voice_ref
-  = type:identifier ":" name:(identifier / integer) {
-      return { type: "voice_ref", voiceType: type, name };
+  = typeLoc:identifier_with_loc ":" nameLoc:(identifier_with_loc / integer_with_loc) {
+      return {
+        type: "voice_ref",
+        voiceType: typeLoc.name,
+        typeLoc: typeLoc.loc,
+        name: typeof nameLoc.value !== 'undefined' ? nameLoc.value : nameLoc.name,
+        nameLoc: nameLoc.loc,
+        loc: { start: typeLoc.loc.start, end: nameLoc.loc.end }
+      };
     }
 
 // ============================================================================
@@ -150,29 +235,54 @@ voice_ref
 
 // File reference with optional location and selector
 file_ref
-  = p:path loc:(":" location)? sel:("@" selector_path)? {
+  = pathLoc:path_with_loc locPart:(":" location_value)? selPart:("@" selector_path)? {
+      const hasLoc = locPart !== null;
+      const hasSel = selPart !== null;
+      const endLoc = hasSel ? selPart[1].idLoc.end
+                   : hasLoc ? locPart[1].loc.end
+                   : pathLoc.loc.end;
       return {
         type: "file_ref",
-        path: p,
-        location: loc ? loc[1] : null,
-        selector: sel ? sel[1] : null
+        path: pathLoc.path,
+        pathLoc: pathLoc.loc,
+        location: hasLoc ? locPart[1].value : null,
+        locationLoc: hasLoc ? locPart[1].loc : null,
+        selector: hasSel ? selPart[1] : null,
+        loc: { start: pathLoc.loc.start, end: endLoc }
       };
+    }
+
+path_with_loc
+  = p:path {
+      return { path: p, loc: location() };
     }
 
 // Selector path: identifier with optional sub-selector
 // Note: range must come before number to match "5-8" before matching just "5"
 selector_path
-  = id:identifier ":" val:(identifier / range / number) {
-      return { id, value: val };
+  = idLoc:identifier_with_loc ":" valueLoc:(identifier_with_loc / range_with_loc / number_with_loc) {
+      return {
+        id: idLoc.name,
+        idLoc: idLoc.loc,
+        value: typeof valueLoc.value !== 'undefined' ? valueLoc.value : valueLoc.name,
+        valueLoc: valueLoc.loc
+      };
     }
-  / id:identifier { return { id }; }
+  / idLoc:identifier_with_loc {
+      return { id: idLoc.name, idLoc: idLoc.loc };
+    }
 
-// Location: line with optional column and range
-location
+// Location: line with optional column and range (returns both value and source location)
+location_value
   = line:line_num ":" col:col_num end:range_end? {
-      return end ? { line, col, end } : { line, col };
+      const loc = location();
+      const value = end ? { line, col, end } : { line, col };
+      return { value, loc };
     }
-  / line:line_num { return { line }; }
+  / line:line_num {
+      const loc = location();
+      return { value: { line }, loc };
+    }
 
 range_end
   = "-" endLine:line_num ":" endCol:col_num {
@@ -183,9 +293,14 @@ range_end
     }
 
 // Range for selectors like @M:5-8
-range
+range_with_loc
   = start:integer "-" end:integer {
-      return { type: "range", start, end };
+      return { value: { type: "range", start, end }, loc: location() };
+    }
+
+number_with_loc
+  = n:number {
+      return { value: n, loc: location() };
     }
 
 // List items separated by commas
@@ -201,7 +316,7 @@ list_items
 // ABC literal: <<content>>
 abc_literal
   = "<<" content:abc_content ">>" {
-      return { type: "abc_literal", content };
+      return { type: "abc_literal", content, loc: location() };
     }
 
 abc_content
@@ -224,7 +339,13 @@ path_segment
 extension_char
   = [a-zA-Z0-9]
 
-// Identifier: starts with letter or underscore
+// Identifier with location: starts with letter or underscore
+identifier_with_loc
+  = !reserved id:$(identifier_start identifier_char*) {
+      return { name: id, loc: location() };
+    }
+
+// Identifier (raw): for backward compatibility
 identifier
   = !reserved id:$(identifier_start identifier_char*) { return id; }
 
@@ -245,6 +366,11 @@ number
 // Integer (no fractions, for line/col numbers)
 integer
   = n:$[0-9]+ { return parseInt(n, 10); }
+
+integer_with_loc
+  = n:$[0-9]+ {
+      return { value: parseInt(n, 10), loc: location() };
+    }
 
 line_num
   = integer
