@@ -3,6 +3,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { parse, extractTokens, AbctToken, Program } from "../../abct/src/parser";
 import { createFileResolver } from "./fileResolver";
 import { evaluateAbct, EvalOptions, EvalResult } from "./abctEvaluator";
+import { AbctValidator } from "./abct/AbctValidator";
 
 /**
  * AbctDocument stores an ABCT `TextDocument`'s diagnostics, tokens, and AST.
@@ -19,7 +20,7 @@ export class AbctDocument {
   /**
    * Analyze the ABCT document.
    * Parses the document, extracts tokens for semantic highlighting,
-   * and collects any parse errors as diagnostics.
+   * and collects any parse errors and semantic errors as diagnostics.
    *
    * @returns an array of semantic tokens or void.
    */
@@ -53,6 +54,11 @@ export class AbctDocument {
 
     this.AST = result.value;
     this.tokens = extractTokens(this.AST, source);
+
+    // Run semantic validation to detect unknown transforms, selectors, and type errors
+    const validator = new AbctValidator();
+    const semanticDiagnostics = validator.validateProgram(this.AST);
+    this.diagnostics.push(...semanticDiagnostics);
 
     return this.tokens;
   }
