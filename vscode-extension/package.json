@@ -14,7 +14,8 @@
   "license": "GPL-3.0-or-later",
   "icon": "assets/trebleclef_abc.png",
   "activationEvents": [
-    "onLanguage:abc"
+    "onLanguage:abc",
+    "onLanguage:abct"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -125,10 +126,37 @@
         "title": "ABC: Initialize Playback",
         "group": "Playback",
         "description": "Initialize the MuseSampler playback engine"
+      },
+      {
+        "command": "abct.evaluate",
+        "title": "ABCT: Evaluate File",
+        "group": "ABCT",
+        "description": "Evaluate the entire ABCT file and show the resulting ABC output"
+      },
+      {
+        "command": "abct.evaluateToLine",
+        "title": "ABCT: Evaluate to Cursor",
+        "group": "ABCT",
+        "description": "Evaluate the ABCT file up to the current cursor line (for debugging)"
+      },
+      {
+        "command": "abct.evaluateSelection",
+        "title": "ABCT: Evaluate Selection",
+        "group": "ABCT",
+        "description": "Evaluate only the selected ABCT expression"
+      },
+      {
+        "command": "abct.exportToFile",
+        "title": "ABCT: Export to ABC File",
+        "group": "ABCT",
+        "description": "Evaluate the ABCT file and save the result to an ABC file"
       }
     ],
     "configurationDefaults": {
       "[abc]": {
+        "editor.semanticHighlighting.enabled": true
+      },
+      "[abct]": {
         "editor.semanticHighlighting.enabled": true
       }
     },
@@ -225,6 +253,18 @@
         "capabilities": {
           "documentFormattingProvider": "true"
         },
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "abct",
+        "aliases": [
+          "abct",
+          "ABCT",
+          "ABC Transform"
+        ],
+        "extensions": [
+          ".abct"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],

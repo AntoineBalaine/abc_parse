@@ -10,6 +10,7 @@ import { setMscorePath } from "abc-musesampler-native";
 import { registerCommands } from "./extensionCommands";
 import { registerRendererCommands } from "./renderer";
 import { registerPlaybackCommands } from "./playback";
+import { registerAbctCommands, disposeAbctCommands } from "./abctCommands";
 
 let client: LanguageClient;
 
@@ -41,8 +42,11 @@ export function activate(context: ExtensionContext) {
 
   // Options to control the language client
   const clientOptions: LanguageClientOptions = {
-    // Register the server for abc documents
-    documentSelector: [{ scheme: "file", language: "abc" }],
+    // Register the server for abc and abct documents
+    documentSelector: [
+      { scheme: "file", language: "abc" },
+      { scheme: "file", language: "abct" },
+    ],
   };
 
   // Create the language client and start the client.
@@ -57,11 +61,17 @@ export function activate(context: ExtensionContext) {
   // register playback commands (play, stop, pause)
   registerPlaybackCommands(context);
 
+  // register ABCT evaluation commands
+  registerAbctCommands(context, client);
+
   // Start the client. This will also launch the server
   client.start();
 }
 
 export function deactivate(): Thenable<void> | undefined {
+  // Dispose ABCT resources
+  disposeAbctCommands();
+
   if (!client) {
     return undefined;
   }

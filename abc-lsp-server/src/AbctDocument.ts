@@ -1,6 +1,8 @@
 import { Diagnostic, DiagnosticSeverity, Range, Position } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { parse, extractTokens, AbctToken, Program } from "../../abct/src/parser";
+import { createFileResolver } from "./fileResolver";
+import { evaluateAbct, EvalOptions, EvalResult } from "./abctEvaluator";
 
 /**
  * AbctDocument stores an ABCT `TextDocument`'s diagnostics, tokens, and AST.
@@ -53,5 +55,38 @@ export class AbctDocument {
     this.tokens = extractTokens(this.AST, source);
 
     return this.tokens;
+  }
+
+  /**
+   * Evaluate the ABCT document and return the ABC output.
+   *
+   * @param options - Evaluation options (toLine, selection)
+   * @returns Promise resolving to the evaluation result with ABC output and diagnostics
+   */
+  async evaluate(options: EvalOptions = {}): Promise<EvalResult> {
+    // Ensure the document has been parsed
+    if (this.AST === null) {
+      this.analyze();
+    }
+
+    // If there are parse errors, return empty result with diagnostics
+    if (this.AST === null) {
+      return {
+        abc: "",
+        diagnostics: this.diagnostics,
+      };
+    }
+
+    // Create a file resolver for this document
+    const fileResolver = createFileResolver(this.document.uri);
+
+    // Evaluate the program
+    const result = await evaluateAbct(this.AST, fileResolver, options);
+
+    // Combine parse diagnostics with evaluation diagnostics
+    return {
+      abc: result.abc,
+      diagnostics: [...this.diagnostics, ...result.diagnostics],
+    };
   }
 }

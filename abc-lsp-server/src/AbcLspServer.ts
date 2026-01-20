@@ -5,8 +5,24 @@ import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
 import { AbctDocument } from "./AbctDocument";
 import { LspEventListener, mapTTtoStandardScope, mapAbctTokenToScope } from "./server_helpers";
+
 /** Common interface for ABC, ABCx, and ABCT documents */
 type DocumentType = AbcDocument | AbcxDocument | AbctDocument;
+
+/** Type guard to check if a document is an AbcDocument (has ctx property) */
+function isAbcDocument(doc: DocumentType): doc is AbcDocument {
+  return doc instanceof AbcDocument;
+}
+
+/** Type guard to check if a document is an AbcxDocument (has ctx property) */
+function isAbcxDocument(doc: DocumentType): doc is AbcxDocument {
+  return doc instanceof AbcxDocument;
+}
+
+/** Type guard to check if a document has ctx property (AbcDocument or AbcxDocument) */
+function hasCtx(doc: DocumentType): doc is AbcDocument | AbcxDocument {
+  return isAbcDocument(doc) || isAbcxDocument(doc);
+}
 
 /**
  * Type definition for a selection range in a document
@@ -163,10 +179,14 @@ export class AbcLspServer {
    *
    * Find the requested document and format it using the {@link AbcFormatter}.
    * returns an array of {@link TextEdit}s.
+   * Only works for ABC and ABCx documents (not ABCT).
    */
   onFormat(uri: string): HandlerResult<TextEdit[], void> {
     const abcDocument = this.abcDocuments.get(uri); // find doc in previously parsed docs
-    if (!abcDocument || !abcDocument.tokens || abcDocument.ctx.errorReporter.hasErrors()) {
+    if (!abcDocument || !abcDocument.tokens || !hasCtx(abcDocument)) {
+      return [];
+    }
+    if (abcDocument.ctx.errorReporter.hasErrors()) {
       return [];
     }
 
@@ -177,6 +197,7 @@ export class AbcLspServer {
 
   /**
    * Handler for transposition
+   * Only works for ABC and ABCx documents (not ABCT).
    *
    * @param uri Document URI
    * @param dist Distance to transpose (in semitones)
@@ -185,7 +206,7 @@ export class AbcLspServer {
    */
   onTranspose(uri: string, dist: number, range: SelectionRange): HandlerResult<TextEdit[], void> {
     const abcDocument = this.abcDocuments.get(uri); // find doc in previously parsed docs
-    if (!abcDocument || !abcDocument.tokens) {
+    if (!abcDocument || !abcDocument.tokens || !hasCtx(abcDocument)) {
       return [];
     }
     const transposer = new Transposer(abcDocument.AST!, abcDocument.ctx);
@@ -196,6 +217,7 @@ export class AbcLspServer {
 
   /**
    * Handler for Abc client's custom command for rhythm transformation
+   * Only works for ABC and ABCx documents (not ABCT).
    *
    * Find the requested document and multiply/divide the rhythm of the selected range.
    *
@@ -203,7 +225,7 @@ export class AbcLspServer {
    */
   onRhythmTransform(uri: string, type: "*" | "/", range: SelectionRange): HandlerResult<TextEdit[], void> {
     const abcDocument = this.abcDocuments.get(uri); // find doc in previously parsed docs
-    if (!abcDocument || !abcDocument.tokens) {
+    if (!abcDocument || !abcDocument.tokens || !hasCtx(abcDocument)) {
       return [];
     }
     const visitor = new RhythmVisitor(abcDocument.AST!, abcDocument.ctx);
