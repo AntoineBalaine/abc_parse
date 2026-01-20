@@ -4,13 +4,15 @@
   "private": true,
   "workspaces": [
     "parse",
+    "native",
     "abc-lsp-server",
     "abc-cli",
     "vscode-extension"
   ],
   "scripts": {
-    "build": "npm run build:parse && npm run build:lsp && npm run build:cli && npm run build:vscode",
+    "build": "npm run build:parse && npm run build:native && npm run build:lsp && npm run build:cli && npm run build:vscode",
     "build:parse": "npm run build -w parse",
+    "build:native": "npm run build -w abc-musesampler-native",
     "build:lsp": "npm run build -w abc-lsp-server",
     "build:cli": "npm run build -w abc-cli",
     "build:vscode": "npm run build -w vscode-extension",

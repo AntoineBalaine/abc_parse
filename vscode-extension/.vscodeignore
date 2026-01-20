@@ -26,3 +26,4 @@ package-lock.json
 !./abcjs-renderer/abc.tmGrammar.json
 !./abcjs-renderer/snippets.json
 !./abcjs-renderer/LICENSE.md
+!./bin/**

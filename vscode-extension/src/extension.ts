@@ -2,9 +2,11 @@
 // Import the module and reference it with the alias vscode in your code below
 
 import * as path from "path";
+import * as os from "os";
 
 import { ExtensionContext } from "vscode";
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
+import { setMscorePath } from "abc-musesampler-native";
 import { registerCommands } from "./extensionCommands";
 import { registerRendererCommands } from "./renderer";
 import { registerPlaybackCommands } from "./playback";
@@ -17,6 +19,10 @@ let client: LanguageClient;
  * The extension is activated the very first time the command is executed
  */
 export function activate(context: ExtensionContext) {
+  // Configure the path to the mscore binary for MuseSampler playback
+  const binaryName = os.platform() === "win32" ? "mscore.exe" : "mscore";
+  setMscorePath(context.asAbsolutePath(path.join("bin", binaryName)));
+
   // The server is implemented in node
   const serverModule = context.asAbsolutePath(path.join("dist", "server.js"));
 

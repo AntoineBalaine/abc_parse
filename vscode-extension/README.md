@@ -101,6 +101,18 @@ npm run build && npm run package:vscode && code --install-extension <extension_v
 
 Then reload VSCode to pick up the changes.
 
+### MuseSampler Playback (Native Binary)
+
+The extension includes optional playback support via MuseSampler. This requires a native `mscore` binary that communicates with the MuseSampler library (installed via MuseHub).
+
+The build process copies the binary from `native/build/` to `vscode-extension/bin/` via the `copy-binary` script. This is a temporary solution for local development.
+
+For distribution, this should be replaced with platform-specific extension builds (see `platform-specific-extensions.md` at the repo root). The proper approach is to:
+
+1. Build the `mscore` binary for each target platform (darwin-x64, darwin-arm64, linux-x64, win32-x64)
+2. Package separate `.vsix` files for each platform using `vsce package --target <platform>`
+3. Publish all variants so VS Code downloads the correct one for the user's system
+
 ## Release Notes
 
 See [CHANGELOG.md](./CHANGELOG.md) for release notes.

@@ -20,6 +20,29 @@ import {
 } from "./types";
 
 /**
+ * Override path for the mscore binary.
+ * Set this before creating a MuseSamplerClient if the binary is not in the default location.
+ */
+let mscorePathOverride: string | undefined;
+
+/**
+ * Set a custom path for the mscore binary.
+ * Call this before creating a MuseSamplerClient.
+ *
+ * @param path - Absolute path to the mscore binary
+ */
+export function setMscorePath(path: string): void {
+  mscorePathOverride = path;
+}
+
+/**
+ * Get the currently configured mscore path (for debugging).
+ */
+export function getMscorePathConfig(): string {
+  return mscorePathOverride ?? getMscorePath();
+}
+
+/**
  * Default paths where MuseSampler library is installed.
  */
 function getDefaultLibraryPath(): string {
@@ -49,6 +72,9 @@ function getDefaultLibraryPath(): string {
  * Get the path to the mscore binary.
  */
 function getMscorePath(): string {
+  if (mscorePathOverride) {
+    return mscorePathOverride;
+  }
   // Look for mscore binary relative to this file
   const nativeDir = path.dirname(__dirname);
   const buildDir = path.join(nativeDir, "build");

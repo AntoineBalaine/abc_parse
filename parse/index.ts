@@ -13,3 +13,5 @@ export * from "./Visitors/RhythmTransform";
 export * from "./Visitors/Transposer";
 // ABCx chord sheet notation support (unified exports)
 export * from "./abcx";
+// Playback module for MuseSampler integration
+export * from "./playback";

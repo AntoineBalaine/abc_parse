@@ -8,3 +8,6 @@ pnpm-lock.yaml
 
 # Native build
 native/build/
+
+# Extension binary
+vscode-extension/bin/
