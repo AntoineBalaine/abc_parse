@@ -20,8 +20,8 @@ import { AbcLspServer, AbcTransformParams } from "./AbcLspServer";
 import { AbctDocument } from "./AbctDocument";
 import { DECORATION_SYMBOLS } from "./completions";
 import { standardTokenScopes } from "./server_helpers";
-import { AbctDocument } from "./AbctDocument";
 import { provideHover } from "./abct/AbctHoverProvider";
+import { provideAbctCompletions } from "./abct/AbctCompletionProvider";
 
 // ============================================================================
 // ABCT Evaluation Request Types
@@ -106,7 +106,8 @@ connection.onInitialize((params: InitializeParams) => {
       hoverProvider: true,
       completionProvider: {
         resolveProvider: true,
-        triggerCharacters: ["!"],
+        // Trigger characters: "!" for ABC decorations, "@" and "|" for ABCT completions
+        triggerCharacters: ["!", "@", "|"],
       },
     },
   };
@@ -174,14 +175,24 @@ connection.onRequest("transposeDn", (params: AbcTransformParams) => {
 });
 
 connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
-  // The passed parameter contains the position of the text document in
-  // which code complete got requested.
-  const doc = abcServer.abcDocuments.get(textDocumentPosition.textDocument.uri);
+  const uri = textDocumentPosition.textDocument.uri;
+
+  // Handle ABCT files with the ABCT completion provider
+  if (uri.toLowerCase().endsWith(".abct")) {
+    const doc = documents.get(uri);
+    if (!doc) {
+      return [];
+    }
+    return provideAbctCompletions(doc, textDocumentPosition.position);
+  }
+
+  // Handle ABC files with the existing completion logic
+  const doc = abcServer.abcDocuments.get(uri);
   if (!doc) {
     return [];
   }
   const char = abcServer.findCharInDoc(
-    textDocumentPosition.textDocument.uri,
+    uri,
     textDocumentPosition.position.character,
     textDocumentPosition.position.line
   );
