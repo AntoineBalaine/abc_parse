@@ -1,0 +1,9 @@
+{
+  "name": "abct",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "test": "mocha -r ts-node/register 'tests/**/*.spec.ts'",
+    "build": "peggy --format es -o src/parser.generated.js src/grammar.peggy"
+  }
+}
