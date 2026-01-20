@@ -285,11 +285,13 @@ export const genTempoInfoLine2 = fc
 
 /**
  * Generator for generic info lines (T:, A:, C:, O:, etc.)
+ * Note: H: is excluded because it has special multi-line continuation behavior
+ * that requires it to be followed by another info line or section break.
  */
 export const genGenericInfoLine = fc
   .tuple(
     fc
-      .constantFrom("T:", "A:", "C:", "O:", "P:", "S:", "N:", "G:", "H:", "R:", "B:", "D:", "F:", "I:", "Z:")
+      .constantFrom("T:", "A:", "C:", "O:", "P:", "S:", "N:", "G:", "R:", "B:", "D:", "F:", "I:", "Z:")
       .map((header) => new Token(TT.INF_HDR, header, sharedContext.generateId())),
     fc.stringMatching(/^[^&\s%\n]+$/).map((content) => new Token(TT.INFO_STR, content, sharedContext.generateId())),
     genEOL

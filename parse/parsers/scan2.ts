@@ -2,7 +2,7 @@ import { Visitor } from "../types/Expr2";
 import { ABCContext } from "./Context";
 import { AbcErrorReporter } from "./ErrorReporter";
 import { scanDirective } from "./infoLines/scanDirective";
-import { scanInfoLine2 } from "./infoLines/scanInfoLine2";
+import { scanInfoLine2, scanHistoryField } from "./infoLines/scanInfoLine2";
 import { comment, pEOL, pInfoLine, pMacroLine, pSectionBrk, pTuneHeadStrt, pUserSymbol, scanTune, symbol } from "./scan_tunebody";
 
 export class Ctx {
@@ -368,6 +368,12 @@ export function info_line(ctx: Ctx): boolean {
     ctx.push(TT.INFO_STR);
   }
   comment(ctx);
+
+  // H: field (History) supports free-form multi-line continuation
+  if (infoType === "H:") {
+    scanHistoryField(ctx);
+  }
+
   return true;
 }
 

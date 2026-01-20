@@ -1,5 +1,5 @@
-import { advance, Ctx, isAtEnd, TT, WS, collectInvalidInfoLn } from "../scan2";
-import { pEOL, pPitch, pitch } from "../scan_tunebody";
+import { advance, Ctx, isAtEnd, TT, WS, collectInvalidInfoLn, EOL } from "../scan2";
+import { pEOL, pPitch, pitch, pSectionBrk, pInfoLine, comment } from "../scan_tunebody";
 import { infoHeader } from "./infoLnHelper";
 
 /**
@@ -179,4 +179,35 @@ export function absolutePitch(ctx: Ctx): boolean {
   }
 
   return true;
+}
+
+/**
+ * Scans continuation lines for H: (History) field.
+ *
+ * H: field supports free-form multi-line continuation. Continue reading
+ * lines until another info line or section break is found.
+ *
+ * Assumption: H: is never the last info field - there's always another
+ * info line (like K:) or section break before the tune body starts.
+ */
+export function scanHistoryField(ctx: Ctx): void {
+  while (!isAtEnd(ctx)) {
+    // Check for section break BEFORE consuming EOL
+    if (ctx.test(pSectionBrk)) break;
+
+    // Consume EOL
+    if (!EOL(ctx)) break;
+
+    // Stop at another info line (letter + optional space + colon)
+    if (ctx.test(pInfoLine)) break;
+
+    // Scan line as free text
+    while (!isAtEnd(ctx) && !ctx.test(pEOL) && !ctx.test("%")) {
+      advance(ctx);
+    }
+    if (ctx.current > ctx.start) {
+      ctx.push(TT.FREE_TXT);
+    }
+    comment(ctx);
+  }
 }

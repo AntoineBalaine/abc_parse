@@ -702,6 +702,64 @@ describe("scan2", () => {
       assert.equal(result, false);
       assert.equal(ctx.tokens.length, 0);
     });
+
+    // H: field multi-line continuation tests
+    it("should parse H: field with multi-line continuation", () => {
+      const input = "H:Piano rag arranged for guitar\nI believe it was written for St Louis.\nGuitar arrangement by Happy Traum.\nM:4/4";
+      const ctx = createCtx(input);
+      const result = info_line(ctx);
+      assert.equal(result, true);
+
+      // Should have: INF_HDR, INFO_STR, EOL, FREE_TXT, EOL, FREE_TXT
+      // Then scanner stops at M: (next info line)
+      assert.equal(ctx.tokens[0].type, TT.INF_HDR);
+      assert.equal(ctx.tokens[0].lexeme, "H:");
+      assert.equal(ctx.tokens[1].type, TT.INFO_STR);
+      assert.equal(ctx.tokens[1].lexeme, "Piano rag arranged for guitar");
+      assert.equal(ctx.tokens[2].type, TT.EOL);
+      assert.equal(ctx.tokens[3].type, TT.FREE_TXT);
+      assert.equal(ctx.tokens[3].lexeme, "I believe it was written for St Louis.");
+      assert.equal(ctx.tokens[4].type, TT.EOL);
+      assert.equal(ctx.tokens[5].type, TT.FREE_TXT);
+      assert.equal(ctx.tokens[5].lexeme, "Guitar arrangement by Happy Traum.");
+
+      // Verify we stopped before M:
+      assert.ok(ctx.source.substring(ctx.current).startsWith("M:"));
+    });
+
+    it("should parse single-line H: field", () => {
+      const input = "H:Short history\nK:C";
+      const ctx = createCtx(input);
+      const result = info_line(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.INF_HDR);
+      assert.equal(ctx.tokens[0].lexeme, "H:");
+      assert.equal(ctx.tokens[1].type, TT.INFO_STR);
+      assert.equal(ctx.tokens[1].lexeme, "Short history");
+      // Should stop at K:
+      assert.ok(ctx.source.substring(ctx.current).startsWith("K:"));
+    });
+
+    it("should stop H: continuation at section break", () => {
+      const input = "H:History line 1\nContinuation\n\nX:2";
+      const ctx = createCtx(input);
+      const result = info_line(ctx);
+      assert.equal(result, true);
+
+      // Should stop at section break (blank line)
+      assert.equal(ctx.tokens[0].type, TT.INF_HDR);
+      assert.equal(ctx.tokens[1].type, TT.INFO_STR);
+      assert.equal(ctx.tokens[2].type, TT.EOL);
+      assert.equal(ctx.tokens[3].type, TT.FREE_TXT);
+      assert.equal(ctx.tokens[3].lexeme, "Continuation");
+      // Should stop at the section break (the \n\n before X:2)
+      // After processing, current should be at the first \n of the section break
+      const remaining = ctx.source.substring(ctx.current);
+      assert.ok(
+        remaining.startsWith("\n\nX:") || remaining.startsWith("\nX:"),
+        `Expected remaining to start with section break before X:, got: "${remaining.substring(0, 20)}"`
+      );
+    });
   });
 
   describe("chord", () => {
