@@ -710,21 +710,18 @@ describe("scan2", () => {
       const result = info_line(ctx);
       assert.equal(result, true);
 
-      // Should have: INF_HDR, INFO_STR, EOL, FREE_TXT, EOL, FREE_TXT
+      // Should have: INF_HDR, INFO_STR, FREE_TXT (containing all continuation lines with newlines)
       // Then scanner stops at M: (next info line)
       assert.equal(ctx.tokens[0].type, TT.INF_HDR);
       assert.equal(ctx.tokens[0].lexeme, "H:");
       assert.equal(ctx.tokens[1].type, TT.INFO_STR);
       assert.equal(ctx.tokens[1].lexeme, "Piano rag arranged for guitar");
-      assert.equal(ctx.tokens[2].type, TT.EOL);
-      assert.equal(ctx.tokens[3].type, TT.FREE_TXT);
-      assert.equal(ctx.tokens[3].lexeme, "I believe it was written for St Louis.");
-      assert.equal(ctx.tokens[4].type, TT.EOL);
-      assert.equal(ctx.tokens[5].type, TT.FREE_TXT);
-      assert.equal(ctx.tokens[5].lexeme, "Guitar arrangement by Happy Traum.");
+      assert.equal(ctx.tokens[2].type, TT.FREE_TXT);
+      // All continuation content including newlines is in a single FREE_TXT token
+      assert.equal(ctx.tokens[2].lexeme, "\nI believe it was written for St Louis.\nGuitar arrangement by Happy Traum.");
 
       // Verify we stopped before M:
-      assert.ok(ctx.source.substring(ctx.current).startsWith("M:"));
+      assert.ok(ctx.source.substring(ctx.current).startsWith("\nM:"));
     });
 
     it("should parse single-line H: field", () => {
@@ -736,8 +733,8 @@ describe("scan2", () => {
       assert.equal(ctx.tokens[0].lexeme, "H:");
       assert.equal(ctx.tokens[1].type, TT.INFO_STR);
       assert.equal(ctx.tokens[1].lexeme, "Short history");
-      // Should stop at K:
-      assert.ok(ctx.source.substring(ctx.current).startsWith("K:"));
+      // Should stop at \n before K: (EOL is not consumed when followed by info line)
+      assert.ok(ctx.source.substring(ctx.current).startsWith("\nK:"));
     });
 
     it("should stop H: continuation at section break", () => {
@@ -747,16 +744,15 @@ describe("scan2", () => {
       assert.equal(result, true);
 
       // Should stop at section break (blank line)
+      // Single FREE_TXT token contains continuation content with newlines
       assert.equal(ctx.tokens[0].type, TT.INF_HDR);
       assert.equal(ctx.tokens[1].type, TT.INFO_STR);
-      assert.equal(ctx.tokens[2].type, TT.EOL);
-      assert.equal(ctx.tokens[3].type, TT.FREE_TXT);
-      assert.equal(ctx.tokens[3].lexeme, "Continuation");
+      assert.equal(ctx.tokens[2].type, TT.FREE_TXT);
+      assert.equal(ctx.tokens[2].lexeme, "\nContinuation");
       // Should stop at the section break (the \n\n before X:2)
-      // After processing, current should be at the first \n of the section break
       const remaining = ctx.source.substring(ctx.current);
       assert.ok(
-        remaining.startsWith("\n\nX:") || remaining.startsWith("\nX:"),
+        remaining.startsWith("\n\nX:"),
         `Expected remaining to start with section break before X:, got: "${remaining.substring(0, 20)}"`
       );
     });

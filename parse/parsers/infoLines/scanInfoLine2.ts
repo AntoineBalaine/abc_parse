@@ -1,5 +1,5 @@
 import { advance, Ctx, isAtEnd, TT, WS, collectInvalidInfoLn, EOL } from "../scan2";
-import { pEOL, pPitch, pitch, pSectionBrk, pInfoLine, comment } from "../scan_tunebody";
+import { pEOL, pSectionBrk, pInfoLine } from "../scan_tunebody";
 import { infoHeader } from "./infoLnHelper";
 
 /**
@@ -17,7 +17,6 @@ export function scanInfoLine2(ctx: Ctx): boolean {
     if (WS(ctx)) continue;
     if (specialLiteral(ctx)) continue; // C, C|
     if (absolutePitch(ctx)) continue; // G4, F#5, Bb3 (note + optional accidental + optional numeric octave)
-    if (tuneBodyPitch(ctx)) continue; // Tune body pitches: ^c, _b, =f (for key info explicit accidentals)
     if (identifier(ctx)) continue; // abc, treble, major
     if (stringLiteral(ctx)) continue; // "Allegro"
     if (singleChar(ctx, "=", TT.EQL)) continue; // =
@@ -35,14 +34,6 @@ export function scanInfoLine2(ctx: Ctx): boolean {
 
   return true;
 }
-export function tuneBodyPitch(ctx: Ctx): boolean {
-  // Pattern requires pitch followed by: terminator OR accidental-before-note OR end-of-input
-  // Terminators: whitespace, comment, newline, closing bracket
-  // Accidental-before-note: ^/_ /= followed by a note letter (for consecutive accidentals like K:^c_B^G)
-  // This prevents matching A_00 as pitch+invalid (would match A because _ is followed by digit, not note)
-  if (!ctx.test(new RegExp(`^${pPitch.source}([%\\n \\t\\]]|[\\^_=][A-Ga-g]|$)`))) return false;
-  return pitch(ctx);
-}
 
 /**
  * Helper function to scan a single character and push the corresponding token type
@@ -57,18 +48,12 @@ export function singleChar(ctx: Ctx, char: string, tokenType: TT): boolean {
 
 /**
  * Scan identifier: unquoted words like "treble", "major", "clef"
- * Important: Identifiers stop at underscore or caret followed by a note letter
- * to allow parsing explicit accidentals in key signatures (e.g., K:DMix_B_e)
  */
 export function identifier(ctx: Ctx): boolean {
-  // Initial test: must start with a letter followed by more identifier chars
-  // Note: The detailed matching is done in the exec below
   if (!ctx.test(/[a-zA-Z][\-a-zA-Z0-9_]*/)) return false;
 
-  // Match identifier but stop at underscore/caret followed by note letter
-  // This allows K:DMix_B_e to parse as D + Mix + _B + _e
-  const match = /^[a-zA-Z](?:[\-a-zA-Z0-9]|_(?![A-Ga-g])|\^(?![A-Ga-g]))*/.exec(ctx.source.substring(ctx.current));
-  if (match && match[0].length > 0) {
+  const match = /^[a-zA-Z][\-a-zA-Z0-9_]*/.exec(ctx.source.substring(ctx.current));
+  if (match) {
     ctx.current += match[0].length;
     ctx.push(TT.IDENTIFIER);
     return true;
@@ -186,28 +171,39 @@ export function absolutePitch(ctx: Ctx): boolean {
  *
  * H: field supports free-form multi-line continuation. Continue reading
  * lines until another info line or section break is found.
+ * The entire content (including line breaks) is returned as a single FREE_TXT token.
  *
  * Assumption: H: is never the last info field - there's always another
  * info line (like K:) or section break before the tune body starts.
  */
 export function scanHistoryField(ctx: Ctx): void {
+  const contentStart = ctx.current;
+
   while (!isAtEnd(ctx)) {
     // Check for section break BEFORE consuming EOL
     if (ctx.test(pSectionBrk)) break;
 
-    // Consume EOL
-    if (!EOL(ctx)) break;
+    // Check for EOL existence
+    if (!ctx.test(pEOL)) break;
 
-    // Stop at another info line (letter + optional space + colon)
-    if (ctx.test(pInfoLine)) break;
+    // Peek ahead: check if the line after EOL is an info line
+    // If so, don't consume the EOL - leave it for the next scanner
+    // Use anchored regex to match only at the start of the next line
+    const afterEol = ctx.source.substring(ctx.current + 1);
+    if (new RegExp(`^${pInfoLine.source}`).test(afterEol)) break;
 
-    // Scan line as free text
-    while (!isAtEnd(ctx) && !ctx.test(pEOL) && !ctx.test("%")) {
+    // Consume EOL as part of the content (don't tokenize separately)
+    advance(ctx); // consume newline character
+
+    // Scan line content (everything until next EOL, including comments)
+    while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
       advance(ctx);
     }
-    if (ctx.current > ctx.start) {
-      ctx.push(TT.FREE_TXT);
-    }
-    comment(ctx);
+  }
+
+  // Push single FREE_TXT token for all accumulated content (including line breaks)
+  if (ctx.current > contentStart) {
+    ctx.start = contentStart;
+    ctx.push(TT.FREE_TXT);
   }
 }

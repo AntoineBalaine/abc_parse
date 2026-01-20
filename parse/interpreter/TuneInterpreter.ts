@@ -35,6 +35,7 @@ import {
   FontWeight,
   FontStyle,
   FontDecoration,
+  SlurStyle,
 } from "../types/abcjs-ast";
 import { FontSpec, MeasurementSpec, MidiSpec } from "../types/directive-specs";
 import { InfoLineUnion } from "../types/Expr2";
@@ -416,7 +417,7 @@ function processTieEnd(pitches: any[], voiceState: VoiceState): void {
  * When we encounter '(' or '.(' tokens, we add slur info to pendingStartSlurs, and then
  * this function applies those to the current note's pitches.
  */
-function applyStartSlurs(pitches: any[], voiceState: VoiceState): void {
+function applyStartSlurs(pitches: ABCJSPitch[], voiceState: VoiceState): void {
   if (voiceState.pendingStartSlurs.length === 0) return;
 
   for (const pitch of pitches) {
@@ -430,26 +431,6 @@ function applyStartSlurs(pitches: any[], voiceState: VoiceState): void {
 
   // Clear pending start slurs (they've been applied)
   voiceState.pendingStartSlurs = [];
-}
-
-/**
- * Applies end slurs to pitches.
- * When we encounter ')' tokens, we add labels to pendingEndSlurs, and then
- * this function applies those labels to the current note's pitches.
- */
-function applyEndSlurs(pitches: any[], voiceState: VoiceState): void {
-  if (voiceState.pendingEndSlurs.length === 0) return;
-
-  for (const pitch of pitches) {
-    if (pitch.pitch !== undefined) {
-      // Apply all pending end slurs to this pitch
-      pitch.endSlur = [...voiceState.pendingEndSlurs];
-      break; // Only apply to first pitch
-    }
-  }
-
-  // Clear pending end slurs (they've been applied)
-  voiceState.pendingEndSlurs = [];
 }
 
 /**
@@ -1421,12 +1402,6 @@ export class TuneInterpreter implements Visitor<void> {
       accidental: accidental ? this.convertAccidental(accidental) : undefined,
     };
 
-    // Apply nostem if pending (from TT.NOSTEM token, e.g., C0)
-    if (voiceState?.pendingNostem) {
-      (pitch as any).noStem = true;
-      voiceState.pendingNostem = false;
-    }
-
     // Calculate duration with broken rhythm handling
     const defaultLength = this.state.tuneDefaults.noteLength;
     const rhythmResult = calculateRhythm(expr.rhythm, defaultLength, voiceState);
@@ -1585,14 +1560,6 @@ export class TuneInterpreter implements Visitor<void> {
 
     if (pitches.length === 0) return;
 
-    // Apply nostem if pending (from TT.NOSTEM token after chord, e.g., [CEG]0)
-    if (voiceState?.pendingNostem) {
-      for (const pitch of pitches) {
-        (pitch as any).noStem = true;
-      }
-      voiceState.pendingNostem = false;
-    }
-
     // Calculate duration with broken rhythm handling
     const defaultLength = this.state.tuneDefaults.noteLength;
     const rhythmResult = calculateRhythm(expr.rhythm, defaultLength, voiceState);
@@ -1748,13 +1715,26 @@ export class TuneInterpreter implements Visitor<void> {
       const voiceState = this.state.voices.get(this.state.currentVoice);
       if (voiceState) {
         const label = voiceState.nextSlurLabel++;
-        voiceState.pendingStartSlurs.push({ label, style: "dotted" });
+        voiceState.pendingStartSlurs.push({ label, style: SlurStyle.Dotted });
       }
     } else if (token.type === TT.NOSTEM) {
-      // Nostem directive (0 after pitch): next note should have no stem
-      const voiceState = this.state.voices.get(this.state.currentVoice);
-      if (voiceState) {
-        voiceState.pendingNostem = true;
+      // Nostem directive (0 after pitch): the preceding note should have no stem
+      // Because NOSTEM comes after the pitch in the token stream (C0 → NOTE_LETTER(C) + NOSTEM(0)),
+      // we need to retroactively apply noStem to the last emitted note element.
+      if (this.state.currentSystemNum === -1 || this.state.currentStaffNum === -1 || this.state.currentVoiceIndex === -1) {
+        return;
+      }
+
+      const elements = this.getCurrentVoiceElements();
+      if (elements.length > 0) {
+        const lastElement = elements[elements.length - 1];
+
+        // Apply noStem to all pitches in the last note/chord
+        if ("pitches" in lastElement && lastElement.pitches && lastElement.pitches.length > 0) {
+          for (const pitch of lastElement.pitches) {
+            pitch.noStem = true;
+          }
+        }
       }
     }
   }

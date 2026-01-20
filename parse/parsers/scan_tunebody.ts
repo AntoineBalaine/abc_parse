@@ -1,5 +1,5 @@
 import { scanDirective } from "./infoLines/scanDirective";
-import { absolutePitch, identifier, singleChar, specialLiteral, stringLiteral, tuneBodyPitch, unsignedNumber } from "./infoLines/scanInfoLine2";
+import { absolutePitch, identifier, singleChar, specialLiteral, stringLiteral, unsignedNumber } from "./infoLines/scanInfoLine2";
 import {
   Ctx,
   EOL,
@@ -297,6 +297,16 @@ export function pitch(ctx: Ctx): boolean {
     ctx.push(TT.OCTAVE);
   }
   return true;
+}
+
+/**
+ * Tune body pitch scanner for inline fields.
+ * Matches pitches like ^c, _b, =f in tune body context.
+ * Pattern requires pitch followed by terminator (whitespace, comment, newline, bracket) or end-of-input.
+ */
+function tuneBodyPitch(ctx: Ctx): boolean {
+  if (!ctx.test(new RegExp(`^${pPitch.source}([%\\n \\t\\]]|$)`))) return false;
+  return pitch(ctx);
 }
 
 export function accidental(ctx: Ctx): boolean {

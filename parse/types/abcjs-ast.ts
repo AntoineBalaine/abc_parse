@@ -383,6 +383,7 @@ export interface Pitch {
   endTie?: object;
   startSlur?: SlurProperties[];
   endSlur?: number[];
+  noStem?: boolean; // True for stemless notes (notated with 0, e.g., C0)
 }
 
 export interface GraceNote {

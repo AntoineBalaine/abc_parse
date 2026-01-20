@@ -28,6 +28,7 @@ import {
   Staff,
   StaffSystem,
   BracketBracePosition,
+  SlurStyle,
 } from "../types/abcjs-ast";
 import { IRational, createRational } from "../Visitors/fmt2/rational";
 import { ABCJS_FORMATTING_DEFAULTS } from "./FormattingDefaults";
@@ -116,7 +117,7 @@ export interface VoiceState {
   pendingTies: Map<number, {}>; // Map of pitch number to tie object
 
   // Slur tracking (for phrasing marks)
-  pendingStartSlurs: { label: number; style?: "dotted" }[]; // Slurs that need to start on next note
+  pendingStartSlurs: { label: number; style?: SlurStyle }[]; // Slurs that need to start on next note
   pendingEndSlurs: number[]; // Labels for slurs that need to end on next note
   nextSlurLabel: number; // Counter for generating unique slur labels
 
@@ -134,9 +135,6 @@ export interface VoiceState {
 
   // Chord symbol tracking (for guitar chord annotations)
   pendingChordSymbols: any[]; // Chord symbols to apply to next note
-
-  // Nostem tracking (for stemless notes, e.g., C0)
-  pendingNostem: boolean; // Whether next note should have no stem
 
   // Broken rhythm tracking (for dotted rhythms like < and >)
   nextNoteDurationMultiplier?: IRational; // Multiplier for next note's duration from broken rhythm
@@ -316,7 +314,6 @@ export function newVxState(id: string, properties: VoiceProperties, tuneDefaults
     pendingDecorations: [],
     pendingGraceNotes: [],
     pendingChordSymbols: [],
-    pendingNostem: false,
   };
 }
 
