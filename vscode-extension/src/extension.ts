@@ -7,6 +7,7 @@ import { ExtensionContext } from "vscode";
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
 import { registerCommands } from "./extensionCommands";
 import { registerRendererCommands } from "./renderer";
+import { registerPlaybackCommands } from "./playback";
 
 let client: LanguageClient;
 
@@ -46,6 +47,9 @@ export function activate(context: ExtensionContext) {
 
   // register renderer commands (preview, export, print)
   registerRendererCommands(context);
+
+  // register playback commands (play, stop, pause)
+  registerPlaybackCommands(context);
 
   // Start the client. This will also launch the server
   client.start();

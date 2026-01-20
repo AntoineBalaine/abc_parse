@@ -83,6 +83,48 @@
         "command": "abc.printPreview",
         "title": "ABC: Print Preview",
         "group": "Renderer"
+      },
+      {
+        "command": "abc.playDocument",
+        "title": "ABC: Play Document",
+        "group": "Playback",
+        "description": "Play the current ABC document using MuseSampler"
+      },
+      {
+        "command": "abc.playSelection",
+        "title": "ABC: Play Selection",
+        "group": "Playback",
+        "description": "Play the selected ABC text using MuseSampler"
+      },
+      {
+        "command": "abc.stopPlayback",
+        "title": "ABC: Stop Playback",
+        "group": "Playback",
+        "description": "Stop the current playback"
+      },
+      {
+        "command": "abc.pausePlayback",
+        "title": "ABC: Pause Playback",
+        "group": "Playback",
+        "description": "Pause the current playback"
+      },
+      {
+        "command": "abc.resumePlayback",
+        "title": "ABC: Resume Playback",
+        "group": "Playback",
+        "description": "Resume paused playback"
+      },
+      {
+        "command": "abc.showInstruments",
+        "title": "ABC: Show Available Instruments",
+        "group": "Playback",
+        "description": "Show list of available MuseSampler instruments"
+      },
+      {
+        "command": "abc.initPlayback",
+        "title": "ABC: Initialize Playback",
+        "group": "Playback",
+        "description": "Initialize the MuseSampler playback engine"
       }
     ],
     "configurationDefaults": {
