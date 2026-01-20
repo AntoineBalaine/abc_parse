@@ -8,6 +8,7 @@ import {
   InitializeParams,
   InitializeResult,
   ProposedFeatures,
+  Range,
   TextDocumentPositionParams,
   TextDocumentSyncKind,
   TextDocuments,
@@ -15,8 +16,56 @@ import {
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcLspServer, AbcTransformParams } from "./AbcLspServer";
+import { AbctDocument } from "./AbctDocument";
 import { DECORATION_SYMBOLS } from "./completions";
 import { standardTokenScopes } from "./server_helpers";
+
+// ============================================================================
+// ABCT Evaluation Request Types
+// ============================================================================
+
+/**
+ * Parameters for the abct.evaluate request.
+ */
+interface AbctEvalParams {
+  /** The URI of the ABCT document to evaluate */
+  uri: string;
+}
+
+/**
+ * Parameters for the abct.evaluateToLine request.
+ */
+interface AbctEvalToLineParams {
+  /** The URI of the ABCT document to evaluate */
+  uri: string;
+  /** Evaluate up to and including this line (1-based) */
+  line: number;
+}
+
+/**
+ * Parameters for the abct.evaluateSelection request.
+ */
+interface AbctEvalSelectionParams {
+  /** The URI of the ABCT document to evaluate */
+  uri: string;
+  /** The selection range to evaluate */
+  selection: Range;
+}
+
+/**
+ * Result of an ABCT evaluation request.
+ */
+interface AbctEvalResult {
+  /** The formatted ABC output */
+  abc: string;
+  /** Any diagnostics generated during evaluation */
+  diagnostics: Array<{
+    severity: number;
+    range: Range;
+    message: string;
+    source: string;
+  }>;
+}
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -142,6 +191,109 @@ connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): Comp
 
 connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
   return item;
+});
+
+// ============================================================================
+// ABCT Evaluation Request Handlers
+// ============================================================================
+
+/**
+ * Helper to get an AbctDocument from the server's document map.
+ * Returns null if the document is not found or is not an ABCT document.
+ */
+function getAbctDocument(uri: string): AbctDocument | null {
+  const doc = abcServer.abcDocuments.get(uri);
+  if (!doc || !(doc instanceof AbctDocument)) {
+    return null;
+  }
+  return doc;
+}
+
+/**
+ * Handler for abct.evaluate - Evaluate entire ABCT file
+ */
+connection.onRequest("abct.evaluate", async (params: AbctEvalParams): Promise<AbctEvalResult> => {
+  const doc = getAbctDocument(params.uri);
+  if (!doc) {
+    return {
+      abc: "",
+      diagnostics: [{
+        severity: 1, // Error
+        range: Range.create(0, 0, 0, 0),
+        message: "Document not found or not an ABCT file",
+        source: "abct",
+      }],
+    };
+  }
+
+  const result = await doc.evaluate({});
+  return {
+    abc: result.abc,
+    diagnostics: result.diagnostics.map(d => ({
+      severity: d.severity ?? 1,
+      range: d.range,
+      message: d.message,
+      source: d.source ?? "abct",
+    })),
+  };
+});
+
+/**
+ * Handler for abct.evaluateToLine - Evaluate up to specific line
+ */
+connection.onRequest("abct.evaluateToLine", async (params: AbctEvalToLineParams): Promise<AbctEvalResult> => {
+  const doc = getAbctDocument(params.uri);
+  if (!doc) {
+    return {
+      abc: "",
+      diagnostics: [{
+        severity: 1,
+        range: Range.create(0, 0, 0, 0),
+        message: "Document not found or not an ABCT file",
+        source: "abct",
+      }],
+    };
+  }
+
+  const result = await doc.evaluate({ toLine: params.line });
+  return {
+    abc: result.abc,
+    diagnostics: result.diagnostics.map(d => ({
+      severity: d.severity ?? 1,
+      range: d.range,
+      message: d.message,
+      source: d.source ?? "abct",
+    })),
+  };
+});
+
+/**
+ * Handler for abct.evaluateSelection - Evaluate only selected expression
+ */
+connection.onRequest("abct.evaluateSelection", async (params: AbctEvalSelectionParams): Promise<AbctEvalResult> => {
+  const doc = getAbctDocument(params.uri);
+  if (!doc) {
+    return {
+      abc: "",
+      diagnostics: [{
+        severity: 1,
+        range: Range.create(0, 0, 0, 0),
+        message: "Document not found or not an ABCT file",
+        source: "abct",
+      }],
+    };
+  }
+
+  const result = await doc.evaluate({ selection: params.selection });
+  return {
+    abc: result.abc,
+    diagnostics: result.diagnostics.map(d => ({
+      severity: d.severity ?? 1,
+      range: d.range,
+      message: d.message,
+      source: d.source ?? "abct",
+    })),
+  };
 });
 
 documents.listen(connection);

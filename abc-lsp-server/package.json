@@ -14,7 +14,8 @@
   "dependencies": {
     "abc-parser": "*",
     "abcjs": "^6.5.2",
-    "svgdom": "^0.1.23"
+    "svgdom": "^0.1.23",
+    "vscode-uri": "^3.0.8"
   },
   "devDependencies": {
     "@types/svgdom": "^0.1.2"
