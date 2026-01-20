@@ -4,6 +4,7 @@ import { parse, extractTokens, AbctToken, Program } from "../../abct/src/parser"
 import { createFileResolver } from "./fileResolver";
 import { evaluateAbct, EvalOptions, EvalResult } from "./abctEvaluator";
 import { AbctValidator } from "./abct/AbctValidator";
+import { findNodeAtPosition, AstNode } from "../../abct/src/ast-utils";
 
 /**
  * AbctDocument stores an ABCT `TextDocument`'s diagnostics, tokens, and AST.
@@ -94,5 +95,23 @@ export class AbctDocument {
       abc: result.abc,
       diagnostics: [...this.diagnostics, ...result.diagnostics],
     };
+  }
+
+  /**
+   * Find the AST node at the given position.
+   *
+   * @param position - The cursor position (0-based line and character from LSP)
+   * @returns The AST node at the position, or null if no node found
+   */
+  getNodeAtPosition(position: Position): AstNode | null {
+    if (!this.AST) {
+      return null;
+    }
+
+    // Convert from 0-based LSP position to 1-based Peggy position
+    const line = position.line + 1;
+    const column = position.character + 1;
+
+    return findNodeAtPosition(this.AST, line, column);
   }
 }

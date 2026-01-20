@@ -5,6 +5,7 @@
 import {
   CompletionItem,
   CompletionItemKind,
+  Hover,
   InitializeParams,
   InitializeResult,
   ProposedFeatures,
@@ -19,6 +20,8 @@ import { AbcLspServer, AbcTransformParams } from "./AbcLspServer";
 import { AbctDocument } from "./AbctDocument";
 import { DECORATION_SYMBOLS } from "./completions";
 import { standardTokenScopes } from "./server_helpers";
+import { AbctDocument } from "./AbctDocument";
+import { provideHover } from "./abct/AbctHoverProvider";
 
 // ============================================================================
 // ABCT Evaluation Request Types
@@ -100,6 +103,7 @@ connection.onInitialize((params: InitializeParams) => {
       textDocumentSync: TextDocumentSyncKind.Full,
       definitionProvider: true,
       referencesProvider: true,
+      hoverProvider: true,
       completionProvider: {
         resolveProvider: true,
         triggerCharacters: ["!"],
@@ -139,6 +143,22 @@ connection.languages.semanticTokens.on((params) => {
 });
 
 connection.onDocumentFormatting((params) => abcServer.onFormat(params.textDocument.uri));
+
+connection.onHover((params: TextDocumentPositionParams): Hover | null => {
+  const uri = params.textDocument.uri;
+
+  // Hover is only supported for ABCT files
+  if (!uri.toLowerCase().endsWith(".abct")) {
+    return null;
+  }
+
+  const doc = abcServer.abcDocuments.get(uri);
+  if (!doc || !(doc instanceof AbctDocument) || !doc.AST) {
+    return null;
+  }
+
+  return provideHover(doc.AST, params.position);
+});
 
 connection.onRequest("divideRhythm", (params: AbcTransformParams) => {
   return abcServer.onRhythmTransform(params.uri, "/", params.selection);
