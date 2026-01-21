@@ -2,8 +2,10 @@
 // Tests for formatting ABCT code according to the formatting rules
 
 import { expect } from "chai";
+import * as fc from "fast-check";
 import { AbctFormatter } from "../../abc-lsp-server/src/abct/AbctFormatter";
 import { parse } from "../src/parser";
+import { scan, AbctTT } from "../src/scanner";
 
 describe("ABCT Formatter", () => {
   const formatter = new AbctFormatter();
@@ -421,6 +423,200 @@ strings`);
 source = song.abc  # inline
 result = source | @chords
 result`);
+    });
+  });
+
+  describe("Operator Whitespace Insertion", () => {
+    // Helper to extract operator lexemes from formatted output
+    function extractOperatorTokens(source: string): string[] {
+      const result = scan(source);
+      return result.tokens
+        .filter(t => [
+          AbctTT.PIPE, AbctTT.PIPE_EQ, AbctTT.EQ, AbctTT.LT, AbctTT.GT,
+          AbctTT.LTE, AbctTT.GTE, AbctTT.EQEQ, AbctTT.BANGEQ, AbctTT.PLUS
+        ].includes(t.type))
+        .map(t => t.lexeme);
+    }
+
+    describe("update and pipe sequences", () => {
+      it("should separate |= and | with proper spacing", () => {
+        const input = "@chords |= a | b";
+        const result = fmt(input);
+        expect(result.trim()).to.equal("@chords |= a | b");
+        // Verify the tokens scan correctly
+        const ops = extractOperatorTokens(result);
+        expect(ops).to.deep.equal(["|=", "|"]);
+      });
+
+      it("should separate chained updates with proper spacing", () => {
+        const input = "@chords |= a | @notes |= b";
+        const result = fmt(input);
+        expect(result.trim()).to.equal("@chords |= a | @notes |= b");
+        const ops = extractOperatorTokens(result);
+        expect(ops).to.deep.equal(["|=", "|", "|="]);
+      });
+    });
+
+    describe("comparison and assignment sequences", () => {
+      it("should format comparison followed by assignment correctly", () => {
+        // In a multi-statement program
+        const input = `cond = a > b
+result = c`;
+        const result = fmt(input);
+        expect(result).to.include("a > b");
+        expect(result).to.include("result = c");
+      });
+
+      it("should format equality operators with proper spacing", () => {
+        const input = "x == 1";
+        const result = fmt(input);
+        expect(result.trim()).to.equal("x == 1");
+        const ops = extractOperatorTokens(result);
+        expect(ops).to.deep.equal(["=="]);
+      });
+
+      it("should format inequality operators with proper spacing", () => {
+        const input = "x != 1";
+        const result = fmt(input);
+        expect(result.trim()).to.equal("x != 1");
+        const ops = extractOperatorTokens(result);
+        expect(ops).to.deep.equal(["!="]);
+      });
+
+      it("should format >= and <= with proper spacing", () => {
+        const input1 = "x >= 1";
+        const input2 = "x <= 1";
+        const result1 = fmt(input1);
+        const result2 = fmt(input2);
+        expect(result1.trim()).to.equal("x >= 1");
+        expect(result2.trim()).to.equal("x <= 1");
+        // Verify tokens scan correctly
+        expect(extractOperatorTokens(result1)).to.deep.equal([">="]);
+        expect(extractOperatorTokens(result2)).to.deep.equal(["<="]);
+      });
+    });
+
+    describe("complex operator sequences", () => {
+      it("should handle pipeline with multiple operators", () => {
+        const input = "src.abc | @chords |= transpose 2 | @notes |= retrograde";
+        const result = fmt(input);
+        expect(result.trim()).to.equal("src.abc | @chords |= transpose 2 | @notes |= retrograde");
+        const ops = extractOperatorTokens(result);
+        expect(ops).to.deep.equal(["|", "|=", "|", "|="]);
+      });
+
+      it("should handle concat and pipe together", () => {
+        const input = "a.abc + b.abc | @chords";
+        const result = fmt(input);
+        expect(result.trim()).to.equal("a.abc + b.abc | @chords");
+        const ops = extractOperatorTokens(result);
+        expect(ops).to.deep.equal(["+", "|"]);
+      });
+    });
+
+    describe("round-trip through scanner", () => {
+      // Verify formatted output scans to the same tokens
+      function assertScanRoundtrip(input: string): void {
+        const result1 = parse(input);
+        if (!result1.success) {
+          throw new Error(`Failed to parse: ${result1.error.message}`);
+        }
+        const formatted = formatter.format(result1.value, input);
+        const scanResult = scan(formatted);
+        expect(scanResult.errors).to.have.length(0, "Formatted output should scan without errors");
+
+        // Parse the formatted output
+        const result2 = parse(formatted);
+        expect(result2.success).to.be.true;
+      }
+
+      it("should roundtrip update-pipe sequence", () => {
+        assertScanRoundtrip("@sel |= a | b");
+      });
+
+      it("should roundtrip comparison sequence", () => {
+        assertScanRoundtrip("x >= 1");
+        assertScanRoundtrip("x <= 1");
+        assertScanRoundtrip("x == 1");
+        assertScanRoundtrip("x != 1");
+      });
+
+      it("should roundtrip complex pipeline", () => {
+        assertScanRoundtrip("src.abc | @chords |= (a | b) | @notes |= c");
+      });
+    });
+
+    describe("property-based tests", () => {
+      it("property: formatted output should round-trip through scanner", () => {
+        // Generate expressions with various operators
+        const genOperator = fc.constantFrom("|", "|=", "+");
+        const genIdentifier = fc.stringMatching(/^[a-z][a-z0-9_]{0,5}$/);
+
+        const genSimpleExpr = fc.tuple(
+          genIdentifier,
+          genOperator,
+          genIdentifier
+        ).map(([left, op, right]) => {
+          if (op === "|=") {
+            // Update requires selector on left
+            return `@${left} |= ${right}`;
+          }
+          return `${left}.abc ${op} ${right}.abc`;
+        });
+
+        fc.assert(
+          fc.property(genSimpleExpr, (expr) => {
+            const result = parse(expr);
+            if (!result.success) return true; // Skip invalid expressions
+
+            const formatted = formatter.format(result.value, expr);
+            const scanResult = scan(formatted);
+
+            // Formatted output should scan without errors
+            if (scanResult.errors.length > 0) return false;
+
+            // Should be able to parse the formatted output
+            const reparsed = parse(formatted);
+            return reparsed.success;
+          }),
+          { numRuns: 200 }
+        );
+      });
+
+      it("property: comparison operators should be properly spaced", () => {
+        const genCompOp = fc.constantFrom(">=", "<=", "==", "!=", ">", "<");
+        const genIdentifier = fc.stringMatching(/^[a-z][a-z0-9_]{0,5}$/);
+        const genNumber = fc.integer({ min: 0, max: 100 }).map(String);
+
+        const genComparison = fc.tuple(
+          genIdentifier,
+          genCompOp,
+          genNumber
+        ).map(([left, op, right]) => `${left} ${op} ${right}`);
+
+        fc.assert(
+          fc.property(genComparison, (expr) => {
+            const result = parse(expr);
+            if (!result.success) return true;
+
+            const formatted = formatter.format(result.value, expr);
+
+            // Verify the operator token extracted from scanning has proper spacing
+            const scanResult = scan(formatted);
+            const compOps = scanResult.tokens.filter(t =>
+              [AbctTT.LT, AbctTT.GT, AbctTT.LTE, AbctTT.GTE, AbctTT.EQEQ, AbctTT.BANGEQ].includes(t.type)
+            );
+
+            // Should have exactly one comparison operator
+            if (compOps.length !== 1) return false;
+
+            // Verify the formatted output can be reparsed
+            const reparsed = parse(formatted);
+            return reparsed.success;
+          }),
+          { numRuns: 200 }
+        );
+      });
     });
   });
 });
