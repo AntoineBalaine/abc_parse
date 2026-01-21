@@ -19,7 +19,7 @@ let client: LanguageClient;
  *
  * The extension is activated the very first time the command is executed
  */
-export function activate(context: ExtensionContext) {
+export async function activate(context: ExtensionContext) {
   // Configure the path to the mscore binary for MuseSampler playback
   const binaryName = os.platform() === "win32" ? "mscore.exe" : "mscore";
   setMscorePath(context.asAbsolutePath(path.join("bin", binaryName)));
@@ -65,7 +65,7 @@ export function activate(context: ExtensionContext) {
   registerAbctCommands(context, client);
 
   // Start the client. This will also launch the server
-  client.start();
+  await client.start();
 }
 
 export function deactivate(): Thenable<void> | undefined {

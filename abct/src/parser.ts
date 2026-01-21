@@ -1,13 +1,6 @@
 // ABCT Parser - Wrapper around Peggy-generated parser
-import * as peggy from "peggy";
-import { readFileSync } from "fs";
-import { join } from "path";
+import { parse as peggyParse } from "./parser.generated.js";
 import { Program, Expr } from "./ast";
-
-// Load and compile the grammar at module load time
-const grammarPath = join(__dirname, "grammar.peggy");
-const grammarSource = readFileSync(grammarPath, "utf-8");
-const parser = peggy.generate(grammarSource);
 
 /**
  * Parse result type - either success with AST or failure with error
@@ -37,7 +30,7 @@ export interface ParseError {
  */
 export function parse(input: string): ParseResult<Program> {
   try {
-    const result = parser.parse(input) as Program;
+    const result = peggyParse(input) as Program;
     return { success: true, value: result };
   } catch (e) {
     if (isPeggyError(e)) {
