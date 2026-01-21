@@ -39,9 +39,13 @@ let evalDocProvider: AbctEvalDocProvider | undefined;
 // Subscriptions for cleanup
 let providerSubscription: vscode.Disposable | undefined;
 let saveSubscription: vscode.Disposable | undefined;
+let sourceChangeSubscription: vscode.Disposable | undefined;
 
 // Guard to prevent concurrent save operations
 const savesInProgress = new Set<string>();
+
+// Store client reference for refresh command
+let lspClient: LanguageClient | undefined;
 
 /**
  * Get or create the ABCT output channel.
@@ -101,6 +105,8 @@ export function registerAbctCommands(
   context: vscode.ExtensionContext,
   client: LanguageClient
 ): void {
+  // Store client reference for refresh command
+  lspClient = client;
   // abct.evaluate - Evaluate entire file
   const evaluateCmd = vscode.commands.registerCommand("abct.evaluate", async () => {
     const editor = vscode.window.activeTextEditor;
@@ -379,6 +385,107 @@ export function registerAbctCommands(
     }
   });
   context.subscriptions.push(saveSubscription);
+
+  // abct.refreshEvaluatedOutput - Refresh the virtual document with new evaluation
+  const refreshCmd = vscode.commands.registerCommand("abct.refreshEvaluatedOutput", async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || editor.document.uri.scheme !== ABCT_EVAL_SCHEME) {
+      vscode.window.showWarningMessage("Please focus an evaluated output document to refresh");
+      return;
+    }
+
+    if (!evalDocProvider || !lspClient) {
+      return;
+    }
+
+    const state = evalDocProvider.getDocument(editor.document.uri);
+    if (!state) {
+      return;
+    }
+
+    // Check if document has unsaved changes
+    if (editor.document.isDirty) {
+      const proceed = await vscode.window.showWarningMessage(
+        "This document has unsaved changes. Refreshing will discard them.",
+        "Refresh Anyway",
+        "Cancel"
+      );
+      if (proceed !== "Refresh Anyway") {
+        return;
+      }
+    }
+
+    try {
+      // Re-evaluate the source ABCT file
+      const result = await lspClient.sendRequest<AbctEvalResult>("abct.evaluate", {
+        uri: state.sourceUri,
+      });
+
+      if (!result.abc) {
+        vscode.window.showWarningMessage("Re-evaluation produced no output");
+        return;
+      }
+
+      // Update the virtual document
+      evalDocProvider.updateDocument(editor.document.uri, result.abc);
+
+      vscode.window.showInformationMessage("Refreshed evaluated output");
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to refresh: ${error}`);
+    }
+  });
+  context.subscriptions.push(refreshCmd);
+
+  // Watch for source ABCT file changes to auto-update clean virtual documents
+  sourceChangeSubscription = vscode.workspace.onDidChangeTextDocument(async (event) => {
+    // Only watch ABCT files
+    if (!event.document.uri.path.endsWith(".abct")) {
+      return;
+    }
+
+    if (!evalDocProvider || !lspClient) {
+      return;
+    }
+
+    // Get all virtual docs linked to this source
+    const virtualDocUris = evalDocProvider.getVirtualDocsForSource(event.document.uri);
+    if (virtualDocUris.length === 0) {
+      return;
+    }
+
+    // For each virtual doc, check if it's clean and update it
+    for (const virtualUri of virtualDocUris) {
+      const state = evalDocProvider.getDocument(virtualUri);
+      if (!state) {
+        continue;
+      }
+
+      // Check if the virtual document is dirty (has unsaved edits)
+      // We can't easily check if a TextDocument is dirty without opening it,
+      // so we check our internal state instead
+      if (evalDocProvider.isDocumentDirty(virtualUri)) {
+        // Show a one-time notification
+        vscode.window.showWarningMessage(
+          "Source ABCT file changed. Use 'ABCT: Refresh Evaluated Output' to update."
+        );
+        continue;
+      }
+
+      // Auto-update the clean document
+      try {
+        const result = await lspClient.sendRequest<AbctEvalResult>("abct.evaluate", {
+          uri: state.sourceUri,
+        });
+
+        if (result.abc) {
+          evalDocProvider.updateDocument(virtualUri, result.abc);
+        }
+      } catch {
+        // Silently ignore evaluation errors during auto-update
+      }
+    }
+  });
+  context.subscriptions.push(sourceChangeSubscription);
 }
 
 /**
@@ -402,4 +509,9 @@ export function disposeAbctCommands(): void {
     saveSubscription.dispose();
     saveSubscription = undefined;
   }
+  if (sourceChangeSubscription) {
+    sourceChangeSubscription.dispose();
+    sourceChangeSubscription = undefined;
+  }
+  lspClient = undefined;
 }
