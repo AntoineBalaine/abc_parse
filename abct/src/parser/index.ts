@@ -5,7 +5,7 @@
  */
 
 // Main parse functions
-export { parse, parseTokens, parseProgram, parseStatement, ParseResult } from "./parser";
+export { parseTokens, parseProgram, parseStatement, ParseResult } from "./parser";
 
 // Expression parsing (for direct use/testing)
 export {

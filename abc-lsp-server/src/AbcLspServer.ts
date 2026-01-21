@@ -5,7 +5,9 @@ import { AbcDocument } from "./AbcDocument";
 import { AbctFormatter } from "./abct/AbctFormatter";
 import { AbctDocument } from "./AbctDocument";
 import { AbcxDocument } from "./AbcxDocument";
-import { LspEventListener, mapTTtoStandardScope, mapAbctTokenToScope } from "./server_helpers";
+import { LspEventListener, mapTTtoStandardScope, mapAbctTTtoScope, standardTokenScopes } from "./server_helpers";
+import { AbctTT } from "../../abct/src/scanner";
+import { isAssignment } from "../../abct/src/ast";
 
 /** Common interface for ABC, ABCx, and ABCT documents */
 type DocumentType = AbcDocument | AbcxDocument | AbctDocument;
@@ -127,19 +129,38 @@ export class AbcLspServer {
 
     const builder = new SemanticTokensBuilder();
 
-    // ABCT documents have a different token format
+    // ABCT documents use scanner tokens directly
     if (abcDocument instanceof AbctDocument) {
-      for (const token of abcDocument.tokens) {
-        const scope = mapAbctTokenToScope(token.type);
-        if (scope >= 0) {
-          builder.push(
-            token.line - 1, // Convert from 1-based to 0-based
-            token.column - 1, // Convert from 1-based to 0-based
-            token.length,
-            scope,
-            0
-          );
+      // Build set of variable definition positions from AST
+      const varDefPositions = new Set<string>();
+      if (abcDocument.AST) {
+        for (const stmt of abcDocument.AST.statements) {
+          if (isAssignment(stmt)) {
+            varDefPositions.add(`${stmt.idLoc.start.line}:${stmt.idLoc.start.column}`);
+          }
         }
+      }
+
+      // Iterate scanner tokens and map to semantic scopes
+      for (const token of abcDocument.tokens) {
+        let scope = mapAbctTTtoScope(token.type);
+        if (scope === -1) continue; // Skip whitespace, punctuation, etc.
+
+        // Special case: variable definitions get variable scope
+        if (token.type === AbctTT.IDENTIFIER) {
+          const posKey = `${token.line}:${token.column}`;
+          if (varDefPositions.has(posKey)) {
+            scope = standardTokenScopes.variable;
+          }
+        }
+
+        builder.push(
+          token.line - 1, // Convert 1-based to 0-based
+          token.column - 1,
+          token.lexeme.length,
+          scope,
+          0
+        );
       }
     } else {
       // ABC and ABCx documents

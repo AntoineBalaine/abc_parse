@@ -1,6 +1,7 @@
 // ABCT Parser - Public API
-// Uses the new hand-written recursive descent parser with error recovery
-import { parse as newParse } from "./parser/parser";
+// Convenience wrappers that combine scanning and parsing
+import { parseTokens } from "./parser/parser";
+import { scan } from "./scanner";
 import { Program, Expr } from "./ast";
 
 /**
@@ -24,13 +25,34 @@ export interface ParseError {
 }
 
 /**
- * Parse ABCT source code into a Program AST
+ * Parse ABCT source code into a Program AST.
+ * This is a convenience function that scans and parses in one step.
+ * For separate control over scanning and parsing, use scan() + parseTokens() directly.
  *
  * @param input - The ABCT source code to parse
  * @returns ParseResult with either the Program AST or an error
  */
 export function parse(input: string): ParseResult<Program> {
-  const result = newParse(input);
+  // Scan the source
+  const { tokens, errors: scanErrors } = scan(input);
+
+  // Convert scanner errors to ParseError format
+  if (scanErrors.length > 0) {
+    const firstError = scanErrors[0];
+    return {
+      success: false,
+      error: {
+        message: firstError.message,
+        location: {
+          start: { line: firstError.line, column: firstError.column, offset: firstError.offset },
+          end: { line: firstError.line, column: firstError.column + 1, offset: firstError.offset + 1 },
+        },
+      },
+    };
+  }
+
+  // Parse the tokens
+  const result = parseTokens(tokens);
 
   if (result.errors.length > 0) {
     // Return first error in the legacy format
@@ -93,6 +115,3 @@ export function parseExpr(input: string): ParseResult<Expr> {
 
 // Re-export AST types for convenience
 export * from "./ast";
-
-// Re-export tokenization utilities
-export { extractTokens, AbctTokenType, AbctToken } from "./tokenize";
