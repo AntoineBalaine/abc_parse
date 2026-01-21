@@ -8,7 +8,7 @@ import { ExtensionContext } from "vscode";
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
 import { setMscorePath } from "abc-musesampler-native";
 import { registerCommands } from "./extensionCommands";
-import { registerRendererCommands } from "./renderer";
+import { registerRendererCommands, setLspClient } from "./renderer";
 import { registerPlaybackCommands } from "./playback";
 import { registerAbctCommands, disposeAbctCommands } from "./abctCommands";
 
@@ -51,6 +51,9 @@ export async function activate(context: ExtensionContext) {
 
   // Create the language client and start the client.
   client = new LanguageClient("abcLanguageServer", "ABC Language Server", serverOptions, clientOptions);
+
+  // Set the LSP client for the renderer (enables ABCT preview)
+  setLspClient(client);
 
   // register list of extension's commands
   registerCommands(context, client);
