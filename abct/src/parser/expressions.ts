@@ -376,8 +376,8 @@ export function parseAtom(ctx: AbctParseCtx): Expr {
     return parseList(ctx, parseExpr);
   }
 
-  // ABC literal: <<content>>
-  if (check(ctx, AbctTT.LT_LT)) {
+  // ABC fence literal: ```abc ... ```
+  if (check(ctx, AbctTT.ABC_FENCE_OPEN)) {
     return parseAbcLiteral(ctx);
   }
 
@@ -430,7 +430,7 @@ export function canStartAtom(ctx: AbctParseCtx): boolean {
     ctx,
     AbctTT.LPAREN,
     AbctTT.LBRACKET,
-    AbctTT.LT_LT,
+    AbctTT.ABC_FENCE_OPEN,
     AbctTT.COLON,
     AbctTT.AT,
     AbctTT.NUMBER,

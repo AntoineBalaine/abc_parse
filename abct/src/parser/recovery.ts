@@ -15,7 +15,7 @@ import { advance, isAtEnd, peek, previous, checkAny } from "./utils";
  * 1. EOL (statement boundary)
  * 2. = at statement level (assignment start)
  * 3. | at expression level (pipe boundary)
- * 4. Closing delimiters: ), ], >>
+ * 4. Closing delimiters: ), ], ``` (ABC fence close)
  */
 export function synchronize(ctx: AbctParseCtx): void {
   advance(ctx);
@@ -32,7 +32,7 @@ export function synchronize(ctx: AbctParseCtx): void {
       case AbctTT.PIPE: // pipe (at expression level)
       case AbctTT.RPAREN: // closing paren
       case AbctTT.RBRACKET: // closing bracket
-      case AbctTT.GT_GT: // closing ABC literal
+      case AbctTT.ABC_FENCE_CLOSE: // closing ABC fence
         return;
     }
 
@@ -83,7 +83,7 @@ export function isAtRecoveryPoint(ctx: AbctParseCtx): boolean {
     AbctTT.PIPE,
     AbctTT.RPAREN,
     AbctTT.RBRACKET,
-    AbctTT.GT_GT
+    AbctTT.ABC_FENCE_CLOSE
   );
 }
 

@@ -82,18 +82,34 @@ export const genString: fc.Arbitrary<string> = fc.oneof(
 );
 
 /**
- * Generate simple ABC content (no >> inside)
+ * Generate simple ABC content (no triple backticks inside)
  */
 export const genAbcContent: fc.Arbitrary<string> = fc
   .stringMatching(/^[A-Ga-g0-9 |:\[\]\/]{0,50}$/)
-  .filter((content) => !content.includes(">>"));
+  .filter((content) => !content.includes("```"));
 
 /**
- * Generate an ABC literal
+ * Generate an ABC fence literal (triple-backtick syntax)
+ * Format: ```abc\ncontent\n```
  */
-export const genAbcLiteral: fc.Arbitrary<string> = genAbcContent.map(
-  (content) => `<<${content}>>`
+export const genAbcFence: fc.Arbitrary<string> = genAbcContent.map(
+  (content) => "```abc\n" + content + "\n```"
 );
+
+/**
+ * Generate an ABC fence with location
+ * Format: ```abc :line:col\ncontent\n```
+ */
+export const genAbcFenceWithLocation: fc.Arbitrary<string> = fc
+  .tuple(
+    genAbcContent,
+    fc.integer({ min: 1, max: 100 }),
+    fc.integer({ min: 1, max: 100 })
+  )
+  .map(([content, line, col]) => "```abc :" + line + ":" + col + "\n" + content + "\n```");
+
+// Legacy alias for backwards compatibility during migration
+export const genAbcLiteral = genAbcFence;
 
 /**
  * Generate horizontal whitespace

@@ -281,6 +281,12 @@ export class AbctValidator {
             `'${spec.name}' expects integer argument, got ABC literal`,
             DiagnosticSeverity.Error
           );
+        } else if (isList(arg)) {
+          this.addDiagnostic(
+            arg.loc,
+            `'${spec.name}' expects integer argument, got list`,
+            DiagnosticSeverity.Error
+          );
         }
         // Identifiers and other expressions could be variables - allow them
         break;

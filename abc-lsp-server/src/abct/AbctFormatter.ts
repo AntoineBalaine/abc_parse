@@ -67,7 +67,7 @@ interface Comment {
  * - No spaces inside parentheses/brackets
  * - Single space in applications
  * - Preserve comments and line breaks
- * - Do not format inside <<...>> ABC literals
+ * - Do not format inside ABC literals (```abc ... ```)
  */
 export class AbctFormatter {
   private output: string[] = [];
@@ -466,13 +466,16 @@ export class AbctFormatter {
   }
 
   /**
-   * Format an ABC literal: <<content>>
+   * Format an ABC literal: ```abc\ncontent\n```
    * Content is preserved exactly as-is.
    */
   private formatAbcLiteral(lit: AbcLiteral): void {
-    this.output.push("<<");
-    this.output.push(lit.content);
-    this.output.push(">>");
+    this.output.push("```abc\n");
+    // Content includes trailing newline from scanner for round-trip
+    // Remove it since we add it explicitly below
+    const content = lit.content.replace(/\n$/, "");
+    this.output.push(content);
+    this.output.push("\n```");
   }
 
   /**

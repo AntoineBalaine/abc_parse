@@ -189,17 +189,17 @@ export const genLocationSelector: fc.Arbitrary<string> = fc.oneof(
 // ============================================================================
 
 /**
- * Generate ABC literal content (no >> sequences)
+ * Generate ABC literal content (no triple backticks)
  */
 export const genAbcContent: fc.Arbitrary<string> = fc
   .stringMatching(/^[A-Ga-g0-9\[\]|:,/^_' ]{0,20}$/)
-  .filter((s) => !s.includes(">>")); // Avoid the closing delimiter
+  .filter((s) => !s.includes("```")); // Avoid triple backticks
 
 /**
- * Generate a complete ABC literal: <<content>>
+ * Generate a complete ABC literal: ```abc\ncontent\n```
  */
 export const genAbcLiteral: fc.Arbitrary<string> = genAbcContent.map(
-  (content) => `<<${content}>>`
+  (content) => "```abc\n" + content + "\n```"
 );
 
 // ============================================================================
@@ -262,12 +262,14 @@ export const genFileRef: fc.Arbitrary<string> = fc.oneof(
 
 /**
  * Generate a simple atom (not recursive)
+ * Note: ABC literals are excluded because they must be at line start
+ * and can't appear inline in expressions. Use genAbcLiteral separately
+ * for testing standalone ABC literals.
  */
 export const genSimpleAtom: fc.Arbitrary<string> = fc.oneof(
   genIdentifier,
   genNumber,
   genPath,
-  genAbcLiteral,
   genSimpleList,
   genLocationSelector
 );

@@ -81,10 +81,11 @@ describe("ABCT Parser Expressions", () => {
     });
 
     it("should parse ABC literal", () => {
-      const { expr, errors } = parse("<<CDEF>>");
+      const { expr, errors } = parse("```abc\nCDEF\n```");
       expect(isAbcLiteral(expr)).to.be.true;
       if (isAbcLiteral(expr)) {
-        expect(expr.content).to.equal("CDEF");
+        // Content includes trailing newline for round-trip correctness
+        expect(expr.content).to.equal("CDEF\n");
       }
       expect(errors).to.have.length(0);
     });

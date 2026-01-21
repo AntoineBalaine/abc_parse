@@ -42,12 +42,12 @@ describe("ABCT Scanner Integration", () => {
       expect(types[types.length - 1]).to.equal(AbctTT.EOF);
     });
 
-    it("should scan ABC literal", () => {
-      const result = scan("<<CDEF GABc>>");
+    it("should scan ABC fence literal", () => {
+      const result = scan("```abc\nCDEF GABc\n```");
       const types = result.tokens.map((t) => t.type);
-      expect(types).to.include(AbctTT.LT_LT);
-      expect(types).to.include(AbctTT.ABC_LITERAL);
-      expect(types).to.include(AbctTT.GT_GT);
+      expect(types).to.include(AbctTT.ABC_FENCE_OPEN);
+      expect(types).to.include(AbctTT.ABC_CONTENT);
+      expect(types).to.include(AbctTT.ABC_FENCE_CLOSE);
     });
 
     it("should scan selector", () => {
@@ -138,7 +138,7 @@ describe("ABCT Scanner Integration", () => {
             fc.oneof(
               genIdentifier,
               genNumber,
-              genOperator.filter((op) => op !== "<" && op !== ">"), // Avoid << and >> confusion
+              genOperator.filter((op) => op !== "<" && op !== ">"), // Avoid <= and >= combining unexpectedly
               genWS
             ),
             { minLength: 1, maxLength: 10 }
@@ -241,7 +241,9 @@ describe("ABCT Scanner Integration", () => {
     });
 
     it("should scan assignment with ABC literal", () => {
-      const source = `theme = <<C D E F|G A B c>>`;
+      // Note: ABC literals now use triple-backtick syntax on their own line
+      // Assignment to ABC literal requires multi-line format
+      const source = "```abc\nC D E F|G A B c\n```";
       const result = scan(source);
       expect(result.errors).to.have.length(0);
       const reconstructed = result.tokens
