@@ -19,9 +19,11 @@ export {
   identifier,
   number,
   string,
-  abcLiteral,
+  abcFence,
   operator,
   collectInvalid,
+  sanitizeAbcContent,
+  desanitizeAbcContent,
 } from "./primitives";
 
 // Whitespace scanner functions

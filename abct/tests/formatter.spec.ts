@@ -176,18 +176,19 @@ result = source | @chords`;
 
   describe("ABC Literal Preservation", () => {
     it("should preserve ABC literal content exactly", () => {
-      const result = fmt('src.abc | :1:5-20 |= <<[CEG][FAc][GBd]>>');
-      expect(result.trim()).to.equal("src.abc | :1:5-20 |= <<[CEG][FAc][GBd]>>");
+      // ABC literals use triple-backtick syntax and must be standalone
+      const result = fmt("```abc\n[CEG][FAc][GBd]\n```");
+      expect(result.trim()).to.equal("```abc\n[CEG][FAc][GBd]\n```");
     });
 
     it("should not format inside ABC literals", () => {
-      const result = fmt("<<C D  E   F G>>"); // Multiple spaces inside literal
-      expect(result.trim()).to.equal("<<C D  E   F G>>"); // Spaces preserved
+      const result = fmt("```abc\nC D  E   F G\n```"); // Multiple spaces inside literal
+      expect(result.trim()).to.equal("```abc\nC D  E   F G\n```"); // Spaces preserved
     });
 
     it("should preserve ABC literal with bar lines", () => {
-      const result = fmt("<<| G2 | A2 |>>");
-      expect(result.trim()).to.equal("<<| G2 | A2 |>>");
+      const result = fmt("```abc\n| G2 | A2 |\n```");
+      expect(result.trim()).to.equal("```abc\n| G2 | A2 |\n```");
     });
   });
 
@@ -372,11 +373,12 @@ result`);
     });
 
     it("should roundtrip ABC literal", () => {
-      assertRoundtrip("<<[CEG][FAc][GBd]>>");
+      assertRoundtrip("```abc\n[CEG][FAc][GBd]\n```");
     });
 
     it("should roundtrip location selector", () => {
-      assertRoundtrip("src.abc | :10:5-12:20 |= <<patch>>");
+      // ABC literals are now multi-line, so use a simple transform instead
+      assertRoundtrip("src.abc | :10:5-12:20 |= transpose 2");
     });
 
     it("should roundtrip file reference with selector", () => {

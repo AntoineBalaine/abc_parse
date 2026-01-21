@@ -58,12 +58,12 @@ describe("ABCT Tokenization", () => {
       expect(tokens[0].text).to.equal("1/2");
     });
 
-    it("should extract tokens for an ABC literal", () => {
-      const result = parse("<<C D E>>");
+    it("should extract tokens for an ABC fence literal", () => {
+      const result = parse("```abc\nC D E\n```");
       expect(result.success).to.be.true;
       if (!result.success) return;
 
-      const tokens = extractTokens(result.value, "<<C D E>>");
+      const tokens = extractTokens(result.value, "```abc\nC D E\n```");
       expect(tokens).to.have.length(1);
       expect(tokens[0].type).to.equal(AbctTokenType.ABC_LITERAL);
     });

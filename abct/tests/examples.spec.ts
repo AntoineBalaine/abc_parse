@@ -127,27 +127,29 @@ result`;
   });
 
   describe("Inline Patch", () => {
-    it("should parse: src.abc | :1:5-20 |= <<[CEG][FAc][GBd]>>", () => {
-      const program = assertParses("src.abc | :1:5-20 |= <<[CEG][FAc][GBd]>>");
-      expect(program.statements).to.have.length(1);
-      const expr = program.statements[0];
+    // Note: ABC literals now use triple-backtick syntax which requires line start,
+    // so we use a variable to hold the patch in multi-line programs
+    it("should parse: patch via variable with src.abc | :1:5-20 |= patch", () => {
+      const program = assertParses("patch = transpose 2\nsrc.abc | :1:5-20 |= patch");
+      expect(program.statements).to.have.length(2);
+      const expr = program.statements[1];
       expect(isPipe(expr)).to.be.true;
     });
   });
 
   describe("Location Selectors", () => {
-    it("should parse: src.abc | :10 |= <<patch>>", () => {
-      const program = assertParses("src.abc | :10 |= <<patch>>");
+    it("should parse: src.abc | :10 |= transform", () => {
+      const program = assertParses("src.abc | :10 |= transpose 2");
       expect(program.statements).to.have.length(1);
     });
 
-    it("should parse: src.abc | :10:5-15 |= <<patch>>", () => {
-      const program = assertParses("src.abc | :10:5-15 |= <<patch>>");
+    it("should parse: src.abc | :10:5-15 |= transform", () => {
+      const program = assertParses("src.abc | :10:5-15 |= transpose 2");
       expect(program.statements).to.have.length(1);
     });
 
-    it("should parse: src.abc | :10:5-12:20 |= <<patch>>", () => {
-      const program = assertParses("src.abc | :10:5-12:20 |= <<patch>>");
+    it("should parse: src.abc | :10:5-12:20 |= transform", () => {
+      const program = assertParses("src.abc | :10:5-12:20 |= transpose 2");
       expect(program.statements).to.have.length(1);
     });
 
@@ -296,17 +298,17 @@ strings + trumpet + bass`;
   });
 
   describe("ABC Literals", () => {
-    it("should parse: <<[CEG][FAc][GBd]>>", () => {
-      const program = assertParses("<<[CEG][FAc][GBd]>>");
+    it("should parse ABC fence literal", () => {
+      const program = assertParses("```abc\n[CEG][FAc][GBd]\n```");
       expect(program.statements).to.have.length(1);
       const expr = program.statements[0];
       expect(isAbcLiteral(expr)).to.be.true;
     });
 
     it("should parse ABC literal with various characters", () => {
-      assertParses("<<C D E F G A B c>>");
-      assertParses("<<[CEG]2 [FAc]2>>");
-      assertParses("<<| G2 | A2 |>>");
+      assertParses("```abc\nC D E F G A B c\n```");
+      assertParses("```abc\n[CEG]2 [FAc]2\n```");
+      assertParses("```abc\n| G2 | A2 |\n```");
     });
   });
 

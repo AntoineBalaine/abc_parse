@@ -6,7 +6,7 @@
  */
 
 import { AbctCtx } from "./context";
-import { AbctTT } from "./types";
+import { AbctTT, Token } from "./types";
 import { advance, isAtEnd, matchPattern } from "./utils";
 
 // Pattern for the end of line
@@ -90,47 +90,158 @@ export function string(ctx: AbctCtx): boolean {
 }
 
 /**
- * Scan an ABC literal: <<...>>
- * Can span multiple lines
+ * Sanitize ABC content by escaping triple backticks
+ * This allows ABC content that contains ``` to be safely embedded in ABCT
  */
-export function abcLiteral(ctx: AbctCtx): boolean {
-  if (!ctx.test("<<")) return false;
+export function sanitizeAbcContent(raw: string): string {
+  return raw.replace(/```/g, "\\`\\`\\`");
+}
 
-  advance(ctx, 2); // consume <<
-  ctx.push(AbctTT.LT_LT);
+/**
+ * Desanitize ABC content by unescaping triple backticks
+ * Used when extracting ABC content for insertion into ABC files
+ */
+export function desanitizeAbcContent(sanitized: string): string {
+  return sanitized.replace(/\\`\\`\\`/g, "```");
+}
+
+// Pattern for ABC fence opening: ```abc optionally followed by location
+// Must be at line start (possibly with leading whitespace)
+const pAbcFenceOpen = /^[ \t]*```abc(?: :(\d+)(?::(\d+))?(?:-(\d+)(?::(\d+))?)?)?[ \t]*$/;
+
+// Pattern for ABC fence closing: ``` at line start
+const pAbcFenceClose = /^[ \t]*```[ \t]*$/;
+
+/**
+ * Check if we are at the start of a line
+ */
+function isAtLineStart(ctx: AbctCtx): boolean {
+  return ctx.current === 0 || ctx.current === ctx.lineStart;
+}
+
+/**
+ * Scan an ABC fence literal: ```abc ... ```
+ * The opening fence must be at line start (possibly with leading whitespace).
+ * The closing fence must be at line start.
+ * Content is sanitized (``` escaped as \`\`\`).
+ */
+export function abcFence(ctx: AbctCtx): boolean {
+  // Must be at line start to match opening fence
+  if (!isAtLineStart(ctx)) return false;
+
+  // Get the current line to validate the opening fence
+  const lineEnd = ctx.source.indexOf("\n", ctx.current);
+  const crlfEnd = ctx.source.indexOf("\r\n", ctx.current);
+  let actualLineEnd: number;
+
+  if (crlfEnd !== -1 && (lineEnd === -1 || crlfEnd < lineEnd)) {
+    actualLineEnd = crlfEnd;
+  } else if (lineEnd !== -1) {
+    actualLineEnd = lineEnd;
+  } else {
+    actualLineEnd = ctx.source.length;
+  }
+
+  const openingLine = ctx.source.slice(ctx.current, actualLineEnd);
+
+  // Validate the opening line matches the fence pattern (handles leading whitespace)
+  if (!pAbcFenceOpen.test(openingLine)) return false;
+
+  // Consume the opening fence line including trailing newline (for round-trip)
+  ctx.current = actualLineEnd;
+  if (ctx.test("\r\n")) {
+    ctx.current += 2;
+    ctx.line++;
+    ctx.lineStart = ctx.current;
+  } else if (ctx.test("\n") || ctx.test("\r")) {
+    ctx.current += 1;
+    ctx.line++;
+    ctx.lineStart = ctx.current;
+  }
+  ctx.push(AbctTT.ABC_FENCE_OPEN);
 
   // Mark start of content
   ctx.start = ctx.current;
+  const contentStart = ctx.current;
 
-  // Scan until >> or EOF
-  while (!isAtEnd(ctx) && !ctx.test(">>")) {
-    if (ctx.test(pEOL)) {
-      // Track newlines for line counting
-      if (ctx.test("\r\n")) {
-        advance(ctx, 2);
+  // Scan until closing fence or EOF
+  // The closing fence must be at the start of a line
+  while (!isAtEnd(ctx)) {
+    // Check if we're at line start and have a closing fence
+    if (ctx.current === ctx.lineStart) {
+      // Get the current line
+      const closingLineEnd = ctx.source.indexOf("\n", ctx.current);
+      const closingCrlfEnd = ctx.source.indexOf("\r\n", ctx.current);
+      let closingActualEnd: number;
+
+      if (closingCrlfEnd !== -1 && (closingLineEnd === -1 || closingCrlfEnd < closingLineEnd)) {
+        closingActualEnd = closingCrlfEnd;
+      } else if (closingLineEnd !== -1) {
+        closingActualEnd = closingLineEnd;
       } else {
-        advance(ctx);
+        closingActualEnd = ctx.source.length;
       }
+
+      const currentLine = ctx.source.slice(ctx.current, closingActualEnd);
+
+      if (pAbcFenceClose.test(currentLine)) {
+        // Found closing fence - push content first
+        const rawContent = ctx.source.slice(contentStart, ctx.current);
+        const sanitizedContent = sanitizeAbcContent(rawContent);
+
+        // Push content token (even if empty, for round-trip correctness)
+        if (sanitizedContent.length > 0) {
+          // Create a token manually since content may have been sanitized
+          const contentToken = new Token(
+            AbctTT.ABC_CONTENT,
+            sanitizedContent,
+            ctx.line, // This is approximate - multi-line content will span lines
+            0, // Column at line start
+            contentStart
+          );
+          ctx.tokens.push(contentToken);
+        }
+
+        // Update start and consume the closing fence
+        ctx.start = ctx.current;
+        ctx.current = closingActualEnd;
+        ctx.push(AbctTT.ABC_FENCE_CLOSE);
+
+        return true;
+      }
+    }
+
+    // Not at closing fence, advance through content
+    if (ctx.test("\r\n")) {
+      ctx.current += 2;
+      ctx.line++;
+      ctx.lineStart = ctx.current;
+    } else if (ctx.test(pEOL)) {
+      ctx.current += 1;
       ctx.line++;
       ctx.lineStart = ctx.current;
     } else {
-      advance(ctx);
+      ctx.current += 1;
     }
   }
 
-  // Push ABC content if any
-  if (ctx.current > ctx.start) {
-    ctx.push(AbctTT.ABC_LITERAL);
+  // EOF without closing fence - report error
+  // Still emit content token and return true for error recovery
+  const rawContent = ctx.source.slice(contentStart, ctx.current);
+  const sanitizedContent = sanitizeAbcContent(rawContent);
+
+  if (sanitizedContent.length > 0) {
+    const contentToken = new Token(
+      AbctTT.ABC_CONTENT,
+      sanitizedContent,
+      ctx.line,
+      0,
+      contentStart
+    );
+    ctx.tokens.push(contentToken);
   }
 
-  if (ctx.test(">>")) {
-    ctx.start = ctx.current;
-    advance(ctx, 2);
-    ctx.push(AbctTT.GT_GT);
-  } else {
-    ctx.report("Unterminated ABC literal, expected >>");
-  }
-
+  ctx.report("Unterminated ABC fence, expected closing ```");
   return true;
 }
 

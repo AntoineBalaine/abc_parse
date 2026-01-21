@@ -12,7 +12,7 @@ import {
   identifier,
   number,
   string,
-  abcLiteral,
+  abcFence,
   operator,
   collectInvalid,
 } from "./primitives";
@@ -71,7 +71,7 @@ function scanToken(ctx: AbctCtx): boolean {
   // Try each scanner in order of precedence
   // Multi-character patterns first, then single-character
   if (comment(ctx)) return true;
-  if (abcLiteral(ctx)) return true;
+  if (abcFence(ctx)) return true;
   if (string(ctx)) return true;
   if (number(ctx)) return true;
   if (identifier(ctx)) return true;

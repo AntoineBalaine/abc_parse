@@ -10,9 +10,11 @@ import {
   identifier,
   number,
   string,
-  abcLiteral,
+  abcFence,
   operator,
   collectInvalid,
+  sanitizeAbcContent,
+  desanitizeAbcContent,
 } from "../../src/scanner/primitives";
 import {
   genIdentifier,
@@ -21,7 +23,8 @@ import {
   genDecimal,
   genFraction,
   genSimpleString,
-  genAbcLiteral,
+  genAbcFence,
+  genAbcFenceWithLocation,
   genSingleOp,
   genDoubleOp,
 } from "./generators";
@@ -216,57 +219,159 @@ describe("ABCT Scanner Primitives", () => {
     });
   });
 
-  describe("abcLiteral", () => {
-    it("should scan simple ABC literal", () => {
-      const ctx = createCtx("<<CDEF>>");
-      const result = abcLiteral(ctx);
+  describe("abcFence", () => {
+    it("should scan basic ABC fence", () => {
+      const ctx = createCtx("```abc\nCDEF\n```");
+      const result = abcFence(ctx);
       expect(result).to.be.true;
-      // Should produce: LT_LT, ABC_LITERAL, GT_GT
+      // Should produce: ABC_FENCE_OPEN, ABC_CONTENT, ABC_FENCE_CLOSE
       expect(ctx.tokens).to.have.length(3);
-      expect(ctx.tokens[0].type).to.equal(AbctTT.LT_LT);
-      expect(ctx.tokens[1].type).to.equal(AbctTT.ABC_LITERAL);
-      expect(ctx.tokens[1].lexeme).to.equal("CDEF");
-      expect(ctx.tokens[2].type).to.equal(AbctTT.GT_GT);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.ABC_FENCE_OPEN);
+      expect(ctx.tokens[0].lexeme).to.equal("```abc\n"); // Includes trailing newline for round-trip
+      expect(ctx.tokens[1].type).to.equal(AbctTT.ABC_CONTENT);
+      expect(ctx.tokens[1].lexeme).to.equal("CDEF\n"); // Includes trailing newline for round-trip
+      expect(ctx.tokens[2].type).to.equal(AbctTT.ABC_FENCE_CLOSE);
+      expect(ctx.tokens[2].lexeme).to.equal("```");
     });
 
-    it("should scan empty ABC literal", () => {
-      const ctx = createCtx("<<>>");
-      const result = abcLiteral(ctx);
+    it("should scan ABC fence with line-only location", () => {
+      const ctx = createCtx("```abc :10\nCDEF\n```");
+      const result = abcFence(ctx);
       expect(result).to.be.true;
-      // Should produce: LT_LT, GT_GT (no ABC_LITERAL for empty content)
+      expect(ctx.tokens[0].type).to.equal(AbctTT.ABC_FENCE_OPEN);
+      expect(ctx.tokens[0].lexeme).to.equal("```abc :10\n"); // Includes trailing newline
+    });
+
+    it("should scan ABC fence with line:col location", () => {
+      const ctx = createCtx("```abc :10:5\nCDEF\n```");
+      const result = abcFence(ctx);
+      expect(result).to.be.true;
+      expect(ctx.tokens[0].lexeme).to.equal("```abc :10:5\n"); // Includes trailing newline
+    });
+
+    it("should scan ABC fence with single-line range", () => {
+      const ctx = createCtx("```abc :10:5-15\nCDEF\n```");
+      const result = abcFence(ctx);
+      expect(result).to.be.true;
+      expect(ctx.tokens[0].lexeme).to.equal("```abc :10:5-15\n"); // Includes trailing newline
+    });
+
+    it("should scan ABC fence with multi-line range", () => {
+      const ctx = createCtx("```abc :10:5-12:20\nCDEF\n```");
+      const result = abcFence(ctx);
+      expect(result).to.be.true;
+      expect(ctx.tokens[0].lexeme).to.equal("```abc :10:5-12:20\n"); // Includes trailing newline
+    });
+
+    it("should scan empty ABC fence", () => {
+      const ctx = createCtx("```abc\n```");
+      const result = abcFence(ctx);
+      expect(result).to.be.true;
+      // Should produce: ABC_FENCE_OPEN, ABC_FENCE_CLOSE (no ABC_CONTENT for empty content)
       expect(ctx.tokens).to.have.length(2);
-      expect(ctx.tokens[0].type).to.equal(AbctTT.LT_LT);
-      expect(ctx.tokens[1].type).to.equal(AbctTT.GT_GT);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.ABC_FENCE_OPEN);
+      expect(ctx.tokens[1].type).to.equal(AbctTT.ABC_FENCE_CLOSE);
     });
 
-    it("should scan multi-line ABC literal", () => {
-      const ctx = createCtx("<<C D E\nF G A>>");
-      const result = abcLiteral(ctx);
+    it("should scan multi-line ABC fence", () => {
+      const ctx = createCtx("```abc\nC D E\nF G A\n```");
+      const result = abcFence(ctx);
       expect(result).to.be.true;
-      expect(ctx.tokens[1].lexeme).to.equal("C D E\nF G A");
-      expect(ctx.line).to.equal(1); // Line should increment
+      expect(ctx.tokens[1].lexeme).to.equal("C D E\nF G A\n"); // Includes trailing newline
     });
 
-    it("should report unterminated ABC literal", () => {
-      const ctx = createCtx("<<CDEF");
-      const result = abcLiteral(ctx);
+    it("should handle leading whitespace before fence", () => {
+      const ctx = createCtx("  ```abc\nCDEF\n```");
+      const result = abcFence(ctx);
+      expect(result).to.be.true;
+      expect(ctx.tokens[0].type).to.equal(AbctTT.ABC_FENCE_OPEN);
+    });
+
+    it("should not close on non-line-start backticks", () => {
+      const ctx = createCtx("```abc\nsome ``` content\n```");
+      const result = abcFence(ctx);
+      expect(result).to.be.true;
+      // Content should include the inline ``` (sanitized)
+      const contentToken = ctx.tokens.find((t) => t.type === AbctTT.ABC_CONTENT);
+      expect(contentToken?.lexeme).to.include("\\`\\`\\`");
+    });
+
+    it("should sanitize triple backticks in content", () => {
+      const ctx = createCtx("```abc\nsome ``` in content\n```");
+      const result = abcFence(ctx);
+      expect(result).to.be.true;
+      const contentToken = ctx.tokens.find((t) => t.type === AbctTT.ABC_CONTENT);
+      expect(contentToken?.lexeme).to.equal("some \\`\\`\\` in content\n"); // Includes trailing newline
+    });
+
+    it("should report unterminated ABC fence", () => {
+      const ctx = createCtx("```abc\nCDEF");
+      const result = abcFence(ctx);
       expect(result).to.be.true;
       expect(ctx.errors).to.have.length(1);
-      expect(ctx.errors[0].message).to.include("Unterminated ABC literal");
+      expect(ctx.errors[0].message).to.include("Unterminated ABC fence");
     });
 
-    it("should not scan non-ABC literal", () => {
-      const ctx = createCtx("abc");
-      const result = abcLiteral(ctx);
+    it("should not scan when not at line start", () => {
+      const ctx = createCtx("x ```abc\nCDEF\n```");
+      // Advance past the first character
+      ctx.current = 2;
+      ctx.start = 2;
+      const result = abcFence(ctx);
       expect(result).to.be.false;
     });
 
-    it("property: all generated ABC literals scan correctly", () => {
+    it("should not scan non-ABC fence", () => {
+      const ctx = createCtx("abc");
+      const result = abcFence(ctx);
+      expect(result).to.be.false;
+    });
+
+    it("property: all generated ABC fences scan correctly", () => {
       fc.assert(
-        fc.property(genAbcLiteral, (lit) => {
+        fc.property(genAbcFence, (lit) => {
           const ctx = createCtx(lit);
-          const result = abcLiteral(ctx);
+          const result = abcFence(ctx);
           return result && ctx.tokens.length >= 2;
+        }),
+        { numRuns: 1000 }
+      );
+    });
+
+    it("property: ABC fences with location scan correctly", () => {
+      fc.assert(
+        fc.property(genAbcFenceWithLocation, (lit) => {
+          const ctx = createCtx(lit);
+          const result = abcFence(ctx);
+          return result && ctx.tokens[0].lexeme.includes(":");
+        }),
+        { numRuns: 1000 }
+      );
+    });
+  });
+
+  describe("sanitization utilities", () => {
+    it("should sanitize triple backticks", () => {
+      expect(sanitizeAbcContent("A ``` B")).to.equal("A \\`\\`\\` B");
+    });
+
+    it("should desanitize escaped backticks", () => {
+      expect(desanitizeAbcContent("A \\`\\`\\` B")).to.equal("A ``` B");
+    });
+
+    it("should round-trip correctly", () => {
+      const original = "X:1\n```\nK:C";
+      const sanitized = sanitizeAbcContent(original);
+      const desanitized = desanitizeAbcContent(sanitized);
+      expect(desanitized).to.equal(original);
+    });
+
+    it("property: sanitization round-trips correctly", () => {
+      fc.assert(
+        fc.property(fc.string({ minLength: 0, maxLength: 200 }), (original) => {
+          const sanitized = sanitizeAbcContent(original);
+          const desanitized = desanitizeAbcContent(sanitized);
+          return desanitized === original;
         }),
         { numRuns: 1000 }
       );

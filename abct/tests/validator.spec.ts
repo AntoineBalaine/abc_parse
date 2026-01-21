@@ -102,11 +102,13 @@ describe("ABCT Validator", () => {
       expect(diagnostics[0].message).to.include("expects integer argument, got fraction");
     });
 
-    it("should flag ABC literal when integer expected", () => {
-      const diagnostics = validateInput("src.abc | @notes |= transpose <<CEG>>");
+    it("should flag list when integer expected", () => {
+      // Note: ABC literals now use multi-line syntax and can't be used inline
+      // Test with list instead, which exercises the same type checking
+      const diagnostics = validateInput("src.abc | @notes |= transpose [a, b]");
       expect(diagnostics).to.have.length(1);
       expect(diagnostics[0].severity).to.equal(DiagnosticSeverity.Error);
-      expect(diagnostics[0].message).to.include("expects integer argument, got ABC literal");
+      expect(diagnostics[0].message).to.include("expects integer argument, got list");
     });
   });
 

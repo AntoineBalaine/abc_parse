@@ -129,8 +129,7 @@ describe("ABCT Parser Recovery", () => {
     });
 
     it("should return true at closing delimiters", () => {
-      // Note: >> is only scanned as GT_GT inside ABC literals
-      // Outside, it's two GT tokens, so we test ) and ] here
+      // Test ) and ] closers
       const closers = [") a", "] a"];
       for (const source of closers) {
         const { tokens } = scan(source);
@@ -139,12 +138,12 @@ describe("ABCT Parser Recovery", () => {
       }
     });
 
-    it("should return true at GT_GT in ABC literal context", () => {
-      // GT_GT appears at the end of ABC literals
-      const { tokens } = scan("<<abc>>");
+    it("should return true at ABC_FENCE_CLOSE", () => {
+      // ABC_FENCE_CLOSE appears at the end of ABC fence literals
+      const { tokens } = scan("```abc\nabc\n```");
       const ctx = createParseCtx(tokens);
-      // Navigate to GT_GT
-      while (peek(ctx).type !== AbctTT.GT_GT && peek(ctx).type !== AbctTT.EOF) {
+      // Navigate to ABC_FENCE_CLOSE
+      while (peek(ctx).type !== AbctTT.ABC_FENCE_CLOSE && peek(ctx).type !== AbctTT.EOF) {
         advance(ctx);
       }
       expect(isAtRecoveryPoint(ctx)).to.be.true;
@@ -283,7 +282,7 @@ z = x | y`;
       });
 
       it("should report error for unclosed ABC literal", () => {
-        const { program, errors } = parse("<<CDEF");
+        const { program, errors } = parse("```abc\nCDEF");
         expect(errors.length).to.be.greaterThan(0);
       });
     });

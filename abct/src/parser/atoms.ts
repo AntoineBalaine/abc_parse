@@ -63,22 +63,24 @@ export function parseNumberLiteral(ctx: AbctParseCtx): NumberLiteral {
 }
 
 /**
- * Parse an ABC literal: <<...>>
+ * Parse an ABC fence literal: ```abc ... ```
  */
 export function parseAbcLiteral(ctx: AbctParseCtx): AbcLiteral {
-  const openToken = advance(ctx); // <<
+  const openToken = advance(ctx); // ABC_FENCE_OPEN
   let content = "";
 
-  // If there's ABC_LITERAL content
-  if (check(ctx, AbctTT.ABC_LITERAL)) {
+  // If there's ABC_CONTENT content
+  if (check(ctx, AbctTT.ABC_CONTENT)) {
     content = advance(ctx).lexeme;
   }
 
-  // Expect >>
-  if (!match(ctx, AbctTT.GT_GT)) {
-    ctx.error("Expected '>>' to close ABC literal");
+  // Expect closing fence
+  if (!match(ctx, AbctTT.ABC_FENCE_CLOSE)) {
+    ctx.error("Expected '```' to close ABC literal");
   }
   const closeToken = previous(ctx);
+
+  // TODO: Parse location from openToken.lexeme in Phase 1.3
 
   return {
     type: "abc_literal",

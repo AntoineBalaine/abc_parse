@@ -12,7 +12,11 @@ export enum AbctTT {
   IDENTIFIER,
   NUMBER,
   STRING,
-  ABC_LITERAL, // <<...>>
+
+  // ABC fence literals (```abc ... ```)
+  ABC_FENCE_OPEN, // ```abc or ```abc :location
+  ABC_FENCE_CLOSE, // ```
+  ABC_CONTENT, // content between fences (sanitized)
 
   // Operators
   PIPE, // |
@@ -28,8 +32,6 @@ export enum AbctTT {
   RPAREN, // )
   LBRACKET, // [
   RBRACKET, // ]
-  LT_LT, // <<
-  GT_GT, // >>
 
   // Comparison operators
   GT, // >
