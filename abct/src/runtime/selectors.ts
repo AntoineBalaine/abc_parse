@@ -383,3 +383,54 @@ function collectMeasureNodes(
     }
   }
 }
+
+// ============================================================================
+// Scoped selector functions - operate on an existing Selection
+// Used for nested updates like @chords |= (@notes |= ...)
+// ============================================================================
+
+/**
+ * Select notes from within an existing selection's nodes.
+ * Used for nested updates like @chords |= (@notes |= ...).
+ */
+export function selectNotesFromSelection(selection: Selection): Selection {
+  const selected = new Set<Expr>();
+
+  for (const node of selection.selected) {
+    if (isNote(node)) {
+      // Node is already a note
+      selected.add(node);
+    } else if (isChord(node)) {
+      // Collect notes from within the chord
+      collectNotesFromChord(node, selected);
+    } else if (isBeam(node)) {
+      // Collect notes from within the beam
+      collectNotesFromBeam(node, selected);
+    } else if (isGraceGroup(node)) {
+      // Collect notes from within the grace group
+      collectNotesFromGraceGroup(node, selected);
+    }
+  }
+
+  return { ast: selection.ast, selected };
+}
+
+/**
+ * Select chords from within an existing selection's nodes.
+ * Used for nested updates.
+ */
+export function selectChordsFromSelection(selection: Selection): Selection {
+  const selected = new Set<Expr>();
+
+  for (const node of selection.selected) {
+    if (isChord(node)) {
+      // Node is already a chord
+      selected.add(node);
+    } else if (isBeam(node)) {
+      // Collect chords from within the beam
+      collectChordsFromBeam(node, selected);
+    }
+  }
+
+  return { ast: selection.ast, selected };
+}

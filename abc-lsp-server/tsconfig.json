@@ -17,6 +17,7 @@
   "include": ["./src/**/*.ts"],
   "exclude": ["node_modules", ".vscode-test"],
   "references": [
-    { "path": "../parse" }
+    { "path": "../parse" },
+    { "path": "../abct" }
   ]
 }

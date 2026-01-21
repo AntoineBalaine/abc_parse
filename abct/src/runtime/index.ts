@@ -10,6 +10,8 @@ import {
   selectNotes,
   selectVoice,
   selectMeasures,
+  selectNotesFromSelection,
+  selectChordsFromSelection,
 } from "./selectors";
 import { getTransform, transforms } from "./transforms";
 
@@ -20,6 +22,8 @@ export {
   selectNotes,
   selectVoice,
   selectMeasures,
+  selectNotesFromSelection,
+  selectChordsFromSelection,
 } from "./selectors";
 export { transpose, octave, retrograde, bass, getTransform, transforms } from "./transforms";
 

@@ -35,6 +35,7 @@ import {
   isAbcLiteral,
   isNumberLiteral,
   isUpdate,
+  isLocationSelector,
   Update,
   Loc,
 } from "../../abct/src/ast";
@@ -44,6 +45,8 @@ import {
   applyTransform,
   formatSelection,
   selectAll,
+  selectNotesFromSelection,
+  selectChordsFromSelection,
 } from "../../abct/src/runtime";
 import { Selection } from "../../abct/src/runtime/types";
 
@@ -301,6 +304,11 @@ export class AbctEvaluator {
       });
     }
 
+    if (isUpdate(expr.right)) {
+      // Update expression: @selector |= transform
+      return this.evaluateUpdateInContext(leftValue, expr.right);
+    }
+
     throw new EvaluatorError(
       "Pipe right side must be a selector or transform",
       expr.right.loc
@@ -309,14 +317,140 @@ export class AbctEvaluator {
 
   /**
    * Evaluate an update expression (selector |= transform).
+   * Standalone updates (not within a pipe) are not supported.
    */
   private async evaluateUpdate(expr: Update): Promise<Selection> {
-    // The update needs a current value from the context
-    // For now, this is an error if used at the top level
     throw new EvaluatorError(
-      "Update expressions must be used within a pipe",
+      "Update expressions must be used within a pipe (e.g., file.abc | @notes |= transpose 2)",
       expr.loc
     );
+  }
+
+  /**
+   * Evaluate an update expression within the context of a pipe.
+   * This is called when the right side of a pipe is an Update expression.
+   *
+   * For example: src | @notes |= transpose 2
+   * - context is the Selection from evaluating 'src'
+   * - update.selector is @notes
+   * - update.transform is transpose 2
+   *
+   * The result is the context with the selected nodes transformed.
+   */
+  private async evaluateUpdateInContext(
+    context: Selection,
+    update: Update
+  ): Promise<Selection> {
+    // Check for LocationSelector which is not yet supported
+    if (isLocationSelector(update.selector)) {
+      throw new EvaluatorError(
+        "Location selectors (e.g., :5 or :10:5) are not yet supported in update expressions",
+        update.selector.loc
+      );
+    }
+
+    // Apply the selector to narrow down which nodes to transform
+    const selection = this.applySelectorToSelection(context, update.selector);
+
+    // Evaluate the transform based on its type
+    if (isApplication(update.transform)) {
+      this.applyTransformToSelection(selection, update.transform);
+    } else if (isIdentifier(update.transform)) {
+      // Bare transform name without arguments (e.g., retrograde)
+      const app: Application = {
+        type: "application",
+        terms: [update.transform],
+        loc: update.transform.loc,
+      };
+      this.applyTransformToSelection(selection, app);
+    } else if (isPipe(update.transform)) {
+      // Pipeline as transform: (f | g | h)
+      await this.evaluatePipelineAsTransform(selection, update.transform);
+    } else if (isUpdate(update.transform)) {
+      // Nested update: @chords |= (@notes |= transpose 2)
+      // The inner update operates on the nodes selected by the outer selector
+      await this.evaluateUpdateInContext(selection, update.transform);
+    } else {
+      throw new EvaluatorError(
+        "Invalid transform in update expression",
+        update.transform.loc
+      );
+    }
+
+    // Return the original context - the AST has been mutated in place
+    return context;
+  }
+
+  /**
+   * Evaluate a pipeline expression as a transform.
+   * Used when the transform part of an update is itself a pipeline.
+   *
+   * For example: src | @chords |= (transpose 2 | retrograde)
+   * The (transpose 2 | retrograde) is evaluated as a series of transforms.
+   */
+  private async evaluatePipelineAsTransform(
+    selection: Selection,
+    pipe: Pipe
+  ): Promise<void> {
+    const steps = this.flattenPipeline(pipe);
+    let current = selection;
+
+    for (const step of steps) {
+      if (isApplication(step)) {
+        current = this.applyTransformToSelection(current, step);
+      } else if (isIdentifier(step)) {
+        const app: Application = {
+          type: "application",
+          terms: [step],
+          loc: step.loc,
+        };
+        current = this.applyTransformToSelection(current, app);
+      } else if (isSelector(step)) {
+        // Selector within a transform pipeline narrows the selection
+        current = this.applyScopedSelector(current, step);
+      } else {
+        throw new EvaluatorError(
+          "Invalid step in transform pipeline",
+          step.loc
+        );
+      }
+    }
+  }
+
+  /**
+   * Flatten a pipeline expression into a list of steps.
+   * For (a | b | c), returns [a, b, c].
+   */
+  private flattenPipeline(expr: Expr): Expr[] {
+    if (isPipe(expr)) {
+      return [...this.flattenPipeline(expr.left), ...this.flattenPipeline(expr.right)];
+    }
+    return [expr];
+  }
+
+  /**
+   * Apply a scoped selector to an existing selection.
+   * Used for nested contexts where we want to select within already-selected nodes.
+   */
+  private applyScopedSelector(
+    selection: Selection,
+    selector: Selector
+  ): Selection {
+    const selectorId = selector.path.id.toLowerCase();
+
+    switch (selectorId) {
+      case "notes":
+      case "n":
+        return selectNotesFromSelection(selection);
+      case "chords":
+      case "c":
+        return selectChordsFromSelection(selection);
+      default:
+        throw new EvaluatorError(
+          `Selector @${selectorId} is not supported in nested context`,
+          selector.loc
+        );
+    }
   }
 
   /**

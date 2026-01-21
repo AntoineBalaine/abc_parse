@@ -314,6 +314,142 @@ describe("ABCT Evaluator", () => {
     });
   });
 
+  describe("update expressions (|=)", () => {
+    it("should apply simple update expression", async () => {
+      const abcContent = "X:1\nK:C\nC D E F |";
+      createTestFile(tempDir, "song.abc", abcContent);
+
+      // Using |= instead of | for update - transforms and returns full source
+      const abctSource = "song.abc | @notes |= transpose 2";
+      const program = parseAbctSource(abctSource);
+
+      const abctPath = path.join(tempDir, "transform.abct");
+      createTestFile(tempDir, "transform.abct", abctSource);
+      const resolver = createFileResolver(pathToUri(abctPath));
+
+      const result = await evaluateAbct(program, resolver);
+
+      // C transposed up 2 semitones becomes D
+      expect(result.abc).to.include("D");
+      // Should still have the full tune structure
+      expect(result.abc).to.include("X:1");
+      expect(result.abc).to.include("K:C");
+      expect(result.diagnostics).to.have.lengthOf(0);
+    });
+
+    it("should apply chained update expressions", async () => {
+      // Create ABC file with both notes and chords
+      const abcContent = "X:1\nK:C\nC D [CEG] F |";
+      createTestFile(tempDir, "song.abc", abcContent);
+
+      // First update transposes notes, second extracts bass from chords
+      const abctSource = "song.abc | @notes |= transpose 2 | @chords |= bass";
+      const program = parseAbctSource(abctSource);
+
+      const abctPath = path.join(tempDir, "transform.abct");
+      createTestFile(tempDir, "transform.abct", abctSource);
+      const resolver = createFileResolver(pathToUri(abctPath));
+
+      const result = await evaluateAbct(program, resolver);
+
+      // Notes should be transposed (C->D, D->E, F->G)
+      // Chord [CEG] with bass transform should become just C (lowest note)
+      expect(result.abc).to.include("D");
+      expect(result.abc).to.include("E");
+      expect(result.diagnostics).to.have.lengthOf(0);
+    });
+
+    it("should apply update with pipeline transform", async () => {
+      const abcContent = "X:1\nK:C\nC D E F |";
+      createTestFile(tempDir, "song.abc", abcContent);
+
+      // Pipeline as transform: (transpose 2 | retrograde)
+      const abctSource = "song.abc | @notes |= (transpose 2 | retrograde)";
+      const program = parseAbctSource(abctSource);
+
+      const abctPath = path.join(tempDir, "transform.abct");
+      createTestFile(tempDir, "transform.abct", abctSource);
+      const resolver = createFileResolver(pathToUri(abctPath));
+
+      const result = await evaluateAbct(program, resolver);
+
+      // Should have transposed and reversed notes
+      expect(result.diagnostics).to.have.lengthOf(0);
+      expect(result.abc).to.include("X:1");
+    });
+
+    it("should apply nested update expressions", async () => {
+      // Create ABC file with a chord containing notes
+      const abcContent = "X:1\nK:C\n[CEG] |";
+      createTestFile(tempDir, "song.abc", abcContent);
+
+      // Nested update: select chords, then within chords select notes and transpose
+      const abctSource = "song.abc | @chords |= (@notes |= transpose 2)";
+      const program = parseAbctSource(abctSource);
+
+      const abctPath = path.join(tempDir, "transform.abct");
+      createTestFile(tempDir, "transform.abct", abctSource);
+      const resolver = createFileResolver(pathToUri(abctPath));
+
+      const result = await evaluateAbct(program, resolver);
+
+      // Notes within the chord should be transposed
+      // C->D, E->F#, G->A
+      expect(result.diagnostics).to.have.lengthOf(0);
+      expect(result.abc).to.include("X:1");
+    });
+
+    it("should apply update with bare transform name (no args)", async () => {
+      const abcContent = "X:1\nK:C\nC D E F |";
+      createTestFile(tempDir, "song.abc", abcContent);
+
+      // retrograde has no arguments
+      const abctSource = "song.abc | @notes |= retrograde";
+      const program = parseAbctSource(abctSource);
+
+      const abctPath = path.join(tempDir, "transform.abct");
+      createTestFile(tempDir, "transform.abct", abctSource);
+      const resolver = createFileResolver(pathToUri(abctPath));
+
+      const result = await evaluateAbct(program, resolver);
+
+      expect(result.diagnostics).to.have.lengthOf(0);
+      expect(result.abc).to.include("X:1");
+    });
+
+    it("should report error for standalone update expression", async () => {
+      // Update without a piped source is an error
+      const abctSource = "@notes |= transpose 2";
+      const program = parseAbctSource(abctSource);
+
+      const abctPath = path.join(tempDir, "transform.abct");
+      createTestFile(tempDir, "transform.abct", abctSource);
+      const resolver = createFileResolver(pathToUri(abctPath));
+
+      const result = await evaluateAbct(program, resolver);
+
+      expect(result.diagnostics).to.have.lengthOf(1);
+      expect(result.diagnostics[0].message).to.include("must be used within a pipe");
+    });
+
+    it("should work with variable assignment and update", async () => {
+      const abcContent = "X:1\nK:C\nC D E F |";
+      createTestFile(tempDir, "song.abc", abcContent);
+
+      const abctSource = "src = song.abc\nsrc | @notes |= transpose 2";
+      const program = parseAbctSource(abctSource);
+
+      const abctPath = path.join(tempDir, "transform.abct");
+      createTestFile(tempDir, "transform.abct", abctSource);
+      const resolver = createFileResolver(pathToUri(abctPath));
+
+      const result = await evaluateAbct(program, resolver);
+
+      expect(result.abc).to.include("D");
+      expect(result.diagnostics).to.have.lengthOf(0);
+    });
+  });
+
   describe("evaluation options", () => {
     it("should evaluate only up to specified line with toLine option", async () => {
       const abcContent = "X:1\nK:C\nC D E F |";
