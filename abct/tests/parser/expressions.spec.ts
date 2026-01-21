@@ -460,16 +460,16 @@ describe("ABCT Parser Expressions", () => {
     it("should track locations for grouped expression", () => {
       const { expr } = parse("(a)");
       if (isGroup(expr)) {
-        expect(expr.openLoc.start.column).to.equal(1);
-        expect(expr.closeLoc.start.column).to.equal(3);
+        expect(expr.openLoc.start.column).to.equal(0);
+        expect(expr.closeLoc.start.column).to.equal(2);
       }
     });
 
     it("should track span location correctly", () => {
       const { expr } = parse("a | b");
       if (isPipe(expr)) {
-        expect(expr.loc.start.column).to.equal(1);
-        expect(expr.loc.end.column).to.equal(6);
+        expect(expr.loc.start.column).to.equal(0);
+        expect(expr.loc.end.column).to.equal(5);
       }
     });
   });

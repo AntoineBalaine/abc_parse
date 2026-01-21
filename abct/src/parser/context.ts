@@ -39,35 +39,37 @@ export class AbctParseCtx {
 }
 
 /**
- * Convert a token to a Loc (source location range)
+ * Convert a token to a Loc (source location range).
+ * Token positions are 0-based, matching the Loc convention.
  */
 export function tokenToLoc(token: Token): Loc {
   const start: Pos = {
-    line: token.line + 1, // Convert from 0-based to 1-based
-    column: token.column + 1,
+    line: token.line,
+    column: token.column,
     offset: token.offset,
   };
   const end: Pos = {
-    line: token.line + 1,
-    column: token.column + token.lexeme.length + 1,
+    line: token.line,
+    column: token.column + token.lexeme.length,
     offset: token.offset + token.lexeme.length,
   };
   return { start, end };
 }
 
 /**
- * Create a Loc spanning from start to end tokens
+ * Create a Loc spanning from start to end tokens.
+ * Token positions are 0-based, matching the Loc convention.
  */
 export function spanLoc(start: Token, end: Token): Loc {
   return {
     start: {
-      line: start.line + 1,
-      column: start.column + 1,
+      line: start.line,
+      column: start.column,
       offset: start.offset,
     },
     end: {
-      line: end.line + 1,
-      column: end.column + end.lexeme.length + 1,
+      line: end.line,
+      column: end.column + end.lexeme.length,
       offset: end.offset + end.lexeme.length,
     },
   };

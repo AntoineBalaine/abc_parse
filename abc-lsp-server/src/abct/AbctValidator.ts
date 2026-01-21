@@ -43,12 +43,13 @@ import {
 } from "../../../abct/src/registry";
 
 /**
- * Convert ABCT AST location to LSP Range
+ * Convert ABCT AST location to LSP Range.
+ * Both use 0-based positions.
  */
 function locToRange(loc: Loc): Range {
   return Range.create(
-    Position.create(loc.start.line - 1, loc.start.column - 1),
-    Position.create(loc.end.line - 1, loc.end.column - 1)
+    Position.create(loc.start.line, loc.start.column),
+    Position.create(loc.end.line, loc.end.column)
   );
 }
 

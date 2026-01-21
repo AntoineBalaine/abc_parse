@@ -42,15 +42,15 @@ export class AbctErrorReporter {
    * Report a parser error at a token
    */
   parserError(message: string, token: Token): void {
-    // Convert from 0-based token positions to 1-based Loc positions
+    // Token positions are already 0-based, matching Loc convention
     this.errors.push({
       message,
       token,
       loc: {
-        start: { line: token.line + 1, column: token.column + 1, offset: token.offset },
+        start: { line: token.line, column: token.column, offset: token.offset },
         end: {
-          line: token.line + 1,
-          column: token.column + token.lexeme.length + 1,
+          line: token.line,
+          column: token.column + token.lexeme.length,
           offset: token.offset + token.lexeme.length,
         },
       },

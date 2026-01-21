@@ -180,8 +180,8 @@ describe("ABCT Parser Context", () => {
       const { ctx, abctCtx } = createTestCtx("a");
       ctx.error("Test error");
       const errors = abctCtx.errorReporter.getErrors();
-      expect(errors[0].loc!.start.line).to.equal(1);
-      expect(errors[0].loc!.start.column).to.equal(1);
+      expect(errors[0].loc!.start.line).to.equal(0);
+      expect(errors[0].loc!.start.column).to.equal(0);
     });
   });
 
@@ -189,17 +189,17 @@ describe("ABCT Parser Context", () => {
     it("should convert token to location", () => {
       const { tokens } = createTestCtx("abc");
       const loc = tokenToLoc(tokens[0]);
-      expect(loc.start.line).to.equal(1);
-      expect(loc.start.column).to.equal(1);
-      expect(loc.end.column).to.equal(4);
+      expect(loc.start.line).to.equal(0);
+      expect(loc.start.column).to.equal(0);
+      expect(loc.end.column).to.equal(3);
     });
 
     it("should handle tokens on different lines", () => {
       const { tokens } = createTestCtx("a\nb");
-      // b is on line 2 (1 in 0-based, 2 in 1-based)
+      // b is on line 1 (0-based)
       const bToken = tokens.find(t => t.lexeme === "b");
       const loc = tokenToLoc(bToken!);
-      expect(loc.start.line).to.equal(2);
+      expect(loc.start.line).to.equal(1);
     });
   });
 
@@ -209,8 +209,8 @@ describe("ABCT Parser Context", () => {
       const first = tokens[0];
       const last = tokens[2]; // "def"
       const loc = spanLoc(first, last);
-      expect(loc.start.column).to.equal(1);
-      expect(loc.end.column).to.equal(8);
+      expect(loc.start.column).to.equal(0);
+      expect(loc.end.column).to.equal(7);
     });
   });
 });
