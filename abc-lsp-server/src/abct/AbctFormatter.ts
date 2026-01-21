@@ -270,10 +270,16 @@ export class AbctFormatter {
 
   /**
    * Format a pipe expression: left | right
+   * Preserves newlines when the pipe operator is on a different line than left expression
    */
   private formatPipe(pipe: Pipe): void {
     this.formatExpr(pipe.left);
-    this.output.push(" | ");
+    // Check if pipe operator is on a different line than left expression's end
+    if (pipe.opLoc.start.line > pipe.left.loc.end.line) {
+      this.output.push("\n| ");
+    } else {
+      this.output.push(" | ");
+    }
     this.formatExpr(pipe.right);
   }
 

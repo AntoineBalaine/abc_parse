@@ -20,6 +20,7 @@ import {
   checkAny,
   match,
   skipWS,
+  skipWSAndEOL,
   isAtEnd,
   previous,
 } from "./utils";
@@ -68,7 +69,7 @@ export function parsePipeline(ctx: AbctParseCtx): Expr {
   let left = parseConcatTerm(ctx);
 
   while (true) {
-    skipWS(ctx);
+    skipWSAndEOL(ctx);
 
     // Check for | but not |=
     if (check(ctx, AbctTT.PIPE)) {
@@ -80,7 +81,7 @@ export function parsePipeline(ctx: AbctParseCtx): Expr {
       }
 
       const opToken = advance(ctx);
-      skipWS(ctx);
+      skipWSAndEOL(ctx);
       const right = parseConcatTerm(ctx);
 
       left = {

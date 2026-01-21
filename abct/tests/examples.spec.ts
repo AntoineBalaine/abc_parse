@@ -63,6 +63,36 @@ describe("ABCT Grammar Examples", () => {
     });
   });
 
+  describe("Multi-line Pipelines", () => {
+    it("should parse pipeline continued on next line with leading |", () => {
+      const input = `src.abc | @notes |= transpose 2
+| @chords |= transpose -2`;
+      const program = assertParses(input);
+      // Should be a single pipeline statement, not two statements
+      expect(program.statements).to.have.length(1);
+      const expr = program.statements[0];
+      expect(isPipe(expr)).to.be.true;
+    });
+
+    it("should parse multi-line pipeline with multiple continuations", () => {
+      const input = `src.abc
+| @notes |= transpose 2
+| @chords |= choralis 4
+| @bass |= transpose -12`;
+      const program = assertParses(input);
+      expect(program.statements).to.have.length(1);
+      expect(isPipe(program.statements[0])).to.be.true;
+    });
+
+    it("should parse multi-line pipeline with trailing operator", () => {
+      const input = `src.abc |
+@notes |= transpose 2`;
+      const program = assertParses(input);
+      expect(program.statements).to.have.length(1);
+      expect(isPipe(program.statements[0])).to.be.true;
+    });
+  });
+
   describe("Nested Selections", () => {
     it("should parse: src.abc | @chords |= (@notes |= transpose 2)", () => {
       const program = assertParses(

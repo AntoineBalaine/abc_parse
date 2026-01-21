@@ -14,6 +14,8 @@ import {
   isOr,
   isAnd,
   isNot,
+  isNegate,
+  isGroup,
   isComparison,
   isSelector,
   isLocationSelector,
@@ -198,6 +200,20 @@ function extractExprTokens(expr: Expr, tokens: AbctToken[]): void {
       length: 3,
     });
     extractExprTokens(expr.operand, tokens);
+  } else if (isNegate(expr)) {
+    // Unary minus operator
+    tokens.push({
+      type: AbctTokenType.OPERATOR,
+      text: "-",
+      line: expr.opLoc.start.line,
+      column: expr.opLoc.start.column,
+      length: 1,
+    });
+    extractExprTokens(expr.operand, tokens);
+  } else if (isGroup(expr)) {
+    // Parenthesized expression - extract tokens from inner expression
+    // Parentheses themselves are punctuation but we skip them for highlighting
+    extractExprTokens(expr.expr, tokens);
   } else if (isComparison(expr)) {
     extractExprTokens(expr.left, tokens);
     tokens.push({

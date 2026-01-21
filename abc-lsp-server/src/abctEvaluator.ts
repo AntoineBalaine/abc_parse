@@ -36,6 +36,7 @@ import {
   isNumberLiteral,
   isUpdate,
   isLocationSelector,
+  isGroup,
   Update,
   Loc,
 } from "../../abct/src/ast";
@@ -234,6 +235,11 @@ export class AbctEvaluator {
       return this.evaluateUpdate(expr);
     }
 
+    if (isGroup(expr)) {
+      // Unwrap the grouped expression and evaluate the inner expression
+      return this.evaluateExpr(expr.expr);
+    }
+
     // For other expression types, we don't have a value to return
     return null;
   }
@@ -370,6 +376,29 @@ export class AbctEvaluator {
       // Nested update: @chords |= (@notes |= transpose 2)
       // The inner update operates on the nodes selected by the outer selector
       await this.evaluateUpdateInContext(selection, update.transform);
+    } else if (isGroup(update.transform)) {
+      // Grouped expression: @chords |= (transpose 2 | retrograde)
+      // Unwrap the group and recursively handle the inner expression
+      const inner = update.transform.expr;
+      if (isPipe(inner)) {
+        await this.evaluatePipelineAsTransform(selection, inner);
+      } else if (isUpdate(inner)) {
+        await this.evaluateUpdateInContext(selection, inner);
+      } else if (isApplication(inner)) {
+        this.applyTransformToSelection(selection, inner);
+      } else if (isIdentifier(inner)) {
+        const app: Application = {
+          type: "application",
+          terms: [inner],
+          loc: inner.loc,
+        };
+        this.applyTransformToSelection(selection, app);
+      } else {
+        throw new EvaluatorError(
+          "Invalid grouped transform in update expression",
+          update.transform.loc
+        );
+      }
     } else {
       throw new EvaluatorError(
         "Invalid transform in update expression",
