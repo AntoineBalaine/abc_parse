@@ -150,6 +150,12 @@
         "title": "ABCT: Export to ABC File",
         "group": "ABCT",
         "description": "Evaluate the ABCT file and save the result to an ABC file"
+      },
+      {
+        "command": "abct.openEvaluatedOutput",
+        "title": "ABCT: Open Evaluated Output",
+        "group": "ABCT",
+        "description": "Open the evaluated ABC output in an editable document. Saving the document generates patches."
       }
     ],
     "configurationDefaults": {
