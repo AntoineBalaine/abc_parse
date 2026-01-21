@@ -37,7 +37,9 @@ import {
   isUpdate,
   isLocationSelector,
   isGroup,
+  isNegate,
   Update,
+  Negate,
   Loc,
 } from "../../abct/src/ast";
 import {
@@ -566,6 +568,15 @@ export class AbctEvaluator {
       if (isIdentifier(term)) {
         // Could be a constant or enum value
         return term.name;
+      }
+      if (isNegate(term) && isNumberLiteral(term.operand)) {
+        // Handle negative numbers like -2
+        const operand = term.operand;
+        if (operand.value.includes("/")) {
+          const [num, denom] = operand.value.split("/").map(Number);
+          return -(num / denom);
+        }
+        return -Number(operand.value);
       }
       throw new EvaluatorError(
         "Invalid transform argument",
