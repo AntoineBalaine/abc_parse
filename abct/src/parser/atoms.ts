@@ -63,6 +63,45 @@ export function parseNumberLiteral(ctx: AbctParseCtx): NumberLiteral {
 }
 
 /**
+ * Parse location from ABC fence open lexeme
+ * Format: ```abc :line or :line:col or :line:col-endCol or :line:col-endLine:endCol
+ */
+function parseLocationFromFence(lexeme: string): Location | undefined {
+  // Pattern: ```abc :line:col-endLine:endCol (all parts after :line are optional)
+  // Note: The range part (-endCol or -endLine:endCol) is nested inside the col part,
+  // so a range requires a column to be specified first.
+  const match = lexeme.match(
+    /^[ \t]*```abc(?: :(\d+)(?::(\d+)(?:-(\d+)(?::(\d+))?)?)?)?/
+  );
+  if (!match || !match[1]) {
+    return undefined; // No location specified
+  }
+
+  const line = parseInt(match[1], 10);
+  const col = match[2] ? parseInt(match[2], 10) : undefined;
+
+  let end: RangeEnd | undefined;
+  if (match[3]) {
+    if (match[4]) {
+      // Multi-line range: :line:col-endLine:endCol
+      end = {
+        type: "multiline",
+        endLine: parseInt(match[3], 10),
+        endCol: parseInt(match[4], 10),
+      };
+    } else {
+      // Single-line range: :line:col-endCol
+      end = {
+        type: "singleline",
+        endCol: parseInt(match[3], 10),
+      };
+    }
+  }
+
+  return { line, col, end };
+}
+
+/**
  * Parse an ABC fence literal: ```abc ... ```
  */
 export function parseAbcLiteral(ctx: AbctParseCtx): AbcLiteral {
@@ -80,11 +119,13 @@ export function parseAbcLiteral(ctx: AbctParseCtx): AbcLiteral {
   }
   const closeToken = previous(ctx);
 
-  // TODO: Parse location from openToken.lexeme in Phase 1.3
+  // Parse optional location from fence lexeme
+  const location = parseLocationFromFence(openToken.lexeme);
 
   return {
     type: "abc_literal",
     content,
+    location,
     loc: spanLoc(openToken, closeToken),
   };
 }

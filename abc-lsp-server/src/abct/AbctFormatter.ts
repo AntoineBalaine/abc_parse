@@ -466,11 +466,31 @@ export class AbctFormatter {
   }
 
   /**
-   * Format an ABC literal: ```abc\ncontent\n```
+   * Format an ABC literal: ```abc\ncontent\n``` or ```abc :location\ncontent\n```
    * Content is preserved exactly as-is.
    */
   private formatAbcLiteral(lit: AbcLiteral): void {
-    this.output.push("```abc\n");
+    this.output.push("```abc");
+    // Output optional location
+    if (lit.location) {
+      this.output.push(" :");
+      this.output.push(String(lit.location.line));
+      if (lit.location.col !== undefined) {
+        this.output.push(":");
+        this.output.push(String(lit.location.col));
+        if (lit.location.end) {
+          this.output.push("-");
+          if (lit.location.end.type === "singleline") {
+            this.output.push(String(lit.location.end.endCol));
+          } else {
+            this.output.push(String(lit.location.end.endLine));
+            this.output.push(":");
+            this.output.push(String(lit.location.end.endCol));
+          }
+        }
+      }
+    }
+    this.output.push("\n");
     // Content includes trailing newline from scanner for round-trip
     // Remove it since we add it explicitly below
     const content = lit.content.replace(/\n$/, "");
