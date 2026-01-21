@@ -13,8 +13,14 @@ import {
   isAtRecoveryPoint,
   tryRecover,
 } from "../../src/parser/recovery";
-import { parse } from "../../src/parser/parser";
+import { parseTokens } from "../../src/parser/parser";
 import { isPipe, isAssignment, isApplication, isIdentifier } from "../../src/ast";
+
+/** Helper to scan and parse in one step */
+function parse(source: string) {
+  const { tokens } = scan(source);
+  return parseTokens(tokens);
+}
 
 describe("ABCT Parser Recovery", () => {
   describe("synchronize", () => {

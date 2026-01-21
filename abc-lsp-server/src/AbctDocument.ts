@@ -1,6 +1,8 @@
 import { Diagnostic, DiagnosticSeverity, Range, Position } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { parse, extractTokens, AbctToken, Program } from "../../abct/src/parser";
+import { parseTokens } from "../../abct/src/parser/parser";
+import { Program } from "../../abct/src/ast";
+import { scan, Token } from "../../abct/src/scanner";
 import { createFileResolver } from "./fileResolver";
 import { evaluateAbct, EvalOptions, EvalResult } from "./abctEvaluator";
 import { AbctValidator } from "./abct/AbctValidator";
@@ -9,57 +11,71 @@ import { findNodeAtPosition, AstNode } from "../../abct/src/ast-utils";
 /**
  * AbctDocument stores an ABCT `TextDocument`'s diagnostics, tokens, and AST.
  *
- * Uses the ABCT Peggy parser and token extractor for transform script notation.
+ * Uses the ABCT scanner and parser for transform script notation.
+ * Scanner tokens are stored directly for semantic highlighting.
  */
 export class AbctDocument {
   public diagnostics: Diagnostic[] = [];
-  public tokens: AbctToken[] = [];
+  public tokens: Token[] = [];
   public AST: Program | null = null;
 
   constructor(public document: TextDocument) {}
 
   /**
    * Analyze the ABCT document.
-   * Parses the document, extracts tokens for semantic highlighting,
-   * and collects any parse errors and semantic errors as diagnostics.
+   * Scans and parses the document, stores tokens for semantic highlighting,
+   * and collects any scan/parse/semantic errors as diagnostics.
    *
-   * @returns an array of semantic tokens or void.
+   * @returns an array of scanner tokens or void.
    */
-  analyze(): AbctToken[] | void {
+  analyze(): Token[] | void {
     const source = this.document.getText();
 
     this.diagnostics = [];
     this.tokens = [];
     this.AST = null;
 
-    const result = parse(source);
+    // Step 1: Scan - get tokens and scanner errors
+    const { tokens, errors: scanErrors } = scan(source);
+    this.tokens = tokens; // Store scanner tokens for highlighting
 
-    if (!result.success) {
-      // Convert parse error to diagnostic
-      const error = result.error;
-      const startPos = error.location?.start ?? { line: 1, column: 1 };
-      const endPos = error.location?.end ?? startPos;
-
+    // Step 2: Convert scanner errors to diagnostics
+    for (const e of scanErrors) {
       this.diagnostics.push({
         severity: DiagnosticSeverity.Error,
         range: Range.create(
-          Position.create(startPos.line - 1, startPos.column - 1),
-          Position.create(endPos.line - 1, endPos.column - 1)
+          Position.create(e.line - 1, e.column - 1),
+          Position.create(e.line - 1, e.column)
         ),
-        message: error.message,
+        message: e.message,
         source: "abct",
       });
-
-      return;
     }
 
-    this.AST = result.value;
-    this.tokens = extractTokens(this.AST, source);
+    // Step 3: Parse - use parseTokens() to parse the token stream
+    const result = parseTokens(tokens);
 
-    // Run semantic validation to detect unknown transforms, selectors, and type errors
-    const validator = new AbctValidator();
-    const semanticDiagnostics = validator.validateProgram(this.AST);
-    this.diagnostics.push(...semanticDiagnostics);
+    // Step 4: Convert parse errors to diagnostics
+    for (const e of result.errors) {
+      this.diagnostics.push({
+        severity: DiagnosticSeverity.Error,
+        range: Range.create(
+          Position.create(e.loc.start.line - 1, e.loc.start.column - 1),
+          Position.create(e.loc.end.line - 1, e.loc.end.column - 1)
+        ),
+        message: e.message,
+        source: "abct",
+      });
+    }
+
+    this.AST = result.program;
+
+    // Step 5: Run semantic validation to detect unknown transforms, selectors, and type errors
+    if (this.AST) {
+      const validator = new AbctValidator();
+      const semanticDiagnostics = validator.validateProgram(this.AST);
+      this.diagnostics.push(...semanticDiagnostics);
+    }
 
     return this.tokens;
   }

@@ -5,7 +5,7 @@
  */
 
 import { AbctParseCtx, createParseCtx, tokenToLoc } from "./context";
-import { Token, AbctTT, scan } from "../scanner";
+import { Token, AbctTT } from "../scanner";
 import { peek, advance, check, match, skipWS, skipWSAndEOL, isAtEnd, previous, peekNext } from "./utils";
 import { parseExpr } from "./expressions";
 import { synchronize, synchronizeToStatement, tryRecover } from "./recovery";
@@ -21,33 +21,8 @@ export interface ParseResult {
 }
 
 /**
- * Parse source code and return a Program AST
- */
-export function parse(source: string): ParseResult {
-  const { tokens, errors: scanErrors } = scan(source);
-  const ctx = createParseCtx(tokens);
-
-  const program = parseProgram(ctx);
-
-  // Combine scan errors with parse errors
-  // Scanner errors have line/column/offset directly, convert to loc format
-  const errors = [
-    ...scanErrors.map((e) => ({
-      message: e.message,
-      loc: {
-        start: { line: e.line, column: e.column, offset: e.offset },
-        end: { line: e.line, column: e.column + 1, offset: e.offset + 1 },
-      },
-    })),
-    ...ctx.errors.map((e) => ({ message: e.message, loc: e.loc })),
-  ];
-
-  return { program, errors };
-}
-
-/**
- * Parse tokens and return a Program AST
- * This allows parsing pre-scanned tokens
+ * Parse tokens and return a Program AST.
+ * The caller is responsible for scanning the source first.
  */
 export function parseTokens(tokens: Token[]): ParseResult {
   const ctx = createParseCtx(tokens);
