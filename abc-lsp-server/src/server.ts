@@ -41,7 +41,7 @@ interface AbctEvalParams {
 interface AbctEvalToLineParams {
   /** The URI of the ABCT document to evaluate */
   uri: string;
-  /** Evaluate up to and including this line (1-based) */
+  /** Evaluate up to and including this line (1-based, as shown in editor) */
   line: number;
 }
 

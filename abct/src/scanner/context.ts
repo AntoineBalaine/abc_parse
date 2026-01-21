@@ -65,11 +65,11 @@ export class AbctCtx {
    * @param message - Error message
    */
   report(message: string): void {
-    // Convert to 1-based line/column for the error reporter
+    // Pass 0-based line/column to the error reporter
     this.abctContext.errorReporter.scannerError(
       message,
-      this.line + 1,
-      this.current - this.lineStart + 1,
+      this.line,
+      this.current - this.lineStart,
       this.current
     );
   }

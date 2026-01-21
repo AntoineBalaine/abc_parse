@@ -66,13 +66,17 @@ export interface SourceLocation {
 }
 
 /**
- * Token with position information
+ * Token with position information.
+ * All position values are 0-based.
  */
 export class Token {
   public type: AbctTT;
   public lexeme: string;
+  /** 0-based line number */
   public line: number;
+  /** 0-based column number */
   public column: number;
+  /** 0-based byte offset from start of source */
   public offset: number;
 
   constructor(

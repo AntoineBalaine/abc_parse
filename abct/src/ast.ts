@@ -1,21 +1,23 @@
 // ABCT AST Type Definitions
-// These types match the structure produced by the Peggy grammar
 
 // ============================================================================
 // Source Location Types
 // ============================================================================
 
 /**
- * Position in source code (from Peggy's location())
+ * Position in source code. All values are 0-based.
  */
 export interface Pos {
+  /** 0-based line number */
   line: number;
+  /** 0-based column number */
   column: number;
+  /** 0-based byte offset from start of source */
   offset: number;
 }
 
 /**
- * Source location range (from Peggy's location())
+ * Source location range in source code. All values are 0-based.
  */
 export interface Loc {
   start: Pos;
@@ -240,8 +242,20 @@ export interface ErrorExpr {
 // Supporting Types
 // ============================================================================
 
+/**
+ * Target location in an ABC file (for :line:col selectors in ABCT DSL).
+ *
+ * NOTE: This is different from Pos/Loc which represent source code positions.
+ * - Pos/Loc: 0-based positions in ABCT source code (internal representation)
+ * - Location: 1-based positions in target ABC files (user-visible DSL syntax)
+ *
+ * Values are 1-based because they appear in user-visible DSL syntax like:
+ *   file.abc:10:5  or  :10:5-12:20
+ */
 export interface Location {
+  /** 1-based line number in the target ABC file */
   line: number;
+  /** 1-based column number (optional) */
   col?: number;
   end?: RangeEnd;
 }

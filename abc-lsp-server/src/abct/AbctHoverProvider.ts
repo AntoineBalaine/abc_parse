@@ -29,11 +29,8 @@ import { getOperatorInfo, OperatorInfo } from "./operatorDocs";
  * @returns Hover information or null if no hover available at the position
  */
 export function provideHover(ast: Program, position: Position): Hover | null {
-  // Convert from 0-based LSP position to 1-based Peggy position
-  const line = position.line + 1;
-  const column = position.character + 1;
-
-  const node = findNodeAtPosition(ast, line, column);
+  // Both LSP and AST positions are 0-based
+  const node = findNodeAtPosition(ast, position.line, position.character);
   if (!node) {
     return null;
   }
@@ -70,7 +67,7 @@ export function provideHover(ast: Program, position: Position): Hover | null {
       return formatOperatorHover(getOperatorInfo("not"));
 
     case "identifier":
-      return handleIdentifierHover(node, ast, line, column);
+      return handleIdentifierHover(node, ast, position.line, position.character);
 
     default:
       return null;
@@ -283,7 +280,9 @@ function formatVariableHover(name: string, assignment: Assignment): Hover {
 
   lines.push(`**${name}** (variable)`);
   lines.push("");
-  lines.push(`Defined at line ${assignment.loc.start.line}:`);
+  // Convert 0-based AST line to 1-based for user display
+  // (users expect line numbers starting from 1 in editor UI)
+  lines.push(`Defined at line ${assignment.loc.start.line + 1}:`);
   lines.push("");
   lines.push("```abct");
   lines.push(`${assignment.id} = ...`);

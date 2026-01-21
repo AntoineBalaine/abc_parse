@@ -44,13 +44,14 @@ export class AbctDocument {
     this.AST = parse(this.tokens, this.ctx);
 
     // Convert scanner/parser errors to diagnostics
+    // Loc positions are 0-based, same as LSP Position
     for (const e of this.ctx.errorReporter.getErrors()) {
       if (e.loc) {
         this.diagnostics.push({
           severity: DiagnosticSeverity.Error,
           range: Range.create(
-            Position.create(e.loc.start.line - 1, e.loc.start.column - 1),
-            Position.create(e.loc.end.line - 1, e.loc.end.column - 1)
+            Position.create(e.loc.start.line, e.loc.start.column),
+            Position.create(e.loc.end.line, e.loc.end.column)
           ),
           message: e.message,
           source: "abct",
@@ -112,10 +113,7 @@ export class AbctDocument {
       return null;
     }
 
-    // Convert from 0-based LSP position to 1-based Peggy position
-    const line = position.line + 1;
-    const column = position.character + 1;
-
-    return findNodeAtPosition(this.AST, line, column);
+    // Both LSP and AST positions are 0-based
+    return findNodeAtPosition(this.AST, position.line, position.character);
   }
 }

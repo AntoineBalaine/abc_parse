@@ -74,7 +74,7 @@ export class AbctFormatter {
   private output: string[] = [];
   private comments: Comment[] = [];
   private commentIndex = 0;
-  private currentLine = 1;
+  private currentLine = 0; // 0-based to match AST positions
 
   /**
    * Format an ABCT program AST to a string.
@@ -86,7 +86,7 @@ export class AbctFormatter {
     this.output = [];
     this.comments = this.extractComments(source);
     this.commentIndex = 0;
-    this.currentLine = 1;
+    this.currentLine = 0;
 
     for (let i = 0; i < ast.statements.length; i++) {
       const stmt = ast.statements[i];
@@ -136,8 +136,8 @@ export class AbctFormatter {
 
         comments.push({
           text,
-          line: i + 1, // 1-based
-          column: commentStart + 1, // 1-based
+          line: i, // 0-based to match AST positions
+          column: commentStart, // 0-based
           isTrailing,
         });
       }

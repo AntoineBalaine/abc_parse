@@ -52,7 +52,7 @@ export type AstNode =
 
 /**
  * Check if a position is within a location range.
- * Uses 1-based line and column numbers (as produced by Peggy).
+ * Uses 0-based line and column numbers.
  */
 export function containsPosition(loc: Loc, line: number, column: number): boolean {
   // Check if position is before start
@@ -82,8 +82,8 @@ export function getNodeRange(node: AstNode): Loc {
  * Returns null if the position is not within any node.
  *
  * @param ast - The ABCT Program AST
- * @param line - Line number (1-based)
- * @param column - Column number (1-based)
+ * @param line - Line number (0-based)
+ * @param column - Column number (0-based)
  */
 export function findNodeAtPosition(
   ast: Program,

@@ -155,8 +155,8 @@ export class AbcLspServer {
         }
 
         builder.push(
-          token.line - 1, // Convert 1-based to 0-based
-          token.column - 1,
+          token.line, // Token positions are already 0-based
+          token.column,
           token.lexeme.length,
           scope,
           0

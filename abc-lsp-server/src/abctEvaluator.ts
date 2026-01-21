@@ -73,11 +73,12 @@ export interface EvalResult {
 
 /**
  * Convert an ABCT location to an LSP Range.
+ * Both use 0-based positions.
  */
 function locToRange(loc: Loc): Range {
   return Range.create(
-    Position.create(loc.start.line - 1, loc.start.column - 1),
-    Position.create(loc.end.line - 1, loc.end.column - 1)
+    Position.create(loc.start.line, loc.start.column),
+    Position.create(loc.end.line, loc.end.column)
   );
 }
 
@@ -95,18 +96,21 @@ function createErrorDiagnostic(message: string, loc: Loc): Diagnostic {
 
 /**
  * Check if a statement is on or before the target line.
+ * toLine is 1-based (from editor), AST lines are 0-based.
  */
 function isStatementInScope(stmt: Statement, toLine: number): boolean {
+  // Convert 1-based toLine to 0-based for comparison with AST
   const stmtLine = stmt.loc.start.line;
-  return stmtLine <= toLine;
+  return stmtLine <= toLine - 1;
 }
 
 /**
  * Check if a statement's location overlaps with the selection range.
+ * Both AST locations and LSP Range are 0-based.
  */
 function isStatementInSelection(stmt: Statement, selection: Range): boolean {
-  const stmtStart = stmt.loc.start.line - 1;
-  const stmtEnd = stmt.loc.end.line - 1;
+  const stmtStart = stmt.loc.start.line;
+  const stmtEnd = stmt.loc.end.line;
   return stmtStart <= selection.end.line && stmtEnd >= selection.start.line;
 }
 
