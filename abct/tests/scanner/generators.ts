@@ -129,10 +129,27 @@ export const genComment: fc.Arbitrary<string> = fc
   .map((content) => `# ${content}`);
 
 /**
+ * Generate a dot (for file paths)
+ */
+export const genDot: fc.Arbitrary<string> = fc.constant(".");
+
+/**
+ * Generate a comma (for lists)
+ */
+export const genComma: fc.Arbitrary<string> = fc.constant(",");
+
+/**
  * Generate a single-character operator
  */
 export const genSingleOp: fc.Arbitrary<string> = fc.constantFrom(
   "|", "+", "=", "@", ":", "-", "(", ")", "[", "]", ">", "<"
+);
+
+/**
+ * Generate any single-character punctuation (safe for round-trip tests)
+ */
+export const genSafeSingleOp: fc.Arbitrary<string> = fc.constantFrom(
+  "|", "+", "=", "@", ":", "-", "(", ")", "[", "]", ".", ",", "<", ">"
 );
 
 /**
@@ -149,3 +166,27 @@ export const genOperator: fc.Arbitrary<string> = fc.oneof(
   genSingleOp,
   genDoubleOp
 );
+
+/**
+ * Generate any token type (for comprehensive round-trip testing)
+ * Exclusions:
+ * - ABC fences: Require line start positioning
+ * - Comments: Consume until EOL, so must be followed by newline
+ * - EOL tokens: Test separately as they interact with comments and line tracking
+ */
+export const genAnyToken: fc.Arbitrary<string> = fc.oneof(
+  genIdentifier,
+  genKeyword,
+  genNumber,
+  genString,
+  genSafeSingleOp,
+  genDoubleOp,
+  genWS
+);
+
+/**
+ * Generate a sequence of tokens joined together
+ */
+export const genTokenSequence: fc.Arbitrary<string> = fc
+  .array(genAnyToken, { minLength: 1, maxLength: 15 })
+  .map((tokens) => tokens.join(""));
