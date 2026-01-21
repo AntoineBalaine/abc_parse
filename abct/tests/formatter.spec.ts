@@ -190,6 +190,31 @@ result = source | @chords`;
       const result = fmt("```abc\n| G2 | A2 |\n```");
       expect(result.trim()).to.equal("```abc\n| G2 | A2 |\n```");
     });
+
+    it("should format ABC literal with line-only location", () => {
+      const result = fmt("```abc :10\nC D E\n```");
+      expect(result.trim()).to.equal("```abc :10\nC D E\n```");
+    });
+
+    it("should format ABC literal with line:col location", () => {
+      const result = fmt("```abc :10:5\nC D E\n```");
+      expect(result.trim()).to.equal("```abc :10:5\nC D E\n```");
+    });
+
+    it("should format ABC literal with single-line range", () => {
+      const result = fmt("```abc :10:5-15\nC D E\n```");
+      expect(result.trim()).to.equal("```abc :10:5-15\nC D E\n```");
+    });
+
+    it("should format ABC literal with multi-line range", () => {
+      const result = fmt("```abc :10:5-12:20\nC D E\n```");
+      expect(result.trim()).to.equal("```abc :10:5-12:20\nC D E\n```");
+    });
+
+    it("should preserve sanitized content in formatted output", () => {
+      const result = fmt("```abc\nsome \\`\\`\\` escaped\n```");
+      expect(result.trim()).to.include("\\`\\`\\`");
+    });
   });
 
   describe("Assignment Formatting", () => {

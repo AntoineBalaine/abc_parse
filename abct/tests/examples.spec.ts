@@ -310,6 +310,54 @@ strings + trumpet + bass`;
       assertParses("```abc\n[CEG]2 [FAc]2\n```");
       assertParses("```abc\n| G2 | A2 |\n```");
     });
+
+    it("should parse ABC literal with line-only location", () => {
+      const program = assertParses("```abc :10\nCDEF\n```");
+      expect(program.statements).to.have.length(1);
+      const expr = program.statements[0];
+      expect(isAbcLiteral(expr)).to.be.true;
+      if (isAbcLiteral(expr)) {
+        expect(expr.location).to.deep.equal({ line: 10, col: undefined, end: undefined });
+      }
+    });
+
+    it("should parse ABC literal with line:col location", () => {
+      const program = assertParses("```abc :10:5\nCDEF\n```");
+      expect(program.statements).to.have.length(1);
+      const expr = program.statements[0];
+      expect(isAbcLiteral(expr)).to.be.true;
+      if (isAbcLiteral(expr)) {
+        expect(expr.location).to.deep.equal({ line: 10, col: 5, end: undefined });
+      }
+    });
+
+    it("should parse ABC literal with single-line range", () => {
+      const program = assertParses("```abc :10:5-15\nCDEF\n```");
+      expect(program.statements).to.have.length(1);
+      const expr = program.statements[0];
+      expect(isAbcLiteral(expr)).to.be.true;
+      if (isAbcLiteral(expr)) {
+        expect(expr.location).to.deep.equal({
+          line: 10,
+          col: 5,
+          end: { type: "singleline", endCol: 15 },
+        });
+      }
+    });
+
+    it("should parse ABC literal with multi-line range", () => {
+      const program = assertParses("```abc :10:5-12:20\nCDEF\n```");
+      expect(program.statements).to.have.length(1);
+      const expr = program.statements[0];
+      expect(isAbcLiteral(expr)).to.be.true;
+      if (isAbcLiteral(expr)) {
+        expect(expr.location).to.deep.equal({
+          line: 10,
+          col: 5,
+          end: { type: "multiline", endLine: 12, endCol: 20 },
+        });
+      }
+    });
   });
 
   describe("Precedence", () => {
