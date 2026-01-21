@@ -156,6 +156,12 @@
         "title": "ABCT: Open Evaluated Output",
         "group": "ABCT",
         "description": "Open the evaluated ABC output in an editable document. Saving the document generates patches."
+      },
+      {
+        "command": "abct.refreshEvaluatedOutput",
+        "title": "ABCT: Refresh Evaluated Output",
+        "group": "ABCT",
+        "description": "Re-evaluate the source ABCT file and refresh the virtual document with new content."
       }
     ],
     "configurationDefaults": {

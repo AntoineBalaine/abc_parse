@@ -35,6 +35,9 @@ export class AbctEvalDocProvider implements vscode.FileSystemProvider {
   /** Storage for virtual document states, keyed by URI string */
   private documents = new Map<string, DocumentState>();
 
+  /** Mapping from source URI to virtual document URIs for auto-update */
+  private sourceToVirtualDocs = new Map<string, Set<string>>();
+
   /** Counter for ensuring unique URIs even when created in the same millisecond */
   private docCounter = 0;
 
@@ -66,6 +69,14 @@ export class AbctEvalDocProvider implements vscode.FileSystemProvider {
     };
 
     this.documents.set(docUri.toString(), state);
+
+    // Track source->virtual mapping for auto-update
+    const sourceUriStr = sourceUri.toString();
+    if (!this.sourceToVirtualDocs.has(sourceUriStr)) {
+      this.sourceToVirtualDocs.set(sourceUriStr, new Set());
+    }
+    this.sourceToVirtualDocs.get(sourceUriStr)!.add(docUri.toString());
+
     return docUri;
   }
 
@@ -125,7 +136,29 @@ export class AbctEvalDocProvider implements vscode.FileSystemProvider {
    * Remove a virtual document from storage
    */
   disposeDocument(uri: vscode.Uri): void {
+    const state = this.documents.get(uri.toString());
+    if (state) {
+      // Remove from source->virtual mapping
+      const virtualDocs = this.sourceToVirtualDocs.get(state.sourceUri);
+      if (virtualDocs) {
+        virtualDocs.delete(uri.toString());
+        if (virtualDocs.size === 0) {
+          this.sourceToVirtualDocs.delete(state.sourceUri);
+        }
+      }
+    }
     this.documents.delete(uri.toString());
+  }
+
+  /**
+   * Get all virtual document URIs linked to a source file
+   */
+  getVirtualDocsForSource(sourceUri: vscode.Uri): vscode.Uri[] {
+    const virtualUris = this.sourceToVirtualDocs.get(sourceUri.toString());
+    if (!virtualUris) {
+      return [];
+    }
+    return Array.from(virtualUris).map((uriStr) => vscode.Uri.parse(uriStr));
   }
 
   /**
@@ -133,6 +166,7 @@ export class AbctEvalDocProvider implements vscode.FileSystemProvider {
    */
   disposeAll(): void {
     this.documents.clear();
+    this.sourceToVirtualDocs.clear();
   }
 
   /**
