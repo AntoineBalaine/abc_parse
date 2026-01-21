@@ -187,6 +187,7 @@ export interface List {
 export interface AbcLiteral {
   type: "abc_literal";
   content: string;
+  location?: Location; // Optional target location from fence: ```abc :10:5
   loc: Loc;
 }
 
