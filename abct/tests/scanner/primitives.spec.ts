@@ -4,7 +4,8 @@
 
 import { expect } from "chai";
 import * as fc from "fast-check";
-import { createCtx } from "../../src/scanner/context";
+import { createCtx, AbctCtx } from "../../src/scanner/context";
+import { AbctContext } from "../../src/context";
 import { AbctTT } from "../../src/scanner/types";
 import {
   identifier,
@@ -29,10 +30,17 @@ import {
   genDoubleOp,
 } from "./generators";
 
+/** Helper to create a scanner context with a fresh AbctContext */
+function createTestCtx(source: string): { ctx: AbctCtx; abctCtx: AbctContext } {
+  const abctCtx = new AbctContext();
+  const ctx = createCtx(source, abctCtx);
+  return { ctx, abctCtx };
+}
+
 describe("ABCT Scanner Primitives", () => {
   describe("identifier", () => {
     it("should scan simple identifier 'transpose'", () => {
-      const ctx = createCtx("transpose");
+      const { ctx, abctCtx } = createTestCtx("transpose");
       const result = identifier(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens).to.have.length(1);
@@ -41,7 +49,7 @@ describe("ABCT Scanner Primitives", () => {
     });
 
     it("should scan identifier starting with underscore", () => {
-      const ctx = createCtx("_private");
+      const { ctx, abctCtx } = createTestCtx("_private");
       const result = identifier(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].type).to.equal(AbctTT.IDENTIFIER);
@@ -49,35 +57,35 @@ describe("ABCT Scanner Primitives", () => {
     });
 
     it("should scan identifier with numbers", () => {
-      const ctx = createCtx("voice2");
+      const { ctx, abctCtx } = createTestCtx("voice2");
       const result = identifier(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].lexeme).to.equal("voice2");
     });
 
     it("should not scan number as identifier", () => {
-      const ctx = createCtx("123");
+      const { ctx, abctCtx } = createTestCtx("123");
       const result = identifier(ctx);
       expect(result).to.be.false;
       expect(ctx.tokens).to.have.length(0);
     });
 
     it("should scan 'and' as AND keyword", () => {
-      const ctx = createCtx("and");
+      const { ctx, abctCtx } = createTestCtx("and");
       const result = identifier(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].type).to.equal(AbctTT.AND);
     });
 
     it("should scan 'or' as OR keyword", () => {
-      const ctx = createCtx("or");
+      const { ctx, abctCtx } = createTestCtx("or");
       const result = identifier(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].type).to.equal(AbctTT.OR);
     });
 
     it("should scan 'not' as NOT keyword", () => {
-      const ctx = createCtx("not");
+      const { ctx, abctCtx } = createTestCtx("not");
       const result = identifier(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].type).to.equal(AbctTT.NOT);
@@ -86,7 +94,7 @@ describe("ABCT Scanner Primitives", () => {
     it("property: all generated identifiers scan correctly", () => {
       fc.assert(
         fc.property(genIdentifier, (id) => {
-          const ctx = createCtx(id);
+          const { ctx, abctCtx } = createTestCtx(id);
           const result = identifier(ctx);
           return result && ctx.tokens[0].type === AbctTT.IDENTIFIER && ctx.tokens[0].lexeme === id;
         }),
@@ -97,7 +105,7 @@ describe("ABCT Scanner Primitives", () => {
     it("property: keywords scan to their specific types", () => {
       fc.assert(
         fc.property(genKeyword, (kw) => {
-          const ctx = createCtx(kw);
+          const { ctx, abctCtx } = createTestCtx(kw);
           const result = identifier(ctx);
           if (!result) return false;
           const expectedType = kw === "and" ? AbctTT.AND : kw === "or" ? AbctTT.OR : AbctTT.NOT;
@@ -109,7 +117,7 @@ describe("ABCT Scanner Primitives", () => {
 
   describe("number", () => {
     it("should scan positive integer", () => {
-      const ctx = createCtx("42");
+      const { ctx, abctCtx } = createTestCtx("42");
       const result = number(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].type).to.equal(AbctTT.NUMBER);
@@ -117,28 +125,28 @@ describe("ABCT Scanner Primitives", () => {
     });
 
     it("should not scan negative integer (let parser handle unary minus)", () => {
-      const ctx = createCtx("-5");
+      const { ctx, abctCtx } = createTestCtx("-5");
       const result = number(ctx);
       // Number scanner should not match leading minus
       expect(result).to.be.false;
     });
 
     it("should scan decimal number", () => {
-      const ctx = createCtx("3.14");
+      const { ctx, abctCtx } = createTestCtx("3.14");
       const result = number(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].lexeme).to.equal("3.14");
     });
 
     it("should scan fraction", () => {
-      const ctx = createCtx("1/4");
+      const { ctx, abctCtx } = createTestCtx("1/4");
       const result = number(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].lexeme).to.equal("1/4");
     });
 
     it("should not scan identifier as number", () => {
-      const ctx = createCtx("abc");
+      const { ctx, abctCtx } = createTestCtx("abc");
       const result = number(ctx);
       expect(result).to.be.false;
     });
@@ -146,7 +154,7 @@ describe("ABCT Scanner Primitives", () => {
     it("property: all generated integers scan correctly", () => {
       fc.assert(
         fc.property(genInteger, (num) => {
-          const ctx = createCtx(num);
+          const { ctx, abctCtx } = createTestCtx(num);
           const result = number(ctx);
           return result && ctx.tokens[0].type === AbctTT.NUMBER;
         }),
@@ -157,7 +165,7 @@ describe("ABCT Scanner Primitives", () => {
     it("property: all generated decimals scan correctly", () => {
       fc.assert(
         fc.property(genDecimal, (num) => {
-          const ctx = createCtx(num);
+          const { ctx, abctCtx } = createTestCtx(num);
           const result = number(ctx);
           return result && ctx.tokens[0].type === AbctTT.NUMBER;
         }),
@@ -168,7 +176,7 @@ describe("ABCT Scanner Primitives", () => {
     it("property: all generated fractions scan correctly", () => {
       fc.assert(
         fc.property(genFraction, (num) => {
-          const ctx = createCtx(num);
+          const { ctx, abctCtx } = createTestCtx(num);
           const result = number(ctx);
           return result && ctx.tokens[0].type === AbctTT.NUMBER;
         }),
@@ -179,7 +187,7 @@ describe("ABCT Scanner Primitives", () => {
 
   describe("string", () => {
     it("should scan simple string", () => {
-      const ctx = createCtx('"hello"');
+      const { ctx, abctCtx } = createTestCtx('"hello"');
       const result = string(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].type).to.equal(AbctTT.STRING);
@@ -187,22 +195,22 @@ describe("ABCT Scanner Primitives", () => {
     });
 
     it("should scan string with escape sequences", () => {
-      const ctx = createCtx('"hello\\nworld"');
+      const { ctx, abctCtx } = createTestCtx('"hello\\nworld"');
       const result = string(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].lexeme).to.equal('"hello\\nworld"');
     });
 
     it("should report unterminated string", () => {
-      const ctx = createCtx('"unterminated');
+      const { ctx, abctCtx } = createTestCtx('"unterminated');
       const result = string(ctx);
       expect(result).to.be.true;
-      expect(ctx.errors).to.have.length(1);
-      expect(ctx.errors[0].message).to.include("Unterminated");
+      expect(abctCtx.errorReporter.getErrors()).to.have.length(1);
+      expect(abctCtx.errorReporter.getErrors()[0].message).to.include("Unterminated");
     });
 
     it("should not scan non-string", () => {
-      const ctx = createCtx("abc");
+      const { ctx, abctCtx } = createTestCtx("abc");
       const result = string(ctx);
       expect(result).to.be.false;
     });
@@ -210,7 +218,7 @@ describe("ABCT Scanner Primitives", () => {
     it("property: all generated simple strings scan correctly", () => {
       fc.assert(
         fc.property(genSimpleString, (str) => {
-          const ctx = createCtx(str);
+          const { ctx, abctCtx } = createTestCtx(str);
           const result = string(ctx);
           return result && ctx.tokens[0].type === AbctTT.STRING;
         }),
@@ -221,7 +229,7 @@ describe("ABCT Scanner Primitives", () => {
 
   describe("abcFence", () => {
     it("should scan basic ABC fence", () => {
-      const ctx = createCtx("```abc\nCDEF\n```");
+      const { ctx, abctCtx } = createTestCtx("```abc\nCDEF\n```");
       const result = abcFence(ctx);
       expect(result).to.be.true;
       // Should produce: ABC_FENCE_OPEN, ABC_CONTENT, ABC_FENCE_CLOSE
@@ -235,7 +243,7 @@ describe("ABCT Scanner Primitives", () => {
     });
 
     it("should scan ABC fence with line-only location", () => {
-      const ctx = createCtx("```abc :10\nCDEF\n```");
+      const { ctx, abctCtx } = createTestCtx("```abc :10\nCDEF\n```");
       const result = abcFence(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].type).to.equal(AbctTT.ABC_FENCE_OPEN);
@@ -243,28 +251,28 @@ describe("ABCT Scanner Primitives", () => {
     });
 
     it("should scan ABC fence with line:col location", () => {
-      const ctx = createCtx("```abc :10:5\nCDEF\n```");
+      const { ctx, abctCtx } = createTestCtx("```abc :10:5\nCDEF\n```");
       const result = abcFence(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].lexeme).to.equal("```abc :10:5\n"); // Includes trailing newline
     });
 
     it("should scan ABC fence with single-line range", () => {
-      const ctx = createCtx("```abc :10:5-15\nCDEF\n```");
+      const { ctx, abctCtx } = createTestCtx("```abc :10:5-15\nCDEF\n```");
       const result = abcFence(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].lexeme).to.equal("```abc :10:5-15\n"); // Includes trailing newline
     });
 
     it("should scan ABC fence with multi-line range", () => {
-      const ctx = createCtx("```abc :10:5-12:20\nCDEF\n```");
+      const { ctx, abctCtx } = createTestCtx("```abc :10:5-12:20\nCDEF\n```");
       const result = abcFence(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].lexeme).to.equal("```abc :10:5-12:20\n"); // Includes trailing newline
     });
 
     it("should scan ABC fence without language specifier", () => {
-      const ctx = createCtx("```\nCDEF\n```");
+      const { ctx, abctCtx } = createTestCtx("```\nCDEF\n```");
       const result = abcFence(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens).to.have.length(3);
@@ -276,7 +284,7 @@ describe("ABCT Scanner Primitives", () => {
     });
 
     it("should scan ABC fence without language specifier but with location", () => {
-      const ctx = createCtx("``` :10:5\nCDEF\n```");
+      const { ctx, abctCtx } = createTestCtx("``` :10:5\nCDEF\n```");
       const result = abcFence(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].type).to.equal(AbctTT.ABC_FENCE_OPEN);
@@ -284,7 +292,7 @@ describe("ABCT Scanner Primitives", () => {
     });
 
     it("should scan empty ABC fence", () => {
-      const ctx = createCtx("```abc\n```");
+      const { ctx, abctCtx } = createTestCtx("```abc\n```");
       const result = abcFence(ctx);
       expect(result).to.be.true;
       // Should produce: ABC_FENCE_OPEN, ABC_FENCE_CLOSE (no ABC_CONTENT for empty content)
@@ -294,21 +302,21 @@ describe("ABCT Scanner Primitives", () => {
     });
 
     it("should scan multi-line ABC fence", () => {
-      const ctx = createCtx("```abc\nC D E\nF G A\n```");
+      const { ctx, abctCtx } = createTestCtx("```abc\nC D E\nF G A\n```");
       const result = abcFence(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[1].lexeme).to.equal("C D E\nF G A\n"); // Includes trailing newline
     });
 
     it("should handle leading whitespace before fence", () => {
-      const ctx = createCtx("  ```abc\nCDEF\n```");
+      const { ctx, abctCtx } = createTestCtx("  ```abc\nCDEF\n```");
       const result = abcFence(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].type).to.equal(AbctTT.ABC_FENCE_OPEN);
     });
 
     it("should not close on non-line-start backticks", () => {
-      const ctx = createCtx("```abc\nsome ``` content\n```");
+      const { ctx, abctCtx } = createTestCtx("```abc\nsome ``` content\n```");
       const result = abcFence(ctx);
       expect(result).to.be.true;
       // Content should include the inline ``` (sanitized)
@@ -317,7 +325,7 @@ describe("ABCT Scanner Primitives", () => {
     });
 
     it("should sanitize triple backticks in content", () => {
-      const ctx = createCtx("```abc\nsome ``` in content\n```");
+      const { ctx, abctCtx } = createTestCtx("```abc\nsome ``` in content\n```");
       const result = abcFence(ctx);
       expect(result).to.be.true;
       const contentToken = ctx.tokens.find((t) => t.type === AbctTT.ABC_CONTENT);
@@ -325,15 +333,15 @@ describe("ABCT Scanner Primitives", () => {
     });
 
     it("should report unterminated ABC fence", () => {
-      const ctx = createCtx("```abc\nCDEF");
+      const { ctx, abctCtx } = createTestCtx("```abc\nCDEF");
       const result = abcFence(ctx);
       expect(result).to.be.true;
-      expect(ctx.errors).to.have.length(1);
-      expect(ctx.errors[0].message).to.include("Unterminated ABC fence");
+      expect(abctCtx.errorReporter.getErrors()).to.have.length(1);
+      expect(abctCtx.errorReporter.getErrors()[0].message).to.include("Unterminated ABC fence");
     });
 
     it("should not scan when not at line start", () => {
-      const ctx = createCtx("x ```abc\nCDEF\n```");
+      const { ctx, abctCtx } = createTestCtx("x ```abc\nCDEF\n```");
       // Advance past the first character
       ctx.current = 2;
       ctx.start = 2;
@@ -342,7 +350,7 @@ describe("ABCT Scanner Primitives", () => {
     });
 
     it("should not scan non-ABC fence", () => {
-      const ctx = createCtx("abc");
+      const { ctx, abctCtx } = createTestCtx("abc");
       const result = abcFence(ctx);
       expect(result).to.be.false;
     });
@@ -350,7 +358,7 @@ describe("ABCT Scanner Primitives", () => {
     it("property: all generated ABC fences scan correctly", () => {
       fc.assert(
         fc.property(genAbcFence, (lit) => {
-          const ctx = createCtx(lit);
+          const { ctx, abctCtx } = createTestCtx(lit);
           const result = abcFence(ctx);
           return result && ctx.tokens.length >= 2;
         }),
@@ -361,7 +369,7 @@ describe("ABCT Scanner Primitives", () => {
     it("property: ABC fences with location scan correctly", () => {
       fc.assert(
         fc.property(genAbcFenceWithLocation, (lit) => {
-          const ctx = createCtx(lit);
+          const { ctx, abctCtx } = createTestCtx(lit);
           const result = abcFence(ctx);
           return result && ctx.tokens[0].lexeme.includes(":");
         }),
@@ -400,14 +408,14 @@ describe("ABCT Scanner Primitives", () => {
 
   describe("operator", () => {
     it("should scan pipe operator", () => {
-      const ctx = createCtx("|");
+      const { ctx, abctCtx } = createTestCtx("|");
       const result = operator(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].type).to.equal(AbctTT.PIPE);
     });
 
     it("should scan pipe-equals operator", () => {
-      const ctx = createCtx("|=");
+      const { ctx, abctCtx } = createTestCtx("|=");
       const result = operator(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].type).to.equal(AbctTT.PIPE_EQ);
@@ -424,7 +432,7 @@ describe("ABCT Scanner Primitives", () => {
         ["!=", AbctTT.BANGEQ],
       ];
       for (const [op, expected] of tests) {
-        const ctx = createCtx(op);
+        const { ctx, abctCtx } = createTestCtx(op);
         const result = operator(ctx);
         expect(result, `Failed for ${op}`).to.be.true;
         expect(ctx.tokens[0].type, `Wrong type for ${op}`).to.equal(expected);
@@ -444,7 +452,7 @@ describe("ABCT Scanner Primitives", () => {
         ["]", AbctTT.RBRACKET],
       ];
       for (const [op, expected] of tests) {
-        const ctx = createCtx(op);
+        const { ctx, abctCtx } = createTestCtx(op);
         const result = operator(ctx);
         expect(result, `Failed for ${op}`).to.be.true;
         expect(ctx.tokens[0].type, `Wrong type for ${op}`).to.equal(expected);
@@ -452,7 +460,7 @@ describe("ABCT Scanner Primitives", () => {
     });
 
     it("should not scan identifier as operator", () => {
-      const ctx = createCtx("abc");
+      const { ctx, abctCtx } = createTestCtx("abc");
       const result = operator(ctx);
       expect(result).to.be.false;
     });
@@ -460,7 +468,7 @@ describe("ABCT Scanner Primitives", () => {
     it("property: all single operators scan correctly", () => {
       fc.assert(
         fc.property(genSingleOp, (op) => {
-          const ctx = createCtx(op);
+          const { ctx, abctCtx } = createTestCtx(op);
           const result = operator(ctx);
           return result && ctx.tokens.length === 1;
         })
@@ -470,7 +478,7 @@ describe("ABCT Scanner Primitives", () => {
     it("property: all double operators scan correctly", () => {
       fc.assert(
         fc.property(genDoubleOp, (op) => {
-          const ctx = createCtx(op);
+          const { ctx, abctCtx } = createTestCtx(op);
           const result = operator(ctx);
           return result && ctx.tokens[0].lexeme === op;
         })
@@ -480,22 +488,22 @@ describe("ABCT Scanner Primitives", () => {
 
   describe("collectInvalid", () => {
     it("should collect invalid characters", () => {
-      const ctx = createCtx("$%^");
+      const { ctx, abctCtx } = createTestCtx("$%^");
       const result = collectInvalid(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].type).to.equal(AbctTT.INVALID);
-      expect(ctx.errors).to.have.length(1);
+      expect(abctCtx.errorReporter.getErrors()).to.have.length(1);
     });
 
     it("should stop at whitespace", () => {
-      const ctx = createCtx("$%^ abc");
+      const { ctx, abctCtx } = createTestCtx("$%^ abc");
       const result = collectInvalid(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].lexeme).to.equal("$%^");
     });
 
     it("should return false at EOF", () => {
-      const ctx = createCtx("");
+      const { ctx, abctCtx } = createTestCtx("");
       const result = collectInvalid(ctx);
       expect(result).to.be.false;
     });

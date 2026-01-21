@@ -6,6 +6,7 @@
  */
 
 import { AbctCtx, createCtx } from "./context";
+import { AbctContext } from "../context";
 import { AbctTT, Token } from "./types";
 import { isAtEnd } from "./utils";
 import {
@@ -19,31 +20,18 @@ import {
 import { WS, EOL, comment } from "./whitespace";
 
 /**
- * Scan result containing tokens and any errors
- */
-export interface ScanResult {
-  tokens: Token[];
-  errors: Array<{
-    message: string;
-    line: number;
-    column: number;
-    offset: number;
-  }>;
-}
-
-/**
  * Scan ABCT source code into tokens
  *
+ * Errors are reported to ctx.errorReporter.
+ *
  * @param source - The ABCT source code to scan
- * @returns Scan result with tokens and errors
+ * @param ctx - The shared ABCT context
+ * @returns Array of tokens
  */
-export function scan(source: string): ScanResult {
-  const ctx = createCtx(source);
-  scanProgram(ctx);
-  return {
-    tokens: ctx.tokens,
-    errors: ctx.errors,
-  };
+export function scan(source: string, ctx: AbctContext): Token[] {
+  const scanCtx = createCtx(source, ctx);
+  scanProgram(scanCtx);
+  return scanCtx.tokens;
 }
 
 /**

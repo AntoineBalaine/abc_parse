@@ -4,15 +4,22 @@
 
 import { expect } from "chai";
 import * as fc from "fast-check";
-import { createCtx } from "../../src/scanner/context";
+import { createCtx, AbctCtx } from "../../src/scanner/context";
+import { AbctContext } from "../../src/context";
 import { AbctTT } from "../../src/scanner/types";
 import { WS, EOL, comment } from "../../src/scanner/whitespace";
 import { genWS, genEOL, genComment } from "./generators";
 
+/** Helper to create a scanner context with a fresh AbctContext */
+function createTestCtx(source: string): AbctCtx {
+  const abctCtx = new AbctContext();
+  return createCtx(source, abctCtx);
+}
+
 describe("ABCT Scanner Whitespace", () => {
   describe("WS", () => {
     it("should scan spaces", () => {
-      const ctx = createCtx("   ");
+      const ctx = createTestCtx("   ");
       const result = WS(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].type).to.equal(AbctTT.WS);
@@ -20,27 +27,27 @@ describe("ABCT Scanner Whitespace", () => {
     });
 
     it("should scan tabs", () => {
-      const ctx = createCtx("\t\t");
+      const ctx = createTestCtx("\t\t");
       const result = WS(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].lexeme).to.equal("\t\t");
     });
 
     it("should scan mixed spaces and tabs", () => {
-      const ctx = createCtx(" \t ");
+      const ctx = createTestCtx(" \t ");
       const result = WS(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].lexeme).to.equal(" \t ");
     });
 
     it("should not scan newlines", () => {
-      const ctx = createCtx("\n");
+      const ctx = createTestCtx("\n");
       const result = WS(ctx);
       expect(result).to.be.false;
     });
 
     it("should not scan non-whitespace", () => {
-      const ctx = createCtx("abc");
+      const ctx = createTestCtx("abc");
       const result = WS(ctx);
       expect(result).to.be.false;
     });
@@ -48,7 +55,7 @@ describe("ABCT Scanner Whitespace", () => {
     it("property: all generated whitespace scans correctly", () => {
       fc.assert(
         fc.property(genWS, (ws) => {
-          const ctx = createCtx(ws);
+          const ctx = createTestCtx(ws);
           const result = WS(ctx);
           return result && ctx.tokens[0].type === AbctTT.WS && ctx.tokens[0].lexeme === ws;
         }),
@@ -59,7 +66,7 @@ describe("ABCT Scanner Whitespace", () => {
 
   describe("EOL", () => {
     it("should scan LF", () => {
-      const ctx = createCtx("\n");
+      const ctx = createTestCtx("\n");
       const result = EOL(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].type).to.equal(AbctTT.EOL);
@@ -68,7 +75,7 @@ describe("ABCT Scanner Whitespace", () => {
     });
 
     it("should scan CR", () => {
-      const ctx = createCtx("\r");
+      const ctx = createTestCtx("\r");
       const result = EOL(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].lexeme).to.equal("\r");
@@ -76,7 +83,7 @@ describe("ABCT Scanner Whitespace", () => {
     });
 
     it("should scan CRLF", () => {
-      const ctx = createCtx("\r\n");
+      const ctx = createTestCtx("\r\n");
       const result = EOL(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].lexeme).to.equal("\r\n");
@@ -84,13 +91,13 @@ describe("ABCT Scanner Whitespace", () => {
     });
 
     it("should not scan spaces", () => {
-      const ctx = createCtx("   ");
+      const ctx = createTestCtx("   ");
       const result = EOL(ctx);
       expect(result).to.be.false;
     });
 
     it("should track line start correctly", () => {
-      const ctx = createCtx("\nabc");
+      const ctx = createTestCtx("\nabc");
       EOL(ctx);
       expect(ctx.lineStart).to.equal(1);
     });
@@ -98,7 +105,7 @@ describe("ABCT Scanner Whitespace", () => {
     it("property: all generated EOL scans correctly", () => {
       fc.assert(
         fc.property(genEOL, (eol) => {
-          const ctx = createCtx(eol);
+          const ctx = createTestCtx(eol);
           const result = EOL(ctx);
           return result && ctx.tokens[0].type === AbctTT.EOL && ctx.line === 1;
         })
@@ -108,7 +115,7 @@ describe("ABCT Scanner Whitespace", () => {
 
   describe("comment", () => {
     it("should scan comment to end of line", () => {
-      const ctx = createCtx("# this is a comment");
+      const ctx = createTestCtx("# this is a comment");
       const result = comment(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].type).to.equal(AbctTT.COMMENT);
@@ -116,7 +123,7 @@ describe("ABCT Scanner Whitespace", () => {
     });
 
     it("should not consume the newline", () => {
-      const ctx = createCtx("# comment\ncode");
+      const ctx = createTestCtx("# comment\ncode");
       const result = comment(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].lexeme).to.equal("# comment");
@@ -124,14 +131,14 @@ describe("ABCT Scanner Whitespace", () => {
     });
 
     it("should scan empty comment", () => {
-      const ctx = createCtx("#");
+      const ctx = createTestCtx("#");
       const result = comment(ctx);
       expect(result).to.be.true;
       expect(ctx.tokens[0].lexeme).to.equal("#");
     });
 
     it("should not scan non-comment", () => {
-      const ctx = createCtx("abc");
+      const ctx = createTestCtx("abc");
       const result = comment(ctx);
       expect(result).to.be.false;
     });
@@ -139,7 +146,7 @@ describe("ABCT Scanner Whitespace", () => {
     it("property: all generated comments scan correctly", () => {
       fc.assert(
         fc.property(genComment, (cmt) => {
-          const ctx = createCtx(cmt);
+          const ctx = createTestCtx(cmt);
           const result = comment(ctx);
           return result && ctx.tokens[0].type === AbctTT.COMMENT && ctx.tokens[0].lexeme === cmt;
         }),
@@ -150,7 +157,7 @@ describe("ABCT Scanner Whitespace", () => {
 
   describe("line tracking", () => {
     it("should track multiple lines", () => {
-      const ctx = createCtx("a\nb\nc");
+      const ctx = createTestCtx("a\nb\nc");
       // Simulate scanning through multiple lines
       ctx.current = 1;
       ctx.start = 1;
@@ -164,7 +171,7 @@ describe("ABCT Scanner Whitespace", () => {
     });
 
     it("should calculate correct column after newline", () => {
-      const ctx = createCtx("ab\ncd");
+      const ctx = createTestCtx("ab\ncd");
       ctx.current = 2;
       ctx.start = 2;
       EOL(ctx);

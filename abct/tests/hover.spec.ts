@@ -3,18 +3,23 @@
 
 import { expect } from "chai";
 import { Position } from "vscode-languageserver";
-import { parse } from "../src/parser";
+import { scan } from "../src/scanner";
+import { parse } from "../src/parser/parser";
+import { AbctContext } from "../src/context";
 import { provideHover } from "../../abc-lsp-server/src/abct/AbctHoverProvider";
 
 describe("ABCT Hover Provider", () => {
   // Helper to parse and get hover at a specific position (0-based)
   function getHover(source: string, line: number, character: number) {
-    const result = parse(source);
-    if (!result.success) {
-      throw new Error(`Failed to parse: ${result.error.message}`);
+    const ctx = new AbctContext();
+    const tokens = scan(source, ctx);
+    const program = parse(tokens, ctx);
+    if (ctx.errorReporter.hasErrors()) {
+      const errors = ctx.errorReporter.getErrors();
+      throw new Error(`Failed to parse: ${errors[0].message}`);
     }
     const position: Position = { line, character };
-    return provideHover(result.value, position);
+    return provideHover(program, position);
   }
 
   // Helper to get hover content as string

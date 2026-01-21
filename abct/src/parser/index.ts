@@ -5,7 +5,7 @@
  */
 
 // Main parse functions
-export { parseTokens, parseProgram, parseStatement, ParseResult } from "./parser";
+export { parse, parseProgram, parseStatement } from "./parser";
 
 // Expression parsing (for direct use/testing)
 export {
@@ -42,7 +42,7 @@ export {
 } from "./atoms";
 
 // Context and utilities
-export { AbctParseCtx, createParseCtx, tokenToLoc, spanLoc, ParseError } from "./context";
+export { AbctParseCtx, createParseCtx, tokenToLoc, spanLoc } from "./context";
 export {
   isAtEnd,
   peek,

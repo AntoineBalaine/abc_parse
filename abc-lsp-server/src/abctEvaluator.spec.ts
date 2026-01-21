@@ -17,7 +17,10 @@ import { URI } from "vscode-uri";
 import { FileResolver, FileResolverError, createFileResolver } from "./fileResolver";
 import { AbctEvaluator, EvaluatorError, evaluateAbct, EvalOptions } from "./abctEvaluator";
 import { AbctDocument } from "./AbctDocument";
-import { parse as parseAbct, Program } from "../../abct/src/parser";
+import { scan } from "../../abct/src/scanner";
+import { parse } from "../../abct/src/parser/parser";
+import { AbctContext } from "../../abct/src/context";
+import { Program } from "../../abct/src/ast";
 
 // ============================================================================
 // Test Helpers
@@ -66,11 +69,14 @@ function pathToUri(filepath: string): string {
  * Parse an ABCT source string and return the Program AST.
  */
 function parseAbctSource(source: string): Program {
-  const result = parseAbct(source);
-  if (!result.success) {
-    throw new Error(`Failed to parse ABCT: ${result.error.message}`);
+  const ctx = new AbctContext();
+  const tokens = scan(source, ctx);
+  const program = parse(tokens, ctx);
+  if (ctx.errorReporter.hasErrors()) {
+    const errors = ctx.errorReporter.getErrors();
+    throw new Error(`Failed to parse ABCT: ${errors[0].message}`);
   }
-  return result.value;
+  return program;
 }
 
 // ============================================================================

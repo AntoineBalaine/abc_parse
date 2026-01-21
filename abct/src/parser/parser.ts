@@ -5,6 +5,7 @@
  */
 
 import { AbctParseCtx, createParseCtx, tokenToLoc } from "./context";
+import { AbctContext } from "../context";
 import { Token, AbctTT } from "../scanner";
 import { peek, advance, check, match, skipWS, skipWSAndEOL, isAtEnd, previous, peekNext } from "./utils";
 import { parseExpr } from "./expressions";
@@ -13,23 +14,17 @@ import { createErrorExpr } from "./atoms";
 import { Program, Statement, Assignment, Expr, Loc } from "../ast";
 
 /**
- * Parse result containing AST and accumulated errors
+ * Parse tokens into a Program AST.
+ *
+ * Errors are reported to ctx.errorReporter.
+ *
+ * @param tokens - The tokens to parse
+ * @param ctx - The shared ABCT context
+ * @returns The Program AST
  */
-export interface ParseResult {
-  program: Program;
-  errors: Array<{ message: string; loc: Loc }>;
-}
-
-/**
- * Parse tokens and return a Program AST.
- * The caller is responsible for scanning the source first.
- */
-export function parseTokens(tokens: Token[]): ParseResult {
-  const ctx = createParseCtx(tokens);
-  const program = parseProgram(ctx);
-
-  const errors = ctx.errors.map((e) => ({ message: e.message, loc: e.loc }));
-  return { program, errors };
+export function parse(tokens: Token[], ctx: AbctContext): Program {
+  const parseCtx = createParseCtx(tokens, ctx);
+  return parseProgram(parseCtx);
 }
 
 /**

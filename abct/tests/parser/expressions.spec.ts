@@ -4,7 +4,8 @@
 
 import { expect } from "chai";
 import * as fc from "fast-check";
-import { scan, AbctTT } from "../../src/scanner";
+import { scan, AbctTT, Token } from "../../src/scanner";
+import { AbctContext, AbctError } from "../../src/context";
 import { createParseCtx } from "../../src/parser/context";
 import { parseExpr, parseAtom, parsePipeline } from "../../src/parser/expressions";
 import {
@@ -33,10 +34,11 @@ import {
  * Helper to parse a source string
  */
 function parse(source: string) {
-  const { tokens, errors: scanErrors } = scan(source);
-  const ctx = createParseCtx(tokens);
-  const expr = parseExpr(ctx);
-  return { expr, errors: ctx.errors, scanErrors };
+  const ctx = new AbctContext();
+  const tokens = scan(source, ctx);
+  const parseCtx = createParseCtx(tokens, ctx);
+  const expr = parseExpr(parseCtx);
+  return { expr, errors: ctx.errorReporter.getErrors() };
 }
 
 describe("ABCT Parser Expressions", () => {

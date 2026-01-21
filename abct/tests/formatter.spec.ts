@@ -4,15 +4,36 @@
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { AbctFormatter } from "../../abc-lsp-server/src/abct/AbctFormatter";
-import { parse } from "../src/parser";
-import { scan, AbctTT } from "../src/scanner";
+import { parse } from "../src/parser/parser";
+import { scan, AbctTT, Token } from "../src/scanner";
+import { AbctContext } from "../src/context";
+import { Program } from "../src/ast";
+
+/** Helper to scan source with a fresh context */
+function scanSource(source: string): { tokens: Token[]; ctx: AbctContext } {
+  const ctx = new AbctContext();
+  const tokens = scan(source, ctx);
+  return { tokens, ctx };
+}
+
+/** Helper to parse source with a fresh context and return a result-like object */
+function parseSource(source: string): { success: true; value: Program } | { success: false; error: { message: string } } {
+  const ctx = new AbctContext();
+  const tokens = scan(source, ctx);
+  const program = parse(tokens, ctx);
+  if (ctx.errorReporter.hasErrors()) {
+    const errors = ctx.errorReporter.getErrors();
+    return { success: false, error: { message: errors[0].message } };
+  }
+  return { success: true, value: program };
+}
 
 describe("ABCT Formatter", () => {
   const formatter = new AbctFormatter();
 
   // Helper to format code and return the result
   function fmt(input: string): string {
-    const result = parse(input);
+    const result = parseSource(input);
     if (!result.success) {
       throw new Error(`Failed to parse: ${result.error.message}\nInput: ${input}`);
     }
@@ -360,14 +381,14 @@ result`);
     // Parse -> Format -> Parse should give equivalent AST (semantically)
 
     function assertRoundtrip(input: string): void {
-      const result1 = parse(input);
+      const result1 = parseSource(input);
       if (!result1.success) {
         throw new Error(`Failed to parse input: ${result1.error.message}`);
       }
 
       const formatted = formatter.format(result1.value, input);
 
-      const result2 = parse(formatted);
+      const result2 = parseSource(formatted);
       if (!result2.success) {
         throw new Error(`Failed to parse formatted output: ${result2.error.message}\nFormatted:\n${formatted}`);
       }
@@ -429,8 +450,8 @@ result`);
   describe("Operator Whitespace Insertion", () => {
     // Helper to extract operator lexemes from formatted output
     function extractOperatorTokens(source: string): string[] {
-      const result = scan(source);
-      return result.tokens
+      const { tokens } = scanSource(source);
+      return tokens
         .filter(t => [
           AbctTT.PIPE, AbctTT.PIPE_EQ, AbctTT.EQ, AbctTT.LT, AbctTT.GT,
           AbctTT.LTE, AbctTT.GTE, AbctTT.EQEQ, AbctTT.BANGEQ, AbctTT.PLUS
@@ -517,16 +538,16 @@ result = c`;
     describe("round-trip through scanner", () => {
       // Verify formatted output scans to the same tokens
       function assertScanRoundtrip(input: string): void {
-        const result1 = parse(input);
+        const result1 = parseSource(input);
         if (!result1.success) {
           throw new Error(`Failed to parse: ${result1.error.message}`);
         }
         const formatted = formatter.format(result1.value, input);
-        const scanResult = scan(formatted);
-        expect(scanResult.errors).to.have.length(0, "Formatted output should scan without errors");
+        const { ctx } = scanSource(formatted);
+        expect(ctx.errorReporter.getErrors()).to.have.length(0, "Formatted output should scan without errors");
 
         // Parse the formatted output
-        const result2 = parse(formatted);
+        const result2 = parseSource(formatted);
         expect(result2.success).to.be.true;
       }
 
@@ -566,17 +587,17 @@ result = c`;
 
         fc.assert(
           fc.property(genSimpleExpr, (expr) => {
-            const result = parse(expr);
+            const result = parseSource(expr);
             if (!result.success) return true; // Skip invalid expressions
 
             const formatted = formatter.format(result.value, expr);
-            const scanResult = scan(formatted);
+            const { ctx } = scanSource(formatted);
 
             // Formatted output should scan without errors
-            if (scanResult.errors.length > 0) return false;
+            if (ctx.errorReporter.hasErrors()) return false;
 
             // Should be able to parse the formatted output
-            const reparsed = parse(formatted);
+            const reparsed = parseSource(formatted);
             return reparsed.success;
           }),
           { numRuns: 200 }
@@ -596,14 +617,14 @@ result = c`;
 
         fc.assert(
           fc.property(genComparison, (expr) => {
-            const result = parse(expr);
+            const result = parseSource(expr);
             if (!result.success) return true;
 
             const formatted = formatter.format(result.value, expr);
 
             // Verify the operator token extracted from scanning has proper spacing
-            const scanResult = scan(formatted);
-            const compOps = scanResult.tokens.filter(t =>
+            const { tokens } = scanSource(formatted);
+            const compOps = tokens.filter(t =>
               [AbctTT.LT, AbctTT.GT, AbctTT.LTE, AbctTT.GTE, AbctTT.EQEQ, AbctTT.BANGEQ].includes(t.type)
             );
 
@@ -611,7 +632,7 @@ result = c`;
             if (compOps.length !== 1) return false;
 
             // Verify the formatted output can be reparsed
-            const reparsed = parse(formatted);
+            const reparsed = parseSource(formatted);
             return reparsed.success;
           }),
           { numRuns: 200 }
