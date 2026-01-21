@@ -16,6 +16,7 @@ import {
   isList,
   isAbcLiteral,
   isAssignment,
+  isGroup,
 } from "../src/ast";
 
 describe("ABCT Grammar Examples", () => {
@@ -331,8 +332,11 @@ strings + trumpet + bass`;
       // Should be just an update (no outer pipe)
       expect(isUpdate(expr)).to.be.true;
       if (isUpdate(expr)) {
-        // Transform should be a pipe
-        expect(isPipe(expr.transform)).to.be.true;
+        // Transform should be a Group containing a Pipe (parentheses preserved)
+        expect(isGroup(expr.transform)).to.be.true;
+        if (isGroup(expr.transform)) {
+          expect(isPipe(expr.transform.expr)).to.be.true;
+        }
       }
     });
 

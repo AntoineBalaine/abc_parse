@@ -21,6 +21,8 @@ import {
   isOr,
   isAnd,
   isNot,
+  isNegate,
+  isGroup,
   isComparison,
   isList,
   isAssignment,
@@ -117,6 +119,11 @@ export class AbctValidator {
       for (const item of expr.items) {
         this.validateExpr(item, false);
       }
+    } else if (isNegate(expr)) {
+      this.validateExpr(expr.operand, false);
+    } else if (isGroup(expr)) {
+      // Validate the expression inside the group, preserving transform position context
+      this.validateExpr(expr.expr, inTransformPosition);
     }
     // FileRef, AbcLiteral, NumberLiteral, LocationSelector, VoiceRef
     // do not require semantic validation here

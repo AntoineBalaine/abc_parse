@@ -85,25 +85,19 @@ describe("ABCT Formatter", () => {
 
   describe("Parentheses Handling", () => {
     // Note: The grammar parses parentheses but loses the information that an
-    // expression was wrapped. The formatter cannot restore optional parentheses.
-    // This is a known limitation - only semantically necessary parentheses
-    // (when precedence requires them) can be preserved through formatting.
+    // The new hand-written parser preserves parentheses via Group nodes.
+    // This fixes the parentheses preservation issue (Issue 2).
 
-    it("should format piped expression (parentheses are lost by grammar)", () => {
-      // Input "(transpose 2 | retrograde)" becomes just the pipe expression
-      // since the grammar returns the inner expression without parens info
+    it("should preserve explicit parentheses", () => {
+      // Input "(transpose 2 | retrograde)" - parentheses are now preserved
       const result = fmt("( transpose 2 | retrograde )");
-      expect(result.trim()).to.equal("transpose 2 | retrograde");
+      expect(result.trim()).to.equal("(transpose 2 | retrograde)");
     });
 
-    it("should format nested update (parentheses are lost by grammar)", () => {
-      // The update operator has higher precedence than pipe, so without
-      // explicit parentheses tracking, the structure changes
+    it("should preserve nested parentheses in update", () => {
+      // The parentheses around the pipe expression are preserved
       const result = fmt("@chords |= ( choralis 4 | drop2 )");
-      // The grammar parses this as: @chords |= (choralis 4 | drop2)
-      // which after removing parens info becomes: @chords |= (left | right)
-      // The update transform is the entire pipe expression
-      expect(result.trim()).to.equal("@chords |= choralis 4 | drop2");
+      expect(result.trim()).to.equal("@chords |= (choralis 4 | drop2)");
     });
   });
 
@@ -290,24 +284,23 @@ bass=source|@chords|roots|transpose -12
 strings+trumpet+bass`;
       const result = fmt(input);
       expect(result).to.include("source = lead_sheet.abc");
-      // Note: parentheses are lost by the grammar, so the update transform
-      // is formatted as a pipe chain without parens
-      expect(result).to.include("strings = source | @chords |= choralis 4 | drop2 | distribute [V:vln1, V:vln2, V:vla, V:vc]");
+      // Parentheses are now preserved by the new parser
+      expect(result).to.include("strings = source | @chords |= (choralis 4 | drop2 | distribute [V:vln1, V:vln2, V:vla, V:vc])");
       expect(result).to.include("trumpet = source | @V:melody | transpose 2");
       expect(result).to.include("bass = source | @chords | roots | transpose -12");
       expect(result).to.include("strings + trumpet + bass");
     });
 
     it("should format nested updates", () => {
-      // Parentheses around the nested update are lost by grammar
+      // Parentheses are preserved by the new parser
       const result = fmt("src.abc | @chords |= (@notes |= transpose 2)");
-      expect(result.trim()).to.equal("src.abc | @chords |= @notes |= transpose 2");
+      expect(result.trim()).to.equal("src.abc | @chords |= (@notes |= transpose 2)");
     });
 
     it("should format filter with comparison", () => {
-      // Parentheses are lost by grammar
+      // Parentheses are preserved by the new parser
       const result = fmt("src.abc | @notes |= (filter (duration > 1/2) | transpose 2)");
-      expect(result.trim()).to.equal("src.abc | @notes |= filter (duration > 1/2) | transpose 2");
+      expect(result.trim()).to.equal("src.abc | @notes |= (filter (duration > 1/2) | transpose 2)");
     });
   });
 

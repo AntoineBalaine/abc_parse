@@ -55,6 +55,7 @@ export type Expr =
   | Or
   | And
   | Not
+  | Negate
   | Comparison
   | Selector
   | LocationSelector
@@ -63,7 +64,9 @@ export type Expr =
   | AbcLiteral
   | FileRef
   | NumberLiteral
-  | Identifier;
+  | Identifier
+  | Group
+  | ErrorExpr;
 
 export interface Pipe {
   type: "pipe";
@@ -118,6 +121,13 @@ export interface And {
 export interface Not {
   type: "not";
   kwLoc: Loc; // Location of the 'not' keyword
+  operand: Expr;
+  loc: Loc;
+}
+
+export interface Negate {
+  type: "negate";
+  opLoc: Loc; // Location of the '-' operator
   operand: Expr;
   loc: Loc;
 }
@@ -199,6 +209,29 @@ export interface NumberLiteral {
 export interface Identifier {
   type: "identifier";
   name: string;
+  loc: Loc;
+}
+
+/**
+ * Grouped expression (parentheses)
+ * Preserves user intent for precedence grouping
+ */
+export interface Group {
+  type: "group";
+  expr: Expr;
+  openLoc: Loc; // Location of the ( token
+  closeLoc: Loc; // Location of the ) token
+  loc: Loc;
+}
+
+/**
+ * Error expression for error recovery
+ * Allows parser to continue after errors while preserving partial AST
+ */
+export interface ErrorExpr {
+  type: "error";
+  message: string;
+  partial?: Expr; // Partial AST if available
   loc: Loc;
 }
 
@@ -352,10 +385,34 @@ export function isNot(node: unknown): node is Not {
   );
 }
 
+export function isNegate(node: unknown): node is Negate {
+  return (
+    typeof node === "object" &&
+    node !== null &&
+    (node as Negate).type === "negate"
+  );
+}
+
 export function isVoiceRef(node: unknown): node is VoiceRef {
   return (
     typeof node === "object" &&
     node !== null &&
     (node as VoiceRef).type === "voice_ref"
+  );
+}
+
+export function isGroup(node: unknown): node is Group {
+  return (
+    typeof node === "object" &&
+    node !== null &&
+    (node as Group).type === "group"
+  );
+}
+
+export function isErrorExpr(node: unknown): node is ErrorExpr {
+  return (
+    typeof node === "object" &&
+    node !== null &&
+    (node as ErrorExpr).type === "error"
   );
 }

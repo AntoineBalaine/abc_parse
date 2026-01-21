@@ -6,6 +6,6 @@
   "types": "../out/abct/src/index.d.ts",
   "scripts": {
     "test": "mocha -r ts-node/register 'tests/**/*.spec.ts'",
-    "build": "peggy --format es -o src/parser.generated.js src/grammar.peggy && tsc -b"
+    "build": "tsc -b"
   }
 }

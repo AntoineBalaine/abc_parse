@@ -23,6 +23,8 @@ import {
   isOr,
   isAnd,
   isNot,
+  isNegate,
+  isGroup,
   isVoiceRef,
   Assignment,
   Pipe,
@@ -34,6 +36,8 @@ import {
   Or,
   And,
   Not,
+  Negate,
+  Group,
   Comparison,
 } from "./ast";
 
@@ -167,6 +171,12 @@ function findInExpr(expr: Expr, line: number, column: number): AstNode | null {
   if (isNot(expr)) {
     return findInNot(expr, line, column);
   }
+  if (isNegate(expr)) {
+    return findInNegate(expr, line, column);
+  }
+  if (isGroup(expr)) {
+    return findInGroup(expr, line, column);
+  }
   if (isComparison(expr)) {
     return findInComparison(expr, line, column);
   }
@@ -280,6 +290,32 @@ function findInNot(not: Not, line: number, column: number): AstNode | null {
   return not;
 }
 
+function findInNegate(neg: Negate, line: number, column: number): AstNode | null {
+  if (containsPosition(neg.opLoc, line, column)) {
+    return { type: "negate_op", loc: neg.opLoc, op: "-" } as AstNode;
+  }
+
+  const inOperand = findInExpr(neg.operand, line, column);
+  if (inOperand) return inOperand;
+
+  return neg;
+}
+
+function findInGroup(group: Group, line: number, column: number): AstNode | null {
+  if (containsPosition(group.openLoc, line, column)) {
+    return { type: "group_open", loc: group.openLoc } as AstNode;
+  }
+
+  if (containsPosition(group.closeLoc, line, column)) {
+    return { type: "group_close", loc: group.closeLoc } as AstNode;
+  }
+
+  const inExpr = findInExpr(group.expr, line, column);
+  if (inExpr) return inExpr;
+
+  return group;
+}
+
 function findInComparison(comp: Comparison, line: number, column: number): AstNode | null {
   if (containsPosition(comp.opLoc, line, column)) {
     return { type: "comparison_op", loc: comp.opLoc, op: comp.op } as AstNode;
@@ -385,6 +421,10 @@ function buildPathInExpr(expr: Expr, line: number, column: number, path: AstNode
     buildPathInExpr((expr as Or | And).right, line, column, path);
   } else if (isNot(expr)) {
     buildPathInExpr(expr.operand, line, column, path);
+  } else if (isNegate(expr)) {
+    buildPathInExpr(expr.operand, line, column, path);
+  } else if (isGroup(expr)) {
+    buildPathInExpr(expr.expr, line, column, path);
   } else if (isComparison(expr)) {
     buildPathInExpr(expr.left, line, column, path);
     buildPathInExpr(expr.right, line, column, path);

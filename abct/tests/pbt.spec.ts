@@ -3,7 +3,7 @@
 
 import { expect } from "chai";
 import * as fc from "fast-check";
-import { parse, isProgram, isPipe, isUpdate, isConcat } from "../src/parser";
+import { parse, isProgram, isPipe, isUpdate, isConcat, isGroup } from "../src/parser";
 import {
   genIdentifier,
   genNumber,
@@ -314,8 +314,9 @@ describe("ABCT Grammar Property-Based Tests", () => {
           const expr = result.value.statements[0];
           // Should be just an update (no outer pipe)
           if (!isUpdate(expr)) return false;
-          // Transform should be a pipe
-          return isPipe(expr.transform);
+          // Transform should be a Group containing a Pipe (parentheses preserved)
+          if (!isGroup(expr.transform)) return false;
+          return isPipe(expr.transform.expr);
         }),
         PBT_CONFIG
       );

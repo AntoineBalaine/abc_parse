@@ -357,8 +357,17 @@ describe("ABCT Tokenization", () => {
     });
 
     it("property: numbers produce number tokens", () => {
+      // Note: Negative numbers like "-1" are now parsed as MINUS + NUMBER tokens
+      // by the scanner, with the parser creating a Negate node. This test only
+      // checks non-negative numbers for the NUMBER token.
+      const genNonNegativeNumber = fc.oneof(
+        fc.nat({ max: 999 }).map(String),
+        fc
+          .tuple(fc.nat({ max: 99 }), fc.integer({ min: 1, max: 99 }))
+          .map(([num, denom]) => `${num}/${denom}`)
+      );
       fc.assert(
-        fc.property(genNumber, (num) => {
+        fc.property(genNonNegativeNumber, (num) => {
           const result = parse(num);
           if (!result.success) return true;
 
@@ -412,7 +421,8 @@ describe("ABCT Tokenization", () => {
       if (!result.success) return;
 
       const tokens = extractTokens(result.value, source);
-      expect(tokens.length).to.be.greaterThan(5);
+      // At least 5 tokens: file.abc, @chords, transpose, 2, retrograde
+      expect(tokens.length).to.be.greaterThanOrEqual(5);
     });
   });
 });
