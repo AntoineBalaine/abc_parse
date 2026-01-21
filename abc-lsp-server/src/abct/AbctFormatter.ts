@@ -13,6 +13,8 @@ import {
   Or,
   And,
   Not,
+  Negate,
+  Group,
   Comparison,
   Selector,
   LocationSelector,
@@ -32,6 +34,8 @@ import {
   isOr,
   isAnd,
   isNot,
+  isNegate,
+  isGroup,
   isComparison,
   isSelector,
   isLocationSelector,
@@ -238,6 +242,10 @@ export class AbctFormatter {
       this.formatAnd(expr);
     } else if (isNot(expr)) {
       this.formatNot(expr);
+    } else if (isNegate(expr)) {
+      this.formatNegate(expr);
+    } else if (isGroup(expr)) {
+      this.formatGroup(expr);
     } else if (isComparison(expr)) {
       this.formatComparison(expr);
     } else if (isSelector(expr)) {
@@ -338,6 +346,24 @@ export class AbctFormatter {
   private formatNot(not: Not): void {
     this.output.push("not ");
     this.formatExpr(not.operand);
+  }
+
+  /**
+   * Format a negate expression: -operand
+   */
+  private formatNegate(neg: Negate): void {
+    this.output.push("-");
+    this.formatExpr(neg.operand);
+  }
+
+  /**
+   * Format a grouped expression: (expr)
+   * Preserves parentheses to maintain user's explicit grouping
+   */
+  private formatGroup(group: Group): void {
+    this.output.push("(");
+    this.formatExpr(group.expr);
+    this.output.push(")");
   }
 
   /**
