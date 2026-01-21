@@ -3,7 +3,10 @@
 
 import { expect } from "chai";
 import * as fc from "fast-check";
-import { parse, isProgram, isPipe, isUpdate, isConcat, isGroup } from "../src/parser";
+import { scan } from "../src/scanner";
+import { parse } from "../src/parser/parser";
+import { AbctContext } from "../src/context";
+import { isProgram, isPipe, isUpdate, isConcat, isGroup, Program } from "../src/ast";
 import {
   genIdentifier,
   genNumber,
@@ -24,6 +27,18 @@ import {
   genLocationUpdate,
   genPipelineWithLocationUpdate,
 } from "./generators";
+
+/** Helper to parse source with a fresh context and return a result-like object */
+function parseSource(source: string): { success: true; value: Program } | { success: false; error: { message: string } } {
+  const ctx = new AbctContext();
+  const tokens = scan(source, ctx);
+  const program = parse(tokens, ctx);
+  if (ctx.errorReporter.hasErrors()) {
+    const errors = ctx.errorReporter.getErrors();
+    return { success: false, error: { message: errors[0].message } };
+  }
+  return { success: true, value: program };
+}
 
 // Configuration for property tests
 const PBT_CONFIG = { numRuns: 10000 };
@@ -57,7 +72,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
     it("property: all generated identifiers parse successfully", () => {
       fc.assert(
         fc.property(genIdentifier, (id) => {
-          const result = parse(id);
+          const result = parseSource(id);
           return result.success;
         }),
         PBT_CONFIG
@@ -67,7 +82,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
     it("property: all generated numbers parse successfully", () => {
       fc.assert(
         fc.property(genNumber, (num) => {
-          const result = parse(num);
+          const result = parseSource(num);
           return result.success;
         }),
         PBT_CONFIG
@@ -77,7 +92,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
     it("property: all generated file paths parse successfully", () => {
       fc.assert(
         fc.property(genPath, (path) => {
-          const result = parse(path);
+          const result = parseSource(path);
           return result.success;
         }),
         PBT_CONFIG
@@ -88,7 +103,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
       fc.assert(
         fc.property(genSelector, (sel) => {
           // Selectors need to be in a valid context
-          const result = parse(`file.abc | ${sel}`);
+          const result = parseSource(`file.abc | ${sel}`);
           return result.success;
         }),
         PBT_CONFIG
@@ -98,7 +113,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
     it("property: all generated ABC literals parse successfully", () => {
       fc.assert(
         fc.property(genAbcLiteral, (lit) => {
-          const result = parse(lit);
+          const result = parseSource(lit);
           return result.success;
         }),
         PBT_CONFIG
@@ -108,7 +123,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
     it("property: all generated lists parse successfully", () => {
       fc.assert(
         fc.property(genSimpleList, (list) => {
-          const result = parse(list);
+          const result = parseSource(list);
           return result.success;
         }),
         PBT_CONFIG
@@ -118,7 +133,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
     it("property: all generated file references parse successfully", () => {
       fc.assert(
         fc.property(genFileRef, (fileRef) => {
-          const result = parse(fileRef);
+          const result = parseSource(fileRef);
           return result.success;
         }),
         PBT_CONFIG
@@ -130,7 +145,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
     it("property: all generated expressions parse successfully", () => {
       fc.assert(
         fc.property(genExpr, (expr) => {
-          const result = parse(expr);
+          const result = parseSource(expr);
           if (!result.success) {
             // Log failures for debugging
             console.log(`Failed to parse: ${expr}`);
@@ -145,7 +160,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
     it("property: all generated statements parse successfully", () => {
       fc.assert(
         fc.property(genStatement, (stmt) => {
-          const result = parse(stmt);
+          const result = parseSource(stmt);
           return result.success;
         }),
         PBT_CONFIG_FAST
@@ -155,7 +170,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
     it("property: all generated programs parse successfully", () => {
       fc.assert(
         fc.property(genProgram, (program) => {
-          const result = parse(program);
+          const result = parseSource(program);
           return result.success;
         }),
         PBT_CONFIG_FAST
@@ -167,7 +182,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
     it("property: all generated transform pipelines parse successfully", () => {
       fc.assert(
         fc.property(genTransformPipeline, (pipeline) => {
-          const result = parse(pipeline);
+          const result = parseSource(pipeline);
           return result.success;
         }),
         PBT_CONFIG
@@ -177,7 +192,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
     it("property: all generated file combinations parse successfully", () => {
       fc.assert(
         fc.property(genFileCombination, (combo) => {
-          const result = parse(combo);
+          const result = parseSource(combo);
           return result.success;
         }),
         PBT_CONFIG
@@ -187,7 +202,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
     it("property: all generated filter expressions parse successfully", () => {
       fc.assert(
         fc.property(genFilterExpr, (filter) => {
-          const result = parse(filter);
+          const result = parseSource(filter);
           return result.success;
         }),
         PBT_CONFIG
@@ -197,7 +212,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
     it("property: all generated voice distributions parse successfully", () => {
       fc.assert(
         fc.property(genVoiceDistribution, (dist) => {
-          const result = parse(dist);
+          const result = parseSource(dist);
           return result.success;
         }),
         PBT_CONFIG
@@ -207,7 +222,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
     it("property: all generated location selectors parse successfully", () => {
       fc.assert(
         fc.property(genLocationSelector, (loc) => {
-          const result = parse(loc);
+          const result = parseSource(loc);
           return result.success;
         }),
         PBT_CONFIG
@@ -217,7 +232,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
     it("property: all generated location updates parse successfully", () => {
       fc.assert(
         fc.property(genLocationUpdate, (update) => {
-          const result = parse(update);
+          const result = parseSource(update);
           return result.success;
         }),
         PBT_CONFIG
@@ -227,7 +242,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
     it("property: all generated pipelines with location updates parse successfully", () => {
       fc.assert(
         fc.property(genPipelineWithLocationUpdate, (pipeline) => {
-          const result = parse(pipeline);
+          const result = parseSource(pipeline);
           return result.success;
         }),
         PBT_CONFIG
@@ -239,7 +254,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
     it("property: parsed programs always have 'program' type", () => {
       fc.assert(
         fc.property(genProgram, (input) => {
-          const result = parse(input);
+          const result = parseSource(input);
           if (!result.success) return true; // Skip failed parses
           return isProgram(result.value);
         }),
@@ -261,7 +276,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
           fc.array(genSafeAtom, { minLength: 1, maxLength: 5 }),
           (atoms) => {
             const input = atoms.join("\n");
-            const result = parse(input);
+            const result = parseSource(input);
             if (!result.success) return true;
             // Each atom should become one statement
             return result.value.statements.length === atoms.length;
@@ -277,7 +292,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
       fc.assert(
         fc.property(genPath, genPath, genIdentifier, (a, b, c) => {
           const input = `${a} + ${b} | ${c}`;
-          const result = parse(input);
+          const result = parseSource(input);
           if (!result.success) return true;
           const expr = result.value.statements[0];
           // Outer should be pipe
@@ -293,7 +308,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
       fc.assert(
         fc.property(genSelector, genIdentifier, genIdentifier, (sel, f, g) => {
           const input = `${sel} |= ${f} | ${g}`;
-          const result = parse(input);
+          const result = parseSource(input);
           if (!result.success) return true;
           const expr = result.value.statements[0];
           // Outer should be pipe: (sel |= f) | g
@@ -309,7 +324,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
       fc.assert(
         fc.property(genSelector, genIdentifier, genIdentifier, (sel, f, g) => {
           const input = `${sel} |= (${f} | ${g})`;
-          const result = parse(input);
+          const result = parseSource(input);
           if (!result.success) return true;
           const expr = result.value.statements[0];
           // Should be just an update (no outer pipe)
@@ -332,8 +347,8 @@ describe("ABCT Grammar Property-Based Tests", () => {
           // Extra whitespace
           const extra = `  ${a}   |   ${b}  `;
 
-          const resultMinimal = parse(minimal);
-          const resultExtra = parse(extra);
+          const resultMinimal = parseSource(minimal);
+          const resultExtra = parseSource(extra);
 
           if (!resultMinimal.success || !resultExtra.success) return true;
 
@@ -356,7 +371,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
       fc.assert(
         fc.property(genSimpleAtom, genSafeAtom, (a, b) => {
           const input = `${a}\n${b}`;
-          const result = parse(input);
+          const result = parseSource(input);
           if (!result.success) return true;
           // Should have 2 statements
           return result.value.statements.length === 2;
@@ -375,8 +390,8 @@ describe("ABCT Grammar Property-Based Tests", () => {
           const withComment = `${atom} # ${safeComment}`;
           const withoutComment = atom;
 
-          const resultWith = parse(withComment);
-          const resultWithout = parse(withoutComment);
+          const resultWith = parseSource(withComment);
+          const resultWithout = parseSource(withoutComment);
 
           if (!resultWith.success || !resultWithout.success) return true;
 
@@ -402,7 +417,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
             const open = "(".repeat(depth);
             const close = ")".repeat(depth);
             const input = `${open}${id}${close}`;
-            const result = parse(input);
+            const result = parseSource(input);
             return result.success;
           }
         ),
@@ -416,7 +431,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
           fc.array(genIdentifier, { minLength: 2, maxLength: 10 }),
           (ids) => {
             const input = ids.join(" | ");
-            const result = parse(input);
+            const result = parseSource(input);
             return result.success;
           }
         ),
@@ -428,7 +443,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
       fc.assert(
         fc.property(fc.array(genPath, { minLength: 2, maxLength: 10 }), (paths) => {
           const input = paths.join(" + ");
-          const result = parse(input);
+          const result = parseSource(input);
           return result.success;
         }),
         PBT_CONFIG
@@ -445,7 +460,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
           genIdentifier,
           (file1, file2, sel, fn, arg) => {
             const input = `${file1} + ${file2} | ${sel} |= ${fn} ${arg}`;
-            const result = parse(input);
+            const result = parseSource(input);
             return result.success;
           }
         ),
@@ -469,7 +484,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
           fc.array(genSafeAtom, { minLength: 10, maxLength: 50 }),
           (atoms) => {
             const input = atoms.join("\n");
-            const result = parse(input);
+            const result = parseSource(input);
             if (!result.success) return true;
             return result.value.statements.length === atoms.length;
           }
@@ -487,7 +502,7 @@ describe("ABCT Grammar Property-Based Tests", () => {
           genSimpleList,
           (file, sel, fn, list) => {
             const input = `${file} | ${sel} |= (${fn} ${list} | debug)`;
-            const result = parse(input);
+            const result = parseSource(input);
             return result.success;
           }
         ),

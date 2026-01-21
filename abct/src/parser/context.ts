@@ -6,28 +6,20 @@
 
 import { Token, AbctTT } from "../scanner";
 import { Loc, Pos } from "../ast";
+import { AbctContext } from "../context";
 
 /**
- * Parse error information
- */
-export interface ParseError {
-  message: string;
-  token: Token;
-  loc: Loc;
-}
-
-/**
- * Parser context that tracks position in token stream and accumulates errors
+ * Parser context that tracks position in token stream
  */
 export class AbctParseCtx {
   public tokens: Token[];
   public current: number;
-  public errors: ParseError[];
+  public abctContext: AbctContext;
 
-  constructor(tokens: Token[]) {
+  constructor(tokens: Token[], abctContext: AbctContext) {
     this.tokens = tokens;
     this.current = 0;
-    this.errors = [];
+    this.abctContext = abctContext;
   }
 
   /**
@@ -35,22 +27,14 @@ export class AbctParseCtx {
    */
   error(message: string): void {
     const token = this.tokens[this.current];
-    this.errors.push({
-      message,
-      token,
-      loc: tokenToLoc(token),
-    });
+    this.abctContext.errorReporter.parserError(message, token);
   }
 
   /**
    * Report a parse error at a specific token
    */
   errorAt(token: Token, message: string): void {
-    this.errors.push({
-      message,
-      token,
-      loc: tokenToLoc(token),
-    });
+    this.abctContext.errorReporter.parserError(message, token);
   }
 }
 
@@ -92,6 +76,6 @@ export function spanLoc(start: Token, end: Token): Loc {
 /**
  * Create a new parser context for the given tokens
  */
-export function createParseCtx(tokens: Token[]): AbctParseCtx {
-  return new AbctParseCtx(tokens);
+export function createParseCtx(tokens: Token[], abctContext: AbctContext): AbctParseCtx {
+  return new AbctParseCtx(tokens, abctContext);
 }

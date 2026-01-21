@@ -2,12 +2,27 @@
 // Parser must reject malformed input
 
 import { expect } from "chai";
-import { parse } from "../src/parser";
+import { scan } from "../src/scanner";
+import { parse } from "../src/parser/parser";
+import { AbctContext } from "../src/context";
+import { Program } from "../src/ast";
+
+/** Helper to parse source with a fresh context and return a result-like object */
+function parseSource(source: string): { success: true; value: Program } | { success: false; error: { message: string } } {
+  const ctx = new AbctContext();
+  const tokens = scan(source, ctx);
+  const program = parse(tokens, ctx);
+  if (ctx.errorReporter.hasErrors()) {
+    const errors = ctx.errorReporter.getErrors();
+    return { success: false, error: { message: errors[0].message } };
+  }
+  return { success: true, value: program };
+}
 
 describe("ABCT Grammar Invalid Inputs", () => {
   // Helper to assert parse failure
   function assertFails(input: string, description?: string) {
-    const result = parse(input);
+    const result = parseSource(input);
     if (result.success) {
       throw new Error(
         `Expected parse to fail${description ? ` (${description})` : ""}, but it succeeded.\nInput: ${input}\nAST: ${JSON.stringify(result.value, null, 2)}`
@@ -94,7 +109,7 @@ describe("ABCT Grammar Invalid Inputs", () => {
   describe("Invalid Selectors", () => {
     it("should accept selector with space: @ chords (whitespace allowed)", () => {
       // The new parser allows whitespace between @ and the identifier
-      const result = parse("@ chords");
+      const result = parseSource("@ chords");
       expect(result.success).to.be.true;
     });
 
@@ -113,13 +128,13 @@ describe("ABCT Grammar Invalid Inputs", () => {
   describe("Invalid File References", () => {
     it("should parse bare word as identifier, not file_ref", () => {
       // 'file' without extension is a valid identifier
-      const result = parse("file");
+      const result = parseSource("file");
       expect(result.success).to.be.true;
     });
 
     it("should parse location selector without file: :10:5", () => {
       // Location selectors are now valid as standalone atoms for piped input
-      const result = parse(":10:5");
+      const result = parseSource(":10:5");
       expect(result.success).to.be.true;
     });
   });
@@ -136,14 +151,14 @@ describe("ABCT Grammar Invalid Inputs", () => {
     it("should parse location with trailing colon: :10: (trailing content ignored)", () => {
       // The error-recovering parser parses :10 and leaves the trailing colon unconsumed
       // This is acceptable behavior for an error-recovering parser
-      const result = parse(":10:");
+      const result = parseSource(":10:");
       expect(result.success).to.be.true;
     });
 
     it("should parse location with incomplete range: :10:5- (trailing content ignored)", () => {
       // The error-recovering parser parses :10:5 and leaves the trailing minus unconsumed
       // This is acceptable behavior for an error-recovering parser
-      const result = parse(":10:5-");
+      const result = parseSource(":10:5-");
       expect(result.success).to.be.true;
     });
 
@@ -165,7 +180,7 @@ describe("ABCT Grammar Invalid Inputs", () => {
     it("should parse double negative as double negation: --5", () => {
       // Double negation is mathematically valid: --5 = -(-5) = 5
       // The parser creates Negate(Negate(5)) which is correct
-      const result = parse("transpose --5");
+      const result = parseSource("transpose --5");
       expect(result.success).to.be.true;
     });
   });
@@ -177,7 +192,7 @@ describe("ABCT Grammar Invalid Inputs", () => {
 
     it("should accept negative number in selector: @M:-8", () => {
       // -8 is a valid negative number, so @M:-8 is valid (selects measure -8)
-      const result = parse("@M:-8");
+      const result = parseSource("@M:-8");
       expect(result.success).to.be.true;
     });
   });
@@ -233,7 +248,7 @@ describe("ABCT Grammar Invalid Inputs", () => {
   describe("Invalid Comments", () => {
     // Comments should work, so test edge cases
     it("should handle comment-only input as empty program", () => {
-      const result = parse("# just a comment");
+      const result = parseSource("# just a comment");
       expect(result.success).to.be.true;
       if (result.success) {
         expect(result.value.statements).to.have.length(0);
@@ -257,7 +272,7 @@ describe("ABCT Grammar Invalid Inputs", () => {
 
   describe("Whitespace Edge Cases", () => {
     it("should handle empty input", () => {
-      const result = parse("");
+      const result = parseSource("");
       expect(result.success).to.be.true;
       if (result.success) {
         expect(result.value.statements).to.have.length(0);
@@ -265,7 +280,7 @@ describe("ABCT Grammar Invalid Inputs", () => {
     });
 
     it("should handle whitespace-only input", () => {
-      const result = parse("   \n\t  ");
+      const result = parseSource("   \n\t  ");
       expect(result.success).to.be.true;
       if (result.success) {
         expect(result.value.statements).to.have.length(0);

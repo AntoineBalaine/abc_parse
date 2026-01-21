@@ -5,16 +5,7 @@
  */
 
 import { AbctTT, Token } from "./types";
-
-/**
- * Error information for scanner errors
- */
-export interface ScannerError {
-  message: string;
-  line: number;
-  column: number;
-  offset: number;
-}
+import { AbctContext } from "../context";
 
 /**
  * Scanner context that tracks position and accumulates tokens
@@ -30,16 +21,16 @@ export class AbctCtx {
   public current: number; // current position
   public line: number; // 0-based line number
   public lineStart: number; // offset of current line start (for column calculation)
-  public errors: ScannerError[];
+  public abctContext: AbctContext;
 
-  constructor(source: string) {
+  constructor(source: string, abctContext: AbctContext) {
     this.source = source;
     this.tokens = [];
     this.start = 0;
     this.current = 0;
     this.line = 0;
     this.lineStart = 0;
-    this.errors = [];
+    this.abctContext = abctContext;
   }
 
   /**
@@ -74,12 +65,13 @@ export class AbctCtx {
    * @param message - Error message
    */
   report(message: string): void {
-    this.errors.push({
+    // Convert to 1-based line/column for the error reporter
+    this.abctContext.errorReporter.scannerError(
       message,
-      line: this.line,
-      column: this.current - this.lineStart,
-      offset: this.current,
-    });
+      this.line + 1,
+      this.current - this.lineStart + 1,
+      this.current
+    );
   }
 
   /**
@@ -93,6 +85,6 @@ export class AbctCtx {
 /**
  * Create a new scanner context for the given source
  */
-export function createCtx(source: string): AbctCtx {
-  return new AbctCtx(source);
+export function createCtx(source: string, abctContext: AbctContext): AbctCtx {
+  return new AbctCtx(source, abctContext);
 }

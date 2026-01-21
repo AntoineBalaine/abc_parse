@@ -3,7 +3,9 @@
 
 import { expect } from "chai";
 import { DiagnosticSeverity } from "vscode-languageserver";
-import { parse } from "../src/parser";
+import { scan } from "../src/scanner";
+import { parse } from "../src/parser/parser";
+import { AbctContext } from "../src/context";
 import { AbctValidator } from "../../abc-lsp-server/src/abct/AbctValidator";
 
 describe("ABCT Validator", () => {
@@ -13,11 +15,14 @@ describe("ABCT Validator", () => {
    * Helper to parse and validate input, returning diagnostics
    */
   function validateInput(input: string) {
-    const result = parse(input);
-    if (!result.success) {
-      throw new Error(`Parse failed: ${result.error.message}`);
+    const ctx = new AbctContext();
+    const tokens = scan(input, ctx);
+    const program = parse(tokens, ctx);
+    if (ctx.errorReporter.hasErrors()) {
+      const errors = ctx.errorReporter.getErrors();
+      throw new Error(`Parse failed: ${errors[0].message}`);
     }
-    return validator.validateProgram(result.value);
+    return validator.validateProgram(program);
   }
 
   describe("Unknown Transforms", () => {

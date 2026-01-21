@@ -3,10 +3,10 @@
  */
 
 // Main scanner function
-export { scan, scanProgram, ScanResult } from "./scanner";
+export { scan, scanProgram } from "./scanner";
 
 // Context for advanced usage
-export { AbctCtx, createCtx, ScannerError } from "./context";
+export { AbctCtx, createCtx } from "./context";
 
 // Token types and Token class
 export { AbctTT, Token, SourceLocation } from "./types";

@@ -2,7 +2,9 @@
 // All examples from plans/9.abct-language-spec.md must parse successfully
 
 import { expect } from "chai";
-import { parse, parseOrThrow } from "../src/parser";
+import { scan } from "../src/scanner";
+import { parse } from "../src/parser/parser";
+import { AbctContext } from "../src/context";
 import {
   isPipe,
   isUpdate,
@@ -17,18 +19,22 @@ import {
   isAbcLiteral,
   isAssignment,
   isGroup,
+  Program,
 } from "../src/ast";
 
 describe("ABCT Grammar Examples", () => {
   // Helper to assert successful parse
-  function assertParses(input: string, description?: string) {
-    const result = parse(input);
-    if (!result.success) {
+  function assertParses(input: string, description?: string): Program {
+    const ctx = new AbctContext();
+    const tokens = scan(input, ctx);
+    const program = parse(tokens, ctx);
+    if (ctx.errorReporter.hasErrors()) {
+      const errors = ctx.errorReporter.getErrors();
       throw new Error(
-        `Failed to parse${description ? ` (${description})` : ""}: ${result.error.message}\nInput: ${input}`
+        `Failed to parse${description ? ` (${description})` : ""}: ${errors[0].message}\nInput: ${input}`
       );
     }
-    return result.value;
+    return program;
   }
 
   describe("Basic Extraction vs Update", () => {

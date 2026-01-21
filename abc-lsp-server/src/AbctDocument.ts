@@ -1,8 +1,9 @@
 import { Diagnostic, DiagnosticSeverity, Range, Position } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { parseTokens } from "../../abct/src/parser/parser";
+import { parse } from "../../abct/src/parser/parser";
 import { Program } from "../../abct/src/ast";
 import { scan, Token } from "../../abct/src/scanner";
+import { AbctContext } from "../../abct/src/context";
 import { createFileResolver } from "./fileResolver";
 import { evaluateAbct, EvalOptions, EvalResult } from "./abctEvaluator";
 import { AbctValidator } from "./abct/AbctValidator";
@@ -18,6 +19,7 @@ export class AbctDocument {
   public diagnostics: Diagnostic[] = [];
   public tokens: Token[] = [];
   public AST: Program | null = null;
+  public ctx = new AbctContext();
 
   constructor(public document: TextDocument) {}
 
@@ -31,46 +33,32 @@ export class AbctDocument {
   analyze(): Token[] | void {
     const source = this.document.getText();
 
+    // Reset state before analysis
+    this.ctx.errorReporter.resetErrors();
     this.diagnostics = [];
     this.tokens = [];
     this.AST = null;
 
-    // Step 1: Scan - get tokens and scanner errors
-    const { tokens, errors: scanErrors } = scan(source);
-    this.tokens = tokens; // Store scanner tokens for highlighting
+    // Scan and parse with shared context
+    this.tokens = scan(source, this.ctx);
+    this.AST = parse(this.tokens, this.ctx);
 
-    // Step 2: Convert scanner errors to diagnostics
-    for (const e of scanErrors) {
-      this.diagnostics.push({
-        severity: DiagnosticSeverity.Error,
-        range: Range.create(
-          Position.create(e.line - 1, e.column - 1),
-          Position.create(e.line - 1, e.column)
-        ),
-        message: e.message,
-        source: "abct",
-      });
+    // Convert scanner/parser errors to diagnostics
+    for (const e of this.ctx.errorReporter.getErrors()) {
+      if (e.loc) {
+        this.diagnostics.push({
+          severity: DiagnosticSeverity.Error,
+          range: Range.create(
+            Position.create(e.loc.start.line - 1, e.loc.start.column - 1),
+            Position.create(e.loc.end.line - 1, e.loc.end.column - 1)
+          ),
+          message: e.message,
+          source: "abct",
+        });
+      }
     }
 
-    // Step 3: Parse - use parseTokens() to parse the token stream
-    const result = parseTokens(tokens);
-
-    // Step 4: Convert parse errors to diagnostics
-    for (const e of result.errors) {
-      this.diagnostics.push({
-        severity: DiagnosticSeverity.Error,
-        range: Range.create(
-          Position.create(e.loc.start.line - 1, e.loc.start.column - 1),
-          Position.create(e.loc.end.line - 1, e.loc.end.column - 1)
-        ),
-        message: e.message,
-        source: "abct",
-      });
-    }
-
-    this.AST = result.program;
-
-    // Step 5: Run semantic validation to detect unknown transforms, selectors, and type errors
+    // Run semantic validation (returns Diagnostic[] directly)
     if (this.AST) {
       const validator = new AbctValidator();
       const semanticDiagnostics = validator.validateProgram(this.AST);

@@ -7,7 +7,8 @@
 
 import { expect } from "chai";
 import * as fc from "fast-check";
-import { scan, AbctTT } from "../../src/scanner";
+import { scan, AbctTT, Token } from "../../src/scanner";
+import { AbctContext } from "../../src/context";
 import {
   genIdentifier,
   genKeyword,
@@ -21,14 +22,21 @@ import {
   genAbcFence,
 } from "./generators";
 
+/** Helper to scan source with a fresh context */
+function scanSource(source: string): { tokens: Token[]; ctx: AbctContext } {
+  const ctx = new AbctContext();
+  const tokens = scan(source, ctx);
+  return { tokens, ctx };
+}
+
 describe("Comprehensive Scanner Round-Trip Tests", () => {
   /**
    * Helper to extract token lexemes (excluding EOF) and join them
    */
   function reconstructSource(source: string): string | null {
-    const result = scan(source);
-    if (result.errors.length > 0) return null;
-    return result.tokens
+    const { tokens, ctx } = scanSource(source);
+    if (ctx.errorReporter.hasErrors()) return null;
+    return tokens
       .filter((t) => t.type !== AbctTT.EOF)
       .map((t) => t.lexeme)
       .join("");
@@ -50,8 +58,8 @@ describe("Comprehensive Scanner Round-Trip Tests", () => {
 
     testCases.forEach(({ input, expected }) => {
       it(`should scan "${input}" as ${expected.join(" + ")}`, () => {
-        const result = scan(input);
-        const lexemes = result.tokens
+        const { tokens, ctx } = scanSource(input);
+        const lexemes = tokens
           .filter((t) => t.type !== AbctTT.EOF)
           .map((t) => t.lexeme);
         expect(lexemes).to.deep.equal(expected);
@@ -200,9 +208,9 @@ describe("Comprehensive Scanner Round-Trip Tests", () => {
     it("property: all token types round-trip correctly", () => {
       fc.assert(
         fc.property(genTokenSequence, (source) => {
-          const result = scan(source);
-          if (result.errors.length > 0) return true; // Skip invalid inputs
-          const tokensWithoutEof = result.tokens.filter(
+          const { tokens, ctx } = scanSource(source);
+          if (ctx.errorReporter.getErrors().length > 0) return true; // Skip invalid inputs
+          const tokensWithoutEof = tokens.filter(
             (t) => t.type !== AbctTT.EOF
           );
           const reconstructed = tokensWithoutEof.map((t) => t.lexeme).join("");
@@ -229,9 +237,9 @@ describe("Comprehensive Scanner Round-Trip Tests", () => {
 
       fc.assert(
         fc.property(genMixed, (source) => {
-          const result = scan(source);
-          if (result.errors.length > 0) return true;
-          const tokensWithoutEof = result.tokens.filter(
+          const { tokens, ctx } = scanSource(source);
+          if (ctx.errorReporter.getErrors().length > 0) return true;
+          const tokensWithoutEof = tokens.filter(
             (t) => t.type !== AbctTT.EOF
           );
           const reconstructed = tokensWithoutEof.map((t) => t.lexeme).join("");
@@ -272,10 +280,10 @@ describe("Comprehensive Scanner Round-Trip Tests", () => {
 
   describe("edge cases", () => {
     it("should handle empty input", () => {
-      const result = scan("");
-      expect(result.errors).to.have.length(0);
-      expect(result.tokens).to.have.length(1); // Just EOF
-      expect(result.tokens[0].type).to.equal(AbctTT.EOF);
+      const { tokens, ctx } = scanSource("");
+      expect(ctx.errorReporter.getErrors()).to.have.length(0);
+      expect(tokens).to.have.length(1); // Just EOF
+      expect(tokens[0].type).to.equal(AbctTT.EOF);
     });
 
     it("should handle single character tokens", () => {
@@ -298,10 +306,10 @@ describe("Comprehensive Scanner Round-Trip Tests", () => {
       // Words that start with reserved words but aren't reserved
       const inputs = ["andromeda", "orchid", "nothing", "andre", "order"];
       for (const input of inputs) {
-        const result = scan(input);
-        expect(result.errors).to.have.length(0);
-        expect(result.tokens[0].type).to.equal(AbctTT.IDENTIFIER);
-        expect(result.tokens[0].lexeme).to.equal(input);
+        const { tokens, ctx } = scanSource(input);
+        expect(ctx.errorReporter.getErrors()).to.have.length(0);
+        expect(tokens[0].type).to.equal(AbctTT.IDENTIFIER);
+        expect(tokens[0].lexeme).to.equal(input);
       }
     });
 
@@ -312,15 +320,15 @@ describe("Comprehensive Scanner Round-Trip Tests", () => {
         { input: "not", type: AbctTT.NOT },
       ];
       for (const { input, type } of reserved) {
-        const result = scan(input);
-        expect(result.tokens[0].type).to.equal(type);
+        const { tokens, ctx } = scanSource(input);
+        expect(tokens[0].type).to.equal(type);
       }
     });
 
     it("should handle maximal munch for operators", () => {
       // |= should be one token, not | and =
-      const result = scan("|=");
-      const nonEof = result.tokens.filter((t) => t.type !== AbctTT.EOF);
+      const { tokens, ctx } = scanSource("|=");
+      const nonEof = tokens.filter((t) => t.type !== AbctTT.EOF);
       expect(nonEof).to.have.length(1);
       expect(nonEof[0].type).to.equal(AbctTT.PIPE_EQ);
       expect(nonEof[0].lexeme).to.equal("|=");
@@ -328,8 +336,8 @@ describe("Comprehensive Scanner Round-Trip Tests", () => {
 
     it("should handle fractions vs division ambiguity", () => {
       // 1/2 should be scanned as one NUMBER token (fraction)
-      const result = scan("1/2");
-      const nonEof = result.tokens.filter((t) => t.type !== AbctTT.EOF);
+      const { tokens, ctx } = scanSource("1/2");
+      const nonEof = tokens.filter((t) => t.type !== AbctTT.EOF);
       expect(nonEof).to.have.length(1);
       expect(nonEof[0].type).to.equal(AbctTT.NUMBER);
       expect(nonEof[0].lexeme).to.equal("1/2");
