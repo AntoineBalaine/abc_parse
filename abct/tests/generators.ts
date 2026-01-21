@@ -196,11 +196,14 @@ export const genAbcContent: fc.Arbitrary<string> = fc
   .filter((s) => !s.includes("```")); // Avoid triple backticks
 
 /**
- * Generate a complete ABC literal: ```abc\ncontent\n```
+ * Generate a complete ABC literal: ```\ncontent\n``` or ```abc\ncontent\n```
+ * The 'abc' language specifier is optional.
  */
-export const genAbcLiteral: fc.Arbitrary<string> = genAbcContent.map(
-  (content) => "```abc\n" + content + "\n```"
-);
+export const genAbcLiteral: fc.Arbitrary<string> = fc
+  .tuple(genAbcContent, fc.boolean())
+  .map(([content, withAbc]) =>
+    (withAbc ? "```abc" : "```") + "\n" + content + "\n```"
+  );
 
 // ============================================================================
 // List Generator

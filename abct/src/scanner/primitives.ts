@@ -105,9 +105,9 @@ export function desanitizeAbcContent(sanitized: string): string {
   return sanitized.replace(/\\`\\`\\`/g, "```");
 }
 
-// Pattern for ABC fence opening: ```abc optionally followed by location
-// Must be at line start (possibly with leading whitespace)
-const pAbcFenceOpen = /^[ \t]*```abc(?: :(\d+)(?::(\d+))?(?:-(\d+)(?::(\d+))?)?)?[ \t]*$/;
+// Pattern for ABC fence opening: ``` or ```abc optionally followed by location
+// The 'abc' language specifier is optional. Must be at line start (possibly with leading whitespace).
+const pAbcFenceOpen = /^[ \t]*```(?:abc)?(?: :(\d+)(?::(\d+))?(?:-(\d+)(?::(\d+))?)?)?[ \t]*$/;
 
 // Pattern for ABC fence closing: ``` at line start
 const pAbcFenceClose = /^[ \t]*```[ \t]*$/;
