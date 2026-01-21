@@ -263,6 +263,26 @@ describe("ABCT Scanner Primitives", () => {
       expect(ctx.tokens[0].lexeme).to.equal("```abc :10:5-12:20\n"); // Includes trailing newline
     });
 
+    it("should scan ABC fence without language specifier", () => {
+      const ctx = createCtx("```\nCDEF\n```");
+      const result = abcFence(ctx);
+      expect(result).to.be.true;
+      expect(ctx.tokens).to.have.length(3);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.ABC_FENCE_OPEN);
+      expect(ctx.tokens[0].lexeme).to.equal("```\n");
+      expect(ctx.tokens[1].type).to.equal(AbctTT.ABC_CONTENT);
+      expect(ctx.tokens[1].lexeme).to.equal("CDEF\n");
+      expect(ctx.tokens[2].type).to.equal(AbctTT.ABC_FENCE_CLOSE);
+    });
+
+    it("should scan ABC fence without language specifier but with location", () => {
+      const ctx = createCtx("``` :10:5\nCDEF\n```");
+      const result = abcFence(ctx);
+      expect(result).to.be.true;
+      expect(ctx.tokens[0].type).to.equal(AbctTT.ABC_FENCE_OPEN);
+      expect(ctx.tokens[0].lexeme).to.equal("``` :10:5\n");
+    });
+
     it("should scan empty ABC fence", () => {
       const ctx = createCtx("```abc\n```");
       const result = abcFence(ctx);

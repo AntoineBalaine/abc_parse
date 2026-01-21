@@ -64,14 +64,15 @@ export function parseNumberLiteral(ctx: AbctParseCtx): NumberLiteral {
 
 /**
  * Parse location from ABC fence open lexeme
- * Format: ```abc :line or :line:col or :line:col-endCol or :line:col-endLine:endCol
+ * Format: ``` :line or ```abc :line:col or :line:col-endCol or :line:col-endLine:endCol
+ * The 'abc' language specifier is optional.
  */
 function parseLocationFromFence(lexeme: string): Location | undefined {
-  // Pattern: ```abc :line:col-endLine:endCol (all parts after :line are optional)
+  // Pattern: ```(?:abc)? :line:col-endLine:endCol (all parts after :line are optional)
   // Note: The range part (-endCol or -endLine:endCol) is nested inside the col part,
   // so a range requires a column to be specified first.
   const match = lexeme.match(
-    /^[ \t]*```abc(?: :(\d+)(?::(\d+)(?:-(\d+)(?::(\d+))?)?)?)?/
+    /^[ \t]*```(?:abc)?(?: :(\d+)(?::(\d+)(?:-(\d+)(?::(\d+))?)?)?)?/
   );
   if (!match || !match[1]) {
     return undefined; // No location specified

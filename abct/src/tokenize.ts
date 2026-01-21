@@ -24,6 +24,7 @@ import {
   isNumberLiteral,
   isIdentifier,
 } from "./ast";
+import { formatLocation } from "./utils/formatLocation";
 
 /**
  * Token types for semantic highlighting
@@ -290,7 +291,7 @@ function extractExprTokens(expr: Expr, tokens: AbctToken[]): void {
     if (expr.locationLoc) {
       tokens.push({
         type: AbctTokenType.NUMBER,
-        text: formatFileLocation(expr.location!),
+        text: formatLocation(expr.location!),
         line: expr.locationLoc.start.line,
         column: expr.locationLoc.start.column,
         length: expr.locationLoc.end.offset - expr.locationLoc.start.offset,
@@ -339,37 +340,4 @@ function extractExprTokens(expr: Expr, tokens: AbctToken[]): void {
       length: expr.loc.end.offset - expr.loc.start.offset,
     });
   }
-}
-
-/**
- * Format a location selector as a string
- */
-function formatLocation(expr: {
-  line: number;
-  col?: number;
-  end?: { type: "singleline"; endCol: number } | { type: "multiline"; endLine: number; endCol: number };
-}): string {
-  let result = `:${expr.line}`;
-  if (expr.col !== undefined) {
-    result += `:${expr.col}`;
-  }
-  if (expr.end) {
-    if (expr.end.type === "singleline") {
-      result += `-${expr.end.endCol}`;
-    } else {
-      result += `-${expr.end.endLine}:${expr.end.endCol}`;
-    }
-  }
-  return result;
-}
-
-/**
- * Format a file location as a string
- */
-function formatFileLocation(loc: {
-  line: number;
-  col?: number;
-  end?: { type: "singleline"; endCol: number } | { type: "multiline"; endLine: number; endCol: number };
-}): string {
-  return formatLocation(loc);
 }

@@ -46,6 +46,7 @@ import {
   isNumberLiteral,
   isIdentifier,
 } from "../../../abct/src/ast";
+import { formatLocation } from "../../../abct/src/utils/formatLocation";
 
 /**
  * Comment information extracted from source code.
@@ -419,26 +420,7 @@ export class AbctFormatter {
     // but the TypeScript interface says line, col, end directly.
     // We access via 'as any' to work with the actual runtime structure.
     const data = (locSel as any).value ?? locSel;
-    const line = data.line;
-    const col = data.col;
-    const end = data.end;
-
-    this.output.push(":");
-    this.output.push(String(line));
-    if (col !== undefined) {
-      this.output.push(":");
-      this.output.push(String(col));
-    }
-    if (end) {
-      this.output.push("-");
-      if (end.type === "singleline") {
-        this.output.push(String(end.endCol));
-      } else {
-        this.output.push(String(end.endLine));
-        this.output.push(":");
-        this.output.push(String(end.endCol));
-      }
-    }
+    this.output.push(formatLocation(data));
   }
 
   /**
@@ -471,24 +453,10 @@ export class AbctFormatter {
    */
   private formatAbcLiteral(lit: AbcLiteral): void {
     this.output.push("```abc");
-    // Output optional location
+    // Output optional location (formatLocation includes the leading colon)
     if (lit.location) {
-      this.output.push(" :");
-      this.output.push(String(lit.location.line));
-      if (lit.location.col !== undefined) {
-        this.output.push(":");
-        this.output.push(String(lit.location.col));
-        if (lit.location.end) {
-          this.output.push("-");
-          if (lit.location.end.type === "singleline") {
-            this.output.push(String(lit.location.end.endCol));
-          } else {
-            this.output.push(String(lit.location.end.endLine));
-            this.output.push(":");
-            this.output.push(String(lit.location.end.endCol));
-          }
-        }
-      }
+      this.output.push(" ");
+      this.output.push(formatLocation(lit.location));
     }
     this.output.push("\n");
     // Content includes trailing newline from scanner for round-trip
@@ -505,22 +473,8 @@ export class AbctFormatter {
     this.output.push(ref.path);
 
     if (ref.location) {
-      this.output.push(":");
-      this.output.push(String(ref.location.line));
-      if (ref.location.col !== undefined) {
-        this.output.push(":");
-        this.output.push(String(ref.location.col));
-      }
-      if (ref.location.end) {
-        this.output.push("-");
-        if (ref.location.end.type === "singleline") {
-          this.output.push(String(ref.location.end.endCol));
-        } else {
-          this.output.push(String(ref.location.end.endLine));
-          this.output.push(":");
-          this.output.push(String(ref.location.end.endCol));
-        }
-      }
+      // formatLocation returns :line, :line:col, etc.
+      this.output.push(formatLocation(ref.location));
     }
 
     if (ref.selector) {

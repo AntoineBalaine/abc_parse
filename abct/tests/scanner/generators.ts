@@ -90,23 +90,30 @@ export const genAbcContent: fc.Arbitrary<string> = fc
 
 /**
  * Generate an ABC fence literal (triple-backtick syntax)
- * Format: ```abc\ncontent\n```
+ * Format: ```\ncontent\n``` or ```abc\ncontent\n```
+ * The 'abc' language specifier is optional.
  */
-export const genAbcFence: fc.Arbitrary<string> = genAbcContent.map(
-  (content) => "```abc\n" + content + "\n```"
-);
+export const genAbcFence: fc.Arbitrary<string> = fc
+  .tuple(genAbcContent, fc.boolean())
+  .map(([content, withAbc]) =>
+    (withAbc ? "```abc" : "```") + "\n" + content + "\n```"
+  );
 
 /**
  * Generate an ABC fence with location
- * Format: ```abc :line:col\ncontent\n```
+ * Format: ``` :line:col\ncontent\n``` or ```abc :line:col\ncontent\n```
+ * The 'abc' language specifier is optional.
  */
 export const genAbcFenceWithLocation: fc.Arbitrary<string> = fc
   .tuple(
     genAbcContent,
     fc.integer({ min: 1, max: 100 }),
-    fc.integer({ min: 1, max: 100 })
+    fc.integer({ min: 1, max: 100 }),
+    fc.boolean()
   )
-  .map(([content, line, col]) => "```abc :" + line + ":" + col + "\n" + content + "\n```");
+  .map(([content, line, col, withAbc]) =>
+    (withAbc ? "```abc" : "```") + " :" + line + ":" + col + "\n" + content + "\n```"
+  );
 
 // Legacy alias for backwards compatibility during migration
 export const genAbcLiteral = genAbcFence;
