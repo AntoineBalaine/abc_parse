@@ -183,8 +183,15 @@
                 case 'contentChange':
                     if (abc !== message.content) {
                         abc = message.content;
-                        analyzeContent(abc);
-                        drawTune(abc);
+                        // Clear the display when content is empty (e.g., ABCT evaluation error)
+                        if (!abc || abc.trim() === '') {
+                            document.getElementById('paper').innerHTML = '';
+                            document.getElementById('source').classList.remove('show');
+                            document.getElementById('tune-selector').style.display = 'none';
+                        } else {
+                            analyzeContent(abc);
+                            drawTune(abc);
+                        }
                     }
                     break;
 

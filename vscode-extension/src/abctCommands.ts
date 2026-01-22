@@ -300,9 +300,15 @@ export function registerAbctCommands(
       // Create virtual document
       const docUri = evalDocProvider.createDocument(editor!.document.uri, result.abc, sourceExpr);
 
-      // Open in editor
+      // Open in editor beside the current document
       const doc = await vscode.workspace.openTextDocument(docUri);
-      await vscode.window.showTextDocument(doc, { preview: false });
+      await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.Beside });
+
+      // Split the editor group vertically and show the ABC preview below
+      // The virtual document is now active in the right column
+      await vscode.commands.executeCommand("workbench.action.splitEditorDown");
+      // Focus is now in the bottom group, show preview there with ViewColumn.Active
+      await vscode.commands.executeCommand("abc.showPreview", { viewColumn: vscode.ViewColumn.Active });
 
       if (result.diagnostics.length > 0) {
         vscode.window.showWarningMessage("Evaluation had errors. Output may be incomplete.");
@@ -477,9 +483,8 @@ export function registerAbctCommands(
           uri: state.sourceUri,
         });
 
-        if (result.abc) {
-          evalDocProvider.updateDocument(virtualUri, result.abc);
-        }
+        // Always update, even with empty string (which happens on evaluation error)
+        evalDocProvider.updateDocument(virtualUri, result.abc);
       } catch {
         // Silently ignore evaluation errors during auto-update
       }

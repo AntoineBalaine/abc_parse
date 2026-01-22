@@ -46,6 +46,8 @@ export async function activate(context: ExtensionContext) {
     documentSelector: [
       { scheme: "file", language: "abc" },
       { scheme: "file", language: "abct" },
+      // Register the abct-eval scheme with abc language for semantic highlighting on virtual docs
+      { scheme: "abct-eval", language: "abc" },
     ],
   };
 

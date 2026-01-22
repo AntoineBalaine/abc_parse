@@ -192,7 +192,10 @@
         "abc.renderer.responsive": {
           "type": "string",
           "default": "resize",
-          "enum": ["", "resize"],
+          "enum": [
+            "",
+            "resize"
+          ],
           "group": "Renderer",
           "description": "Responsive rendering mode. 'resize' adapts to container width.",
           "scope": "resource"
@@ -228,7 +231,11 @@
         "abc.renderer.tablature": {
           "type": "string",
           "default": "",
-          "enum": ["", "Violin", "Guitar"],
+          "enum": [
+            "",
+            "Violin",
+            "Guitar"
+          ],
           "group": "Renderer",
           "description": "Show tablature for the specified instrument.",
           "scope": "resource"

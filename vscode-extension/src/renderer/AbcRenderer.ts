@@ -108,9 +108,16 @@ export function getOutputChannel(): vscode.OutputChannel {
 
 /**
  * Show the preview panel
+ * @param context Extension context
+ * @param theme Optional theme override ("light" or "dark")
+ * @param viewColumn Optional view column for panel placement (default: Beside)
  */
-export async function showPreview(context: vscode.ExtensionContext, theme?: "light" | "dark") {
-  initializePanel(context);
+export async function showPreview(
+  context: vscode.ExtensionContext,
+  theme?: "light" | "dark",
+  viewColumn?: vscode.ViewColumn
+) {
+  initializePanel(context, viewColumn);
 
   if (panel) {
     panel.webview.html = await getHtml(context, getFileNameFromEditor());
@@ -215,8 +222,14 @@ export function registerRendererEvents(context: vscode.ExtensionContext) {
 
 // --- Internal functions ---
 
-function initializePanel(context: vscode.ExtensionContext) {
-  panel = createPanel(context);
+function initializePanel(context: vscode.ExtensionContext, viewColumn?: vscode.ViewColumn) {
+  // Reuse existing panel if available, just reveal it in the target column
+  if (panel) {
+    panel.reveal(viewColumn);
+    return;
+  }
+
+  panel = createPanel(context, viewColumn);
 
   panel.webview.onDidReceiveMessage((message) => {
     switch (message.name) {
@@ -237,11 +250,11 @@ function initializePanel(context: vscode.ExtensionContext) {
   });
 }
 
-function createPanel(context: vscode.ExtensionContext): vscode.WebviewPanel {
+function createPanel(context: vscode.ExtensionContext, viewColumn?: vscode.ViewColumn): vscode.WebviewPanel {
   return vscode.window.createWebviewPanel(
     "abcPreview",
     "ABC Preview",
-    vscode.ViewColumn.Beside,
+    viewColumn ?? vscode.ViewColumn.Beside,
     {
       enableScripts: true,
       localResourceRoots: [

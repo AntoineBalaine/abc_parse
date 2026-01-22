@@ -17,8 +17,10 @@ export function registerRendererCommands(context: vscode.ExtensionContext) {
   initRenderer(context);
 
   // Show Preview command
-  const previewCommand = vscode.commands.registerCommand("abc.showPreview", () =>
-    showPreview(context)
+  // Optional argument: { viewColumn: vscode.ViewColumn } to control panel placement
+  const previewCommand = vscode.commands.registerCommand(
+    "abc.showPreview",
+    (args?: { viewColumn?: vscode.ViewColumn }) => showPreview(context, undefined, args?.viewColumn)
   );
   context.subscriptions.push(previewCommand);
 
