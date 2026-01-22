@@ -194,6 +194,7 @@ export function scanHistoryField(ctx: Ctx): void {
 
     // Consume EOL as part of the content (don't tokenize separately)
     advance(ctx); // consume newline character
+    ctx.line++;
 
     // Scan line content (everything until next EOL, including comments)
     while (!isAtEnd(ctx) && !ctx.test(pEOL)) {
