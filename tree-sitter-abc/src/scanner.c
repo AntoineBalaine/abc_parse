@@ -77,6 +77,11 @@ void tree_sitter_abc_external_scanner_deserialize(
 // ============================================================================
 
 #define PEEK (lexer->lookahead)
+
+// Undefine parser.h's versions (which take a state_value parameter)
+// before defining our simpler parameterless versions for the external scanner
+#undef ADVANCE
+#undef SKIP
 #define ADVANCE() lexer->advance(lexer, false)
 #define SKIP() lexer->advance(lexer, true)
 #define MARK_END() lexer->mark_end(lexer)

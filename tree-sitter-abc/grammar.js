@@ -78,16 +78,7 @@ module.exports = grammar({
     [$.ErrorExpr],
     [$.User_symbol_decl],
     [$.Macro_decl],
-    [$.Inline_field],
     [$.Chord],
-    [$.Grace_group],
-    [$.Tuplet],
-    [$.BarLine],
-    [$.Repeat_numbers],
-    [$.Rest],
-    [$.Rhythm],
-    [$.YSPACER],
-    [$.Pitch],
     // Hierarchical conflicts
     [$.File_structure, $.Comment],
     [$.File_header, $.Tune_header],
@@ -107,7 +98,6 @@ module.exports = grammar({
     [$._binary_operand, $.Rational],
     [$._directive_value, $._binary_operand],
     [$._inline_field_content, $._binary_operand],
-    [$._kv_value, $._binary_operand],
   ],
 
   rules: {

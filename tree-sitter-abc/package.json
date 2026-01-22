@@ -14,6 +14,7 @@
   "devDependencies": {
     "tree-sitter-cli": "^0.22.0",
     "nan": "^2.18.0",
+    "node-addon-api": "^7.0.0",
     "prebuildify": "^6.0.0"
   },
   "tree-sitter": [
