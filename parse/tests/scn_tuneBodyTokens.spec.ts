@@ -1343,4 +1343,221 @@ describe("scan2", () => {
       assert.equal(ctx.tokens.length, 0);
     });
   });
+
+  // Bug fixes: Category 1 - Decoration Handling
+  describe("decoration - extended characters (bug fix)", () => {
+    it("should parse K decoration followed by pitch", () => {
+      const ctx = createCtx("KA");
+      const result = decoration(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.DECORATION);
+      assert.equal(ctx.tokens[0].lexeme, "K");
+    });
+
+    it("should parse k decoration followed by pitch", () => {
+      const ctx = createCtx("kG");
+      const result = decoration(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.DECORATION);
+      assert.equal(ctx.tokens[0].lexeme, "k");
+    });
+
+    it("should parse n decoration followed by pitch", () => {
+      const ctx = createCtx("nB");
+      const result = decoration(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.DECORATION);
+      assert.equal(ctx.tokens[0].lexeme, "n");
+    });
+
+    it("should parse shorthand decoration followed by !symbol! and then pitch", () => {
+      const ctx = createCtx("T!tenuto!c");
+      const result = decoration(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.DECORATION);
+      assert.equal(ctx.tokens[0].lexeme, "T");
+    });
+
+    it("should parse multiple decorations followed by !symbol! and pitch", () => {
+      const ctx = createCtx("TL!tenuto!c");
+      const result = decoration(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.DECORATION);
+      assert.equal(ctx.tokens[0].lexeme, "TL");
+    });
+
+    it("should parse decorations before !symbol! in scanTune context", () => {
+      const ctx = createCtx("X:1\nTL!tenuto!.c'2");
+      scanTune(ctx);
+      const decoTokens = ctx.tokens.filter((t) => t.type === TT.DECORATION);
+      assert.ok(decoTokens.length >= 1);
+      assert.equal(decoTokens[0].lexeme, "TL");
+    });
+  });
+
+  // Bug fixes: Category 2 - Grace Note Parsing
+  describe("grace_grp - ties and slurs (bug fix)", () => {
+    it("should parse grace group with ties: {G-G}", () => {
+      const ctx = createCtx("{G-G}");
+      const result = grace_grp(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.GRC_GRP_LEFT_BRACE);
+      assert.equal(ctx.tokens[ctx.tokens.length - 1].type, TT.GRC_GRP_RGHT_BRACE);
+      const tieTokens = ctx.tokens.filter((t) => t.type === TT.TIE);
+      assert.equal(tieTokens.length, 1);
+    });
+
+    it("should parse grace group with slurs: {c(de)g}", () => {
+      const ctx = createCtx("{c(de)g}");
+      const result = grace_grp(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.GRC_GRP_LEFT_BRACE);
+      assert.equal(ctx.tokens[ctx.tokens.length - 1].type, TT.GRC_GRP_RGHT_BRACE);
+      const slurTokens = ctx.tokens.filter((t) => t.type === TT.SLUR);
+      assert.equal(slurTokens.length, 2);
+    });
+
+    it("should parse grace group with ties between notes: {CD-DE}", () => {
+      const ctx = createCtx("{CD-DE}");
+      const result = grace_grp(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.GRC_GRP_LEFT_BRACE);
+      assert.equal(ctx.tokens[ctx.tokens.length - 1].type, TT.GRC_GRP_RGHT_BRACE);
+      const noteLetters = ctx.tokens.filter((t) => t.type === TT.NOTE_LETTER);
+      assert.equal(noteLetters.length, 4);
+    });
+
+    it("should parse complex grace group: {_c/2(^de)g}", () => {
+      const ctx = createCtx("{_c/2(^de)g}");
+      const result = grace_grp(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.GRC_GRP_LEFT_BRACE);
+      assert.equal(ctx.tokens[ctx.tokens.length - 1].type, TT.GRC_GRP_RGHT_BRACE);
+      const noteLetters = ctx.tokens.filter((t) => t.type === TT.NOTE_LETTER);
+      assert.equal(noteLetters.length, 4);
+      const slurTokens = ctx.tokens.filter((t) => t.type === TT.SLUR);
+      assert.equal(slurTokens.length, 2);
+    });
+  });
+
+  // Bug fixes: Category 6 - Chord/Tie Combination
+  describe("chord - ties inside (bug fix)", () => {
+    it("should parse chord with tied note: [DD-]", () => {
+      const ctx = createCtx("[DD-]");
+      const result = chord(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.CHRD_LEFT_BRKT);
+      assert.equal(ctx.tokens[ctx.tokens.length - 1].type, TT.CHRD_RIGHT_BRKT);
+      const tieTokens = ctx.tokens.filter((t) => t.type === TT.TIE);
+      assert.equal(tieTokens.length, 1);
+    });
+
+    it("should parse chord with tied notes: [ED-]", () => {
+      const ctx = createCtx("[ED-]");
+      const result = chord(ctx);
+      assert.equal(result, true);
+      const noteLetters = ctx.tokens.filter((t) => t.type === TT.NOTE_LETTER);
+      assert.equal(noteLetters.length, 2);
+      const tieTokens = ctx.tokens.filter((t) => t.type === TT.TIE);
+      assert.equal(tieTokens.length, 1);
+    });
+
+    it("should parse consecutive tied chords: [DD-][ED-]", () => {
+      const ctx = createCtx("X:1\n[DD-][ED-]");
+      scanTune(ctx);
+      const chordLeftTokens = ctx.tokens.filter((t) => t.type === TT.CHRD_LEFT_BRKT);
+      assert.equal(chordLeftTokens.length, 2);
+      const tieTokens = ctx.tokens.filter((t) => t.type === TT.TIE);
+      assert.equal(tieTokens.length, 2);
+    });
+
+    it("should parse tie between slurred groups without error: (cd)-(df)", () => {
+      const ctx = createCtx("X:1\n(cd)-(df)");
+      scanTune(ctx);
+      const slurTokens = ctx.tokens.filter((t) => t.type === TT.SLUR);
+      assert.equal(slurTokens.length, 4);
+      const tieTokens = ctx.tokens.filter((t) => t.type === TT.TIE);
+      assert.equal(tieTokens.length, 1);
+      // No INVALID tokens should be produced
+      const invalidTokens = ctx.tokens.filter((t) => t.type === TT.INVALID);
+      assert.equal(invalidTokens.length, 0);
+    });
+  });
+
+  // Bug fixes: Category 7 - Highlighting (scanner-level tests for identifier behavior)
+  describe("inline_field - clef octave transposition (bug fix)", () => {
+    it("should tokenize treble-8 as identifier + minus + number", () => {
+      const ctx = createCtx("[K:treble-8]");
+      inline_field(ctx);
+      const identTokens = ctx.tokens.filter((t) => t.type === TT.IDENTIFIER);
+      assert.equal(identTokens.length, 1);
+      assert.equal(identTokens[0].lexeme, "treble");
+      const minusTokens = ctx.tokens.filter((t) => t.type === TT.MINUS);
+      assert.equal(minusTokens.length, 1);
+      const numTokens = ctx.tokens.filter((t) => t.type === TT.NUMBER);
+      assert.equal(numTokens.length, 1);
+      assert.equal(numTokens[0].lexeme, "8");
+    });
+
+    it("should tokenize treble+8 as identifier + plus + number", () => {
+      const ctx = createCtx("[K:treble+8]");
+      inline_field(ctx);
+      const identTokens = ctx.tokens.filter((t) => t.type === TT.IDENTIFIER);
+      assert.equal(identTokens.length, 1);
+      assert.equal(identTokens[0].lexeme, "treble");
+      const plusTokens = ctx.tokens.filter((t) => t.type === TT.PLUS);
+      assert.equal(plusTokens.length, 1);
+      const numTokens = ctx.tokens.filter((t) => t.type === TT.NUMBER);
+      assert.equal(numTokens.length, 1);
+      assert.equal(numTokens[0].lexeme, "8");
+    });
+
+    it("should still allow hyphens in identifiers when followed by letters", () => {
+      const ctx = createCtx("[K:clef-name]");
+      inline_field(ctx);
+      const identTokens = ctx.tokens.filter((t) => t.type === TT.IDENTIFIER);
+      assert.ok(identTokens.some((t) => t.lexeme === "clef-name"));
+    });
+  });
+
+  // Bug fixes: Category 5 - Line continuation in lyrics
+  describe("lyric_line - line continuation (bug fix)", () => {
+    it("should handle line continuation in lyrics with backslash", () => {
+      const ctx = createCtx("X:1\nC D\nw:hel-lo \\\n  world");
+      scanTune(ctx);
+      const lyricTextTokens = ctx.tokens.filter((t) => t.type === TT.LY_TXT);
+      // Should have lyric text from both lines
+      const allLyricText = lyricTextTokens.map((t) => t.lexeme).join(" ");
+      assert.ok(allLyricText.includes("hel"), "should contain 'hel'");
+      assert.ok(allLyricText.includes("world"), "should contain 'world'");
+    });
+
+    it("should handle line continuation after hyphen in lyrics", () => {
+      const ctx = createCtx("X:1\nC D\nw:be-\\\n  gin");
+      scanTune(ctx);
+      const lyricTextTokens = ctx.tokens.filter((t) => t.type === TT.LY_TXT);
+      const allLyricText = lyricTextTokens.map((t) => t.lexeme).join(" ");
+      assert.ok(allLyricText.includes("be"), "should contain 'be'");
+      assert.ok(allLyricText.includes("gin"), "should contain 'gin'");
+    });
+  });
+
+  // Bug fixes: Category 8 - Header Field Value Parsing
+  describe("scanInfoLine2 - header value parsing (bug fix)", () => {
+    it("should parse Q: with quoted string: Q:\"Adagio\"", () => {
+      const ctx = createCtx("X:1\nQ:\"Adagio\"\nK:C\n");
+      scanTune(ctx);
+      const annotTokens = ctx.tokens.filter((t) => t.type === TT.ANNOTATION);
+      assert.equal(annotTokens.length, 1);
+      assert.equal(annotTokens[0].lexeme, "\"Adagio\"");
+    });
+
+    it("should handle comment after key signature: K:Eb % 3 flats", () => {
+      const ctx = createCtx("X:1\nK:Eb % 3 flats\n");
+      scanTune(ctx);
+      const commentTokens = ctx.tokens.filter((t) => t.type === TT.COMMENT);
+      assert.ok(commentTokens.length >= 1, "should have at least one comment token");
+      assert.ok(commentTokens[0].lexeme.includes("% 3 flats"), "comment should contain '% 3 flats'");
+    });
+  });
 });

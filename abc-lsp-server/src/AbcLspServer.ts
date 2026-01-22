@@ -99,13 +99,31 @@ export class AbcLspServer {
     const builder = new SemanticTokensBuilder();
 
     for (const token of abcDocument.tokens) {
-      builder.push(
-        token.line,
-        token.position,
-        token.lexeme.length,
-        mapTTtoStandardScope(token.type), // typeId
-        0
-      );
+      const scope = mapTTtoStandardScope(token.type);
+      if (scope === -1) continue;
+
+      // Handle multi-line tokens by splitting them across lines
+      if (token.lexeme.includes("\n")) {
+        const lines = token.lexeme.split("\n");
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].length === 0) continue;
+          builder.push(
+            token.line + i,
+            i === 0 ? token.position : 0,
+            lines[i].length,
+            scope,
+            0
+          );
+        }
+      } else {
+        builder.push(
+          token.line,
+          token.position,
+          token.lexeme.length,
+          scope,
+          0
+        );
+      }
     }
 
     return builder.build();

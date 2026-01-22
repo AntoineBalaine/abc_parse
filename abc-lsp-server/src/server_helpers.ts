@@ -90,8 +90,9 @@ export function mapTTtoStandardScope(type: number): number {
       return standardTokenScopes.string;
     case TT.VOICE:
     case TT.VOICE_OVRLAY:
-    case TT.Y_SPC:
       return standardTokenScopes.string;
+    case TT.Y_SPC:
+      return standardTokenScopes.variable;
     case TT.REPEAT_NUMBER:
       return standardTokenScopes.number; // rhythm
     case TT.REPEAT_COMMA:
@@ -100,6 +101,9 @@ export function mapTTtoStandardScope(type: number): number {
       return standardTokenScopes.comment;
     case TT.CHORD_SYMBOL:
       return standardTokenScopes.type;
+    case TT.MINUS:
+    case TT.PLUS:
+      return standardTokenScopes.string;
     default:
       return -1;
   }

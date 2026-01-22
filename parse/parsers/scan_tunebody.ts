@@ -1,5 +1,5 @@
 import { scanDirective } from "./infoLines/scanDirective";
-import { absolutePitch, identifier, singleChar, specialLiteral, stringLiteral, unsignedNumber } from "./infoLines/scanInfoLine2";
+import { absolutePitch, identifier, infoLineIdentifier, singleChar, specialLiteral, stringLiteral, unsignedNumber } from "./infoLines/scanInfoLine2";
 import {
   Ctx,
   EOL,
@@ -38,22 +38,30 @@ export const pPitch = new RegExp(`((\\^[\\^\\/]?)|(_[_\\/]?)|=)?[a-gA-G][,']*`);
 export const pString = /"[^\n]*"/;
 // Chord pattern: [ followed by pitches (with optional rhythm) and/or strings, then ]
 // Note: rhythm values inside chords are allowed (scanner parses them, interpreter handles them)
-export const pChord = new RegExp(`\\[((${pString.source})+|(${pPitch.source}(?:${pDuration.source})?)+)\\]`);
-export const pDeco = /[\~\.HJLMOPRSTuv]/;
+export const pChord = new RegExp(`\\[((${pString.source})+|(${pPitch.source}(?:${pDuration.source})?-?)+)\\]`);
+export const pDeco = /[\~\.HJKkLMnOPRSTuv]/;
 
 export const pTuplet = new RegExp(`\\(${pNumber.source}(:(${pNumber.source})?)?(:(${pNumber.source})?)?`);
 const pNote = new RegExp(`-?${pDeco.source}?${pPitch.source}${pDuration.source}?-?`);
 const pRestFull = new RegExp(`${pRest.source}${pDuration.source}?`);
 export const pBrLn = /((\[\|)|(\|\])|(\|\|)|(\|))/;
+const pSymbol = /![^\n!]*!/;
+const pDecoLookahead = new RegExp(`^${pDeco.source}+(?=(${pPitch.source}|${pRest.source}|${pChord.source}|${pSymbol.source}))`);
 /**
 inline field is a left bracket, followed by a letter, followed by a colon
 followed by any text, followed by a right bracket
 */
 export const pInlineField = /\[[ \t]*[a-zA-Z][ \t]*:[^\]]*\]/;
-export const pGraceGrp = new RegExp(`{\/?(${pPitch.source}(${pDuration.source})?[ \\t]*)+}`);
+export const pGraceGrp = new RegExp(`{\/?([-() \\t]*(${pPitch.source})(${pDuration.source})?[-() \\t]*)+}`);
 
 export function note(ctx: Ctx): boolean {
-  tie(ctx);
+  const hasTie = tie(ctx);
+  // When a tie was consumed, only attempt pitch if what follows looks like a pitch start.
+  // This prevents spurious "Expected pitch" errors and orphaned ACCIDENTAL tokens
+  // for valid constructs like [CEG]-[FAC] where the tie stands alone.
+  if (hasTie && !ctx.test(/[\^_=a-gA-G]/)) {
+    return true;
+  }
   if (!pitch(ctx)) {
     ctx.report("Expected pitch");
     return false;
@@ -178,8 +186,7 @@ export function comment(ctx: Ctx): boolean {
 }
 
 export function decoration(ctx: Ctx): boolean {
-  const ptrn = new RegExp(`^${pDeco.source}+(?=(${pPitch.source}|${pRest.source}|${pChord.source}))`);
-  const mtch = ptrn.exec(ctx.source.substring(ctx.start));
+  const mtch = pDecoLookahead.exec(ctx.source.substring(ctx.start));
   if (mtch) {
     ctx.current = ctx.start + mtch[0].length;
     ctx.push(TT.DECORATION);
@@ -424,6 +431,8 @@ export function grace_grp(ctx: Ctx): boolean {
   while (!isAtEnd(ctx) && !ctx.test("}")) {
     if (note(ctx)) {
       continue;
+    } else if (slur(ctx)) {
+      continue;
     } else if (ctx.test(/[ \t]/)) {
       advance(ctx);
       continue;
@@ -456,7 +465,7 @@ export function inline_field(ctx: Ctx): boolean {
     if (specialLiteral(ctx)) continue; // C, C|
     if (absolutePitch(ctx)) continue; // G4, F#5
     if (tuneBodyPitch(ctx)) continue; // ^c, _b
-    if (identifier(ctx)) continue; // treble, major
+    if (infoLineIdentifier(ctx)) continue; // treble, major
     if (stringLiteral(ctx)) continue; // "Allegro"
     if (singleChar(ctx, "=", TT.EQL)) continue;
     if (singleChar(ctx, "-", TT.MINUS)) continue;

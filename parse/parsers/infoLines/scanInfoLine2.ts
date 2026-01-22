@@ -17,10 +17,10 @@ export function scanInfoLine2(ctx: Ctx): boolean {
     if (WS(ctx)) continue;
     if (specialLiteral(ctx)) continue; // C, C|
     if (absolutePitch(ctx)) continue; // G4, F#5, Bb3 (note + optional accidental + optional numeric octave)
-    if (identifier(ctx)) continue; // abc, treble, major
+    if (infoLineIdentifier(ctx)) continue; // abc, treble, major
     if (stringLiteral(ctx)) continue; // "Allegro"
     if (singleChar(ctx, "=", TT.EQL)) continue; // =
-    if (singleChar(ctx, "-", TT.MINUS)) continue; // +
+    if (singleChar(ctx, "-", TT.MINUS)) continue; // -
     if (singleChar(ctx, "+", TT.PLUS)) continue; // +
     if (singleChar(ctx, "/", TT.SLASH)) continue; // /
     if (singleChar(ctx, "(", TT.LPAREN)) continue; // (
@@ -53,6 +53,24 @@ export function identifier(ctx: Ctx): boolean {
   if (!ctx.test(/[a-zA-Z][\-a-zA-Z0-9_]*/)) return false;
 
   const match = /^[a-zA-Z][\-a-zA-Z0-9_]*/.exec(ctx.source.substring(ctx.current));
+  if (match) {
+    ctx.current += match[0].length;
+    ctx.push(TT.IDENTIFIER);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Scan identifier for info line content (K:, M:, etc.) where
+ * hyphens followed by digits should be treated as separate tokens.
+ * This way `treble-8` is parsed as identifier + minus + number,
+ * while directive names like `setfont-1` use the regular identifier function.
+ */
+export function infoLineIdentifier(ctx: Ctx): boolean {
+  if (!ctx.test(/[a-zA-Z]/)) return false;
+
+  const match = /^[a-zA-Z](-(?=[a-zA-Z_])|[a-zA-Z0-9_])*/.exec(ctx.source.substring(ctx.current));
   if (match) {
     ctx.current += match[0].length;
     ctx.push(TT.IDENTIFIER);
@@ -140,13 +158,13 @@ export function absolutePitch(ctx: Ctx): boolean {
   // Pattern breakdown:
   // 1. Note letter: [A-Ga-g]
   // 2. One of:
-  //    - Accidental + optional octave + (terminator or letter): [#b][0-9]?[= \t%\n\]a-zA-Z]
-  //    - Octave + (terminator or letter): [0-9][= \t%\n\]a-zA-Z]
-  //    - Just terminator (no accidental, no octave): [= \t%\n\]]
+  //    - Accidental + optional octave + terminator: [#b][0-9]?(?=[= \t%\n\]a-zA-Z]|$)
+  //    - Octave + terminator: [0-9](?=[= \t%\n\]a-zA-Z]|$)
+  //    - Just terminator (no accidental, no octave): (?=[= \t%\n\]]|$)
   // OR: Uppercase note (A-G) followed by mode start (any letter except A-G which would be another note)
   // Mode names like Mix, Dor, Phr, Lyd, Loc, Ion, Aeo, min, maj, m start with letters other than A-G
   // Wrap entire pattern in non-capturing group so ctx.test()'s ^ anchor applies to both alternatives
-  if (!ctx.test(/(?:[A-Ga-g]([#b][0-9]?[= \t%\n\]a-zA-Z]|[0-9][= \t%\n\]a-zA-Z]|[= \t%\n\]])|[A-G][H-Zh-z])/)) return false;
+  if (!ctx.test(/(?:[A-Ga-g]([#b][0-9]?(?=[= \t%\n\]a-zA-Z]|$)|[0-9](?=[= \t%\n\]a-zA-Z]|$)|(?=[= \t%\n\]]|$))|[A-G][H-Zh-z])/)) return false;
 
   advance(ctx); // consume note letter
   ctx.push(TT.NOTE_LETTER);
