@@ -45,6 +45,7 @@ export enum AbctTT {
   AND,
   OR,
   NOT,
+  FILTER,
 
   // Whitespace (preserved in AST for formatting)
   WS, // horizontal whitespace

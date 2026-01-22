@@ -38,8 +38,10 @@ import {
   isLocationSelector,
   isGroup,
   isNegate,
+  isFilterExpression,
   Update,
   Negate,
+  FilterExpression,
   Loc,
 } from "../../abct/src/ast";
 import {
@@ -51,6 +53,8 @@ import {
   selectNotesFromSelection,
   selectChordsFromSelection,
   selectBassFromSelection,
+  applyFilter,
+  parseFilterPredicate,
 } from "../../abct/src/runtime";
 import { Selection } from "../../abct/src/runtime/types";
 
@@ -79,10 +83,7 @@ export interface EvalResult {
  * Both use 0-based positions.
  */
 function locToRange(loc: Loc): Range {
-  return Range.create(
-    Position.create(loc.start.line, loc.start.column),
-    Position.create(loc.end.line, loc.end.column)
-  );
+  return Range.create(Position.create(loc.start.line, loc.start.column), Position.create(loc.end.line, loc.end.column));
 }
 
 /**
@@ -145,15 +146,11 @@ export class AbctEvaluator {
     let statements = program.statements;
 
     if (options.toLine !== undefined) {
-      statements = statements.filter((stmt) =>
-        isStatementInScope(stmt, options.toLine!)
-      );
+      statements = statements.filter((stmt) => isStatementInScope(stmt, options.toLine!));
     }
 
     if (options.selection !== undefined) {
-      statements = statements.filter((stmt) =>
-        isStatementInSelection(stmt, options.selection!)
-      );
+      statements = statements.filter((stmt) => isStatementInSelection(stmt, options.selection!));
     }
 
     // Evaluate each statement
@@ -165,18 +162,12 @@ export class AbctEvaluator {
         }
       } catch (error) {
         if (error instanceof EvaluatorError) {
-          this.diagnostics.push(
-            createErrorDiagnostic(error.message, error.loc)
-          );
+          this.diagnostics.push(createErrorDiagnostic(error.message, error.loc));
         } else if (error instanceof FileResolverError) {
           // File not found - use the statement's location for the diagnostic
-          this.diagnostics.push(
-            createErrorDiagnostic(error.message, stmt.loc)
-          );
+          this.diagnostics.push(createErrorDiagnostic(error.message, stmt.loc));
         } else if (error instanceof Error) {
-          this.diagnostics.push(
-            createErrorDiagnostic(error.message, stmt.loc)
-          );
+          this.diagnostics.push(createErrorDiagnostic(error.message, stmt.loc));
         }
       }
     }
@@ -322,10 +313,12 @@ export class AbctEvaluator {
       return this.evaluateUpdateInContext(leftValue, expr.right);
     }
 
-    throw new EvaluatorError(
-      "Pipe right side must be a selector or transform",
-      expr.right.loc
-    );
+    if (isFilterExpression(expr.right)) {
+      // Filter expression: filter (predicate)
+      return this.applyFilterToSelection(leftValue, expr.right);
+    }
+
+    throw new EvaluatorError("Pipe right side must be a selector, transform, or filter", expr.right.loc);
   }
 
   /**
@@ -333,10 +326,7 @@ export class AbctEvaluator {
    * Standalone updates (not within a pipe) are not supported.
    */
   private async evaluateUpdate(expr: Update): Promise<Selection> {
-    throw new EvaluatorError(
-      "Update expressions must be used within a pipe (e.g., file.abc | @notes |= transpose 2)",
-      expr.loc
-    );
+    throw new EvaluatorError("Update expressions must be used within a pipe (e.g., file.abc | @notes |= transpose 2)", expr.loc);
   }
 
   /**
@@ -350,16 +340,10 @@ export class AbctEvaluator {
    *
    * The result is the context with the selected nodes transformed.
    */
-  private async evaluateUpdateInContext(
-    context: Selection,
-    update: Update
-  ): Promise<Selection> {
+  private async evaluateUpdateInContext(context: Selection, update: Update): Promise<Selection> {
     // Check for LocationSelector which is not yet supported
     if (isLocationSelector(update.selector)) {
-      throw new EvaluatorError(
-        "Location selectors (e.g., :5 or :10:5) are not yet supported in update expressions",
-        update.selector.loc
-      );
+      throw new EvaluatorError("Location selectors (e.g., :5 or :10:5) are not yet supported in update expressions", update.selector.loc);
     }
 
     // Apply the selector to narrow down which nodes to transform
@@ -401,16 +385,10 @@ export class AbctEvaluator {
         };
         this.applyTransformToSelection(selection, app);
       } else {
-        throw new EvaluatorError(
-          "Invalid grouped transform in update expression",
-          update.transform.loc
-        );
+        throw new EvaluatorError("Invalid grouped transform in update expression", update.transform.loc);
       }
     } else {
-      throw new EvaluatorError(
-        "Invalid transform in update expression",
-        update.transform.loc
-      );
+      throw new EvaluatorError("Invalid transform in update expression", update.transform.loc);
     }
 
     // Return the original context - the AST has been mutated in place
@@ -424,10 +402,7 @@ export class AbctEvaluator {
    * For example: src | @chords |= (transpose 2 | retrograde)
    * The (transpose 2 | retrograde) is evaluated as a series of transforms.
    */
-  private async evaluatePipelineAsTransform(
-    selection: Selection,
-    pipe: Pipe
-  ): Promise<void> {
+  private async evaluatePipelineAsTransform(selection: Selection, pipe: Pipe): Promise<void> {
     const steps = this.flattenPipeline(pipe);
     let current = selection;
 
@@ -445,10 +420,7 @@ export class AbctEvaluator {
         // Selector within a transform pipeline narrows the selection
         current = this.applyScopedSelector(current, step);
       } else {
-        throw new EvaluatorError(
-          "Invalid step in transform pipeline",
-          step.loc
-        );
+        throw new EvaluatorError("Invalid step in transform pipeline", step.loc);
       }
     }
   }
@@ -468,10 +440,7 @@ export class AbctEvaluator {
    * Apply a scoped selector to an existing selection.
    * Used for nested contexts where we want to select within already-selected nodes.
    */
-  private applyScopedSelector(
-    selection: Selection,
-    selector: Selector
-  ): Selection {
+  private applyScopedSelector(selection: Selection, selector: Selector): Selection {
     const selectorId = selector.path.id.toLowerCase();
 
     switch (selectorId) {
@@ -484,10 +453,7 @@ export class AbctEvaluator {
       case "bass":
         return selectBassFromSelection(selection);
       default:
-        throw new EvaluatorError(
-          `Selector @${selectorId} is not supported in nested context`,
-          selector.loc
-        );
+        throw new EvaluatorError(`Selector @${selectorId} is not supported in nested context`, selector.loc);
     }
   }
 
@@ -502,29 +468,20 @@ export class AbctEvaluator {
     }
 
     // Multiple terms without a pipe context is an error
-    throw new EvaluatorError(
-      "Transform application requires a value to transform",
-      expr.loc
-    );
+    throw new EvaluatorError("Transform application requires a value to transform", expr.loc);
   }
 
   /**
    * Apply a selector to a Selection.
    */
-  private applySelectorToSelection(
-    selection: Selection,
-    selector: Selector
-  ): Selection {
+  private applySelectorToSelection(selection: Selection, selector: Selector): Selection {
     return this.applySelectorPath(selection, selector.path);
   }
 
   /**
    * Apply a selector path to a Selection.
    */
-  private applySelectorPath(
-    selection: Selection,
-    path: { id: string; value?: string | number | { type: "range"; start: number; end: number } }
-  ): Selection {
+  private applySelectorPath(selection: Selection, path: { id: string; value?: string | number | { type: "range"; start: number; end: number } }): Selection {
     const selectorId = path.id;
     const value = path.value;
 
@@ -542,20 +499,14 @@ export class AbctEvaluator {
   /**
    * Apply a transform to a Selection.
    */
-  private applyTransformToSelection(
-    selection: Selection,
-    application: Application
-  ): Selection {
+  private applyTransformToSelection(selection: Selection, application: Application): Selection {
     if (application.terms.length === 0) {
       throw new EvaluatorError("Transform requires a name", application.loc);
     }
 
     const firstTerm = application.terms[0];
     if (!isIdentifier(firstTerm)) {
-      throw new EvaluatorError(
-        "Transform name must be an identifier",
-        firstTerm.loc
-      );
+      throw new EvaluatorError("Transform name must be an identifier", firstTerm.loc);
     }
 
     const transformName = firstTerm.name;
@@ -581,13 +532,28 @@ export class AbctEvaluator {
         }
         return -Number(operand.value);
       }
-      throw new EvaluatorError(
-        "Invalid transform argument",
-        term.loc
-      );
+      throw new EvaluatorError("Invalid transform argument", term.loc);
     });
 
     return applyTransform(selection, transformName, args);
+  }
+
+  /**
+   * Apply a filter expression to a Selection.
+   * Removes elements that do not match the predicate.
+   */
+  private applyFilterToSelection(selection: Selection, filterExpr: FilterExpression): Selection {
+    // Parse the predicate from the comparison expression
+    const predicate = parseFilterPredicate(filterExpr.predicate);
+    if (predicate === null) {
+      throw new EvaluatorError("Invalid filter predicate. Expected format: property op value (e.g., pitch > C4)", filterExpr.predicate.loc);
+    }
+
+    // Apply the filter - mutates the AST in place
+    applyFilter(selection, predicate);
+
+    // Return the same selection (with mutated AST)
+    return selection;
   }
 }
 
@@ -612,11 +578,7 @@ export class EvaluatorError extends Error {
  * @param options - Evaluation options
  * @returns Promise resolving to the evaluation result
  */
-export async function evaluateAbct(
-  program: Program,
-  fileResolver: FileResolver,
-  options: EvalOptions = {}
-): Promise<EvalResult> {
+export async function evaluateAbct(program: Program, fileResolver: FileResolver, options: EvalOptions = {}): Promise<EvalResult> {
   const evaluator = new AbctEvaluator(fileResolver);
   return evaluator.evaluate(program, options);
 }

@@ -16,6 +16,7 @@ import {
   Negate,
   Group,
   Comparison,
+  FilterExpression,
   Selector,
   LocationSelector,
   VoiceRef,
@@ -37,6 +38,7 @@ import {
   isNegate,
   isGroup,
   isComparison,
+  isFilterExpression,
   isSelector,
   isLocationSelector,
   isVoiceRef,
@@ -249,6 +251,8 @@ export class AbctFormatter {
       this.formatGroup(expr);
     } else if (isComparison(expr)) {
       this.formatComparison(expr);
+    } else if (isFilterExpression(expr)) {
+      this.formatFilterExpression(expr);
     } else if (isSelector(expr)) {
       this.formatSelector(expr);
     } else if (isLocationSelector(expr)) {
@@ -382,6 +386,15 @@ export class AbctFormatter {
     this.output.push(cmp.op);
     this.output.push(" ");
     this.formatExpr(cmp.right);
+  }
+
+  /**
+   * Format a filter expression: filter (predicate)
+   */
+  private formatFilterExpression(filter: FilterExpression): void {
+    this.output.push("filter (");
+    this.formatComparison(filter.predicate);
+    this.output.push(")");
   }
 
   /**

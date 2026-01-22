@@ -66,6 +66,9 @@ export function provideHover(ast: Program, position: Position): Hover | null {
     case "not_kw":
       return formatOperatorHover(getOperatorInfo("not"));
 
+    case "filter_kw":
+      return formatTransformHover(getTransformInfo("filter")!);
+
     case "identifier":
       return handleIdentifierHover(node, ast, position.line, position.character);
 

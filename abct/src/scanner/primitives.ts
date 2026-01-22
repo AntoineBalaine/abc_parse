@@ -33,6 +33,9 @@ export function identifier(ctx: AbctCtx): boolean {
     case "not":
       ctx.push(AbctTT.NOT);
       break;
+    case "filter":
+      ctx.push(AbctTT.FILTER);
+      break;
     default:
       ctx.push(AbctTT.IDENTIFIER);
   }

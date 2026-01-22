@@ -124,6 +124,8 @@ export function mapAbctTTtoScope(type: AbctTT): number {
     case AbctTT.OR:
     case AbctTT.NOT:
       return standardTokenScopes.keyword;
+    case AbctTT.FILTER:
+      return standardTokenScopes.function; // Highlight like other transforms (bass, transpose, etc.)
     case AbctTT.NUMBER:
       return standardTokenScopes.number;
     case AbctTT.STRING:

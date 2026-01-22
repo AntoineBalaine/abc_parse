@@ -23,9 +23,13 @@ import {
   octave,
   retrograde,
   bass,
+  applyFilter,
+  parseFilterPredicate,
+  parsePitchLiteral,
   ABCTRuntime,
   createRuntime,
 } from "../src/runtime";
+import { Comparison, ComparisonOp, Identifier } from "../src/ast";
 import { Selection } from "../src/runtime/types";
 
 // Helper to parse ABC into AST
@@ -453,6 +457,291 @@ describe("ABCT Runtime", () => {
         expect(result).to.include("[C]");
         expect(result).to.include("[F]");
         expect(result).to.include("[G]");
+      });
+    });
+
+    describe("filter", () => {
+      // Helper to create a mock comparison for testing
+      function createComparison(
+        property: string,
+        op: ComparisonOp,
+        value: string | number
+      ): Comparison {
+        const dummyLoc = {
+          start: { line: 0, column: 0, offset: 0 },
+          end: { line: 0, column: 0, offset: 0 },
+        };
+
+        const leftId: Identifier = {
+          type: "identifier",
+          name: property,
+          loc: dummyLoc,
+        };
+
+        const rightExpr =
+          typeof value === "number"
+            ? { type: "number" as const, value: String(value), loc: dummyLoc }
+            : { type: "identifier" as const, name: value, loc: dummyLoc };
+
+        return {
+          type: "comparison",
+          op,
+          opLoc: dummyLoc,
+          left: leftId,
+          right: rightExpr,
+          loc: dummyLoc,
+        };
+      }
+
+      describe("parsePitchLiteral", () => {
+        it("should parse uppercase notes as octave 4", () => {
+          // C4 = MIDI 60
+          expect(parsePitchLiteral("C")).to.equal(60);
+          expect(parsePitchLiteral("D")).to.equal(62);
+          expect(parsePitchLiteral("E")).to.equal(64);
+        });
+
+        it("should parse lowercase notes as octave 5", () => {
+          // c5 = MIDI 72
+          expect(parsePitchLiteral("c")).to.equal(72);
+          expect(parsePitchLiteral("d")).to.equal(74);
+        });
+
+        it("should parse scientific notation", () => {
+          expect(parsePitchLiteral("C4")).to.equal(60);
+          expect(parsePitchLiteral("C5")).to.equal(72);
+          expect(parsePitchLiteral("A4")).to.equal(69);
+        });
+
+        it("should parse accidentals", () => {
+          expect(parsePitchLiteral("C#4")).to.equal(61);
+          expect(parsePitchLiteral("Db4")).to.equal(61);
+          expect(parsePitchLiteral("F#")).to.equal(66);
+        });
+
+        it("should return null for invalid pitches", () => {
+          expect(parsePitchLiteral("X")).to.be.null;
+          expect(parsePitchLiteral("123")).to.be.null;
+        });
+      });
+
+      describe("parseFilterPredicate", () => {
+        it("should parse pitch comparison with note literal", () => {
+          const comparison = createComparison("pitch", ">", "C4");
+          const predicate = parseFilterPredicate(comparison);
+
+          expect(predicate).to.not.be.null;
+          expect(predicate!.property).to.equal("pitch");
+          expect(predicate!.op).to.equal(">");
+          expect(predicate!.value).to.equal(60); // C4 = MIDI 60
+        });
+
+        it("should parse size comparison with number", () => {
+          const comparison = createComparison("size", ">=", 3);
+          const predicate = parseFilterPredicate(comparison);
+
+          expect(predicate).to.not.be.null;
+          expect(predicate!.property).to.equal("size");
+          expect(predicate!.op).to.equal(">=");
+          expect(predicate!.value).to.equal(3);
+        });
+      });
+
+      describe("applyFilter on notes", () => {
+        it("should filter notes below a pitch threshold", () => {
+          const abc = "X:1\nK:C\nC D E F G A B c";
+          const ast = parseAbc(abc);
+          const selection = selectNotes(ast);
+
+          // Filter: keep notes with pitch > E4 (MIDI 64)
+          const predicate = parseFilterPredicate(
+            createComparison("pitch", ">", "E4")
+          )!;
+
+          applyFilter(selection, predicate);
+
+          const result = stringify(ast);
+          const body = getBodyContent(result);
+
+          // E4 = MIDI 64, so F, G, A, B, c should remain
+          expect(body).to.include("F");
+          expect(body).to.include("G");
+          expect(body).to.include("A");
+          expect(body).to.include("B");
+          expect(body).to.include("c");
+          // C, D, E should be removed
+          expect(body).not.to.match(/\bC\b/);
+          expect(body).not.to.match(/\bD\b/);
+          expect(body).not.to.match(/\bE\b/);
+        });
+
+        it("should filter notes with >= comparison", () => {
+          const abc = "X:1\nK:C\nC D E F";
+          const ast = parseAbc(abc);
+          const selection = selectNotes(ast);
+
+          // Filter: keep notes with pitch >= E4 (MIDI 64)
+          const predicate = parseFilterPredicate(
+            createComparison("pitch", ">=", "E")
+          )!;
+
+          applyFilter(selection, predicate);
+
+          const result = stringify(ast);
+          const body = getBodyContent(result);
+
+          // E and F should remain
+          expect(body).to.include("E");
+          expect(body).to.include("F");
+        });
+
+        it("should filter notes with < comparison", () => {
+          const abc = "X:1\nK:C\nC D E F";
+          const ast = parseAbc(abc);
+          const selection = selectNotes(ast);
+
+          // Filter: keep notes with pitch < E (MIDI 64)
+          const predicate = parseFilterPredicate(
+            createComparison("pitch", "<", "E")
+          )!;
+
+          applyFilter(selection, predicate);
+
+          const result = stringify(ast);
+          const body = getBodyContent(result);
+
+          // C and D should remain
+          expect(body).to.include("C");
+          expect(body).to.include("D");
+          // E and F should be removed
+          expect(body).not.to.match(/\bE\b/);
+          expect(body).not.to.match(/\bF\b/);
+        });
+      });
+
+      describe("applyFilter on chords (filtering notes within)", () => {
+        it("should filter notes within chords based on pitch", () => {
+          const abc = "X:1\nK:C\n[CEG]";
+          const ast = parseAbc(abc);
+          const selection = selectChords(ast);
+
+          // Filter: keep notes with pitch > D4 (MIDI 62)
+          const predicate = parseFilterPredicate(
+            createComparison("pitch", ">", "D")
+          )!;
+
+          applyFilter(selection, predicate);
+
+          const result = stringify(ast);
+          // C should be removed, E and G should remain
+          expect(result).to.include("E");
+          expect(result).to.include("G");
+          expect(result).not.to.match(/\[C/);
+        });
+
+        it("should filter notes in multiple chords", () => {
+          const abc = "X:1\nK:C\n[CEG] [FAc]";
+          const ast = parseAbc(abc);
+          const selection = selectChords(ast);
+
+          // Filter: keep notes with pitch >= E4 (MIDI 64)
+          const predicate = parseFilterPredicate(
+            createComparison("pitch", ">=", "E")
+          )!;
+
+          applyFilter(selection, predicate);
+
+          const result = stringify(ast);
+          // From [CEG]: E and G remain
+          // From [FAc]: F, A, c remain
+          expect(result).to.include("E");
+          expect(result).to.include("G");
+          expect(result).to.include("F");
+          expect(result).to.include("A");
+          expect(result).to.include("c");
+        });
+      });
+
+      describe("applyFilter on chords by size", () => {
+        it("should filter chords with size < threshold", () => {
+          const abc = "X:1\nK:C\n[CE] [CEG] [CEGB]";
+          const ast = parseAbc(abc);
+          const selection = selectChords(ast);
+
+          // Filter: keep chords with size >= 3
+          const predicate = parseFilterPredicate(
+            createComparison("size", ">=", 3)
+          )!;
+
+          applyFilter(selection, predicate);
+
+          const result = stringify(ast);
+          // [CE] has 2 notes - should be removed
+          // [CEG] has 3 notes - should remain
+          // [CEGB] has 4 notes - should remain
+          expect(result).to.include("[CEG]");
+          expect(result).to.include("[CEGB]");
+          expect(result).not.to.include("[CE]");
+        });
+
+        it("should filter chords with exact size match", () => {
+          const abc = "X:1\nK:C\n[CE] [CEG] [CEGB]";
+          const ast = parseAbc(abc);
+          const selection = selectChords(ast);
+
+          // Filter: keep chords with size == 3
+          const predicate = parseFilterPredicate(
+            createComparison("size", "==", 3)
+          )!;
+
+          applyFilter(selection, predicate);
+
+          const result = stringify(ast);
+          // Only [CEG] has exactly 3 notes
+          expect(result).to.include("[CEG]");
+          expect(result).not.to.include("[CE]");
+          expect(result).not.to.include("[CEGB]");
+        });
+      });
+
+      describe("edge cases", () => {
+        it("should remove chords that become empty after filtering all notes", () => {
+          const abc = "X:1\nK:C\n[CD] E F";
+          const ast = parseAbc(abc);
+          const selection = selectChords(ast);
+
+          // Filter: keep notes with pitch > E (no notes in [CD] match)
+          const predicate = parseFilterPredicate(
+            createComparison("pitch", ">", "E")
+          )!;
+
+          applyFilter(selection, predicate);
+
+          const result = stringify(ast);
+          // The chord [CD] should be removed entirely, not left as empty []
+          expect(result).not.to.include("[]");
+          expect(result).not.to.include("[CD]");
+          expect(result).to.include("E");
+          expect(result).to.include("F");
+        });
+
+        it("should keep chords that still have notes after filtering", () => {
+          const abc = "X:1\nK:C\n[CDE] F G";
+          const ast = parseAbc(abc);
+          const selection = selectChords(ast);
+
+          // Filter: keep notes with pitch >= D
+          const predicate = parseFilterPredicate(
+            createComparison("pitch", ">=", "D")
+          )!;
+
+          applyFilter(selection, predicate);
+
+          const result = stringify(ast);
+          // Chord should still exist with D and E remaining
+          expect(result).to.include("[");
+          expect(result).not.to.include("[C");
+        });
       });
     });
 

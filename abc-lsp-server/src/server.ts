@@ -101,8 +101,8 @@ connection.onInitialize((params: InitializeParams) => {
   const result: InitializeResult = {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Full,
-      definitionProvider: true,
-      referencesProvider: true,
+      definitionProvider: false, // Not implemented for ABCT
+      referencesProvider: false, // Not implemented for ABCT
       hoverProvider: true,
       completionProvider: {
         resolveProvider: true,

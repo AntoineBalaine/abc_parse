@@ -29,7 +29,8 @@ export {
   selectChordsFromSelection,
   selectBassFromSelection,
 } from "./selectors";
-export { transpose, octave, retrograde, bass, getTransform, transforms } from "./transforms";
+export { transpose, octave, retrograde, bass, getTransform, transforms, applyFilter, parseFilterPredicate, parsePitchLiteral } from "./transforms";
+export type { FilterPredicate } from "./transforms";
 
 /**
  * Create a Selection that includes all music nodes from an AST.

@@ -18,6 +18,7 @@ import {
   isNot,
   isNegate,
   isComparison,
+  isFilterExpression,
   isSelector,
   isLocationSelector,
   isVoiceRef,
@@ -471,6 +472,98 @@ describe("ABCT Parser Expressions", () => {
         expect(expr.loc.start.column).to.equal(0);
         expect(expr.loc.end.column).to.equal(5);
       }
+    });
+  });
+
+  describe("filter expression", () => {
+    it("should parse filter with greater than comparison", () => {
+      const { expr, errors } = parse("filter (pitch > C4)");
+      expect(isFilterExpression(expr)).to.be.true;
+      if (isFilterExpression(expr)) {
+        expect(expr.predicate.op).to.equal(">");
+        expect(isIdentifier(expr.predicate.left)).to.be.true;
+        if (isIdentifier(expr.predicate.left)) {
+          expect(expr.predicate.left.name).to.equal("pitch");
+        }
+        expect(isIdentifier(expr.predicate.right)).to.be.true;
+        if (isIdentifier(expr.predicate.right)) {
+          expect(expr.predicate.right.name).to.equal("C4");
+        }
+      }
+      expect(errors).to.have.length(0);
+    });
+
+    it("should parse filter with >= comparison", () => {
+      const { expr, errors } = parse("filter (size >= 3)");
+      expect(isFilterExpression(expr)).to.be.true;
+      if (isFilterExpression(expr)) {
+        expect(expr.predicate.op).to.equal(">=");
+        expect(isIdentifier(expr.predicate.left)).to.be.true;
+        expect(isNumberLiteral(expr.predicate.right)).to.be.true;
+      }
+      expect(errors).to.have.length(0);
+    });
+
+    it("should parse filter with < comparison", () => {
+      const { expr, errors } = parse("filter (pitch < G)");
+      expect(isFilterExpression(expr)).to.be.true;
+      if (isFilterExpression(expr)) {
+        expect(expr.predicate.op).to.equal("<");
+      }
+      expect(errors).to.have.length(0);
+    });
+
+    it("should parse filter with == comparison", () => {
+      const { expr, errors } = parse("filter (size == 2)");
+      expect(isFilterExpression(expr)).to.be.true;
+      if (isFilterExpression(expr)) {
+        expect(expr.predicate.op).to.equal("==");
+      }
+      expect(errors).to.have.length(0);
+    });
+
+    it("should parse filter with != comparison", () => {
+      const { expr, errors } = parse("filter (pitch != C)");
+      expect(isFilterExpression(expr)).to.be.true;
+      if (isFilterExpression(expr)) {
+        expect(expr.predicate.op).to.equal("!=");
+      }
+      expect(errors).to.have.length(0);
+    });
+
+    it("should parse filter in a pipeline", () => {
+      const { expr, errors } = parse("src | @notes | filter (pitch > C4)");
+      expect(isPipe(expr)).to.be.true;
+      if (isPipe(expr)) {
+        expect(isFilterExpression(expr.right)).to.be.true;
+      }
+      expect(errors).to.have.length(0);
+    });
+
+    it("should parse filter after selector in pipeline", () => {
+      const { expr, errors } = parse("file.abc | @chords | filter (size >= 3)");
+      expect(isPipe(expr)).to.be.true;
+      if (isPipe(expr)) {
+        expect(isFilterExpression(expr.right)).to.be.true;
+        if (isPipe(expr.left)) {
+          expect(isSelector(expr.left.right)).to.be.true;
+        }
+      }
+      expect(errors).to.have.length(0);
+    });
+
+    it("should track keyword location", () => {
+      const { expr } = parse("filter (a > b)");
+      if (isFilterExpression(expr)) {
+        expect(expr.kwLoc.start.column).to.equal(0);
+        expect(expr.kwLoc.end.column).to.equal(6); // 'filter' is 6 chars
+      }
+    });
+
+    it("should report error for missing parentheses", () => {
+      const { expr, errors } = parse("filter pitch > C4");
+      // Should have an error
+      expect(errors.length).to.be.greaterThan(0);
     });
   });
 });

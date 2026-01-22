@@ -109,6 +109,42 @@ For single notes, the note is preserved as-is. For chords, only the lowest pitch
       seeAlso: [],
     },
   ],
+  [
+    "filter",
+    {
+      name: "filter",
+      description: "Remove elements that do not match a predicate",
+      documentation: `Filter removes notes or chords from the selection based on a comparison predicate.
+
+Supported properties:
+- pitch: MIDI pitch value (for notes). Use scientific notation: C4, D#5, Gb3.
+  Uppercase without octave = octave 4 (C = C4 = MIDI 60).
+  Lowercase without octave = octave 5 (c = C5 = MIDI 72).
+- size/length: Number of notes in a chord.
+
+Comparison operators: >, <, >=, <=, ==, !=
+
+Behavior:
+- Pitch filter on notes: removes non-matching notes
+- Pitch filter on chords: filters notes within chords, removes empty chords
+- Size filter on chords: removes non-matching chords entirely`,
+      args: [
+        {
+          name: "predicate",
+          type: "expression",
+          required: true,
+          description: "Comparison expression: (property op value), e.g., (pitch > C4)",
+        },
+      ],
+      examples: [
+        "filter (pitch > C4)",
+        "filter (size >= 3)",
+        "song.abc | @notes | filter (pitch >= D4)",
+        "song.abc | @chords | filter (size == 2)",
+      ],
+      seeAlso: [],
+    },
+  ],
 ]);
 
 /**

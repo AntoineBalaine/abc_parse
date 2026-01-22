@@ -59,6 +59,7 @@ export type Expr =
   | Not
   | Negate
   | Comparison
+  | FilterExpression
   | Selector
   | LocationSelector
   | VoiceRef
@@ -142,6 +143,17 @@ export interface Comparison {
   opLoc: Loc; // Location of the comparison operator
   left: Expr;
   right: Expr;
+  loc: Loc;
+}
+
+/**
+ * Filter expression: filter (predicate)
+ * Removes elements from a selection that do not match the predicate.
+ */
+export interface FilterExpression {
+  type: "filter";
+  kwLoc: Loc; // Location of the 'filter' keyword
+  predicate: Comparison;
   loc: Loc;
 }
 
@@ -429,5 +441,13 @@ export function isErrorExpr(node: unknown): node is ErrorExpr {
     typeof node === "object" &&
     node !== null &&
     (node as ErrorExpr).type === "error"
+  );
+}
+
+export function isFilterExpression(node: unknown): node is FilterExpression {
+  return (
+    typeof node === "object" &&
+    node !== null &&
+    (node as FilterExpression).type === "filter"
   );
 }

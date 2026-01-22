@@ -4,6 +4,8 @@
 export { transpose, octave } from "./transpose";
 export { retrograde } from "./retrograde";
 export { bass } from "./bass";
+export { applyFilter, parseFilterPredicate, parsePitchLiteral } from "./filter";
+export type { FilterPredicate } from "./filter";
 
 // Re-export for convenience
 import { transpose, octave } from "./transpose";

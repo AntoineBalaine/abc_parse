@@ -26,6 +26,7 @@ import {
   isNegate,
   isGroup,
   isVoiceRef,
+  isFilterExpression,
   Assignment,
   Pipe,
   Concat,
@@ -39,6 +40,7 @@ import {
   Negate,
   Group,
   Comparison,
+  FilterExpression,
 } from "./ast";
 
 /**
@@ -179,6 +181,9 @@ function findInExpr(expr: Expr, line: number, column: number): AstNode | null {
   }
   if (isComparison(expr)) {
     return findInComparison(expr, line, column);
+  }
+  if (isFilterExpression(expr)) {
+    return findInFilterExpression(expr, line, column);
   }
   if (isSelector(expr)) {
     return findInSelector(expr, line, column);
@@ -330,6 +335,19 @@ function findInComparison(comp: Comparison, line: number, column: number): AstNo
   return comp;
 }
 
+function findInFilterExpression(filter: FilterExpression, line: number, column: number): AstNode | null {
+  // Check if position is on the 'filter' keyword
+  if (containsPosition(filter.kwLoc, line, column)) {
+    return { type: "filter_kw", loc: filter.kwLoc, name: "filter" } as AstNode;
+  }
+
+  // Check in the predicate (comparison expression)
+  const inPredicate = findInExpr(filter.predicate, line, column);
+  if (inPredicate) return inPredicate;
+
+  return filter;
+}
+
 function findInSelector(sel: Selector, line: number, column: number): AstNode | null {
   // Check @ symbol
   if (containsPosition(sel.atLoc, line, column)) {
@@ -428,6 +446,8 @@ function buildPathInExpr(expr: Expr, line: number, column: number, path: AstNode
   } else if (isComparison(expr)) {
     buildPathInExpr(expr.left, line, column, path);
     buildPathInExpr(expr.right, line, column, path);
+  } else if (isFilterExpression(expr)) {
+    buildPathInExpr(expr.predicate, line, column, path);
   } else if (isList(expr)) {
     for (const item of expr.items) {
       buildPathInExpr(item, line, column, path);

@@ -36,6 +36,7 @@ import {
   Negate,
   Comparison,
   ComparisonOp,
+  FilterExpression,
   Loc,
 } from "../ast";
 import {
@@ -364,6 +365,80 @@ export function parseUnaryMinus(ctx: AbctParseCtx): Expr {
 }
 
 /**
+ * Parse a filter expression: filter (predicate)
+ * The predicate is a comparison expression within parentheses.
+ */
+export function parseFilterExpression(ctx: AbctParseCtx): FilterExpression {
+  const filterToken = advance(ctx); // consume 'filter'
+  skipWS(ctx);
+
+  // Expect opening parenthesis
+  if (!match(ctx, AbctTT.LPAREN)) {
+    ctx.error("Expected '(' after 'filter'");
+    // Error recovery: create a partial result
+    return {
+      type: "filter",
+      kwLoc: tokenToLoc(filterToken),
+      predicate: {
+        type: "comparison",
+        op: "==",
+        opLoc: tokenToLoc(filterToken),
+        left: { type: "identifier", name: "", loc: tokenToLoc(filterToken) },
+        right: { type: "identifier", name: "", loc: tokenToLoc(filterToken) },
+        loc: tokenToLoc(filterToken),
+      },
+      loc: tokenToLoc(filterToken),
+    };
+  }
+
+  skipWS(ctx);
+
+  // Parse the predicate - should be a comparison
+  const predicate = parseComparison(ctx);
+
+  // Validate that the predicate is actually a comparison
+  if (predicate.type !== "comparison") {
+    ctx.error("Filter predicate must be a comparison expression (e.g., pitch > C4)");
+    // Wrap non-comparison in a fake comparison for error recovery
+    const fakeComparison: Comparison = {
+      type: "comparison",
+      op: "==",
+      opLoc: predicate.loc,
+      left: predicate,
+      right: { type: "identifier", name: "true", loc: predicate.loc },
+      loc: predicate.loc,
+    };
+    return {
+      type: "filter",
+      kwLoc: tokenToLoc(filterToken),
+      predicate: fakeComparison,
+      loc: {
+        start: tokenToLoc(filterToken).start,
+        end: predicate.loc.end,
+      },
+    };
+  }
+
+  skipWS(ctx);
+
+  // Expect closing parenthesis
+  if (!match(ctx, AbctTT.RPAREN)) {
+    ctx.error("Expected ')' to close filter predicate");
+  }
+  const closeToken = previous(ctx);
+
+  return {
+    type: "filter",
+    kwLoc: tokenToLoc(filterToken),
+    predicate,
+    loc: {
+      start: tokenToLoc(filterToken).start,
+      end: tokenToLoc(closeToken).end,
+    },
+  };
+}
+
+/**
  * Parse an atom (highest precedence)
  */
 export function parseAtom(ctx: AbctParseCtx): Expr {
@@ -390,6 +465,11 @@ export function parseAtom(ctx: AbctParseCtx): Expr {
   // Selector: @path
   if (check(ctx, AbctTT.AT)) {
     return parseSelector(ctx);
+  }
+
+  // Filter expression: filter (predicate)
+  if (check(ctx, AbctTT.FILTER)) {
+    return parseFilterExpression(ctx);
   }
 
   // Voice reference: V:name (must check before file ref)
@@ -436,6 +516,7 @@ export function canStartAtom(ctx: AbctParseCtx): boolean {
     AbctTT.AT,
     AbctTT.NUMBER,
     AbctTT.IDENTIFIER,
-    AbctTT.MINUS  // Unary minus can start an atom
+    AbctTT.MINUS,  // Unary minus can start an atom
+    AbctTT.FILTER  // Filter keyword can start an atom
   );
 }
