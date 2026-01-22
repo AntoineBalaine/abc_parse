@@ -1,1320 +1,575 @@
 /**
  * TreeSitter external scanner for ABC music notation
  *
- * This scanner mirrors the architecture of the TypeScript scanner in
- * parse/parsers/scan2.ts, using a context struct and boolean sub-functions.
+ * This scanner uses TreeSitter's lexer API directly:
+ * - lexer->lookahead: peek at current character (does NOT advance)
+ * - lexer->advance(lexer, false): consume character into token
+ * - lexer->advance(lexer, true): skip character (whitespace)
+ * - lexer->mark_end(lexer): mark current position as token end
+ * - lexer->result_symbol: set to token type before returning true
  *
- * Key design decisions:
- * 1. We work directly with TSLexer for token matching (no full buffer)
- * 2. PCRE2 patterns are pre-compiled once in create()
- * 3. For complex patterns requiring lookahead, we use a small lookahead buffer
- * 4. The scanner context stores state that persists across TreeSitter calls
+ * NO BACKTRACKING: Once you advance, you cannot go back.
+ * Design all matching to work left-to-right without lookahead.
  */
 
 #include "scanner.h"
-
-#define PCRE2_CODE_UNIT_WIDTH 8
-#include <pcre2.h>
 #include <stdio.h>
 
-// Maximum lookahead buffer size for pattern matching
-#define MAX_LOOKAHEAD 256
-
-// Pattern definitions (regex strings)
-static const char *PATTERN_STRINGS[PAT_COUNT] = {
-  "[a-gA-G]",                           // PAT_NOTE_LETTER
-  "[',]+",                              // PAT_OCTAVE
-  "(\\^[\\^\\/]?)|(_[_\\/]?)|=",        // PAT_ACCIDENTAL
-  "[zZxX]",                             // PAT_REST
-  "[0-9]",                              // PAT_DIGIT
-  "[0-9]+",                             // PAT_DIGITS
-  "[0-9]+(\\.[0-9]+)?",                 // PAT_NUMBER
-  "[><]+",                              // PAT_BROKEN_RHYTHM
-  "[.~HLMOPRSTuv]+",                    // PAT_DECORATION
-  "[ \\t]+",                            // PAT_WS
-  "\\r?\\n",                            // PAT_EOL
-  "[a-zA-Z_][a-zA-Z0-9_\\-]*",          // PAT_IDENTIFIER
-  "[A-Za-z][ \\t]*:",                   // PAT_INFO_HDR
-  "\"([^\"\\\\\\n]|\\\\.)*\"",          // PAT_ANNOTATION
-  "![^\\n!]+!|\\+[^\\n+]+\\+",          // PAT_SYMBOL
-};
-
 // ============================================================================
-// PCRE2 Pattern Management
-// ============================================================================
-
-void ctx_init_patterns(ScanCtx *ctx) {
-  int errcode;
-  PCRE2_SIZE erroffset;
-
-  for (int i = 0; i < PAT_COUNT; i++) {
-    pcre2_code *code = pcre2_compile(
-      (PCRE2_SPTR)PATTERN_STRINGS[i],
-      PCRE2_ZERO_TERMINATED,
-      0,  // No compile-time flags; PCRE2_ANCHORED passed at match time
-      &errcode, &erroffset, NULL
-    );
-    if (code) {
-      ctx->patterns[i].code = code;
-      ctx->patterns[i].match_data = pcre2_match_data_create_from_pattern(code, NULL);
-    } else {
-      ctx->patterns[i].code = NULL;
-      ctx->patterns[i].match_data = NULL;
-    }
-  }
-}
-
-void ctx_free_patterns(ScanCtx *ctx) {
-  for (int i = 0; i < PAT_COUNT; i++) {
-    if (ctx->patterns[i].match_data) {
-      pcre2_match_data_free((pcre2_match_data *)ctx->patterns[i].match_data);
-    }
-    if (ctx->patterns[i].code) {
-      pcre2_code_free((pcre2_code *)ctx->patterns[i].code);
-    }
-  }
-}
-
-// ============================================================================
-// Lookahead Buffer Management
+// TreeSitter External Scanner API Implementation
 // ============================================================================
 
 /**
- * Fills a lookahead buffer from the current lexer position.
- * Returns the number of characters read.
- * Does not advance the lexer - just peeks ahead.
+ * Called once when parser is created.
+ * Allocate scanner state.
  */
-static size_t fill_lookahead(TSLexer *lexer, char *buffer, size_t max_len) {
-  size_t len = 0;
-
-  // Save current position by marking end
-  lexer->mark_end(lexer);
-
-  while (len < max_len && !lexer->eof(lexer)) {
-    buffer[len++] = (char)lexer->lookahead;
-    lexer->advance(lexer, false);  // Advance to peek
-  }
-  buffer[len] = '\0';
-
-  return len;
-}
-
-/**
- * Tests a pattern against text at the current lexer position.
- * Uses a lookahead buffer for regex matching.
- */
-static bool test_pattern(ScanCtx *ctx, PatternId pat, size_t *match_len) {
-  if (!ctx->patterns[pat].code) return false;
-
-  char buffer[MAX_LOOKAHEAD + 1];
-  size_t buf_len = fill_lookahead(ctx->lexer, buffer, MAX_LOOKAHEAD);
-
-  if (buf_len == 0) return false;
-
-  int rc = pcre2_match(
-    (pcre2_code *)ctx->patterns[pat].code,
-    (PCRE2_SPTR)buffer,
-    buf_len,
-    0,  // Start at beginning of buffer
-    PCRE2_ANCHORED,
-    (pcre2_match_data *)ctx->patterns[pat].match_data,
-    NULL
-  );
-
-  if (rc < 0) {
-    if (match_len) *match_len = 0;
-    return false;
-  }
-
-  PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(
-    (pcre2_match_data *)ctx->patterns[pat].match_data
-  );
-  if (match_len) *match_len = ovector[1] - ovector[0];
-  return true;
-}
-
-// ============================================================================
-// Lexer Helper Functions
-// ============================================================================
-
-static inline int32_t peek(TSLexer *lexer) {
-  return lexer->lookahead;
-}
-
-static inline bool at_eof(TSLexer *lexer) {
-  return lexer->eof(lexer);
-}
-
-static inline void advance(TSLexer *lexer) {
-  lexer->advance(lexer, false);
-}
-
-static inline void skip(TSLexer *lexer) {
-  lexer->advance(lexer, true);
-}
-
-static inline bool check_char(TSLexer *lexer, char c) {
-  return lexer->lookahead == (int32_t)(unsigned char)c;
-}
-
-static inline bool check_charset(TSLexer *lexer, const char *charset) {
-  for (const char *p = charset; *p; p++) {
-    if (lexer->lookahead == (int32_t)(unsigned char)*p) return true;
-  }
-  return false;
-}
-
-/**
- * Checks if the next characters match a string.
- * Uses lookahead buffer without consuming.
- */
-static bool check_string(TSLexer *lexer, const char *str) {
-  size_t len = strlen(str);
-  if (len == 0) return true;
-  if (len > MAX_LOOKAHEAD) return false;
-
-  char buffer[MAX_LOOKAHEAD + 1];
-  size_t buf_len = fill_lookahead(lexer, buffer, len);
-
-  return buf_len >= len && strncmp(buffer, str, len) == 0;
-}
-
-/**
- * Consumes n characters from the lexer.
- */
-static void consume(TSLexer *lexer, size_t n) {
-  for (size_t i = 0; i < n && !at_eof(lexer); i++) {
-    advance(lexer);
-  }
-}
-
-/**
- * Consumes characters while they match the charset.
- * Returns number of characters consumed.
- */
-static size_t consume_while_charset(TSLexer *lexer, const char *charset) {
-  size_t count = 0;
-  while (!at_eof(lexer) && check_charset(lexer, charset)) {
-    advance(lexer);
-    count++;
-  }
-  return count;
-}
-
-/**
- * Consumes characters until a character in the charset is found.
- * Returns number of characters consumed.
- */
-static size_t consume_until_charset(TSLexer *lexer, const char *charset) {
-  size_t count = 0;
-  while (!at_eof(lexer) && !check_charset(lexer, charset)) {
-    advance(lexer);
-    count++;
-  }
-  return count;
-}
-
-// ============================================================================
-// String Map Implementation
-// ============================================================================
-
-StringMap *stringmap_create(void) {
-  StringMap *map = malloc(sizeof(StringMap));
-  if (map) {
-    map->head = NULL;
-  }
-  return map;
-}
-
-void stringmap_free(StringMap *map) {
-  if (!map) return;
-  stringmap_clear(map);
-  free(map);
-}
-
-void stringmap_clear(StringMap *map) {
-  if (!map) return;
-  StringMapEntry *entry = map->head;
-  while (entry) {
-    StringMapEntry *next = entry->next;
-    free(entry->key);
-    free(entry->value);
-    free(entry);
-    entry = next;
-  }
-  map->head = NULL;
-}
-
-void stringmap_set(StringMap *map, const char *key, const char *value) {
-  if (!map || !key || !value) return;
-
-  // Check if key exists
-  for (StringMapEntry *entry = map->head; entry; entry = entry->next) {
-    if (strcmp(entry->key, key) == 0) {
-      free(entry->value);
-      entry->value = strdup(value);
-      return;
-    }
-  }
-
-  // Add new entry
-  StringMapEntry *entry = malloc(sizeof(StringMapEntry));
-  if (!entry) return;
-  entry->key = strdup(key);
-  entry->value = strdup(value);
-  if (!entry->key || !entry->value) {
-    free(entry->key);
-    free(entry->value);
-    free(entry);
-    return;
-  }
-  entry->next = map->head;
-  map->head = entry;
-}
-
-const char *stringmap_get(StringMap *map, const char *key) {
-  if (!map || !key) return NULL;
-  for (StringMapEntry *entry = map->head; entry; entry = entry->next) {
-    if (strcmp(entry->key, key) == 0) {
-      return entry->value;
-    }
-  }
-  return NULL;
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-static bool is_note_letter(int32_t c) {
-  return (c >= 'a' && c <= 'g') || (c >= 'A' && c <= 'G');
-}
-
-static bool is_pitch_start(TSLexer *lexer) {
-  int32_t c = peek(lexer);
-  return is_note_letter(c) || c == '^' || c == '_' || c == '=';
-}
-
-static bool is_rest_char(int32_t c) {
-  return c == 'z' || c == 'Z' || c == 'x' || c == 'X';
-}
-
-static bool is_digit(int32_t c) {
-  return c >= '0' && c <= '9';
-}
-
-static bool is_decoration_char(int32_t c) {
-  return c == '.' || c == '~' || c == 'H' || c == 'L' || c == 'M' ||
-         c == 'O' || c == 'P' || c == 'R' || c == 'S' || c == 'T' ||
-         c == 'u' || c == 'v';
-}
-
-// ============================================================================
-// Sub-Scanner Functions
-// ============================================================================
-
-bool scan_comment(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-  if (!check_char(lexer, '%')) return false;
-  // Skip %% (stylesheet directive)
-  if (check_string(lexer, "%%")) return false;
-
-  advance(lexer);
-  consume_until_charset(lexer, "\n");
-  lexer->mark_end(lexer);
-  lexer->result_symbol = TT_COMMENT;
-  return true;
-}
-
-bool scan_ws(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-  if (!check_charset(lexer, " \t")) return false;
-
-  consume_while_charset(lexer, " \t");
-  lexer->mark_end(lexer);
-  lexer->result_symbol = TT_WS;
-  return true;
-}
-
-bool scan_eol(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-
-  if (check_char(lexer, '\r')) {
-    advance(lexer);
-    if (check_char(lexer, '\n')) {
-      advance(lexer);
-    }
-    ctx->line++;
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_EOL;
-    return true;
-  }
-
-  if (check_char(lexer, '\n')) {
-    advance(lexer);
-    ctx->line++;
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_EOL;
-    return true;
-  }
-
-  return false;
-}
-
-bool scan_annotation(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-  if (!check_char(lexer, '"')) return false;
-
-  advance(lexer);  // consume opening quote
-  while (!at_eof(lexer) && !check_char(lexer, '\n')) {
-    if (check_char(lexer, '\\')) {
-      advance(lexer);  // consume backslash
-      if (!at_eof(lexer) && !check_char(lexer, '\n')) {
-        advance(lexer);  // consume escaped character
-      }
-    } else if (check_char(lexer, '"')) {
-      advance(lexer);  // consume closing quote
-      lexer->mark_end(lexer);
-      lexer->result_symbol = TT_ANNOTATION;
-      return true;
-    } else {
-      advance(lexer);
-    }
-  }
-  // Unterminated string - still emit what we have
-  lexer->mark_end(lexer);
-  lexer->result_symbol = TT_ANNOTATION;
-  return true;
-}
-
-bool scan_tuplet(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-  if (!check_char(lexer, '(')) return false;
-
-  // Peek at next char to distinguish from slur
-  char buffer[3];
-  fill_lookahead(lexer, buffer, 2);
-  if (buffer[0] != '(' || !(buffer[1] >= '1' && buffer[1] <= '9')) {
-    return false;
-  }
-
-  advance(lexer);  // consume (
-  lexer->mark_end(lexer);
-  lexer->result_symbol = TT_TUPLET_LPAREN;
-  return true;
-}
-
-bool scan_barline(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-
-  // Check for barline starting characters
-  if (!check_charset(lexer, ":|[")) return false;
-
-  // Colon-start barline (:| or ::)
-  if (check_char(lexer, ':')) {
-    consume_while_charset(lexer, ":");
-    if (check_char(lexer, '|')) {
-      consume_while_charset(lexer, "|");
-      consume_while_charset(lexer, " \t");
-      if (check_charset(lexer, "[]")) {
-        advance(lexer);
-      }
-    }
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_BARLINE;
-    return true;
-  }
-
-  // Pipe-start barline
-  if (check_char(lexer, '|')) {
-    consume_while_charset(lexer, "|");
-
-    // Check for colons
-    if (check_char(lexer, ':')) {
-      consume_while_charset(lexer, ":");
-      lexer->mark_end(lexer);
-      lexer->result_symbol = TT_BARLINE;
-      return true;
-    }
-
-    // Check for brackets
-    consume_while_charset(lexer, " \t");
-    if (check_charset(lexer, "[]")) {
-      advance(lexer);
-    }
-
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_BARLINE;
-    return true;
-  }
-
-  // Bracket-start barline
-  if (check_char(lexer, '[')) {
-    char buffer[4];
-    fill_lookahead(lexer, buffer, 3);
-
-    // [| or [] or [digit
-    if (buffer[1] == '|' || buffer[1] == ']' || (buffer[1] >= '1' && buffer[1] <= '9')) {
-      advance(lexer);  // consume [
-
-      if (check_char(lexer, '|')) {
-        advance(lexer);
-        consume_while_charset(lexer, ":");
-        if (check_char(lexer, ']')) {
-          advance(lexer);
-        }
-      } else if (check_char(lexer, ']')) {
-        advance(lexer);
-      }
-
-      lexer->mark_end(lexer);
-      lexer->result_symbol = TT_BARLINE;
-      return true;
-    }
-  }
-
-  return false;
-}
-
-bool scan_decoration(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-  if (!is_decoration_char(peek(lexer))) return false;
-
-  // Need lookahead to verify decoration is followed by pitch/rest/chord
-  size_t match_len;
-  if (!test_pattern(ctx, PAT_DECORATION, &match_len) || match_len == 0) {
-    return false;
-  }
-
-  // Use lookahead to check what follows
-  char buffer[MAX_LOOKAHEAD + 1];
-  size_t buf_len = fill_lookahead(lexer, buffer, match_len + 1);
-
-  if (buf_len <= match_len) return false;
-
-  char next_char = buffer[match_len];
-  if (!is_note_letter(next_char) && !is_rest_char(next_char) &&
-      next_char != '^' && next_char != '_' && next_char != '=' && next_char != '[') {
-    return false;
-  }
-
-  // Consume decoration characters
-  consume(lexer, match_len);
-  lexer->mark_end(lexer);
-  lexer->result_symbol = TT_DECORATION;
-  return true;
-}
-
-bool scan_pitch(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-
-  // Check for accidental
-  size_t acc_len = 0;
-  if (check_charset(lexer, "^_=")) {
-    test_pattern(ctx, PAT_ACCIDENTAL, &acc_len);
-    if (acc_len > 0) {
-      consume(lexer, acc_len);
-      lexer->mark_end(lexer);
-      lexer->result_symbol = TT_ACCIDENTAL;
-      return true;  // Return after accidental, note letter comes in next call
-    }
-  }
-
-  // Check for note letter
-  if (is_note_letter(peek(lexer))) {
-    advance(lexer);
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_NOTE_LETTER;
-    return true;
-  }
-
-  return false;
-}
-
-bool scan_octave(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-  if (!check_charset(lexer, "',")) return false;
-
-  size_t match_len;
-  if (test_pattern(ctx, PAT_OCTAVE, &match_len) && match_len > 0) {
-    consume(lexer, match_len);
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_OCTAVE;
-    return true;
-  }
-  return false;
-}
-
-bool scan_rhythm(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-
-  // Numerator
-  if (is_digit(peek(lexer))) {
-    size_t match_len;
-    if (test_pattern(ctx, PAT_DIGITS, &match_len) && match_len > 0) {
-      consume(lexer, match_len);
-      lexer->mark_end(lexer);
-      lexer->result_symbol = TT_RHY_NUMER;
-      return true;
-    }
-  }
-
-  // Rhythm separator (/)
-  if (check_char(lexer, '/')) {
-    consume_while_charset(lexer, "/");
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_RHY_SEP;
-    return true;
-  }
-
-  // Broken rhythm (> or <)
-  if (check_charset(lexer, "><")) {
-    size_t match_len;
-    if (test_pattern(ctx, PAT_BROKEN_RHYTHM, &match_len) && match_len > 0) {
-      consume(lexer, match_len);
-      lexer->mark_end(lexer);
-      lexer->result_symbol = TT_RHY_BRKN;
-      return true;
-    }
-  }
-
-  return false;
-}
-
-bool scan_rest(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-  if (!is_rest_char(peek(lexer))) return false;
-
-  advance(lexer);
-  lexer->mark_end(lexer);
-  lexer->result_symbol = TT_REST;
-  return true;
-}
-
-bool scan_tie(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-  if (!check_char(lexer, '-')) return false;
-
-  advance(lexer);
-  lexer->mark_end(lexer);
-  lexer->result_symbol = TT_TIE;
-  return true;
-}
-
-bool scan_slur(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-  if (!check_charset(lexer, "()")) return false;
-
-  // Check that it's not a tuplet
-  if (check_char(lexer, '(')) {
-    char buffer[3];
-    fill_lookahead(lexer, buffer, 2);
-    if (buffer[1] >= '1' && buffer[1] <= '9') {
-      return false;  // It's a tuplet
-    }
-  }
-
-  advance(lexer);
-  lexer->mark_end(lexer);
-  lexer->result_symbol = TT_SLUR;
-  return true;
-}
-
-bool scan_symbol(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-  if (!check_charset(lexer, "!+")) return false;
-
-  size_t match_len;
-  if (test_pattern(ctx, PAT_SYMBOL, &match_len) && match_len > 0) {
-    consume(lexer, match_len);
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_SYMBOL;
-    return true;
-  }
-  return false;
-}
-
-bool scan_ampersand(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-  if (!check_char(lexer, '&')) return false;
-
-  char buffer[3];
-  fill_lookahead(lexer, buffer, 2);
-
-  if (buffer[1] == '\n') {
-    advance(lexer);
-    advance(lexer);
-    ctx->line++;
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_VOICE_OVRLAY;
-    return true;
-  }
-
-  advance(lexer);
-  lexer->mark_end(lexer);
-  lexer->result_symbol = TT_VOICE;
-  return true;
-}
-
-bool scan_line_continuation(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-  if (!check_char(lexer, '\\')) return false;
-
-  // Look ahead to verify pattern: \<space?><comment?><EOL>
-  char buffer[MAX_LOOKAHEAD + 1];
-  size_t buf_len = fill_lookahead(lexer, buffer, MAX_LOOKAHEAD);
-
-  if (buf_len < 2) return false;
-
-  size_t pos = 1;  // Start after backslash
-  // Skip whitespace
-  while (pos < buf_len && (buffer[pos] == ' ' || buffer[pos] == '\t')) {
-    pos++;
-  }
-  // Optional comment
-  if (pos < buf_len && buffer[pos] == '%') {
-    while (pos < buf_len && buffer[pos] != '\n') {
-      pos++;
-    }
-  }
-  // Must have newline
-  if (pos >= buf_len || buffer[pos] != '\n') {
-    return false;
-  }
-
-  // Only consume the backslash
-  advance(lexer);
-  lexer->mark_end(lexer);
-  lexer->result_symbol = TT_LINE_CONT;
-  return true;
-}
-
-bool scan_directive(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-  if (!check_string(lexer, "%%")) return false;
-
-  advance(lexer);
-  advance(lexer);
-  lexer->mark_end(lexer);
-  lexer->result_symbol = TT_STYLESHEET_DIRECTIVE;
-  return true;
-}
-
-bool scan_info_line(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-
-  size_t match_len;
-  if (!test_pattern(ctx, PAT_INFO_HDR, &match_len) || match_len == 0) {
-    return false;
-  }
-
-  consume(lexer, match_len);
-  lexer->mark_end(lexer);
-  lexer->result_symbol = TT_INF_HDR;
-  return true;
-}
-
-bool scan_system_break(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-  if (!check_char(lexer, '!')) return false;
-
-  // System break is standalone ! surrounded by whitespace
-  // We can't easily check previous char, so we rely on grammar context
-  char buffer[3];
-  size_t buf_len = fill_lookahead(lexer, buffer, 2);
-
-  if (buf_len >= 2 && (buffer[1] == ' ' || buffer[1] == '\t' || buffer[1] == '\n')) {
-    advance(lexer);
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_SYSTEM_BREAK;
-    return true;
-  }
-
-  return false;
-}
-
-bool scan_y_spacer(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-  if (!check_char(lexer, 'y')) return false;
-
-  advance(lexer);
-  lexer->mark_end(lexer);
-  lexer->result_symbol = TT_Y_SPC;
-  return true;
-}
-
-bool scan_bcktck_spacer(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-  if (!check_char(lexer, '`')) return false;
-
-  advance(lexer);
-  lexer->mark_end(lexer);
-  lexer->result_symbol = TT_BCKTCK_SPC;
-  return true;
-}
-
-bool scan_chord_bracket(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-
-  if (check_char(lexer, '[')) {
-    // Check if it's a chord (not barline, not inline field)
-    char buffer[4];
-    fill_lookahead(lexer, buffer, 3);
-
-    // Chord contains pitch or annotation
-    if (buffer[1] == '"' || is_note_letter(buffer[1]) ||
-        buffer[1] == '^' || buffer[1] == '_' || buffer[1] == '=') {
-      advance(lexer);
-      lexer->mark_end(lexer);
-      lexer->result_symbol = TT_CHRD_LEFT_BRKT;
-      return true;
-    }
-  }
-
-  if (check_char(lexer, ']')) {
-    advance(lexer);
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_CHRD_RIGHT_BRKT;
-    return true;
-  }
-
-  return false;
-}
-
-bool scan_grace_group_bracket(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-
-  if (check_char(lexer, '{')) {
-    advance(lexer);
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_GRC_GRP_LEFT_BRACE;
-    return true;
-  }
-
-  if (check_char(lexer, '}')) {
-    advance(lexer);
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_GRC_GRP_RGHT_BRACE;
-    return true;
-  }
-
-  if (check_char(lexer, '/')) {
-    // Check if we're inside a grace group (grammar will handle context)
-    advance(lexer);
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_GRC_GRP_SLSH;
-    return true;
-  }
-
-  return false;
-}
-
-bool scan_inline_field_bracket(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-
-  if (check_char(lexer, '[')) {
-    // Check if it's an inline field [letter:]
-    char buffer[8];
-    size_t buf_len = fill_lookahead(lexer, buffer, 7);
-
-    size_t pos = 1;
-    // Skip whitespace
-    while (pos < buf_len && (buffer[pos] == ' ' || buffer[pos] == '\t')) {
-      pos++;
-    }
-    // Check for letter
-    if (pos >= buf_len) return false;
-    char letter = buffer[pos];
-    if (!((letter >= 'a' && letter <= 'z') || (letter >= 'A' && letter <= 'Z'))) {
-      return false;
-    }
-    pos++;
-    // Skip whitespace
-    while (pos < buf_len && (buffer[pos] == ' ' || buffer[pos] == '\t')) {
-      pos++;
-    }
-    // Check for colon
-    if (pos >= buf_len || buffer[pos] != ':') {
-      return false;
-    }
-
-    advance(lexer);
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_INLN_FLD_LFT_BRKT;
-    return true;
-  }
-
-  // Closing bracket handled by grammar
-  return false;
-}
-
-bool scan_repeat_number(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-
-  if (is_digit(peek(lexer)) && peek(lexer) != '0') {
-    size_t match_len;
-    if (test_pattern(ctx, PAT_DIGITS, &match_len) && match_len > 0) {
-      consume(lexer, match_len);
-      lexer->mark_end(lexer);
-      lexer->result_symbol = TT_REPEAT_NUMBER;
-      return true;
-    }
-  }
-
-  if (check_char(lexer, ',')) {
-    advance(lexer);
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_REPEAT_COMMA;
-    return true;
-  }
-
-  if (check_char(lexer, '-')) {
-    advance(lexer);
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_REPEAT_DASH;
-    return true;
-  }
-
-  if (check_charset(lexer, "xX")) {
-    advance(lexer);
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_REPEAT_X;
-    return true;
-  }
-
-  return false;
-}
-
-bool scan_identifier(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-
-  size_t match_len;
-  if (test_pattern(ctx, PAT_IDENTIFIER, &match_len) && match_len > 0) {
-    consume(lexer, match_len);
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_IDENTIFIER;
-    return true;
-  }
-  return false;
-}
-
-bool scan_number(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-
-  size_t match_len;
-  if (test_pattern(ctx, PAT_NUMBER, &match_len) && match_len > 0) {
-    consume(lexer, match_len);
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_NUMBER;
-    return true;
-  }
-  return false;
-}
-
-bool scan_section_break(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-  if (!check_char(lexer, '\n')) return false;
-
-  // Look ahead for blank line pattern
-  char buffer[MAX_LOOKAHEAD + 1];
-  size_t buf_len = fill_lookahead(lexer, buffer, MAX_LOOKAHEAD);
-
-  if (buf_len < 2) return false;
-
-  // Must start with newline
-  if (buffer[0] != '\n') return false;
-
-  // Must have at least one blank line
-  size_t pos = 1;
-  bool found_blank_line = false;
-
-  while (pos < buf_len) {
-    // Skip whitespace
-    while (pos < buf_len && (buffer[pos] == ' ' || buffer[pos] == '\t')) {
-      pos++;
-    }
-    // Must have newline
-    if (pos >= buf_len || buffer[pos] != '\n') {
-      break;
-    }
-    pos++;
-    found_blank_line = true;
-  }
-
-  if (!found_blank_line) return false;
-
-  // Consume the section break
-  for (size_t i = 0; i < pos && !at_eof(lexer); i++) {
-    if (peek(lexer) == '\n') ctx->line++;
-    advance(lexer);
-  }
-
-  lexer->mark_end(lexer);
-  lexer->result_symbol = TT_SCT_BRK;
-  return true;
-}
-
-bool collect_invalid_token(ScanCtx *ctx) {
-  TSLexer *lexer = ctx->lexer;
-
-  // Collect until recovery point
-  bool collected = false;
-  while (!at_eof(lexer) && !check_charset(lexer, "\n \t|")) {
-    advance(lexer);
-    collected = true;
-  }
-
-  if (collected) {
-    lexer->mark_end(lexer);
-    lexer->result_symbol = TT_INVALID;
-    return true;
-  }
-
-  return false;
-}
-
-// ============================================================================
-// Context Operations (for header compatibility)
-// ============================================================================
-
-void ctx_init(ScanCtx *ctx, TSLexer *lexer) {
-  ctx->lexer = lexer;
-  ctx->start = 0;
-  ctx->current = 0;
-  ctx->line = 0;
-  ctx->line_start = 0;
-  ctx->in_text_block = false;
-  ctx->in_tune_body = false;
-}
-
-bool ctx_test_char(ScanCtx *ctx, char c) {
-  return check_char(ctx->lexer, c);
-}
-
-bool ctx_test_str(ScanCtx *ctx, const char *str) {
-  return check_string(ctx->lexer, str);
-}
-
-bool ctx_test_charset(ScanCtx *ctx, const char *charset) {
-  return check_charset(ctx->lexer, charset);
-}
-
-bool ctx_test_regex(ScanCtx *ctx, PatternId pat) {
-  size_t match_len;
-  return test_pattern(ctx, pat, &match_len) && match_len > 0;
-}
-
-size_t ctx_match_regex(ScanCtx *ctx, PatternId pat) {
-  size_t match_len;
-  if (test_pattern(ctx, pat, &match_len)) {
-    return match_len;
-  }
-  return 0;
-}
-
-void ctx_advance(ScanCtx *ctx, size_t count) {
-  consume(ctx->lexer, count);
-}
-
-char ctx_peek(ScanCtx *ctx) {
-  return (char)peek(ctx->lexer);
-}
-
-char ctx_peek_next(ScanCtx *ctx) {
-  char buffer[3];
-  fill_lookahead(ctx->lexer, buffer, 2);
-  return buffer[1];
-}
-
-bool ctx_is_at_end(ScanCtx *ctx) {
-  return at_eof(ctx->lexer);
-}
-
-void ctx_emit(ScanCtx *ctx, TokenType type) {
-  ctx->lexer->mark_end(ctx->lexer);
-  ctx->lexer->result_symbol = type;
-}
-
-// Stub implementations for functions declared in header but not needed
-bool scan_note(ScanCtx *ctx) { (void)ctx; return false; }
-bool scan_chord(ScanCtx *ctx) { (void)ctx; return false; }
-bool scan_grace_group(ScanCtx *ctx) { (void)ctx; return false; }
-bool scan_inline_field(ScanCtx *ctx) { (void)ctx; return false; }
-bool scan_lyric_line(ScanCtx *ctx) { (void)ctx; return false; }
-bool scan_symbol_line(ScanCtx *ctx) { (void)ctx; return false; }
-bool scan_repeat_numbers(ScanCtx *ctx) { (void)ctx; return false; }
-bool scan_free_text(ScanCtx *ctx) { (void)ctx; return false; }
-bool is_recovery_point(ScanCtx *ctx) { (void)ctx; return false; }
-
-// ============================================================================
-// TreeSitter External Scanner API
-// ============================================================================
-
 void *tree_sitter_abc_external_scanner_create(void) {
-  ScanCtx *ctx = malloc(sizeof(ScanCtx));
-  if (!ctx) return NULL;
-
-  memset(ctx, 0, sizeof(ScanCtx));
-  ctx->macros = stringmap_create();
-  ctx->user_symbols = stringmap_create();
-  ctx_init_patterns(ctx);
-
-  return ctx;
+  ScannerState *state = calloc(1, sizeof(ScannerState));
+  state->in_tune_body = false;
+  state->in_text_block = false;
+  state->line_number = 1;
+  return state;
 }
 
+/**
+ * Called when parser is destroyed.
+ * Free scanner state.
+ */
 void tree_sitter_abc_external_scanner_destroy(void *payload) {
-  ScanCtx *ctx = (ScanCtx *)payload;
-  if (!ctx) return;
-
-  if (ctx->source) {
-    free((void *)ctx->source);
-  }
-  if (ctx->macros) {
-    stringmap_free(ctx->macros);
-  }
-  if (ctx->user_symbols) {
-    stringmap_free(ctx->user_symbols);
-  }
-  ctx_free_patterns(ctx);
-
-  free(ctx);
+  free(payload);
 }
 
+/**
+ * Serialize scanner state for incremental parsing.
+ * Returns number of bytes written.
+ */
 unsigned tree_sitter_abc_external_scanner_serialize(
   void *payload,
   char *buffer
 ) {
-  ScanCtx *ctx = (ScanCtx *)payload;
-  unsigned pos = 0;
-
-  // Fixed state (4 bytes)
-  buffer[pos++] = ctx->in_text_block;
-  buffer[pos++] = ctx->in_tune_body;
-  buffer[pos++] = (ctx->line >> 8) & 0xFF;
-  buffer[pos++] = ctx->line & 0xFF;
-
-  // Macro count
-  uint8_t macro_count = 0;
-  for (StringMapEntry *e = ctx->macros->head; e && macro_count < 255; e = e->next) {
-    macro_count++;
-  }
-  buffer[pos++] = macro_count;
-
-  // Macro entries (key_len, val_len, key, value)
-  for (StringMapEntry *e = ctx->macros->head; e && pos < 1000; e = e->next) {
-    size_t key_len = strlen(e->key);
-    size_t val_len = strlen(e->value);
-    if (pos + 2 + key_len + val_len > 1000) break;
-    buffer[pos++] = (uint8_t)key_len;
-    buffer[pos++] = (uint8_t)val_len;
-    memcpy(buffer + pos, e->key, key_len);
-    pos += key_len;
-    memcpy(buffer + pos, e->value, val_len);
-    pos += val_len;
-  }
-
-  // User symbol count
-  uint8_t user_symbol_count = 0;
-  for (StringMapEntry *e = ctx->user_symbols->head; e && user_symbol_count < 255; e = e->next) {
-    user_symbol_count++;
-  }
-  buffer[pos++] = user_symbol_count;
-
-  // User symbol entries
-  for (StringMapEntry *e = ctx->user_symbols->head; e && pos < 1000; e = e->next) {
-    size_t key_len = strlen(e->key);
-    size_t val_len = strlen(e->value);
-    if (pos + 2 + key_len + val_len > 1000) break;
-    buffer[pos++] = (uint8_t)key_len;
-    buffer[pos++] = (uint8_t)val_len;
-    memcpy(buffer + pos, e->key, key_len);
-    pos += key_len;
-    memcpy(buffer + pos, e->value, val_len);
-    pos += val_len;
-  }
-
-  return pos;
+  ScannerState *state = (ScannerState *)payload;
+  buffer[0] = state->in_tune_body ? 1 : 0;
+  buffer[1] = state->in_text_block ? 1 : 0;
+  buffer[2] = (state->line_number >> 8) & 0xFF;
+  buffer[3] = state->line_number & 0xFF;
+  return 4;
 }
 
+/**
+ * Deserialize scanner state.
+ */
 void tree_sitter_abc_external_scanner_deserialize(
   void *payload,
   const char *buffer,
   unsigned length
 ) {
-  ScanCtx *ctx = (ScanCtx *)payload;
-  if (length < 6) return;
-
-  unsigned pos = 0;
-  ctx->in_text_block = buffer[pos++];
-  ctx->in_tune_body = buffer[pos++];
-  ctx->line = ((unsigned char)buffer[pos] << 8) | (unsigned char)buffer[pos + 1];
-  pos += 2;
-
-  // Clear and rebuild macros
-  stringmap_clear(ctx->macros);
-  if (pos < length) {
-    uint8_t macro_count = (uint8_t)buffer[pos++];
-    for (uint8_t i = 0; i < macro_count && pos + 2 <= length; i++) {
-      uint8_t key_len = (uint8_t)buffer[pos++];
-      uint8_t val_len = (uint8_t)buffer[pos++];
-      if (pos + key_len + val_len > length) break;
-
-      char *key = malloc(key_len + 1);
-      char *val = malloc(val_len + 1);
-      if (key && val) {
-        memcpy(key, buffer + pos, key_len);
-        key[key_len] = '\0';
-        memcpy(val, buffer + pos + key_len, val_len);
-        val[val_len] = '\0';
-        stringmap_set(ctx->macros, key, val);
-      }
-      pos += key_len + val_len;
-      free(key);
-      free(val);
-    }
-  }
-
-  // Clear and rebuild user symbols
-  stringmap_clear(ctx->user_symbols);
-  if (pos < length) {
-    uint8_t user_symbol_count = (uint8_t)buffer[pos++];
-    for (uint8_t i = 0; i < user_symbol_count && pos + 2 <= length; i++) {
-      uint8_t key_len = (uint8_t)buffer[pos++];
-      uint8_t val_len = (uint8_t)buffer[pos++];
-      if (pos + key_len + val_len > length) break;
-
-      char *key = malloc(key_len + 1);
-      char *val = malloc(val_len + 1);
-      if (key && val) {
-        memcpy(key, buffer + pos, key_len);
-        key[key_len] = '\0';
-        memcpy(val, buffer + pos + key_len, val_len);
-        val[val_len] = '\0';
-        stringmap_set(ctx->user_symbols, key, val);
-      }
-      pos += key_len + val_len;
-      free(key);
-      free(val);
-    }
+  ScannerState *state = (ScannerState *)payload;
+  if (length >= 4) {
+    state->in_tune_body = buffer[0] != 0;
+    state->in_text_block = buffer[1] != 0;
+    state->line_number = ((uint16_t)(unsigned char)buffer[2] << 8) |
+                         (uint16_t)(unsigned char)buffer[3];
   }
 }
 
+// ============================================================================
+// Lexer Helper Macros
+// ============================================================================
+
+#define PEEK (lexer->lookahead)
+#define ADVANCE() lexer->advance(lexer, false)
+#define SKIP() lexer->advance(lexer, true)
+#define MARK_END() lexer->mark_end(lexer)
+#define EOF_REACHED (lexer->eof(lexer))
+#define EMIT(type) do { lexer->result_symbol = (type); return true; } while(0)
+
+// ============================================================================
+// Token Scanning Functions
+// ============================================================================
+
 /**
- * Main scan function - called by TreeSitter for each token.
+ * Scan whitespace: [ \t]+
+ */
+static bool scan_whitespace(TSLexer *lexer) {
+  if (!is_ws_char(PEEK)) return false;
+
+  while (is_ws_char(PEEK)) {
+    ADVANCE();
+  }
+  MARK_END();
+  EMIT(TT_WS);
+}
+
+/**
+ * Scan end of line: \r?\n
+ */
+static bool scan_eol(TSLexer *lexer, ScannerState *state) {
+  if (PEEK == '\r') {
+    ADVANCE();
+  }
+  if (PEEK == '\n') {
+    ADVANCE();
+    MARK_END();
+    state->line_number++;
+    EMIT(TT_EOL);
+  }
+  return false;
+}
+
+/**
+ * Scan comment: %...\n (but not %%)
+ */
+static bool scan_comment(TSLexer *lexer) {
+  if (PEEK != '%') return false;
+
+  ADVANCE();
+  // Check for %% (directive, not comment)
+  if (PEEK == '%') {
+    // This is a directive, not a comment - let grammar handle it
+    return false;
+  }
+
+  // Consume until end of line
+  while (!EOF_REACHED && PEEK != '\n' && PEEK != '\r') {
+    ADVANCE();
+  }
+  MARK_END();
+  EMIT(TT_COMMENT);
+}
+
+/**
+ * Scan note letter: [a-gA-G]
+ */
+static bool scan_note_letter(TSLexer *lexer) {
+  if (!is_note_letter(PEEK)) return false;
+
+  ADVANCE();
+  MARK_END();
+  EMIT(TT_NOTE_LETTER);
+}
+
+/**
+ * Scan accidental: ^ ^^ ^/ _ __ _/ =
+ */
+static bool scan_accidental(TSLexer *lexer) {
+  if (PEEK == '^') {
+    ADVANCE();
+    if (PEEK == '^' || PEEK == '/') {
+      ADVANCE();
+    }
+    MARK_END();
+    EMIT(TT_ACCIDENTAL);
+  }
+
+  if (PEEK == '_') {
+    ADVANCE();
+    if (PEEK == '_' || PEEK == '/') {
+      ADVANCE();
+    }
+    MARK_END();
+    EMIT(TT_ACCIDENTAL);
+  }
+
+  if (PEEK == '=') {
+    ADVANCE();
+    MARK_END();
+    EMIT(TT_ACCIDENTAL);
+  }
+
+  return false;
+}
+
+/**
+ * Scan octave modifiers: [',]+
+ */
+static bool scan_octave(TSLexer *lexer) {
+  if (!is_octave_char(PEEK)) return false;
+
+  while (is_octave_char(PEEK)) {
+    ADVANCE();
+  }
+  MARK_END();
+  EMIT(TT_OCTAVE);
+}
+
+/**
+ * Scan rest: [zZxX]
+ */
+static bool scan_rest(TSLexer *lexer) {
+  if (!is_rest_char(PEEK)) return false;
+
+  ADVANCE();
+  MARK_END();
+  EMIT(TT_REST);
+}
+
+/**
+ * Scan tie: -
+ */
+static bool scan_tie(TSLexer *lexer) {
+  if (PEEK != '-') return false;
+
+  ADVANCE();
+  MARK_END();
+  EMIT(TT_TIE);
+}
+
+/**
+ * Scan decoration characters: [.~HLMOPRSTuv]+
+ */
+static bool scan_decoration(TSLexer *lexer) {
+  if (!is_decoration_char(PEEK)) return false;
+
+  while (is_decoration_char(PEEK)) {
+    ADVANCE();
+  }
+  MARK_END();
+  EMIT(TT_DECORATION);
+}
+
+/**
+ * Scan slur: ( or )
+ */
+static bool scan_slur(TSLexer *lexer) {
+  if (PEEK == '(' || PEEK == ')') {
+    ADVANCE();
+    MARK_END();
+    EMIT(TT_SLUR);
+  }
+  return false;
+}
+
+/**
+ * Scan number (rhythm numerator): [0-9]+
+ */
+static bool scan_number(TSLexer *lexer) {
+  if (!is_digit(PEEK)) return false;
+
+  while (is_digit(PEEK)) {
+    ADVANCE();
+  }
+  MARK_END();
+  EMIT(TT_RHY_NUMER);
+}
+
+/**
+ * Scan rhythm separator: /
+ */
+static bool scan_rhythm_sep(TSLexer *lexer) {
+  if (PEEK != '/') return false;
+
+  ADVANCE();
+  MARK_END();
+  EMIT(TT_RHY_SEP);
+}
+
+/**
+ * Scan broken rhythm: [<>]+
+ */
+static bool scan_broken_rhythm(TSLexer *lexer) {
+  if (!is_broken_rhythm_char(PEEK)) return false;
+
+  while (is_broken_rhythm_char(PEEK)) {
+    ADVANCE();
+  }
+  MARK_END();
+  EMIT(TT_RHY_BRKN);
+}
+
+/**
+ * Scan barline: | || |] [| :| |: :: etc.
+ */
+static bool scan_barline(TSLexer *lexer) {
+  if (PEEK == '|') {
+    ADVANCE();
+    // Check for ||, |], |:, |1, |2, etc.
+    if (PEEK == '|' || PEEK == ']' || PEEK == ':') {
+      ADVANCE();
+    } else if (is_digit(PEEK)) {
+      // |1, |2 - repeat ending
+      ADVANCE();
+      MARK_END();
+      EMIT(TT_BARLINE);
+    }
+    MARK_END();
+    EMIT(TT_BARLINE);
+  }
+
+  if (PEEK == ':') {
+    ADVANCE();
+    if (PEEK == '|' || PEEK == ':') {
+      ADVANCE();
+      // :| or ::
+      if (PEEK == '|') {
+        ADVANCE();  // ::|
+      }
+      MARK_END();
+      EMIT(TT_BARLINE);
+    }
+    // Just : alone is not a barline
+    return false;
+  }
+
+  if (PEEK == '[') {
+    ADVANCE();
+    if (PEEK == '|') {
+      ADVANCE();
+      // [| or [|:
+      if (PEEK == ':') {
+        ADVANCE();
+      }
+      MARK_END();
+      EMIT(TT_BARLINE);
+    }
+    // Check for [1, [2 (repeat endings)
+    if (is_digit(PEEK)) {
+      ADVANCE();
+      MARK_END();
+      EMIT(TT_BARLINE);
+    }
+    // Just [ alone - might be chord bracket
+    return false;
+  }
+
+  return false;
+}
+
+/**
+ * Scan chord brackets: [ and ]
+ */
+static bool scan_chord_bracket(TSLexer *lexer) {
+  if (PEEK == '[') {
+    ADVANCE();
+    MARK_END();
+    EMIT(TT_CHRD_LEFT_BRKT);
+  }
+  if (PEEK == ']') {
+    ADVANCE();
+    MARK_END();
+    EMIT(TT_CHRD_RIGHT_BRKT);
+  }
+  return false;
+}
+
+/**
+ * Scan grace group braces: { and }
+ */
+static bool scan_grace_brace(TSLexer *lexer) {
+  if (PEEK == '{') {
+    ADVANCE();
+    MARK_END();
+    EMIT(TT_GRC_GRP_LEFT_BRACE);
+  }
+  if (PEEK == '}') {
+    ADVANCE();
+    MARK_END();
+    EMIT(TT_GRC_GRP_RGHT_BRACE);
+  }
+  return false;
+}
+
+/**
+ * Scan annotation: "..."
+ */
+static bool scan_annotation(TSLexer *lexer) {
+  if (PEEK != '"') return false;
+
+  ADVANCE();  // consume opening "
+  while (!EOF_REACHED && PEEK != '"' && PEEK != '\n') {
+    if (PEEK == '\\') {
+      ADVANCE();  // consume backslash
+      if (!EOF_REACHED && PEEK != '\n') {
+        ADVANCE();  // consume escaped char
+      }
+    } else {
+      ADVANCE();
+    }
+  }
+  if (PEEK == '"') {
+    ADVANCE();  // consume closing "
+  }
+  MARK_END();
+  EMIT(TT_ANNOTATION);
+}
+
+/**
+ * Scan symbol: !...! or +...+
+ */
+static bool scan_symbol(TSLexer *lexer) {
+  if (PEEK == '!') {
+    ADVANCE();
+    while (!EOF_REACHED && PEEK != '!' && PEEK != '\n') {
+      ADVANCE();
+    }
+    if (PEEK == '!') {
+      ADVANCE();
+    }
+    MARK_END();
+    EMIT(TT_SYMBOL);
+  }
+
+  if (PEEK == '+') {
+    ADVANCE();
+    while (!EOF_REACHED && PEEK != '+' && PEEK != '\n') {
+      ADVANCE();
+    }
+    if (PEEK == '+') {
+      ADVANCE();
+    }
+    MARK_END();
+    EMIT(TT_SYMBOL);
+  }
+
+  return false;
+}
+
+/**
+ * Scan info line header: X:, T:, K:, etc.
+ */
+static bool scan_info_header(TSLexer *lexer) {
+  if (!is_alpha(PEEK)) return false;
+
+  // Need to peek ahead to check for colon
+  // Since we can't backtrack, we commit once we see alpha
+  int32_t first = PEEK;
+  ADVANCE();
+
+  // Skip optional whitespace before colon
+  while (is_ws_char(PEEK)) {
+    ADVANCE();
+  }
+
+  if (PEEK == ':') {
+    ADVANCE();
+    MARK_END();
+    EMIT(TT_INF_HDR);
+  }
+
+  // Not an info header - we've consumed characters but that's OK
+  // The grammar will handle partial matches
+  return false;
+}
+
+/**
+ * Scan ampersand (voice overlay): &
+ */
+static bool scan_ampersand(TSLexer *lexer) {
+  if (PEEK != '&') return false;
+
+  ADVANCE();
+  MARK_END();
+  EMIT(TT_AMPERSAND);
+}
+
+/**
+ * Scan section break: blank line (handled at EOL level)
+ */
+static bool scan_section_break(TSLexer *lexer, ScannerState *state) {
+  // Section break is typically an empty line
+  // This is context-dependent and may need grammar support
+  (void)state;
+  return false;
+}
+
+// ============================================================================
+// Main Scanner Function
+// ============================================================================
+
+/**
+ * Main scan function - called by TreeSitter to get next token.
  *
- * This function tries each sub-scanner in order of precedence,
- * mirroring the TypeScript scanner's while loop.
+ * @param payload Scanner state
+ * @param lexer TreeSitter lexer
+ * @param valid_symbols Array of which tokens are valid in current state
+ * @return true if a token was matched, false otherwise
  */
 bool tree_sitter_abc_external_scanner_scan(
   void *payload,
   TSLexer *lexer,
   const bool *valid_symbols
 ) {
-  ScanCtx *ctx = (ScanCtx *)payload;
-  ctx->lexer = lexer;
+  ScannerState *state = (ScannerState *)payload;
 
-  // Check if at EOF
-  if (at_eof(lexer)) {
+  // Skip leading whitespace if not looking for WS token
+  // (Actually, let's not skip - ABC whitespace can be significant)
+
+  // Check for EOF
+  if (EOF_REACHED) {
     if (valid_symbols[TT_EOF]) {
-      lexer->result_symbol = TT_EOF;
-      return true;
+      EMIT(TT_EOF);
     }
     return false;
   }
 
-  // Try each scanner in order of precedence
+  // Try each token type in priority order
+  // Order matters for ambiguous cases
 
-  // Stylesheet directive (must come before comment)
-  if (valid_symbols[TT_STYLESHEET_DIRECTIVE] && scan_directive(ctx)) return true;
+  // Comments first (% but not %%)
+  if (valid_symbols[TT_COMMENT] && scan_comment(lexer)) return true;
 
-  // Comment
-  if (valid_symbols[TT_COMMENT] && scan_comment(ctx)) return true;
-
-  // Section break (must come before EOL)
-  if (valid_symbols[TT_SCT_BRK] && scan_section_break(ctx)) return true;
-
-  // Line continuation
-  if (valid_symbols[TT_LINE_CONT] && scan_line_continuation(ctx)) return true;
-
-  // Info line header
-  if (valid_symbols[TT_INF_HDR] && scan_info_line(ctx)) return true;
-
-  // Annotation
-  if (valid_symbols[TT_ANNOTATION] && scan_annotation(ctx)) return true;
-
-  // Inline field bracket
-  if (valid_symbols[TT_INLN_FLD_LFT_BRKT] && scan_inline_field_bracket(ctx)) return true;
-
-  // Tuplet (before slur)
-  if (valid_symbols[TT_TUPLET_LPAREN] && scan_tuplet(ctx)) return true;
-
-  // Slur
-  if (valid_symbols[TT_SLUR] && scan_slur(ctx)) return true;
-
-  // Grace group brackets
-  if (valid_symbols[TT_GRC_GRP_LEFT_BRACE] && scan_grace_group_bracket(ctx)) return true;
-
-  // Chord brackets
-  if (valid_symbols[TT_CHRD_LEFT_BRKT] && scan_chord_bracket(ctx)) return true;
-
-  // Barline (complex patterns)
-  if (valid_symbols[TT_BARLINE] && scan_barline(ctx)) return true;
-
-  // Decoration (must come before pitch to check lookahead)
-  if (valid_symbols[TT_DECORATION] && scan_decoration(ctx)) return true;
-
-  // Pitch components
-  if (valid_symbols[TT_ACCIDENTAL] || valid_symbols[TT_NOTE_LETTER]) {
-    if (scan_pitch(ctx)) return true;
-  }
-
-  // Octave
-  if (valid_symbols[TT_OCTAVE] && scan_octave(ctx)) return true;
-
-  // Rhythm components
-  if (valid_symbols[TT_RHY_NUMER] || valid_symbols[TT_RHY_SEP] || valid_symbols[TT_RHY_BRKN]) {
-    if (scan_rhythm(ctx)) return true;
-  }
-
-  // Rest
-  if (valid_symbols[TT_REST] && scan_rest(ctx)) return true;
-
-  // Tie
-  if (valid_symbols[TT_TIE] && scan_tie(ctx)) return true;
-
-  // Repeat number components
-  if (valid_symbols[TT_REPEAT_NUMBER] || valid_symbols[TT_REPEAT_COMMA] ||
-      valid_symbols[TT_REPEAT_DASH] || valid_symbols[TT_REPEAT_X]) {
-    if (scan_repeat_number(ctx)) return true;
-  }
-
-  // Spacers
-  if (valid_symbols[TT_Y_SPC] && scan_y_spacer(ctx)) return true;
-  if (valid_symbols[TT_BCKTCK_SPC] && scan_bcktck_spacer(ctx)) return true;
-
-  // System break
-  if (valid_symbols[TT_SYSTEM_BREAK] && scan_system_break(ctx)) return true;
-
-  // Symbol
-  if (valid_symbols[TT_SYMBOL] && scan_symbol(ctx)) return true;
-
-  // Ampersand (voice overlay)
-  if (valid_symbols[TT_VOICE] && scan_ampersand(ctx)) return true;
-
-  // Identifier
-  if (valid_symbols[TT_IDENTIFIER] && scan_identifier(ctx)) return true;
-
-  // Number
-  if (valid_symbols[TT_NUMBER] && scan_number(ctx)) return true;
+  // End of line
+  if (valid_symbols[TT_EOL] && scan_eol(lexer, state)) return true;
 
   // Whitespace
-  if (valid_symbols[TT_WS] && scan_ws(ctx)) return true;
+  if (valid_symbols[TT_WS] && scan_whitespace(lexer)) return true;
 
-  // EOL
-  if (valid_symbols[TT_EOL] && scan_eol(ctx)) return true;
+  // Annotation "..."
+  if (valid_symbols[TT_ANNOTATION] && scan_annotation(lexer)) return true;
 
-  // Error recovery
-  if (valid_symbols[TT_INVALID] && collect_invalid_token(ctx)) return true;
+  // Symbol !...! or +...+
+  if (valid_symbols[TT_SYMBOL] && scan_symbol(lexer)) return true;
 
+  // Barlines (check before chord brackets due to [| )
+  if (valid_symbols[TT_BARLINE] && scan_barline(lexer)) return true;
+
+  // Accidentals
+  if (valid_symbols[TT_ACCIDENTAL] && scan_accidental(lexer)) return true;
+
+  // Note letters
+  if (valid_symbols[TT_NOTE_LETTER] && scan_note_letter(lexer)) return true;
+
+  // Octave modifiers
+  if (valid_symbols[TT_OCTAVE] && scan_octave(lexer)) return true;
+
+  // Rests
+  if (valid_symbols[TT_REST] && scan_rest(lexer)) return true;
+
+  // Tie
+  if (valid_symbols[TT_TIE] && scan_tie(lexer)) return true;
+
+  // Decorations
+  if (valid_symbols[TT_DECORATION] && scan_decoration(lexer)) return true;
+
+  // Slurs
+  if (valid_symbols[TT_SLUR] && scan_slur(lexer)) return true;
+
+  // Grace group braces
+  if (valid_symbols[TT_GRC_GRP_LEFT_BRACE] && PEEK == '{') {
+    if (scan_grace_brace(lexer)) return true;
+  }
+  if (valid_symbols[TT_GRC_GRP_RGHT_BRACE] && PEEK == '}') {
+    if (scan_grace_brace(lexer)) return true;
+  }
+
+  // Chord brackets
+  if (valid_symbols[TT_CHRD_LEFT_BRKT] && PEEK == '[') {
+    if (scan_chord_bracket(lexer)) return true;
+  }
+  if (valid_symbols[TT_CHRD_RIGHT_BRKT] && PEEK == ']') {
+    if (scan_chord_bracket(lexer)) return true;
+  }
+
+  // Rhythm elements
+  if (valid_symbols[TT_RHY_NUMER] && scan_number(lexer)) return true;
+  if (valid_symbols[TT_RHY_SEP] && scan_rhythm_sep(lexer)) return true;
+  if (valid_symbols[TT_RHY_BRKN] && scan_broken_rhythm(lexer)) return true;
+
+  // Info header
+  if (valid_symbols[TT_INF_HDR] && scan_info_header(lexer)) return true;
+
+  // Ampersand
+  if (valid_symbols[TT_AMPERSAND] && scan_ampersand(lexer)) return true;
+
+  // No token matched
   return false;
 }

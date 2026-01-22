@@ -1,8 +1,14 @@
 /**
  * TreeSitter external scanner header for ABC music notation
  *
- * This header defines all token types, pattern IDs, and the scanner context
- * that mirrors the TypeScript scanner architecture.
+ * This scanner works directly with TSLexer using character-by-character
+ * matching. No external regex library required.
+ *
+ * Key design:
+ * - Use lexer->lookahead to peek at current character (non-consuming)
+ * - Use lexer->advance() to consume characters
+ * - Use lexer->mark_end() to mark token boundaries
+ * - Simple character tests replace regex patterns
  */
 #ifndef TREE_SITTER_ABC_SCANNER_H
 #define TREE_SITTER_ABC_SCANNER_H
@@ -13,13 +19,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-// Forward declaration - will include PCRE2 when implementing scanner.c
-// #define PCRE2_CODE_UNIT_WIDTH 8
-// #include <pcre2.h>
-
 /**
  * Token types - must match TT enum from TypeScript (84 tokens)
- * Order must match externals array in grammar.js
+ * Order MUST match externals array in grammar.js exactly
  */
 typedef enum {
   // Pitch and Music Elements
@@ -130,134 +132,67 @@ typedef enum {
   TT_INVALID,
   TT_EOF,
 
-  TT_COUNT  // Total count: 84 (matches TT enum from scan2.ts)
+  TT_COUNT  // Total: 84
 } TokenType;
 
 /**
- * Pattern IDs for pre-compiled regex patterns
- */
-typedef enum {
-  PAT_NOTE_LETTER,     // [a-gA-G]
-  PAT_OCTAVE,          // [',]+
-  PAT_ACCIDENTAL,      // (\^[\^\/]?)|(_[_\/]?)|=
-  PAT_REST,            // [zZxX]
-  PAT_DIGIT,           // [0-9]
-  PAT_DIGITS,          // [0-9]+
-  PAT_NUMBER,          // [0-9]+(\.[0-9]+)?
-  PAT_BROKEN_RHYTHM,   // [><]+
-  PAT_DECORATION,      // [.~HLMOPRSTuv]+
-  PAT_WS,              // [ \t]+
-  PAT_EOL,             // \r?\n
-  PAT_IDENTIFIER,      // [a-zA-Z_][a-zA-Z0-9_]*
-  PAT_INFO_HDR,        // [A-Za-z][ \t]*:
-  PAT_ANNOTATION,      // "([^"\\]|\\.)*"
-  PAT_SYMBOL,          // ![^\n!]+!|\+[^\n+]+\+
-  PAT_COUNT
-} PatternId;
-
-/**
- * Pre-compiled regex pattern (will be implemented with PCRE2)
+ * Scanner state - persisted across incremental parses
+ * Keep this minimal for efficient serialization
  */
 typedef struct {
-  void *code;           // pcre2_code* (void* for now to avoid include)
-  void *match_data;     // pcre2_match_data*
-} Pattern;
+  bool in_tune_body;     // Inside tune body vs header
+  bool in_text_block;    // Inside %%begintext...%%endtext
+  uint16_t line_number;  // For error reporting
+} ScannerState;
 
-/**
- * Simple string map for macros/user-symbols (linked list)
- */
-typedef struct StringMapEntry {
-  char *key;
-  char *value;
-  struct StringMapEntry *next;
-} StringMapEntry;
+// ============================================================================
+// Character classification helpers (inline for performance)
+// ============================================================================
 
-typedef struct {
-  StringMapEntry *head;
-} StringMap;
+static inline bool is_note_letter(int32_t c) {
+  return (c >= 'a' && c <= 'g') || (c >= 'A' && c <= 'G');
+}
 
-/**
- * Scanner context - mirrors TypeScript Ctx class
- */
-typedef struct {
-  const char *source;       // Input text (UTF-8)
-  size_t source_len;        // Length of source
-  size_t source_capacity;   // Allocated capacity
-  size_t start;             // Start of current token
-  size_t current;           // Current cursor position
-  int line;                 // 0-based line number
-  size_t line_start;        // Byte offset of line start
+static inline bool is_rest_char(int32_t c) {
+  return c == 'z' || c == 'Z' || c == 'x' || c == 'X';
+}
 
-  // State for multi-line constructs
-  bool in_text_block;       // Inside %%begintext...%%endtext
-  bool in_tune_body;        // Inside tune body vs header
+static inline bool is_digit(int32_t c) {
+  return c >= '0' && c <= '9';
+}
 
-  // Context-sensitive maps (like TypeScript Ctx)
-  StringMap *macros;        // Macro declarations
-  StringMap *user_symbols;  // User-defined symbols
+static inline bool is_octave_char(int32_t c) {
+  return c == '\'' || c == ',';
+}
 
-  // Pre-compiled regex patterns
-  Pattern patterns[PAT_COUNT];
+static inline bool is_decoration_char(int32_t c) {
+  return c == '.' || c == '~' || c == 'H' || c == 'L' || c == 'M' ||
+         c == 'O' || c == 'P' || c == 'R' || c == 'S' || c == 'T' ||
+         c == 'u' || c == 'v';
+}
 
-  // Reference to TSLexer for final output
-  TSLexer *lexer;
-} ScanCtx;
+static inline bool is_broken_rhythm_char(int32_t c) {
+  return c == '<' || c == '>';
+}
 
-// Context operations (implemented in scanner.c)
-void ctx_init(ScanCtx *ctx, TSLexer *lexer);
-void ctx_init_patterns(ScanCtx *ctx);
-void ctx_free_patterns(ScanCtx *ctx);
-bool ctx_test_char(ScanCtx *ctx, char c);
-bool ctx_test_str(ScanCtx *ctx, const char *str);
-bool ctx_test_charset(ScanCtx *ctx, const char *charset);
-bool ctx_test_regex(ScanCtx *ctx, PatternId pat);
-size_t ctx_match_regex(ScanCtx *ctx, PatternId pat);
-void ctx_advance(ScanCtx *ctx, size_t count);
-char ctx_peek(ScanCtx *ctx);
-char ctx_peek_next(ScanCtx *ctx);
-bool ctx_is_at_end(ScanCtx *ctx);
-void ctx_emit(ScanCtx *ctx, TokenType type);
+static inline bool is_ws_char(int32_t c) {
+  return c == ' ' || c == '\t';
+}
 
-// String map operations
-StringMap *stringmap_create(void);
-void stringmap_free(StringMap *map);
-void stringmap_clear(StringMap *map);
-void stringmap_set(StringMap *map, const char *key, const char *value);
-const char *stringmap_get(StringMap *map, const char *key);
+static inline bool is_alpha(int32_t c) {
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+}
 
-// Sub-scanner functions (boolean, like TypeScript)
-bool scan_comment(ScanCtx *ctx);
-bool scan_ws(ScanCtx *ctx);
-bool scan_eol(ScanCtx *ctx);
-bool scan_annotation(ScanCtx *ctx);
-bool scan_inline_field(ScanCtx *ctx);
-bool scan_chord(ScanCtx *ctx);
-bool scan_grace_group(ScanCtx *ctx);
-bool scan_tuplet(ScanCtx *ctx);
-bool scan_barline(ScanCtx *ctx);
-bool scan_decoration(ScanCtx *ctx);
-bool scan_note(ScanCtx *ctx);
-bool scan_pitch(ScanCtx *ctx);
-bool scan_rhythm(ScanCtx *ctx);
-bool scan_rest(ScanCtx *ctx);
-bool scan_tie(ScanCtx *ctx);
-bool scan_slur(ScanCtx *ctx);
-bool scan_symbol(ScanCtx *ctx);
-bool scan_ampersand(ScanCtx *ctx);
-bool scan_line_continuation(ScanCtx *ctx);
-bool scan_info_line(ScanCtx *ctx);
-bool scan_lyric_line(ScanCtx *ctx);
-bool scan_symbol_line(ScanCtx *ctx);
-bool scan_directive(ScanCtx *ctx);
-bool scan_system_break(ScanCtx *ctx);
-bool scan_y_spacer(ScanCtx *ctx);
-bool scan_bcktck_spacer(ScanCtx *ctx);
-bool scan_repeat_numbers(ScanCtx *ctx);
-bool scan_section_break(ScanCtx *ctx);
-bool scan_free_text(ScanCtx *ctx);
+static inline bool is_alnum(int32_t c) {
+  return is_alpha(c) || is_digit(c);
+}
 
-// Error recovery
-bool collect_invalid_token(ScanCtx *ctx);
-bool is_recovery_point(ScanCtx *ctx);
+static inline bool is_identifier_start(int32_t c) {
+  return is_alpha(c) || c == '_';
+}
+
+static inline bool is_identifier_char(int32_t c) {
+  return is_alnum(c) || c == '_' || c == '-';
+}
 
 #endif // TREE_SITTER_ABC_SCANNER_H
