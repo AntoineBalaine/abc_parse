@@ -170,23 +170,19 @@ export function parseWithBoth(input: string): DualParseResult {
 
 /**
  * Compare both parsers and return the comparison result.
- * If TreeSitter is not available, returns a result indicating that.
+ * Throws if TreeSitter is not available.
  */
-export function compareBothParsers(input: string): CompareResult & { treeSitterAvailable: boolean } {
+export function compareBothParsers(input: string): CompareResult {
   const result = parseWithBoth(input);
 
   if (!result.treeSitterAvailable || result.treeSitter === null) {
-    return {
-      equal: true, // No comparison possible, treated as "pass" with warning
-      treeSitterAvailable: false,
-    };
+    throw new Error(
+      "TreeSitter native module not available. " +
+      "Run: cd tree-sitter-abc && npm run build && cd .. && npm rebuild tree-sitter"
+    );
   }
 
-  const comparison = compareCSNodes(result.typescript.csNode, result.treeSitter.csNode);
-  return {
-    ...comparison,
-    treeSitterAvailable: true,
-  };
+  return compareCSNodes(result.typescript.csNode, result.treeSitter.csNode);
 }
 
 /**

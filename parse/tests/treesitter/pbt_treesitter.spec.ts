@@ -229,34 +229,24 @@ function countDepth(node: { firstChild: typeof node | null; nextSibling: typeof 
 /**
  * TreeSitter vs TypeScript comparison tests
  *
- * These tests only run when the TreeSitter native module is built.
+ * These tests require the TreeSitter native module to be built.
  * They verify that both parsers produce identical AST structure for
  * generated ABC input.
  */
 describe("Property-based tests: TreeSitter vs TypeScript comparison", function() {
-  // Check TreeSitter availability once before all tests
-  let treeSitterReady = false;
-
   before(function() {
-    treeSitterReady = isTreeSitterAvailable();
-    if (!treeSitterReady) {
-      console.log("\n  [SKIPPED] TreeSitter native module not built.");
-      console.log("  To enable these tests: cd tree-sitter-abc && npm run build\n");
+    if (!isTreeSitterAvailable()) {
+      throw new Error(
+        "TreeSitter native module not available. " +
+        "Run: cd tree-sitter-abc && npm run build && cd .. && npm rebuild tree-sitter"
+      );
     }
   });
 
   it("parses generated tunes identically with both parsers", function() {
-    if (!treeSitterReady) {
-      this.skip();
-      return;
-    }
-
     fc.assert(
       fc.property(genTune, (tune) => {
         const result = compareBothParsers(tune);
-        if (!result.treeSitterAvailable) {
-          return true; // Skip if TreeSitter unavailable
-        }
         if (!result.equal) {
           const msg = formatCompareResult(result);
           throw new Error(`Parsers differ:\n${msg}\nInput: ${tune.slice(0, 200)}`);
@@ -268,18 +258,10 @@ describe("Property-based tests: TreeSitter vs TypeScript comparison", function()
   });
 
   it("parses generated music content identically with both parsers", function() {
-    if (!treeSitterReady) {
-      this.skip();
-      return;
-    }
-
     fc.assert(
       fc.property(genMusicContent, (music) => {
         const input = `X:1\nK:C\n${music}\n`;
         const result = compareBothParsers(input);
-        if (!result.treeSitterAvailable) {
-          return true;
-        }
         if (!result.equal) {
           const msg = formatCompareResult(result);
           throw new Error(`Parsers differ:\n${msg}\nInput: ${input.slice(0, 200)}`);
@@ -291,18 +273,10 @@ describe("Property-based tests: TreeSitter vs TypeScript comparison", function()
   });
 
   it("parses generated chords identically with both parsers", function() {
-    if (!treeSitterReady) {
-      this.skip();
-      return;
-    }
-
     fc.assert(
       fc.property(genChord, (chord) => {
         const input = `X:1\nK:C\n${chord}|`;
         const result = compareBothParsers(input);
-        if (!result.treeSitterAvailable) {
-          return true;
-        }
         if (!result.equal) {
           const msg = formatCompareResult(result);
           throw new Error(`Parsers differ:\n${msg}\nInput: ${input}`);
@@ -314,17 +288,9 @@ describe("Property-based tests: TreeSitter vs TypeScript comparison", function()
   });
 
   it("parses complex tunes identically with both parsers", function() {
-    if (!treeSitterReady) {
-      this.skip();
-      return;
-    }
-
     fc.assert(
       fc.property(genComplexTune, (tune) => {
         const result = compareBothParsers(tune);
-        if (!result.treeSitterAvailable) {
-          return true;
-        }
         if (!result.equal) {
           const msg = formatCompareResult(result);
           throw new Error(`Parsers differ:\n${msg}\nInput: ${tune.slice(0, 300)}`);

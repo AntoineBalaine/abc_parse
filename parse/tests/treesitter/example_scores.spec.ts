@@ -188,47 +188,34 @@ describe("Example scores: node type coverage", () => {
 /**
  * TreeSitter vs TypeScript comparison tests for example scores
  *
- * These tests only run when the TreeSitter native module is built.
+ * These tests require the TreeSitter native module to be built.
  * They verify that both parsers produce identical AST structure for
  * all example score files.
  */
 describe("Example scores: TreeSitter vs TypeScript comparison", function() {
-  // Check TreeSitter availability once before all tests
-  let treeSitterReady = false;
-
   before(function() {
-    treeSitterReady = isTreeSitterAvailable();
-    if (!treeSitterReady) {
-      console.log("\n  [SKIPPED] TreeSitter native module not built.");
-      console.log("  To enable these tests: cd tree-sitter-abc && npm run build\n");
+    if (!isTreeSitterAvailable()) {
+      throw new Error(
+        "TreeSitter native module not available. " +
+        "Run: cd tree-sitter-abc && npm run build && cd .. && npm rebuild tree-sitter"
+      );
     }
   });
 
   if (abcFiles.length === 0) {
-    it.skip("no example scores found", () => {});
+    it("should find example scores", () => {
+      throw new Error("No example scores found in " + EXAMPLE_SCORES_DIR);
+    });
     return;
   }
 
   // Create a single aggregate test for all files
   it("parses all example scores identically with both parsers", function() {
-    if (!treeSitterReady) {
-      this.skip();
-      return;
-    }
-
     const failures: Array<{ file: string; message: string }> = [];
-    let testedCount = 0;
 
     for (const file of abcFiles) {
       const content = readFileSync(file, "utf-8");
       const result = compareBothParsers(content);
-
-      if (!result.treeSitterAvailable) {
-        // TreeSitter became unavailable mid-test
-        break;
-      }
-
-      testedCount++;
 
       if (!result.equal) {
         const msg = formatCompareResult(result);
@@ -247,10 +234,10 @@ describe("Example scores: TreeSitter vs TypeScript comparison", function() {
       const moreMsg = failures.length > 10 ? `\n  ... and ${failures.length - 10} more` : "";
 
       throw new Error(
-        `${failures.length} out of ${testedCount} files failed comparison:\n${failureList}${moreMsg}`
+        `${failures.length} out of ${abcFiles.length} files failed comparison:\n${failureList}${moreMsg}`
       );
     }
 
-    console.log(`\n  Compared ${testedCount} files with both parsers - all identical`);
+    console.log(`\n  Compared ${abcFiles.length} files with both parsers - all identical`);
   });
 });
