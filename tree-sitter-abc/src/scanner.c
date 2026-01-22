@@ -106,22 +106,6 @@ static bool scan_whitespace(TSLexer *lexer) {
 }
 
 /**
- * Scan end of line: \r?\n
- */
-static bool scan_eol(TSLexer *lexer, ScannerState *state) {
-  if (PEEK == '\r') {
-    ADVANCE();
-  }
-  if (PEEK == '\n') {
-    ADVANCE();
-    MARK_END();
-    state->line_number++;
-    EMIT(TT_EOL);
-  }
-  return false;
-}
-
-/**
  * Scan percent-prefixed tokens: comments (%) and directives (%%)
  *
  * Because TreeSitter doesn't support backtracking, we handle both token types
@@ -1246,29 +1230,41 @@ static bool scan_reserved_char(TSLexer *lexer) {
 }
 
 /**
- * Scan section break: blank line between tunes
+ * Scan section break (blank line) or EOL (single newline).
+ *
+ * Because TreeSitter cannot backtrack, this function handles both token types:
+ * - If a double newline is found and TT_SCT_BRK is valid, emits SCT_BRK.
+ * - Otherwise, if TT_EOL is valid, emits EOL for the single newline.
+ * This prevents the no-backtrack issue where consuming the first \n for a
+ * failed section break check would permanently lose the EOL token.
  */
-static bool scan_section_break(TSLexer *lexer, ScannerState *state) {
-  // Section break is an empty line - check for newline
+static bool scan_section_break(TSLexer *lexer, ScannerState *state, const bool *valid_symbols) {
   if (PEEK != '\n' && PEEK != '\r') return false;
 
-  // Consume first newline
+  // Consume first newline (\r?\n)
   if (PEEK == '\r') ADVANCE();
-  if (PEEK == '\n') {
-    ADVANCE();
-    state->line_number++;
+  if (PEEK != '\n') return false;  // bare \r without \n: no token
+  ADVANCE();
+  state->line_number++;
+  MARK_END();  // mark position after first newline (token boundary for EOL)
+
+  // Only attempt section break detection if SCT_BRK is valid
+  if (valid_symbols[TT_SCT_BRK]) {
+    if (PEEK == '\r') ADVANCE();  // lookahead past optional \r
+    if (PEEK == '\n') {
+      ADVANCE();
+      state->line_number++;
+      MARK_END();  // extend token to include second newline
+      EMIT(TT_SCT_BRK);
+    }
   }
 
-  // Check for second newline (making it a blank line)
-  if (PEEK == '\r') ADVANCE();
-  if (PEEK == '\n') {
-    ADVANCE();
-    state->line_number++;
-    MARK_END();
-    EMIT(TT_SCT_BRK);
+  // Fallback: emit EOL if valid (MARK_END is still at first newline's end)
+  if (valid_symbols[TT_EOL]) {
+    EMIT(TT_EOL);
   }
 
-  return false;
+  return false;  // unreachable in production (see grammar structure guarantee)
 }
 
 /**
@@ -1328,16 +1324,14 @@ bool tree_sitter_abc_external_scanner_scan(
   // Try each token type in priority order
   // Order matters for ambiguous cases
 
-  // Section break (blank line) - check before EOL
-  if (valid_symbols[TT_SCT_BRK] && scan_section_break(lexer, state)) return true;
+  // Newline handling: section break (blank line) or EOL (single newline)
+  if ((valid_symbols[TT_SCT_BRK] || valid_symbols[TT_EOL]) &&
+      scan_section_break(lexer, state, valid_symbols)) return true;
 
   // Percent-prefixed tokens (comments % and directives %%)
   // Must handle both in one function to avoid consuming % then failing
   if ((valid_symbols[TT_COMMENT] || valid_symbols[TT_STYLESHEET_DIRECTIVE]) &&
       scan_percent_token(lexer, valid_symbols)) return true;
-
-  // End of line
-  if (valid_symbols[TT_EOL] && scan_eol(lexer, state)) return true;
 
   // Whitespace
   if (valid_symbols[TT_WS] && scan_whitespace(lexer)) return true;
