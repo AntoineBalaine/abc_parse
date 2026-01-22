@@ -3,19 +3,44 @@
   "version": "1.0.0",
   "description": "TreeSitter grammar for ABC music notation",
   "main": "bindings/node",
+  "types": "bindings/node",
   "scripts": {
     "generate": "tree-sitter generate",
     "build": "tree-sitter generate && node-gyp rebuild",
-    "test": "tree-sitter test"
+    "test": "tree-sitter test",
+    "install": "node-gyp-build",
+    "prebuildify": "prebuildify --napi --strip"
   },
   "devDependencies": {
     "tree-sitter-cli": "^0.22.0",
-    "nan": "^2.18.0"
+    "nan": "^2.18.0",
+    "prebuildify": "^6.0.0"
   },
   "tree-sitter": [
     {
       "scope": "source.abc",
-      "file-types": ["abc"]
+      "file-types": [
+        "abc"
+      ]
     }
+  ],
+  "dependencies": {
+    "node-gyp-build": "^4.8.0"
+  },
+  "peerDependencies": {
+    "tree-sitter": "^0.21.0"
+  },
+  "peerDependenciesMeta": {
+    "tree_sitter": {
+      "optional": true
+    }
+  },
+  "files": [
+    "grammar.js",
+    "binding.gyp",
+    "prebuilds/**",
+    "bindings/node/*",
+    "queries/*",
+    "src/**"
   ]
 }

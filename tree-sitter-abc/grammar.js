@@ -65,6 +65,51 @@ module.exports = grammar({
   // We handle whitespace explicitly in the scanner
   extras: $ => [],
 
+  // Conflicts that require GLR parsing - ABC notation has many context-sensitive ambiguities
+  // where the same token sequence can have different meanings depending on context
+  conflicts: $ => [
+    // Single-rule conflicts for rules with optional content
+    [$.Info_line],
+    [$.Directive],
+    [$.Lyric_line],
+    [$.Lyric_section],
+    [$.SymbolLine],
+    [$.Note],
+    [$.ErrorExpr],
+    [$.User_symbol_decl],
+    [$.Macro_decl],
+    [$.Inline_field],
+    [$.Chord],
+    [$.Grace_group],
+    [$.Tuplet],
+    [$.BarLine],
+    [$.Repeat_numbers],
+    [$.Rest],
+    [$.Rhythm],
+    [$.YSPACER],
+    [$.Pitch],
+    // Hierarchical conflicts
+    [$.File_structure, $.Comment],
+    [$.File_header, $.Tune_header],
+    [$.File_structure, $.File_header, $.Tune_header],
+    [$.File_structure, $.File_header],
+    [$.File_structure, $.Tune_header],
+    [$.File_header],
+    [$.Tune_header],
+    [$.Tune_Body],
+    [$.Music_code],
+    [$.Tune_Body, $.Music_code],
+    [$.Tune],
+    [$.AbsolutePitch],
+    [$.AbsolutePitch, $.Pitch],
+    // Expression conflicts
+    [$._info_line_content, $._binary_operand],
+    [$._binary_operand, $.Rational],
+    [$._directive_value, $._binary_operand],
+    [$._inline_field_content, $._binary_operand],
+    [$._kv_value, $._binary_operand],
+  ],
+
   rules: {
     // =====================================================================
     // Top-level structure (matches File_structure in Expr2.ts)
