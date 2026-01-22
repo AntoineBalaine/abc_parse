@@ -62,14 +62,6 @@
   parentHash: 9a9c1f788cfe29f76cbf40d61c730abb710baed2
   createdAt: '2026-01-18T22:40:26.690-05:00'
   completed: false
-- id: bc768998-cd72-462b-98fe-5669b250f008
-  content: ✓ mishighlight. History field is missing.
-  fileName: abc_parse/example_scores/visual/phil_taylor43.abc
-  lineNumber: 9
-  hash: 07583627aa9a3674133acdbc405c093c572b5a34
-  parentHash: 9a9c1f788cfe29f76cbf40d61c730abb710baed2
-  createdAt: '2026-01-18T22:39:23.871-05:00'
-  completed: false
 - id: 4b140fa4-e9a3-46a9-88f9-8604beca26bf
   content: Mishighlight. This is free text.
   fileName: abc_parse/example_scores/visual/phil_taylor01_02.abc
@@ -85,14 +77,6 @@
   hash: 07583627aa9a3674133acdbc405c093c572b5a34
   parentHash: 9a9c1f788cfe29f76cbf40d61c730abb710baed2
   createdAt: '2026-01-18T22:37:57.765-05:00'
-  completed: false
-- id: ee78a2ab-fe03-46e9-a4d9-f7b5bed8d8de
-  content: ✓ mishighlight
-  fileName: abc_parse/example_scores/visual/Orn_Roll.abc
-  lineNumber: 5
-  hash: 07583627aa9a3674133acdbc405c093c572b5a34
-  parentHash: 9a9c1f788cfe29f76cbf40d61c730abb710baed2
-  createdAt: '2026-01-18T22:37:15.897-05:00'
   completed: false
 - id: 969ed1d3-3588-4ff2-b6a8-e6da12a94a55
   content: mishighlight
@@ -119,28 +103,12 @@
   createdAt: '2026-01-18T22:35:36.627-05:00'
   completed: false
 - id: 0c445e7f-3940-44e0-9055-cdfbacc90a28
-  content: ✓ mishighlights all over
+  content: mishighlights for k and K decorations
   fileName: abc_parse/example_scores/visual/KeySignatureAccidentalsAndDecorations.abc
-  lineNumber: 10
+  lineNumber: 9
   hash: 07583627aa9a3674133acdbc405c093c572b5a34
   parentHash: 9a9c1f788cfe29f76cbf40d61c730abb710baed2
   createdAt: '2026-01-18T22:34:45.487-05:00'
-  completed: false
-- id: 040ec9e5-1110-464f-96e9-8f082f6a1a90
-  content: ✓ mishighlight. Different notation styles here?
-  fileName: abc_parse/example_scores/visual/keysig.abc
-  lineNumber: 12
-  hash: 07583627aa9a3674133acdbc405c093c572b5a34
-  parentHash: 9a9c1f788cfe29f76cbf40d61c730abb710baed2
-  createdAt: '2026-01-18T22:34:20.027-05:00'
-  completed: false
-- id: d79d438a-0900-4b8c-bef4-acd9dd272985
-  content: ✓ mishighlight. Are we parsing correctly?
-  fileName: abc_parse/example_scores/visual/keysig.abc
-  lineNumber: 8
-  hash: 07583627aa9a3674133acdbc405c093c572b5a34
-  parentHash: 9a9c1f788cfe29f76cbf40d61c730abb710baed2
-  createdAt: '2026-01-18T22:34:04.010-05:00'
   completed: false
 - id: f4c80d53-3572-42dd-b819-58735e87e0f7
   content: mishighlight
@@ -183,21 +151,14 @@
   createdAt: '2026-01-18T22:30:16.561-05:00'
   completed: false
 - id: a320e085-f3ad-41e7-b5f3-bbab749e92cc
-  content: ✓ 0 means «no note stem». Are we parsing this?
+  content: col 10, n decoration? Is this legal?
   fileName: abc_parse/example_scores/visual/alternate_heads.abc
-  lineNumber: 8
+  lineNumber: 8 
   hash: 07583627aa9a3674133acdbc405c093c572b5a34
   parentHash: 9a9c1f788cfe29f76cbf40d61c730abb710baed2
   createdAt: '2026-01-18T22:29:37.612-05:00'
   completed: false
 - id: 0563039f-98fd-4077-a146-7e8116e6af16
-  content: ✓ broken escaped quote
-  fileName: abc_parse/example_scores/visual/escaped-quote.abc
-  lineNumber: 4
-  hash: 9fc2fe19718d8f6a3b730afec15684eae28cd75b
-  parentHash: cf239544ca47e771acf0bb3fda59669ef863ee96
-  createdAt: '2026-01-18T22:27:34.998-05:00'
-  completed: false
 - id: fd867956-0dc9-4eac-8145-08c728b54983
   content: mishighlight
   fileName: abc_parse/example_scores/visual/Drone.abc
@@ -207,20 +168,12 @@
   createdAt: '2026-01-18T22:26:58.671-05:00'
   completed: false
 - id: 004512c0-0c0a-4c54-aa43-0b868accb2ed
-  content: ✓ mishighlight
+  content: mishighlight, symbols placed in the middle of the decorations break the scanner - `TL!tenuto!.c'2`
   fileName: abc_parse/example_scores/visual/decoration_placement.abc
   lineNumber: 5
   hash: 07583627aa9a3674133acdbc405c093c572b5a34
   parentHash: 9a9c1f788cfe29f76cbf40d61c730abb710baed2
   createdAt: '2026-01-18T22:26:35.139-05:00'
-  completed: false
-- id: f1ad3d2c-9911-4743-965d-aa8addf55bce
-  content: ✓ mishighlight
-  fileName: abc_parse/example_scores/visual/decoration_placement.abc
-  lineNumber: 4
-  hash: 07583627aa9a3674133acdbc405c093c572b5a34
-  parentHash: 9a9c1f788cfe29f76cbf40d61c730abb710baed2
-  createdAt: '2026-01-18T22:26:29.238-05:00'
   completed: false
 - id: 1307d251-07b3-4d53-b162-ecc70ae80611
   content: 'mishighlight: missing line continuation feature in lyric lines'
@@ -229,14 +182,6 @@
   hash: 07583627aa9a3674133acdbc405c093c572b5a34
   parentHash: 9a9c1f788cfe29f76cbf40d61c730abb710baed2
   createdAt: '2026-01-18T22:25:59.917-05:00'
-  completed: false
-- id: d5368ba0-af88-4a47-8f9e-75037a713100
-  content: ✓ Mis-highlight. ABCJS being lenient allows rhythms inside the chord brackets
-  fileName: abc_parse/example_scores/visual/ChordsUnionsFirstAndSecondEnd_.abc
-  lineNumber: 7
-  hash: 07583627aa9a3674133acdbc405c093c572b5a34
-  parentHash: 9a9c1f788cfe29f76cbf40d61c730abb710baed2
-  createdAt: '2026-01-18T22:25:03.457-05:00'
   completed: false
 - id: 3046e186-64c2-4fd7-a93d-83e213df84ad
   content: mishighlight
@@ -261,24 +206,6 @@
   hash: 07583627aa9a3674133acdbc405c093c572b5a34
   parentHash: 9a9c1f788cfe29f76cbf40d61c730abb710baed2
   createdAt: '2026-01-18T22:21:17.155-05:00'
-  completed: false
-- id: 204b1d6e-453b-4524-9b6d-68fc4e870177
-  content: >-
-    ✓ 0 following the first note in the chord makes the «hampes» disappear. Is
-    this a bug?
-  fileName: abc_parse/example_scores/visual/abcplus_staffbreak.abc
-  lineNumber: 7
-  hash: 07583627aa9a3674133acdbc405c093c572b5a34
-  parentHash: 9a9c1f788cfe29f76cbf40d61c730abb710baed2
-  createdAt: '2026-01-18T22:19:49.902-05:00'
-  completed: false
-- id: a9e085e7-4c85-4e7e-a5aa-f6fa2634bc05
-  content: ✓ period before an opening paren means «dotted slur». This is news to me.
-  fileName: abc_parse/example_scores/visual/abcplus_slurs_dashed_and_directional.abc
-  lineNumber: 6
-  hash: 07583627aa9a3674133acdbc405c093c572b5a34
-  parentHash: 9a9c1f788cfe29f76cbf40d61c730abb710baed2
-  createdAt: '2026-01-18T22:18:15.269-05:00'
   completed: false
 - id: d9491904-7b4b-4b38-8f7d-13c1a92c3470
   content: from I to EOF, mishighlighted
@@ -311,14 +238,6 @@
   hash: 7d57ff4ae0c738c35b7a79bf98479dedff624166
   parentHash: 2c41cce05a3b8f4c5010f99fa8e36a04708e6d2f
   createdAt: '2026-01-18T22:12:51.072-05:00'
-  completed: false
-- id: 8b9fd4a0-b250-4247-9577-6feb863b1c6d
-  content: ✓ rhythms in grace groups
-  fileName: abc_parse/example_scores/audio/midi_grace_notes.abc
-  lineNumber: 8
-  hash: 07583627aa9a3674133acdbc405c093c572b5a34
-  parentHash: 9a9c1f788cfe29f76cbf40d61c730abb710baed2
-  createdAt: '2026-01-18T22:12:15.521-05:00'
   completed: false
 - id: b94112e1-0e4f-48f1-aad1-edeb96d37fb0
   content: Brackets are mis-highlighted
