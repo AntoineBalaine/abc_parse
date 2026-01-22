@@ -23,9 +23,24 @@ import {
   Info_line,
   Inline_field,
   isVoiceInfo,
+  Pitch,
 } from "../../../parse/types/Expr2";
+import { Token } from "../../../parse/parsers/scan2";
 import { Selection } from "./types";
 import { getNoteMidiPitch } from "./utils/pitch";
+
+/**
+ * Location information for filtering by line/column.
+ */
+export interface LocationFilter {
+  line: number;
+  col?: number;
+  end?: {
+    type: "singleline" | "multiline";
+    endCol?: number;
+    endLine?: number;
+  };
+}
 
 /**
  * Select all Chord nodes from an ABC AST.
@@ -560,3 +575,213 @@ function findBassNote(chord: Chord): Note | null {
   return lowestNote;
 }
 
+// ============================================================================
+// Location-based Selectors
+// ============================================================================
+
+/**
+ * Get the starting token from an AST node.
+ * Returns the first token that provides line/position information.
+ */
+function getStartToken(node: Expr): Token | null {
+  if (isNote(node)) {
+    // Note's first token is in its pitch
+    return getTokenFromPitch(node.pitch);
+  }
+  if (isChord(node)) {
+    // Chord's first note provides the location (brackets are implicit)
+    for (const element of node.contents) {
+      if (isNote(element)) {
+        return getTokenFromPitch(element.pitch);
+      }
+      if (isToken(element)) {
+        return element;
+      }
+    }
+  }
+  if (isBeam(node)) {
+    // First element in beam
+    for (const element of node.contents) {
+      if (isNote(element)) {
+        return getTokenFromPitch(element.pitch);
+      }
+      if (isChord(element)) {
+        const token = getStartToken(element);
+        if (token) return token;
+      }
+      if (isToken(element)) {
+        return element;
+      }
+    }
+  }
+  if (isGraceGroup(node)) {
+    // First note in grace group
+    for (const element of node.notes) {
+      if (isNote(element)) {
+        return getTokenFromPitch(element.pitch);
+      }
+      if (isToken(element)) {
+        return element;
+      }
+    }
+  }
+  if (isBarLine(node)) {
+    return node.barline[0] || null;
+  }
+  if (isInfo_line(node)) {
+    return node.key;
+  }
+  if (isInline_field(node)) {
+    return node.field;
+  }
+  return null;
+}
+
+/**
+ * Get the token from a Pitch node.
+ */
+function getTokenFromPitch(pitch: Pitch): Token {
+  // The noteLetter is always present
+  return pitch.noteLetter;
+}
+
+/**
+ * Check if a node's location falls within the specified filter.
+ */
+function isInLocationRange(node: Expr, filter: LocationFilter): boolean {
+  const token = getStartToken(node);
+  if (!token) {
+    // If we can't determine location, exclude the node from location-based selection
+    return false;
+  }
+
+  const nodeLine = token.line;
+  const nodeCol = token.position;
+
+  // Case 1: Just a line number (no column specified)
+  if (filter.col === undefined) {
+    return nodeLine === filter.line;
+  }
+
+  // Case 2: Line and column, no end range
+  if (!filter.end) {
+    // Match exact position
+    return nodeLine === filter.line && nodeCol === filter.col;
+  }
+
+  // Case 3: Single-line range (:line:col-endCol)
+  if (filter.end.type === "singleline" && filter.end.endCol !== undefined) {
+    if (nodeLine !== filter.line) return false;
+    return nodeCol >= filter.col && nodeCol <= filter.end.endCol;
+  }
+
+  // Case 4: Multi-line range (:line:col-endLine:endCol)
+  if (filter.end.type === "multiline" && filter.end.endLine !== undefined && filter.end.endCol !== undefined) {
+    // Before start?
+    if (nodeLine < filter.line) return false;
+    if (nodeLine === filter.line && nodeCol < filter.col) return false;
+    // After end?
+    if (nodeLine > filter.end.endLine) return false;
+    if (nodeLine === filter.end.endLine && nodeCol > filter.end.endCol) return false;
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Select all music nodes from an ABC AST that fall within the specified location.
+ */
+export function selectByLocation(ast: File_structure, filter: LocationFilter): Selection {
+  const selected = new Set<Expr>();
+
+  for (const content of ast.contents) {
+    if (isToken(content)) continue;
+    collectNodesByLocation(content, filter, selected);
+  }
+
+  return { ast, selected };
+}
+
+/**
+ * Filter an existing selection by location.
+ */
+export function selectByLocationFromSelection(selection: Selection, filter: LocationFilter): Selection {
+  const selected = new Set<Expr>();
+
+  for (const node of selection.selected) {
+    if (isInLocationRange(node, filter)) {
+      selected.add(node);
+    }
+  }
+
+  return { ast: selection.ast, selected };
+}
+
+/**
+ * Collect nodes from a Tune that match the location filter.
+ */
+function collectNodesByLocation(tune: Tune, filter: LocationFilter, selected: Set<Expr>): void {
+  if (!tune.tune_body) return;
+
+  // tune_body.sequence is Array<System>, where System is Array<tune_body_code>
+  for (const system of tune.tune_body.sequence) {
+    for (const element of system) {
+      // tune_body_code elements are either Expr subtypes or Token
+      // Cast is safe because we handle both cases in the function
+      collectNodesFromBodyElementByLocation(element as Expr | Token, filter, selected);
+    }
+  }
+}
+
+/**
+ * Collect matching nodes from a tune body element.
+ * The element can be a tune_body_code (Comment | Info_line | Lyric_line | music_code | ErrorExpr)
+ * where music_code includes Token, Note, Chord, Beam, etc.
+ */
+function collectNodesFromBodyElementByLocation(
+  element: Expr | Token,
+  filter: LocationFilter,
+  selected: Set<Expr>
+): void {
+  // Skip raw tokens - they don't have musical content we want to select
+  if (isToken(element)) return;
+
+  if (isNote(element)) {
+    if (isInLocationRange(element, filter)) {
+      selected.add(element);
+    }
+  } else if (isChord(element)) {
+    if (isInLocationRange(element, filter)) {
+      selected.add(element);
+    }
+  } else if (isBeam(element)) {
+    // Check each element in the beam
+    for (const beamElement of element.contents) {
+      if (isNote(beamElement) && isInLocationRange(beamElement, filter)) {
+        selected.add(beamElement);
+      } else if (isChord(beamElement) && isInLocationRange(beamElement, filter)) {
+        selected.add(beamElement);
+      }
+    }
+  } else if (isGraceGroup(element)) {
+    // Check each note in the grace group
+    for (const graceElement of element.notes) {
+      if (isNote(graceElement) && isInLocationRange(graceElement, filter)) {
+        selected.add(graceElement);
+      }
+    }
+  } else if (isBarLine(element)) {
+    if (isInLocationRange(element, filter)) {
+      selected.add(element);
+    }
+  } else if (isInfo_line(element)) {
+    if (isInLocationRange(element, filter)) {
+      selected.add(element);
+    }
+  } else if (isInline_field(element)) {
+    if (isInLocationRange(element, filter)) {
+      selected.add(element);
+    }
+  }
+}

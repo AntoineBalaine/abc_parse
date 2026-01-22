@@ -16,6 +16,8 @@ import {
   selectMeasures,
   selectBass,
   selectBassFromSelection,
+  selectByLocation,
+  selectByLocationFromSelection,
   applySelector,
   applyTransform,
   formatSelection,
@@ -28,6 +30,7 @@ import {
   parsePitchLiteral,
   ABCTRuntime,
   createRuntime,
+  LocationFilter,
 } from "../src/runtime";
 import { Comparison, ComparisonOp, Identifier } from "../src/ast";
 import { Selection } from "../src/runtime/types";
@@ -849,6 +852,140 @@ describe("ABCT Runtime", () => {
       const result = formatSelection(selection);
       expect(result).to.include("X:1");
       expect(result).to.include("K:C");
+    });
+  });
+
+  describe("selectByLocation", () => {
+    it("should select notes on a specific line", () => {
+      // Line 0: X:1
+      // Line 1: K:C
+      // Line 2: C D E (notes on line 2)
+      // Line 3: F G A (notes on line 3)
+      const abc = "X:1\nK:C\nC D E\nF G A";
+      const ast = parseAbc(abc);
+
+      // Select notes on line 2 (0-indexed)
+      const filter: LocationFilter = { line: 2 };
+      const selection = selectByLocation(ast, filter);
+
+      // Should select only the notes on line 2 (C D E)
+      expect(selection.selected.size).to.equal(3);
+
+      // Verify they are all notes
+      for (const node of selection.selected) {
+        expect(isNote(node)).to.be.true;
+      }
+    });
+
+    it("should select notes at a specific position", () => {
+      const abc = "X:1\nK:C\nC D E";
+      const ast = parseAbc(abc);
+
+      // Select only the note at line 2, column 0 (should be C)
+      const filter: LocationFilter = { line: 2, col: 0 };
+      const selection = selectByLocation(ast, filter);
+
+      expect(selection.selected.size).to.equal(1);
+    });
+
+    it("should select notes within a column range on a single line", () => {
+      // Column positions: C=0, D=2, E=4, F=6, G=8
+      const abc = "X:1\nK:C\nC D E F G";
+      const ast = parseAbc(abc);
+
+      // Select notes in columns 0-4 on line 2 (should get C, D, E)
+      const filter: LocationFilter = {
+        line: 2,
+        col: 0,
+        end: { type: "singleline", endCol: 4 },
+      };
+      const selection = selectByLocation(ast, filter);
+
+      // C at column 0, D at column 2, E at column 4 are within range
+      expect(selection.selected.size).to.equal(3);
+    });
+
+    it("should select notes within a multi-line range", () => {
+      const abc = "X:1\nK:C\nC D E\nF G A\nB c d";
+      const ast = parseAbc(abc);
+
+      // Select notes from line 2 col 0 to line 3 col 10
+      const filter: LocationFilter = {
+        line: 2,
+        col: 0,
+        end: { type: "multiline", endLine: 3, endCol: 10 },
+      };
+      const selection = selectByLocation(ast, filter);
+
+      // Should select notes on lines 2 and 3
+      expect(selection.selected.size).to.be.greaterThan(0);
+    });
+
+    it("should return empty selection when no nodes match line", () => {
+      const abc = "X:1\nK:C\nC D E";
+      const ast = parseAbc(abc);
+
+      // Select notes on line 100 (doesn't exist)
+      const filter: LocationFilter = { line: 100 };
+      const selection = selectByLocation(ast, filter);
+
+      expect(selection.selected.size).to.equal(0);
+    });
+
+    it("should select chords on a specific line", () => {
+      const abc = "X:1\nK:C\n[CEG] A B\nC D E";
+      const ast = parseAbc(abc);
+
+      // Select nodes on line 2 (where the chord is)
+      const filter: LocationFilter = { line: 2 };
+      const selection = selectByLocation(ast, filter);
+
+      // Should find the chord and notes A, B
+      expect(selection.selected.size).to.be.greaterThan(0);
+
+      // At least one should be a chord
+      let hasChord = false;
+      for (const node of selection.selected) {
+        if (isChord(node)) {
+          hasChord = true;
+          break;
+        }
+      }
+      expect(hasChord).to.be.true;
+    });
+  });
+
+  describe("selectByLocationFromSelection", () => {
+    it("should filter an existing selection by location", () => {
+      const abc = "X:1\nK:C\nC D E\nF G A";
+      const ast = parseAbc(abc);
+
+      // First select all notes
+      const allNotes = selectNotes(ast);
+      expect(allNotes.selected.size).to.equal(6);
+
+      // Then filter to only notes on line 2
+      const filter: LocationFilter = { line: 2 };
+      const filtered = selectByLocationFromSelection(allNotes, filter);
+
+      // Should have only the notes on line 2
+      expect(filtered.selected.size).to.equal(3);
+    });
+
+    it("should work with chords selection", () => {
+      const abc = "X:1\nK:C\n[CEG] [FAC]\n[GBD] A";
+      const ast = parseAbc(abc);
+
+      // First select all chords
+      const allChords = selectChords(ast);
+      expect(allChords.selected.size).to.equal(3);
+
+      // Then filter to only chords on line 2
+      const filter: LocationFilter = { line: 2 };
+      const filtered = selectByLocationFromSelection(allChords, filter);
+
+      // Should have only the chords on line 2
+      expect(filtered.selected.size).to.equal(2);
     });
   });
 });

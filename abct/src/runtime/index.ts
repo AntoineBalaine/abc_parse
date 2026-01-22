@@ -14,6 +14,9 @@ import {
   selectNotesFromSelection,
   selectChordsFromSelection,
   selectBassFromSelection,
+  selectByLocation,
+  selectByLocationFromSelection,
+  LocationFilter,
 } from "./selectors";
 import { getTransform, transforms } from "./transforms";
 
@@ -28,6 +31,9 @@ export {
   selectNotesFromSelection,
   selectChordsFromSelection,
   selectBassFromSelection,
+  selectByLocation,
+  selectByLocationFromSelection,
+  LocationFilter,
 } from "./selectors";
 export { transpose, octave, retrograde, bass, getTransform, transforms, applyFilter, parseFilterPredicate, parsePitchLiteral } from "./transforms";
 export type { FilterPredicate } from "./transforms";
@@ -60,11 +66,7 @@ export function selectAll(ast: File_structure): Selection {
  * @param selectorId - The selector identifier (e.g., "chords", "notes", "V", "M")
  * @param value - Optional value for parameterized selectors (e.g., voice name, measure range)
  */
-export function applySelector(
-  ast: File_structure,
-  selectorId: string,
-  value?: string | number | { start: number; end: number }
-): Selection {
+export function applySelector(ast: File_structure, selectorId: string, value?: string | number | { start: number; end: number }): Selection {
   switch (selectorId.toLowerCase()) {
     case "c":
     case "chords":
@@ -106,11 +108,7 @@ export function applySelector(
  * @param transformName - The name of the transform to apply
  * @param args - Arguments to pass to the transform
  */
-export function applyTransform(
-  selection: Selection,
-  transformName: string,
-  args: unknown[] = []
-): Selection {
+export function applyTransform(selection: Selection, transformName: string, args: unknown[] = []): Selection {
   const transform = getTransform(transformName);
   if (!transform) {
     throw new Error(`Unknown transform: ${transformName}`);
@@ -180,22 +178,14 @@ export class ABCTRuntime {
   /**
    * Apply a selector to a selection.
    */
-  select(
-    selection: Selection,
-    selectorId: string,
-    value?: string | number | { start: number; end: number }
-  ): Selection {
+  select(selection: Selection, selectorId: string, value?: string | number | { start: number; end: number }): Selection {
     return applySelector(selection.ast, selectorId, value);
   }
 
   /**
    * Apply a transform to a selection.
    */
-  transform(
-    selection: Selection,
-    transformName: string,
-    args: unknown[] = []
-  ): Selection {
+  transform(selection: Selection, transformName: string, args: unknown[] = []): Selection {
     return applyTransform(selection, transformName, args);
   }
 

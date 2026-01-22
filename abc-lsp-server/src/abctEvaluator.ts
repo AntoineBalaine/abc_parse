@@ -55,6 +55,9 @@ import {
   selectBassFromSelection,
   applyFilter,
   parseFilterPredicate,
+  selectByLocation,
+  selectByLocationFromSelection,
+  LocationFilter,
 } from "../../abct/src/runtime";
 import { Selection } from "../../abct/src/runtime/types";
 
@@ -318,6 +321,12 @@ export class AbctEvaluator {
       return this.applyFilterToSelection(leftValue, expr.right);
     }
 
+    if (isLocationSelector(expr.right)) {
+      // Location selector: :line or :line:col or :line:col-end
+      const filter = this.locationSelectorToFilter(expr.right);
+      return selectByLocationFromSelection(leftValue, filter);
+    }
+
     throw new EvaluatorError("Pipe right side must be a selector, transform, or filter", expr.right.loc);
   }
 
@@ -341,13 +350,17 @@ export class AbctEvaluator {
    * The result is the context with the selected nodes transformed.
    */
   private async evaluateUpdateInContext(context: Selection, update: Update): Promise<Selection> {
-    // Check for LocationSelector which is not yet supported
-    if (isLocationSelector(update.selector)) {
-      throw new EvaluatorError("Location selectors (e.g., :5 or :10:5) are not yet supported in update expressions", update.selector.loc);
-    }
+    let selection: Selection;
 
-    // Apply the selector to narrow down which nodes to transform
-    const selection = this.applySelectorToSelection(context, update.selector);
+    // Handle LocationSelector separately from regular selectors
+    if (isLocationSelector(update.selector)) {
+      // Convert LocationSelector to LocationFilter
+      const filter = this.locationSelectorToFilter(update.selector);
+      selection = selectByLocationFromSelection(context, filter);
+    } else {
+      // Apply the regular selector to narrow down which nodes to transform
+      selection = this.applySelectorToSelection(context, update.selector);
+    }
 
     // Evaluate the transform based on its type
     if (isApplication(update.transform)) {
@@ -494,6 +507,40 @@ export class AbctEvaluator {
     }
 
     return applySelector(selection.ast, selectorId, selectorValue);
+  }
+
+  /**
+   * Convert a LocationSelector from the ABCT AST to a LocationFilter for the runtime.
+   */
+  private locationSelectorToFilter(selector: {
+    line: number;
+    col?: number;
+    end?: { type: "singleline"; endCol: number } | { type: "multiline"; endLine: number; endCol: number };
+  }): LocationFilter {
+    const filter: LocationFilter = {
+      line: selector.line,
+    };
+
+    if (selector.col !== undefined) {
+      filter.col = selector.col;
+    }
+
+    if (selector.end) {
+      if (selector.end.type === "singleline") {
+        filter.end = {
+          type: "singleline",
+          endCol: selector.end.endCol,
+        };
+      } else {
+        filter.end = {
+          type: "multiline",
+          endLine: selector.end.endLine,
+          endCol: selector.end.endCol,
+        };
+      }
+    }
+
+    return filter;
   }
 
   /**
