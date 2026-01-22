@@ -383,12 +383,31 @@ describe("ABCT Scanner Primitives", () => {
       expect(sanitizeAbcContent("A ``` B")).to.equal("A \\`\\`\\` B");
     });
 
+    it("should sanitize hash symbols", () => {
+      expect(sanitizeAbcContent("F#G A|B")).to.equal("F\\#G A|B");
+    });
+
+    it("should sanitize both backticks and hash", () => {
+      expect(sanitizeAbcContent("F# ``` G#")).to.equal("F\\# \\`\\`\\` G\\#");
+    });
+
     it("should desanitize escaped backticks", () => {
       expect(desanitizeAbcContent("A \\`\\`\\` B")).to.equal("A ``` B");
     });
 
+    it("should desanitize escaped hash", () => {
+      expect(desanitizeAbcContent("F\\#G A|B")).to.equal("F#G A|B");
+    });
+
     it("should round-trip correctly", () => {
       const original = "X:1\n```\nK:C";
+      const sanitized = sanitizeAbcContent(original);
+      const desanitized = desanitizeAbcContent(sanitized);
+      expect(desanitized).to.equal(original);
+    });
+
+    it("should round-trip ABC with sharps correctly", () => {
+      const original = "F#G ^A|B c# D";
       const sanitized = sanitizeAbcContent(original);
       const desanitized = desanitizeAbcContent(sanitized);
       expect(desanitized).to.equal(original);

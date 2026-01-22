@@ -92,13 +92,14 @@ export class AbctFormatter {
 
     for (let i = 0; i < ast.statements.length; i++) {
       const stmt = ast.statements[i];
-      const stmtLine = stmt.loc.start.line;
+      const stmtStartLine = stmt.loc.start.line;
+      const stmtEndLine = stmt.loc.end.line;
 
       // Emit any leading comments before this statement
-      this.emitLeadingComments(stmtLine);
+      this.emitLeadingComments(stmtStartLine);
 
       // Emit blank lines to preserve line structure
-      while (this.currentLine < stmtLine) {
+      while (this.currentLine < stmtStartLine) {
         this.output.push("\n");
         this.currentLine++;
       }
@@ -106,8 +107,11 @@ export class AbctFormatter {
       // Format the statement
       this.formatStatement(stmt);
 
-      // Emit trailing comment on the same line if present
-      this.emitTrailingComment(stmtLine);
+      // Update currentLine to reflect multi-line statements
+      this.currentLine = stmtEndLine;
+
+      // Emit trailing comment on the same line if present (use end line for multi-line statements)
+      this.emitTrailingComment(stmtEndLine);
 
       this.output.push("\n");
       this.currentLine++;
@@ -208,6 +212,30 @@ export class AbctFormatter {
   }
 
   /**
+   * Emit interleaved comments that appear between two lines (exclusive of fromLine, inclusive of toLine).
+   * Used for comments that appear in the middle of multi-line expressions like pipes.
+   */
+  private emitInterleavedComments(fromLine: number, toLine: number): void {
+    while (
+      this.commentIndex < this.comments.length &&
+      this.comments[this.commentIndex].line > fromLine &&
+      this.comments[this.commentIndex].line <= toLine &&
+      !this.comments[this.commentIndex].isTrailing
+    ) {
+      const comment = this.comments[this.commentIndex];
+
+      // Emit blank lines to reach the comment's line
+      while (this.currentLine < comment.line) {
+        this.output.push("\n");
+        this.currentLine++;
+      }
+
+      this.output.push(comment.text);
+      this.commentIndex++;
+    }
+  }
+
+  /**
    * Format a statement (assignment or expression).
    */
   private formatStatement(stmt: Statement): void {
@@ -274,13 +302,21 @@ export class AbctFormatter {
 
   /**
    * Format a pipe expression: left | right
-   * Preserves newlines when the pipe operator is on a different line than left expression
+   * Preserves newlines when the pipe operator is on a different line than left expression.
+   * Also emits trailing comments and interleaved comments at appropriate positions.
    */
   private formatPipe(pipe: Pipe): void {
     this.formatExpr(pipe.left);
+    this.currentLine = pipe.left.loc.end.line;
+
     // Check if pipe operator is on a different line than left expression's end
     if (pipe.opLoc.start.line > pipe.left.loc.end.line) {
+      // Emit trailing comment on the left expression's line (before the newline)
+      this.emitTrailingComment(pipe.left.loc.end.line);
+      // Emit any non-trailing comments between the left expression and the pipe operator
+      this.emitInterleavedComments(pipe.left.loc.end.line, pipe.opLoc.start.line - 1);
       this.output.push("\n| ");
+      this.currentLine = pipe.opLoc.start.line;
     } else {
       this.output.push(" | ");
     }

@@ -195,6 +195,64 @@ result = source | @chords`;
       expect(result).to.include("# Comment 1");
       expect(result).to.include("# Comment 2");
     });
+
+    it("should preserve comments after multi-line statements", () => {
+      const input = `tests.abc | @bass | transpose -20
+| @chords | bass
+
+#| @chords | filter (pitch > C3)
+# | :2 | transpose -2`;
+      const result = fmt(input);
+      const lines = result.trim().split("\n");
+      // Multi-line statement on lines 0-1
+      expect(lines[0]).to.equal("tests.abc | @bass | transpose -20");
+      expect(lines[1]).to.equal("| @chords | bass");
+      // One blank line
+      expect(lines[2]).to.equal("");
+      // Comments on lines 3-4
+      expect(lines[3]).to.equal("#| @chords | filter (pitch > C3)");
+      expect(lines[4]).to.equal("# | :2 | transpose -2");
+    });
+
+    it("should preserve interleaved comments in multi-line pipes", () => {
+      const input = `tests.abc | @bass | transpose -20
+| @chords | bass
+# | :2 | transpose -2
+| @chords | filter (pitch > C3)`;
+      const result = fmt(input);
+      const lines = result.trim().split("\n");
+      // Multi-line statement with interleaved comment
+      expect(lines[0]).to.equal("tests.abc | @bass | transpose -20");
+      expect(lines[1]).to.equal("| @chords | bass");
+      expect(lines[2]).to.equal("# | :2 | transpose -2");
+      expect(lines[3]).to.equal("| @chords | filter (pitch > C3)");
+    });
+
+    it("should preserve trailing comments in multi-line pipes", () => {
+      const input = `tests.abc | @bass | transpose -20
+| @chords | bass # hello
+# | :2 | transpose -2
+| @chords | filter (pitch > C3)`;
+      const result = fmt(input);
+      const lines = result.trim().split("\n");
+      expect(lines[0]).to.equal("tests.abc | @bass | transpose -20");
+      expect(lines[1]).to.equal("| @chords | bass  # hello");
+      expect(lines[2]).to.equal("# | :2 | transpose -2");
+      expect(lines[3]).to.equal("| @chords | filter (pitch > C3)");
+    });
+
+    it("should preserve trailing comments on first line of multi-line pipes", () => {
+      const input = `tests.abc | @bass | transpose -20 # hello
+| @chords | bass
+# | :2 | transpose -2
+| @chords | filter (pitch > C3)`;
+      const result = fmt(input);
+      const lines = result.trim().split("\n");
+      expect(lines[0]).to.equal("tests.abc | @bass | transpose -20  # hello");
+      expect(lines[1]).to.equal("| @chords | bass");
+      expect(lines[2]).to.equal("# | :2 | transpose -2");
+      expect(lines[3]).to.equal("| @chords | filter (pitch > C3)");
+    });
   });
 
   describe("ABC Literal Preservation", () => {

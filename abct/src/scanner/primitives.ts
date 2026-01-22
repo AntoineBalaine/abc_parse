@@ -93,19 +93,20 @@ export function string(ctx: AbctCtx): boolean {
 }
 
 /**
- * Sanitize ABC content by escaping triple backticks
- * This allows ABC content that contains ``` to be safely embedded in ABCT
+ * Sanitize ABC content by escaping characters that have special meaning in ABCT.
+ * - Triple backticks (```) are escaped as \`\`\` to avoid closing the fence
+ * - Hash (#) is escaped as \# to avoid being interpreted as a comment
  */
 export function sanitizeAbcContent(raw: string): string {
-  return raw.replace(/```/g, "\\`\\`\\`");
+  return raw.replace(/```/g, "\\`\\`\\`").replace(/#/g, "\\#");
 }
 
 /**
- * Desanitize ABC content by unescaping triple backticks
- * Used when extracting ABC content for insertion into ABC files
+ * Desanitize ABC content by unescaping special characters.
+ * Used when extracting ABC content for insertion into ABC files.
  */
 export function desanitizeAbcContent(sanitized: string): string {
-  return sanitized.replace(/\\`\\`\\`/g, "```");
+  return sanitized.replace(/\\`\\`\\`/g, "```").replace(/\\#/g, "#");
 }
 
 // Pattern for ABC fence opening: ``` or ```abc optionally followed by location
