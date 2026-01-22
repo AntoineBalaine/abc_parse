@@ -124,10 +124,12 @@ module.exports = grammar({
     // Tune Body (matches Tune_Body in Expr2.ts)
     // =====================================================================
 
+    // Note: Lyric_line is not included directly here because Lyric_section
+    // already handles sequences of lyric lines. Including both would create
+    // ambiguity where a single lyric line could match either rule.
     Tune_Body: $ => repeat1(choice(
       $.Music_code,
       $.Info_line,
-      $.Lyric_line,
       $.Lyric_section,
       $.SymbolLine,
       $.Comment,
@@ -140,15 +142,21 @@ module.exports = grammar({
     // Music Code (matches Music_code in Expr2.ts)
     // =====================================================================
 
+    // Note: Beam is removed from Music_code because beam grouping is determined
+    // by whitespace context, which should be handled in post-processing (semantic
+    // layer), not at the grammar level. TreeSitter cannot distinguish beam
+    // boundaries without explicit markers.
+    // Note: MultiMeasureRest is removed; Rest rule now handles both regular
+    // rests (z, x) and multi-measure rests (Z, X). The scanner uses the same
+    // REST token and semantic analysis distinguishes by the rest character.
     Music_code: $ => repeat1(choice(
       $.Note,
       $.Rest,
-      $.MultiMeasureRest,
       $.Chord,
       $.Grace_group,
       $.BarLine,
-      $.Beam,
       $.Tuplet,
+      $.Slur,
       $.Annotation,
       $.Decoration,
       $.Symbol,
@@ -211,21 +219,15 @@ module.exports = grammar({
     ),
 
     // =====================================================================
-    // Rest (matches Rest in Expr2.ts)
+    // Rest (matches Rest and MultiMeasureRest in Expr2.ts)
+    // The scanner emits the same REST token for z, Z, x, X.
+    // Semantic analysis distinguishes multi-measure rests (Z, X) from
+    // regular rests (z, x) by examining the actual rest character.
     // =====================================================================
 
     Rest: $ => seq(
       $.REST,
       optional($.Rhythm)
-    ),
-
-    // =====================================================================
-    // MultiMeasureRest (matches MultiMeasureRest in Expr2.ts)
-    // =====================================================================
-
-    MultiMeasureRest: $ => seq(
-      $.REST,
-      optional($.RHY_NUMER)
     ),
 
     // =====================================================================
@@ -305,25 +307,13 @@ module.exports = grammar({
     ),
 
     // =====================================================================
-    // Beam (matches Beam in Expr2.ts)
-    // Groups of notes connected by beams
+    // Slur (matches Slur in Expr2.ts)
+    // Slur markers in ABC notation: ( and )
+    // In ABC, slurs are standalone tokens that mark the beginning or end
+    // of a slurred passage. The semantic layer pairs them.
     // =====================================================================
 
-    Beam: $ => repeat1(choice(
-      $.Note,
-      $.Rest,
-      $.Chord,
-      $.Grace_group,
-      $.Annotation,
-      $.Decoration,
-      $.Symbol,
-      $.BarLine,
-      $.Tuplet,
-      $.MultiMeasureRest,
-      $.Inline_field,
-      $.YSPACER,
-      $.ErrorExpr
-    )),
+    Slur: $ => $.SLUR,
 
     // =====================================================================
     // Inline_field (matches Inline_field in Expr2.ts)
@@ -412,17 +402,15 @@ module.exports = grammar({
 
     // =====================================================================
     // KV (matches KV in Expr2.ts)
-    // Key-value pairs: key=value or standalone value
+    // Key-value pairs: key=value
+    // Note: The standalone $._kv_value alternative was removed because it
+    // created ambiguity with other info line content rules. Standalone
+    // identifiers, numbers, etc. are handled directly by _info_line_content.
     // =====================================================================
 
-    KV: $ => choice(
-      // With key: key=value
-      seq(
-        choice($.IDENTIFIER, $.AbsolutePitch),
-        $.EQL,
-        $._kv_value
-      ),
-      // Standalone value (when not ambiguous)
+    KV: $ => seq(
+      choice($.IDENTIFIER, $.AbsolutePitch),
+      $.EQL,
       $._kv_value
     ),
 
