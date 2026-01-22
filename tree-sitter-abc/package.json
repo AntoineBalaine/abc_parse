@@ -8,6 +8,7 @@
     "generate": "tree-sitter generate",
     "build": "tree-sitter generate && node-gyp rebuild",
     "test": "tree-sitter test",
+    "test:c": "make -C tests test-scanner",
     "install": "node-gyp-build",
     "prebuildify": "prebuildify --napi --strip"
   },

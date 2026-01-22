@@ -7,5 +7,22 @@ node_modules/
 src/parser.c
 src/tree_sitter/
 
+# Test binaries
+tests/test_whitespace
+tests/test_pitch
+tests/test_rhythm
+tests/test_barline
+tests/test_tuplet
+tests/test_bracket
+tests/test_info
+tests/test_symbol
+tests/test_special
+tests/test_lyrics
+tests/test_symbol_line
+tests/test_repeat
+tests/test_user_macro
+tests/test_directive
+tests/test_punctuation
+
 # OS files
 .DS_Store
