@@ -258,6 +258,61 @@ export function assertSelfComparisonEqual(input: string): void {
 export { serializeCSNode as formatTree } from "../../comparison";
 
 /**
+ * Represents a terminal (leaf) node from a TreeSitter parse tree.
+ * These correspond to tokens produced by the external scanner.
+ */
+export interface TerminalNode {
+  type: string;
+  text: string;
+  startIndex: number;
+  endIndex: number;
+}
+
+/**
+ * Recursively collects terminal nodes from a SyntaxNode tree.
+ */
+function walkTerminals(n: SyntaxNode, terminals: TerminalNode[]): void {
+  if (n.childCount === 0) {
+    terminals.push({
+      type: n.type,
+      text: n.text,
+      startIndex: n.startIndex,
+      endIndex: n.endIndex,
+    });
+  } else {
+    for (const child of n.children) {
+      walkTerminals(child, terminals);
+    }
+  }
+}
+
+/**
+ * Extract all terminal (leaf) nodes from a TreeSitter SyntaxNode tree.
+ * Terminal nodes are those with no children, which correspond to tokens
+ * produced by the external scanner.
+ *
+ * @param node - The root SyntaxNode to walk
+ * @returns Array of terminal nodes in document order
+ */
+export function extractTerminalNodes(node: SyntaxNode): TerminalNode[] {
+  const terminals: TerminalNode[] = [];
+  walkTerminals(node, terminals);
+  return terminals;
+}
+
+/**
+ * Parse input with TreeSitter and return the terminal node sequence.
+ * Returns null if TreeSitter is not available.
+ */
+export function getTreeSitterTerminals(input: string): TerminalNode[] | null {
+  if (!checkTreeSitterAvailable() || treeSitterParser === null) {
+    return null;
+  }
+  const tree = treeSitterParser.parse(input);
+  return extractTerminalNodes(tree.rootNode);
+}
+
+/**
  * Quick sanity check that input parses to a non-empty tree
  */
 export function assertNonEmptyParse(input: string): void {

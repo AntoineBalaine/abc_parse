@@ -6,6 +6,12 @@ node_modules/
 # Generated files
 src/parser.c
 src/tree_sitter/
+Cargo.toml
+Makefile
+Package.swift
+pyproject.toml
+setup.py
+bindings/
 
 # Test binaries
 tests/test_whitespace
