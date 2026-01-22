@@ -9,7 +9,14 @@ import { Scanner } from "../../parsers/scan2";
 import { parse } from "../../parsers/parse2";
 import { ABCContext } from "../../parsers/Context";
 import { File_structure } from "../../types/Expr2";
-import { CSNode, exprToCS, compareCSNodes, CompareResult, formatCompareResult } from "../../comparison";
+import {
+  CSNode,
+  exprToCS,
+  compareCSNodes,
+  CompareResult,
+  formatCompareResult,
+  countNodes,
+} from "../../comparison";
 
 /**
  * Result of parsing with the TypeScript parser
@@ -64,33 +71,22 @@ export function assertTreesEqual(
 }
 
 /**
- * Count the total number of nodes in a CSNode tree
+ * Count the total number of nodes in a CSNode tree.
+ * Re-exported from comparison module for test convenience.
  */
-export function countTreeNodes(node: CSNode | null): number {
-  if (!node) return 0;
-  return 1 + countTreeNodes(node.firstChild) + countTreeNodes(node.nextSibling);
-}
+export { countNodes as countTreeNodes } from "../../comparison";
 
 /**
- * Get the maximum depth of a CSNode tree
+ * Get the maximum depth of a CSNode tree.
+ * Re-exported from comparison module for test convenience.
  */
-export function getTreeDepth(node: CSNode | null, currentDepth = 0): number {
-  if (!node) return currentDepth;
-  const childDepth = getTreeDepth(node.firstChild, currentDepth + 1);
-  const siblingDepth = getTreeDepth(node.nextSibling, currentDepth);
-  return Math.max(childDepth, siblingDepth);
-}
+export { treeDepth as getTreeDepth } from "../../comparison";
 
 /**
- * Collect all unique node types in a CSNode tree
+ * Collect all unique node types in a CSNode tree.
+ * Re-exported from comparison module for test convenience.
  */
-export function collectNodeTypes(node: CSNode | null, types: Set<string> = new Set()): Set<string> {
-  if (!node) return types;
-  types.add(node.type);
-  collectNodeTypes(node.firstChild, types);
-  collectNodeTypes(node.nextSibling, types);
-  return types;
-}
+export { collectNodeTypes } from "../../comparison";
 
 /**
  * Test that parsing succeeds without errors
@@ -114,27 +110,10 @@ export function assertSelfComparisonEqual(input: string): void {
 }
 
 /**
- * Format a CSNode tree for debugging
+ * Format a CSNode tree for debugging.
+ * Re-exported from comparison module for test convenience.
  */
-export function formatTree(node: CSNode | null, indent = 0): string {
-  if (!node) return "";
-
-  const prefix = "  ".repeat(indent);
-  let result = `${prefix}${node.type}`;
-  if (node.text !== undefined) {
-    result += `: "${node.text.replace(/\n/g, "\\n")}"`;
-  }
-  result += "\n";
-
-  if (node.firstChild) {
-    result += formatTree(node.firstChild, indent + 1);
-  }
-  if (node.nextSibling) {
-    result += formatTree(node.nextSibling, indent);
-  }
-
-  return result;
-}
+export { serializeCSNode as formatTree } from "../../comparison";
 
 /**
  * Quick sanity check that input parses to a non-empty tree
@@ -144,7 +123,7 @@ export function assertNonEmptyParse(input: string): void {
   if (!result.csNode) {
     throw new Error(`Parse returned null CSNode for input: ${input.slice(0, 100)}`);
   }
-  const nodeCount = countTreeNodes(result.csNode);
+  const nodeCount = countNodes(result.csNode);
   if (nodeCount === 0) {
     throw new Error(`Parse returned empty tree for input: ${input.slice(0, 100)}`);
   }

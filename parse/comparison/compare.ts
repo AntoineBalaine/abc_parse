@@ -333,21 +333,19 @@ export function treeDepth(node: CSNode | null): number {
  * Collects all node types present in a CSNode tree
  *
  * Useful for debugging and understanding tree structure.
+ * Uses context-passing instead of closure to avoid nested functions.
  *
  * @param node - The root of the tree
+ * @param types - The Set to collect types into (default: new Set)
  * @returns A Set of all node type names
  */
-export function collectNodeTypes(node: CSNode | null): Set<string> {
-  const types = new Set<string>();
+export function collectNodeTypes(node: CSNode | null, types: Set<string> = new Set<string>()): Set<string> {
+  if (node === null) return types;
 
-  function traverse(n: CSNode | null): void {
-    if (n === null) return;
-    types.add(n.type);
-    traverse(n.firstChild);
-    traverse(n.nextSibling);
-  }
+  types.add(node.type);
+  collectNodeTypes(node.firstChild, types);
+  collectNodeTypes(node.nextSibling, types);
 
-  traverse(node);
   return types;
 }
 

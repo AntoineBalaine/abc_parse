@@ -62,6 +62,7 @@ export function tokenToCS(token: Token): CSNode {
   return createCSNode(TT[token.type], {
     text: token.lexeme,
     startOffset: token.position,
+    endOffset: token.position + token.lexeme.length,
   });
 }
 
