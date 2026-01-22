@@ -1,0 +1,11 @@
+# Build artifacts
+build/
+node_modules/
+*.node
+
+# Generated files
+src/parser.c
+src/tree_sitter/
+
+# OS files
+.DS_Store

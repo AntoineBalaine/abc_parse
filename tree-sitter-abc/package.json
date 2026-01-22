@@ -1,0 +1,21 @@
+{
+  "name": "tree-sitter-abc",
+  "version": "1.0.0",
+  "description": "TreeSitter grammar for ABC music notation",
+  "main": "bindings/node",
+  "scripts": {
+    "generate": "tree-sitter generate",
+    "build": "tree-sitter generate && node-gyp rebuild",
+    "test": "tree-sitter test"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.22.0",
+    "nan": "^2.18.0"
+  },
+  "tree-sitter": [
+    {
+      "scope": "source.abc",
+      "file-types": ["abc"]
+    }
+  ]
+}
