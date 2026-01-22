@@ -253,6 +253,8 @@ bool scan_system_break(ScanCtx *ctx);
 bool scan_y_spacer(ScanCtx *ctx);
 bool scan_bcktck_spacer(ScanCtx *ctx);
 bool scan_repeat_numbers(ScanCtx *ctx);
+bool scan_section_break(ScanCtx *ctx);
+bool scan_free_text(ScanCtx *ctx);
 
 // Error recovery
 bool collect_invalid_token(ScanCtx *ctx);
