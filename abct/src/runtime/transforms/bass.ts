@@ -4,16 +4,14 @@
 import {
   isNote,
   isChord,
-  isPitch,
 } from "../../../../parse/helpers";
-import { toMidiPitch } from "../../../../parse/Visitors/Formatter2";
 import {
   Expr,
   Note,
   Chord,
-  Pitch,
   Annotation,
 } from "../../../../parse/types/Expr2";
+import { getNoteMidiPitch } from "../utils/pitch";
 import { Token } from "../../../../parse/parsers/scan2";
 import { Selection, TransformFn } from "../types";
 
@@ -84,18 +82,6 @@ function extractBassFromChord(chord: Chord): void {
   // Replace chord contents with just the lowest note
   // Keep any non-note elements (though typically just brackets which are implicit)
   chord.contents = [lowestNote];
-}
-
-/**
- * Get the MIDI pitch value for a note.
- * Returns a very high value for notes without valid pitches (so they sort last).
- */
-function getNoteMidiPitch(note: Note): number {
-  if (isPitch(note.pitch)) {
-    return toMidiPitch(note.pitch as Pitch);
-  }
-  // If no valid pitch, return a high value
-  return Number.MAX_SAFE_INTEGER;
 }
 
 export default bass;

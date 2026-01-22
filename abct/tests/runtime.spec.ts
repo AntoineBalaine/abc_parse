@@ -14,6 +14,8 @@ import {
   selectNotes,
   selectVoice,
   selectMeasures,
+  selectBass,
+  selectBassFromSelection,
   applySelector,
   applyTransform,
   formatSelection,
@@ -147,6 +149,134 @@ describe("ABCT Runtime", () => {
         const selection = applySelector(ast, "notes");
 
         expect(selection.selected.size).to.equal(3);
+      });
+
+      it("should apply bass selector", () => {
+        const abc = "X:1\nK:C\n[CEG] [FAc]";
+        const ast = parseAbc(abc);
+        const selection = applySelector(ast, "bass");
+
+        // Should select 2 bass notes (C from first chord, F from second chord)
+        expect(selection.selected.size).to.equal(2);
+        for (const node of selection.selected) {
+          expect(isNote(node)).to.be.true;
+        }
+      });
+    });
+
+    describe("selectBass", () => {
+      it("should select bass note from each chord", () => {
+        const abc = "X:1\nK:C\n[CEG] [FAc] [GBd]";
+        const ast = parseAbc(abc);
+        const selection = selectBass(ast);
+
+        // Should select 3 bass notes (one from each chord)
+        expect(selection.selected.size).to.equal(3);
+        for (const node of selection.selected) {
+          expect(isNote(node)).to.be.true;
+        }
+      });
+
+      it("should skip single notes", () => {
+        const abc = "X:1\nK:C\nC D E F";
+        const ast = parseAbc(abc);
+        const selection = selectBass(ast);
+
+        // Single notes are skipped, so the selection should be empty
+        expect(selection.selected.size).to.equal(0);
+      });
+
+      it("should return empty set for ABC with no chords", () => {
+        const abc = "X:1\nK:C\nC D E F";
+        const ast = parseAbc(abc);
+        const selection = selectBass(ast);
+
+        expect(selection.selected.size).to.equal(0);
+      });
+
+      it("should find bass notes from chords inside beams", () => {
+        const abc = "X:1\nK:C\n[CEG][FAc]";
+        const ast = parseAbc(abc);
+        const selection = selectBass(ast);
+
+        // Should select 2 bass notes from the 2 chords in the beam
+        expect(selection.selected.size).to.equal(2);
+      });
+
+      it("should select the lowest pitched note in chord", () => {
+        const abc = "X:1\nK:C\n[GBd]";
+        const ast = parseAbc(abc);
+        const selection = selectBass(ast);
+
+        expect(selection.selected.size).to.equal(1);
+        // G is the lowest note - we can verify by applying a transform
+        // and checking the result
+        transpose(selection, [12]); // Up an octave
+        const result = stringify(ast);
+        // The chord should still have G, B, d but G is transposed to g
+        expect(result).to.include("g");
+      });
+    });
+
+    describe("selectBassFromSelection", () => {
+      it("should select bass notes from chords in an existing selection", () => {
+        const abc = "X:1\nK:C\n[CEG] [FAc] [GBd]";
+        const ast = parseAbc(abc);
+        const chordSelection = selectChords(ast);
+        const bassSelection = selectBassFromSelection(chordSelection);
+
+        // Should select 3 bass notes from the 3 chords
+        expect(bassSelection.selected.size).to.equal(3);
+        for (const node of bassSelection.selected) {
+          expect(isNote(node)).to.be.true;
+        }
+      });
+
+      it("should skip single notes in the selection", () => {
+        const abc = "X:1\nK:C\nC D E F";
+        const ast = parseAbc(abc);
+        const noteSelection = selectNotes(ast);
+        const bassSelection = selectBassFromSelection(noteSelection);
+
+        // Single notes are skipped, so bass selection should be empty
+        expect(bassSelection.selected.size).to.equal(0);
+      });
+
+      it("should enable nested transforms like @chords |= (@bass | transpose -12)", () => {
+        const abc = "X:1\nK:C\n[ceg]";
+        const ast = parseAbc(abc);
+
+        // First select the chords
+        const chordSelection = selectChords(ast);
+
+        // Then select bass notes from the chord selection
+        const bassSelection = selectBassFromSelection(chordSelection);
+
+        // Apply transpose to just the bass notes
+        transpose(bassSelection, [-12]); // Down an octave
+
+        const result = stringify(ast);
+        // c should be transposed to C, but e and g remain unchanged
+        expect(result).to.include("[Ceg]");
+      });
+
+      it("should work with multiple chords", () => {
+        const abc = "X:1\nK:C\n[ceg] [fac']";
+        const ast = parseAbc(abc);
+
+        // Select all chords
+        const chordSelection = selectChords(ast);
+
+        // Select bass notes from all chords
+        const bassSelection = selectBassFromSelection(chordSelection);
+
+        // Transpose bass notes down
+        transpose(bassSelection, [-12]);
+
+        const result = stringify(ast);
+        // c and f should be transposed down, others unchanged
+        expect(result).to.include("[Ceg]");
+        expect(result).to.include("[Fac']");
       });
     });
   });

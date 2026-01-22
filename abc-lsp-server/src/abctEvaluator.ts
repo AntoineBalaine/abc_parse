@@ -50,6 +50,7 @@ import {
   selectAll,
   selectNotesFromSelection,
   selectChordsFromSelection,
+  selectBassFromSelection,
 } from "../../abct/src/runtime";
 import { Selection } from "../../abct/src/runtime/types";
 
@@ -480,6 +481,8 @@ export class AbctEvaluator {
       case "chords":
       case "c":
         return selectChordsFromSelection(selection);
+      case "bass":
+        return selectBassFromSelection(selection);
       default:
         throw new EvaluatorError(
           `Selector @${selectorId} is not supported in nested context`,

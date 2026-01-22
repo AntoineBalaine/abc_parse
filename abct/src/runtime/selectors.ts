@@ -25,6 +25,7 @@ import {
   isVoiceInfo,
 } from "../../../parse/types/Expr2";
 import { Selection } from "./types";
+import { getNoteMidiPitch } from "./utils/pitch";
 
 /**
  * Select all Chord nodes from an ABC AST.
@@ -434,3 +435,128 @@ export function selectChordsFromSelection(selection: Selection): Selection {
 
   return { ast: selection.ast, selected };
 }
+
+// ============================================================================
+// Bass selector functions - select the lowest note from chords
+// ============================================================================
+
+/**
+ * Select the bass note (lowest-pitched note) from each chord in an ABC AST.
+ * Single notes are skipped - this selector only operates on chords.
+ *
+ * @param ast - The ABC AST
+ */
+export function selectBass(ast: File_structure): Selection {
+  const selected = new Set<Expr>();
+
+  for (const content of ast.contents) {
+    if (isToken(content)) continue;
+    collectBassNotesFromTune(content, selected);
+  }
+
+  return { ast, selected };
+}
+
+/**
+ * Select the bass note (lowest-pitched note) from chords within an existing selection.
+ * Used for nested contexts like @chords |= (@bass | transpose -12).
+ *
+ * Single notes in the selection are skipped - this selector only operates on chords.
+ *
+ * @param selection - The existing selection
+ */
+export function selectBassFromSelection(selection: Selection): Selection {
+  const selected = new Set<Expr>();
+
+  for (const node of selection.selected) {
+    if (isChord(node)) {
+      const bassNote = findBassNote(node);
+      if (bassNote) {
+        selected.add(bassNote);
+      }
+    }
+    // Single notes are skipped (per spec)
+  }
+
+  return { ast: selection.ast, selected };
+}
+
+/**
+ * Collect bass notes from all chords in a tune.
+ */
+function collectBassNotesFromTune(tune: Tune, selected: Set<Expr>): void {
+  if (!tune.tune_body) return;
+  collectBassNotesFromBody(tune.tune_body, selected);
+}
+
+/**
+ * Collect bass notes from all chords in a tune body.
+ */
+function collectBassNotesFromBody(body: Tune_Body, selected: Set<Expr>): void {
+  for (const system of body.sequence) {
+    for (const element of system) {
+      if (isToken(element)) continue;
+
+      if (isChord(element)) {
+        const bassNote = findBassNote(element);
+        if (bassNote) {
+          selected.add(bassNote);
+        }
+      } else if (isBeam(element)) {
+        collectBassNotesFromBeam(element, selected);
+      }
+      // Single notes are skipped (per spec)
+    }
+  }
+}
+
+/**
+ * Collect bass notes from chords within a beam.
+ */
+function collectBassNotesFromBeam(beam: Beam, selected: Set<Expr>): void {
+  for (const element of beam.contents) {
+    if (isToken(element)) continue;
+
+    if (isChord(element)) {
+      const bassNote = findBassNote(element);
+      if (bassNote) {
+        selected.add(bassNote);
+      }
+    }
+    // Single notes are skipped (per spec)
+  }
+}
+
+/**
+ * Find the bass note (lowest-pitched note) in a chord.
+ * Returns null if the chord has no notes.
+ */
+function findBassNote(chord: Chord): Note | null {
+  const notes: Note[] = [];
+
+  for (const element of chord.contents) {
+    if (isNote(element)) {
+      notes.push(element);
+    }
+  }
+
+  if (notes.length === 0) {
+    return null;
+  }
+
+  // Find the lowest note by MIDI pitch
+  let lowestNote = notes[0];
+  let lowestPitch = getNoteMidiPitch(lowestNote);
+
+  for (let i = 1; i < notes.length; i++) {
+    const note = notes[i];
+    const pitch = getNoteMidiPitch(note);
+    if (pitch < lowestPitch) {
+      lowestPitch = pitch;
+      lowestNote = note;
+    }
+  }
+
+  return lowestNote;
+}
+

@@ -170,6 +170,21 @@ The music before the first barline is considered measure 1.`,
       examples: ["@M:1-4", "@m:5", "song.abc | @M:1-8 |= transpose 2"],
     },
   ],
+  [
+    "bass",
+    {
+      name: "bass",
+      shortForm: "b",
+      description: "Select the bass note (lowest note) from each chord",
+      documentation: `Select the bass note (lowest-pitched note) from each chord.
+
+This selector finds the lowest note in each chord and adds it to the selection.
+Single notes are skipped - this selector only operates on chords.
+
+Use this to target bass notes for further operations without mutating the chords.`,
+      examples: ["@bass", "@b", "song.abc | @chords |= (@bass | transpose -12)"],
+    },
+  ],
 ]);
 
 /**

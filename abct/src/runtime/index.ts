@@ -10,8 +10,10 @@ import {
   selectNotes,
   selectVoice,
   selectMeasures,
+  selectBass,
   selectNotesFromSelection,
   selectChordsFromSelection,
+  selectBassFromSelection,
 } from "./selectors";
 import { getTransform, transforms } from "./transforms";
 
@@ -22,8 +24,10 @@ export {
   selectNotes,
   selectVoice,
   selectMeasures,
+  selectBass,
   selectNotesFromSelection,
   selectChordsFromSelection,
+  selectBassFromSelection,
 } from "./selectors";
 export { transpose, octave, retrograde, bass, getTransform, transforms } from "./transforms";
 
@@ -85,6 +89,9 @@ export function applySelector(
         return selectMeasures(ast, value, value);
       }
       throw new Error("Measure selector requires a range (start-end) or single measure number");
+
+    case "bass":
+      return selectBass(ast);
 
     default:
       throw new Error(`Unknown selector: ${selectorId}`);
