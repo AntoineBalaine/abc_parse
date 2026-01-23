@@ -8,12 +8,14 @@
     "abc-lsp-server",
     "abc-cli",
     "vscode-extension",
-    "abct"
+    "abct",
+    "abct2"
   ],
   "scripts": {
-    "build": "npm run build:parse && npm run build:abct && npm run build:native && npm run build:lsp && npm run build:cli && npm run build:vscode",
+    "build": "npm run build:parse && npm run build:abct && npm run build:abct2 && npm run build:native && npm run build:lsp && npm run build:cli && npm run build:vscode",
     "build:parse": "npm run build -w parse",
     "build:abct": "npm run build -w abct",
+    "build:abct2": "npm run build -w abct2",
     "build:native": "npm run build -w abc-musesampler-native",
     "build:lsp": "npm run build -w abc-lsp-server",
     "build:cli": "npm run build -w abc-cli",
@@ -23,7 +25,7 @@
     "watch:cli": "npm run watch -w abc-cli",
     "watch:vscode": "npm run watch -w vscode-extension",
     "package:vscode": "npm run package -w vscode-extension",
-    "test": "npm run test -w parse && npm run test -w abct",
+    "test": "npm run test -w parse && npm run test -w abct && npm run test -w abct2",
     "lint": "npm run lint -w parse && npm run lint -w abc-lsp-server",
     "lint:fix": "npm run lint:fix -w parse && npm run lint:fix -w abc-lsp-server",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",

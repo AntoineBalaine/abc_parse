@@ -1,0 +1,10 @@
+{
+  "name": "abct2",
+  "version": "0.0.1",
+  "private": true,
+  "main": "../out/abct2/src/selection.js",
+  "scripts": {
+    "build": "tsc -b",
+    "test": "mocha -r ts-node/register 'tests/**/*.spec.ts'"
+  }
+}

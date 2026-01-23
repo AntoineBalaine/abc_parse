@@ -1,0 +1,76 @@
+import { Expr } from "../../../parse/types/Expr2";
+import { Token } from "../../../parse/parsers/scan2";
+
+export interface CSNode {
+  tag: string;
+  id: number;
+  node: Expr | Token;
+  firstChild: CSNode | null;
+  nextSibling: CSNode | null;
+}
+
+export const TAGS: Record<string, string> = {
+  File_structure: "File_structure",
+  Tune: "Tune",
+  Tune_header: "Tune_header",
+  Tune_Body: "Tune_Body",
+  Info_line: "Info_line",
+  Note: "Note",
+  Pitch: "Pitch",
+  Rhythm: "Rhythm",
+  Rest: "Rest",
+  Chord: "Chord",
+  Beam: "Beam",
+  Grace_group: "Grace_group",
+  BarLine: "BarLine",
+  Decoration: "Decoration",
+  Annotation: "Annotation",
+  Inline_field: "Inline_field",
+  MultiMeasureRest: "MultiMeasureRest",
+  YSPACER: "YSPACER",
+  SystemBreak: "SystemBreak",
+  Symbol: "Symbol",
+  Tuplet: "Tuplet",
+  Music_code: "Music_code",
+  Voice_overlay: "Voice_overlay",
+  Line_continuation: "Line_continuation",
+  Comment: "Comment",
+  Directive: "Directive",
+  Measurement: "Measurement",
+  Rational: "Rational",
+  File_header: "File_header",
+  Lyric_section: "Lyric_section",
+  AbsolutePitch: "AbsolutePitch",
+  Lyric_line: "Lyric_line",
+  Macro_decl: "Macro_decl",
+  Macro_invocation: "Macro_invocation",
+  User_symbol_decl: "User_symbol_decl",
+  User_symbol_invocation: "User_symbol_invocation",
+  KV: "KV",
+  Binary: "Binary",
+  Unary: "Unary",
+  Grouping: "Grouping",
+  ChordSymbol: "ChordSymbol",
+  ErrorExpr: "ErrorExpr",
+  Token: "Token",
+};
+
+export function isRest(node: CSNode): boolean {
+  return node.tag === TAGS.Rest;
+}
+
+export function isNote(node: CSNode): boolean {
+  return node.tag === TAGS.Note;
+}
+
+export function isChord(node: CSNode): boolean {
+  return node.tag === TAGS.Chord;
+}
+
+export function isBarLine(node: CSNode): boolean {
+  return node.tag === TAGS.BarLine;
+}
+
+export function isBeam(node: CSNode): boolean {
+  return node.tag === TAGS.Beam;
+}
