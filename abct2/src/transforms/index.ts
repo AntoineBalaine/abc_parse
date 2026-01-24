@@ -12,3 +12,4 @@ export { enharmonize } from "./enharmonize";
 export { filter } from "./filter";
 export { pitch } from "./pitch";
 export { length } from "./length";
+export { addVoice, VoiceParams } from "./addVoice";
