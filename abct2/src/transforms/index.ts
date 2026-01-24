@@ -10,3 +10,4 @@ export { addToRhythm } from "./addToRhythm";
 export { unwrapSingle } from "./unwrapSingle";
 export { enharmonize } from "./enharmonize";
 export { filter } from "./filter";
+export { pitch } from "./pitch";
