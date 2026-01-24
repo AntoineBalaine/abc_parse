@@ -38,7 +38,9 @@ export const pPitch = new RegExp(`((\\^[\\^\\/]?)|(_[_\\/]?)|=)?[a-gA-G][,']*`);
 export const pString = /"[^\n]*"/;
 // Chord pattern: [ followed by pitches (with optional rhythm) and/or strings, then ]
 // Note: rhythm values inside chords are allowed (scanner parses them, interpreter handles them)
-export const pChord = new RegExp(`\\[((${pString.source})+|(${pPitch.source}(?:${pDuration.source})?-?)+)\\]`);
+export const pChord = new RegExp(
+  `\\[[ \\t]*((${pString.source}[ \\t]*)+|(${pPitch.source}(?:${pDuration.source})?-?[ \\t]*)+)\\]`
+);
 export const pDeco = /[\~\.HJKkLMnOPRSTuv]/;
 
 export const pTuplet = new RegExp(`\\(${pNumber.source}(:(${pNumber.source})?)?(:(${pNumber.source})?)?`);
@@ -390,6 +392,7 @@ export function chord(ctx: Ctx): boolean {
   const rhythmTypes = [TT.RHY_NUMER, TT.RHY_SEP, TT.RHY_DENOM, TT.RHY_BRKN];
 
   while (!isAtEnd(ctx) && !ctx.test("]")) {
+    if (WS(ctx, true)) continue;
     if (ctx.test(pString)) {
       annotation(ctx);
       continue;

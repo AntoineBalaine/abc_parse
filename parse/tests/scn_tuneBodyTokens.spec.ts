@@ -870,6 +870,93 @@ describe("scan2", () => {
       // Verify the rhythm token is after the bracket
       assert.equal(ctx.tokens[ctx.tokens.length - 1].type, TT.RHY_NUMER);
     });
+
+    it("should parse a chord with leading whitespace inside brackets", () => {
+      const ctx = createCtx("[ CEG]");
+      const result = chord(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.CHRD_LEFT_BRKT);
+      assert.equal(ctx.tokens[1].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[1].lexeme, "C");
+      assert.equal(ctx.tokens[2].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[2].lexeme, "E");
+      assert.equal(ctx.tokens[3].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[3].lexeme, "G");
+      assert.equal(ctx.tokens[4].type, TT.CHRD_RIGHT_BRKT);
+      assert.equal(ctx.tokens.length, 5);
+    });
+
+    it("should parse a chord with trailing whitespace inside brackets", () => {
+      const ctx = createCtx("[CEG ]");
+      const result = chord(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.CHRD_LEFT_BRKT);
+      assert.equal(ctx.tokens[1].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[1].lexeme, "C");
+      assert.equal(ctx.tokens[2].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[2].lexeme, "E");
+      assert.equal(ctx.tokens[3].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[3].lexeme, "G");
+      assert.equal(ctx.tokens[4].type, TT.CHRD_RIGHT_BRKT);
+      assert.equal(ctx.tokens.length, 5);
+    });
+
+    it("should parse a chord with whitespace on both sides inside brackets", () => {
+      const ctx = createCtx("[ D,EFG ]");
+      const result = chord(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.CHRD_LEFT_BRKT);
+      assert.equal(ctx.tokens[1].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[1].lexeme, "D");
+      assert.equal(ctx.tokens[2].type, TT.OCTAVE);
+      assert.equal(ctx.tokens[2].lexeme, ",");
+      assert.equal(ctx.tokens[3].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[3].lexeme, "E");
+      assert.equal(ctx.tokens[4].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[4].lexeme, "F");
+      assert.equal(ctx.tokens[5].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[5].lexeme, "G");
+      assert.equal(ctx.tokens[6].type, TT.CHRD_RIGHT_BRKT);
+      assert.equal(ctx.tokens.length, 7);
+    });
+
+    it("should parse a chord with spaces between notes", () => {
+      const ctx = createCtx("[C E G]");
+      const result = chord(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.CHRD_LEFT_BRKT);
+      assert.equal(ctx.tokens[1].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[1].lexeme, "C");
+      assert.equal(ctx.tokens[2].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[2].lexeme, "E");
+      assert.equal(ctx.tokens[3].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[3].lexeme, "G");
+      assert.equal(ctx.tokens[4].type, TT.CHRD_RIGHT_BRKT);
+      assert.equal(ctx.tokens.length, 5);
+    });
+
+    it("should parse a chord with whitespace and rhythm after bracket", () => {
+      const ctx = createCtx("[ CEG ]2");
+      const result = chord(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.CHRD_LEFT_BRKT);
+      assert.equal(ctx.tokens[ctx.tokens.length - 2].type, TT.CHRD_RIGHT_BRKT);
+      assert.equal(ctx.tokens[ctx.tokens.length - 1].type, TT.RHY_NUMER);
+      assert.equal(ctx.tokens[ctx.tokens.length - 1].lexeme, "2");
+    });
+
+    it("should parse a chord with tab characters inside brackets", () => {
+      const ctx = createCtx("[\tCEG\t]");
+      const result = chord(ctx);
+      assert.equal(result, true);
+      assert.equal(ctx.tokens[0].type, TT.CHRD_LEFT_BRKT);
+      assert.equal(ctx.tokens[1].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[1].lexeme, "C");
+      assert.equal(ctx.tokens[2].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[3].type, TT.NOTE_LETTER);
+      assert.equal(ctx.tokens[4].type, TT.CHRD_RIGHT_BRKT);
+      assert.equal(ctx.tokens.length, 5);
+    });
   });
 
   describe("grace_grp", () => {
