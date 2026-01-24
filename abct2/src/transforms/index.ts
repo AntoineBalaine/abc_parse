@@ -8,3 +8,4 @@ export { setRhythm } from "./setRhythm";
 export { sumRhythm } from "./sumRhythm";
 export { addToRhythm } from "./addToRhythm";
 export { unwrapSingle } from "./unwrapSingle";
+export { enharmonize } from "./enharmonize";
