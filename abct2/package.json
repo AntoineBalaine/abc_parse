@@ -5,6 +5,6 @@
   "main": "../out/abct2/src/selection.js",
   "scripts": {
     "build": "tsc -b",
-    "test": "mocha -r ts-node/register 'tests/**/*.spec.ts'"
+    "test": "mocha --require tsx 'tests/**/*.spec.ts'"
   }
 }

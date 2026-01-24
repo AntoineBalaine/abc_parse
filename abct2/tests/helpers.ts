@@ -9,6 +9,7 @@ import { CSNode } from "../src/csTree/types";
 import { createSelection, Selection } from "../src/selection";
 import * as ParserGen from "../../parse/tests/prs_pbt.generators.spec";
 import { Expr, Inline_field, Info_line } from "../../parse/types/Expr2";
+import { IRational, createRational } from "../../parse/Visitors/fmt2/rational";
 
 export function toCSTree(source: string): CSNode {
   const ctx = new ABCContext();
@@ -123,3 +124,21 @@ export function roundtrip(source: string): string {
   const ast = toAst(csTree);
   return new AbcFormatter(new ABCContext()).stringify(ast as Expr);
 }
+
+export function toCSTreeWithContext(source: string): { root: CSNode; ctx: ABCContext } {
+  const ctx = new ABCContext();
+  const tokens = Scanner(source, ctx);
+  const ast = parse(tokens, ctx);
+  return { root: fromAst(ast), ctx };
+}
+
+export function formatSelection(sel: Selection): string {
+  const ast = toAst(sel.root);
+  return new AbcFormatter(new ABCContext()).stringify(ast as Expr);
+}
+
+export const genRational: fc.Arbitrary<IRational> = fc
+  .tuple(fc.integer({ min: 1, max: 16 }), fc.integer({ min: 1, max: 16 }))
+  .map(([n, d]) => createRational(n, d));
+
+export const genSemitones: fc.Arbitrary<number> = fc.integer({ min: -24, max: 24 });
