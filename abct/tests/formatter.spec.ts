@@ -511,28 +511,27 @@ result`);
       const { tokens } = scanSource(source);
       return tokens
         .filter(t => [
-          AbctTT.PIPE, AbctTT.PIPE_EQ, AbctTT.EQ, AbctTT.LT, AbctTT.GT,
+          AbctTT.PIPE, AbctTT.EQ, AbctTT.LT, AbctTT.GT,
           AbctTT.LTE, AbctTT.GTE, AbctTT.EQEQ, AbctTT.BANGEQ, AbctTT.PLUS
         ].includes(t.type))
         .map(t => t.lexeme);
     }
 
-    describe("update and pipe sequences", () => {
-      it("should separate |= and | with proper spacing", () => {
-        const input = "@chords |= a | b";
+    describe("pipe sequences", () => {
+      it("should format pipe with proper spacing", () => {
+        const input = "a | b";
         const result = fmt(input);
-        expect(result.trim()).to.equal("@chords |= a | b");
-        // Verify the tokens scan correctly
+        expect(result.trim()).to.equal("a | b");
         const ops = extractOperatorTokens(result);
-        expect(ops).to.deep.equal(["|=", "|"]);
+        expect(ops).to.deep.equal(["|"]);
       });
 
-      it("should separate chained updates with proper spacing", () => {
-        const input = "@chords |= a | @notes |= b";
+      it("should separate chained pipes with proper spacing", () => {
+        const input = "a | b | c";
         const result = fmt(input);
-        expect(result.trim()).to.equal("@chords |= a | @notes |= b");
+        expect(result.trim()).to.equal("a | b | c");
         const ops = extractOperatorTokens(result);
-        expect(ops).to.deep.equal(["|=", "|", "|="]);
+        expect(ops).to.deep.equal(["|", "|"]);
       });
     });
 

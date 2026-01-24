@@ -135,7 +135,6 @@ export function mapAbctTTtoScope(type: AbctTT): number {
     case AbctTT.AT:
       return standardTokenScopes.decorator; // Selector prefix
     case AbctTT.PIPE:
-    case AbctTT.PIPE_EQ:
     case AbctTT.PLUS:
     case AbctTT.EQ:
     case AbctTT.MINUS:

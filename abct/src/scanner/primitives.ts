@@ -7,7 +7,7 @@
 
 import { AbctCtx } from "./context";
 import { AbctTT, Token } from "./types";
-import { advance, isAtEnd, matchPattern } from "./utils";
+import { advance, isAtEnd, matchPattern, peek } from "./utils";
 
 // Pattern for the end of line
 const pEOL = /[\n\r]/;
@@ -35,6 +35,42 @@ export function identifier(ctx: AbctCtx): boolean {
       break;
     case "filter":
       ctx.push(AbctTT.FILTER);
+      break;
+    case "fn":
+      ctx.push(AbctTT.FN);
+      break;
+    case "match":
+      ctx.push(AbctTT.MATCH);
+      break;
+    case "over":
+      ctx.push(AbctTT.OVER);
+      break;
+    case "let":
+      ctx.push(AbctTT.LET);
+      break;
+    case "if":
+      ctx.push(AbctTT.IF);
+      break;
+    case "then":
+      ctx.push(AbctTT.THEN);
+      break;
+    case "else":
+      ctx.push(AbctTT.ELSE);
+      break;
+    case "topdown":
+      ctx.push(AbctTT.TOPDOWN);
+      break;
+    case "bottomup":
+      ctx.push(AbctTT.BOTTOMUP);
+      break;
+    case "oncetd":
+      ctx.push(AbctTT.ONCETD);
+      break;
+    case "alltd":
+      ctx.push(AbctTT.ALLTD);
+      break;
+    case "load":
+      ctx.push(AbctTT.LOAD);
       break;
     default:
       ctx.push(AbctTT.IDENTIFIER);
@@ -250,15 +286,37 @@ export function abcFence(ctx: AbctCtx): boolean {
 }
 
 /**
+ * Scan an inline ABC literal delimited by single backticks: `CEG A2 B2`
+ * Emits ABC_LITERAL_OPEN, ABC_LITERAL_CONTENT, and ABC_LITERAL_CLOSE tokens.
+ * Cannot span multiple lines. If unclosed, emits only OPEN and CONTENT.
+ */
+export function abcLiteral(ctx: AbctCtx): boolean {
+  if (peek(ctx) !== "`") return false;
+
+  advance(ctx);
+  ctx.push(AbctTT.ABC_LITERAL_OPEN);
+
+  ctx.start = ctx.current; // reset start for content token
+  while (!isAtEnd(ctx) && peek(ctx) !== "`" && !ctx.test(pEOL)) {
+    advance(ctx);
+  }
+  ctx.push(AbctTT.ABC_LITERAL_CONTENT);
+
+  if (!isAtEnd(ctx) && peek(ctx) === "`") {
+    ctx.start = ctx.current;
+    advance(ctx);
+    ctx.push(AbctTT.ABC_LITERAL_CLOSE);
+  }
+  // If we hit end-of-input or newline without a closing backtick,
+  // we emit no CLOSE token -- the parser will report an unclosed literal error
+  return true;
+}
+
+/**
  * Scan operators (multi-character first, then single-character)
  */
 export function operator(ctx: AbctCtx): boolean {
   // Two-character operators (check first)
-  if (ctx.test("|=")) {
-    advance(ctx, 2);
-    ctx.push(AbctTT.PIPE_EQ);
-    return true;
-  }
   if (ctx.test(">=")) {
     advance(ctx, 2);
     ctx.push(AbctTT.GTE);
@@ -279,6 +337,11 @@ export function operator(ctx: AbctCtx): boolean {
     ctx.push(AbctTT.BANGEQ);
     return true;
   }
+  if (ctx.test("=>")) {
+    advance(ctx, 2);
+    ctx.push(AbctTT.ARROW);
+    return true;
+  }
 
   // Single-character operators
   const singleOps: [string, AbctTT][] = [
@@ -296,6 +359,8 @@ export function operator(ctx: AbctCtx): boolean {
     ["]", AbctTT.RBRACKET],
     [">", AbctTT.GT],
     ["<", AbctTT.LT],
+    ["{", AbctTT.LBRACE],
+    ["}", AbctTT.RBRACE],
   ];
 
   for (const [char, tokenType] of singleOps) {
@@ -317,7 +382,7 @@ export function collectInvalid(ctx: AbctCtx): boolean {
   if (isAtEnd(ctx)) return false;
 
   // Collect characters until we find something valid
-  while (!isAtEnd(ctx) && !ctx.test(pEOL) && !ctx.test(/[\s"<\[(@|+=\-:>!.,]/)) {
+  while (!isAtEnd(ctx) && !ctx.test(pEOL) && !ctx.test(/[\s"<\[(@|+=\-:>!.,{}`]/)) {
     advance(ctx);
   }
 

@@ -6,12 +6,14 @@ import { expect } from "chai";
 import * as fc from "fast-check";
 import { createCtx, AbctCtx } from "../../src/scanner/context";
 import { AbctContext } from "../../src/context";
-import { AbctTT } from "../../src/scanner/types";
+import { AbctTT, Token } from "../../src/scanner/types";
+import { scan } from "../../src/scanner/scanner";
 import {
   identifier,
   number,
   string,
   abcFence,
+  abcLiteral,
   operator,
   collectInvalid,
   sanitizeAbcContent,
@@ -26,8 +28,14 @@ import {
   genSimpleString,
   genAbcFence,
   genAbcFenceWithLocation,
+  genAbcLiteral,
   genSingleOp,
   genDoubleOp,
+  genSafeSingleOp,
+  genWS,
+  genNumber,
+  genString,
+  genAnyToken,
 } from "./generators";
 
 /** Helper to create a scanner context with a fresh AbctContext */
@@ -35,6 +43,23 @@ function createTestCtx(source: string): { ctx: AbctCtx; abctCtx: AbctContext } {
   const abctCtx = new AbctContext();
   const ctx = createCtx(source, abctCtx);
   return { ctx, abctCtx };
+}
+
+/** Helper to scan source with a fresh context */
+function scanSource(source: string): { tokens: Token[]; ctx: AbctContext } {
+  const ctx = new AbctContext();
+  const tokens = scan(source, ctx);
+  return { tokens, ctx };
+}
+
+/** Helper to reconstruct source from tokens */
+function reconstructSource(source: string): string | null {
+  const { tokens, ctx } = scanSource(source);
+  if (ctx.errorReporter.hasErrors()) return null;
+  return tokens
+    .filter((t) => t.type !== AbctTT.EOF)
+    .map((t) => t.lexeme)
+    .join("");
 }
 
 describe("ABCT Scanner Primitives", () => {
@@ -91,6 +116,109 @@ describe("ABCT Scanner Primitives", () => {
       expect(ctx.tokens[0].type).to.equal(AbctTT.NOT);
     });
 
+    it("should scan 'fn' as FN keyword", () => {
+      const { ctx } = createTestCtx("fn");
+      identifier(ctx);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.FN);
+    });
+
+    it("should scan 'match' as MATCH keyword", () => {
+      const { ctx } = createTestCtx("match");
+      identifier(ctx);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.MATCH);
+    });
+
+    it("should scan 'over' as OVER keyword", () => {
+      const { ctx } = createTestCtx("over");
+      identifier(ctx);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.OVER);
+    });
+
+    it("should scan 'let' as LET keyword", () => {
+      const { ctx } = createTestCtx("let");
+      identifier(ctx);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.LET);
+    });
+
+    it("should scan 'if' as IF keyword", () => {
+      const { ctx } = createTestCtx("if");
+      identifier(ctx);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.IF);
+    });
+
+    it("should scan 'then' as THEN keyword", () => {
+      const { ctx } = createTestCtx("then");
+      identifier(ctx);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.THEN);
+    });
+
+    it("should scan 'else' as ELSE keyword", () => {
+      const { ctx } = createTestCtx("else");
+      identifier(ctx);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.ELSE);
+    });
+
+    it("should scan 'topdown' as TOPDOWN keyword", () => {
+      const { ctx } = createTestCtx("topdown");
+      identifier(ctx);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.TOPDOWN);
+    });
+
+    it("should scan 'bottomup' as BOTTOMUP keyword", () => {
+      const { ctx } = createTestCtx("bottomup");
+      identifier(ctx);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.BOTTOMUP);
+    });
+
+    it("should scan 'oncetd' as ONCETD keyword", () => {
+      const { ctx } = createTestCtx("oncetd");
+      identifier(ctx);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.ONCETD);
+    });
+
+    it("should scan 'alltd' as ALLTD keyword", () => {
+      const { ctx } = createTestCtx("alltd");
+      identifier(ctx);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.ALLTD);
+    });
+
+    it("should scan 'load' as LOAD keyword", () => {
+      const { ctx } = createTestCtx("load");
+      identifier(ctx);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.LOAD);
+    });
+
+    it("should scan 'function' as IDENTIFIER, not FN", () => {
+      const { ctx } = createTestCtx("function");
+      identifier(ctx);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.IDENTIFIER);
+      expect(ctx.tokens[0].lexeme).to.equal("function");
+    });
+
+    it("should scan 'overture' as IDENTIFIER, not OVER", () => {
+      const { ctx } = createTestCtx("overture");
+      identifier(ctx);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.IDENTIFIER);
+    });
+
+    it("should scan 'loading' as IDENTIFIER, not LOAD", () => {
+      const { ctx } = createTestCtx("loading");
+      identifier(ctx);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.IDENTIFIER);
+    });
+
+    it("should scan 'iffy' as IDENTIFIER, not IF", () => {
+      const { ctx } = createTestCtx("iffy");
+      identifier(ctx);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.IDENTIFIER);
+    });
+
+    it("should scan 'letter' as IDENTIFIER, not LET", () => {
+      const { ctx } = createTestCtx("letter");
+      identifier(ctx);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.IDENTIFIER);
+    });
+
     it("property: all generated identifiers scan correctly", () => {
       fc.assert(
         fc.property(genIdentifier, (id) => {
@@ -102,15 +230,25 @@ describe("ABCT Scanner Primitives", () => {
       );
     });
 
-    it("property: keywords scan to their specific types", () => {
+    it("property: all generated keywords scan to keyword tokens", () => {
       fc.assert(
         fc.property(genKeyword, (kw) => {
-          const { ctx, abctCtx } = createTestCtx(kw);
-          const result = identifier(ctx);
-          if (!result) return false;
-          const expectedType = kw === "and" ? AbctTT.AND : kw === "or" ? AbctTT.OR : AbctTT.NOT;
-          return ctx.tokens[0].type === expectedType;
-        })
+          const { ctx } = createTestCtx(kw);
+          identifier(ctx);
+          return ctx.tokens[0].type !== AbctTT.IDENTIFIER;
+        }),
+        { numRuns: 1000 }
+      );
+    });
+
+    it("property: generated identifiers never produce keyword tokens", () => {
+      fc.assert(
+        fc.property(genIdentifier, (id) => {
+          const { ctx } = createTestCtx(id);
+          identifier(ctx);
+          return ctx.tokens[0].type === AbctTT.IDENTIFIER;
+        }),
+        { numRuns: 5000 }
       );
     });
   });
@@ -433,12 +571,26 @@ describe("ABCT Scanner Primitives", () => {
       expect(ctx.tokens[0].type).to.equal(AbctTT.PIPE);
     });
 
-    it("should scan pipe-equals operator", () => {
-      const { ctx, abctCtx } = createTestCtx("|=");
+    it("should scan '=>' as ARROW", () => {
+      const { ctx } = createTestCtx("=>");
       const result = operator(ctx);
       expect(result).to.be.true;
-      expect(ctx.tokens[0].type).to.equal(AbctTT.PIPE_EQ);
-      expect(ctx.tokens[0].lexeme).to.equal("|=");
+      expect(ctx.tokens[0].type).to.equal(AbctTT.ARROW);
+      expect(ctx.tokens[0].lexeme).to.equal("=>");
+    });
+
+    it("should scan '{' as LBRACE", () => {
+      const { ctx } = createTestCtx("{");
+      const result = operator(ctx);
+      expect(result).to.be.true;
+      expect(ctx.tokens[0].type).to.equal(AbctTT.LBRACE);
+    });
+
+    it("should scan '}' as RBRACE", () => {
+      const { ctx } = createTestCtx("}");
+      const result = operator(ctx);
+      expect(result).to.be.true;
+      expect(ctx.tokens[0].type).to.equal(AbctTT.RBRACE);
     });
 
     it("should scan comparison operators", () => {
@@ -525,6 +677,103 @@ describe("ABCT Scanner Primitives", () => {
       const { ctx, abctCtx } = createTestCtx("");
       const result = collectInvalid(ctx);
       expect(result).to.be.false;
+    });
+  });
+
+  describe("abcLiteral", () => {
+    it("should scan a simple ABC literal", () => {
+      const { ctx } = createTestCtx("`CEG A2`");
+      abcLiteral(ctx);
+      expect(ctx.tokens).to.have.length(3);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.ABC_LITERAL_OPEN);
+      expect(ctx.tokens[0].lexeme).to.equal("`");
+      expect(ctx.tokens[1].type).to.equal(AbctTT.ABC_LITERAL_CONTENT);
+      expect(ctx.tokens[1].lexeme).to.equal("CEG A2");
+      expect(ctx.tokens[2].type).to.equal(AbctTT.ABC_LITERAL_CLOSE);
+      expect(ctx.tokens[2].lexeme).to.equal("`");
+    });
+
+    it("should scan an empty ABC literal", () => {
+      const { ctx } = createTestCtx("``");
+      abcLiteral(ctx);
+      expect(ctx.tokens).to.have.length(3);
+      expect(ctx.tokens[1].type).to.equal(AbctTT.ABC_LITERAL_CONTENT);
+      expect(ctx.tokens[1].lexeme).to.equal("");
+    });
+
+    it("should handle a backtick followed by more backticks gracefully", () => {
+      // When abcFence runs first in scanToken and rejects the input,
+      // abcLiteral treats the first backtick as a literal opening
+      const { ctx } = createTestCtx("```abc");
+      const result = abcLiteral(ctx);
+      expect(result).to.be.true;
+      expect(ctx.tokens[0].type).to.equal(AbctTT.ABC_LITERAL_OPEN);
+    });
+
+    it("should handle unclosed ABC literal at end of input", () => {
+      const { ctx } = createTestCtx("`CEG A2");
+      abcLiteral(ctx);
+      expect(ctx.tokens).to.have.length(2);
+      expect(ctx.tokens[0].type).to.equal(AbctTT.ABC_LITERAL_OPEN);
+      expect(ctx.tokens[1].type).to.equal(AbctTT.ABC_LITERAL_CONTENT);
+    });
+
+    it("should stop at newline without closing", () => {
+      const { ctx } = createTestCtx("`CEG\nA2`");
+      abcLiteral(ctx);
+      expect(ctx.tokens).to.have.length(2);
+      expect(ctx.tokens[1].lexeme).to.equal("CEG");
+    });
+
+    it("should stop at carriage return without closing", () => {
+      const { ctx } = createTestCtx("`CEG\rA2`");
+      abcLiteral(ctx);
+      expect(ctx.tokens).to.have.length(2);
+      expect(ctx.tokens[1].lexeme).to.equal("CEG");
+    });
+
+    it("property: ABC literals round-trip", () => {
+      fc.assert(
+        fc.property(genAbcLiteral, (literal) => {
+          const { tokens } = scanSource(literal);
+          const reconstructed = tokens.map(t => t.lexeme).join("");
+          return reconstructed === literal;
+        }),
+        { numRuns: 5000 }
+      );
+    });
+  });
+
+  describe("arrow operator properties", () => {
+    it("property: '=>' followed by any token scans as ARROW + remainder", () => {
+      fc.assert(
+        fc.property(genAnyToken, (suffix) => {
+          const source = "=>" + suffix;
+          const { tokens } = scanSource(source);
+          return tokens[0].type === AbctTT.ARROW && tokens[0].lexeme === "=>";
+        }),
+        { numRuns: 5000 }
+      );
+    });
+
+    it("property: token sequences with braces round-trip", () => {
+      const genTokenWithBraces: fc.Arbitrary<string> = fc.oneof(
+        genIdentifier, genKeyword, genNumber, genString,
+        genSafeSingleOp, genDoubleOp, genWS
+      );
+
+      fc.assert(
+        fc.property(
+          fc.array(genTokenWithBraces, { minLength: 1, maxLength: 15 }),
+          (parts) => {
+            const source = parts.join("");
+            const reconstructed = reconstructSource(source);
+            // Skip inputs that produce errors (token merging can create invalid sequences)
+            return reconstructed === null || reconstructed === source;
+          }
+        ),
+        { numRuns: 5000 }
+      );
     });
   });
 });

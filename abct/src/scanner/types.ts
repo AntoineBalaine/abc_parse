@@ -18,9 +18,13 @@ export enum AbctTT {
   ABC_FENCE_CLOSE, // ```
   ABC_CONTENT, // content between fences (sanitized)
 
+  // Inline ABC literals (`...`)
+  ABC_LITERAL_OPEN, // opening single backtick
+  ABC_LITERAL_CONTENT, // the ABC text between backticks
+  ABC_LITERAL_CLOSE, // closing single backtick
+
   // Operators
   PIPE, // |
-  PIPE_EQ, // |=
   PLUS, // +
   EQ, // =
   AT, // @
@@ -32,6 +36,8 @@ export enum AbctTT {
   RPAREN, // )
   LBRACKET, // [
   RBRACKET, // ]
+  LBRACE, // {
+  RBRACE, // }
 
   // Comparison operators
   GT, // >
@@ -40,12 +46,25 @@ export enum AbctTT {
   LTE, // <=
   EQEQ, // ==
   BANGEQ, // !=
+  ARROW, // =>
 
   // Keywords
   AND,
   OR,
   NOT,
   FILTER,
+  FN, // fn
+  MATCH, // match
+  OVER, // over
+  LET, // let
+  IF, // if
+  THEN, // then
+  ELSE, // else
+  TOPDOWN, // topdown
+  BOTTOMUP, // bottomup
+  ONCETD, // oncetd
+  ALLTD, // alltd
+  LOAD, // load
 
   // Whitespace (preserved in AST for formatting)
   WS, // horizontal whitespace

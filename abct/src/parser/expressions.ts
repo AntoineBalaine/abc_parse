@@ -28,7 +28,6 @@ import {
   Expr,
   Pipe,
   Concat,
-  Update,
   Application,
   Or,
   And,
@@ -72,15 +71,7 @@ export function parsePipeline(ctx: AbctParseCtx): Expr {
   while (true) {
     skipWSAndEOL(ctx);
 
-    // Check for | but not |=
     if (check(ctx, AbctTT.PIPE)) {
-      // Look ahead to make sure it's not |=
-      const nextPos = ctx.current + 1;
-      if (nextPos < ctx.tokens.length && ctx.tokens[nextPos].type === AbctTT.EQ) {
-        // This is |=, not |
-        break;
-      }
-
       const opToken = advance(ctx);
       skipWSAndEOL(ctx);
       const right = parseConcatTerm(ctx);
@@ -140,33 +131,6 @@ export function parseConcatTerm(ctx: AbctParseCtx): Expr {
  */
 export function parseUpdateTerm(ctx: AbctParseCtx): Expr {
   const left = parseApplication(ctx);
-
-  skipWS(ctx);
-
-  // Check for |=
-  if (match(ctx, AbctTT.PIPE_EQ)) {
-    const opToken = previous(ctx);
-    skipWS(ctx);
-    const right = parseApplication(ctx);
-
-    // Validate that left is a selector or location selector
-    if (left.type !== "selector" && left.type !== "location_selector") {
-      ctx.errorAt(opToken, "Left side of |= must be a selector");
-      // Return ErrorExpr to avoid creating an invalid Update node
-      return createErrorExpr(ctx, "Left side of |= must be a selector");
-    }
-
-    return {
-      type: "update",
-      selector: left, // TypeScript now knows this is Selector | LocationSelector
-      opLoc: tokenToLoc(opToken),
-      transform: right,
-      loc: {
-        start: left.loc.start,
-        end: right.loc.end,
-      },
-    };
-  }
 
   return left;
 }

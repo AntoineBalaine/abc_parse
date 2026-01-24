@@ -46,14 +46,18 @@ describe("Comprehensive Scanner Round-Trip Tests", () => {
     const testCases = [
       { input: ">=<", expected: [">=", "<"] },
       { input: "<=>=", expected: ["<=", ">="] },
-      { input: "|=|", expected: ["|=", "|"] },
       { input: "===", expected: ["==", "="] },
       { input: "!==", expected: ["!=", "="] },
-      { input: "|=|=", expected: ["|=", "|="] },
       { input: "<<=", expected: ["<", "<="] },
       { input: ">>=", expected: [">", ">="] },
       { input: ">=<=", expected: [">=", "<="] },
-      { input: "|=|=|", expected: ["|=", "|=", "|"] },
+      { input: "=>>=", expected: ["=>", ">="] },
+      { input: "=>=", expected: ["=>", "="] },
+      { input: "===>", expected: ["==", "=>"] },
+      { input: "=>=>", expected: ["=>", "=>"] },
+      { input: "{}", expected: ["{", "}"] },
+      { input: "{=>}", expected: ["{", "=>", "}"] },
+      { input: "!=>", expected: ["!=", ">"] },
     ];
 
     testCases.forEach(({ input, expected }) => {
@@ -326,12 +330,12 @@ describe("Comprehensive Scanner Round-Trip Tests", () => {
     });
 
     it("should handle maximal munch for operators", () => {
-      // |= should be one token, not | and =
-      const { tokens, ctx } = scanSource("|=");
+      // => should be one token, not = and >
+      const { tokens, ctx } = scanSource("=>");
       const nonEof = tokens.filter((t) => t.type !== AbctTT.EOF);
       expect(nonEof).to.have.length(1);
-      expect(nonEof[0].type).to.equal(AbctTT.PIPE_EQ);
-      expect(nonEof[0].lexeme).to.equal("|=");
+      expect(nonEof[0].type).to.equal(AbctTT.ARROW);
+      expect(nonEof[0].lexeme).to.equal("=>");
     });
 
     it("should handle fractions vs division ambiguity", () => {

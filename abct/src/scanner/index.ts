@@ -20,6 +20,7 @@ export {
   number,
   string,
   abcFence,
+  abcLiteral,
   operator,
   collectInvalid,
   sanitizeAbcContent,

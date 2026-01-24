@@ -5,17 +5,30 @@
 import * as fc from "fast-check";
 
 /**
+ * Complete set of all keywords recognized by the scanner
+ */
+const KEYWORDS = new Set([
+  "and", "or", "not", "filter",
+  "fn", "match", "over", "let", "if", "then", "else",
+  "topdown", "bottomup", "oncetd", "alltd", "load"
+]);
+
+/**
  * Generate a valid identifier (starts with letter or _, contains alphanumerics)
- * Excludes reserved words: and, or, not
+ * Excludes all reserved words
  */
 export const genIdentifier: fc.Arbitrary<string> = fc
   .stringMatching(/^[a-zA-Z_][a-zA-Z0-9_]{0,15}$/)
-  .filter((id) => !["and", "or", "not"].includes(id) && id.length > 0);
+  .filter((id) => !KEYWORDS.has(id) && id.length > 0);
 
 /**
- * Generate a keyword: and, or, not
+ * Generate a keyword
  */
-export const genKeyword: fc.Arbitrary<string> = fc.constantFrom("and", "or", "not");
+export const genKeyword: fc.Arbitrary<string> = fc.constantFrom(
+  "and", "or", "not", "filter",
+  "fn", "match", "over", "let", "if", "then", "else",
+  "topdown", "bottomup", "oncetd", "alltd", "load"
+);
 
 /**
  * Generate a valid integer (positive only, negative handled by parser)
@@ -115,8 +128,13 @@ export const genAbcFenceWithLocation: fc.Arbitrary<string> = fc
     (withAbc ? "```abc" : "```") + " :" + line + ":" + col + "\n" + content + "\n```"
   );
 
-// Legacy alias for backwards compatibility during migration
-export const genAbcLiteral = genAbcFence;
+/**
+ * Generate an inline ABC literal (single-backtick syntax)
+ * Format: `content` where content is valid ABC characters
+ */
+export const genAbcLiteral: fc.Arbitrary<string> = fc
+  .stringMatching(/^[A-Ga-g0-9 |[\]]{0,20}$/)
+  .map((content) => "`" + content + "`");
 
 /**
  * Generate horizontal whitespace
@@ -149,21 +167,21 @@ export const genComma: fc.Arbitrary<string> = fc.constant(",");
  * Generate a single-character operator
  */
 export const genSingleOp: fc.Arbitrary<string> = fc.constantFrom(
-  "|", "+", "=", "@", ":", "-", "(", ")", "[", "]", ">", "<"
+  "|", "+", "=", "@", ":", "-", "(", ")", "[", "]", ">", "<", "{", "}"
 );
 
 /**
  * Generate any single-character punctuation (safe for round-trip tests)
  */
 export const genSafeSingleOp: fc.Arbitrary<string> = fc.constantFrom(
-  "|", "+", "=", "@", ":", "-", "(", ")", "[", "]", ".", ",", "<", ">"
+  "|", "+", "=", "@", ":", "-", "(", ")", "[", "]", ".", ",", "<", ">", "{", "}"
 );
 
 /**
  * Generate a two-character operator
  */
 export const genDoubleOp: fc.Arbitrary<string> = fc.constantFrom(
-  "|=", ">=", "<=", "==", "!="
+  ">=", "<=", "==", "!=", "=>"
 );
 
 /**
@@ -188,6 +206,7 @@ export const genAnyToken: fc.Arbitrary<string> = fc.oneof(
   genString,
   genSafeSingleOp,
   genDoubleOp,
+  genAbcLiteral,
   genWS
 );
 
