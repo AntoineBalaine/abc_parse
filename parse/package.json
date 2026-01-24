@@ -3,10 +3,10 @@
   "displayName": "abc-parser",
   "description": "Abc notation parser",
   "version": "0.0.1",
-  "main": "../out/parse/index.js",
-  "types": "../out/parse/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
-    "../out/parse"
+    "dist"
   ],
   "devDependencies": {
     "@istanbuljs/nyc-config-typescript": "^1.0.2",
@@ -34,12 +34,10 @@
     "typescript": "^5.8.2"
   },
   "scripts": {
-    "main": "../out/parse/index.js",
-    "types": "../out/parse/index.d.ts",
     "build": "tsc",
-    "start": "tsc && node ../out/parse/Abc.js",
-    "start_debug": "tsc && node ../out/parse/Abc.js /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/all/blues_my_naughty_sweetie_gives.abc",
-    "start_debug2": "tsc && node ../out/parse/Abc.js /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/visual/triplet-alignment-overlay.abc",
+    "start": "tsc && node ./dist/Abc.js",
+    "start_debug": "tsc && node ./dist/Abc.js /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/all/blues_my_naughty_sweetie_gives.abc",
+    "start_debug2": "tsc && node ./dist/Abc.js /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/visual/triplet-alignment-overlay.abc",
     "test": "mocha -r ts-node/register '**/*.spec.ts'",
     "test:scan2": "mocha -r ts-node/register 'tests/scan2_*.spec.ts'",
     "test:coverage": "nyc npm run test",

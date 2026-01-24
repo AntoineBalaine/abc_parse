@@ -9,7 +9,7 @@
     "noResolve": false,
     "baseUrl": ".",
     "paths": {
-      "../../../out/parse/*": ["../out/parse/*"]
+      "abc-parser/*": ["../parse/dist/*"]
     }
   },
   "include": ["*.ts", "commands/**/*.ts", "utils/**/*.ts"],

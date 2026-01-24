@@ -9,8 +9,7 @@ import { pathToFileURL } from "url";
 import { LanguageClient } from "vscode-languageclient/node";
 
 // Import ABC parser for ABCx conversion
-import { ABCContext, AbcErrorReporter } from "abc-parser";
-import { convertAbcxToAbc as abcxToAbc } from "abc-parser/Visitors/AbcxToAbcConverter";
+import { ABCContext, AbcErrorReporter, convertAbcxToAbc as abcxToAbc } from "abc-parser";
 
 let panel: vscode.WebviewPanel | undefined;
 let outputChannel: vscode.OutputChannel;
