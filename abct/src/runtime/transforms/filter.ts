@@ -2,25 +2,10 @@
 // Removes elements from a selection that do not match a predicate
 
 import {
-  isNote,
-  isChord,
-  isPitch,
-  isToken,
-  isBeam,
-  isGraceGroup,
-} from "../../../../parse/helpers";
-import { toMidiPitch } from "../../../../parse/Visitors/Formatter2";
-import {
-  Expr,
-  Note,
-  Chord,
-  Pitch,
-  Beam,
-  Grace_group,
-  Tune,
-  Tune_Body,
-} from "../../../../parse/types/Expr2";
-import { Token } from "../../../../parse/parsers/scan2";
+  isNote, isChord, isPitch, isToken, isBeam, isGraceGroup,
+  toMidiPitch, Expr, Note, Chord, Pitch, Beam, Grace_group,
+  Tune, Tune_Body, Token,
+} from "abc-parser";
 import { Selection } from "../types";
 import { Comparison, ComparisonOp, isIdentifier, isNumberLiteral } from "../../ast";
 

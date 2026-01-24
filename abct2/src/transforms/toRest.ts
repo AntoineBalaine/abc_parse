@@ -1,7 +1,6 @@
 import { Selection } from "../selection";
 import { CSNode, TAGS, createCSNode } from "../csTree/types";
-import { ABCContext } from "../../../parse/parsers/Context";
-import { TT } from "../../../parse/parsers/scan2";
+import { ABCContext, TT } from "abc-parser";
 import { findNodesById } from "./types";
 import { findRhythmChild } from "./treeUtils";
 

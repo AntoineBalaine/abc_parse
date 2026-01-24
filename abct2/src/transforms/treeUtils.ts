@@ -1,5 +1,5 @@
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
-import { TT } from "../../../parse/parsers/scan2";
+import { TT } from "abc-parser";
 
 export function findChildByTag(parent: CSNode, tag: string): { node: CSNode; prev: CSNode | null } | null {
   let prev: CSNode | null = null;

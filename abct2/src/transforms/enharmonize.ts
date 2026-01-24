@@ -1,12 +1,8 @@
 import { Selection } from "../selection";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
-import { ABCContext } from "../../../parse/parsers/Context";
-import { Pitch } from "../../../parse/types/Expr2";
-import { Token, TT } from "../../../parse/parsers/scan2";
+import { ABCContext, Pitch, Token, TT, toMidiPitch, fromMidiPitch } from "abc-parser";
 import { toAst } from "../csTree/toAst";
 import { fromAst } from "../csTree/fromAst";
-import { toMidiPitch } from "../../../parse/Visitors/Formatter2";
-import { fromMidiPitch } from "../../../parse/Visitors/Transposer";
 import { findNodesById } from "./types";
 import { findChildByTag, replaceChild } from "./treeUtils";
 

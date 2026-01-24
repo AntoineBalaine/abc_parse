@@ -1,10 +1,7 @@
-import { IRational, createRational } from "../../../parse/Visitors/fmt2/rational";
+import { IRational, createRational, Rhythm, Token, TT, ABCContext } from "abc-parser";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { toAst } from "../csTree/toAst";
 import { fromAst } from "../csTree/fromAst";
-import { Rhythm } from "../../../parse/types/Expr2";
-import { Token, TT } from "../../../parse/parsers/scan2";
-import { ABCContext } from "../../../parse/parsers/Context";
 import { findRhythmChild, appendChild } from "./treeUtils";
 
 export function extractBrokenToken(rhythmNode: CSNode): CSNode | null {

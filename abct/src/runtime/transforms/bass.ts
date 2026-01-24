@@ -1,18 +1,8 @@
 // Bass Transform
 // Extracts the lowest note from chords (single notes are unchanged)
 
-import {
-  isNote,
-  isChord,
-} from "../../../../parse/helpers";
-import {
-  Expr,
-  Note,
-  Chord,
-  Annotation,
-} from "../../../../parse/types/Expr2";
+import { isNote, isChord, Expr, Note, Chord, Annotation, Token } from "abc-parser";
 import { getNoteMidiPitch } from "../utils/pitch";
-import { Token } from "../../../../parse/parsers/scan2";
 import { Selection, TransformFn } from "../types";
 
 /**

@@ -1,17 +1,7 @@
 // Retrograde Transform
 // Reverses the sequence of pitches across the selection
 
-import {
-  isNote,
-  isChord,
-  isPitch,
-} from "../../../../parse/helpers";
-import {
-  Expr,
-  Note,
-  Chord,
-  Pitch,
-} from "../../../../parse/types/Expr2";
+import { isNote, isChord, isPitch, Expr, Note, Chord, Pitch } from "abc-parser";
 import { Selection, TransformFn } from "../types";
 
 /**

@@ -29,7 +29,7 @@ import { lookupSelector } from "./selectorLookup";
 import { fromAst } from "../../abct2/src/csTree/fromAst";
 import { createSelection } from "../../abct2/src/selection";
 import { CSNode } from "../../abct2/src/csTree/types";
-import { File_structure } from "../../parse/types/Expr2";
+import { File_structure } from "abc-parser";
 
 // ============================================================================
 // ABCT Evaluation Request Types

@@ -2,23 +2,10 @@
 // Wraps the existing Transposer from abc_parse to work with the ABCT runtime
 
 import {
-  isNote,
-  isChord,
-  isBeam,
-  isGraceGroup,
-  isPitch,
-} from "../../../../parse/helpers";
-import { ABCContext } from "../../../../parse/parsers/Context";
-import { toMidiPitch } from "../../../../parse/Visitors/Formatter2";
-import { fromMidiPitch } from "../../../../parse/Visitors/Transposer";
-import {
-  Expr,
-  Note,
-  Chord,
-  Beam,
-  Grace_group,
-  Pitch,
-} from "../../../../parse/types/Expr2";
+  isNote, isChord, isBeam, isGraceGroup, isPitch,
+  ABCContext, toMidiPitch, fromMidiPitch,
+  Expr, Note, Chord, Beam, Grace_group, Pitch,
+} from "abc-parser";
 import { Selection, TransformFn } from "../types";
 
 /**

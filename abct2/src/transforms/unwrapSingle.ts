@@ -1,6 +1,6 @@
 import { Selection } from "../selection";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
-import { TT } from "../../../parse/parsers/scan2";
+import { TT } from "abc-parser";
 import { findNodesById } from "./types";
 import {
   findRhythmChild,

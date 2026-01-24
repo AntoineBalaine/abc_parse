@@ -1,9 +1,7 @@
 // Pitch Utility Functions
 // Shared helpers for working with note pitches
 
-import { isPitch } from "../../../../parse/helpers";
-import { toMidiPitch } from "../../../../parse/Visitors/Formatter2";
-import { Note, Pitch } from "../../../../parse/types/Expr2";
+import { isPitch, toMidiPitch, Note, Pitch } from "abc-parser";
 
 /**
  * Get the MIDI pitch value for a note.

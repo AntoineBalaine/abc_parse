@@ -1,9 +1,7 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { resolveSelectionRanges, findNodeById } from "./selectionRangeResolver";
-import { Scanner, parse } from "abc-parser";
-import { ABCContext } from "../../parse/parsers/Context";
-import { File_structure } from "../../parse/types/Expr2";
+import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
 import { fromAst } from "../../abct2/src/csTree/fromAst";
 import { createSelection } from "../../abct2/src/selection";
 import { selectChords, selectNotes } from "../../abct2/src/selectors/typeSelectors";

@@ -12,10 +12,7 @@
 import { readFile } from "fs/promises";
 import { resolve, dirname } from "path";
 import { URI } from "vscode-uri";
-import { ABCContext } from "../../parse/parsers/Context";
-import { Scanner } from "../../parse/parsers/scan2";
-import { parse } from "../../parse/parsers/parse2";
-import { File_structure } from "../../parse/types/Expr2";
+import { ABCContext, Scanner, parse, File_structure } from "abc-parser";
 
 /**
  * Result of loading an ABC file.

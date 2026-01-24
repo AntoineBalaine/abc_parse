@@ -1,7 +1,6 @@
 import { Selection } from "../selection";
 import { TAGS } from "../csTree/types";
-import { ABCContext } from "../../../parse/parsers/Context";
-import { IRational } from "../../../parse/Visitors/fmt2/rational";
+import { ABCContext, IRational } from "abc-parser";
 import { findNodesById } from "./types";
 import { findRhythmChild, replaceRhythm } from "./treeUtils";
 import { extractBrokenToken, rationalToRhythm } from "./rhythm";

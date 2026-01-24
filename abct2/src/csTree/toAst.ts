@@ -1,6 +1,5 @@
-import { Token, TT } from "../../../parse/parsers/scan2";
 import {
-  Expr, File_structure, Tune, Tune_header, Tune_Body,
+  Token, TT, Expr, File_structure, Tune, Tune_header, Tune_Body,
   Info_line, Note, Pitch, Rhythm, Rest, Chord, Beam,
   Grace_group, BarLine, Decoration, Annotation, Inline_field,
   MultiMeasureRest, YSPACER, SystemBreak, Symbol, Tuplet,
@@ -10,7 +9,7 @@ import {
   User_symbol_decl, User_symbol_invocation, KV, Binary,
   Unary, Grouping, ChordSymbol, ErrorExpr,
   tune_body_code, Beam_contents, music_code
-} from "../../../parse/types/Expr2";
+} from "abc-parser";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "./types";
 
 function collectChildren(node: CSNode): CSNode[] {

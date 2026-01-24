@@ -1,9 +1,7 @@
 // ABCT Runtime
 // Evaluates parsed ABCT expressions against ABC ASTs
 
-import { ABCContext } from "../../../parse/parsers/Context";
-import { AbcFormatter } from "../../../parse/Visitors/Formatter2";
-import { File_structure, Expr } from "../../../parse/types/Expr2";
+import { ABCContext, AbcFormatter, File_structure, Expr } from "abc-parser";
 import { Selection, TransformFn, EvalResult } from "./types";
 import {
   selectChords,

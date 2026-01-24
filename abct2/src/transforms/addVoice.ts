@@ -1,8 +1,7 @@
 import { Selection } from "../selection";
 import { CSNode, TAGS, createCSNode, isTokenNode, getTokenData } from "../csTree/types";
 import { insertBefore, appendChild } from "./treeUtils";
-import { ABCContext } from "../../../parse/parsers/Context";
-import { TT } from "../../../parse/parsers/scan2";
+import { ABCContext, TT } from "abc-parser";
 
 export interface VoiceParams {
   name?: string;

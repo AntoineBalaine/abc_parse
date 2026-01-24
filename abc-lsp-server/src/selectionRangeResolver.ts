@@ -1,6 +1,6 @@
 import { CSNode, isTokenNode, TokenData } from "../../abct2/src/csTree/types";
 import { Selection } from "../../abct2/src/selection";
-import { Range, Position } from "../../parse/types/types";
+import { Range, Position } from "abc-parser";
 
 export function findNodeById(root: CSNode, targetId: number): CSNode | null {
   if (root.id === targetId) return root;

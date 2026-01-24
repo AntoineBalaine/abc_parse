@@ -1,10 +1,7 @@
 // ABCT Runtime Type Definitions
 // Core interfaces for the transform function library
 
-import {
-  File_structure,
-  Expr,
-} from "../../../parse/types/Expr2";
+import { File_structure, Expr } from "abc-parser";
 
 /**
  * Selection represents a subset of nodes within an ABC AST.

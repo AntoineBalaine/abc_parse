@@ -1,6 +1,6 @@
 import { Selection } from "../selection";
 import { TAGS } from "../csTree/types";
-import { IRational, createRational, addRational } from "../../../parse/Visitors/fmt2/rational";
+import { IRational, createRational, addRational } from "abc-parser";
 import { findNodesById } from "./types";
 import { getNodeRhythm } from "./rhythm";
 

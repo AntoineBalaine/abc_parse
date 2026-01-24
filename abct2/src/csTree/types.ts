@@ -1,4 +1,4 @@
-import { TT } from "../../../parse/parsers/scan2";
+import { TT } from "abc-parser";
 
 export interface TokenData {
   type: "token";

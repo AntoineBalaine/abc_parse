@@ -2,30 +2,10 @@
 // Functions that select subsets of nodes from an ABC AST
 
 import {
-  isChord,
-  isNote,
-  isBeam,
-  isGraceGroup,
-  isBarLine,
-  isInfo_line,
-  isInline_field,
-  isToken,
-} from "../../../parse/helpers";
-import {
-  File_structure,
-  Expr,
-  Tune,
-  Tune_Body,
-  Beam,
-  Chord,
-  Note,
-  Grace_group,
-  Info_line,
-  Inline_field,
-  isVoiceInfo,
-  Pitch,
-} from "../../../parse/types/Expr2";
-import { Token } from "../../../parse/parsers/scan2";
+  isChord, isNote, isBeam, isGraceGroup, isBarLine, isInfo_line, isInline_field, isToken,
+  File_structure, Expr, Tune, Tune_Body, Beam, Chord, Note, Grace_group,
+  Info_line, Inline_field, isVoiceInfo, Pitch, Token,
+} from "abc-parser";
 import { Selection } from "./types";
 import { getNoteMidiPitch } from "./utils/pitch";
 

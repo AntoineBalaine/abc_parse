@@ -10,10 +10,7 @@
 
 import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode-languageserver";
 import { FileResolver, FileResolverError } from "./fileResolver";
-import { ABCContext } from "../../parse/parsers/Context";
-import { Scanner } from "../../parse/parsers/scan2";
-import { parse as parseAbcContent } from "../../parse/parsers/parse2";
-import { File_structure } from "../../parse/types/Expr2";
+import { ABCContext, Scanner, parse as parseAbcContent, File_structure } from "abc-parser";
 import {
   Program,
   Statement,

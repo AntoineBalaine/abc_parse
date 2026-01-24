@@ -3,8 +3,7 @@ import { CSNode, TAGS } from "../csTree/types";
 import { findNodesById } from "./types";
 import { findChildByTag } from "./treeUtils";
 import { toAst } from "../csTree/toAst";
-import { Pitch as PitchExpr } from "../../../parse/types/Expr2";
-import { toMidiPitch } from "../../../parse/Visitors/Formatter2";
+import { Pitch as PitchExpr, toMidiPitch } from "abc-parser";
 
 export function pitch(selection: Selection): number[] {
   const results: number[] = [];

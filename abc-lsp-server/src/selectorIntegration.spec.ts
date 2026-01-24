@@ -4,9 +4,7 @@ import { resolveSelectionRanges } from "./selectionRangeResolver";
 import { lookupSelector } from "./selectorLookup";
 import { fromAst } from "../../abct2/src/csTree/fromAst";
 import { createSelection } from "../../abct2/src/selection";
-import { Scanner, parse } from "abc-parser";
-import { ABCContext } from "../../parse/parsers/Context";
-import { File_structure } from "../../parse/types/Expr2";
+import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
 
 function parseAbc(source: string): File_structure {
   const ctx = new ABCContext();
