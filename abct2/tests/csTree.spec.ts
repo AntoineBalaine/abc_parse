@@ -1,7 +1,8 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import * as fc from "fast-check";
-import { TAGS } from "../src/csTree/types";
+import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
+import { TT } from "../../parse/parsers/scan2";
 import {
   toCSTree, collectAll, collectSubtree, findByTag, siblingCount,
   genAbcTune, genAbcWithChords, genAbcMultiTune,
@@ -197,5 +198,144 @@ describe("csTree - toAst roundtrip", () => {
         expect(rt).to.equal(direct);
       });
     }
+  });
+});
+
+describe("csTree - Delimiter Token Children", () => {
+  function getTokenChildren(root: ReturnType<typeof toCSTree>, parentTag: string) {
+    const parents = findByTag(root, parentTag);
+    if (parents.length === 0) return [];
+    const subtree = collectSubtree(parents[0]);
+    return subtree.filter((n) => n.tag === TAGS.Token && isTokenNode(n));
+  }
+
+  describe("Chord delimiter tokens as children", () => {
+    it("Chord CS node has left bracket and right bracket Token children", () => {
+      const root = toCSTree("X:1\nK:C\n[CEG]|\n");
+      const chords = findByTag(root, TAGS.Chord);
+      expect(chords.length).to.equal(1);
+
+      const subtree = collectSubtree(chords[0]);
+      const tokenNodes = subtree.filter((n) => n.tag === TAGS.Token && isTokenNode(n));
+      const tokenTypes = tokenNodes.map((n) => getTokenData(n).tokenType);
+
+      expect(tokenTypes).to.include(TT.CHRD_LEFT_BRKT);
+      expect(tokenTypes).to.include(TT.CHRD_RIGHT_BRKT);
+    });
+
+    it("left bracket is first child of Chord", () => {
+      const root = toCSTree("X:1\nK:C\n[CEG]|\n");
+      const chords = findByTag(root, TAGS.Chord);
+      const firstChild = chords[0].firstChild;
+      expect(firstChild).to.not.be.null;
+      expect(firstChild!.tag).to.equal(TAGS.Token);
+      expect(isTokenNode(firstChild!)).to.be.true;
+      expect(getTokenData(firstChild!).tokenType).to.equal(TT.CHRD_LEFT_BRKT);
+    });
+  });
+
+  describe("Grace_group delimiter tokens as children", () => {
+    it("Grace_group CS node has left and right brace Token children", () => {
+      const root = toCSTree("X:1\nK:C\n{gab}C|\n");
+      const ggs = findByTag(root, TAGS.Grace_group);
+      expect(ggs.length).to.equal(1);
+
+      const subtree = collectSubtree(ggs[0]);
+      const tokenNodes = subtree.filter((n) => n.tag === TAGS.Token && isTokenNode(n));
+      const tokenTypes = tokenNodes.map((n) => getTokenData(n).tokenType);
+
+      expect(tokenTypes).to.include(TT.GRC_GRP_LEFT_BRACE);
+      expect(tokenTypes).to.include(TT.GRC_GRP_RGHT_BRACE);
+    });
+
+    it("left brace is first child of Grace_group", () => {
+      const root = toCSTree("X:1\nK:C\n{ga}C|\n");
+      const ggs = findByTag(root, TAGS.Grace_group);
+      const firstChild = ggs[0].firstChild;
+      expect(firstChild).to.not.be.null;
+      expect(isTokenNode(firstChild!)).to.be.true;
+      expect(getTokenData(firstChild!).tokenType).to.equal(TT.GRC_GRP_LEFT_BRACE);
+    });
+
+    it("acciaccatura Grace_group has slash Token child", () => {
+      const root = toCSTree("X:1\nK:C\n{/c}D|\n");
+      const ggs = findByTag(root, TAGS.Grace_group);
+      expect(ggs.length).to.equal(1);
+
+      const subtree = collectSubtree(ggs[0]);
+      const tokenNodes = subtree.filter((n) => n.tag === TAGS.Token && isTokenNode(n));
+      const tokenTypes = tokenNodes.map((n) => getTokenData(n).tokenType);
+
+      expect(tokenTypes).to.include(TT.GRC_GRP_SLSH);
+    });
+
+    it("non-acciaccatura Grace_group has no slash Token child", () => {
+      const root = toCSTree("X:1\nK:C\n{ga}C|\n");
+      const ggs = findByTag(root, TAGS.Grace_group);
+      const subtree = collectSubtree(ggs[0]);
+      const tokenNodes = subtree.filter((n) => n.tag === TAGS.Token && isTokenNode(n));
+      const tokenTypes = tokenNodes.map((n) => getTokenData(n).tokenType);
+
+      expect(tokenTypes).to.not.include(TT.GRC_GRP_SLSH);
+    });
+
+    it("Grace_group uses EmptyData (no GraceGroupData)", () => {
+      const root = toCSTree("X:1\nK:C\n{/c}D|\n");
+      const ggs = findByTag(root, TAGS.Grace_group);
+      expect(ggs[0].data.type).to.equal("empty");
+    });
+
+    it("isAccacciatura is correctly derived from slash token presence in toAst", () => {
+      // Acciaccatura case
+      const root1 = toCSTree("X:1\nK:C\n{/c}D|\n");
+      const rt1 = roundtrip("X:1\nK:C\n{/c}D|\n");
+      expect(rt1).to.include("{/c}");
+
+      // Non-acciaccatura case
+      const root2 = toCSTree("X:1\nK:C\n{ga}C|\n");
+      const rt2 = roundtrip("X:1\nK:C\n{ga}C|\n");
+      expect(rt2).to.include("{ga}");
+      expect(rt2).to.not.include("{/");
+    });
+  });
+
+  describe("Tuplet delimiter tokens as children", () => {
+    it("Tuplet CS node has left paren as first child", () => {
+      const root = toCSTree("X:1\nK:C\n(3CDE|\n");
+      const tuplets = findByTag(root, TAGS.Tuplet);
+      expect(tuplets.length).to.equal(1);
+
+      const firstChild = tuplets[0].firstChild;
+      expect(firstChild).to.not.be.null;
+      expect(isTokenNode(firstChild!)).to.be.true;
+      expect(getTokenData(firstChild!).tokenType).to.equal(TT.TUPLET_LPAREN);
+    });
+
+    it("Tuplet with colons has COLON Token children", () => {
+      const root = toCSTree("X:1\nK:C\n(3:2:3CDE|\n");
+      const tuplets = findByTag(root, TAGS.Tuplet);
+      expect(tuplets.length).to.equal(1);
+
+      const subtree = collectSubtree(tuplets[0]);
+      const tokenNodes = subtree.filter((n) => n.tag === TAGS.Token && isTokenNode(n));
+      const colonNodes = tokenNodes.filter((n) => getTokenData(n).tokenType === TT.TUPLET_COLON);
+
+      expect(colonNodes.length).to.equal(2);
+    });
+  });
+
+  describe("Inline_field delimiter tokens as children", () => {
+    it("Inline_field CS node has left and right bracket Token children", () => {
+      const root = toCSTree("X:1\nK:C\nCD[K:Am]EF|\n");
+      const fields = findByTag(root, TAGS.Inline_field);
+      expect(fields.length).to.equal(1);
+
+      const subtree = collectSubtree(fields[0]);
+      const tokenNodes = subtree.filter((n) => n.tag === TAGS.Token && isTokenNode(n));
+      const tokenTypes = tokenNodes.map((n) => getTokenData(n).tokenType);
+
+      expect(tokenTypes).to.include(TT.INLN_FLD_LFT_BRKT);
+      expect(tokenTypes).to.include(TT.INLN_FLD_RGT_BRKT);
+    });
   });
 });

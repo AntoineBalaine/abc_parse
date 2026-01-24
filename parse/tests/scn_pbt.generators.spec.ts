@@ -334,6 +334,7 @@ export const genMacroDecl = fc
     if (ws1) tokens.push(ws1);
     tokens.push(variable);
     if (ws2) tokens.push(ws2);
+    tokens.push(new Token(TT.EQL, "=", sharedContext.generateId()));
     tokens.push(macroStr);
     if (comment) tokens.push(comment);
     tokens.push(eol2);
@@ -665,7 +666,8 @@ export const genMacroScenario = genMacroDecl.chain(([eol1, header, variable, mac
 export const genUserSymbolScenario = fc
   .tuple(genEOL, genUserSymbolHeader, genUserSymbolVariable, genSymbol, fc.option(genCommentToken.map(([comment]) => comment)), genEOL)
   .chain(([eol1, header, variable, symbol, comment, eol2]) => {
-    const userSymbolTokens = [eol1, header, variable, symbol];
+    const eqlToken = new Token(TT.EQL, "=", sharedContext.generateId());
+    const userSymbolTokens = [eol1, header, variable, eqlToken, symbol];
     if (comment) userSymbolTokens.push(comment);
     userSymbolTokens.push(eol2);
 
@@ -706,6 +708,7 @@ export const genMixedStatefulScenario = fc
   .chain(([macroDecl, userSymbolDecl]) => {
     const [macroEol1, macroHeader, macroVariable, macroStr, macroComment, macroEol2] = macroDecl;
     const [userSymHeader, userSymVariable, userSymbol, userSymComment, userSymEol] = userSymbolDecl;
+    const userSymEql = new Token(TT.EQL, "=", sharedContext.generateId());
 
     const declarationTokens = [
       macroEol1,
@@ -716,6 +719,7 @@ export const genMixedStatefulScenario = fc
       macroEol2,
       userSymHeader,
       userSymVariable,
+      userSymEql,
       userSymbol,
       ...(userSymComment ? [userSymComment] : []),
       userSymEol,

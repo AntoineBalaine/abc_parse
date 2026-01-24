@@ -113,18 +113,21 @@ function parsePrimary(ctx: ParseCtx): Expr | Token | null {
 
   // Handle parenthesized expressions
   if (ctx.match(TT.LPAREN)) {
+    const leftParen = ctx.previous();
     const expr = prsBinaryExpr(ctx);
     if (!expr) {
       ctx.report("Expected expression after '('");
       return null;
     }
 
-    if (!ctx.match(TT.RPAREN)) {
+    let rightParen: Token | undefined;
+    if (ctx.match(TT.RPAREN)) {
+      rightParen = ctx.previous();
+    } else {
       ctx.report("Expected ')' after expression");
-      return null;
     }
 
-    return new Grouping(ctx.abcContext.generateId(), expr);
+    return new Grouping(ctx.abcContext.generateId(), expr, leftParen, rightParen);
   }
 
   // Handle absolute pitches (NOTE_LETTER + optional ACCIDENTAL + optional NUMBER)

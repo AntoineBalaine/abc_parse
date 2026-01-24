@@ -18,13 +18,17 @@ export function unwrapSingle(selection: Selection): Selection {
     for (const csNode of nodes) {
       if (csNode.tag !== TAGS.Chord) continue;
 
-      // Collect content children (everything that is not Rhythm and not Tie)
+      // Collect content children, skipping structural elements (Rhythm, Tie, bracket delimiters).
+      // The split is safe because Rhythm is always a compound Expr node (never a Token node).
       const contentChildren: CSNode[] = [];
       let current = csNode.firstChild;
       while (current !== null) {
         const isRhythm = current.tag === TAGS.Rhythm;
-        const isTie = isTokenNode(current) && getTokenData(current).tokenType === TT.TIE;
-        if (!isRhythm && !isTie) {
+        if (isTokenNode(current)) {
+          const tt = getTokenData(current).tokenType;
+          const isStructural = tt === TT.TIE || tt === TT.CHRD_LEFT_BRKT || tt === TT.CHRD_RIGHT_BRKT;
+          if (!isStructural) contentChildren.push(current);
+        } else if (!isRhythm) {
           contentChildren.push(current);
         }
         current = current.nextSibling;

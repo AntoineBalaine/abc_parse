@@ -425,14 +425,21 @@ export class Line_continuation extends Expr {
  * If q is not given, it defaults as above. If r is not given, it defaults to p.
  */
 export class Tuplet extends Expr {
+  leftParen?: Token;
+  firstColon?: Token;
+  secondColon?: Token;
   p: Token;
   q?: Token;
   r?: Token;
-  constructor(id: number, p: Token, q?: Token, r?: Token) {
+  constructor(id: number, p: Token, q?: Token, r?: Token,
+              leftParen?: Token, firstColon?: Token, secondColon?: Token) {
     super(id);
     this.p = p;
     this.q = q;
     this.r = r;
+    this.leftParen = leftParen;
+    this.firstColon = firstColon;
+    this.secondColon = secondColon;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitTupletExpr(this);
@@ -492,12 +499,19 @@ export class Symbol extends Expr {
 }
 
 export class Grace_group extends Expr {
+  leftBrace?: Token;
+  rightBrace?: Token;
+  acciaccaturaSlash?: Token;
   notes: Array<Note | Token>;
   isAccacciatura?: boolean;
-  constructor(id: number, notes: Array<Note | Token>, isAccacciatura?: boolean) {
+  constructor(id: number, notes: Array<Note | Token>, isAccacciatura?: boolean,
+              leftBrace?: Token, rightBrace?: Token, acciaccaturaSlash?: Token) {
     super(id);
     this.notes = notes;
     this.isAccacciatura = isAccacciatura;
+    this.leftBrace = leftBrace;
+    this.rightBrace = rightBrace;
+    this.acciaccaturaSlash = acciaccaturaSlash;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitGraceGroupExpr(this);
@@ -505,14 +519,19 @@ export class Grace_group extends Expr {
 }
 
 export class Inline_field extends Expr {
+  leftBracket?: Token;
+  rightBracket?: Token;
   field: Token;
   text: Array<Token>;
   value2?: Array<Expr>;  // Parsed expressions (same as Info_line)
-  constructor(id: number, field: Token, text: Array<Token>, value2?: Array<Expr>) {
+  constructor(id: number, field: Token, text: Array<Token>, value2?: Array<Expr>,
+              leftBracket?: Token, rightBracket?: Token) {
     super(id);
     this.field = field;
     this.text = text;
     this.value2 = value2;
+    this.leftBracket = leftBracket;
+    this.rightBracket = rightBracket;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitInlineFieldExpr(this);
@@ -520,14 +539,19 @@ export class Inline_field extends Expr {
 }
 
 export class Chord extends Expr {
+  leftBracket?: Token;
+  rightBracket?: Token;
   contents: Array<Note | Token | Annotation>;
   rhythm?: Rhythm;
   tie?: Token;
-  constructor(id: number, contents: Array<Note | Token | Annotation>, rhythm?: Rhythm, tie?: Token) {
+  constructor(id: number, contents: Array<Note | Token | Annotation>, rhythm?: Rhythm, tie?: Token,
+              leftBracket?: Token, rightBracket?: Token) {
     super(id);
     this.contents = contents;
     this.rhythm = rhythm;
     this.tie = tie;
+    this.leftBracket = leftBracket;
+    this.rightBracket = rightBracket;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitChordExpr(this);
@@ -700,13 +724,15 @@ export class Lyric_line extends Expr {
 export class Macro_decl extends Expr {
   header: Token;
   variable: Token;
+  equals?: Token;
   content: Token;
 
-  constructor(id: number, header: Token, variable: Token, content: Token) {
+  constructor(id: number, header: Token, variable: Token, content: Token, equals?: Token) {
     super(id);
     this.header = header;
     this.variable = variable;
     this.content = content;
+    this.equals = equals;
   }
 
   accept<R>(visitor: Visitor<R>): R {
@@ -730,13 +756,15 @@ export class Macro_invocation extends Expr {
 export class User_symbol_decl extends Expr {
   header: Token;
   variable: Token;
+  equals?: Token;
   symbol: Token;
 
-  constructor(id: number, header: Token, variable: Token, symbol: Token) {
+  constructor(id: number, header: Token, variable: Token, symbol: Token, equals?: Token) {
     super(id);
     this.header = header;
     this.variable = variable;
     this.symbol = symbol;
+    this.equals = equals;
   }
 
   accept<R>(visitor: Visitor<R>): R {
@@ -827,11 +855,15 @@ export class Unary extends Expr {
  * Preserves the fact that an expression was parenthesized in the AST
  */
 export class Grouping extends Expr {
+  leftParen?: Token;
+  rightParen?: Token;
   expression: Expr;
 
-  constructor(id: number, expression: Expr) {
+  constructor(id: number, expression: Expr, leftParen?: Token, rightParen?: Token) {
     super(id);
     this.expression = expression;
+    this.leftParen = leftParen;
+    this.rightParen = rightParen;
   }
 
   accept<R>(visitor: Visitor<R>): R {

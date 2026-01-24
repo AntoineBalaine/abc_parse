@@ -298,9 +298,7 @@ export function createRoundTripPredicate(originalTokens: Array<Token>): boolean 
     "X:1\n",
     ...trimmedTokens.map((t) => {
       let rv = t.lexeme;
-      if (t.type === TT.MACRO_VAR) rv += "=";
       if (t.type === TT.MACRO_INVOCATION) rv = t.lexeme;
-      if (t.type === TT.USER_SY) rv += "=";
       if (t.type === TT.USER_SY_INVOCATION) rv = t.lexeme;
       return rv;
     }),

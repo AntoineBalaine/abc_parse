@@ -11,7 +11,7 @@ import {
   Unary, Grouping, ChordSymbol, ErrorExpr,
   tune_body_code, Beam_contents, music_code
 } from "../../../parse/types/Expr2";
-import { CSNode, TAGS, GraceGroupData, isTokenNode, getTokenData } from "./types";
+import { CSNode, TAGS, isTokenNode, getTokenData } from "./types";
 
 function collectChildren(node: CSNode): CSNode[] {
   const result: CSNode[] = [];
@@ -213,18 +213,27 @@ function buildBarLine(id: number, children: Array<Expr | Token>): BarLine {
 }
 
 function buildTuplet(id: number, children: Array<Expr | Token>): Tuplet {
+  let leftParen: Token | undefined;
+  let firstColon: Token | undefined;
+  let secondColon: Token | undefined;
   let p: Token | undefined;
   let q: Token | undefined;
   let r: Token | undefined;
+  let colonCount = 0;
   for (const child of children) {
     const token = child as Token;
     switch (token.type) {
+      case TT.TUPLET_LPAREN: leftParen = token; break;
+      case TT.TUPLET_COLON:
+        if (colonCount === 0) { firstColon = token; colonCount++; }
+        else { secondColon = token; }
+        break;
       case TT.TUPLET_P: p = token; break;
       case TT.TUPLET_Q: q = token; break;
       case TT.TUPLET_R: r = token; break;
     }
   }
-  return new Tuplet(id, p!, q, r);
+  return new Tuplet(id, p!, q, r, leftParen, firstColon, secondColon);
 }
 
 // --- Optional trailing fields ---
@@ -241,11 +250,17 @@ function buildNote(id: number, children: Array<Expr | Token>): Note {
 }
 
 function buildChord(id: number, children: Array<Expr | Token>): Chord {
+  let leftBracket: Token | undefined;
+  let rightBracket: Token | undefined;
   const contents: Array<Note | Token | Annotation> = [];
   let rhythm: Rhythm | undefined;
   let tie: Token | undefined;
   for (const child of children) {
-    if (child instanceof Rhythm) {
+    if (child instanceof Token && child.type === TT.CHRD_LEFT_BRKT) {
+      leftBracket = child;
+    } else if (child instanceof Token && child.type === TT.CHRD_RIGHT_BRKT) {
+      rightBracket = child;
+    } else if (child instanceof Rhythm) {
       rhythm = child;
     } else if (child instanceof Token && child.type === TT.TIE) {
       tie = child;
@@ -253,7 +268,7 @@ function buildChord(id: number, children: Array<Expr | Token>): Chord {
       contents.push(child as Note | Token | Annotation);
     }
   }
-  return new Chord(id, contents, rhythm, tie);
+  return new Chord(id, contents, rhythm, tie, leftBracket, rightBracket);
 }
 
 function buildRest(id: number, children: Array<Expr | Token>): Rest {
@@ -277,8 +292,23 @@ function buildYSpacer(id: number, children: Array<Expr | Token>): YSPACER {
 // --- Data payload builder ---
 
 function buildGraceGroup(node: CSNode, children: Array<Expr | Token>): Grace_group {
-  const data = node.data as GraceGroupData;
-  return new Grace_group(node.id, children as Array<Note | Token>, data.isAccacciatura);
+  let leftBrace: Token | undefined;
+  let rightBrace: Token | undefined;
+  let acciaccaturaSlash: Token | undefined;
+  const notes: Array<Note | Token> = [];
+  for (const child of children) {
+    if (child instanceof Token && child.type === TT.GRC_GRP_LEFT_BRACE) {
+      leftBrace = child;
+    } else if (child instanceof Token && child.type === TT.GRC_GRP_RGHT_BRACE) {
+      rightBrace = child;
+    } else if (child instanceof Token && child.type === TT.GRC_GRP_SLSH) {
+      acciaccaturaSlash = child;
+    } else {
+      notes.push(child as Note | Token);
+    }
+  }
+  const isAccacciatura = acciaccaturaSlash !== undefined;
+  return new Grace_group(node.id, notes, isAccacciatura, leftBrace, rightBrace, acciaccaturaSlash);
 }
 
 // --- Text-based builders ---
@@ -287,9 +317,21 @@ function buildGraceGroup(node: CSNode, children: Array<Expr | Token>): Grace_gro
 // The parser establishes this (parseInlineField pushes field as tokens[0]),
 // and the Formatter2 relies on it (text.slice(1) skips the field token).
 function buildInlineField(id: number, children: Array<Expr | Token>): Inline_field {
-  const field = children[0] as Token;
-  const text = children as Token[];
-  return new Inline_field(id, field, text);
+  let leftBracket: Token | undefined;
+  let rightBracket: Token | undefined;
+  const text: Token[] = [];
+  for (const child of children) {
+    const token = child as Token;
+    if (token.type === TT.INLN_FLD_LFT_BRKT) {
+      leftBracket = token;
+    } else if (token.type === TT.INLN_FLD_RGT_BRKT) {
+      rightBracket = token;
+    } else {
+      text.push(token);
+    }
+  }
+  const field = text[0];
+  return new Inline_field(id, field, text, undefined, leftBracket, rightBracket);
 }
 
 function buildInfoLine(id: number, children: Array<Expr | Token>): Info_line {
@@ -323,11 +365,31 @@ function buildLyricLine(id: number, children: Array<Expr | Token>): Lyric_line {
 }
 
 function buildMacroDecl(id: number, children: Array<Expr | Token>): Macro_decl {
-  return new Macro_decl(id, children[0] as Token, children[1] as Token, children[2] as Token);
+  const header = children[0] as Token;
+  const variable = children[1] as Token;
+  let equals: Token | undefined;
+  let content: Token;
+  if (children.length === 4) {
+    equals = children[2] as Token;
+    content = children[3] as Token;
+  } else {
+    content = children[2] as Token;
+  }
+  return new Macro_decl(id, header, variable, content, equals);
 }
 
 function buildUserSymbolDecl(id: number, children: Array<Expr | Token>): User_symbol_decl {
-  return new User_symbol_decl(id, children[0] as Token, children[1] as Token, children[2] as Token);
+  const header = children[0] as Token;
+  const variable = children[1] as Token;
+  let equals: Token | undefined;
+  let symbol: Token;
+  if (children.length === 4) {
+    equals = children[2] as Token;
+    symbol = children[3] as Token;
+  } else {
+    symbol = children[2] as Token;
+  }
+  return new User_symbol_decl(id, header, variable, symbol, equals);
 }
 
 function buildKV(id: number, children: Array<Expr | Token>): KV {
@@ -354,7 +416,19 @@ function buildUnary(id: number, children: Array<Expr | Token>): Unary {
 }
 
 function buildGrouping(id: number, children: Array<Expr | Token>): Grouping {
-  return new Grouping(id, children[0] as Expr);
+  let leftParen: Token | undefined;
+  let rightParen: Token | undefined;
+  let expression: Expr | undefined;
+  for (const child of children) {
+    if (child instanceof Token && child.type === TT.LPAREN) {
+      leftParen = child;
+    } else if (child instanceof Token && child.type === TT.RPAREN) {
+      rightParen = child;
+    } else {
+      expression = child as Expr;
+    }
+  }
+  return new Grouping(id, expression!, leftParen, rightParen);
 }
 
 // --- Structural builders ---

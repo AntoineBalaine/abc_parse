@@ -570,6 +570,7 @@ export function parseChord(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Chord
   if (!ctx.match(TT.CHRD_LEFT_BRKT)) {
     return null;
   }
+  const leftBracket = ctx.previous();
 
   const contents: Array<Note | Token | Annotation> = [];
 
@@ -594,7 +595,10 @@ export function parseChord(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Chord
   }
 
   // Expect closing bracket
-  if (!ctx.match(TT.CHRD_RIGHT_BRKT)) {
+  let rightBracket: Token | undefined;
+  if (ctx.match(TT.CHRD_RIGHT_BRKT)) {
+    rightBracket = ctx.previous();
+  } else {
     ctx.report("Unterminated chord - expected ']'");
   }
 
@@ -607,7 +611,7 @@ export function parseChord(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Chord
     tie = ctx.previous();
   }
 
-  const chord = new Chord(ctx.abcContext.generateId(), contents, rhythm, tie);
+  const chord = new Chord(ctx.abcContext.generateId(), contents, rhythm, tie, leftBracket, rightBracket);
   prnt_arr && prnt_arr.push(chord);
   return chord;
 }
@@ -617,12 +621,15 @@ export function parseGraceGroup(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): 
   if (!ctx.match(TT.GRC_GRP_LEFT_BRACE)) {
     return null;
   }
+  const leftBrace = ctx.previous();
 
   const notes: Array<Note | Token> = [];
   let isAccacciatura = false;
+  let acciaccaturaSlash: Token | undefined;
 
   // Parse optional slash
   if (ctx.match(TT.GRC_GRP_SLSH)) {
+    acciaccaturaSlash = ctx.previous();
     isAccacciatura = true;
   }
 
@@ -646,11 +653,14 @@ export function parseGraceGroup(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): 
   }
 
   // Expect closing brace
-  if (!ctx.match(TT.GRC_GRP_RGHT_BRACE)) {
+  let rightBrace: Token | undefined;
+  if (ctx.match(TT.GRC_GRP_RGHT_BRACE)) {
+    rightBrace = ctx.previous();
+  } else {
     ctx.report("Unterminated grace group - expected '}'");
   }
 
-  const grace_grp = new Grace_group(ctx.abcContext.generateId(), notes, isAccacciatura);
+  const grace_grp = new Grace_group(ctx.abcContext.generateId(), notes, isAccacciatura, leftBrace, rightBrace, acciaccaturaSlash);
   prnt_arr && prnt_arr.push(grace_grp);
   return grace_grp;
 }
@@ -658,6 +668,8 @@ export function parseGraceGroup(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): 
 // Parse a tuplet
 export function parseTuplet(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Tuplet | null {
   if (ctx.match(TT.TUPLET_LPAREN)) {
+    const leftParen = ctx.previous();
+
     // Parse p value (required)
     if (!ctx.match(TT.TUPLET_P)) {
       ctx.report("Expected number after tuplet opening");
@@ -668,23 +680,25 @@ export function parseTuplet(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Tupl
     // Parse optional q value
     let q: Token | undefined;
     let r: Token | undefined;
+    let firstColon: Token | undefined;
+    let secondColon: Token | undefined;
 
     if (ctx.match(TT.TUPLET_COLON)) {
-      // Skip the colon token
+      firstColon = ctx.previous();
       if (ctx.match(TT.TUPLET_Q)) {
         q = ctx.previous();
       }
 
       // Parse optional r value
       if (ctx.match(TT.TUPLET_COLON)) {
-        // Skip the colon token
+        secondColon = ctx.previous();
         if (ctx.match(TT.TUPLET_R)) {
           r = ctx.previous();
         }
       }
     }
 
-    const tuplet = new Tuplet(ctx.abcContext.generateId(), p, q, r);
+    const tuplet = new Tuplet(ctx.abcContext.generateId(), p, q, r, leftParen, firstColon, secondColon);
     prnt_arr && prnt_arr.push(tuplet);
     return tuplet;
   }
@@ -749,6 +763,7 @@ export function parseInlineField(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>):
   if (!ctx.match(TT.INLN_FLD_LFT_BRKT)) {
     return null;
   }
+  const leftBracket = ctx.previous();
 
   const field = ctx.advance(); // Get the INF_HDR token (K:, M:, etc.)
   const tokens: Token[] = [field];
@@ -775,10 +790,14 @@ export function parseInlineField(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>):
     tokens.push(ctx.tokens[i]);
   }
 
-  ctx.advance(); // Consume closing bracket ]
+  let rightBracket: Token | undefined;
+  if (!ctx.isAtEnd()) {
+    ctx.advance(); // Consume closing bracket ]
+    rightBracket = ctx.previous();
+  }
 
   // Create Inline_field with parsed expressions
-  const result = new Inline_field(ctx.abcContext.generateId(), field, tokens, expressions);
+  const result = new Inline_field(ctx.abcContext.generateId(), field, tokens, expressions, leftBracket, rightBracket);
   if (prnt_arr) prnt_arr.push(result);
   return result;
 }
@@ -938,6 +957,12 @@ export function prsMacroDecl(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Mac
 
   const variable = ctx.advance();
 
+  // Consume the EQL token (inserted between MACRO_VAR and MACRO_STR by the scanner)
+  let equals: Token | undefined;
+  if (ctx.check(TT.EQL)) {
+    equals = ctx.advance();
+  }
+
   if (!ctx.check(TT.MACRO_STR)) {
     ctx.report("Expected macro content after macro variable");
     return null;
@@ -945,7 +970,7 @@ export function prsMacroDecl(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Mac
 
   const content = ctx.advance();
 
-  const macroDecl = new Macro_decl(ctx.abcContext.generateId(), header, variable, content);
+  const macroDecl = new Macro_decl(ctx.abcContext.generateId(), header, variable, content, equals);
   prnt_arr && prnt_arr.push(macroDecl);
   return macroDecl;
 }
@@ -965,6 +990,12 @@ export function prsUserSymbolDecl(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>)
 
   const variable = ctx.advance();
 
+  // Consume the EQL token (inserted between USER_SY and SYMBOL by the scanner)
+  let equals: Token | undefined;
+  if (ctx.check(TT.EQL)) {
+    equals = ctx.advance();
+  }
+
   if (!ctx.check(TT.SYMBOL)) {
     ctx.report("Expected symbol content after user symbol variable");
     return null;
@@ -972,7 +1003,7 @@ export function prsUserSymbolDecl(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>)
 
   const symbol = ctx.advance();
 
-  const userSymbolDecl = new User_symbol_decl(ctx.abcContext.generateId(), header, variable, symbol);
+  const userSymbolDecl = new User_symbol_decl(ctx.abcContext.generateId(), header, variable, symbol, equals);
   prnt_arr && prnt_arr.push(userSymbolDecl);
   return userSymbolDecl;
 }

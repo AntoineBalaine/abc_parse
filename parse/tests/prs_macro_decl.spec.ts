@@ -144,10 +144,10 @@ describe("prsMacroDecl round-trip", () => {
         assert.instanceOf(result, Macro_decl);
         
         // Check that parsing consumed the expected tokens
-        const expectedTokens = macroTokens.filter(t => 
-          t.type === TT.MACRO_HDR || t.type === TT.MACRO_VAR || t.type === TT.MACRO_STR
+        const expectedTokens = macroTokens.filter(t =>
+          t.type === TT.MACRO_HDR || t.type === TT.MACRO_VAR || t.type === TT.EQL || t.type === TT.MACRO_STR
         );
-        
+
         return ctx.current === expectedTokens.length;
       }),
       {

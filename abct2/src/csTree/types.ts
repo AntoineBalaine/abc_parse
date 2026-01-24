@@ -8,16 +8,11 @@ export interface TokenData {
   position: number;
 }
 
-export interface GraceGroupData {
-  type: "grace_group";
-  isAccacciatura: boolean;
-}
-
 export interface EmptyData {
   type: "empty";
 }
 
-export type NodeData = TokenData | GraceGroupData | EmptyData;
+export type NodeData = TokenData | EmptyData;
 
 export interface CSNode {
   tag: string;

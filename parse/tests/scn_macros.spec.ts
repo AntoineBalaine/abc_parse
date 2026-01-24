@@ -31,7 +31,7 @@ describe("macro function", () => {
 
     // Check tokens generated (excluding the initial EOL we added)
     const tokens = ctx.tokens.slice(1);
-    assert.equal(tokens.length, 3);
+    assert.equal(tokens.length, 4);
 
     assert.equal(tokens[0].type, TT.MACRO_HDR);
     assert.equal(tokens[0].lexeme, "m:");
@@ -39,8 +39,11 @@ describe("macro function", () => {
     assert.equal(tokens[1].type, TT.MACRO_VAR);
     assert.equal(tokens[1].lexeme, "var");
 
-    assert.equal(tokens[2].type, TT.MACRO_STR);
-    assert.equal(tokens[2].lexeme, "content");
+    assert.equal(tokens[2].type, TT.EQL);
+    assert.equal(tokens[2].lexeme, "=");
+
+    assert.equal(tokens[3].type, TT.MACRO_STR);
+    assert.equal(tokens[3].lexeme, "content");
   });
 
   it("should parse macro with spaces around equals sign", () => {
@@ -57,8 +60,11 @@ describe("macro function", () => {
     assert.equal(tokens[1].type, TT.MACRO_VAR);
     assert.equal(tokens[1].lexeme, "var");
 
-    assert.equal(tokens[2].type, TT.MACRO_STR);
-    assert.equal(tokens[2].lexeme, "content with spaces");
+    assert.equal(tokens[2].type, TT.EQL);
+    assert.equal(tokens[2].lexeme, "=");
+
+    assert.equal(tokens[3].type, TT.MACRO_STR);
+    assert.equal(tokens[3].lexeme, "content with spaces");
   });
 
   it("should parse macro variable with numbers and tildes", () => {

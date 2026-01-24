@@ -427,7 +427,7 @@ export function user_symbol_decl(ctx: Ctx): boolean {
       case Expect.EQUALS: {
         if (ctx.test("=")) {
           advance(ctx);
-          ctx.start = ctx.current;
+          ctx.push(TT.EQL);
           state = Expect.CONTENT;
           continue outer;
         } else {
@@ -439,7 +439,7 @@ export function user_symbol_decl(ctx: Ctx): boolean {
         if (!symbol(ctx)) {
           collectInvalidInfoLn(ctx, "expected contents of user-symbol declaration");
         } else {
-          const variable = ctx.tokens[ctx.tokens.length - 2];
+          const variable = ctx.tokens[ctx.tokens.length - 3];
           const contents = ctx.tokens[ctx.tokens.length - 1];
           if (!ctx.user_symbols) {
             ctx.user_symbols = new Map<string, string>();
@@ -489,7 +489,7 @@ export function macro_decl(ctx: Ctx): boolean {
       case Expect.EQUALS: {
         if (ctx.test("=")) {
           advance(ctx);
-          ctx.start = ctx.current;
+          ctx.push(TT.EQL);
           state = Expect.CONTENT;
           continue outer;
         } else {
@@ -503,7 +503,7 @@ export function macro_decl(ctx: Ctx): boolean {
         }
         if (ctx.current > ctx.start) {
           ctx.push(TT.MACRO_STR);
-          const variable = ctx.tokens[ctx.tokens.length - 2];
+          const variable = ctx.tokens[ctx.tokens.length - 3];
           const contents = ctx.tokens[ctx.tokens.length - 1];
           if (!ctx.macros) {
             ctx.macros = new Map<string, string>();

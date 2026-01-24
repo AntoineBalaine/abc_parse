@@ -59,7 +59,7 @@ function resolveTag(node: Expr | Token): string {
   throw new Error(`resolveTag: unrecognized node type (id=${node.id})`);
 }
 
-function extractData(node: Expr | Token, tag: string): NodeData {
+function extractData(node: Expr | Token): NodeData {
   if (node instanceof Token) {
     return {
       type: "token",
@@ -67,12 +67,6 @@ function extractData(node: Expr | Token, tag: string): NodeData {
       tokenType: node.type,
       line: node.line,
       position: node.position,
-    };
-  }
-  if (tag === TAGS.Grace_group) {
-    return {
-      type: "grace_group",
-      isAccacciatura: (node as Grace_group).isAccacciatura ?? false,
     };
   }
   return { type: "empty" };
@@ -131,7 +125,10 @@ export const childrenVisitor: Visitor<ChildList> = {
     return children;
   },
   visitChordExpr(expr: Chord): ChildList {
-    const children: ChildList = [...expr.contents];
+    const children: ChildList = [];
+    if (expr.leftBracket) children.push(expr.leftBracket);
+    children.push(...expr.contents);
+    if (expr.rightBracket) children.push(expr.rightBracket);
     if (expr.rhythm) children.push(expr.rhythm);
     if (expr.tie) children.push(expr.tie);
     return children;
@@ -140,7 +137,12 @@ export const childrenVisitor: Visitor<ChildList> = {
     return [...expr.contents];
   },
   visitGraceGroupExpr(expr: Grace_group): ChildList {
-    return [...expr.notes];
+    const children: ChildList = [];
+    if (expr.leftBrace) children.push(expr.leftBrace);
+    if (expr.acciaccaturaSlash) children.push(expr.acciaccaturaSlash);
+    children.push(...expr.notes);
+    if (expr.rightBrace) children.push(expr.rightBrace);
+    return children;
   },
   visitBarLineExpr(expr: BarLine): ChildList {
     const children: ChildList = [...expr.barline];
@@ -154,7 +156,11 @@ export const childrenVisitor: Visitor<ChildList> = {
     return [expr.text];
   },
   visitInlineFieldExpr(expr: Inline_field): ChildList {
-    return [...expr.text];
+    const children: ChildList = [];
+    if (expr.leftBracket) children.push(expr.leftBracket);
+    children.push(...expr.text);
+    if (expr.rightBracket) children.push(expr.rightBracket);
+    return children;
   },
   visitMultiMeasureRestExpr(expr: MultiMeasureRest): ChildList {
     const children: ChildList = [expr.rest];
@@ -173,8 +179,12 @@ export const childrenVisitor: Visitor<ChildList> = {
     return [expr.symbol];
   },
   visitTupletExpr(expr: Tuplet): ChildList {
-    const children: ChildList = [expr.p];
+    const children: ChildList = [];
+    if (expr.leftParen) children.push(expr.leftParen);
+    children.push(expr.p);
+    if (expr.firstColon) children.push(expr.firstColon);
     if (expr.q) children.push(expr.q);
+    if (expr.secondColon) children.push(expr.secondColon);
     if (expr.r) children.push(expr.r);
     return children;
   },
@@ -215,13 +225,19 @@ export const childrenVisitor: Visitor<ChildList> = {
     return [expr.header, ...expr.contents];
   },
   visitMacroDeclExpr(expr: Macro_decl): ChildList {
-    return [expr.header, expr.variable, expr.content];
+    const children: ChildList = [expr.header, expr.variable];
+    if (expr.equals) children.push(expr.equals);
+    children.push(expr.content);
+    return children;
   },
   visitMacroInvocationExpr(expr: Macro_invocation): ChildList {
     return [expr.variable];
   },
   visitUserSymbolDeclExpr(expr: User_symbol_decl): ChildList {
-    return [expr.header, expr.variable, expr.symbol];
+    const children: ChildList = [expr.header, expr.variable];
+    if (expr.equals) children.push(expr.equals);
+    children.push(expr.symbol);
+    return children;
   },
   visitUserSymbolInvocationExpr(expr: User_symbol_invocation): ChildList {
     return [expr.variable];
@@ -240,7 +256,11 @@ export const childrenVisitor: Visitor<ChildList> = {
     return [expr.operator, expr.operand];
   },
   visitGrouping(expr: Grouping): ChildList {
-    return [expr.expression];
+    const children: ChildList = [];
+    if (expr.leftParen) children.push(expr.leftParen);
+    children.push(expr.expression);
+    if (expr.rightParen) children.push(expr.rightParen);
+    return children;
   },
   visitChordSymbolExpr(expr: ChordSymbol): ChildList {
     return [expr.token];
@@ -252,7 +272,7 @@ export const childrenVisitor: Visitor<ChildList> = {
 
 export function fromAst(node: Expr | Token): CSNode {
   const tag = resolveTag(node);
-  const data = extractData(node, tag);
+  const data = extractData(node);
   const csNode = createCSNode(tag, node.id, data);
 
   const children = node.accept(childrenVisitor);

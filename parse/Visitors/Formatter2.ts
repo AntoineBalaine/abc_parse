@@ -221,7 +221,7 @@ export class AbcFormatter implements Visitor<string> {
     if (expr.tie) {
       tie = expr.tie.lexeme;
     }
-    return `[${str}]${rhythm}${tie}`;
+    return `${expr.leftBracket?.lexeme ?? "["}${str}${expr.rightBracket?.lexeme ?? "]"}${rhythm}${tie}`;
   }
 
   visitCommentExpr(expr: Comment): string {
@@ -246,12 +246,10 @@ export class AbcFormatter implements Visitor<string> {
         }
       })
       .join("");
-    // TODO implement accaciatura formatting
-    if (expr.isAccacciatura) {
-      return `{/${fmt}}`;
-    } else {
-      return `{${fmt}}`;
-    }
+    const lb = expr.leftBrace?.lexeme ?? "{";
+    const rb = expr.rightBrace?.lexeme ?? "}";
+    const slash = expr.acciaccaturaSlash?.lexeme ?? (expr.isAccacciatura ? "/" : "");
+    return `${lb}${slash}${fmt}${rb}`;
   }
 
   visitInfoLineExpr(expr: Info_line): string {
@@ -294,7 +292,7 @@ export class AbcFormatter implements Visitor<string> {
           return expression.accept(this);
         }
       });
-      return `[${field.lexeme}${formattedExpressions.join(" ")}]`;
+      return `${expr.leftBracket?.lexeme ?? "["}${field.lexeme}${formattedExpressions.join(" ")}${expr.rightBracket?.lexeme ?? "]"}`;
     }
 
     // Fallback to original token-based formatting for compatibility
@@ -303,7 +301,7 @@ export class AbcFormatter implements Visitor<string> {
       .slice(1)
       .map((val) => val.lexeme)
       .join("");
-    return `[${field.lexeme}${formattedText}]`;
+    return `${expr.leftBracket?.lexeme ?? "["}${field.lexeme}${formattedText}${expr.rightBracket?.lexeme ?? "]"}`;
   }
 
   visitMultiMeasureRestExpr(expr: MultiMeasureRest): string {
@@ -427,13 +425,19 @@ export class AbcFormatter implements Visitor<string> {
 
   visitTupletExpr(expr: Tuplet): string {
     // Construct the tuplet notation
-    let result = "(" + expr.p.lexeme;
+    let result = (expr.leftParen?.lexeme ?? "(") + expr.p.lexeme;
 
-    // Add q value if present
-    if (expr.q) {
+    if (expr.firstColon) {
+      // Because stored colon tokens drive the output, the (p::r) case is handled correctly.
+      result += expr.firstColon.lexeme;
+      if (expr.q) result += expr.q.lexeme;
+      if (expr.secondColon) {
+        result += expr.secondColon.lexeme;
+        if (expr.r) result += expr.r.lexeme;
+      }
+    } else if (expr.q) {
+      // Fallback for programmatically-constructed Exprs without stored tokens
       result += ":" + expr.q.lexeme;
-
-      // Add r value if present
       if (expr.r) {
         result += ":" + expr.r.lexeme;
       }
@@ -453,7 +457,7 @@ export class AbcFormatter implements Visitor<string> {
   }
 
   visitMacroDeclExpr(expr: Macro_decl): string {
-    return expr.header.lexeme + expr.variable.lexeme + "=" + expr.content.lexeme;
+    return expr.header.lexeme + expr.variable.lexeme + (expr.equals?.lexeme ?? "=") + expr.content.lexeme;
   }
 
   visitMacroInvocationExpr(expr: Macro_invocation): string {
@@ -461,7 +465,7 @@ export class AbcFormatter implements Visitor<string> {
   }
 
   visitUserSymbolDeclExpr(expr: User_symbol_decl): string {
-    return expr.header.lexeme + expr.variable.lexeme + "=" + expr.symbol.lexeme;
+    return expr.header.lexeme + expr.variable.lexeme + (expr.equals?.lexeme ?? "=") + expr.symbol.lexeme;
   }
 
   visitUserSymbolInvocationExpr(expr: User_symbol_invocation): string {
@@ -503,7 +507,7 @@ export class AbcFormatter implements Visitor<string> {
 
   visitGrouping(expr: Grouping): string {
     // Format as (expression)
-    return "(" + expr.expression.accept(this) + ")";
+    return (expr.leftParen?.lexeme ?? "(") + expr.expression.accept(this) + (expr.rightParen?.lexeme ?? ")");
   }
 
   visitAbsolutePitch(expr: AbsolutePitch): string {

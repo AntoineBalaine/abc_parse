@@ -17,7 +17,8 @@ const genUserSymbolLine = fc
     genEOL
   )
   .map(([eol1, header, variable, symbol, comment, eol2]) => {
-    const tokens = [eol1, header, variable, symbol];
+    const eqlToken = new Token(TT.EQL, "=", 0);
+    const tokens = [eol1, header, variable, eqlToken, symbol];
     if (comment) tokens.push(comment);
     tokens.push(eol2);
     return { tokens, variable: variable.lexeme };
@@ -41,7 +42,7 @@ describe("userSymbol function", () => {
 
     // Check tokens generated (excluding the initial EOL we added)
     const tokens = ctx.tokens.slice(1);
-    assert.equal(tokens.length, 3);
+    assert.equal(tokens.length, 4);
 
     assert.equal(tokens[0].type, TT.USER_SY_HDR);
     assert.equal(tokens[0].lexeme, "U:");
@@ -49,8 +50,11 @@ describe("userSymbol function", () => {
     assert.equal(tokens[1].type, TT.USER_SY);
     assert.equal(tokens[1].lexeme, "T");
 
-    assert.equal(tokens[2].type, TT.SYMBOL);
-    assert.equal(tokens[2].lexeme, "!trill!");
+    assert.equal(tokens[2].type, TT.EQL);
+    assert.equal(tokens[2].lexeme, "=");
+
+    assert.equal(tokens[3].type, TT.SYMBOL);
+    assert.equal(tokens[3].lexeme, "!trill!");
   });
 
   it("should parse user symbol with spaces around equals sign", () => {
@@ -67,8 +71,11 @@ describe("userSymbol function", () => {
     assert.equal(tokens[1].type, TT.USER_SY);
     assert.equal(tokens[1].lexeme, "h");
 
-    assert.equal(tokens[2].type, TT.SYMBOL);
-    assert.equal(tokens[2].lexeme, "!fermata!");
+    assert.equal(tokens[2].type, TT.EQL);
+    assert.equal(tokens[2].lexeme, "=");
+
+    assert.equal(tokens[3].type, TT.SYMBOL);
+    assert.equal(tokens[3].lexeme, "!fermata!");
   });
 
   it("should parse user symbol with lowercase variable", () => {
