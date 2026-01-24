@@ -10,6 +10,7 @@ import {
   InitializeResult,
   ProposedFeatures,
   Range,
+  ResponseError,
   TextDocumentPositionParams,
   TextDocumentSyncKind,
   TextDocuments,
@@ -18,10 +19,14 @@ import {
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcLspServer, AbcTransformParams } from "./AbcLspServer";
 import { AbctDocument } from "./AbctDocument";
+import { AbcDocument } from "./AbcDocument";
 import { DECORATION_SYMBOLS } from "./completions";
 import { standardTokenScopes } from "./server_helpers";
 import { provideHover } from "./abct/AbctHoverProvider";
 import { provideAbctCompletions } from "./abct/AbctCompletionProvider";
+import { SelectionStateManager } from "./selectionState";
+import { resolveSelectionRanges } from "./selectionRangeResolver";
+import { lookupSelector } from "./selectorLookup";
 
 // ============================================================================
 // ABCT Evaluation Request Types
@@ -70,6 +75,25 @@ interface AbctEvalResult {
   }>;
 }
 
+// ============================================================================
+// Selector Command Request Types
+// ============================================================================
+
+interface ApplySelectorParams {
+  uri: string;
+  selector: string;
+  args?: number[];
+}
+
+interface ResetSelectionParams {
+  uri: string;
+}
+
+interface ApplySelectorResult {
+  ranges: Array<{ start: { line: number; character: number }; end: { line: number; character: number } }>;
+  cursorCount: number;
+}
+
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all);
@@ -88,6 +112,12 @@ const abcServer = new AbcLspServer(documents, (type, params) => {
     default:
       break;
   }
+});
+
+const selectionStateManager = new SelectionStateManager();
+
+documents.onDidChangeContent((change) => {
+  selectionStateManager.invalidate(change.document.uri);
 });
 
 /**
@@ -174,6 +204,39 @@ connection.onRequest("transposeDn", (params: AbcTransformParams) => {
   return abcServer.onTranspose(params.uri, -12, params.selection);
 });
 
+// ============================================================================
+// Selector Command Request Handlers
+// ============================================================================
+
+connection.onRequest("abct2.applySelector", (params: ApplySelectorParams): ApplySelectorResult => {
+  const doc = abcServer.abcDocuments.get(params.uri);
+  if (!doc || !(doc instanceof AbcDocument) || !doc.AST) {
+    return { ranges: [], cursorCount: 0 };
+  }
+
+  const state = selectionStateManager.getOrCreate(params.uri, doc.AST);
+
+  const selectorFn = lookupSelector(params.selector);
+  if (!selectorFn) {
+    throw new ResponseError(-1, `Unknown selector: "${params.selector}"`);
+  }
+
+  const newSelection = selectorFn(state.selection, ...(params.args ?? []));
+  selectionStateManager.update(params.uri, newSelection);
+
+  const ranges = resolveSelectionRanges(newSelection);
+  return { ranges, cursorCount: newSelection.cursors.length };
+});
+
+connection.onRequest("abct2.resetSelection", (params: ResetSelectionParams): ApplySelectorResult => {
+  const doc = abcServer.abcDocuments.get(params.uri);
+  if (!doc || !(doc instanceof AbcDocument) || !doc.AST) {
+    return { ranges: [], cursorCount: 0 };
+  }
+
+  selectionStateManager.reset(params.uri, doc.AST);
+  return { ranges: [], cursorCount: 0 };
+});
 connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
   const uri = textDocumentPosition.textDocument.uri;
 
