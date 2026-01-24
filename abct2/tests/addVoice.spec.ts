@@ -2,9 +2,26 @@ import { expect } from "chai";
 import { describe, it } from "mocha";
 import * as fc from "fast-check";
 import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune } from "./helpers";
-import { TAGS } from "../src/csTree/types";
+import { TAGS, CSNode, isTokenNode, getTokenData } from "../src/csTree/types";
 import { Selection } from "../src/selection";
-import { addVoice, VoiceParams } from "../src/transforms/addVoice";
+import { addVoice } from "../src/transforms/addVoice";
+
+function hasVoiceInfoLine(tuneHeader: CSNode, voiceId: string): boolean {
+  let child = tuneHeader.firstChild;
+  while (child !== null) {
+    if (child.tag === TAGS.Info_line) {
+      const keyChild = child.firstChild;
+      if (keyChild !== null && isTokenNode(keyChild) && getTokenData(keyChild).lexeme === "V:") {
+        const valueChild = keyChild.nextSibling;
+        if (valueChild !== null && isTokenNode(valueChild) && getTokenData(valueChild).lexeme.startsWith(voiceId)) {
+          return true;
+        }
+      }
+    }
+    child = child.nextSibling;
+  }
+  return false;
+}
 
 describe("addVoice", () => {
   describe("example-based", () => {
@@ -61,12 +78,14 @@ describe("addVoice", () => {
       expect(v2Index).to.be.lessThan(kIndex);
     });
 
-    it("appends V: line at the end when no K: line exists", () => {
+    it("appends V: line in the tune header when no K: line exists", () => {
       const { root, ctx } = toCSTreeWithContext("X:1\nT:Test\nCDE|\n");
       const sel: Selection = { root, cursors: [new Set([root.id])] };
       addVoice(sel, "V1", {}, ctx);
-      const formatted = formatSelection(sel);
-      expect(formatted).to.contain("V:V1");
+      // Verify the V: Info_line is a direct child of the Tune_header
+      const tuneHeader = findByTag(root, TAGS.Tune_header)[0];
+      expect(tuneHeader).to.not.be.undefined;
+      expect(hasVoiceInfoLine(tuneHeader, "V1")).to.equal(true);
     });
 
     it("does not change the tune body after adding a voice", () => {
@@ -113,6 +132,20 @@ describe("addVoice", () => {
           if (infoLines.some((l) => l.startsWith("K:"))) {
             expect(lastInfoLine).to.match(/^K:/);
           }
+        }),
+        { numRuns: 200 }
+      );
+    });
+
+    it("the V: Info_line is always a direct child of the Tune_header", () => {
+      fc.assert(
+        fc.property(genAbcTune, (source) => {
+          const { root, ctx } = toCSTreeWithContext(source);
+          const sel: Selection = { root, cursors: [new Set([root.id])] };
+          addVoice(sel, "test", {}, ctx);
+          const tuneHeader = findByTag(root, TAGS.Tune_header)[0];
+          expect(tuneHeader).to.not.be.undefined;
+          expect(hasVoiceInfoLine(tuneHeader, "test")).to.equal(true);
         }),
         { numRuns: 200 }
       );
