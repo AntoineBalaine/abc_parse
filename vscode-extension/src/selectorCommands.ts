@@ -3,7 +3,7 @@ import { LanguageClient } from "vscode-languageclient/node";
 
 interface ApplySelectorResult {
   ranges: Array<{ start: { line: number; character: number }; end: { line: number; character: number } }>;
-  cursorCount: number;
+  cursorNodeIds: number[];
 }
 
 function applySelectionsToEditor(editor: vscode.TextEditor, ranges: ApplySelectorResult["ranges"]): void {
@@ -36,6 +36,54 @@ export function registerSelectorCommands(context: vscode.ExtensionContext, clien
   statusBarItem.command = "abc.resetSelection";
   context.subscriptions.push(statusBarItem);
 
+  const cursorStateByUri = new Map<string, number[]>();
+
+  context.subscriptions.push(
+    vscode.window.onDidChangeTextEditorSelection((event) => {
+      if (event.textEditor.document.languageId !== "abc") return;
+      // Only clear state for user-initiated selection changes (keyboard or mouse).
+      // Programmatic changes (from our own editor.selections assignment) fire with
+      // kind === Command or undefined, which we must ignore to preserve cursor state
+      // between successive selector commands.
+      if (event.kind !== vscode.TextEditorSelectionChangeKind.Keyboard &&
+          event.kind !== vscode.TextEditorSelectionChangeKind.Mouse) {
+        return;
+      }
+      const uri = event.textEditor.document.uri.toString();
+      cursorStateByUri.delete(uri);
+      statusBarItem.hide();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeTextDocument((event) => {
+      if (event.document.languageId !== "abc") return;
+      const changedUri = event.document.uri.toString();
+      if (cursorStateByUri.has(changedUri)) {
+        cursorStateByUri.delete(changedUri);
+      }
+      const activeUri = vscode.window.activeTextEditor?.document.uri.toString();
+      if (changedUri === activeUri) {
+        statusBarItem.hide();
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      if (editor) {
+        const uri = editor.document.uri.toString();
+        if (cursorStateByUri.has(uri)) {
+          updateStatusBar(statusBarItem, cursorStateByUri.get(uri)!.length);
+        } else {
+          statusBarItem.hide();
+        }
+      } else {
+        statusBarItem.hide();
+      }
+    })
+  );
+
   const selectorCommands: Array<[string, string]> = [
     ["abc.selectChords", "selectChords"],
     ["abc.selectNotes", "selectNotes"],
@@ -55,14 +103,24 @@ export function registerSelectorCommands(context: vscode.ExtensionContext, clien
         const editor = vscode.window.activeTextEditor;
         if (!editor || editor.document.languageId !== "abc") return;
 
+        const uri = editor.document.uri.toString();
+        const cursorNodeIds = cursorStateByUri.get(uri) ?? [];
+
         try {
           const result = await client.sendRequest<ApplySelectorResult>("abct2.applySelector", {
-            uri: editor.document.uri.toString(),
+            uri,
             selector: selectorName,
+            cursorNodeIds,
           });
 
-          applySelectionsToEditor(editor, result.ranges);
-          updateStatusBar(statusBarItem, result.cursorCount);
+          if (result.cursorNodeIds.length > 0) {
+            cursorStateByUri.set(uri, result.cursorNodeIds);
+            applySelectionsToEditor(editor, result.ranges);
+            updateStatusBar(statusBarItem, result.cursorNodeIds.length);
+          } else {
+            cursorStateByUri.delete(uri);
+            statusBarItem.hide();
+          }
         } catch (error) {
           vscode.window.showErrorMessage(`Selector command failed: ${error}`);
         }
@@ -82,36 +140,40 @@ export function registerSelectorCommands(context: vscode.ExtensionContext, clien
       });
       if (input === undefined) return;
 
+      const uri = editor.document.uri.toString();
+      const cursorNodeIds = cursorStateByUri.get(uri) ?? [];
+
       try {
         const result = await client.sendRequest<ApplySelectorResult>("abct2.applySelector", {
-          uri: editor.document.uri.toString(),
+          uri,
           selector: "selectNthFromTop",
           args: [Number(input)],
+          cursorNodeIds,
         });
 
-        applySelectionsToEditor(editor, result.ranges);
-        updateStatusBar(statusBarItem, result.cursorCount);
+        if (result.cursorNodeIds.length > 0) {
+          cursorStateByUri.set(uri, result.cursorNodeIds);
+          applySelectionsToEditor(editor, result.ranges);
+          updateStatusBar(statusBarItem, result.cursorNodeIds.length);
+        } else {
+          cursorStateByUri.delete(uri);
+          statusBarItem.hide();
+        }
       } catch (error) {
         vscode.window.showErrorMessage(`Selector command failed: ${error}`);
       }
     })
   );
 
-  // resetSelection sends a different request
+  // resetSelection is now purely local: clear stored IDs and hide the status bar
   context.subscriptions.push(
-    vscode.commands.registerCommand("abc.resetSelection", async () => {
+    vscode.commands.registerCommand("abc.resetSelection", () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor || editor.document.languageId !== "abc") return;
 
-      try {
-        await client.sendRequest<ApplySelectorResult>("abct2.resetSelection", {
-          uri: editor.document.uri.toString(),
-        });
-
-        updateStatusBar(statusBarItem, 0);
-      } catch (error) {
-        vscode.window.showErrorMessage(`Reset selection failed: ${error}`);
-      }
+      const uri = editor.document.uri.toString();
+      cursorStateByUri.delete(uri);
+      statusBarItem.hide();
     })
   );
 }

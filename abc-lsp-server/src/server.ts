@@ -24,9 +24,12 @@ import { DECORATION_SYMBOLS } from "./completions";
 import { standardTokenScopes } from "./server_helpers";
 import { provideHover } from "./abct/AbctHoverProvider";
 import { provideAbctCompletions } from "./abct/AbctCompletionProvider";
-import { SelectionStateManager } from "./selectionState";
 import { resolveSelectionRanges } from "./selectionRangeResolver";
 import { lookupSelector } from "./selectorLookup";
+import { fromAst } from "../../abct2/src/csTree/fromAst";
+import { createSelection } from "../../abct2/src/selection";
+import { CSNode } from "../../abct2/src/csTree/types";
+import { File_structure } from "../../parse/types/Expr2";
 
 // ============================================================================
 // ABCT Evaluation Request Types
@@ -83,15 +86,12 @@ interface ApplySelectorParams {
   uri: string;
   selector: string;
   args?: number[];
-}
-
-interface ResetSelectionParams {
-  uri: string;
+  cursorNodeIds: number[];
 }
 
 interface ApplySelectorResult {
   ranges: Array<{ start: { line: number; character: number }; end: { line: number; character: number } }>;
-  cursorCount: number;
+  cursorNodeIds: number[];
 }
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -114,11 +114,19 @@ const abcServer = new AbcLspServer(documents, (type, params) => {
   }
 });
 
-const selectionStateManager = new SelectionStateManager();
+// CS tree cache: keyed by AST reference identity. A WeakMap handles
+// multi-document scenarios without cache thrashing, and automatically
+// garbage-collects stale trees when the AST is replaced.
+const csTreeCache = new WeakMap<File_structure, CSNode>();
 
-documents.onDidChangeContent((change) => {
-  selectionStateManager.invalidate(change.document.uri);
-});
+function getCsTree(ast: File_structure): CSNode {
+  let tree = csTreeCache.get(ast);
+  if (!tree) {
+    tree = fromAst(ast);
+    csTreeCache.set(ast, tree);
+  }
+  return tree;
+}
 
 /**
  * Check the capabilities of the client,
@@ -211,31 +219,30 @@ connection.onRequest("transposeDn", (params: AbcTransformParams) => {
 connection.onRequest("abct2.applySelector", (params: ApplySelectorParams): ApplySelectorResult => {
   const doc = abcServer.abcDocuments.get(params.uri);
   if (!doc || !(doc instanceof AbcDocument) || !doc.AST) {
-    return { ranges: [], cursorCount: 0 };
+    return { ranges: [], cursorNodeIds: [] };
   }
 
-  const state = selectionStateManager.getOrCreate(params.uri, doc.AST);
+  const root = getCsTree(doc.AST);
 
   const selectorFn = lookupSelector(params.selector);
   if (!selectorFn) {
     throw new ResponseError(-1, `Unknown selector: "${params.selector}"`);
   }
 
-  const newSelection = selectorFn(state.selection, ...(params.args ?? []));
-  selectionStateManager.update(params.uri, newSelection);
-
-  const ranges = resolveSelectionRanges(newSelection);
-  return { ranges, cursorCount: newSelection.cursors.length };
-});
-
-connection.onRequest("abct2.resetSelection", (params: ResetSelectionParams): ApplySelectorResult => {
-  const doc = abcServer.abcDocuments.get(params.uri);
-  if (!doc || !(doc instanceof AbcDocument) || !doc.AST) {
-    return { ranges: [], cursorCount: 0 };
+  let selection;
+  if (params.cursorNodeIds.length === 0) {
+    selection = createSelection(root);
+  } else {
+    selection = {
+      root,
+      cursors: params.cursorNodeIds.map((id) => new Set([id])),
+    };
   }
 
-  selectionStateManager.reset(params.uri, doc.AST);
-  return { ranges: [], cursorCount: 0 };
+  const newSelection = selectorFn(selection, ...(params.args ?? []));
+  const ranges = resolveSelectionRanges(newSelection);
+  const cursorNodeIds = newSelection.cursors.map((cursor) => [...cursor][0]);
+  return { ranges, cursorNodeIds };
 });
 connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
   const uri = textDocumentPosition.textDocument.uri;
