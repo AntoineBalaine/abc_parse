@@ -1,11 +1,14 @@
 import * as fc from "fast-check";
-import { Scanner } from "../../parse/parsers/scan2";
+import { Scanner, Token } from "../../parse/parsers/scan2";
 import { parse } from "../../parse/parsers/parse2";
 import { ABCContext } from "../../parse/parsers/Context";
-import { fromAst } from "../src/csTree/fromAst";
+import { AbcFormatter } from "../../parse/Visitors/Formatter2";
+import { fromAst, childrenVisitor } from "../src/csTree/fromAst";
+import { toAst } from "../src/csTree/toAst";
 import { CSNode } from "../src/csTree/types";
 import { createSelection, Selection } from "../src/selection";
 import * as ParserGen from "../../parse/tests/prs_pbt.generators.spec";
+import { Expr, Inline_field, Info_line } from "../../parse/types/Expr2";
 
 export function toCSTree(source: string): CSNode {
   const ctx = new ABCContext();
@@ -92,3 +95,31 @@ export const genAbcMultiTune: fc.Arbitrary<string> = fc
   .map((bodies) =>
     bodies.map((body, i) => `X:${i + 1}\nK:C\n${body}`).join("\n")
   );
+
+function stripValue2(node: Expr | Token): void {
+  if (node instanceof Token) return;
+  if (node instanceof Inline_field) {
+    node.value2 = undefined;
+  }
+  if (node instanceof Info_line) {
+    node.value2 = undefined;
+  }
+  const children = node.accept(childrenVisitor);
+  for (const child of children) {
+    stripValue2(child);
+  }
+}
+
+export function formatAst(source: string): string {
+  const ctx = new ABCContext();
+  const tokens = Scanner(source, ctx);
+  const ast = parse(tokens, ctx);
+  stripValue2(ast);
+  return new AbcFormatter(ctx).stringify(ast as Expr);
+}
+
+export function roundtrip(source: string): string {
+  const csTree = toCSTree(source);
+  const ast = toAst(csTree);
+  return new AbcFormatter(new ABCContext()).stringify(ast as Expr);
+}

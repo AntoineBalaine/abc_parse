@@ -10,7 +10,7 @@ import {
   User_symbol_decl, User_symbol_invocation, KV, Binary,
   Unary, Grouping, ChordSymbol, ErrorExpr, Visitor
 } from "../../../parse/types/Expr2";
-import { CSNode, TAGS } from "./types";
+import { CSNode, TAGS, NodeData, createCSNode } from "./types";
 
 function resolveTag(node: Expr | Token): string {
   if (node instanceof Token) return TAGS.Token;
@@ -57,6 +57,25 @@ function resolveTag(node: Expr | Token): string {
   if (node instanceof ChordSymbol) return TAGS.ChordSymbol;
   if (node instanceof ErrorExpr) return TAGS.ErrorExpr;
   throw new Error(`resolveTag: unrecognized node type (id=${node.id})`);
+}
+
+function extractData(node: Expr | Token, tag: string): NodeData {
+  if (node instanceof Token) {
+    return {
+      type: "token",
+      lexeme: node.lexeme,
+      tokenType: node.type,
+      line: node.line,
+      position: node.position,
+    };
+  }
+  if (tag === TAGS.Grace_group) {
+    return {
+      type: "grace_group",
+      isAccacciatura: (node as Grace_group).isAccacciatura ?? false,
+    };
+  }
+  return { type: "empty" };
 }
 
 type ChildList = Array<Expr | Token>;
@@ -135,7 +154,7 @@ export const childrenVisitor: Visitor<ChildList> = {
     return [expr.text];
   },
   visitInlineFieldExpr(expr: Inline_field): ChildList {
-    return [expr.field, ...expr.text];
+    return [...expr.text];
   },
   visitMultiMeasureRestExpr(expr: MultiMeasureRest): ChildList {
     const children: ChildList = [expr.rest];
@@ -187,9 +206,8 @@ export const childrenVisitor: Visitor<ChildList> = {
     return [...expr.info_lines];
   },
   visitAbsolutePitch(expr: AbsolutePitch): ChildList {
-    const children: ChildList = [];
+    const children: ChildList = [expr.noteLetter];
     if (expr.alteration) children.push(expr.alteration);
-    children.push(expr.noteLetter);
     if (expr.octave) children.push(expr.octave);
     return children;
   },
@@ -234,13 +252,8 @@ export const childrenVisitor: Visitor<ChildList> = {
 
 export function fromAst(node: Expr | Token): CSNode {
   const tag = resolveTag(node);
-  const csNode: CSNode = {
-    tag,
-    id: node.id,
-    node,
-    firstChild: null,
-    nextSibling: null,
-  };
+  const data = extractData(node, tag);
+  const csNode = createCSNode(tag, node.id, data);
 
   const children = node.accept(childrenVisitor);
   if (children.length > 0) {

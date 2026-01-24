@@ -1,12 +1,43 @@
-import { Expr } from "../../../parse/types/Expr2";
-import { Token } from "../../../parse/parsers/scan2";
+import { TT } from "../../../parse/parsers/scan2";
+
+export interface TokenData {
+  type: "token";
+  lexeme: string;
+  tokenType: TT;
+  line: number;
+  position: number;
+}
+
+export interface GraceGroupData {
+  type: "grace_group";
+  isAccacciatura: boolean;
+}
+
+export interface EmptyData {
+  type: "empty";
+}
+
+export type NodeData = TokenData | GraceGroupData | EmptyData;
 
 export interface CSNode {
   tag: string;
   id: number;
-  node: Expr | Token;
+  data: NodeData;
   firstChild: CSNode | null;
   nextSibling: CSNode | null;
+}
+
+export function isTokenNode(node: CSNode): node is CSNode & { data: TokenData } {
+  return node.data.type === "token";
+}
+
+export function getTokenData(node: CSNode): TokenData {
+  if (node.data.type !== "token") throw new Error("getTokenData called on non-token node");
+  return node.data as TokenData;
+}
+
+export function createCSNode(tag: string, id: number, data: NodeData): CSNode {
+  return { tag, id, data, firstChild: null, nextSibling: null };
 }
 
 export const TAGS: Record<string, string> = {

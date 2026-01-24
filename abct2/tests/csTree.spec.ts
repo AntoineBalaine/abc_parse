@@ -2,8 +2,11 @@ import { expect } from "chai";
 import { describe, it } from "mocha";
 import * as fc from "fast-check";
 import { TAGS } from "../src/csTree/types";
-import { childrenVisitor } from "../src/csTree/fromAst";
-import { toCSTree, collectAll, collectSubtree, findByTag, siblingCount, genAbcTune } from "./helpers";
+import {
+  toCSTree, collectAll, collectSubtree, findByTag, siblingCount,
+  genAbcTune, genAbcWithChords, genAbcMultiTune,
+  roundtrip, formatAst
+} from "./helpers";
 
 describe("csTree - fromAst", () => {
   describe("properties", () => {
@@ -21,19 +24,6 @@ describe("csTree - fromAst", () => {
       );
     });
 
-    it("node.id equals node.node.id for every CSNode", () => {
-      fc.assert(
-        fc.property(genAbcTune, (abc) => {
-          const root = toCSTree(abc);
-          const allNodes = collectAll(root);
-          for (const node of allNodes) {
-            if (node.id !== node.node.id) return false;
-          }
-          return true;
-        })
-      );
-    });
-
     it("Token CSNodes are always leaves (firstChild is null)", () => {
       fc.assert(
         fc.property(genAbcTune, (abc) => {
@@ -41,21 +31,6 @@ describe("csTree - fromAst", () => {
           const tokens = findByTag(root, TAGS.Token);
           for (const t of tokens) {
             if (t.firstChild !== null) return false;
-          }
-          return true;
-        })
-      );
-    });
-
-    it("for any CSNode, the sibling chain length equals the visitor's child count", () => {
-      fc.assert(
-        fc.property(genAbcTune, (abc) => {
-          const root = toCSTree(abc);
-          const allNodes = collectAll(root);
-          for (const csNode of allNodes) {
-            const expectedCount = csNode.node.accept(childrenVisitor).length;
-            const actualCount = siblingCount(csNode);
-            if (actualCount !== expectedCount) return false;
           }
           return true;
         })
@@ -139,5 +114,88 @@ describe("csTree - fromAst", () => {
       expect(tune.firstChild!.nextSibling).to.not.equal(null);
       expect(tune.firstChild!.nextSibling!.tag).to.equal(TAGS.Tune_Body);
     });
+  });
+});
+
+describe("csTree - toAst roundtrip", () => {
+  describe("property-based", () => {
+    it("roundtrip produces same output as direct formatting (single tune)", () => {
+      fc.assert(
+        fc.property(genAbcTune, (abc) => {
+          const rt = roundtrip(abc);
+          const direct = formatAst(abc);
+          return rt === direct;
+        }),
+        { numRuns: 200 }
+      );
+    });
+
+    it("roundtrip produces same output as direct formatting (tunes with chords)", () => {
+      fc.assert(
+        fc.property(genAbcWithChords, (abc) => {
+          const rt = roundtrip(abc);
+          const direct = formatAst(abc);
+          return rt === direct;
+        }),
+        { numRuns: 200 }
+      );
+    });
+
+    it("roundtrip produces same output as direct formatting (multi-tune)", () => {
+      fc.assert(
+        fc.property(genAbcMultiTune, (abc) => {
+          const rt = roundtrip(abc);
+          const direct = formatAst(abc);
+          return rt === direct;
+        }),
+        { numRuns: 100 }
+      );
+    });
+
+    it("node count is stable across fromAst conversions", () => {
+      fc.assert(
+        fc.property(genAbcTune, (abc) => {
+          const root1 = toCSTree(abc);
+          const root2 = toCSTree(abc);
+          return collectAll(root1).length === collectAll(root2).length;
+        })
+      );
+    });
+  });
+
+  describe("example-based roundtrips", () => {
+    const cases: Array<[string, string]> = [
+      ["simple note", "X:1\nK:C\nC|\n"],
+      ["note with accidental and octave", "X:1\nK:C\n^^C''3/4>|\n"],
+      ["note with tie", "X:1\nK:C\nC-|\n"],
+      ["chord with rhythm and tie", "X:1\nK:C\n[CEG]2-|\n"],
+      ["grace group (non-acciaccatura)", "X:1\nK:C\n{CDE}F|\n"],
+      ["acciaccatura grace group", "X:1\nK:C\n{/CDE}F|\n"],
+      ["inline field", "X:1\nK:C\nCD[K:Am]EF|\n"],
+      ["barline simple", "X:1\nK:C\nCDE|\n"],
+      ["barline double", "X:1\nK:C\nCDE||\n"],
+      ["rest with rhythm", "X:1\nK:C\nz3/4|\n"],
+      ["beam contents", "X:1\nK:C\nCDEF|\n"],
+      ["decoration", "X:1\nK:C\n!mf!C|\n"],
+      ["annotation", "X:1\nK:C\n\"Am\"C|\n"],
+      ["tuplet (3", "X:1\nK:C\n(3CDE|\n"],
+      ["tuplet (3:2:3", "X:1\nK:C\n(3:2:3CDE|\n"],
+      ["multi-measure rest", "X:1\nK:C\nZ4|\n"],
+      ["y spacer", "X:1\nK:C\ny2C|\n"],
+      ["chord symbol", "X:1\nK:C\n\"^Intro\"C|\n"],
+      ["multi-tune with section break", "X:1\nK:C\nCDE|\n\nX:2\nK:G\nGAB|\n"],
+      ["note with broken rhythm", "X:1\nK:C\nC>D|\n"],
+      ["rest plain", "X:1\nK:C\nz|\n"],
+      ["barline repeat end", "X:1\nK:C\nCDE:|\n"],
+      ["single note chord", "X:1\nK:C\n[C]|\n"],
+    ];
+
+    for (const [label, source] of cases) {
+      it(`${label}: ${source.trim()}`, () => {
+        const rt = roundtrip(source);
+        const direct = formatAst(source);
+        expect(rt).to.equal(direct);
+      });
+    }
   });
 });
