@@ -7,7 +7,7 @@ import {
   Directive, Measurement, Rational, File_header, Lyric_section,
   AbsolutePitch, Lyric_line, Macro_decl, Macro_invocation,
   User_symbol_decl, User_symbol_invocation, KV, Binary,
-  Unary, Grouping, ChordSymbol, ErrorExpr,
+  Unary, Grouping, ChordSymbol, ErrorExpr, SymbolLine,
   tune_body_code, Beam_contents, music_code
 } from "abc-parser";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "./types";
@@ -52,6 +52,7 @@ function buildExpr(node: CSNode, children: Array<Expr | Token>): Expr {
     case TAGS.Decoration: return buildDecoration(node.id, children);
     case TAGS.Annotation: return buildAnnotation(node.id, children);
     case TAGS.Info_line: return buildInfoLine(node.id, children);
+    case TAGS.SymbolLine: return buildSymbolLine(node.id, children);
     case TAGS.Tune: return buildTune(node.id, children);
     case TAGS.Tune_header: return buildTuneHeader(node.id, children);
     case TAGS.File_structure: return buildFileStructure(node.id, children);
@@ -335,6 +336,10 @@ function buildInlineField(id: number, children: Array<Expr | Token>): Inline_fie
 
 function buildInfoLine(id: number, children: Array<Expr | Token>): Info_line {
   return new Info_line(id, children as Token[]);
+}
+
+function buildSymbolLine(id: number, children: Array<Expr | Token>): SymbolLine {
+  return new SymbolLine(id, children as Token[]);
 }
 
 // --- Passthrough builders ---

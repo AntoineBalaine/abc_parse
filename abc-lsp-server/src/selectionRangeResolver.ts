@@ -1,4 +1,4 @@
-import { CSNode, isTokenNode, TokenData } from "../../abct2/src/csTree/types";
+import { CSNode, isTokenNode, TokenData, TAGS } from "../../abct2/src/csTree/types";
 import { Selection } from "../../abct2/src/selection";
 import { Range, Position } from "abc-parser";
 
@@ -69,4 +69,38 @@ export function resolveSelectionRanges(selection: Selection): Range[] {
   }
 
   return ranges;
+}
+
+function rangesOverlap(a: Range, b: Range): boolean {
+  // Check if range a ends before range b starts (no overlap)
+  if (a.end.line < b.start.line) return false;
+  if (a.end.line === b.start.line && a.end.character <= b.start.character) return false;
+
+  // Check if range b ends before range a starts (no overlap)
+  if (b.end.line < a.start.line) return false;
+  if (b.end.line === a.start.line && b.end.character <= a.start.character) return false;
+
+  return true;
+}
+
+function collectNotesAndChordsInRange(node: CSNode, Range: Range, result: number[]): void {
+  if (node.tag === TAGS.Note || node.tag === TAGS.Chord) {
+    const nodeRange = computeNodeRange(node);
+    if (nodeRange && rangesOverlap(Range, nodeRange)) {
+      result.push(node.id);
+    }
+  }
+
+  // Recurse into children
+  let child = node.firstChild;
+  while (child) {
+    collectNotesAndChordsInRange(child, Range, result);
+    child = child.nextSibling;
+  }
+}
+
+export function findNotesAndChordsInRange(root: CSNode, Range: Range): number[] {
+  const result: number[] = [];
+  collectNotesAndChordsInRange(root, Range, result);
+  return result;
 }

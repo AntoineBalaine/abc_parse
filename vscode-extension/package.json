@@ -172,7 +172,15 @@
       { "command": "abc.transposeOctaveUp", "title": "ABC: Transpose Octave Up", "category": "ABC" },
       { "command": "abc.transposeOctaveDown", "title": "ABC: Transpose Octave Down", "category": "ABC" },
       { "command": "abc.transposeHalfStepUp", "title": "ABC: Transpose Half Step Up", "category": "ABC" },
-      { "command": "abc.transposeHalfStepDown", "title": "ABC: Transpose Half Step Down", "category": "ABC" }
+      { "command": "abc.transposeHalfStepDown", "title": "ABC: Transpose Half Step Down", "category": "ABC" },
+      { "command": "abc.harmonize3rdUp", "title": "ABC: Harmonize 3rd Up", "category": "ABC" },
+      { "command": "abc.harmonize3rdDown", "title": "ABC: Harmonize 3rd Down", "category": "ABC" },
+      { "command": "abc.harmonize4thUp", "title": "ABC: Harmonize 4th Up", "category": "ABC" },
+      { "command": "abc.harmonize4thDown", "title": "ABC: Harmonize 4th Down", "category": "ABC" },
+      { "command": "abc.harmonize5thUp", "title": "ABC: Harmonize 5th Up", "category": "ABC" },
+      { "command": "abc.harmonize5thDown", "title": "ABC: Harmonize 5th Down", "category": "ABC" },
+      { "command": "abc.harmonize6thUp", "title": "ABC: Harmonize 6th Up", "category": "ABC" },
+      { "command": "abc.harmonize6thDown", "title": "ABC: Harmonize 6th Down", "category": "ABC" }
     ],
     "menus": {
       "commandPalette": [
@@ -201,7 +209,15 @@
         { "command": "abc.transposeOctaveUp", "when": "editorLangId == abc" },
         { "command": "abc.transposeOctaveDown", "when": "editorLangId == abc" },
         { "command": "abc.transposeHalfStepUp", "when": "editorLangId == abc" },
-        { "command": "abc.transposeHalfStepDown", "when": "editorLangId == abc" }
+        { "command": "abc.transposeHalfStepDown", "when": "editorLangId == abc" },
+        { "command": "abc.harmonize3rdUp", "when": "editorLangId == abc" },
+        { "command": "abc.harmonize3rdDown", "when": "editorLangId == abc" },
+        { "command": "abc.harmonize4thUp", "when": "editorLangId == abc" },
+        { "command": "abc.harmonize4thDown", "when": "editorLangId == abc" },
+        { "command": "abc.harmonize5thUp", "when": "editorLangId == abc" },
+        { "command": "abc.harmonize5thDown", "when": "editorLangId == abc" },
+        { "command": "abc.harmonize6thUp", "when": "editorLangId == abc" },
+        { "command": "abc.harmonize6thDown", "when": "editorLangId == abc" }
       ]
     },
     "configurationDefaults": {

@@ -175,6 +175,26 @@ export function registerTransformCommands(
       )
     );
   }
+
+  // Diatonic harmonize commands with preset intervals
+  const harmonizePresets: Array<[string, number]> = [
+    ["abc.harmonize3rdUp", 2],
+    ["abc.harmonize3rdDown", -2],
+    ["abc.harmonize4thUp", 3],
+    ["abc.harmonize4thDown", -3],
+    ["abc.harmonize5thUp", 4],
+    ["abc.harmonize5thDown", -4],
+    ["abc.harmonize6thUp", 5],
+    ["abc.harmonize6thDown", -5],
+  ];
+
+  for (const [commandId, steps] of harmonizePresets) {
+    context.subscriptions.push(
+      vscode.commands.registerCommand(commandId, () =>
+        applyTransform(client, "harmonize", [steps], statusBarItem)
+      )
+    );
+  }
 }
 
 async function applyTransform(

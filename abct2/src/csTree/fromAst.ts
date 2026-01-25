@@ -7,7 +7,7 @@ import {
   Directive, Measurement, Rational, File_header, Lyric_section,
   AbsolutePitch, Lyric_line, Macro_decl, Macro_invocation,
   User_symbol_decl, User_symbol_invocation, KV, Binary,
-  Unary, Grouping, ChordSymbol, ErrorExpr, SymbolLine, Visitor
+  Unary, Grouping, ChordSymbol, ErrorExpr, Visitor
 } from "abc-parser";
 import { CSNode, TAGS, NodeData, createCSNode } from "./types";
 
