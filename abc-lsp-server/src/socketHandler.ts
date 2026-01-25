@@ -44,7 +44,7 @@ interface SocketRequest {
   params?: {
     uri?: string;
     selector?: string;
-    args?: number[];
+    args?: (number | string)[];
     cursorNodeIds?: number[];
     scope?: LSPRange[];
   };
@@ -174,7 +174,7 @@ function validateRequest(request: unknown): SocketRequest {
 function validateApplySelectorParams(params: SocketRequest["params"]): {
   uri: string;
   selector: string;
-  args: number[];
+  args: (number | string)[];
   cursorNodeIds: number[];
   scope: LSPRange[];
 } {
@@ -202,8 +202,8 @@ function validateApplySelectorParams(params: SocketRequest["params"]): {
     if (!Array.isArray(params.args)) {
       throw { code: ERROR_CODES.INVALID_PARAMS, message: "args must be an array" };
     }
-    if (!params.args.every((arg) => typeof arg === "number")) {
-      throw { code: ERROR_CODES.INVALID_PARAMS, message: "args must be an array of numbers" };
+    if (!params.args.every((arg) => typeof arg === "number" || typeof arg === "string")) {
+      throw { code: ERROR_CODES.INVALID_PARAMS, message: "args must be an array of numbers or strings" };
     }
   }
 
@@ -289,7 +289,7 @@ function handleApplySelector(
   params: {
     uri: string;
     selector: string;
-    args: number[];
+    args: (number | string)[];
     cursorNodeIds: number[];
     scope: LSPRange[];
   },

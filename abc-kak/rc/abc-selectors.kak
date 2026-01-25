@@ -140,3 +140,56 @@ define-command abc-select-all-but-bottom \
     -docstring "Select all notes except the bottom of each chord" %{
     abc-select-impl selectAllButBottom
 }
+
+# ============================================================================
+# Delimiter Selectors (Inside/Around)
+# ============================================================================
+
+define-command abc-select-inside-chord \
+    -docstring "Select contents inside chord brackets (excluding delimiters)" %{
+    abc-select-impl selectInsideChord
+}
+
+define-command abc-select-around-chord \
+    -docstring "Select entire chord including brackets" %{
+    abc-select-impl selectAroundChord
+}
+
+define-command abc-select-inside-grace-group \
+    -docstring "Select contents inside grace group braces (excluding delimiters)" %{
+    abc-select-impl selectInsideGraceGroup
+}
+
+define-command abc-select-around-grace-group \
+    -docstring "Select entire grace group including braces" %{
+    abc-select-impl selectAroundGraceGroup
+}
+
+define-command abc-select-inside-inline-field \
+    -docstring "Select contents inside inline field brackets (excluding delimiters)" %{
+    abc-select-impl selectInsideInlineField
+}
+
+define-command abc-select-around-inline-field \
+    -docstring "Select entire inline field including brackets" %{
+    abc-select-impl selectAroundInlineField
+}
+
+define-command abc-select-inside-grouping \
+    -docstring "Select contents inside grouping parentheses (excluding delimiters)" %{
+    abc-select-impl selectInsideGrouping
+}
+
+define-command abc-select-around-grouping \
+    -docstring "Select entire grouping including parentheses" %{
+    abc-select-impl selectAroundGrouping
+}
+
+# ============================================================================
+# Voice Selector
+# ============================================================================
+
+define-command abc-select-voice -params 1 \
+    -docstring "Select all elements in a specific voice (by voice ID)" %{
+    abc-select-impl selectVoice "[\"$1\"]"
+}

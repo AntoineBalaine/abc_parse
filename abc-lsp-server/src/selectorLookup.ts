@@ -8,8 +8,15 @@ import {
   selectTop, selectBottom, selectNthFromTop,
   selectAllButTop, selectAllButBottom
 } from "../../abct2/src/selectors/chordSelectors";
+import {
+  selectInsideChord, selectAroundChord,
+  selectInsideGraceGroup, selectAroundGraceGroup,
+  selectInsideInlineField, selectAroundInlineField,
+  selectInsideGrouping, selectAroundGrouping
+} from "../../abct2/src/selectors/delimiterSelectors";
+import { selectVoice } from "../../abct2/src/selectors/voiceSelector";
 
-type SelectorFn = (sel: Selection, ...args: number[]) => Selection;
+type SelectorFn = (sel: Selection, ...args: (number | string)[]) => Selection;
 
 const SELECTOR_MAP: Record<string, SelectorFn> = {
   selectChords: (sel) => selectChords(sel),
@@ -22,9 +29,20 @@ const SELECTOR_MAP: Record<string, SelectorFn> = {
   selectTune: (sel) => selectTune(sel),
   selectTop: (sel) => selectTop(sel),
   selectBottom: (sel) => selectBottom(sel),
-  selectNthFromTop: (sel, n) => selectNthFromTop(sel, n),
+  selectNthFromTop: (sel, n) => selectNthFromTop(sel, n as number),
   selectAllButTop: (sel) => selectAllButTop(sel),
   selectAllButBottom: (sel) => selectAllButBottom(sel),
+  // Delimiter selectors (inside/around patterns)
+  selectInsideChord: (sel) => selectInsideChord(sel),
+  selectAroundChord: (sel) => selectAroundChord(sel),
+  selectInsideGraceGroup: (sel) => selectInsideGraceGroup(sel),
+  selectAroundGraceGroup: (sel) => selectAroundGraceGroup(sel),
+  selectInsideInlineField: (sel) => selectInsideInlineField(sel),
+  selectAroundInlineField: (sel) => selectAroundInlineField(sel),
+  selectInsideGrouping: (sel) => selectInsideGrouping(sel),
+  selectAroundGrouping: (sel) => selectAroundGrouping(sel),
+  // Voice selector (takes voice ID string)
+  selectVoice: (sel, voiceId) => selectVoice(sel, voiceId as string),
 };
 
 export function lookupSelector(name: string): SelectorFn | null {
