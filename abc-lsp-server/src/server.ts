@@ -33,6 +33,7 @@ import { computeTextEditsFromDiff } from "./textEditFromDiff";
 import { fromAst } from "../../abct2/src/csTree/fromAst";
 import { createSelection, Selection } from "../../abct2/src/selection";
 import { CSNode } from "../../abct2/src/csTree/types";
+import { selectRange } from "../../abct2/src/selectors/rangeSelector";
 import { File_structure, Scanner, parse, ABCContext } from "abc-parser";
 
 // ============================================================================
@@ -86,11 +87,21 @@ interface AbctEvalResult {
 // Selector Command Request Types
 // ============================================================================
 
+/**
+ * A text range defined by start and end positions.
+ * Used by scopeRanges to constrain selector operations to specific regions.
+ */
+export interface ScopeRange {
+  start: { line: number; character: number };
+  end: { line: number; character: number };
+}
+
 interface ApplySelectorParams {
   uri: string;
   selector: string;
   args?: number[];
   cursorNodeIds: number[];
+  scopeRanges?: ScopeRange[];
 }
 
 interface ApplySelectorResult {
@@ -254,10 +265,36 @@ connection.onRequest("abct2.applySelector", (params: ApplySelectorParams): Apply
     throw new ResponseError(-1, `Unknown selector: "${params.selector}"`);
   }
 
-  let selection;
+  let selection: Selection;
   if (params.cursorNodeIds.length === 0) {
-    selection = createSelection(root);
+    // No cursor state from previous selector operations
+    if (params.scopeRanges && params.scopeRanges.length > 0) {
+      // Manual selections provided: constrain to nodes within those ranges
+      const allCursors: Set<number>[] = [];
+      for (const range of params.scopeRanges) {
+        const baseSelection = createSelection(root);
+        const narrowed = selectRange(
+          baseSelection,
+          range.start.line,
+          range.start.character,
+          range.end.line,
+          range.end.character
+        );
+        allCursors.push(...narrowed.cursors);
+      }
+      if (allCursors.length === 0) {
+        // No nodes found within the manual selection ranges. Return empty
+        // results rather than falling through, because applying a selector
+        // to an empty selection would incorrectly select all matches.
+        return { ranges: [], cursorNodeIds: [] };
+      }
+      selection = { root, cursors: allCursors };
+    } else {
+      // No manual selections: start from root (select entire document)
+      selection = createSelection(root);
+    }
   } else {
+    // Cursor state from previous selector: use those node IDs
     selection = {
       root,
       cursors: params.cursorNodeIds.map((id) => new Set([id])),
