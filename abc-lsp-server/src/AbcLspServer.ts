@@ -148,7 +148,7 @@ export class AbcLspServer {
       // ABC and ABCx documents
       for (const token of abcDocument.tokens) {
         const scope = mapTTtoStandardScope(token.type);
-        if (scope === -1) continue;
+        if (scope === -1) continue; // Skip whitespace, punctuation, etc.
 
         // Handle multi-line tokens by splitting them across lines
         if (token.lexeme.includes("\n")) {
@@ -175,7 +175,9 @@ export class AbcLspServer {
       }
     }
 
-    return builder.build();
+    // Return only the data array, without resultId (kak-lsp compatibility)
+    const built = builder.build();
+    return { data: built.data };
   }
 
   /**
