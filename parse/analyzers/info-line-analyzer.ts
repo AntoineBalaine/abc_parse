@@ -10,6 +10,7 @@
 
 import { isToken } from "../helpers";
 import { Token, TT } from "../parsers/scan2";
+import { parseKeyRoot } from "../utils/keyUtils";
 import {
   KeyInfo,
   KeyRoot,
@@ -285,35 +286,6 @@ function parseKeySignatureToken(lexeme: string, keyInfo: KeyInfo): void {
       keyInfo.keySignature.mode = mode;
     }
   }
-}
-
-function parseKeyRoot(char: string): KeyRoot | null {
-  switch (char.toUpperCase()) {
-    case "A":
-      return KeyRoot.A;
-    case "B":
-      return KeyRoot.B;
-    case "C":
-      return KeyRoot.C;
-    case "D":
-      return KeyRoot.D;
-    case "E":
-      return KeyRoot.E;
-    case "F":
-      return KeyRoot.F;
-    case "G":
-      return KeyRoot.G;
-    case "H":
-      return KeyRoot.HP; // HP for Highland Pipes
-    default:
-      return null;
-  }
-}
-
-function parseKeyAccidental(str: string): KeyAccidental {
-  if (str.includes("#")) return KeyAccidental.Sharp;
-  if (str.includes("b")) return KeyAccidental.Flat;
-  return KeyAccidental.None;
 }
 
 function parseKeyMode(str: string): Mode | null {

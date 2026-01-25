@@ -36,3 +36,5 @@ export * from "./abcx";
 export * from "./abcl";
 // Playback module for MuseSampler integration
 export * from "./playback";
+// Music theory module for chord symbol parsing
+export * from "./music-theory";
