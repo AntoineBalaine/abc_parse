@@ -30,3 +30,7 @@ const SELECTOR_MAP: Record<string, SelectorFn> = {
 export function lookupSelector(name: string): SelectorFn | null {
   return SELECTOR_MAP[name] ?? null;
 }
+
+export function getAvailableSelectors(): string[] {
+  return Object.keys(SELECTOR_MAP);
+}

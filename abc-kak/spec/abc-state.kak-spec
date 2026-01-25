@@ -1,0 +1,60 @@
+# kak-spec tests for ABC state management
+# Tests verify that cursor node IDs are properly cleared on buffer/selection changes.
+
+# Setup: Load the plugin
+kak-spec-setup %{
+    source %sh{echo "$(dirname $(dirname $kak_source))/rc/abc.kak"}
+}
+
+# Test: cursor_node_ids is initialized empty
+kak-spec -title "abc_cursor_node_ids starts empty" \
+    -input "test" \
+    -eval %{
+        set-option buffer filetype abc
+    } \
+    -expect-%opt(abc_cursor_node_ids) ""
+
+# Test: abc_pending starts false
+kak-spec -title "abc_pending starts false" \
+    -input "test" \
+    -eval %{
+        set-option buffer filetype abc
+    } \
+    -expect-%opt(abc_pending) "false"
+
+# Test: abc_last_timestamp starts at 0
+kak-spec -title "abc_last_timestamp starts at 0" \
+    -input "test" \
+    -eval %{
+        set-option buffer filetype abc
+    } \
+    -expect-%opt(abc_last_timestamp) "0"
+
+# Test: socket path is computed correctly
+kak-spec -title "socket path uses XDG_RUNTIME_DIR or fallback" \
+    -input "test" \
+    -eval %{
+        # Just verify the option exists and has some value
+        nop
+    } \
+    -expect-%opt(abc_socket_path) regex("/.*abc-lsp.sock")
+
+# Test: timeout has default value
+kak-spec -title "timeout has default value of 5000" \
+    -input "test" \
+    -eval %{
+        nop
+    } \
+    -expect-%opt(abc_timeout) "5000"
+
+# Test: filetype detection for .abc files
+kak-spec -title "filetype set to abc for .abc files" \
+    -input "X:1" \
+    -buffer-name "test.abc" \
+    -expect-%opt(filetype) "abc"
+
+# Test: filetype detection for .abcx files
+kak-spec -title "filetype set to abcx for .abcx files" \
+    -input "@import" \
+    -buffer-name "test.abcx" \
+    -expect-%opt(filetype) "abcx"

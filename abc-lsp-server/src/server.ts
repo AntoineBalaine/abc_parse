@@ -38,6 +38,23 @@ import { CSNode, TAGS } from "../../abct2/src/csTree/types";
 import { selectRange } from "../../abct2/src/selectors/rangeSelector";
 import { File_structure, Scanner, parse, ABCContext } from "abc-parser";
 import { computeFoldingRanges, DEFAULT_FOLDING_CONFIG } from "./foldingRangeProvider";
+import { SocketHandler, computeSocketPath } from "./socketHandler";
+
+// ============================================================================
+// CLI Argument Parsing
+// ============================================================================
+
+function parseSocketArg(): string | null {
+  const socketArg = process.argv.find((arg) => arg.startsWith("--socket="));
+  if (!socketArg) {
+    return null;
+  }
+  const value = socketArg.substring("--socket=".length);
+  if (value === "auto") {
+    return computeSocketPath();
+  }
+  return value;
+}
 
 // ============================================================================
 // Transform Node Tags Mapping
@@ -304,13 +321,7 @@ connection.onRequest("abct2.applySelector", (params: ApplySelectorParams): Apply
     const allCursors: Set<number>[] = [];
     for (const range of params.ranges) {
       const baseSelection = createSelection(root);
-      const narrowed = selectRange(
-        baseSelection,
-        range.start.line,
-        range.start.character,
-        range.end.line,
-        range.end.character
-      );
+      const narrowed = selectRange(baseSelection, range.start.line, range.start.character, range.end.line, range.end.character);
       allCursors.push(...narrowed.cursors);
     }
     if (allCursors.length === 0) {
@@ -336,46 +347,37 @@ connection.onRequest("abct2.applySelector", (params: ApplySelectorParams): Apply
  * Merge overlapping or contiguous ranges into minimal set of ranges.
  * Ranges are contiguous if one ends where another begins.
  */
-connection.onRequest(
-  "abc.consolidateSelections",
-  (params: ConsolidateSelectionsParams): ConsolidateSelectionsResult => {
-    if (params.ranges.length <= 1) {
-      return { ranges: params.ranges };
-    }
-
-    // Sort by start position
-    const sorted = [...params.ranges].sort((a, b) => {
-      if (a.start.line !== b.start.line) return a.start.line - b.start.line;
-      return a.start.character - b.start.character;
-    });
-
-    const merged: Range[] = [sorted[0]];
-
-    for (let i = 1; i < sorted.length; i++) {
-      const prev = merged[merged.length - 1];
-      const curr = sorted[i];
-
-      // Check if ranges overlap or are contiguous
-      const prevEndsAfterCurrStarts =
-        prev.end.line > curr.start.line ||
-        (prev.end.line === curr.start.line && prev.end.character >= curr.start.character);
-
-      if (prevEndsAfterCurrStarts) {
-        // Merge: keep earlier start, take later end
-        const newEnd =
-          curr.end.line > prev.end.line ||
-          (curr.end.line === prev.end.line && curr.end.character > prev.end.character)
-            ? curr.end
-            : prev.end;
-        merged[merged.length - 1] = Range.create(prev.start, newEnd);
-      } else {
-        merged.push(curr);
-      }
-    }
-
-    return { ranges: merged };
+connection.onRequest("abc.consolidateSelections", (params: ConsolidateSelectionsParams): ConsolidateSelectionsResult => {
+  if (params.ranges.length <= 1) {
+    return { ranges: params.ranges };
   }
-);
+
+  // Sort by start position
+  const sorted = [...params.ranges].sort((a, b) => {
+    if (a.start.line !== b.start.line) return a.start.line - b.start.line;
+    return a.start.character - b.start.character;
+  });
+
+  const merged: Range[] = [sorted[0]];
+
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = merged[merged.length - 1];
+    const curr = sorted[i];
+
+    // Check if ranges overlap or are contiguous
+    const prevEndsAfterCurrStarts = prev.end.line > curr.start.line || (prev.end.line === curr.start.line && prev.end.character >= curr.start.character);
+
+    if (prevEndsAfterCurrStarts) {
+      // Merge: keep earlier start, take later end
+      const newEnd = curr.end.line > prev.end.line || (curr.end.line === prev.end.line && curr.end.character > prev.end.character) ? curr.end : prev.end;
+      merged[merged.length - 1] = Range.create(prev.start, newEnd);
+    } else {
+      merged.push(curr);
+    }
+  }
+
+  return { ranges: merged };
+});
 
 // ============================================================================
 // Wrap Dynamic Request Handler
@@ -633,3 +635,48 @@ connection.onRequest("abct.evaluateSelection", async (params: AbctEvalSelectionP
 
 documents.listen(connection);
 connection.listen();
+
+// ============================================================================
+// Socket Initialization
+// ============================================================================
+
+const socketPath = parseSocketArg();
+let socketHandler: SocketHandler | null = null;
+
+if (socketPath) {
+  socketHandler = new SocketHandler(socketPath, (uri) => abcServer.abcDocuments.get(uri), getCsTree);
+
+  socketHandler
+    .start()
+    .then((isOwner) => {
+      if (isOwner) {
+        console.error(`[abc-lsp] Socket handler started as owner at ${socketPath}`);
+      } else {
+        console.error(`[abc-lsp] Another server owns the socket, skipping socket creation`);
+      }
+    })
+    .catch((err) => {
+      console.error(`[abc-lsp] Failed to start socket handler: ${err.message}`);
+    });
+}
+
+// Cleanup on exit
+process.on("exit", () => {
+  if (socketHandler) {
+    socketHandler.stop();
+  }
+});
+
+process.on("SIGINT", () => {
+  if (socketHandler) {
+    socketHandler.stop();
+  }
+  process.exit(0);
+});
+
+process.on("SIGTERM", () => {
+  if (socketHandler) {
+    socketHandler.stop();
+  }
+  process.exit(0);
+});

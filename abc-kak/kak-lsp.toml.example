@@ -1,0 +1,28 @@
+# kak-lsp configuration for ABC notation files
+# Add this to your ~/.config/kak-lsp/kak-lsp.toml
+
+[language_server.abc-lsp]
+filetypes = ["abc", "abcx"]
+roots = [".git"]
+command = "node"
+# Update the path to match your installation
+args = ["/path/to/abc-lsp-server/out/server.js", "--stdio", "--socket=auto"]
+
+# The --socket=auto argument tells the server to create a Unix socket
+# for custom commands (selectors). The socket path is computed automatically:
+#   - $XDG_RUNTIME_DIR/abc-lsp.sock (if XDG_RUNTIME_DIR is set)
+#   - /tmp/abc-lsp-$USER/lsp.sock (fallback)
+
+# To use a custom socket path instead:
+# args = ["/path/to/abc-lsp-server/out/server.js", "--stdio", "--socket=/custom/path/abc-lsp.sock"]
+# Then also set in your kakrc:
+# set-option global abc_socket_path "/custom/path/abc-lsp.sock"
+
+[language_server.abc-lsp.semantic_tokens]
+# Map ABC LSP semantic token types to Kakoune faces
+variable = "variable"
+keyword = "keyword"
+string = "string"
+number = "value"
+comment = "comment"
+operator = "operator"
