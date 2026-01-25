@@ -1,29 +1,16 @@
 import * as vscode from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
-import {
-  getCursorNodeIds,
-  setCursorNodeIds,
-  clearCursorState,
-  hasCursorState,
-  shouldSkipClear,
-} from "./cursorState";
+import { Range } from "vscode-languageserver-types";
 
 interface ApplySelectorResult {
-  ranges: Array<{ start: { line: number; character: number }; end: { line: number; character: number } }>;
-  cursorNodeIds: number[];
+  ranges: Range[];
 }
-
-// This type must match ScopeRange in abc-lsp-server/src/server.ts
-type ScopeRange = {
-  start: { line: number; character: number };
-  end: { line: number; character: number };
-};
 
 /**
  * Extracts non-empty selections from the editor to use as scope constraints.
  * Returns undefined if there are no non-empty selections (just cursors).
  */
-function getScopeRanges(editor: vscode.TextEditor): ScopeRange[] | undefined {
+function getSelectionRanges(editor: vscode.TextEditor): Range[] | undefined {
   const nonEmptySelections = editor.selections.filter((s) => !s.isEmpty);
   if (nonEmptySelections.length === 0) {
     return undefined;
@@ -49,10 +36,10 @@ function applySelectionsToEditor(editor: vscode.TextEditor, ranges: ApplySelecto
   editor.revealRange(editor.selections[0], vscode.TextEditorRevealType.InCenterIfOutsideViewport);
 }
 
-export function updateStatusBar(statusBarItem: vscode.StatusBarItem, cursorCount: number): void {
-  if (cursorCount > 0) {
-    statusBarItem.text = `$(selection) ${cursorCount} cursor${cursorCount > 1 ? "s" : ""}`;
-    statusBarItem.tooltip = "Click to reset selection";
+export function updateStatusBar(statusBarItem: vscode.StatusBarItem, selectionCount: number): void {
+  if (selectionCount > 0) {
+    statusBarItem.text = `$(selection) ${selectionCount} selection${selectionCount > 1 ? "s" : ""}`;
+    statusBarItem.tooltip = "ABC selections active";
     statusBarItem.show();
   } else {
     statusBarItem.hide();
@@ -64,59 +51,6 @@ export function registerSelectorCommands(
   client: LanguageClient,
   statusBarItem: vscode.StatusBarItem
 ): void {
-  context.subscriptions.push(
-    vscode.window.onDidChangeTextEditorSelection((event) => {
-      if (event.textEditor.document.languageId !== "abc") return;
-      // Only clear state for user-initiated selection changes (keyboard or mouse).
-      // Programmatic changes (from our own editor.selections assignment) fire with
-      // kind === Command or undefined, which we must ignore to preserve cursor state
-      // between successive selector commands.
-      if (event.kind !== vscode.TextEditorSelectionChangeKind.Keyboard &&
-          event.kind !== vscode.TextEditorSelectionChangeKind.Mouse) {
-        return;
-      }
-      const uri = event.textEditor.document.uri.toString();
-      clearCursorState(uri);
-      statusBarItem.hide();
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.workspace.onDidChangeTextDocument((event) => {
-      if (event.document.languageId !== "abc") return;
-      const changedUri = event.document.uri.toString();
-
-      // Skip clearing if this change is from a transform command
-      if (shouldSkipClear(changedUri, event.document.version)) {
-        return;
-      }
-
-      if (hasCursorState(changedUri)) {
-        clearCursorState(changedUri);
-      }
-      const activeUri = vscode.window.activeTextEditor?.document.uri.toString();
-      if (changedUri === activeUri) {
-        statusBarItem.hide();
-      }
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (editor) {
-        const uri = editor.document.uri.toString();
-        const ids = getCursorNodeIds(uri);
-        if (ids.length > 0) {
-          updateStatusBar(statusBarItem, ids.length);
-        } else {
-          statusBarItem.hide();
-        }
-      } else {
-        statusBarItem.hide();
-      }
-    })
-  );
-
   const selectorCommands: Array<[string, string]> = [
     ["abc.selectChords", "selectChords"],
     ["abc.selectNotes", "selectNotes"],
@@ -137,29 +71,22 @@ export function registerSelectorCommands(
         if (!editor || editor.document.languageId !== "abc") return;
 
         const uri = editor.document.uri.toString();
-        const cursorNodeIds = getCursorNodeIds(uri);
-
-        // When no cursor state exists, check for manual selections to use as scope
-        const scopeRanges = cursorNodeIds.length === 0 ? getScopeRanges(editor) : undefined;
+        const ranges = getSelectionRanges(editor);
 
         try {
           const result = await client.sendRequest<ApplySelectorResult>("abct2.applySelector", {
             uri,
             selector: selectorName,
-            cursorNodeIds,
-            scopeRanges,
+            ranges,
           });
 
-          if (result.cursorNodeIds.length > 0) {
-            setCursorNodeIds(uri, result.cursorNodeIds);
+          if (result.ranges.length > 0) {
             applySelectionsToEditor(editor, result.ranges);
-            updateStatusBar(statusBarItem, result.cursorNodeIds.length);
-          } else if (scopeRanges) {
-            // Silent no-op: manual selection provided but no matches found
+            updateStatusBar(statusBarItem, result.ranges.length);
+          } else if (ranges) {
+            // Silent no-op: selection provided but no matches found
             // Leave the original selection intact
-            return;
           } else {
-            clearCursorState(uri);
             statusBarItem.hide();
           }
         } catch (error) {
@@ -182,30 +109,22 @@ export function registerSelectorCommands(
       if (input === undefined) return;
 
       const uri = editor.document.uri.toString();
-      const cursorNodeIds = getCursorNodeIds(uri);
-
-      // When no cursor state exists, check for manual selections to use as scope
-      const scopeRanges = cursorNodeIds.length === 0 ? getScopeRanges(editor) : undefined;
+      const ranges = getSelectionRanges(editor);
 
       try {
         const result = await client.sendRequest<ApplySelectorResult>("abct2.applySelector", {
           uri,
           selector: "selectNthFromTop",
           args: [Number(input)],
-          cursorNodeIds,
-          scopeRanges,
+          ranges,
         });
 
-        if (result.cursorNodeIds.length > 0) {
-          setCursorNodeIds(uri, result.cursorNodeIds);
+        if (result.ranges.length > 0) {
           applySelectionsToEditor(editor, result.ranges);
-          updateStatusBar(statusBarItem, result.cursorNodeIds.length);
-        } else if (scopeRanges) {
-          // Silent no-op: manual selection provided but no matches found
-          // Leave the original selection intact
-          return;
+          updateStatusBar(statusBarItem, result.ranges.length);
+        } else if (ranges) {
+          // Silent no-op: selection provided but no matches found
         } else {
-          clearCursorState(uri);
           statusBarItem.hide();
         }
       } catch (error) {
@@ -214,14 +133,16 @@ export function registerSelectorCommands(
     })
   );
 
-  // resetSelection is now purely local: clear stored IDs and hide the status bar
+  // resetSelection clears selections and hides the status bar
   context.subscriptions.push(
     vscode.commands.registerCommand("abc.resetSelection", () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor || editor.document.languageId !== "abc") return;
 
-      const uri = editor.document.uri.toString();
-      clearCursorState(uri);
+      // Collapse all selections to their start positions (cursors only)
+      editor.selections = editor.selections.map(
+        (s) => new vscode.Selection(s.start, s.start)
+      );
       statusBarItem.hide();
     })
   );

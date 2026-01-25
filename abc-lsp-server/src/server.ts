@@ -87,26 +87,15 @@ interface AbctEvalResult {
 // Selector Command Request Types
 // ============================================================================
 
-/**
- * A text range defined by start and end positions.
- * Used by scopeRanges to constrain selector operations to specific regions.
- */
-export interface ScopeRange {
-  start: { line: number; character: number };
-  end: { line: number; character: number };
-}
-
 interface ApplySelectorParams {
   uri: string;
   selector: string;
   args?: number[];
-  cursorNodeIds: number[];
-  scopeRanges?: ScopeRange[];
+  ranges?: Range[];
 }
 
 interface ApplySelectorResult {
-  ranges: Array<{ start: { line: number; character: number }; end: { line: number; character: number } }>;
-  cursorNodeIds: number[];
+  ranges: Range[];
 }
 
 // ============================================================================
@@ -134,12 +123,12 @@ interface ApplyTransformParams {
   uri: string;
   transform: string;
   args: unknown[];
-  selections: ScopeRange[];
+  selections: Range[];
 }
 
 interface ApplyTransformResult {
   textEdits: Array<{ range: Range; newText: string }>;
-  cursorRanges: Array<{ start: { line: number; character: number }; end: { line: number; character: number } }>;
+  cursorRanges: Range[];
 }
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -254,7 +243,7 @@ connection.onHover((params: TextDocumentPositionParams): Hover | null => {
 connection.onRequest("abct2.applySelector", (params: ApplySelectorParams): ApplySelectorResult => {
   const doc = abcServer.abcDocuments.get(params.uri);
   if (!doc || !(doc instanceof AbcDocument) || !doc.AST) {
-    return { ranges: [], cursorNodeIds: [] };
+    return { ranges: [] };
   }
 
   const root = getCsTree(doc.AST);
@@ -265,45 +254,33 @@ connection.onRequest("abct2.applySelector", (params: ApplySelectorParams): Apply
   }
 
   let selection: Selection;
-  if (params.cursorNodeIds.length === 0) {
-    // No cursor state from previous selector operations
-    if (params.scopeRanges && params.scopeRanges.length > 0) {
-      // Manual selections provided: constrain to nodes within those ranges
-      const allCursors: Set<number>[] = [];
-      for (const range of params.scopeRanges) {
-        const baseSelection = createSelection(root);
-        const narrowed = selectRange(
-          baseSelection,
-          range.start.line,
-          range.start.character,
-          range.end.line,
-          range.end.character
-        );
-        allCursors.push(...narrowed.cursors);
-      }
-      if (allCursors.length === 0) {
-        // No nodes found within the manual selection ranges. Return empty
-        // results rather than falling through, because applying a selector
-        // to an empty selection would incorrectly select all matches.
-        return { ranges: [], cursorNodeIds: [] };
-      }
-      selection = { root, cursors: allCursors };
-    } else {
-      // No manual selections: start from root (select entire document)
-      selection = createSelection(root);
+  if (params.ranges && params.ranges.length > 0) {
+    // Constrain to nodes within the provided ranges
+    const allCursors: Set<number>[] = [];
+    for (const range of params.ranges) {
+      const baseSelection = createSelection(root);
+      const narrowed = selectRange(
+        baseSelection,
+        range.start.line,
+        range.start.character,
+        range.end.line,
+        range.end.character
+      );
+      allCursors.push(...narrowed.cursors);
     }
+    if (allCursors.length === 0) {
+      // No nodes found within the selection ranges
+      return { ranges: [] };
+    }
+    selection = { root, cursors: allCursors };
   } else {
-    // Cursor state from previous selector: use those node IDs
-    selection = {
-      root,
-      cursors: params.cursorNodeIds.map((id) => new Set([id])),
-    };
+    // No selections: start from root (select entire document)
+    selection = createSelection(root);
   }
 
   const newSelection = selectorFn(selection, ...(params.args ?? []));
   const ranges = resolveSelectionRanges(newSelection);
-  const cursorNodeIds = newSelection.cursors.map((cursor) => [...cursor][0]);
-  return { ranges, cursorNodeIds };
+  return { ranges };
 });
 
 // ============================================================================

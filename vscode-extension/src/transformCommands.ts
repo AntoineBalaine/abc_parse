@@ -7,21 +7,17 @@
 
 import * as vscode from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
-
-interface SelectionRange {
-  start: { line: number; character: number };
-  end: { line: number; character: number };
-}
+import { Range } from "vscode-languageserver-types";
 
 interface ApplyTransformResult {
   textEdits: Array<{
-    range: SelectionRange;
+    range: Range;
     newText: string;
   }>;
-  cursorRanges: SelectionRange[];
+  cursorRanges: Range[];
 }
 
-function selectionsToRanges(selections: readonly vscode.Selection[]): SelectionRange[] {
+function selectionsToRanges(selections: readonly vscode.Selection[]): Range[] {
   return selections.map((sel) => ({
     start: { line: sel.start.line, character: sel.start.character },
     end: { line: sel.end.line, character: sel.end.character },
