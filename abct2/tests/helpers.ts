@@ -1,15 +1,13 @@
 import * as fc from "fast-check";
-import { Scanner, Token } from "../../parse/parsers/scan2";
-import { parse } from "../../parse/parsers/parse2";
-import { ABCContext } from "../../parse/parsers/Context";
-import { AbcFormatter } from "../../parse/Visitors/Formatter2";
+import {
+  Scanner, Token, parse, ABCContext, AbcFormatter,
+  Expr, Inline_field, Info_line, IRational, createRational
+} from "abc-parser";
 import { fromAst, childrenVisitor } from "../src/csTree/fromAst";
 import { toAst } from "../src/csTree/toAst";
 import { CSNode } from "../src/csTree/types";
 import { createSelection, Selection } from "../src/selection";
 import * as ParserGen from "../../parse/tests/prs_pbt.generators.spec";
-import { Expr, Inline_field, Info_line } from "../../parse/types/Expr2";
-import { IRational, createRational } from "../../parse/Visitors/fmt2/rational";
 
 export function toCSTree(source: string): CSNode {
   const ctx = new ABCContext();

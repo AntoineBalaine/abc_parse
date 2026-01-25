@@ -1,6 +1,6 @@
 import {
   Token, Expr, File_structure, Tune, Tune_header, Tune_Body,
-  Info_line, Note, Pitch, Rhythm, Rest, Chord, Beam,
+  Info_line, SymbolLine, Note, Pitch, Rhythm, Rest, Chord, Beam,
   Grace_group, BarLine, Decoration, Annotation, Inline_field,
   MultiMeasureRest, YSPACER, SystemBreak, Symbol, Tuplet,
   Music_code, Voice_overlay, Line_continuation, Comment,
@@ -18,6 +18,7 @@ function resolveTag(node: Expr | Token): string {
   if (node instanceof Tune_header) return TAGS.Tune_header;
   if (node instanceof Tune_Body) return TAGS.Tune_Body;
   if (node instanceof Info_line) return TAGS.Info_line;
+  if (node instanceof SymbolLine) return TAGS.Info_line;
   if (node instanceof Note) return TAGS.Note;
   if (node instanceof Pitch) return TAGS.Pitch;
   if (node instanceof Rhythm) return TAGS.Rhythm;

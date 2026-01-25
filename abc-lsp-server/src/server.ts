@@ -94,6 +94,23 @@ interface ApplySelectorResult {
   cursorNodeIds: number[];
 }
 
+// ============================================================================
+// Wrap Dynamic Request Types
+// ============================================================================
+
+interface WrapDynamicParams {
+  uri: string;
+  dynamicType: "crescendo" | "decrescendo";
+  selection: {
+    start: { line: number; character: number };
+    end: { line: number; character: number };
+  };
+}
+
+interface WrapDynamicResult {
+  text: string;
+}
+
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all);
@@ -244,6 +261,42 @@ connection.onRequest("abct2.applySelector", (params: ApplySelectorParams): Apply
   const cursorNodeIds = newSelection.cursors.map((cursor) => [...cursor][0]);
   return { ranges, cursorNodeIds };
 });
+
+// ============================================================================
+// Wrap Dynamic Request Handler
+// ============================================================================
+
+const DYNAMIC_MARKERS: Record<string, { start: string; end: string }> = {
+  crescendo: { start: "!<(!", end: "!<)!" },
+  decrescendo: { start: "!>(!", end: "!>)!" },
+};
+
+connection.onRequest("abc.wrapDynamic", (params: WrapDynamicParams): WrapDynamicResult => {
+  const textDoc = documents.get(params.uri);
+  if (!textDoc) {
+    throw new ResponseError(-1, "Document not found");
+  }
+
+  const markers = DYNAMIC_MARKERS[params.dynamicType];
+  if (!markers) {
+    throw new ResponseError(-1, `Unknown dynamic type: "${params.dynamicType}"`);
+  }
+
+  const text = textDoc.getText();
+  const startOffset = textDoc.offsetAt(params.selection.start);
+  const endOffset = textDoc.offsetAt(params.selection.end);
+
+  // Insert end marker first (so start offset remains valid), then start marker
+  const result =
+    text.slice(0, startOffset) +
+    markers.start +
+    text.slice(startOffset, endOffset) +
+    markers.end +
+    text.slice(endOffset);
+
+  return { text: result };
+});
+
 connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
   const uri = textDocumentPosition.textDocument.uri;
 

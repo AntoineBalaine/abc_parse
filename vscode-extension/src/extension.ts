@@ -11,6 +11,8 @@ import { registerCommands } from "./extensionCommands";
 import { registerRendererCommands, setLspClient } from "./renderer";
 import { registerPlaybackCommands } from "./playback";
 import { registerAbctCommands, disposeAbctCommands } from "./abctCommands";
+import { registerSelectorCommands } from "./selectorCommands";
+import { registerTransformCommands } from "./transformCommands";
 
 let client: LanguageClient;
 
@@ -71,6 +73,12 @@ export async function activate(context: ExtensionContext) {
 
   // Start the client. This will also launch the server
   await client.start();
+
+  // register selector commands (depends on client being ready)
+  registerSelectorCommands(context, client);
+
+  // register transform commands (depends on client being ready)
+  registerTransformCommands(context, client);
 }
 
 export function deactivate(): Thenable<void> | undefined {

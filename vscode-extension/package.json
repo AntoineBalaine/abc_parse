@@ -162,8 +162,40 @@
         "title": "ABCT: Refresh Evaluated Output",
         "group": "ABCT",
         "description": "Re-evaluate the source ABCT file and refresh the virtual document with new content."
-      }
+      },
+      { "command": "abc.resetSelection", "title": "ABC: Reset Selection", "category": "ABC" },
+      { "command": "abc.selectChords", "title": "ABC: Select Chords", "category": "ABC" },
+      { "command": "abc.selectNotes", "title": "ABC: Select Notes", "category": "ABC" },
+      { "command": "abc.selectNonChordNotes", "title": "ABC: Select Non-Chord Notes", "category": "ABC" },
+      { "command": "abc.selectChordNotes", "title": "ABC: Select Chord Notes", "category": "ABC" },
+      { "command": "abc.selectRests", "title": "ABC: Select Rests", "category": "ABC" },
+      { "command": "abc.selectTune", "title": "ABC: Select Tune", "category": "ABC" },
+      { "command": "abc.selectTop", "title": "ABC: Select Top Note", "category": "ABC" },
+      { "command": "abc.selectBottom", "title": "ABC: Select Bottom Note", "category": "ABC" },
+      { "command": "abc.selectNthFromTop", "title": "ABC: Select Nth From Top", "category": "ABC" },
+      { "command": "abc.selectAllButTop", "title": "ABC: Select All But Top", "category": "ABC" },
+      { "command": "abc.selectAllButBottom", "title": "ABC: Select All But Bottom", "category": "ABC" },
+      { "command": "abc.wrapCrescendo", "title": "ABC: Wrap Selection in Crescendo", "category": "ABC" },
+      { "command": "abc.wrapDecrescendo", "title": "ABC: Wrap Selection in Decrescendo", "category": "ABC" }
     ],
+    "menus": {
+      "commandPalette": [
+        { "command": "abc.resetSelection", "when": "editorLangId == abc" },
+        { "command": "abc.selectChords", "when": "editorLangId == abc" },
+        { "command": "abc.selectNotes", "when": "editorLangId == abc" },
+        { "command": "abc.selectNonChordNotes", "when": "editorLangId == abc" },
+        { "command": "abc.selectChordNotes", "when": "editorLangId == abc" },
+        { "command": "abc.selectRests", "when": "editorLangId == abc" },
+        { "command": "abc.selectTune", "when": "editorLangId == abc" },
+        { "command": "abc.selectTop", "when": "editorLangId == abc" },
+        { "command": "abc.selectBottom", "when": "editorLangId == abc" },
+        { "command": "abc.selectNthFromTop", "when": "editorLangId == abc" },
+        { "command": "abc.selectAllButTop", "when": "editorLangId == abc" },
+        { "command": "abc.selectAllButBottom", "when": "editorLangId == abc" },
+        { "command": "abc.wrapCrescendo", "when": "editorLangId == abc" },
+        { "command": "abc.wrapDecrescendo", "when": "editorLangId == abc" }
+      ]
+    },
     "configurationDefaults": {
       "[abc]": {
         "editor.semanticHighlighting.enabled": true
