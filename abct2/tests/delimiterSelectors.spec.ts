@@ -3,7 +3,7 @@ import { describe, it } from "mocha";
 import * as fc from "fast-check";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import { Selection } from "../src/selection";
-import { TT } from "../../parse/parsers/scan2";
+import { TT } from "abc-parser";
 import { toCSTree, toSelection, findByTag, findById, genAbcWithChords, genAbcWithGraceGroups } from "./helpers";
 import { selectChords } from "../src/selectors/typeSelectors";
 import {

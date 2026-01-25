@@ -17,7 +17,7 @@ import {
   createConnection,
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { AbcLspServer, AbcTransformParams } from "./AbcLspServer";
+import { AbcLspServer } from "./AbcLspServer";
 import { AbctDocument } from "./AbctDocument";
 import { AbcDocument } from "./AbcDocument";
 import { DECORATION_SYMBOLS } from "./completions";
@@ -26,10 +26,14 @@ import { provideHover } from "./abct/AbctHoverProvider";
 import { provideAbctCompletions } from "./abct/AbctCompletionProvider";
 import { resolveSelectionRanges } from "./selectionRangeResolver";
 import { lookupSelector } from "./selectorLookup";
+import { lookupTransform } from "./transformLookup";
+import { collectSurvivingCursorIds, computeCursorRangesFromFreshTree } from "./cursorPreservation";
+import { serializeCSTree } from "./csTreeSerializer";
+import { computeTextEditsFromDiff } from "./textEditFromDiff";
 import { fromAst } from "../../abct2/src/csTree/fromAst";
-import { createSelection } from "../../abct2/src/selection";
+import { createSelection, Selection } from "../../abct2/src/selection";
 import { CSNode } from "../../abct2/src/csTree/types";
-import { File_structure } from "abc-parser";
+import { File_structure, Scanner, parse, ABCContext } from "abc-parser";
 
 // ============================================================================
 // ABCT Evaluation Request Types
@@ -109,6 +113,23 @@ interface WrapDynamicParams {
 
 interface WrapDynamicResult {
   text: string;
+}
+
+// ============================================================================
+// Transform Command Request Types
+// ============================================================================
+
+interface ApplyTransformParams {
+  uri: string;
+  transform: string;
+  cursorNodeIds: number[];
+  args: unknown[];
+}
+
+interface ApplyTransformResult {
+  textEdits: Array<{ range: Range; newText: string }>;
+  cursorNodeIds: number[];
+  cursorRanges: Array<{ start: { line: number; character: number }; end: { line: number; character: number } }>;
 }
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -216,19 +237,6 @@ connection.onHover((params: TextDocumentPositionParams): Hover | null => {
   return provideHover(doc.AST, params.position);
 });
 
-connection.onRequest("divideRhythm", (params: AbcTransformParams) => {
-  return abcServer.onRhythmTransform(params.uri, "/", params.selection);
-});
-connection.onRequest("multiplyRhythm", (params: AbcTransformParams) => {
-  return abcServer.onRhythmTransform(params.uri, "*", params.selection);
-});
-connection.onRequest("transposeUp", (params: AbcTransformParams) => {
-  return abcServer.onTranspose(params.uri, 12, params.selection);
-});
-connection.onRequest("transposeDn", (params: AbcTransformParams) => {
-  return abcServer.onTranspose(params.uri, -12, params.selection);
-});
-
 // ============================================================================
 // Selector Command Request Handlers
 // ============================================================================
@@ -287,14 +295,63 @@ connection.onRequest("abc.wrapDynamic", (params: WrapDynamicParams): WrapDynamic
   const endOffset = textDoc.offsetAt(params.selection.end);
 
   // Insert end marker first (so start offset remains valid), then start marker
-  const result =
-    text.slice(0, startOffset) +
-    markers.start +
-    text.slice(startOffset, endOffset) +
-    markers.end +
-    text.slice(endOffset);
+  const result = text.slice(0, startOffset) + markers.start + text.slice(startOffset, endOffset) + markers.end + text.slice(endOffset);
 
   return { text: result };
+});
+
+// ============================================================================
+// Transform Command Request Handler
+// ============================================================================
+
+connection.onRequest("abct2.applyTransform", (params: ApplyTransformParams): ApplyTransformResult => {
+  const doc = abcServer.abcDocuments.get(params.uri);
+  if (!doc || !(doc instanceof AbcDocument) || !doc.AST || !doc.ctx) {
+    return { textEdits: [], cursorNodeIds: [], cursorRanges: [] };
+  }
+
+  const transformFn = lookupTransform(params.transform);
+  if (!transformFn) {
+    throw new ResponseError(-1, `Unknown transform: "${params.transform}"`);
+  }
+
+  // Build a fresh CSTree from the AST (we do not cache because transforms mutate in place)
+  const root = fromAst(doc.AST);
+
+  // Build selection from cursorNodeIds, preserving multi-element cursors
+  let selection: Selection;
+  if (params.cursorNodeIds.length === 0) {
+    selection = createSelection(root);
+  } else {
+    selection = {
+      root,
+      cursors: params.cursorNodeIds.map((id) => new Set([id])),
+    };
+  }
+
+  // Apply transform (mutates tree in place, returns updated Selection)
+  const newSelection = transformFn(selection, doc.ctx, ...params.args);
+
+  // Collect surviving cursor node IDs from the modified tree
+  const survivingCursorIds = collectSurvivingCursorIds(newSelection);
+
+  // Serialize modified tree to text
+  const newText = serializeCSTree(newSelection.root, doc.ctx);
+  const oldText = doc.document.getText();
+
+  // Compute minimal TextEdits using LCS-based diff
+  const textEdits = computeTextEditsFromDiff(oldText, newText);
+
+  // Re-parse new text to get accurate token positions for cursor highlighting
+  const freshCtx = new ABCContext();
+  const freshTokens = Scanner(newText, freshCtx);
+  const freshAST = parse(freshTokens, freshCtx);
+  const freshRoot = fromAst(freshAST);
+
+  // Map surviving cursor IDs to their positions in the fresh tree
+  const cursorRanges = computeCursorRangesFromFreshTree(survivingCursorIds, newSelection.root, freshRoot);
+
+  return { textEdits, cursorNodeIds: survivingCursorIds, cursorRanges };
 });
 
 connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
@@ -314,11 +371,7 @@ connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): Comp
   if (!doc) {
     return [];
   }
-  const char = abcServer.findCharInDoc(
-    uri,
-    textDocumentPosition.position.character,
-    textDocumentPosition.position.line
-  );
+  const char = abcServer.findCharInDoc(uri, textDocumentPosition.position.character, textDocumentPosition.position.line);
 
   /**
    * If the char is not a completion trigger, ignore.
@@ -371,19 +424,21 @@ connection.onRequest("abct.evaluate", async (params: AbctEvalParams): Promise<Ab
   if (!doc) {
     return {
       abc: "",
-      diagnostics: [{
-        severity: 1, // Error
-        range: Range.create(0, 0, 0, 0),
-        message: "Document not found or not an ABCT file",
-        source: "abct",
-      }],
+      diagnostics: [
+        {
+          severity: 1, // Error
+          range: Range.create(0, 0, 0, 0),
+          message: "Document not found or not an ABCT file",
+          source: "abct",
+        },
+      ],
     };
   }
 
   const result = await doc.evaluate({});
   return {
     abc: result.abc,
-    diagnostics: result.diagnostics.map(d => ({
+    diagnostics: result.diagnostics.map((d) => ({
       severity: d.severity ?? 1,
       range: d.range,
       message: d.message,
@@ -400,19 +455,21 @@ connection.onRequest("abct.evaluateToLine", async (params: AbctEvalToLineParams)
   if (!doc) {
     return {
       abc: "",
-      diagnostics: [{
-        severity: 1,
-        range: Range.create(0, 0, 0, 0),
-        message: "Document not found or not an ABCT file",
-        source: "abct",
-      }],
+      diagnostics: [
+        {
+          severity: 1,
+          range: Range.create(0, 0, 0, 0),
+          message: "Document not found or not an ABCT file",
+          source: "abct",
+        },
+      ],
     };
   }
 
   const result = await doc.evaluate({ toLine: params.line });
   return {
     abc: result.abc,
-    diagnostics: result.diagnostics.map(d => ({
+    diagnostics: result.diagnostics.map((d) => ({
       severity: d.severity ?? 1,
       range: d.range,
       message: d.message,
@@ -429,19 +486,21 @@ connection.onRequest("abct.evaluateSelection", async (params: AbctEvalSelectionP
   if (!doc) {
     return {
       abc: "",
-      diagnostics: [{
-        severity: 1,
-        range: Range.create(0, 0, 0, 0),
-        message: "Document not found or not an ABCT file",
-        source: "abct",
-      }],
+      diagnostics: [
+        {
+          severity: 1,
+          range: Range.create(0, 0, 0, 0),
+          message: "Document not found or not an ABCT file",
+          source: "abct",
+        },
+      ],
     };
   }
 
   const result = await doc.evaluate({ selection: params.selection });
   return {
     abc: result.abc,
-    diagnostics: result.diagnostics.map(d => ({
+    diagnostics: result.diagnostics.map((d) => ({
       severity: d.severity ?? 1,
       range: d.range,
       message: d.message,

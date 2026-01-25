@@ -3,6 +3,7 @@
 
 import * as path from "path";
 import * as os from "os";
+import * as vscode from "vscode";
 
 import { ExtensionContext } from "vscode";
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
@@ -74,11 +75,16 @@ export async function activate(context: ExtensionContext) {
   // Start the client. This will also launch the server
   await client.start();
 
-  // register selector commands (depends on client being ready)
-  registerSelectorCommands(context, client);
+  // Create shared statusBarItem for selector and transform commands
+  const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+  statusBarItem.command = "abc.resetSelection";
+  context.subscriptions.push(statusBarItem);
 
-  // register transform commands (depends on client being ready)
-  registerTransformCommands(context, client);
+  // Register selector commands (depends on client being ready)
+  registerSelectorCommands(context, client, statusBarItem);
+
+  // Register transform commands (depends on client being ready)
+  registerTransformCommands(context, client, statusBarItem);
 }
 
 export function deactivate(): Thenable<void> | undefined {

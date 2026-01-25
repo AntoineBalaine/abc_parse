@@ -1,0 +1,24 @@
+import * as fc from "fast-check";
+import { ABCContext, IRational } from "abc-parser";
+import { CSNode } from "../src/csTree/types";
+import { Selection } from "../src/selection";
+export declare function toCSTree(source: string): CSNode;
+export declare function toSelection(source: string): Selection;
+export declare function collectAll(root: CSNode): CSNode[];
+export declare function collectSubtree(root: CSNode): CSNode[];
+export declare function findByTag(root: CSNode, tag: string): CSNode[];
+export declare function siblingCount(node: CSNode): number;
+export declare function findById(root: CSNode, id: number): CSNode | undefined;
+export declare const genAbcTune: fc.Arbitrary<string>;
+export declare const genAbcWithChords: fc.Arbitrary<string>;
+export declare const genAbcWithGraceGroups: fc.Arbitrary<string>;
+export declare const genAbcMultiTune: fc.Arbitrary<string>;
+export declare function formatAst(source: string): string;
+export declare function roundtrip(source: string): string;
+export declare function toCSTreeWithContext(source: string): {
+    root: CSNode;
+    ctx: ABCContext;
+};
+export declare function formatSelection(sel: Selection): string;
+export declare const genRational: fc.Arbitrary<IRational>;
+export declare const genSemitones: fc.Arbitrary<number>;

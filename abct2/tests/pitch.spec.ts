@@ -6,8 +6,7 @@ import { TAGS } from "../src/csTree/types";
 import { pitch } from "../src/transforms/pitch";
 import { selectNotes, selectChords, selectRests } from "../src/selectors/typeSelectors";
 import { toAst } from "../src/csTree/toAst";
-import { Pitch as PitchExpr } from "../../parse/types/Expr2";
-import { toMidiPitch } from "../../parse/Visitors/Formatter2";
+import { Pitch as PitchExpr, toMidiPitch } from "abc-parser";
 import { findChildByTag } from "../src/transforms/treeUtils";
 
 describe("pitch", () => {

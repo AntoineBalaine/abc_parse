@@ -7,7 +7,7 @@ import {
   Directive, Measurement, Rational, File_header, Lyric_section,
   AbsolutePitch, Lyric_line, Macro_decl, Macro_invocation,
   User_symbol_decl, User_symbol_invocation, KV, Binary,
-  Unary, Grouping, ChordSymbol, ErrorExpr, Visitor
+  Unary, Grouping, ChordSymbol, ErrorExpr, SymbolLine, Visitor
 } from "abc-parser";
 import { CSNode, TAGS, NodeData, createCSNode } from "./types";
 
@@ -56,7 +56,8 @@ function resolveTag(node: Expr | Token): string {
   if (node instanceof Grouping) return TAGS.Grouping;
   if (node instanceof ChordSymbol) return TAGS.ChordSymbol;
   if (node instanceof ErrorExpr) return TAGS.ErrorExpr;
-  throw new Error(`resolveTag: unrecognized node type (id=${node.id})`);
+  if (node instanceof SymbolLine) return TAGS.SymbolLine;
+  throw new Error(`resolveTag: unrecognized node type (id=${node.id}, constructor=${node.constructor?.name})`);
 }
 
 function extractData(node: Expr | Token): NodeData {

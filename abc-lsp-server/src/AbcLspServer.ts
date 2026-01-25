@@ -1,4 +1,4 @@
-import { AbcFormatter, RhythmVisitor, Transposer } from "abc-parser";
+import { AbcFormatter } from "abc-parser";
 import { HandlerResult, Position, Range, SemanticTokens, SemanticTokensBuilder, TextDocuments, TextEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcDocument } from "./AbcDocument";
@@ -25,24 +25,6 @@ function isAbcxDocument(doc: DocumentType): doc is AbcxDocument {
 /** Type guard to check if a document has ctx property (AbcDocument or AbcxDocument) */
 function hasCtx(doc: DocumentType): doc is AbcDocument | AbcxDocument {
   return isAbcDocument(doc) || isAbcxDocument(doc);
-}
-
-/**
- * Type definition for a selection range in a document
- */
-export interface SelectionRange {
-  start: Position;
-  end: Position;
-  active: Position;
-  anchor: Position;
-}
-
-/**
- * Parameters for ABC transformation commands
- */
-export interface AbcTransformParams {
-  selection: SelectionRange;
-  uri: string;
 }
 
 /**
@@ -235,47 +217,6 @@ export class AbcLspServer {
 
     const formatted = new AbcFormatter(abcDocument.ctx).formatFile(abcDocument.AST!);
     const edit = TextEdit.replace(Range.create(Position.create(0, 0), Position.create(Number.MAX_VALUE, Number.MAX_VALUE)), formatted);
-    return [edit];
-  }
-
-  /**
-   * Handler for transposition
-   * Only works for ABC and ABCx documents (not ABCT).
-   *
-   * @param uri Document URI
-   * @param dist Distance to transpose (in semitones)
-   * @param range Selection range
-   * @returns Array of TextEdits
-   */
-  onTranspose(uri: string, dist: number, range: SelectionRange): HandlerResult<TextEdit[], void> {
-    const abcDocument = this.abcDocuments.get(uri); // find doc in previously parsed docs
-    if (!abcDocument || !abcDocument.tokens || !hasCtx(abcDocument)) {
-      return [];
-    }
-    const transposer = new Transposer(abcDocument.AST!, abcDocument.ctx);
-    const selectionRange = Range.create(range.start, range.end);
-    const edit = TextEdit.replace(selectionRange, transposer.transpose(dist, selectionRange));
-    return [edit];
-  }
-
-  /**
-   * Handler for Abc client's custom command for rhythm transformation
-   * Only works for ABC and ABCx documents (not ABCT).
-   *
-   * Find the requested document and multiply/divide the rhythm of the selected range.
-   *
-   * Returns an array of {@link TextEdit}s.
-   */
-  onRhythmTransform(uri: string, type: "*" | "/", range: SelectionRange): HandlerResult<TextEdit[], void> {
-    const abcDocument = this.abcDocuments.get(uri); // find doc in previously parsed docs
-    if (!abcDocument || !abcDocument.tokens || !hasCtx(abcDocument)) {
-      return [];
-    }
-    const visitor = new RhythmVisitor(abcDocument.AST!, abcDocument.ctx);
-    const selectionRange = Range.create(range.start, range.end);
-    visitor.transform(type, selectionRange);
-
-    const edit = TextEdit.replace(selectionRange, visitor.getChanges());
     return [edit];
   }
 

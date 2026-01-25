@@ -3,12 +3,8 @@ import { describe, it } from "mocha";
 import * as fc from "fast-check";
 import { toCSTreeWithContext, findByTag } from "./helpers";
 import { TAGS, createCSNode } from "../src/csTree/types";
-import { TT } from "../../parse/parsers/scan2";
-import { ABCContext } from "../../parse/parsers/Context";
+import { TT, ABCContext, AbcFormatter, Expr, createRational } from "abc-parser";
 import { toAst } from "../src/csTree/toAst";
-import { AbcFormatter } from "../../parse/Visitors/Formatter2";
-import { Expr } from "../../parse/types/Expr2";
-import { createRational } from "../../parse/Visitors/fmt2/rational";
 import { findChildByTag } from "../src/transforms/treeUtils";
 import {
   rhythmToRational,

@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { describe, it } from "mocha";
 import { toCSTree, findByTag, collectAll } from "./helpers";
 import { CSNode, TAGS, createCSNode, isTokenNode, getTokenData } from "../src/csTree/types";
-import { TT } from "../../parse/parsers/scan2";
+import { TT } from "abc-parser";
 import {
   findChildByTag,
   removeChild,

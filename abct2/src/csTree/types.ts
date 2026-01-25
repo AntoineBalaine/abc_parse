@@ -78,6 +78,7 @@ export const TAGS: Record<string, string> = {
   Grouping: "Grouping",
   ChordSymbol: "ChordSymbol",
   ErrorExpr: "ErrorExpr",
+  SymbolLine: "SymbolLine",
   Token: "Token",
 };
 

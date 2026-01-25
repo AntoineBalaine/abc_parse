@@ -1,5 +1,12 @@
 import * as vscode from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
+import {
+  getCursorNodeIds,
+  setCursorNodeIds,
+  clearCursorState,
+  hasCursorState,
+  shouldSkipClear,
+} from "./cursorState";
 
 interface ApplySelectorResult {
   ranges: Array<{ start: { line: number; character: number }; end: { line: number; character: number } }>;
@@ -21,7 +28,7 @@ function applySelectionsToEditor(editor: vscode.TextEditor, ranges: ApplySelecto
   editor.revealRange(editor.selections[0], vscode.TextEditorRevealType.InCenterIfOutsideViewport);
 }
 
-function updateStatusBar(statusBarItem: vscode.StatusBarItem, cursorCount: number): void {
+export function updateStatusBar(statusBarItem: vscode.StatusBarItem, cursorCount: number): void {
   if (cursorCount > 0) {
     statusBarItem.text = `$(selection) ${cursorCount} cursor${cursorCount > 1 ? "s" : ""}`;
     statusBarItem.tooltip = "Click to reset selection";
@@ -31,13 +38,11 @@ function updateStatusBar(statusBarItem: vscode.StatusBarItem, cursorCount: numbe
   }
 }
 
-export function registerSelectorCommands(context: vscode.ExtensionContext, client: LanguageClient): void {
-  const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  statusBarItem.command = "abc.resetSelection";
-  context.subscriptions.push(statusBarItem);
-
-  const cursorStateByUri = new Map<string, number[]>();
-
+export function registerSelectorCommands(
+  context: vscode.ExtensionContext,
+  client: LanguageClient,
+  statusBarItem: vscode.StatusBarItem
+): void {
   context.subscriptions.push(
     vscode.window.onDidChangeTextEditorSelection((event) => {
       if (event.textEditor.document.languageId !== "abc") return;
@@ -50,7 +55,7 @@ export function registerSelectorCommands(context: vscode.ExtensionContext, clien
         return;
       }
       const uri = event.textEditor.document.uri.toString();
-      cursorStateByUri.delete(uri);
+      clearCursorState(uri);
       statusBarItem.hide();
     })
   );
@@ -59,8 +64,14 @@ export function registerSelectorCommands(context: vscode.ExtensionContext, clien
     vscode.workspace.onDidChangeTextDocument((event) => {
       if (event.document.languageId !== "abc") return;
       const changedUri = event.document.uri.toString();
-      if (cursorStateByUri.has(changedUri)) {
-        cursorStateByUri.delete(changedUri);
+
+      // Skip clearing if this change is from a transform command
+      if (shouldSkipClear(changedUri, event.document.version)) {
+        return;
+      }
+
+      if (hasCursorState(changedUri)) {
+        clearCursorState(changedUri);
       }
       const activeUri = vscode.window.activeTextEditor?.document.uri.toString();
       if (changedUri === activeUri) {
@@ -73,8 +84,9 @@ export function registerSelectorCommands(context: vscode.ExtensionContext, clien
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor) {
         const uri = editor.document.uri.toString();
-        if (cursorStateByUri.has(uri)) {
-          updateStatusBar(statusBarItem, cursorStateByUri.get(uri)!.length);
+        const ids = getCursorNodeIds(uri);
+        if (ids.length > 0) {
+          updateStatusBar(statusBarItem, ids.length);
         } else {
           statusBarItem.hide();
         }
@@ -104,7 +116,7 @@ export function registerSelectorCommands(context: vscode.ExtensionContext, clien
         if (!editor || editor.document.languageId !== "abc") return;
 
         const uri = editor.document.uri.toString();
-        const cursorNodeIds = cursorStateByUri.get(uri) ?? [];
+        const cursorNodeIds = getCursorNodeIds(uri);
 
         try {
           const result = await client.sendRequest<ApplySelectorResult>("abct2.applySelector", {
@@ -114,11 +126,11 @@ export function registerSelectorCommands(context: vscode.ExtensionContext, clien
           });
 
           if (result.cursorNodeIds.length > 0) {
-            cursorStateByUri.set(uri, result.cursorNodeIds);
+            setCursorNodeIds(uri, result.cursorNodeIds);
             applySelectionsToEditor(editor, result.ranges);
             updateStatusBar(statusBarItem, result.cursorNodeIds.length);
           } else {
-            cursorStateByUri.delete(uri);
+            clearCursorState(uri);
             statusBarItem.hide();
           }
         } catch (error) {
@@ -141,7 +153,7 @@ export function registerSelectorCommands(context: vscode.ExtensionContext, clien
       if (input === undefined) return;
 
       const uri = editor.document.uri.toString();
-      const cursorNodeIds = cursorStateByUri.get(uri) ?? [];
+      const cursorNodeIds = getCursorNodeIds(uri);
 
       try {
         const result = await client.sendRequest<ApplySelectorResult>("abct2.applySelector", {
@@ -152,11 +164,11 @@ export function registerSelectorCommands(context: vscode.ExtensionContext, clien
         });
 
         if (result.cursorNodeIds.length > 0) {
-          cursorStateByUri.set(uri, result.cursorNodeIds);
+          setCursorNodeIds(uri, result.cursorNodeIds);
           applySelectionsToEditor(editor, result.ranges);
           updateStatusBar(statusBarItem, result.cursorNodeIds.length);
         } else {
-          cursorStateByUri.delete(uri);
+          clearCursorState(uri);
           statusBarItem.hide();
         }
       } catch (error) {
@@ -172,7 +184,7 @@ export function registerSelectorCommands(context: vscode.ExtensionContext, clien
       if (!editor || editor.document.languageId !== "abc") return;
 
       const uri = editor.document.uri.toString();
-      cursorStateByUri.delete(uri);
+      clearCursorState(uri);
       statusBarItem.hide();
     })
   );

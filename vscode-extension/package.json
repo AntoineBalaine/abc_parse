@@ -21,22 +21,6 @@
   "contributes": {
     "commands": [
       {
-        "command": "abc.divideRhythm",
-        "title": "abc: Divide Rhythms"
-      },
-      {
-        "command": "abc.multiplyRhythm",
-        "title": "abc: Multiply Rhythms"
-      },
-      {
-        "command": "abc.transposeUp",
-        "title": "abc: Octaviate up"
-      },
-      {
-        "command": "abc.transposeDn",
-        "title": "abc: Octaviate down"
-      },
-      {
         "command": "abc.startMIDIInput",
         "title": "abc: MIDI Input: Start MIDI input",
         "group": "MIDI Input",
@@ -176,7 +160,19 @@
       { "command": "abc.selectAllButTop", "title": "ABC: Select All But Top", "category": "ABC" },
       { "command": "abc.selectAllButBottom", "title": "ABC: Select All But Bottom", "category": "ABC" },
       { "command": "abc.wrapCrescendo", "title": "ABC: Wrap Selection in Crescendo", "category": "ABC" },
-      { "command": "abc.wrapDecrescendo", "title": "ABC: Wrap Selection in Decrescendo", "category": "ABC" }
+      { "command": "abc.wrapDecrescendo", "title": "ABC: Wrap Selection in Decrescendo", "category": "ABC" },
+      { "command": "abc.transpose", "title": "ABC: Transpose Selection", "category": "ABC" },
+      { "command": "abc.enharmonize", "title": "ABC: Enharmonize Selection", "category": "ABC" },
+      { "command": "abc.setRhythm", "title": "ABC: Set Rhythm", "category": "ABC" },
+      { "command": "abc.addToRhythm", "title": "ABC: Add to Rhythm", "category": "ABC" },
+      { "command": "abc.toRest", "title": "ABC: Convert to Rest", "category": "ABC" },
+      { "command": "abc.unwrapSingle", "title": "ABC: Unwrap Single-Note Chord", "category": "ABC" },
+      { "command": "abc.remove", "title": "ABC: Remove Selection", "category": "ABC" },
+      { "command": "abc.addVoice", "title": "ABC: Add Voice", "category": "ABC" },
+      { "command": "abc.transposeOctaveUp", "title": "ABC: Transpose Octave Up", "category": "ABC" },
+      { "command": "abc.transposeOctaveDown", "title": "ABC: Transpose Octave Down", "category": "ABC" },
+      { "command": "abc.transposeHalfStepUp", "title": "ABC: Transpose Half Step Up", "category": "ABC" },
+      { "command": "abc.transposeHalfStepDown", "title": "ABC: Transpose Half Step Down", "category": "ABC" }
     ],
     "menus": {
       "commandPalette": [
@@ -193,7 +189,19 @@
         { "command": "abc.selectAllButTop", "when": "editorLangId == abc" },
         { "command": "abc.selectAllButBottom", "when": "editorLangId == abc" },
         { "command": "abc.wrapCrescendo", "when": "editorLangId == abc" },
-        { "command": "abc.wrapDecrescendo", "when": "editorLangId == abc" }
+        { "command": "abc.wrapDecrescendo", "when": "editorLangId == abc" },
+        { "command": "abc.transpose", "when": "editorLangId == abc" },
+        { "command": "abc.enharmonize", "when": "editorLangId == abc" },
+        { "command": "abc.setRhythm", "when": "editorLangId == abc" },
+        { "command": "abc.addToRhythm", "when": "editorLangId == abc" },
+        { "command": "abc.toRest", "when": "editorLangId == abc" },
+        { "command": "abc.unwrapSingle", "when": "editorLangId == abc" },
+        { "command": "abc.remove", "when": "editorLangId == abc" },
+        { "command": "abc.addVoice", "when": "editorLangId == abc" },
+        { "command": "abc.transposeOctaveUp", "when": "editorLangId == abc" },
+        { "command": "abc.transposeOctaveDown", "when": "editorLangId == abc" },
+        { "command": "abc.transposeHalfStepUp", "when": "editorLangId == abc" },
+        { "command": "abc.transposeHalfStepDown", "when": "editorLangId == abc" }
       ]
     },
     "configurationDefaults": {

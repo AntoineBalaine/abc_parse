@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { describe, it } from "mocha";
 import * as fc from "fast-check";
 import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
-import { TT } from "../../parse/parsers/scan2";
+import { TT } from "abc-parser";
 import {
   toCSTree, collectAll, collectSubtree, findByTag, siblingCount,
   genAbcTune, genAbcWithChords, genAbcMultiTune,

@@ -46,7 +46,7 @@ function lastLeafToken(node: CSNode): TokenData | null {
   return null;
 }
 
-function computeNodeRange(node: CSNode): Range | null {
+export function computeNodeRange(node: CSNode): Range | null {
   if (isTokenNode(node)) return tokenRange(node.data);
   const first = firstLeafToken(node);
   const last = lastLeafToken(node);

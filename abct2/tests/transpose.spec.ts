@@ -3,12 +3,10 @@ import { describe, it } from "mocha";
 import * as fc from "fast-check";
 import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune } from "./helpers";
 import { TAGS } from "../src/csTree/types";
-import { ABCContext } from "../../parse/parsers/Context";
+import { ABCContext, Pitch, toMidiPitch } from "abc-parser";
 import { Selection } from "../src/selection";
 import { transpose } from "../src/transforms/transpose";
 import { toAst } from "../src/csTree/toAst";
-import { Pitch } from "../../parse/types/Expr2";
-import { toMidiPitch } from "../../parse/Visitors/Formatter2";
 import { findChildByTag } from "../src/transforms/treeUtils";
 
 function getNoteMidi(noteNode: any): number {

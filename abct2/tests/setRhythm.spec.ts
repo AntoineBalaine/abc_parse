@@ -4,7 +4,7 @@ import * as fc from "fast-check";
 import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune, genRational } from "./helpers";
 import { TAGS } from "../src/csTree/types";
 import { Selection } from "../src/selection";
-import { createRational } from "../../parse/Visitors/fmt2/rational";
+import { createRational } from "abc-parser";
 import { setRhythm } from "../src/transforms/setRhythm";
 import { getNodeRhythm } from "../src/transforms/rhythm";
 

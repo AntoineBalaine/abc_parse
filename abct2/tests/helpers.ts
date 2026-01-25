@@ -1,8 +1,5 @@
 import * as fc from "fast-check";
-import {
-  Scanner, Token, parse, ABCContext, AbcFormatter,
-  Expr, Inline_field, Info_line, IRational, createRational
-} from "abc-parser";
+import { Scanner, Token, parse, ABCContext, AbcFormatter, Expr, Inline_field, Info_line, IRational, createRational } from "abc-parser";
 import { fromAst, childrenVisitor } from "../src/csTree/fromAst";
 import { toAst } from "../src/csTree/toAst";
 import { CSNode } from "../src/csTree/types";
@@ -69,9 +66,7 @@ function tokensToString(tokens: { lexeme: string }[]): string {
   return tokens.map((t) => t.lexeme).join("");
 }
 
-export const genAbcTune: fc.Arbitrary<string> = ParserGen.genMusicSequence_NoBar.map(
-  (sequence) => "X:1\nK:C\n" + tokensToString(sequence.tokens) + "|\n"
-);
+export const genAbcTune: fc.Arbitrary<string> = ParserGen.genMusicSequence_NoBar.map((sequence) => "X:1\nK:C\n" + tokensToString(sequence.tokens) + "|\n");
 
 export const genAbcWithChords: fc.Arbitrary<string> = fc
   .tuple(
@@ -85,10 +80,7 @@ export const genAbcWithChords: fc.Arbitrary<string> = fc
   });
 
 export const genAbcWithGraceGroups: fc.Arbitrary<string> = fc
-  .tuple(
-    fc.array(ParserGen.genGraceGroupExpr, { minLength: 1, maxLength: 3 }),
-    fc.array(ParserGen.genNoteExpr, { minLength: 1, maxLength: 3 })
-  )
+  .tuple(fc.array(ParserGen.genGraceGroupExpr, { minLength: 1, maxLength: 3 }), fc.array(ParserGen.genNoteExpr, { minLength: 1, maxLength: 3 }))
   .map(([graces, notes]) => {
     const allTokens = [...graces, ...notes].flatMap((e) => e.tokens);
     return "X:1\nK:C\n" + tokensToString(allTokens) + "|\n";
@@ -96,14 +88,10 @@ export const genAbcWithGraceGroups: fc.Arbitrary<string> = fc
 
 export const genAbcMultiTune: fc.Arbitrary<string> = fc
   .array(
-    ParserGen.genMusicSequence_NoBar.map(
-      (seq) => tokensToString(seq.tokens) + "|\n"
-    ),
+    ParserGen.genMusicSequence_NoBar.map((seq) => tokensToString(seq.tokens) + "|\n"),
     { minLength: 2, maxLength: 4 }
   )
-  .map((bodies) =>
-    bodies.map((body, i) => `X:${i + 1}\nK:C\n${body}`).join("\n")
-  );
+  .map((bodies) => bodies.map((body, i) => `X:${i + 1}\nK:C\n${body}`).join("\n"));
 
 function stripValue2(node: Expr | Token): void {
   if (node instanceof Token) return;
