@@ -18,15 +18,6 @@ kak-spec -title "abc-select-chords parses client output" \
     } \
     -expect-%val(selections_desc) "1.3,1.7 1.10,1.14"
 
-# Test: abc_cursor_node_ids is set after successful selection
-kak-spec -title "abc-select-chords stores cursor node IDs" \
-    -input "X:1\nK:C\n[CEG]" \
-    -eval %{
-        set-option buffer filetype abc
-        abc-select-chords
-    } \
-    -expect-%opt(abc_cursor_node_ids) "[42,87]"
-
 # Test: abc-select-notes returns note selections
 kak-spec -title "abc-select-notes returns note positions" \
     -input "X:1\nK:C\nC D E" \
@@ -44,15 +35,6 @@ kak-spec -title "concurrent requests are blocked" \
         abc-select-chords
     } \
     -expect-%val(selections_desc) "1.1,1.4"
-
-# Test: abc-select-reset clears cursor node IDs
-kak-spec -title "abc-select-reset clears node IDs" \
-    -input "test" \
-    -eval %{
-        set-option buffer abc_cursor_node_ids "[1,2,3]"
-        abc-select-reset
-    } \
-    -expect-%opt(abc_cursor_node_ids) ""
 
 # Test: abc-select-top returns top note selection
 kak-spec -title "abc-select-top returns top note" \
@@ -91,7 +73,7 @@ kak-spec -title "empty results leave selections unchanged" \
         # Use _empty mock selector
         evaluate-commands %sh{
             # Override the selector for this test
-            echo "set-option global abc_client_cmd '%sh{echo \"\" && echo \"[]\"}'"
+            echo "set-option global abc_client_cmd '%sh{echo \"\"}'"
         }
     } \
     -expect-%val(selections_desc) "1.1,1.12"

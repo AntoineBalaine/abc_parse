@@ -1,18 +1,10 @@
 # kak-spec tests for ABC state management
-# Tests verify that cursor node IDs are properly cleared on buffer/selection changes.
+# Tests verify that plugin options are properly initialized.
 
 # Setup: Load the plugin
 kak-spec-setup %{
     source %sh{echo "$(dirname $(dirname $kak_source))/rc/abc.kak"}
 }
-
-# Test: cursor_node_ids is initialized empty
-kak-spec -title "abc_cursor_node_ids starts empty" \
-    -input "test" \
-    -eval %{
-        set-option buffer filetype abc
-    } \
-    -expect-%opt(abc_cursor_node_ids) ""
 
 # Test: abc_pending starts false
 kak-spec -title "abc_pending starts false" \
@@ -21,14 +13,6 @@ kak-spec -title "abc_pending starts false" \
         set-option buffer filetype abc
     } \
     -expect-%opt(abc_pending) "false"
-
-# Test: abc_last_timestamp starts at 0
-kak-spec -title "abc_last_timestamp starts at 0" \
-    -input "test" \
-    -eval %{
-        set-option buffer filetype abc
-    } \
-    -expect-%opt(abc_last_timestamp) "0"
 
 # Test: socket path is computed correctly
 kak-spec -title "socket path uses XDG_RUNTIME_DIR or fallback" \

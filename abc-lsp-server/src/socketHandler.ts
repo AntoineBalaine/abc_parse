@@ -5,7 +5,8 @@ import * as readline from "readline";
 import { resolveSelectionRanges } from "./selectionRangeResolver";
 import { lookupSelector, getAvailableSelectors } from "./selectorLookup";
 import { fromAst } from "../../abct2/src/csTree/fromAst";
-import { createSelection } from "../../abct2/src/selection";
+import { createSelection, Selection } from "../../abct2/src/selection";
+import { selectRange } from "../../abct2/src/selectors/rangeSelector";
 import { CSNode } from "../../abct2/src/csTree/types";
 import { File_structure } from "abc-parser";
 import { AbcDocument } from "./AbcDocument";
@@ -45,8 +46,8 @@ interface SocketRequest {
     uri?: string;
     selector?: string;
     args?: (number | string)[];
-    cursorNodeIds?: number[];
-    scope?: LSPRange[];
+    /** Editor selections as ranges - used to scope the selector operation */
+    ranges?: LSPRange[];
   };
 }
 
@@ -54,7 +55,6 @@ interface SocketResponse {
   id: number | string;
   result?: {
     ranges: LSPRange[];
-    cursorNodeIds: number[];
   };
   error?: {
     code: number;
@@ -175,8 +175,7 @@ function validateApplySelectorParams(params: SocketRequest["params"]): {
   uri: string;
   selector: string;
   args: (number | string)[];
-  cursorNodeIds: number[];
-  scope: LSPRange[];
+  ranges: LSPRange[];
 } {
   if (!params) {
     throw { code: ERROR_CODES.INVALID_PARAMS, message: "Missing params" };
@@ -207,78 +206,16 @@ function validateApplySelectorParams(params: SocketRequest["params"]): {
     }
   }
 
-  if (params.cursorNodeIds !== undefined) {
-    if (!Array.isArray(params.cursorNodeIds)) {
-      throw { code: ERROR_CODES.INVALID_PARAMS, message: "cursorNodeIds must be an array" };
-    }
-    if (!params.cursorNodeIds.every((id) => typeof id === "number")) {
-      throw { code: ERROR_CODES.INVALID_PARAMS, message: "cursorNodeIds must be an array of numbers" };
-    }
-  }
-
-  if (params.scope !== undefined && !Array.isArray(params.scope)) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "scope must be an array of ranges" };
+  if (params.ranges !== undefined && !Array.isArray(params.ranges)) {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "ranges must be an array" };
   }
 
   return {
     uri: params.uri,
     selector: params.selector,
     args: params.args ?? [],
-    cursorNodeIds: params.cursorNodeIds ?? [],
-    scope: params.scope ?? [],
+    ranges: params.ranges ?? [],
   };
-}
-
-// ============================================================================
-// Scope Filtering
-// ============================================================================
-
-/**
- * Compares two LSP positions lexicographically.
- * Returns negative if a < b, positive if a > b, zero if equal.
- */
-function comparePosition(a: LSPPosition, b: LSPPosition): number {
-  if (a.line !== b.line) return a.line - b.line;
-  return a.character - b.character;
-}
-
-/**
- * Checks if range A is fully contained within range B.
- * Uses lexicographic comparison to avoid arithmetic overflow.
- */
-function isRangeContained(inner: LSPRange, outer: LSPRange): boolean {
-  return comparePosition(inner.start, outer.start) >= 0 &&
-         comparePosition(inner.end, outer.end) <= 0;
-}
-
-/**
- * Filters ranges to only those fully contained within at least one scope range.
- * Also returns the indices of ranges that passed the filter for cursorNodeId pruning.
- */
-function filterByScope(
-  ranges: LSPRange[],
-  scope: LSPRange[]
-): { filteredRanges: LSPRange[]; passingIndices: number[] } {
-  if (scope.length === 0) {
-    return {
-      filteredRanges: ranges,
-      passingIndices: ranges.map((_, i) => i),
-    };
-  }
-
-  const passingIndices: number[] = [];
-  const filteredRanges: LSPRange[] = [];
-
-  for (let i = 0; i < ranges.length; i++) {
-    const range = ranges[i];
-    const isContained = scope.some((scopeRange) => isRangeContained(range, scopeRange));
-    if (isContained) {
-      passingIndices.push(i);
-      filteredRanges.push(range);
-    }
-  }
-
-  return { filteredRanges, passingIndices };
 }
 
 // ============================================================================
@@ -290,8 +227,7 @@ function handleApplySelector(
     uri: string;
     selector: string;
     args: (number | string)[];
-    cursorNodeIds: number[];
-    scope: LSPRange[];
+    ranges: LSPRange[];
   },
   getDocument: DocumentGetter,
   getCsTree: CsTreeGetter
@@ -321,25 +257,36 @@ function handleApplySelector(
     throw { code: ERROR_CODES.INVALID_PARAMS, message: `Unknown selector: "${params.selector}"` };
   }
 
-  let selection;
-  if (params.cursorNodeIds.length === 0) {
-    selection = createSelection(root);
+  // Stateless approach: use provided ranges to create initial selection
+  let selection: Selection;
+  if (params.ranges.length > 0) {
+    // Constrain to nodes within the provided ranges
+    const allCursors: Set<number>[] = [];
+    for (const range of params.ranges) {
+      const baseSelection = createSelection(root);
+      const narrowed = selectRange(
+        baseSelection,
+        range.start.line,
+        range.start.character,
+        range.end.line,
+        range.end.character
+      );
+      allCursors.push(...narrowed.cursors);
+    }
+    if (allCursors.length === 0) {
+      // No nodes found within the selection ranges
+      return { ranges: [] };
+    }
+    selection = { root, cursors: allCursors };
   } else {
-    selection = {
-      root,
-      cursors: params.cursorNodeIds.map((id) => new Set([id])),
-    };
+    // No selections: start from root (select entire document)
+    selection = createSelection(root);
   }
 
   const newSelection = selectorFn(selection, ...params.args);
-  const ranges = resolveSelectionRanges(newSelection);
-  let cursorNodeIds = newSelection.cursors.map((cursor) => [...cursor][0]);
+  const resultRanges = resolveSelectionRanges(newSelection);
 
-  // Apply scope filtering
-  const { filteredRanges, passingIndices } = filterByScope(ranges, params.scope);
-  cursorNodeIds = passingIndices.map((i) => cursorNodeIds[i]);
-
-  return { ranges: filteredRanges, cursorNodeIds };
+  return { ranges: resultRanges };
 }
 
 // ============================================================================

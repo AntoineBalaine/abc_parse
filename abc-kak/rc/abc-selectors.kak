@@ -35,16 +35,14 @@ define-command -hidden abc-select-impl -params 1..2 %{
         args="${2:-[]}"
         selections_desc="$kak_selections_desc"
         uri="file://${kak_buffile}"
-        cursor_node_ids="$kak_opt_abc_cursor_node_ids"
 
-        # Invoke the client
+        # Invoke the client (stateless: send current selections as ranges)
         result=$(node "$kak_opt_abc_client_path" \
             --socket="$kak_opt_abc_socket_path" \
             --uri="$uri" \
             --selector="$selector" \
             --args="$args" \
-            --cursor-ids="$cursor_node_ids" \
-            --scope="$selections_desc" \
+            --ranges="$selections_desc" \
             --buffer-file="$kak_opt_abc_tmpfile" \
             --timeout="$kak_opt_abc_timeout" 2>&1)
         exit_code=$?
@@ -63,14 +61,11 @@ define-command -hidden abc-select-impl -params 1..2 %{
             exit 0
         fi
 
-        # Result format: line 1 = selection descriptors, line 2 = cursorNodeIds JSON
-        new_selections=$(printf '%s' "$result" | head -n1)
-        new_ids=$(printf '%s' "$result" | tail -n1)
+        # Result is a single line of space-separated selection descriptors
+        new_selections="$result"
 
         if [ -n "$new_selections" ]; then
             printf '%s\n' "select $new_selections"
-            printf '%s\n' "set-option buffer abc_cursor_node_ids '$new_ids'"
-            printf '%s\n' "set-option buffer abc_last_selections '$new_selections'"
         else
             printf '%s\n' "echo -markup '{Information}No matches found'"
         fi

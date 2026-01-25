@@ -29,9 +29,6 @@ declare-option -docstring "Timeout for selector requests (ms)" \
 
 # These options track the state of the selector system for each buffer.
 
-declare-option -hidden str abc_cursor_node_ids ""
-declare-option -hidden str abc_last_selections ""
-declare-option -hidden int abc_last_timestamp 0
 declare-option -hidden bool abc_pending false
 declare-option -hidden str abc_tmpfile ""
 
@@ -52,39 +49,7 @@ hook global BufCreate .*\.abcx %{
 # ============================================================================
 # Note: LSP setup (lsp-enable-window, semantic tokens) should be configured
 # in your kakrc alongside the lsp_servers option. This plugin only provides
-# the selector commands and state management.
-
-# ============================================================================
-# State Management
-# ============================================================================
-
-# Clear cursor node IDs when the buffer is modified or selections change.
-# This ensures that stale node references are not used for narrowing.
-
-hook global WinSetOption filetype=abc %{
-    hook buffer NormalIdle .* %{
-        evaluate-commands %sh{
-            # Check if buffer was modified
-            if [ "$kak_timestamp" != "$kak_opt_abc_last_timestamp" ]; then
-                printf '%s\n' "set-option buffer abc_cursor_node_ids ''"
-                printf '%s\n' "set-option buffer abc_last_timestamp $kak_timestamp"
-            fi
-            # Check if selections changed (user moved cursor or used Kakoune motions)
-            if [ "$kak_selections_desc" != "$kak_opt_abc_last_selections" ]; then
-                printf '%s\n' "set-option buffer abc_cursor_node_ids ''"
-                printf '%s\n' "set-option buffer abc_last_selections '$kak_selections_desc'"
-            fi
-        }
-    }
-}
-
-# ============================================================================
-# Reset Command
-# ============================================================================
-
-define-command abc-select-reset -docstring "Clear stored cursor node IDs (breaks narrowing chain)" %{
-    set-option buffer abc_cursor_node_ids ""
-}
+# the selector commands.
 
 # ============================================================================
 # Include Selector Commands

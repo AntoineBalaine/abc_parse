@@ -13,14 +13,12 @@
  *   --uri=URI             Document URI (required)
  *   --selector=NAME       Selector name (required)
  *   --args=JSON           Selector arguments as JSON array (default: [])
- *   --cursor-ids=JSON     Current cursor node IDs as JSON array (default: [])
- *   --scope=DESC          Kakoune selection descriptors, space-separated (optional)
+ *   --ranges=DESC         Kakoune selection descriptors, space-separated (optional)
  *   --buffer-file=PATH    Path to temp file containing buffer content (required)
  *   --timeout=MS          Request timeout in milliseconds (default: 5000)
  *
  * Output (on success, exit 0):
  *   Line 1: space-separated Kakoune selection descriptors
- *   Line 2: JSON array of cursorNodeIds
  *
  * Output (on error, exit 1):
  *   stderr: error message
@@ -40,8 +38,7 @@ function parseArgs() {
     uri: null,
     selector: null,
     args: [],
-    cursorIds: [],
-    scope: "",
+    ranges: "",
     bufferFile: null,
     timeout: 5000,
   };
@@ -59,17 +56,8 @@ function parseArgs() {
       } catch {
         error("Invalid JSON in --args");
       }
-    } else if (arg.startsWith("--cursor-ids=")) {
-      const value = arg.substring("--cursor-ids=".length);
-      if (value) {
-        try {
-          args.cursorIds = JSON.parse(value);
-        } catch {
-          error("Invalid JSON in --cursor-ids");
-        }
-      }
-    } else if (arg.startsWith("--scope=")) {
-      args.scope = arg.substring("--scope=".length);
+    } else if (arg.startsWith("--ranges=")) {
+      args.ranges = arg.substring("--ranges=".length);
     } else if (arg.startsWith("--buffer-file=")) {
       args.bufferFile = arg.substring("--buffer-file=".length);
     } else if (arg.startsWith("--timeout=")) {
@@ -329,11 +317,11 @@ async function main() {
   const args = parseArgs();
   const lines = readBufferLines(args.bufferFile);
 
-  // Convert scope descriptors to LSP ranges
-  let scopeRanges = [];
-  if (args.scope) {
-    const descriptors = args.scope.split(/\s+/).filter((d) => d);
-    scopeRanges = descriptors.map((desc) => kakDescriptorToLspRange(desc, lines));
+  // Convert kakoune selection descriptors to LSP ranges
+  let lspRanges = [];
+  if (args.ranges) {
+    const descriptors = args.ranges.split(/\s+/).filter((d) => d);
+    lspRanges = descriptors.map((desc) => kakDescriptorToLspRange(desc, lines));
   }
 
   const request = {
@@ -343,8 +331,7 @@ async function main() {
       uri: args.uri,
       selector: args.selector,
       args: args.args,
-      cursorNodeIds: args.cursorIds,
-      scope: scopeRanges,
+      ranges: lspRanges,
     },
   };
 
@@ -361,9 +348,8 @@ async function main() {
 
   const result = response.result;
   if (!result || !result.ranges || result.ranges.length === 0) {
-    // No matches - output empty line for descriptors, empty array for IDs
+    // No matches - output empty line for descriptors
     console.log("");
-    console.log("[]");
     process.exit(0);
   }
 
@@ -374,13 +360,11 @@ async function main() {
 
   if (descriptors.length === 0) {
     console.log("");
-    console.log("[]");
     process.exit(0);
   }
 
   // Output
   console.log(descriptors.join(" "));
-  console.log(JSON.stringify(result.cursorNodeIds));
 }
 
 main();
