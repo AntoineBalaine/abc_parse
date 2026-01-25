@@ -13,6 +13,27 @@ interface ApplySelectorResult {
   cursorNodeIds: number[];
 }
 
+// This type must match ScopeRange in abc-lsp-server/src/server.ts
+type ScopeRange = {
+  start: { line: number; character: number };
+  end: { line: number; character: number };
+};
+
+/**
+ * Extracts non-empty selections from the editor to use as scope constraints.
+ * Returns undefined if there are no non-empty selections (just cursors).
+ */
+function getScopeRanges(editor: vscode.TextEditor): ScopeRange[] | undefined {
+  const nonEmptySelections = editor.selections.filter((s) => !s.isEmpty);
+  if (nonEmptySelections.length === 0) {
+    return undefined;
+  }
+  return nonEmptySelections.map((s) => ({
+    start: { line: s.start.line, character: s.start.character },
+    end: { line: s.end.line, character: s.end.character },
+  }));
+}
+
 function applySelectionsToEditor(editor: vscode.TextEditor, ranges: ApplySelectorResult["ranges"]): void {
   if (ranges.length === 0) {
     vscode.window.showInformationMessage("No matches found.");
@@ -118,17 +139,25 @@ export function registerSelectorCommands(
         const uri = editor.document.uri.toString();
         const cursorNodeIds = getCursorNodeIds(uri);
 
+        // When no cursor state exists, check for manual selections to use as scope
+        const scopeRanges = cursorNodeIds.length === 0 ? getScopeRanges(editor) : undefined;
+
         try {
           const result = await client.sendRequest<ApplySelectorResult>("abct2.applySelector", {
             uri,
             selector: selectorName,
             cursorNodeIds,
+            scopeRanges,
           });
 
           if (result.cursorNodeIds.length > 0) {
             setCursorNodeIds(uri, result.cursorNodeIds);
             applySelectionsToEditor(editor, result.ranges);
             updateStatusBar(statusBarItem, result.cursorNodeIds.length);
+          } else if (scopeRanges) {
+            // Silent no-op: manual selection provided but no matches found
+            // Leave the original selection intact
+            return;
           } else {
             clearCursorState(uri);
             statusBarItem.hide();
@@ -155,18 +184,26 @@ export function registerSelectorCommands(
       const uri = editor.document.uri.toString();
       const cursorNodeIds = getCursorNodeIds(uri);
 
+      // When no cursor state exists, check for manual selections to use as scope
+      const scopeRanges = cursorNodeIds.length === 0 ? getScopeRanges(editor) : undefined;
+
       try {
         const result = await client.sendRequest<ApplySelectorResult>("abct2.applySelector", {
           uri,
           selector: "selectNthFromTop",
           args: [Number(input)],
           cursorNodeIds,
+          scopeRanges,
         });
 
         if (result.cursorNodeIds.length > 0) {
           setCursorNodeIds(uri, result.cursorNodeIds);
           applySelectionsToEditor(editor, result.ranges);
           updateStatusBar(statusBarItem, result.cursorNodeIds.length);
+        } else if (scopeRanges) {
+          // Silent no-op: manual selection provided but no matches found
+          // Leave the original selection intact
+          return;
         } else {
           clearCursorState(uri);
           statusBarItem.hide();
