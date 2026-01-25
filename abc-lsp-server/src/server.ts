@@ -133,13 +133,12 @@ interface WrapDynamicResult {
 interface ApplyTransformParams {
   uri: string;
   transform: string;
-  cursorNodeIds: number[];
   args: unknown[];
+  selections: ScopeRange[];
 }
 
 interface ApplyTransformResult {
   textEdits: Array<{ range: Range; newText: string }>;
-  cursorNodeIds: number[];
   cursorRanges: Array<{ start: { line: number; character: number }; end: { line: number; character: number } }>;
 }
 
@@ -344,7 +343,7 @@ connection.onRequest("abc.wrapDynamic", (params: WrapDynamicParams): WrapDynamic
 connection.onRequest("abct2.applyTransform", (params: ApplyTransformParams): ApplyTransformResult => {
   const doc = abcServer.abcDocuments.get(params.uri);
   if (!doc || !(doc instanceof AbcDocument) || !doc.AST || !doc.ctx) {
-    return { textEdits: [], cursorNodeIds: [], cursorRanges: [] };
+    return { textEdits: [], cursorRanges: [] };
   }
 
   const transformFn = lookupTransform(params.transform);
@@ -355,16 +354,33 @@ connection.onRequest("abct2.applyTransform", (params: ApplyTransformParams): App
   // Build a fresh CSTree from the AST (we do not cache because transforms mutate in place)
   const root = fromAst(doc.AST);
 
-  // Build selection from cursorNodeIds, preserving multi-element cursors
+  // Convert editor selections to cursors
   let selection: Selection;
-  if (params.cursorNodeIds.length === 0) {
-    selection = createSelection(root);
-  } else {
-    selection = {
-      root,
-      cursors: params.cursorNodeIds.map((id) => new Set([id])),
-    };
+  if (!params.selections || params.selections.length === 0) {
+    // No selections provided - nothing to transform
+    return { textEdits: [], cursorRanges: [] };
   }
+
+  // Convert each editor selection range to a cursor containing nodes within that range
+  const allCursors: Set<number>[] = [];
+  for (const range of params.selections) {
+    const baseSelection = createSelection(root);
+    const narrowed = selectRange(
+      baseSelection,
+      range.start.line,
+      range.start.character,
+      range.end.line,
+      range.end.character
+    );
+    allCursors.push(...narrowed.cursors);
+  }
+
+  if (allCursors.length === 0) {
+    // No nodes found within the selection ranges
+    return { textEdits: [], cursorRanges: [] };
+  }
+
+  selection = { root, cursors: allCursors };
 
   // Apply transform (mutates tree in place, returns updated Selection)
   const newSelection = transformFn(selection, doc.ctx, ...params.args);
@@ -388,7 +404,7 @@ connection.onRequest("abct2.applyTransform", (params: ApplyTransformParams): App
   // Map surviving cursor IDs to their positions in the fresh tree
   const cursorRanges = computeCursorRangesFromFreshTree(survivingCursorIds, newSelection.root, freshRoot);
 
-  return { textEdits, cursorNodeIds: survivingCursorIds, cursorRanges };
+  return { textEdits, cursorRanges };
 });
 
 connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {

@@ -1,23 +1,31 @@
 /**
  * Transform commands for the VSCode extension.
  *
- * These commands apply ABCt2 transforms to the current selection state.
- * The cursor state is preserved across transforms, allowing chained operations.
+ * These commands apply ABCt2 transforms to the current editor selections.
+ * The API is editor-agnostic: selections go in, text edits and result ranges come out.
  */
 
 import * as vscode from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
-import {
-  getCursorNodeIds,
-  setCursorNodeIds,
-  setExpectedVersion,
-} from "./cursorState";
-import { updateStatusBar } from "./selectorCommands";
+
+interface SelectionRange {
+  start: { line: number; character: number };
+  end: { line: number; character: number };
+}
 
 interface ApplyTransformResult {
-  textEdits: Array<{ range: { start: { line: number; character: number }; end: { line: number; character: number } }; newText: string }>;
-  cursorNodeIds: number[];
-  cursorRanges: Array<{ start: { line: number; character: number }; end: { line: number; character: number } }>;
+  textEdits: Array<{
+    range: SelectionRange;
+    newText: string;
+  }>;
+  cursorRanges: SelectionRange[];
+}
+
+function selectionsToRanges(selections: readonly vscode.Selection[]): SelectionRange[] {
+  return selections.map((sel) => ({
+    start: { line: sel.start.line, character: sel.start.character },
+    end: { line: sel.end.line, character: sel.end.character },
+  }));
 }
 
 interface WrapDynamicResult {
@@ -182,60 +190,57 @@ async function applyTransform(
   const editor = vscode.window.activeTextEditor;
   if (!editor || editor.document.languageId !== "abc") return;
 
-  const uri = editor.document.uri.toString();
-  const cursorNodeIds = getCursorNodeIds(uri);
-
-  if (cursorNodeIds.length === 0) {
-    vscode.window.showInformationMessage("No selection. Use selector commands first.");
+  const selections = editor.selections;
+  if (selections.every((s) => s.isEmpty)) {
+    // Silently return - no selection means nothing to transform
     return;
   }
+
+  const uri = editor.document.uri.toString();
 
   try {
     const result = await client.sendRequest<ApplyTransformResult>(
       "abct2.applyTransform",
-      { uri, transform, cursorNodeIds, args }
+      {
+        uri,
+        transform,
+        args,
+        selections: selectionsToRanges(selections),
+      }
     );
 
-    // Record expected version BEFORE applying edit to prevent state clearing
-    const currentVersion = editor.document.version;
-    setExpectedVersion(uri, currentVersion + 1);
-
     // Apply text edits
-    const workspaceEdit = new vscode.WorkspaceEdit();
-    for (const edit of result.textEdits) {
-      const range = new vscode.Range(
-        edit.range.start.line, edit.range.start.character,
-        edit.range.end.line, edit.range.end.character
-      );
-      workspaceEdit.replace(editor.document.uri, range, edit.newText);
+    if (result.textEdits.length > 0) {
+      const workspaceEdit = new vscode.WorkspaceEdit();
+      for (const edit of result.textEdits) {
+        const range = new vscode.Range(
+          edit.range.start.line, edit.range.start.character,
+          edit.range.end.line, edit.range.end.character
+        );
+        workspaceEdit.replace(editor.document.uri, range, edit.newText);
+      }
+
+      const editSuccess = await vscode.workspace.applyEdit(workspaceEdit);
+      if (!editSuccess) {
+        vscode.window.showErrorMessage("Failed to apply transform edits");
+        return;
+      }
     }
 
-    const editSuccess = await vscode.workspace.applyEdit(workspaceEdit);
-    if (!editSuccess) {
-      // Edit failed, clear the expected version to avoid stale state
-      setExpectedVersion(uri, null);
-      vscode.window.showErrorMessage("Failed to apply transform edits");
-      return;
-    }
-
-    // Update cursor state with surviving IDs
-    setCursorNodeIds(uri, result.cursorNodeIds);
-
-    // Update editor selections
+    // Update editor selections to the result ranges
     if (result.cursorRanges.length > 0) {
       editor.selections = result.cursorRanges.map(r => new vscode.Selection(
         new vscode.Position(r.start.line, r.start.character),
         new vscode.Position(r.end.line, r.end.character)
       ));
-      updateStatusBar(statusBarItem, result.cursorNodeIds.length);
+      statusBarItem.text = `$(selection) ${result.cursorRanges.length} cursor${result.cursorRanges.length > 1 ? "s" : ""}`;
+      statusBarItem.show();
     } else {
-      // After remove or when no cursors remain, reset the status bar
+      // No result cursors (e.g., after remove)
       statusBarItem.hide();
     }
 
   } catch (error) {
-    // Clear expected version on error to avoid stale state
-    setExpectedVersion(uri, null);
     vscode.window.showErrorMessage(`Transform failed: ${error}`);
   }
 }
