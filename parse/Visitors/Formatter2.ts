@@ -196,6 +196,11 @@ export class AbcFormatter implements Visitor<string> {
   }
 
   visitChordExpr(expr: Chord): string {
+    // If we're formatting (not just stringifying), convert single-note chords to notes
+    if (!this.no_format && this.isSingleNoteChord(expr)) {
+      return this.formatSingleNoteChord(expr);
+    }
+
     // If we're formatting (not just stringifying), sort the notes from lowest to highest
     const contents = this.no_format ? expr.contents : sortNotes(expr.contents);
 
@@ -222,6 +227,44 @@ export class AbcFormatter implements Visitor<string> {
       tie = expr.tie.lexeme;
     }
     return `${expr.leftBracket?.lexeme ?? "["}${str}${expr.rightBracket?.lexeme ?? "]"}${rhythm}${tie}`;
+  }
+
+  /**
+   * Check if a chord contains exactly one note and no other content (annotations, tokens).
+   */
+  private isSingleNoteChord(expr: Chord): boolean {
+    const notes = expr.contents.filter((c) => c instanceof Note);
+    const otherContent = expr.contents.filter((c) => !(c instanceof Note));
+    return notes.length === 1 && otherContent.length === 0;
+  }
+
+  /**
+   * Format a single-note chord as a note.
+   * Rhythm rules:
+   * 1. If the chord has a rhythm, the note inherits the chord's rhythm (chord takes priority)
+   * 2. If the chord has no rhythm, the note keeps its own rhythm (if any)
+   */
+  private formatSingleNoteChord(expr: Chord): string {
+    const note = expr.contents[0] as Note;
+
+    // Format the pitch
+    let formatted = this.visitPitchExpr(note.pitch);
+
+    // Determine rhythm: chord's rhythm takes priority over note's rhythm
+    if (expr.rhythm) {
+      formatted += this.visitRhythmExpr(expr.rhythm);
+    } else if (note.rhythm) {
+      formatted += this.visitRhythmExpr(note.rhythm);
+    }
+
+    // Handle tie: chord's tie takes priority, otherwise use note's tie
+    if (expr.tie) {
+      formatted += expr.tie.lexeme;
+    } else if (note.tie) {
+      formatted += note.tie.lexeme;
+    }
+
+    return formatted;
   }
 
   visitCommentExpr(expr: Comment): string {

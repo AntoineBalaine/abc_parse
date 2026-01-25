@@ -150,6 +150,42 @@ GABG |`
         );
       });
     });
+
+    describe("single-note chord conversion", () => {
+      it("converts single-note chord [a] to note a", () => {
+        assert.equal(format("X:1\n[a]|", ctx, formatter), "X:1\na |");
+      });
+
+      it("preserves note rhythm when chord has no rhythm: [a2] -> a2", () => {
+        assert.equal(format("X:1\n[a2]|", ctx, formatter), "X:1\na2 |");
+      });
+
+      it("chord rhythm takes priority over note rhythm: [a2]3 -> a3", () => {
+        assert.equal(format("X:1\n[a2]3|", ctx, formatter), "X:1\na3 |");
+      });
+
+      it("note inherits chord rhythm when note has no rhythm: [a]3 -> a3", () => {
+        assert.equal(format("X:1\n[a]3|", ctx, formatter), "X:1\na3 |");
+      });
+
+      it("preserves multi-note chords", () => {
+        assert.equal(format("X:1\n[ceg]|", ctx, formatter), "X:1\n[ceg] |");
+      });
+
+      it("converts single-note chord in context with other notes (beamed)", () => {
+        // Adjacent notes are beamed together, so no spaces between them
+        assert.equal(format("X:1\nC[a]D|", ctx, formatter), "X:1\nCaD |");
+      });
+
+      it("handles multiple adjacent single-note chords (beamed)", () => {
+        // Adjacent notes are beamed together, so no spaces between them
+        assert.equal(format("X:1\n[c][d][e]|", ctx, formatter), "X:1\ncde |");
+      });
+
+      it("converts single-note chord with space separation", () => {
+        assert.equal(format("X:1\nC [a] D|", ctx, formatter), "X:1\nC a D |");
+      });
+    });
   });
 
   describe("AbcFormatter multi-voice alignment", () => {
