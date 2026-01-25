@@ -147,79 +147,333 @@
         "group": "ABCT",
         "description": "Re-evaluate the source ABCT file and refresh the virtual document with new content."
       },
-      { "command": "abc.resetSelection", "title": "ABC: Reset Selection", "category": "ABC" },
-      { "command": "abc.selectChords", "title": "ABC: Select Chords", "category": "ABC" },
-      { "command": "abc.selectNotes", "title": "ABC: Select Notes", "category": "ABC" },
-      { "command": "abc.selectNonChordNotes", "title": "ABC: Select Non-Chord Notes", "category": "ABC" },
-      { "command": "abc.selectChordNotes", "title": "ABC: Select Chord Notes", "category": "ABC" },
-      { "command": "abc.selectRests", "title": "ABC: Select Rests", "category": "ABC" },
-      { "command": "abc.selectTune", "title": "ABC: Select Tune", "category": "ABC" },
-      { "command": "abc.selectTop", "title": "ABC: Select Top Note", "category": "ABC" },
-      { "command": "abc.selectBottom", "title": "ABC: Select Bottom Note", "category": "ABC" },
-      { "command": "abc.selectNthFromTop", "title": "ABC: Select Nth From Top", "category": "ABC" },
-      { "command": "abc.selectAllButTop", "title": "ABC: Select All But Top", "category": "ABC" },
-      { "command": "abc.selectAllButBottom", "title": "ABC: Select All But Bottom", "category": "ABC" },
-      { "command": "abc.wrapCrescendo", "title": "ABC: Wrap Selection in Crescendo", "category": "ABC" },
-      { "command": "abc.wrapDecrescendo", "title": "ABC: Wrap Selection in Decrescendo", "category": "ABC" },
-      { "command": "abc.transpose", "title": "ABC: Transpose Selection", "category": "ABC" },
-      { "command": "abc.enharmonize", "title": "ABC: Enharmonize Selection", "category": "ABC" },
-      { "command": "abc.setRhythm", "title": "ABC: Set Rhythm", "category": "ABC" },
-      { "command": "abc.addToRhythm", "title": "ABC: Add to Rhythm", "category": "ABC" },
-      { "command": "abc.toRest", "title": "ABC: Convert to Rest", "category": "ABC" },
-      { "command": "abc.unwrapSingle", "title": "ABC: Unwrap Single-Note Chord", "category": "ABC" },
-      { "command": "abc.remove", "title": "ABC: Remove Selection", "category": "ABC" },
-      { "command": "abc.addVoice", "title": "ABC: Add Voice", "category": "ABC" },
-      { "command": "abc.transposeOctaveUp", "title": "ABC: Transpose Octave Up", "category": "ABC" },
-      { "command": "abc.transposeOctaveDown", "title": "ABC: Transpose Octave Down", "category": "ABC" },
-      { "command": "abc.transposeHalfStepUp", "title": "ABC: Transpose Half Step Up", "category": "ABC" },
-      { "command": "abc.transposeHalfStepDown", "title": "ABC: Transpose Half Step Down", "category": "ABC" },
-      { "command": "abc.harmonize3rdUp", "title": "ABC: Harmonize 3rd Up", "category": "ABC" },
-      { "command": "abc.harmonize3rdDown", "title": "ABC: Harmonize 3rd Down", "category": "ABC" },
-      { "command": "abc.harmonize4thUp", "title": "ABC: Harmonize 4th Up", "category": "ABC" },
-      { "command": "abc.harmonize4thDown", "title": "ABC: Harmonize 4th Down", "category": "ABC" },
-      { "command": "abc.harmonize5thUp", "title": "ABC: Harmonize 5th Up", "category": "ABC" },
-      { "command": "abc.harmonize5thDown", "title": "ABC: Harmonize 5th Down", "category": "ABC" },
-      { "command": "abc.harmonize6thUp", "title": "ABC: Harmonize 6th Up", "category": "ABC" },
-      { "command": "abc.harmonize6thDown", "title": "ABC: Harmonize 6th Down", "category": "ABC" },
-      { "command": "abc.consolidateSelections", "title": "ABC: Consolidate Selections", "category": "ABC" }
+      {
+        "command": "abc.resetSelection",
+        "title": "ABC: Reset Selection",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.selectChords",
+        "title": "ABC: Select Chords",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.selectNotes",
+        "title": "ABC: Select Notes",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.selectNonChordNotes",
+        "title": "ABC: Select Non-Chord Notes",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.selectChordNotes",
+        "title": "ABC: Select Chord Notes",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.selectRests",
+        "title": "ABC: Select Rests",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.selectTune",
+        "title": "ABC: Select Tune",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.selectTop",
+        "title": "ABC: Select Top Note",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.selectBottom",
+        "title": "ABC: Select Bottom Note",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.selectNthFromTop",
+        "title": "ABC: Select Nth From Top",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.selectAllButTop",
+        "title": "ABC: Select All But Top",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.selectAllButBottom",
+        "title": "ABC: Select All But Bottom",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.wrapCrescendo",
+        "title": "ABC: Wrap Selection in Crescendo",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.wrapDecrescendo",
+        "title": "ABC: Wrap Selection in Decrescendo",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.transpose",
+        "title": "ABC: Transpose Selection",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.enharmonize",
+        "title": "ABC: Enharmonize Selection",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.setRhythm",
+        "title": "ABC: Set Rhythm",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.addToRhythm",
+        "title": "ABC: Add to Rhythm",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.toRest",
+        "title": "ABC: Convert to Rest",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.unwrapSingle",
+        "title": "ABC: Unwrap Single-Note Chord",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.remove",
+        "title": "ABC: Remove Selection",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.addVoice",
+        "title": "ABC: Add Voice",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.transposeOctaveUp",
+        "title": "ABC: Transpose Octave Up",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.transposeOctaveDown",
+        "title": "ABC: Transpose Octave Down",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.transposeHalfStepUp",
+        "title": "ABC: Transpose Half Step Up",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.transposeHalfStepDown",
+        "title": "ABC: Transpose Half Step Down",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.harmonize3rdUp",
+        "title": "ABC: Harmonize 3rd Up",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.harmonize3rdDown",
+        "title": "ABC: Harmonize 3rd Down",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.harmonize4thUp",
+        "title": "ABC: Harmonize 4th Up",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.harmonize4thDown",
+        "title": "ABC: Harmonize 4th Down",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.harmonize5thUp",
+        "title": "ABC: Harmonize 5th Up",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.harmonize5thDown",
+        "title": "ABC: Harmonize 5th Down",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.harmonize6thUp",
+        "title": "ABC: Harmonize 6th Up",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.harmonize6thDown",
+        "title": "ABC: Harmonize 6th Down",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.consolidateSelections",
+        "title": "ABC: Consolidate Selections",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.consolidateRests",
+        "title": "ABC: Consolidate Rests",
+        "category": "ABC"
+      }
     ],
     "menus": {
       "commandPalette": [
-        { "command": "abc.resetSelection", "when": "editorLangId == abc" },
-        { "command": "abc.selectChords", "when": "editorLangId == abc" },
-        { "command": "abc.selectNotes", "when": "editorLangId == abc" },
-        { "command": "abc.selectNonChordNotes", "when": "editorLangId == abc" },
-        { "command": "abc.selectChordNotes", "when": "editorLangId == abc" },
-        { "command": "abc.selectRests", "when": "editorLangId == abc" },
-        { "command": "abc.selectTune", "when": "editorLangId == abc" },
-        { "command": "abc.selectTop", "when": "editorLangId == abc" },
-        { "command": "abc.selectBottom", "when": "editorLangId == abc" },
-        { "command": "abc.selectNthFromTop", "when": "editorLangId == abc" },
-        { "command": "abc.selectAllButTop", "when": "editorLangId == abc" },
-        { "command": "abc.selectAllButBottom", "when": "editorLangId == abc" },
-        { "command": "abc.wrapCrescendo", "when": "editorLangId == abc" },
-        { "command": "abc.wrapDecrescendo", "when": "editorLangId == abc" },
-        { "command": "abc.transpose", "when": "editorLangId == abc" },
-        { "command": "abc.enharmonize", "when": "editorLangId == abc" },
-        { "command": "abc.setRhythm", "when": "editorLangId == abc" },
-        { "command": "abc.addToRhythm", "when": "editorLangId == abc" },
-        { "command": "abc.toRest", "when": "editorLangId == abc" },
-        { "command": "abc.unwrapSingle", "when": "editorLangId == abc" },
-        { "command": "abc.remove", "when": "editorLangId == abc" },
-        { "command": "abc.addVoice", "when": "editorLangId == abc" },
-        { "command": "abc.transposeOctaveUp", "when": "editorLangId == abc" },
-        { "command": "abc.transposeOctaveDown", "when": "editorLangId == abc" },
-        { "command": "abc.transposeHalfStepUp", "when": "editorLangId == abc" },
-        { "command": "abc.transposeHalfStepDown", "when": "editorLangId == abc" },
-        { "command": "abc.harmonize3rdUp", "when": "editorLangId == abc" },
-        { "command": "abc.harmonize3rdDown", "when": "editorLangId == abc" },
-        { "command": "abc.harmonize4thUp", "when": "editorLangId == abc" },
-        { "command": "abc.harmonize4thDown", "when": "editorLangId == abc" },
-        { "command": "abc.harmonize5thUp", "when": "editorLangId == abc" },
-        { "command": "abc.harmonize5thDown", "when": "editorLangId == abc" },
-        { "command": "abc.harmonize6thUp", "when": "editorLangId == abc" },
-        { "command": "abc.harmonize6thDown", "when": "editorLangId == abc" },
-        { "command": "abc.consolidateSelections", "when": "editorLangId == abc" }
+        {
+          "command": "abc.resetSelection",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.selectChords",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.selectNotes",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.selectNonChordNotes",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.selectChordNotes",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.selectRests",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.selectTune",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.selectTop",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.selectBottom",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.selectNthFromTop",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.selectAllButTop",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.selectAllButBottom",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.wrapCrescendo",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.wrapDecrescendo",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.transpose",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.enharmonize",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.setRhythm",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.addToRhythm",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.toRest",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.unwrapSingle",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.remove",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.addVoice",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.transposeOctaveUp",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.transposeOctaveDown",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.transposeHalfStepUp",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.transposeHalfStepDown",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.harmonize3rdUp",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.harmonize3rdDown",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.harmonize4thUp",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.harmonize4thDown",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.harmonize5thUp",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.harmonize5thDown",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.harmonize6thUp",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.harmonize6thDown",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.consolidateSelections",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.consolidateRests",
+          "when": "editorLangId == abc"
+        }
       ]
     },
     "configurationDefaults": {

@@ -83,10 +83,15 @@ function rangesOverlap(a: Range, b: Range): boolean {
   return true;
 }
 
-function collectNotesAndChordsInRange(node: CSNode, Range: Range, result: number[]): void {
-  if (node.tag === TAGS.Note || node.tag === TAGS.Chord) {
+function collectNodesInRange(
+  node: CSNode,
+  editorRange: Range,
+  tags: Set<string>,
+  result: number[]
+): void {
+  if (tags.has(node.tag)) {
     const nodeRange = computeNodeRange(node);
-    if (nodeRange && rangesOverlap(Range, nodeRange)) {
+    if (nodeRange && rangesOverlap(editorRange, nodeRange)) {
       result.push(node.id);
     }
   }
@@ -94,13 +99,23 @@ function collectNotesAndChordsInRange(node: CSNode, Range: Range, result: number
   // Recurse into children
   let child = node.firstChild;
   while (child) {
-    collectNotesAndChordsInRange(child, Range, result);
+    collectNodesInRange(child, editorRange, tags, result);
     child = child.nextSibling;
   }
 }
 
-export function findNotesAndChordsInRange(root: CSNode, Range: Range): number[] {
+export function findNodesInRange(
+  root: CSNode,
+  editorRange: Range,
+  tags: string[]
+): number[] {
   const result: number[] = [];
-  collectNotesAndChordsInRange(root, Range, result);
+  const tagSet = new Set(tags);
+  collectNodesInRange(root, editorRange, tagSet, result);
   return result;
+}
+
+// Backwards compatibility
+export function findNotesAndChordsInRange(root: CSNode, editorRange: Range): number[] {
+  return findNodesInRange(root, editorRange, [TAGS.Note, TAGS.Chord]);
 }

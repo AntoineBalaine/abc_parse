@@ -24,7 +24,7 @@ import { DECORATION_SYMBOLS } from "./completions";
 import { standardTokenScopes } from "./server_helpers";
 import { provideHover } from "./abct/AbctHoverProvider";
 import { provideAbctCompletions } from "./abct/AbctCompletionProvider";
-import { resolveSelectionRanges } from "./selectionRangeResolver";
+import { resolveSelectionRanges, findNodesInRange } from "./selectionRangeResolver";
 import { lookupSelector } from "./selectorLookup";
 import { lookupTransform } from "./transformLookup";
 import { collectSurvivingCursorIds, computeCursorRangesFromFreshTree } from "./cursorPreservation";
@@ -32,9 +32,22 @@ import { serializeCSTree } from "./csTreeSerializer";
 import { computeTextEditsFromDiff } from "./textEditFromDiff";
 import { fromAst } from "../../abct2/src/csTree/fromAst";
 import { createSelection, Selection } from "../../abct2/src/selection";
-import { CSNode } from "../../abct2/src/csTree/types";
+import { CSNode, TAGS } from "../../abct2/src/csTree/types";
 import { selectRange } from "../../abct2/src/selectors/rangeSelector";
 import { File_structure, Scanner, parse, ABCContext } from "abc-parser";
+
+// ============================================================================
+// Transform Node Tags Mapping
+// ============================================================================
+
+/**
+ * Maps transform names to the node tags they operate on.
+ * If a transform is not listed, it defaults to [Note, Chord].
+ */
+const TRANSFORM_NODE_TAGS: Record<string, string[]> = {
+  harmonize: [TAGS.Note, TAGS.Chord],
+  consolidateRests: [TAGS.Rest],
+};
 
 // ============================================================================
 // ABCT Evaluation Request Types
@@ -399,18 +412,16 @@ connection.onRequest("abct2.applyTransform", (params: ApplyTransformParams): App
     return { textEdits: [], cursorRanges: [] };
   }
 
-  // Convert each editor selection range to a cursor containing nodes within that range
+  // Determine which node tags this transform operates on
+  const tags = TRANSFORM_NODE_TAGS[params.transform] ?? [TAGS.Note, TAGS.Chord];
+
+  // Convert each editor selection range to a cursor containing nodes of the appropriate type
   const allCursors: Set<number>[] = [];
   for (const range of params.selections) {
-    const baseSelection = createSelection(root);
-    const narrowed = selectRange(
-      baseSelection,
-      range.start.line,
-      range.start.character,
-      range.end.line,
-      range.end.character
-    );
-    allCursors.push(...narrowed.cursors);
+    const nodeIds = findNodesInRange(root, range, tags);
+    for (const id of nodeIds) {
+      allCursors.push(new Set([id]));
+    }
   }
 
   if (allCursors.length === 0) {

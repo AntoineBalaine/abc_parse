@@ -14,3 +14,4 @@ export { pitch } from "./pitch";
 export { length } from "./length";
 export { addVoice, VoiceParams } from "./addVoice";
 export { harmonize, pitchToDiatonic, diatonicToPitch, stepDiatonic } from "./harmonize";
+export { consolidateRests } from "./consolidateRests";

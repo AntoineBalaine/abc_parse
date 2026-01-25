@@ -85,6 +85,7 @@ export function registerTransformCommands(
     ["abc.toRest", "toRest"],
     ["abc.unwrapSingle", "unwrapSingle"],
     ["abc.remove", "remove"],
+    ["abc.consolidateRests", "consolidateRests"],
   ];
 
   for (const [commandId, transformName] of simpleTransforms) {

@@ -19,6 +19,7 @@ import {
   VoiceParams,
 } from "../../abct2/src/transforms";
 import { harmonize } from "../../abct2/src/transforms/harmonize";
+import { consolidateRests } from "../../abct2/src/transforms/consolidateRests";
 
 export type TransformFn = (
   selection: Selection,
@@ -36,6 +37,7 @@ const TRANSFORM_MAP: Record<string, TransformFn> = {
   remove: (sel) => remove(sel),
   addVoice: (sel, ctx, ...args) => addVoice(sel, args[0] as string, args[1] as VoiceParams, ctx),
   harmonize: (sel, ctx, ...args) => harmonize(sel, args[0] as number, ctx),
+  consolidateRests: (sel, ctx) => consolidateRests(sel, ctx),
 };
 
 export function lookupTransform(name: string): TransformFn | null {
