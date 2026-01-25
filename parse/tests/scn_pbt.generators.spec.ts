@@ -510,8 +510,10 @@ export function applyTokenFiltering(flatTokens: Token[]): Token[] {
         TT.ANNOTATION,
         TT.SPECIAL_LITERAL,
         TT.INFO_STR, // Used by generic info lines (T:, A:, C:, etc.)
-        TT.NOTE_LETTER, // Used in absolute pitches (G4) and key signatures (E major)
-        TT.ACCIDENTAL, // Used in absolute pitches (F#5) and explicit accidentals (^c_b)
+        TT.NOTE_LETTER, // Used in absolute pitches (G4)
+        TT.ACCIDENTAL, // Used in absolute pitches (F#5)
+        TT.KEY_SIGNATURE, // Used in K: info lines (C#m, Bbmaj, Gdor, HP, none)
+        TT.MINUS, // Used in K: info lines for modifiers
         TT.EQL,
         TT.PLUS,
         TT.SLASH,

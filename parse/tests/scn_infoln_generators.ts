@@ -182,35 +182,49 @@ export const genAbsolutePitch = fc
  * Generator for specific info line types for more targeted testing
  */
 
+/**
+ * Generator for KEY_SIGNATURE tokens - produces single tokens containing the full key signature
+ * Examples: C, Am, F#m, Bbmaj, Gdor, Amix, HP, none
+ *
+ * Pattern: [A-G][#b]?[mode]? | HP | Hp | none
+ * Where mode is: m, maj, major, min, minor, mix, mixolydian, dor, dorian,
+ *                phr, phrygian, lyd, lydian, loc, locrian, ion, ionian, aeo, aeolian
+ */
+export const genKeySignature = fc
+  .oneof(
+    // Simple key signatures: C, D, E, F, G, A, B
+    fc.constantFrom("A", "B", "C", "D", "E", "F", "G"),
+    // Key signatures with modes: Am, Cmaj, Dmin, Gdor, etc.
+    fc
+      .tuple(
+        fc.constantFrom("A", "B", "C", "D", "E", "F", "G"),
+        fc.constantFrom("m", "maj", "major", "min", "minor", "mix", "mixolydian", "dor", "dorian", "phr", "phrygian", "lyd", "lydian", "loc", "locrian")
+      )
+      .map(([root, mode]) => `${root}${mode}`),
+    // Key signatures with accidentals: F#, Bb, C#, Eb
+    fc.tuple(fc.constantFrom("A", "B", "C", "D", "E", "F", "G"), fc.constantFrom("#", "b")).map(([root, acc]) => `${root}${acc}`),
+    // Key signatures with accidentals and modes: F#m, Bbmaj, C#min, Ebdor
+    fc
+      .tuple(
+        fc.constantFrom("A", "B", "C", "D", "E", "F", "G"),
+        fc.constantFrom("#", "b"),
+        fc.constantFrom("m", "maj", "major", "min", "minor", "mix", "mixolydian", "dor", "dorian", "phr", "phrygian", "lyd", "lydian", "loc", "locrian")
+      )
+      .map(([root, acc, mode]) => `${root}${acc}${mode}`),
+    // Highland Pipes: HP, Hp
+    fc.constantFrom("HP", "Hp"),
+    // No key signature
+    fc.constantFrom("none")
+  )
+  .map((keySig) => new Token(TT.KEY_SIGNATURE, keySig, sharedContext.generateId()));
+
 // Key info: K: C major clef=treble transpose=0, K:F#m, K:Bb
+// Now uses KEY_SIGNATURE token instead of separate NOTE_LETTER, ACCIDENTAL, IDENTIFIER tokens
 export const genKeyInfoLine2 = fc
   .tuple(
     fc.constantFrom(new Token(TT.INF_HDR, "K:", sharedContext.generateId())),
     fc.option(genWhitespace),
-    fc.oneof(
-      // Simple key signatures without accidentals
-      fc
-        .tuple(
-          fc.oneof(
-            // C is special literal in key context
-            fc.constantFrom("C").map((root) => new Token(TT.SPECIAL_LITERAL, root, sharedContext.generateId())),
-            // Other note names are NOTE_LETTER tokens
-            fc.constantFrom("D", "E", "F", "G", "A", "B").map((root) => new Token(TT.NOTE_LETTER, root, sharedContext.generateId()))
-          ),
-          fc.option(fc.constantFrom("major", "minor", "maj", "min").map((mode) => new Token(TT.IDENTIFIER, mode, sharedContext.generateId())))
-        )
-        .map(([root, mode]) => (mode ? [root, new Token(TT.WS, " ", sharedContext.generateId()), mode] : [root])),
-      // Key signatures with accidentals: F#, Bb, C#, etc.
-      fc
-        .tuple(
-          fc.constantFrom("A", "B", "C", "D", "E", "F", "G").map((root) => new Token(TT.NOTE_LETTER, root, sharedContext.generateId())),
-          fc.constantFrom("#", "b").map((acc) => new Token(TT.ACCIDENTAL, acc, sharedContext.generateId())),
-          fc.option(fc.constantFrom("major", "minor", "maj", "min", "m").map((mode) => new Token(TT.IDENTIFIER, mode, sharedContext.generateId())))
-        )
-        .map(([root, acc, mode]) => (mode ? [root, acc, mode] : [root, acc])),
-      // Special "none" case
-      fc.constantFrom([new Token(TT.IDENTIFIER, "none", sharedContext.generateId())])
-    ),
+    genKeySignature, // Single KEY_SIGNATURE token
     fc.array(
       fc
         .tuple(genWhitespace, genIdentifier, genEql, fc.oneof(genIdentifier, genNumber))
@@ -218,7 +232,7 @@ export const genKeyInfoLine2 = fc
     ),
     genEOL
   )
-  .map(([header, leadingWs, keyParts, modifiers, eol]) => [header, ...(leadingWs ? [leadingWs] : []), ...keyParts, ...modifiers.flat()]);
+  .map(([header, leadingWs, keySig, modifiers, eol]) => [header, ...(leadingWs ? [leadingWs] : []), keySig, ...modifiers.flat()]);
 
 // Meter info: M: 4/4 or M: (2+3)/8 or M: C|
 export const genMeterInfoLine2 = fc
@@ -352,29 +366,26 @@ export const genExprArray = fc.array(fc.oneof(genKVExpr, genBinaryExpr), { minLe
  * Generator for specific info line expression patterns
  */
 
-// Key info expressions: C major clef=treble
+// Key info expressions: C#m clef=treble
+// Now uses KEY_SIGNATURE tokens instead of separate tokens for key root, accidental, and mode
 export const genKeyExprArray = fc.array(
   fc.oneof(
-    // Key signature parts
-    fc.oneof(
-      // C as special literal
-      fc.constant(new KV(sharedContext.generateId(), new Token(TT.SPECIAL_LITERAL, "C", sharedContext.generateId()))),
-      // Other note letters
-      fc
-        .constantFrom("D", "E", "F", "G", "A", "B")
-        .map((val) => new KV(sharedContext.generateId(), new Token(TT.NOTE_LETTER, val, sharedContext.generateId()))),
-      // none as identifier
-      fc.constant(new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, "none", sharedContext.generateId())))
-    ),
-    fc
-      .constantFrom("major", "minor", "dorian")
-      .map((val) => new KV(sharedContext.generateId(), new Token(TT.IDENTIFIER, val, sharedContext.generateId()))),
-    // Modifiers
+    // Key signature as single KEY_SIGNATURE token wrapped in KV
+    genKeySignature.map((token) => new KV(sharedContext.generateId(), token)),
+    // Modifiers (clef, transpose, etc.)
     fc.constant(
       new KV(
         sharedContext.generateId(),
         new Token(TT.IDENTIFIER, "treble", sharedContext.generateId()),
         new Token(TT.IDENTIFIER, "clef", sharedContext.generateId()),
+        new Token(TT.EQL, "=", sharedContext.generateId())
+      )
+    ),
+    fc.constant(
+      new KV(
+        sharedContext.generateId(),
+        new Token(TT.NUMBER, "0", sharedContext.generateId()),
+        new Token(TT.IDENTIFIER, "transpose", sharedContext.generateId()),
         new Token(TT.EQL, "=", sharedContext.generateId())
       )
     )

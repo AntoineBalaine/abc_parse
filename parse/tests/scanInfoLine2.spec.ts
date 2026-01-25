@@ -232,33 +232,38 @@ describe("scanInfoLine2 - Unified Info Line Scanner", () => {
     it("should handle key info lines", () => {
       fc.assert(
         fc.property(genKeyInfoLine2, (tokens) => {
-          const source = tokens.map((t) => t.lexeme).join("");
+          // K: info lines use the dedicated scanKeyInfoLine scanner via info_line dispatch
+          // We need to prepend an EOL and use info_line to test the correct scanner
+          const source = "\n" + tokens.map((t) => t.lexeme).join("");
           const ctx = new Ctx(source, context);
-          const result = scanInfoLine2(ctx);
+          // Simulate that we've already processed the EOL token
+          ctx.push(TT.EOL);
+          ctx.start = 1; // Skip the newline we added
+          ctx.current = 1;
+          const result = info_line(ctx);
 
           expect(result).to.be.true;
 
-          // Use detailed comparison for debugging
-          if (ctx.tokens.length !== tokens.length) {
-            const source = tokens.map((t) => t.lexeme).join("");
-            compareTokenArraysDetailed(tokens, ctx.tokens, source);
-            throw new Error(`Token count mismatch: expected ${tokens.length}, got ${ctx.tokens.length}`);
+          // Use detailed comparison for debugging (skip the first EOL we added)
+          const actualTokens = ctx.tokens.slice(1);
+          if (actualTokens.length !== tokens.length) {
+            compareTokenArraysDetailed(tokens, actualTokens, source);
+            throw new Error(`Token count mismatch: expected ${tokens.length}, got ${actualTokens.length}`);
           }
 
           // Check for token type/content mismatches
           const mismatchExists = !tokens.every((expectedToken, i) => {
-            const actualToken = ctx.tokens[i];
+            const actualToken = actualTokens[i];
             return expectedToken.type === actualToken.type && expectedToken.lexeme === actualToken.lexeme;
           });
 
           if (mismatchExists) {
-            const source = tokens.map((t) => t.lexeme).join("");
-            compareTokenArraysDetailed(tokens, ctx.tokens, source);
+            compareTokenArraysDetailed(tokens, actualTokens, source);
           }
 
-          expect(ctx.tokens.length).to.equal(tokens.length);
-          expect(ctx.tokens[0].type).to.equal(TT.INF_HDR);
-          expect(ctx.tokens[0].lexeme).to.equal("K:");
+          expect(actualTokens.length).to.equal(tokens.length);
+          expect(actualTokens[0].type).to.equal(TT.INF_HDR);
+          expect(actualTokens[0].lexeme).to.equal("K:");
         })
       );
     });
@@ -523,6 +528,178 @@ describe("scanInfoLine2 - Unified Info Line Scanner", () => {
       // Should not contain tokens from the second line
       const hasSecondInfoHeader = tokens.some((t) => t.lexeme === "M:");
       expect(hasSecondInfoHeader).to.be.false;
+    });
+  });
+
+  // ============================================================================
+  // KEY_SIGNATURE Token Tests (scanKeyInfoLine)
+  // ============================================================================
+
+  describe("KEY_SIGNATURE token scanning", () => {
+    it("should scan K:C as KEY_SIGNATURE token", () => {
+      const input = "\nK:C\n";
+      const ctx = new Ctx(input, context);
+      ctx.push(TT.EOL);
+      ctx.start = 1;
+      ctx.current = 1;
+      const result = info_line(ctx);
+
+      expect(result).to.be.true;
+      expect(ctx.tokens[1].type).to.equal(TT.INF_HDR);
+      expect(ctx.tokens[1].lexeme).to.equal("K:");
+      expect(ctx.tokens[2].type).to.equal(TT.KEY_SIGNATURE);
+      expect(ctx.tokens[2].lexeme).to.equal("C");
+    });
+
+    it("should scan K:Am as single KEY_SIGNATURE token", () => {
+      const input = "\nK:Am\n";
+      const ctx = new Ctx(input, context);
+      ctx.push(TT.EOL);
+      ctx.start = 1;
+      ctx.current = 1;
+      const result = info_line(ctx);
+
+      expect(result).to.be.true;
+      expect(ctx.tokens[1].type).to.equal(TT.INF_HDR);
+      expect(ctx.tokens[2].type).to.equal(TT.KEY_SIGNATURE);
+      expect(ctx.tokens[2].lexeme).to.equal("Am");
+    });
+
+    it("should scan K:C#m as single KEY_SIGNATURE token (accidental + mode)", () => {
+      const input = "\nK:C#m\n";
+      const ctx = new Ctx(input, context);
+      ctx.push(TT.EOL);
+      ctx.start = 1;
+      ctx.current = 1;
+      const result = info_line(ctx);
+
+      expect(result).to.be.true;
+      expect(ctx.tokens[1].type).to.equal(TT.INF_HDR);
+      expect(ctx.tokens[2].type).to.equal(TT.KEY_SIGNATURE);
+      expect(ctx.tokens[2].lexeme).to.equal("C#m");
+    });
+
+    it("should scan K:Bbmaj as single KEY_SIGNATURE token", () => {
+      const input = "\nK:Bbmaj\n";
+      const ctx = new Ctx(input, context);
+      ctx.push(TT.EOL);
+      ctx.start = 1;
+      ctx.current = 1;
+      const result = info_line(ctx);
+
+      expect(result).to.be.true;
+      expect(ctx.tokens[1].type).to.equal(TT.INF_HDR);
+      expect(ctx.tokens[2].type).to.equal(TT.KEY_SIGNATURE);
+      expect(ctx.tokens[2].lexeme).to.equal("Bbmaj");
+    });
+
+    it("should scan K:Gdor as single KEY_SIGNATURE token", () => {
+      const input = "\nK:Gdor\n";
+      const ctx = new Ctx(input, context);
+      ctx.push(TT.EOL);
+      ctx.start = 1;
+      ctx.current = 1;
+      const result = info_line(ctx);
+
+      expect(result).to.be.true;
+      expect(ctx.tokens[1].type).to.equal(TT.INF_HDR);
+      expect(ctx.tokens[2].type).to.equal(TT.KEY_SIGNATURE);
+      expect(ctx.tokens[2].lexeme).to.equal("Gdor");
+    });
+
+    it("should scan K:F#mixolydian as single KEY_SIGNATURE token (full mode name)", () => {
+      const input = "\nK:F#mixolydian\n";
+      const ctx = new Ctx(input, context);
+      ctx.push(TT.EOL);
+      ctx.start = 1;
+      ctx.current = 1;
+      const result = info_line(ctx);
+
+      expect(result).to.be.true;
+      expect(ctx.tokens[1].type).to.equal(TT.INF_HDR);
+      expect(ctx.tokens[2].type).to.equal(TT.KEY_SIGNATURE);
+      expect(ctx.tokens[2].lexeme).to.equal("F#mixolydian");
+    });
+
+    it("should scan K:HP as KEY_SIGNATURE token (Highland Pipes)", () => {
+      const input = "\nK:HP\n";
+      const ctx = new Ctx(input, context);
+      ctx.push(TT.EOL);
+      ctx.start = 1;
+      ctx.current = 1;
+      const result = info_line(ctx);
+
+      expect(result).to.be.true;
+      expect(ctx.tokens[1].type).to.equal(TT.INF_HDR);
+      expect(ctx.tokens[2].type).to.equal(TT.KEY_SIGNATURE);
+      expect(ctx.tokens[2].lexeme).to.equal("HP");
+    });
+
+    it("should scan K:none as KEY_SIGNATURE token", () => {
+      const input = "\nK:none\n";
+      const ctx = new Ctx(input, context);
+      ctx.push(TT.EOL);
+      ctx.start = 1;
+      ctx.current = 1;
+      const result = info_line(ctx);
+
+      expect(result).to.be.true;
+      expect(ctx.tokens[1].type).to.equal(TT.INF_HDR);
+      expect(ctx.tokens[2].type).to.equal(TT.KEY_SIGNATURE);
+      expect(ctx.tokens[2].lexeme).to.equal("none");
+    });
+
+    it("should scan K:C#m clef=treble with KEY_SIGNATURE + modifiers", () => {
+      const input = "\nK:C#m clef=treble\n";
+      const ctx = new Ctx(input, context);
+      ctx.push(TT.EOL);
+      ctx.start = 1;
+      ctx.current = 1;
+      const result = info_line(ctx);
+
+      expect(result).to.be.true;
+      expect(ctx.tokens[1].type).to.equal(TT.INF_HDR);
+      expect(ctx.tokens[1].lexeme).to.equal("K:");
+      expect(ctx.tokens[2].type).to.equal(TT.KEY_SIGNATURE);
+      expect(ctx.tokens[2].lexeme).to.equal("C#m");
+      expect(ctx.tokens[3].type).to.equal(TT.WS);
+      expect(ctx.tokens[4].type).to.equal(TT.IDENTIFIER);
+      expect(ctx.tokens[4].lexeme).to.equal("clef");
+      expect(ctx.tokens[5].type).to.equal(TT.EQL);
+      expect(ctx.tokens[6].type).to.equal(TT.IDENTIFIER);
+      expect(ctx.tokens[6].lexeme).to.equal("treble");
+    });
+
+    it("should NOT scan M:C as KEY_SIGNATURE (context isolation)", () => {
+      const input = "\nM:C\n";
+      const ctx = new Ctx(input, context);
+      ctx.push(TT.EOL);
+      ctx.start = 1;
+      ctx.current = 1;
+      const result = info_line(ctx);
+
+      expect(result).to.be.true;
+      expect(ctx.tokens[1].type).to.equal(TT.INF_HDR);
+      expect(ctx.tokens[1].lexeme).to.equal("M:");
+      // M:C should be SPECIAL_LITERAL, not KEY_SIGNATURE
+      expect(ctx.tokens[2].type).to.equal(TT.SPECIAL_LITERAL);
+      expect(ctx.tokens[2].lexeme).to.equal("C");
+    });
+
+    it("should NOT scan V:DMix as KEY_SIGNATURE (context isolation)", () => {
+      const input = "\nV:DMix\n";
+      const ctx = new Ctx(input, context);
+      ctx.push(TT.EOL);
+      ctx.start = 1;
+      ctx.current = 1;
+      const result = info_line(ctx);
+
+      expect(result).to.be.true;
+      expect(ctx.tokens[1].type).to.equal(TT.INF_HDR);
+      expect(ctx.tokens[1].lexeme).to.equal("V:");
+      // V:DMix should be IDENTIFIER, not KEY_SIGNATURE
+      expect(ctx.tokens[2].type).to.equal(TT.IDENTIFIER);
+      expect(ctx.tokens[2].lexeme).to.equal("DMix");
     });
   });
 });

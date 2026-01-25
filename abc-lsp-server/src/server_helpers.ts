@@ -101,6 +101,7 @@ export function mapTTtoStandardScope(type: number): number {
     case TT.REPEAT_X:
       return standardTokenScopes.comment;
     case TT.CHORD_SYMBOL:
+    case TT.KEY_SIGNATURE:
       return standardTokenScopes.type;
     case TT.MINUS:
     case TT.PLUS:

@@ -143,16 +143,17 @@ export function specialLiteral(ctx: Ctx): boolean {
 
 /**
  * Scan absolute pitch: note letter + optional accidental + optional numeric octave
- * Examples: G4, F#5, Bb3, C, F#m (for key signatures)
- * Used in tempo markings like Q: G4=120 and key signatures like K:F#m
+ * Examples: G4, F#5, Bb3, C
+ * Used in tempo markings like Q: G4=120
  *
- * Important: A letter can only follow if there's an accidental or octave,
- * OR if it's an uppercase note (A-G) followed by a mode identifier.
+ * Important: A letter can only follow if there's an accidental or octave.
  * This prevents "Aa_" from being split as "A" (note) + "a_" (identifier).
- * - F#m → F (note) + # (accidental) + m (mode) - OK, accidental present
+ * - F#m → F (note) + # (accidental) - then m is scanned separately as identifier
  * - Aa_ → Aa_ (identifier) - letter directly after note, no match
- * - DMix → D (note) + Mix (identifier) - OK, uppercase note + mode identifier
- * - Ador → A (note) + dor (identifier) - OK, uppercase note + mode identifier
+ *
+ * Note: Key signatures with modes (like DMix, Ador) are now handled by
+ * the dedicated scanKeyInfoLine scanner, so we no longer match uppercase
+ * notes followed by mode identifiers here.
  */
 export function absolutePitch(ctx: Ctx): boolean {
   // Pattern breakdown:

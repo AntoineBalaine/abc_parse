@@ -100,15 +100,23 @@ export function analyzeInfoLine(expr: Info_line, analyzer: SemanticAnalyzer): In
  * Analyzes K: (key) info lines
  *
  * Expects expressions from parseInfoLine2:
- * - KV expressions with identifiers for key components and modifiers
- * - Identifiers/tokens for key root, accidental, mode
+ * - KEY_SIGNATURE token containing the full key signature (e.g., "C#m", "Bbmaj", "Gdor")
+ * - KV expressions for modifiers (clef=treble, transpose=0, etc.)
+ * - Legacy format: separate IDENTIFIER tokens for key root and mode
  *
- * Examples:
+ * Examples (new format with KEY_SIGNATURE token):
+ *   K:C       -> KEY_SIGNATURE("C")
+ *   K:Am      -> KEY_SIGNATURE("Am")
+ *   K:C#m     -> KEY_SIGNATURE("C#m")
+ *   K:Bbmaj   -> KEY_SIGNATURE("Bbmaj")
+ *   K:Gdor clef=treble -> KEY_SIGNATURE("Gdor"), KV(key="clef", value="treble")
+ *   K:HP      -> KEY_SIGNATURE("HP")
+ *   K:none    -> KEY_SIGNATURE("none")
+ *
+ * Legacy examples (separate tokens):
  *   K:C       -> Token("C")
  *   K:Am      -> Token("A"), Token("m")
  *   K:G Mix   -> Token("G"), Token("Mix")
- *   K:D clef=bass -> Token("D"), KV(key="clef", value="bass")
- *   K:F# minor transpose=2 -> Token("F#"), Token("minor"), KV(key="transpose", value="2")
  */
 export function analyzeKeyInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
   // Key signature is always in expr.value (the token array)
@@ -129,64 +137,77 @@ export function analyzeKeyInfo(expr: Info_line, analyzer: SemanticAnalyzer): Inf
 
   let valueIndex = 0;
 
-  // 1. Parse key root from first token in value array
+  // 1. Parse key signature from first token in value array
   const firstToken = expr.value[valueIndex];
   if (isToken(firstToken)) {
-    const keyStr = firstToken.lexeme;
+    const token = firstToken as Token;
 
-    // Handle "none" special case
-    if (keyStr.toLowerCase() === "none") {
-      // K:none - no key signature
-      return { type: "key", data: keyInfo };
-    }
+    // Check if this is a KEY_SIGNATURE token (new format)
+    if (token.type === TT.KEY_SIGNATURE) {
+      parseKeySignatureToken(token.lexeme, keyInfo);
+      valueIndex++;
+    } else {
+      // Legacy format: parse using existing logic
+      const keyStr = token.lexeme;
 
-    // Parse using ABC pitch notation: ^f (F#), _b (Bb), =c (C natural)
-    // Format: [accidental]note where accidental is ^ (sharp) or _ (flat) or = (natural)
-    let keyIndex = 0;
-    let acc = KeyAccidental.None;
-
-    // Check for accidental prefix (ABC notation)
-    if (keyStr[0] === "^") {
-      acc = KeyAccidental.Sharp;
-      keyIndex = 1;
-    } else if (keyStr[0] === "_") {
-      acc = KeyAccidental.Flat;
-      keyIndex = 1;
-    } else if (keyStr[0] === "=") {
-      acc = KeyAccidental.None;
-      keyIndex = 1;
-    }
-
-    // Parse root note
-    if (keyIndex < keyStr.length) {
-      const root = parseKeyRoot(keyStr[keyIndex]);
-      if (root) {
-        keyInfo.keySignature.root = root;
-        keyInfo.keySignature.acc = acc;
+      // Handle "none" special case
+      if (keyStr.toLowerCase() === "none") {
+        // K:none - no key signature
+        return { type: "key", data: keyInfo };
       }
-    }
 
-    valueIndex++;
+      // Parse using ABC pitch notation: ^f (F#), _b (Bb), =c (C natural)
+      // Format: [accidental]note where accidental is ^ (sharp) or _ (flat) or = (natural)
+      let keyIndex = 0;
+      let acc = KeyAccidental.None;
+
+      // Check for accidental prefix (ABC notation)
+      if (keyStr[0] === "^") {
+        acc = KeyAccidental.Sharp;
+        keyIndex = 1;
+      } else if (keyStr[0] === "_") {
+        acc = KeyAccidental.Flat;
+        keyIndex = 1;
+      } else if (keyStr[0] === "=") {
+        acc = KeyAccidental.None;
+        keyIndex = 1;
+      }
+
+      // Parse root note
+      if (keyIndex < keyStr.length) {
+        const root = parseKeyRoot(keyStr[keyIndex]);
+        if (root) {
+          keyInfo.keySignature.root = root;
+          keyInfo.keySignature.acc = acc;
+        }
+      }
+
+      valueIndex++;
+    }
   }
 
-  // 2. Parse optional mode from second token in value array (if not a KV and value2 doesn't exist)
-  if (valueIndex < expr.value.length && !(expr.value2 && expr.value2.length > 0)) {
-    const token = expr.value[valueIndex];
-    if (isToken(token)) {
-      const mode = parseKeyMode(token.lexeme);
-      if (mode !== null) {
-        keyInfo.keySignature.mode = mode;
-        valueIndex++;
+  // 2. Parse optional mode from second token in value array (legacy format only)
+  // Skip this if we already parsed a KEY_SIGNATURE token (mode is included in the token)
+  const firstWasKeySignature = isToken(expr.value[0]) && (expr.value[0] as Token).type === TT.KEY_SIGNATURE;
+  if (!firstWasKeySignature) {
+    if (valueIndex < expr.value.length && !(expr.value2 && expr.value2.length > 0)) {
+      const token = expr.value[valueIndex];
+      if (isToken(token)) {
+        const mode = parseKeyMode(token.lexeme);
+        if (mode !== null) {
+          keyInfo.keySignature.mode = mode;
+          valueIndex++;
+        }
       }
-    }
-  } else if (valueIndex < expr.value.length) {
-    // If value2 exists, check if second token is a mode
-    const token = expr.value[valueIndex];
-    if (isToken(token)) {
-      const mode = parseKeyMode(token.lexeme);
-      if (mode !== null) {
-        keyInfo.keySignature.mode = mode;
-        valueIndex++;
+    } else if (valueIndex < expr.value.length) {
+      // If value2 exists, check if second token is a mode
+      const token = expr.value[valueIndex];
+      if (isToken(token)) {
+        const mode = parseKeyMode(token.lexeme);
+        if (mode !== null) {
+          keyInfo.keySignature.mode = mode;
+          valueIndex++;
+        }
       }
     }
   }
@@ -210,6 +231,60 @@ export function analyzeKeyInfo(expr: Info_line, analyzer: SemanticAnalyzer): Inf
   }
 
   return { type: "key", data: keyInfo };
+}
+
+/**
+ * Parse a KEY_SIGNATURE token lexeme into key info
+ *
+ * Pattern: [A-Ga-g][#b]?[mode]? | HP | Hp | none
+ *
+ * Examples: C, Am, F#m, Bbmaj, Gdor, Amix, HP, none, C#minor, Dmixolydian
+ */
+function parseKeySignatureToken(lexeme: string, keyInfo: KeyInfo): void {
+  // Handle special cases
+  if (lexeme.toLowerCase() === "none") {
+    // K:none - default values already set
+    return;
+  }
+
+  if (lexeme === "HP" || lexeme === "Hp") {
+    keyInfo.keySignature.root = KeyRoot.HP;
+    keyInfo.keySignature.acc = KeyAccidental.None;
+    keyInfo.keySignature.mode = Mode.Major;
+    return;
+  }
+
+  // Parse pattern: [A-Ga-g][#b]?[mode]?
+  let index = 0;
+
+  // 1. Parse root note (first character)
+  if (index < lexeme.length) {
+    const root = parseKeyRoot(lexeme[index]);
+    if (root) {
+      keyInfo.keySignature.root = root;
+      index++;
+    }
+  }
+
+  // 2. Parse optional accidental (# or b)
+  if (index < lexeme.length) {
+    if (lexeme[index] === "#") {
+      keyInfo.keySignature.acc = KeyAccidental.Sharp;
+      index++;
+    } else if (lexeme[index] === "b") {
+      keyInfo.keySignature.acc = KeyAccidental.Flat;
+      index++;
+    }
+  }
+
+  // 3. Parse optional mode (remaining characters)
+  if (index < lexeme.length) {
+    const modeStr = lexeme.substring(index);
+    const mode = parseKeyMode(modeStr);
+    if (mode !== null) {
+      keyInfo.keySignature.mode = mode;
+    }
+  }
 }
 
 function parseKeyRoot(char: string): KeyRoot | null {

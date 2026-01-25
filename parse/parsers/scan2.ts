@@ -3,6 +3,7 @@ import { ABCContext } from "./Context";
 import { AbcErrorReporter } from "./ErrorReporter";
 import { scanDirective } from "./infoLines/scanDirective";
 import { scanInfoLine2, scanHistoryField } from "./infoLines/scanInfoLine2";
+import { scanKeyInfoLine } from "./infoLines/scanKeyInfoLine";
 import { comment, pEOL, pInfoLine, pMacroLine, pSectionBrk, pTuneHeadStrt, pUserSymbol, scanTune, symbol } from "./scan_tunebody";
 
 export class Ctx {
@@ -289,6 +290,7 @@ export enum TT {
   SY_STAR, // symbol line star
   SY_TXT, // symbol line text
   CHORD_SYMBOL, // ABCx chord symbol (e.g., Am7, Cmaj7#11, Bb/D)
+  KEY_SIGNATURE, // Key signature (e.g., C#m, Dmaj, F#, Gdor, HP, none)
 }
 
 export class Token {
@@ -352,8 +354,13 @@ export function info_line(ctx: Ctx): boolean {
 
   const infoType = match[0].trim();
 
-  // Use unified scanner for specific info line types
-  if (infoType === "K:" || infoType === "M:" || infoType === "L:" || infoType === "Q:" || infoType === "V:") {
+  // Use dedicated scanner for K: info lines to produce KEY_SIGNATURE tokens
+  if (infoType === "K:") {
+    return scanKeyInfoLine(ctx);
+  }
+
+  // Use unified scanner for other specific info line types
+  if (infoType === "M:" || infoType === "L:" || infoType === "Q:" || infoType === "V:") {
     return scanInfoLine2(ctx);
   }
 

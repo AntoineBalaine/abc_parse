@@ -83,7 +83,7 @@ K:C
       TT.INFO_STR,
       TT.EOL,
       TT.INF_HDR,
-      TT.SPECIAL_LITERAL,
+      TT.KEY_SIGNATURE, // K:C produces KEY_SIGNATURE token
       TT.EOL,
       TT.STYLESHEET_DIRECTIVE,
       TT.IDENTIFIER,
@@ -114,9 +114,9 @@ ABC DEF|`);
       TT.EOL, // X:1
       TT.INF_HDR,
       TT.INFO_STR,
-      TT.EOL, // M:4/4
+      TT.EOL, // T:Test Tune
       TT.INF_HDR,
-      TT.SPECIAL_LITERAL,
+      TT.KEY_SIGNATURE, // K:C produces KEY_SIGNATURE token
       TT.EOL, // K:C
     ];
 
@@ -160,7 +160,7 @@ ABC DEF|
       TT.INFO_STR,
       TT.EOL, // T:Test Tune
       TT.INF_HDR,
-      TT.SPECIAL_LITERAL,
+      TT.KEY_SIGNATURE, // K:C produces KEY_SIGNATURE token
       TT.EOL, // K:C
       TT.NOTE_LETTER,
       TT.NOTE_LETTER,
