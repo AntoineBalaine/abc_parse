@@ -6,8 +6,8 @@
 # ============================================================================
 
 # Path to the abc-kak-client.js script
-declare-option -docstring "Command to invoke the ABC Kakoune client" \
-    str abc_client_cmd "node %sh{dirname $(dirname $kak_source)}/bin/abc-kak-client.js"
+declare-option -docstring "Path to the ABC Kakoune client script" \
+    str abc_client_path "%sh{dirname $(dirname $kak_source)}/bin/abc-kak-client.js"
 
 # Socket path (computed using the same logic as the server)
 declare-option -docstring "Unix socket path for ABC LSP server" \
@@ -50,11 +50,9 @@ hook global BufCreate .*\.abcx %{
 # ============================================================================
 # LSP Integration (via kak-lsp)
 # ============================================================================
-
-hook global WinSetOption filetype=(abc|abcx) %{
-    # Enable kak-lsp if available (diagnostics, completions, hover, formatting)
-    try %{ lsp-enable-window }
-}
+# Note: LSP setup (lsp-enable-window, semantic tokens) should be configured
+# in your kakrc alongside the lsp_servers option. This plugin only provides
+# the selector commands and state management.
 
 # ============================================================================
 # State Management

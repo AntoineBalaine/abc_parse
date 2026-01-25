@@ -38,7 +38,7 @@ define-command -hidden abc-select-impl -params 1..2 %{
         cursor_node_ids="$kak_opt_abc_cursor_node_ids"
 
         # Invoke the client
-        result=$("$kak_opt_abc_client_cmd" \
+        result=$(node "$kak_opt_abc_client_path" \
             --socket="$kak_opt_abc_socket_path" \
             --uri="$uri" \
             --selector="$selector" \
