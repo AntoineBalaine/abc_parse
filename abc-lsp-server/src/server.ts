@@ -5,6 +5,8 @@
 import {
   CompletionItem,
   CompletionItemKind,
+  FoldingRange,
+  FoldingRangeParams,
   Hover,
   InitializeParams,
   InitializeResult,
@@ -35,6 +37,7 @@ import { createSelection, Selection } from "../../abct2/src/selection";
 import { CSNode, TAGS } from "../../abct2/src/csTree/types";
 import { selectRange } from "../../abct2/src/selectors/rangeSelector";
 import { File_structure, Scanner, parse, ABCContext } from "abc-parser";
+import { computeFoldingRanges, DEFAULT_FOLDING_CONFIG } from "./foldingRangeProvider";
 
 // ============================================================================
 // Transform Node Tags Mapping
@@ -216,6 +219,7 @@ connection.onInitialize((params: InitializeParams) => {
     prepareProvider: false,
   };
   result.capabilities.documentSymbolProvider = false;
+  result.capabilities.foldingRangeProvider = true;
 
   if (hasSemanticTokensCapability) {
     result.capabilities.semanticTokensProvider = {
@@ -244,6 +248,22 @@ connection.languages.semanticTokens.on((params) => {
 });
 
 connection.onDocumentFormatting((params) => abcServer.onFormat(params.textDocument.uri));
+
+connection.onFoldingRanges((params: FoldingRangeParams): FoldingRange[] => {
+  const uri = params.textDocument.uri;
+
+  // Folding is only supported for ABC files (not ABCT)
+  if (uri.toLowerCase().endsWith(".abct")) {
+    return [];
+  }
+
+  const doc = abcServer.abcDocuments.get(uri);
+  if (!doc || !(doc instanceof AbcDocument) || !doc.AST) {
+    return [];
+  }
+
+  return computeFoldingRanges(doc.AST, doc.tokens, DEFAULT_FOLDING_CONFIG);
+});
 
 connection.onHover((params: TextDocumentPositionParams): Hover | null => {
   const uri = params.textDocument.uri;
