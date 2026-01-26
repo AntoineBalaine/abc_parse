@@ -101,3 +101,27 @@ export function isBarLine(node: CSNode): boolean {
 export function isBeam(node: CSNode): boolean {
   return node.tag === TAGS.Beam;
 }
+
+export function isRhythm(node: CSNode): boolean {
+  return node.tag === TAGS.Rhythm;
+}
+
+export function isYSpacer(node: CSNode): boolean {
+  return node.tag === TAGS.YSPACER;
+}
+
+export function hasRhythmChild(node: CSNode): boolean {
+  let child = node.firstChild;
+  while (child !== null) {
+    if (child.tag === TAGS.Rhythm) {
+      return true;
+    }
+    child = child.nextSibling;
+  }
+  return false;
+}
+
+export function isRhythmParent(node: CSNode): boolean {
+  const isParentType = isNote(node) || isChord(node) || isRest(node) || isYSpacer(node);
+  return isParentType && hasRhythmChild(node);
+}

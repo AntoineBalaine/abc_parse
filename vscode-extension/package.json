@@ -208,6 +208,16 @@
         "category": "ABC"
       },
       {
+        "command": "abc.selectRhythm",
+        "title": "ABC: Select Rhythm Expressions",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.selectRhythmParent",
+        "title": "ABC: Select Elements with Rhythm",
+        "category": "ABC"
+      },
+      {
         "command": "abc.wrapCrescendo",
         "title": "ABC: Wrap Selection in Crescendo",
         "category": "ABC"
@@ -376,6 +386,14 @@
         },
         {
           "command": "abc.selectAllButBottom",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.selectRhythm",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.selectRhythmParent",
           "when": "editorLangId == abc"
         },
         {

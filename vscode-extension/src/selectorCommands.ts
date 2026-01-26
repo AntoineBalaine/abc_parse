@@ -62,6 +62,8 @@ export function registerSelectorCommands(
     ["abc.selectBottom", "selectBottom"],
     ["abc.selectAllButTop", "selectAllButTop"],
     ["abc.selectAllButBottom", "selectAllButBottom"],
+    ["abc.selectRhythm", "selectRhythm"],
+    ["abc.selectRhythmParent", "selectRhythmParent"],
   ];
 
   for (const [commandId, selectorName] of selectorCommands) {

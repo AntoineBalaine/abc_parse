@@ -1,7 +1,7 @@
 import { Selection } from "../../abct2/src/selection";
 import {
   selectChords, selectNotes, selectNonChordNotes,
-  selectChordNotes, selectRests
+  selectChordNotes, selectRests, selectRhythm, selectRhythmParent
 } from "../../abct2/src/selectors/typeSelectors";
 import { selectTune } from "../../abct2/src/selectors/structureSelectors";
 import {
@@ -17,6 +17,8 @@ const SELECTOR_MAP: Record<string, SelectorFn> = {
   selectNonChordNotes: (sel) => selectNonChordNotes(sel),
   selectChordNotes: (sel) => selectChordNotes(sel),
   selectRests: (sel) => selectRests(sel),
+  selectRhythm: (sel) => selectRhythm(sel),
+  selectRhythmParent: (sel) => selectRhythmParent(sel),
   selectTune: (sel) => selectTune(sel),
   selectTop: (sel) => selectTop(sel),
   selectBottom: (sel) => selectBottom(sel),
