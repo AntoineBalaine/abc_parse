@@ -146,4 +146,33 @@ export function registerSelectorCommands(
       statusBarItem.hide();
     })
   );
+
+  // consolidateSelections merges overlapping/contiguous selections
+  context.subscriptions.push(
+    vscode.commands.registerCommand("abc.consolidateSelections", async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor || editor.document.languageId !== "abc") return;
+
+      const ranges = editor.selections.map((s) => ({
+        start: { line: s.start.line, character: s.start.character },
+        end: { line: s.end.line, character: s.end.character },
+      }));
+
+      if (ranges.length <= 1) return;
+
+      try {
+        const result = await client.sendRequest<ApplySelectorResult>(
+          "abc.consolidateSelections",
+          { ranges }
+        );
+
+        if (result.ranges.length > 0) {
+          applySelectionsToEditor(editor, result.ranges);
+          updateStatusBar(statusBarItem, result.ranges.length);
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(`Consolidate selections failed: ${error}`);
+      }
+    })
+  );
 }

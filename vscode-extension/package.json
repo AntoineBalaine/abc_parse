@@ -180,7 +180,8 @@
       { "command": "abc.harmonize5thUp", "title": "ABC: Harmonize 5th Up", "category": "ABC" },
       { "command": "abc.harmonize5thDown", "title": "ABC: Harmonize 5th Down", "category": "ABC" },
       { "command": "abc.harmonize6thUp", "title": "ABC: Harmonize 6th Up", "category": "ABC" },
-      { "command": "abc.harmonize6thDown", "title": "ABC: Harmonize 6th Down", "category": "ABC" }
+      { "command": "abc.harmonize6thDown", "title": "ABC: Harmonize 6th Down", "category": "ABC" },
+      { "command": "abc.consolidateSelections", "title": "ABC: Consolidate Selections", "category": "ABC" }
     ],
     "menus": {
       "commandPalette": [
@@ -217,7 +218,8 @@
         { "command": "abc.harmonize5thUp", "when": "editorLangId == abc" },
         { "command": "abc.harmonize5thDown", "when": "editorLangId == abc" },
         { "command": "abc.harmonize6thUp", "when": "editorLangId == abc" },
-        { "command": "abc.harmonize6thDown", "when": "editorLangId == abc" }
+        { "command": "abc.harmonize6thDown", "when": "editorLangId == abc" },
+        { "command": "abc.consolidateSelections", "when": "editorLangId == abc" }
       ]
     },
     "configurationDefaults": {

@@ -99,6 +99,18 @@ interface ApplySelectorResult {
 }
 
 // ============================================================================
+// Consolidate Selections Request Types
+// ============================================================================
+
+interface ConsolidateSelectionsParams {
+  ranges: Range[];
+}
+
+interface ConsolidateSelectionsResult {
+  ranges: Range[];
+}
+
+// ============================================================================
 // Wrap Dynamic Request Types
 // ============================================================================
 
@@ -282,6 +294,55 @@ connection.onRequest("abct2.applySelector", (params: ApplySelectorParams): Apply
   const ranges = resolveSelectionRanges(newSelection);
   return { ranges };
 });
+
+// ============================================================================
+// Consolidate Selections Request Handler
+// ============================================================================
+
+/**
+ * Merge overlapping or contiguous ranges into minimal set of ranges.
+ * Ranges are contiguous if one ends where another begins.
+ */
+connection.onRequest(
+  "abc.consolidateSelections",
+  (params: ConsolidateSelectionsParams): ConsolidateSelectionsResult => {
+    if (params.ranges.length <= 1) {
+      return { ranges: params.ranges };
+    }
+
+    // Sort by start position
+    const sorted = [...params.ranges].sort((a, b) => {
+      if (a.start.line !== b.start.line) return a.start.line - b.start.line;
+      return a.start.character - b.start.character;
+    });
+
+    const merged: Range[] = [sorted[0]];
+
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = merged[merged.length - 1];
+      const curr = sorted[i];
+
+      // Check if ranges overlap or are contiguous
+      const prevEndsAfterCurrStarts =
+        prev.end.line > curr.start.line ||
+        (prev.end.line === curr.start.line && prev.end.character >= curr.start.character);
+
+      if (prevEndsAfterCurrStarts) {
+        // Merge: keep earlier start, take later end
+        const newEnd =
+          curr.end.line > prev.end.line ||
+          (curr.end.line === prev.end.line && curr.end.character > prev.end.character)
+            ? curr.end
+            : prev.end;
+        merged[merged.length - 1] = Range.create(prev.start, newEnd);
+      } else {
+        merged.push(curr);
+      }
+    }
+
+    return { ranges: merged };
+  }
+);
 
 // ============================================================================
 // Wrap Dynamic Request Handler
