@@ -1,4 +1,4 @@
-import { ABCContext, File_structure, parse, RangeVisitor, Scanner, Token, TT } from "abc-parser";
+import { ABCContext, File_structure, parse, RangeVisitor, Scanner, Token } from "abc-parser";
 import { Diagnostic } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { mapAbcErrorsToDiagnostics, mapAbcWarningsToDiagnostics } from "./server_helpers";
@@ -11,8 +11,8 @@ import { mapAbcErrorsToDiagnostics, mapAbcWarningsToDiagnostics } from "./server
  * as opposed to "deferred style" where ABCJS pieces voices together at render time.
  *
  * Uses standard Scanner and parse from abc-parser (not custom scanner like ABCX).
- * The difference from AbcDocument: will pass a `linear: true` flag to parsing
- * (to be implemented in Phase 2).
+ * The difference from AbcDocument: passes a `linear: true` flag to parsing,
+ * which enables dynamic voice discovery and linear-style system detection.
  */
 export class AbclDocument {
   public diagnostics: Diagnostic[] = [];
@@ -40,11 +40,10 @@ export class AbclDocument {
     this.diagnostics = [];
     this.tokens = [];
 
-    // Use standard ABC scanner and parser
-    // Because linear parsing is not yet implemented, we use standard parsing
-    // (Phase 2 will add the linear: true option)
+    // Use standard ABC scanner and parser with linear mode enabled
+    // In linear mode, voice changes indicate system breaks and voices are discovered dynamically
     const tokens = Scanner(source, this.ctx);
-    this.AST = parse(tokens, this.ctx);
+    this.AST = parse(tokens, this.ctx, { linear: true });
 
     const errs = mapAbcErrorsToDiagnostics(this.ctx.errorReporter.getErrors(), this.rangeVisitor);
     const warnings = mapAbcWarningsToDiagnostics(this.ctx.errorReporter.getWarnings(), this.rangeVisitor);
