@@ -1,7 +1,7 @@
 import { isToken } from "../helpers";
 import { StaffNomenclature, VxNomenclature } from "../interpreter/InterpreterState";
 import { Token, TT } from "../parsers/scan2";
-import { DirectiveSemanticData, FontSpec, DRUM_SOUND_NAMES, DrumSoundName } from "../types/directive-specs";
+import { DirectiveSemanticData, FontSpec, DRUM_SOUND_NAMES, DrumSoundName, AbclsDirectiveData } from "../types/directive-specs";
 import { Directive, Annotation, Measurement, Rational, KV, Pitch } from "../types/Expr2";
 import { SemanticAnalyzer } from "./semantic-analyzer";
 import { BracketBracePosition } from "../types/abcjs-ast";
@@ -205,6 +205,12 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
       return parsePercmap(directive, analyzer);
     case "deco":
       return parseDeco(directive, analyzer);
+
+    // ============================================================================
+    // ABC Language Server Directives
+    // ============================================================================
+    case "abcls":
+      return parseAbclsDirective(directive, analyzer);
 
     // ============================================================================
     // Metadata Directives
@@ -1881,5 +1887,57 @@ function parseBeginText(directive: Directive, analyzer: SemanticAnalyzer): Direc
   return {
     type: "begintext",
     data: value.lexeme,
+  };
+}
+
+/**
+ * Parses %%abcls directive (voice filter for ABC Language Server)
+ *
+ * Syntax: %%abcls show V1 V2 V3
+ *         %%abcls hide V1 V2
+ *
+ * Because this directive controls which voices are rendered in the preview,
+ * we need to extract the mode (show/hide) and the list of voice IDs.
+ */
+function parseAbclsDirective(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
+  // Because the directive requires at least a mode and one voice ID,
+  // we validate that we have at least 2 values
+  if (directive.values.length < 2) {
+    analyzer.report("abcls directive expects mode (show/hide) and at least one voice ID", directive);
+    return null;
+  }
+
+  // Extract the mode (first value)
+  const modeToken = directive.values[0];
+  if (!isToken(modeToken) || modeToken.type !== TT.IDENTIFIER) {
+    analyzer.report("abcls directive expects 'show' or 'hide' as first parameter", directive);
+    return null;
+  }
+
+  const modeLower = modeToken.lexeme.toLowerCase();
+  if (modeLower !== "show" && modeLower !== "hide") {
+    analyzer.report(`abcls directive mode must be 'show' or 'hide', got '${modeToken.lexeme}'`, directive);
+    return null;
+  }
+
+  // Extract voice IDs (remaining values)
+  const voiceIds: string[] = [];
+  for (let i = 1; i < directive.values.length; i++) {
+    const value = directive.values[i];
+    if (!isToken(value)) {
+      analyzer.report("abcls directive expects voice IDs as parameters", directive);
+      return null;
+    }
+    voiceIds.push(value.lexeme);
+  }
+
+  const data: AbclsDirectiveData = {
+    mode: modeLower as "show" | "hide",
+    voiceIds: voiceIds,
+  };
+
+  return {
+    type: "abcls",
+    data: data,
   };
 }

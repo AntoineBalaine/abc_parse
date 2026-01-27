@@ -506,3 +506,28 @@ export const genChordSymbolExpr = ScannerGen.genChordSymbolToken.map((token) => 
   };
 });
 
+/**
+ * Generator for %%abcls directive expressions
+ * Creates both the token array and the Directive expression
+ */
+export const genAbclsDirectiveExpr = ScannerGen.genAbclsDirective.map((tokens) => {
+  // Filter out WS and EOL tokens for the expression values
+  const contentTokens = tokens.filter(
+    (t) => t.type !== TT.STYLESHEET_DIRECTIVE && t.type !== TT.EOL && t.type !== TT.WS
+  );
+
+  // First token should be "abcls" (the directive key)
+  const keyToken = contentTokens[0];
+
+  // Remaining tokens are the values (mode + voice IDs)
+  const valueTokens = contentTokens.slice(1);
+
+  // Create the Directive expression
+  const directive = new Directive(sharedContext.generateId(), keyToken, valueTokens);
+
+  return {
+    tokens,
+    expr: directive,
+  };
+});
+

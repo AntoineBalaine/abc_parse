@@ -612,6 +612,47 @@ export const genStylesheetDirective = fc
   .map(([header, content, eol]) => [header, ...content, eol]);
 
 /**
+ * Generator for %%abcls directive (voice filter)
+ * Format: %%abcls show|hide <voice_id1> [voice_id2] [...]
+ * Examples: %%abcls show V1, %%abcls hide Bass Tenor, %%abcls show melody
+ * Produces: [TT.STYLESHEET_DIRECTIVE, TT.IDENTIFIER("abcls"), TT.WS, TT.IDENTIFIER(mode), TT.WS, ...voice_ids, TT.EOL]
+ *
+ * Note: WS tokens are included so tokens stay separate when concatenated for round-trip tests.
+ * The directive scanner discards whitespace, and the round-trip test's filterDirectiveWhitespace
+ * handles this by filtering WS from directive context before comparison.
+ * Voice IDs must be at least 2 characters to avoid conflicts with single note letters (a-g, A-G).
+ */
+export const genAbclsDirective = fc
+  .tuple(
+    // Directive header (%%)
+    fc.constant("%%").map((directive) => new Token(TT.STYLESHEET_DIRECTIVE, directive, sharedContext.generateId())),
+    // Directive name (abcls)
+    fc.constant("abcls").map((name) => new Token(TT.IDENTIFIER, name, sharedContext.generateId())),
+    // Mode (show or hide)
+    fc.constantFrom("show", "hide").map((mode) => new Token(TT.IDENTIFIER, mode, sharedContext.generateId())),
+    // Voice IDs (at least one, up to 5)
+    // Note: IDs must be at least 2 chars to avoid conflict with note letters (a-g)
+    fc.array(
+      fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9_]+$/).filter((id) => id.length >= 2 && id.length <= 20)
+        .map((id) => new Token(TT.IDENTIFIER, id, sharedContext.generateId())),
+      { minLength: 1, maxLength: 5 }
+    ),
+    // End of line
+    genEOL
+  )
+  .map(([header, name, mode, voiceIds, eol]) => {
+    // Build result with WS tokens between identifiers so they stay separate when concatenated
+    const ws = () => new Token(TT.WS, " ", sharedContext.generateId());
+    const result = [header, name, ws(), mode];
+    for (const voiceId of voiceIds) {
+      result.push(ws());
+      result.push(voiceId);
+    }
+    result.push(eol);
+    return result;
+  });
+
+/**
  * Generator for text directive (%%begintext ... %%endtext)
  * This is a multi-line directive that:
  * 1. Starts with %%begintext

@@ -12,6 +12,7 @@ export * from "./Visitors/RangeCollector";
 export * from "./Visitors/RangeVisitor";
 export * from "./Visitors/RhythmTransform";
 export * from "./Visitors/Transposer";
+export * from "./Visitors/VoiceFilterVisitor";
 export { IRational, createRational, addRational, subtractRational, multiplyRational, divideRational, rationalToNumber, rationalToString, compareRational, isInfiniteRational, equalRational, greaterRational, rationalFromNumber } from "./Visitors/fmt2/rational";
 // ABCx chord sheet notation support (unified exports)
 export * from "./abcx";

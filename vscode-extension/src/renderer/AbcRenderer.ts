@@ -8,8 +8,8 @@ import * as os from "os";
 import { pathToFileURL } from "url";
 import { LanguageClient } from "vscode-languageclient/node";
 
-// Import ABC parser for ABCx conversion
-import { ABCContext, AbcErrorReporter, convertAbcxToAbc as abcxToAbc } from "abc-parser";
+// Import ABC parser for ABCx conversion and voice filtering
+import { ABCContext, AbcErrorReporter, convertAbcxToAbc as abcxToAbc, filterVoicesInAbc } from "abc-parser";
 
 let panel: vscode.WebviewPanel | undefined;
 let outputChannel: vscode.OutputChannel;
@@ -62,9 +62,7 @@ export async function evaluateAbctForPreview(uri: string): Promise<string> {
 
     // On error, evaluate up to the line before the first error
     // Sort errors by line number to find the topmost error
-    const errors = result.diagnostics
-      .filter((d) => d.severity === 1)
-      .sort((a, b) => a.range.start.line - b.range.start.line);
+    const errors = result.diagnostics.filter((d) => d.severity === 1).sort((a, b) => a.range.start.line - b.range.start.line);
     const firstError = errors[0];
     if (!firstError) {
       return result.abc;
@@ -111,11 +109,7 @@ export function getOutputChannel(): vscode.OutputChannel {
  * @param theme Optional theme override ("light" or "dark")
  * @param viewColumn Optional view column for panel placement (default: Beside)
  */
-export async function showPreview(
-  context: vscode.ExtensionContext,
-  theme?: "light" | "dark",
-  viewColumn?: vscode.ViewColumn
-) {
+export async function showPreview(context: vscode.ExtensionContext, theme?: "light" | "dark", viewColumn?: vscode.ViewColumn) {
   initializePanel(context, viewColumn);
 
   if (panel) {
@@ -141,9 +135,7 @@ export async function showPreview(
  */
 export async function requestHtmlExport() {
   if (!panel) {
-    vscode.window.showWarningMessage(
-      "The HTML Export requires the preview panel to be open, to render content."
-    );
+    vscode.window.showWarningMessage("The HTML Export requires the preview panel to be open, to render content.");
     return;
   }
 
@@ -156,9 +148,7 @@ export async function requestHtmlExport() {
  */
 export async function requestSvgExport() {
   if (!panel) {
-    vscode.window.showWarningMessage(
-      "The SVG Export requires the preview panel to be open, to render content."
-    );
+    vscode.window.showWarningMessage("The SVG Export requires the preview panel to be open, to render content.");
     return;
   }
 
@@ -250,17 +240,10 @@ function initializePanel(context: vscode.ExtensionContext, viewColumn?: vscode.V
 }
 
 function createPanel(context: vscode.ExtensionContext, viewColumn?: vscode.ViewColumn): vscode.WebviewPanel {
-  return vscode.window.createWebviewPanel(
-    "abcPreview",
-    "ABC Preview",
-    viewColumn ?? vscode.ViewColumn.Beside,
-    {
-      enableScripts: true,
-      localResourceRoots: [
-        vscode.Uri.file(path.join(context.extensionPath, "abcjs-renderer", "resources")),
-      ],
-    }
-  );
+  return vscode.window.createWebviewPanel("abcPreview", "ABC Preview", viewColumn ?? vscode.ViewColumn.Beside, {
+    enableScripts: true,
+    localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, "abcjs-renderer", "resources"))],
+  });
 }
 
 async function getHtml(context: vscode.ExtensionContext, fileName: string): Promise<string> {
@@ -326,7 +309,33 @@ async function getCurrentEditorContent(): Promise<string> {
     content = convertAbcxToAbc(content);
   }
 
+  // Apply voice filter if %%abcls directive is present
+  content = applyVoiceFilter(content);
+
   return content;
+}
+
+/**
+ * Apply voice filter to ABC content based on %%abcls directives.
+ * Because the directive is embedded in the ABC content, we process it here
+ * to filter out voices before rendering.
+ */
+function applyVoiceFilter(content: string): string {
+  // Quick check: only process if %%abcls directive is present
+  if (!content.includes("%%abcls")) {
+    return content;
+  }
+
+  try {
+    const errorReporter = new AbcErrorReporter();
+    const ctx = new ABCContext(errorReporter);
+    return filterVoicesInAbc(content, ctx);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    outputChannel.appendLine(`Voice filter error: ${message}`);
+    // Return original content if filter fails
+    return content;
+  }
 }
 
 /**
