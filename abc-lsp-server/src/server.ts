@@ -67,6 +67,7 @@ function parseSocketArg(): string | null {
 const TRANSFORM_NODE_TAGS: Record<string, string[]> = {
   harmonize: [TAGS.Note, TAGS.Chord],
   consolidateRests: [TAGS.Rest],
+  insertVoiceLine: [TAGS.Note, TAGS.Chord],
 };
 
 // ============================================================================

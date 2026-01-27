@@ -2,16 +2,19 @@ import * as net from "net";
 import * as fs from "fs";
 import * as path from "path";
 import * as readline from "readline";
-import { resolveSelectionRanges } from "./selectionRangeResolver";
+import { resolveSelectionRanges, findNodesInRange } from "./selectionRangeResolver";
 import { lookupSelector, getAvailableSelectors } from "./selectorLookup";
+import { lookupTransform } from "./transformLookup";
 import { fromAst } from "../../abct2/src/csTree/fromAst";
 import { createSelection, Selection } from "../../abct2/src/selection";
 import { selectRange } from "../../abct2/src/selectors/rangeSelector";
-import { CSNode } from "../../abct2/src/csTree/types";
+import { CSNode, TAGS } from "../../abct2/src/csTree/types";
 import { File_structure } from "abc-parser";
 import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
 import { AbctDocument } from "./AbctDocument";
+import { serializeCSTree } from "./csTreeSerializer";
+import { computeTextEditsFromDiff } from "./textEditFromDiff";
 
 // ============================================================================
 // Error Codes (JSON-RPC style)
@@ -45,17 +48,24 @@ interface SocketRequest {
   params?: {
     uri?: string;
     selector?: string;
-    args?: (number | string)[];
-    /** Editor selections as ranges - used to scope the selector operation */
+    transform?: string;
+    args?: unknown[];
+    /** Editor selections as ranges - used to scope the selector/transform operation */
     ranges?: LSPRange[];
   };
 }
 
+interface SelectorResult {
+  ranges: LSPRange[];
+}
+
+interface TransformResult {
+  edits: Array<{ range: LSPRange; newText: string }>;
+}
+
 interface SocketResponse {
   id: number | string;
-  result?: {
-    ranges: LSPRange[];
-  };
+  result?: SelectorResult | TransformResult;
   error?: {
     code: number;
     message: string;
@@ -218,6 +228,48 @@ function validateApplySelectorParams(params: SocketRequest["params"]): {
   };
 }
 
+function validateApplyTransformParams(params: SocketRequest["params"]): {
+  uri: string;
+  transform: string;
+  args: unknown[];
+  ranges: LSPRange[];
+} {
+  if (!params) {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Missing params" };
+  }
+
+  if (!validateUri(params.uri)) {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Invalid or missing URI" };
+  }
+
+  if (typeof params.transform !== "string") {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Missing transform name" };
+  }
+
+  const transformFn = lookupTransform(params.transform);
+  if (!transformFn) {
+    throw {
+      code: ERROR_CODES.INVALID_PARAMS,
+      message: `Unknown transform: "${params.transform}"`,
+    };
+  }
+
+  if (params.args !== undefined && !Array.isArray(params.args)) {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "args must be an array" };
+  }
+
+  if (params.ranges !== undefined && !Array.isArray(params.ranges)) {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "ranges must be an array" };
+  }
+
+  return {
+    uri: params.uri,
+    transform: params.transform,
+    args: params.args ?? [],
+    ranges: params.ranges ?? [],
+  };
+}
+
 // ============================================================================
 // Request Handler
 // ============================================================================
@@ -231,7 +283,7 @@ function handleApplySelector(
   },
   getDocument: DocumentGetter,
   getCsTree: CsTreeGetter
-): SocketResponse["result"] {
+): SelectorResult {
   const doc = getDocument(params.uri);
 
   if (!doc) {
@@ -287,6 +339,89 @@ function handleApplySelector(
   const resultRanges = resolveSelectionRanges(newSelection);
 
   return { ranges: resultRanges };
+}
+
+/**
+ * Map of transform names to the node tags they operate on.
+ * Default is [Note, Chord] if not specified.
+ */
+const TRANSFORM_NODE_TAGS: Record<string, string[]> = {
+  harmonize: [TAGS.Note, TAGS.Chord],
+  consolidateRests: [TAGS.Rest],
+  insertVoiceLine: [TAGS.Note, TAGS.Chord],
+};
+
+function handleApplyTransform(
+  params: {
+    uri: string;
+    transform: string;
+    args: unknown[];
+    ranges: LSPRange[];
+  },
+  getDocument: DocumentGetter
+): TransformResult {
+  const doc = getDocument(params.uri);
+
+  if (!doc) {
+    throw { code: ERROR_CODES.DOCUMENT_NOT_FOUND, message: "Document not yet opened" };
+  }
+
+  if (doc instanceof AbcxDocument) {
+    throw { code: ERROR_CODES.FILE_TYPE_NOT_SUPPORTED, message: "Transforms are not supported for ABCx files" };
+  }
+
+  if (doc instanceof AbctDocument) {
+    throw { code: ERROR_CODES.FILE_TYPE_NOT_SUPPORTED, message: "Transforms are not supported for ABCT files" };
+  }
+
+  if (!(doc instanceof AbcDocument) || !doc.AST) {
+    throw { code: ERROR_CODES.DOCUMENT_NOT_FOUND, message: "Document has no parsed AST" };
+  }
+
+  const transformFn = lookupTransform(params.transform);
+  if (!transformFn) {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: `Unknown transform: "${params.transform}"` };
+  }
+
+  // Build a fresh CSTree from the AST (transforms mutate in place)
+  const root = fromAst(doc.AST);
+
+  // Determine which node tags this transform operates on
+  const tags = TRANSFORM_NODE_TAGS[params.transform] ?? [TAGS.Note, TAGS.Chord];
+
+  // Convert each editor selection range to a cursor containing nodes of the appropriate type
+  const allCursors: Set<number>[] = [];
+  for (const range of params.ranges) {
+    const nodeIds = findNodesInRange(root, range, tags);
+    for (const id of nodeIds) {
+      allCursors.push(new Set([id]));
+    }
+  }
+
+  if (allCursors.length === 0) {
+    // No nodes found within the selection ranges
+    return { edits: [] };
+  }
+
+  const selection: Selection = { root, cursors: allCursors };
+
+  // Apply transform (mutates tree in place)
+  const newSelection = transformFn(selection, doc.ctx, ...params.args);
+
+  // Serialize modified tree to text
+  const newText = serializeCSTree(newSelection.root, doc.ctx);
+  const oldText = doc.document.getText();
+
+  // Compute minimal TextEdits using LCS-based diff
+  const textEdits = computeTextEditsFromDiff(oldText, newText);
+
+  // Convert TextEdit[] to the simpler format for socket response
+  const edits = textEdits.map((edit) => ({
+    range: edit.range,
+    newText: edit.newText,
+  }));
+
+  return { edits };
 }
 
 // ============================================================================
@@ -384,12 +519,17 @@ export class SocketHandler {
       }
 
       try {
-        if (request.method !== "abct2.applySelector") {
+        let result: SelectorResult | TransformResult;
+
+        if (request.method === "abct2.applySelector") {
+          const validatedParams = validateApplySelectorParams(request.params);
+          result = handleApplySelector(validatedParams, this.getDocument, this.getCsTree);
+        } else if (request.method === "abct2.applyTransform") {
+          const validatedParams = validateApplyTransformParams(request.params);
+          result = handleApplyTransform(validatedParams, this.getDocument);
+        } else {
           throw { code: ERROR_CODES.UNKNOWN_METHOD, message: `Unknown method: "${request.method}"` };
         }
-
-        const validatedParams = validateApplySelectorParams(request.params);
-        const result = handleApplySelector(validatedParams, this.getDocument, this.getCsTree);
 
         response = { id: request.id, result };
       } catch (err) {

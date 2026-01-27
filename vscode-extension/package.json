@@ -268,6 +268,11 @@
         "category": "ABC"
       },
       {
+        "command": "abc.insertVoiceLine",
+        "title": "ABC: Insert Voice Line",
+        "category": "ABC"
+      },
+      {
         "command": "abc.transposeOctaveUp",
         "title": "ABC: Transpose Octave Up",
         "category": "ABC"
@@ -434,6 +439,10 @@
         },
         {
           "command": "abc.addVoice",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.insertVoiceLine",
           "when": "editorLangId == abc"
         },
         {

@@ -18,7 +18,7 @@ export function toRest(selection: Selection, ctx: ABCContext): Selection {
   return selection;
 }
 
-function noteToRest(csNode: CSNode, ctx: ABCContext): void {
+export function noteToRest(csNode: CSNode, ctx: ABCContext): void {
   // Preserve rhythm if present (including any broken token within the Rhythm subtree)
   const rhythmResult = findRhythmChild(csNode);
   const rhythmNode = rhythmResult ? rhythmResult.node : null;
@@ -39,7 +39,7 @@ function noteToRest(csNode: CSNode, ctx: ABCContext): void {
   }
 }
 
-function chordToRest(csNode: CSNode, ctx: ABCContext): void {
+export function chordToRest(csNode: CSNode, ctx: ABCContext): void {
   // Resolve rhythm: chord's own Rhythm child takes precedence.
   let rhythmNode: CSNode | null = null;
   const rhythmResult = findRhythmChild(csNode);

@@ -27,10 +27,11 @@ declare-option -docstring "Timeout for selector requests (ms)" \
 # Buffer-Scoped Options
 # ============================================================================
 
-# These options track the state of the selector system for each buffer.
+# These options track the state of the selector/transform system for each buffer.
 
 declare-option -hidden bool abc_pending false
 declare-option -hidden str abc_tmpfile ""
+declare-option -hidden str abc_resultfile ""
 
 # ============================================================================
 # Filetype Detection
@@ -52,8 +53,9 @@ hook global BufCreate .*\.abcx %{
 # the selector commands.
 
 # ============================================================================
-# Include Selector Commands
+# Include Selector and Transform Commands
 # ============================================================================
 
 # The selector commands are defined in abc-selectors.kak
+# The transform commands are defined in abc-transforms.kak
 # They are loaded automatically if placed in the same rc/ directory

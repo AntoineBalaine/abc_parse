@@ -11,14 +11,18 @@
  * Options:
  *   --socket=PATH         Unix socket path (required)
  *   --uri=URI             Document URI (required)
- *   --selector=NAME       Selector name (required)
- *   --args=JSON           Selector arguments as JSON array (default: [])
+ *   --selector=NAME       Selector name (use for selector operations)
+ *   --transform=NAME      Transform name (use for transform operations)
+ *   --args=JSON           Selector/transform arguments as JSON array (default: [])
  *   --ranges=DESC         Kakoune selection descriptors, space-separated (optional)
  *   --buffer-file=PATH    Path to temp file containing buffer content (required)
  *   --timeout=MS          Request timeout in milliseconds (default: 5000)
  *
- * Output (on success, exit 0):
+ * Selector mode output (on success, exit 0):
  *   Line 1: space-separated Kakoune selection descriptors
+ *
+ * Transform mode output (on success, exit 0):
+ *   Lines: replacement text (entire buffer content after transform)
  *
  * Output (on error, exit 1):
  *   stderr: error message
@@ -37,6 +41,7 @@ function parseArgs() {
     socket: null,
     uri: null,
     selector: null,
+    transform: null,
     args: [],
     ranges: "",
     bufferFile: null,
@@ -50,6 +55,8 @@ function parseArgs() {
       args.uri = arg.substring("--uri=".length);
     } else if (arg.startsWith("--selector=")) {
       args.selector = arg.substring("--selector=".length);
+    } else if (arg.startsWith("--transform=")) {
+      args.transform = arg.substring("--transform=".length);
     } else if (arg.startsWith("--args=")) {
       try {
         args.args = JSON.parse(arg.substring("--args=".length));
@@ -71,8 +78,11 @@ function parseArgs() {
   if (!args.uri) {
     error("Missing required --uri argument");
   }
-  if (!args.selector) {
-    error("Missing required --selector argument");
+  if (!args.selector && !args.transform) {
+    error("Missing required --selector or --transform argument");
+  }
+  if (args.selector && args.transform) {
+    error("Cannot specify both --selector and --transform");
   }
   if (!args.bufferFile) {
     error("Missing required --buffer-file argument");
@@ -310,12 +320,58 @@ function sendRequest(socketPath, request, timeout) {
 }
 
 // ============================================================================
+// Text Edit Application
+// ============================================================================
+
+/**
+ * Applies LSP text edits to buffer content and returns the new content.
+ * Edits are applied in reverse order (from end of document to start) to
+ * preserve positions of earlier edits.
+ */
+function applyEdits(content, edits) {
+  // Sort edits by position (descending) to apply from end to start
+  const sortedEdits = [...edits].sort((a, b) => {
+    if (b.range.start.line !== a.range.start.line) {
+      return b.range.start.line - a.range.start.line;
+    }
+    return b.range.start.character - a.range.start.character;
+  });
+
+  const lines = content.split("\n");
+
+  for (const edit of sortedEdits) {
+    const startLine = edit.range.start.line;
+    const endLine = edit.range.end.line;
+    const startChar = edit.range.start.character;
+    const endChar = edit.range.end.character;
+
+    // Get the text before the edit range on the start line
+    const startLineText = lines[startLine] || "";
+    const prefix = startLineText.slice(0, startChar);
+
+    // Get the text after the edit range on the end line
+    const endLineText = lines[endLine] || "";
+    const suffix = endLineText.slice(endChar);
+
+    // Replace the affected lines with the new content
+    const newLines = edit.newText.split("\n");
+    newLines[0] = prefix + newLines[0];
+    newLines[newLines.length - 1] = newLines[newLines.length - 1] + suffix;
+
+    lines.splice(startLine, endLine - startLine + 1, ...newLines);
+  }
+
+  return lines.join("\n");
+}
+
+// ============================================================================
 // Main
 // ============================================================================
 
 async function main() {
   const args = parseArgs();
   const lines = readBufferLines(args.bufferFile);
+  const bufferContent = lines.join("\n");
 
   // Convert kakoune selection descriptors to LSP ranges
   let lspRanges = [];
@@ -324,16 +380,30 @@ async function main() {
     lspRanges = descriptors.map((desc) => kakDescriptorToLspRange(desc, lines));
   }
 
-  const request = {
-    id: 1,
-    method: "abct2.applySelector",
-    params: {
-      uri: args.uri,
-      selector: args.selector,
-      args: args.args,
-      ranges: lspRanges,
-    },
-  };
+  let request;
+  if (args.selector) {
+    request = {
+      id: 1,
+      method: "abct2.applySelector",
+      params: {
+        uri: args.uri,
+        selector: args.selector,
+        args: args.args,
+        ranges: lspRanges,
+      },
+    };
+  } else {
+    request = {
+      id: 1,
+      method: "abct2.applyTransform",
+      params: {
+        uri: args.uri,
+        transform: args.transform,
+        args: args.args,
+        ranges: lspRanges,
+      },
+    };
+  }
 
   let response;
   try {
@@ -347,24 +417,38 @@ async function main() {
   }
 
   const result = response.result;
-  if (!result || !result.ranges || result.ranges.length === 0) {
-    // No matches - output empty line for descriptors
-    console.log("");
-    process.exit(0);
+
+  if (args.selector) {
+    // Selector mode: output ranges as Kakoune descriptors
+    if (!result || !result.ranges || result.ranges.length === 0) {
+      // No matches - output empty line for descriptors
+      console.log("");
+      process.exit(0);
+    }
+
+    // Convert LSP ranges to Kakoune descriptors
+    const descriptors = result.ranges
+      .map((range) => lspRangeToKakDescriptor(range, lines))
+      .filter((desc) => desc !== null);
+
+    if (descriptors.length === 0) {
+      console.log("");
+      process.exit(0);
+    }
+
+    // Output
+    console.log(descriptors.join(" "));
+  } else {
+    // Transform mode: apply edits and output new buffer content
+    if (!result || !result.edits || result.edits.length === 0) {
+      // No changes - output original content
+      process.stdout.write(bufferContent);
+      process.exit(0);
+    }
+
+    const newContent = applyEdits(bufferContent, result.edits);
+    process.stdout.write(newContent);
   }
-
-  // Convert LSP ranges to Kakoune descriptors
-  const descriptors = result.ranges
-    .map((range) => lspRangeToKakDescriptor(range, lines))
-    .filter((desc) => desc !== null);
-
-  if (descriptors.length === 0) {
-    console.log("");
-    process.exit(0);
-  }
-
-  // Output
-  console.log(descriptors.join(" "));
 }
 
 main();

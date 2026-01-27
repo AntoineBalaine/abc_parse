@@ -161,6 +161,19 @@ export function registerTransformCommands(
     })
   );
 
+  // insertVoiceLine: prompt for voice ID, duplicate lines with selected notes
+  context.subscriptions.push(
+    vscode.commands.registerCommand("abc.insertVoiceLine", async () => {
+      const voiceName = await vscode.window.showInputBox({
+        prompt: "Enter voice identifier",
+        placeHolder: "e.g., V2, Tenor, RH",
+      });
+      if (!voiceName) return;
+
+      await applyTransform(client, "insertVoiceLine", [voiceName], statusBarItem);
+    })
+  );
+
   // Quick-access transpose commands with preset values
   const transposePresets: Array<[string, number]> = [
     ["abc.transposeOctaveUp", 12],
