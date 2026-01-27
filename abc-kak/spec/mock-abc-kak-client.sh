@@ -26,6 +26,12 @@ case "$selector" in
     "selectRests")
         echo "1.12,1.14"
         ;;
+    "selectRhythm")
+        echo "3.2,3.2 3.7,3.8"
+        ;;
+    "selectRhythmParent")
+        echo "3.1,3.2 3.6,3.8"
+        ;;
     "selectTune")
         echo "1.1,3.10"
         ;;

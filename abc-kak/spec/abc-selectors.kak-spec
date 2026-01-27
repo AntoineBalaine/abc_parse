@@ -77,3 +77,22 @@ kak-spec -title "empty results leave selections unchanged" \
         }
     } \
     -expect-%val(selections_desc) "1.1,1.12"
+
+# Test: abc-select-rhythm returns rhythm expressions
+# Note: Mock client returns fixed values; edge cases tested in abct2/tests/typeSelectors.spec.ts
+kak-spec -title "abc-select-rhythm returns rhythm positions" \
+    -input "X:1\nK:C\nC2 D E/4" \
+    -eval %{
+        set-option buffer filetype abc
+        abc-select-rhythm
+    } \
+    -expect-%val(selections_desc) "3.2,3.2 3.7,3.8"
+
+# Test: abc-select-rhythm-parent returns parent elements
+kak-spec -title "abc-select-rhythm-parent returns parent positions" \
+    -input "X:1\nK:C\nC2 D E/4" \
+    -eval %{
+        set-option buffer filetype abc
+        abc-select-rhythm-parent
+    } \
+    -expect-%val(selections_desc) "3.1,3.2 3.6,3.8"

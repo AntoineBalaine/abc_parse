@@ -44,6 +44,11 @@ The plugin provides the following options:
 - `abc-select-chord-notes`: Select notes inside chords
 - `abc-select-rests`: Select all rest nodes
 
+### Rhythm Selectors
+
+- `abc-select-rhythm`: Select all rhythm expressions (e.g., /2, 3, 3/2)
+- `abc-select-rhythm-parent`: Select notes, chords, rests, or spacers with explicit rhythm
+
 ### Structure Selectors
 
 - `abc-select-tune`: Select individual tunes (for multi-tune files)

@@ -99,6 +99,20 @@ define-command abc-select-rests -docstring "Select all rest nodes" %{
 }
 
 # ============================================================================
+# Rhythm Selectors
+# ============================================================================
+
+define-command abc-select-rhythm \
+    -docstring "Select all rhythm expressions (e.g., /2, 3, 3/2)" %{
+    abc-select-impl selectRhythm
+}
+
+define-command abc-select-rhythm-parent \
+    -docstring "Select notes, chords, rests, or spacers with explicit rhythm" %{
+    abc-select-impl selectRhythmParent
+}
+
+# ============================================================================
 # Structure Selectors
 # ============================================================================
 
