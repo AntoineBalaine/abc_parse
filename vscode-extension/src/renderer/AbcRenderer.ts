@@ -9,7 +9,7 @@ import { pathToFileURL } from "url";
 import { LanguageClient } from "vscode-languageclient/node";
 
 // Import ABC parser for ABCx conversion and voice filtering
-import { ABCContext, AbcErrorReporter, convertAbcxToAbc as abcxToAbc, filterVoicesInAbc } from "abc-parser";
+import { ABCContext, AbcErrorReporter, convertAbcxToAbc as abcxToAbc, filterVoicesInAbc, abclToAbc as abclToAbcParser } from "abc-parser";
 
 let panel: vscode.WebviewPanel | undefined;
 let outputChannel: vscode.OutputChannel;
@@ -309,6 +309,12 @@ async function getCurrentEditorContent(): Promise<string> {
     content = convertAbcxToAbc(content);
   }
 
+  // Convert ABCL to ABC if needed (must happen before voice filtering
+  // because the voice filter needs deferred-style voice structure)
+  if (filePath.endsWith(".abcl")) {
+    content = convertAbclToAbc(content);
+  }
+
   // Apply voice filter if %%abcls directive is present
   content = applyVoiceFilter(content);
 
@@ -352,6 +358,18 @@ function convertAbcxToAbc(content: string): string {
     // Return original content if conversion fails
     return content;
   }
+}
+
+/**
+ * Convert ABCL content to ABC format
+ * ABCL files use "linear writing style" for multi-voice ABC notation.
+ * The converter inserts silenced lines for missing voices in each system,
+ * allowing ABCJS to render the score correctly.
+ */
+function convertAbclToAbc(content: string): string {
+  const errorReporter = new AbcErrorReporter();
+  const ctx = new ABCContext(errorReporter);
+  return abclToAbcParser(content, ctx);
 }
 
 function getNormalizedEditorContent(editor: vscode.TextEditor): string {

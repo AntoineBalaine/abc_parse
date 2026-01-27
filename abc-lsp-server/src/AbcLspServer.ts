@@ -2,6 +2,7 @@ import { AbcFormatter } from "abc-parser";
 import { HandlerResult, Position, Range, SemanticTokens, SemanticTokensBuilder, TextDocuments, TextEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcDocument } from "./AbcDocument";
+import { AbclDocument } from "./AbclDocument";
 import { AbctFormatter } from "./abct/AbctFormatter";
 import { AbctDocument } from "./AbctDocument";
 import { AbcxDocument } from "./AbcxDocument";
@@ -9,8 +10,8 @@ import { LspEventListener, mapTTtoStandardScope, mapAbctTTtoScope, standardToken
 import { AbctTT } from "../../abct/src/scanner";
 import { isAssignment } from "../../abct/src/ast";
 
-/** Common interface for ABC, ABCx, and ABCT documents */
-type DocumentType = AbcDocument | AbcxDocument | AbctDocument;
+/** Common interface for ABC, ABCx, ABCL, and ABCT documents */
+type DocumentType = AbcDocument | AbcxDocument | AbclDocument | AbctDocument;
 
 /** Type guard to check if a document is an AbcDocument (has ctx property) */
 function isAbcDocument(doc: DocumentType): doc is AbcDocument {
@@ -22,9 +23,14 @@ function isAbcxDocument(doc: DocumentType): doc is AbcxDocument {
   return doc instanceof AbcxDocument;
 }
 
-/** Type guard to check if a document has ctx property (AbcDocument or AbcxDocument) */
-function hasCtx(doc: DocumentType): doc is AbcDocument | AbcxDocument {
-  return isAbcDocument(doc) || isAbcxDocument(doc);
+/** Type guard to check if a document is an AbclDocument (has ctx property) */
+function isAbclDocument(doc: DocumentType): doc is AbclDocument {
+  return doc instanceof AbclDocument;
+}
+
+/** Type guard to check if a document has ctx property (AbcDocument, AbcxDocument, or AbclDocument) */
+function hasCtx(doc: DocumentType): doc is AbcDocument | AbcxDocument | AbclDocument {
+  return isAbcDocument(doc) || isAbcxDocument(doc) || isAbclDocument(doc);
 }
 
 /**
@@ -66,6 +72,13 @@ export class AbcLspServer {
   }
 
   /**
+   * Checks if a URI refers to an ABCL file
+   */
+  private isAbclFile(uri: string): boolean {
+    return uri.toLowerCase().endsWith(".abcl");
+  }
+
+  /**
    * Get the updated changes in the document,
    * parse it and send diagnostics to the client.
    * @param uri
@@ -80,6 +93,8 @@ export class AbcLspServer {
           abcDocument = new AbctDocument(document);
         } else if (this.isAbcxFile(uri)) {
           abcDocument = new AbcxDocument(document);
+        } else if (this.isAbclFile(uri)) {
+          abcDocument = new AbclDocument(document);
         } else {
           abcDocument = new AbcDocument(document);
         }
