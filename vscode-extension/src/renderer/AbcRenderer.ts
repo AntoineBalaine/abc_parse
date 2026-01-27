@@ -312,6 +312,12 @@ async function getCurrentEditorContent(): Promise<string> {
   // Apply voice filter if %%abcls directive is present
   content = applyVoiceFilter(content);
 
+  // Convert ABCL to ABC if needed
+  // TODO: Call convertAbclToAbc once Phase 3 converter is implemented
+  if (filePath.endsWith(".abcl")) {
+    content = convertAbclToAbc(content);
+  }
+
   return content;
 }
 
@@ -352,6 +358,17 @@ function convertAbcxToAbc(content: string): string {
     // Return original content if conversion fails
     return content;
   }
+}
+
+/**
+ * Convert ABCL content to ABC format
+ * ABCL files use "linear writing style" for multi-voice ABC notation.
+ * TODO: Implement actual conversion in Phase 3
+ */
+function convertAbclToAbc(content: string): string {
+  // TODO: Call abclToAbc once Phase 3 converter is implemented
+  // For now, return the content unchanged
+  return content;
 }
 
 function getNormalizedEditorContent(editor: vscode.TextEditor): string {

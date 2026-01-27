@@ -597,7 +597,8 @@
         ],
         "extensions": [
           ".abc",
-          ".abcx"
+          ".abcx",
+          ".abcl"
         ],
         "capabilities": {
           "documentFormattingProvider": "true"
