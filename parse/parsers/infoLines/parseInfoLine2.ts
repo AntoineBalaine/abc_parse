@@ -64,7 +64,14 @@ export function parseExpression(ctx: ParseCtx): Expr | null {
  */
 export function parseKV(ctx: ParseCtx): KV | null {
   const key = ctx.advance();
+
+  // Skip whitespace between key and equals
+  while (ctx.match(TT.WS)) {}
+
   const equals = ctx.advance();
+
+  // Skip whitespace between equals and value
+  while (ctx.match(TT.WS)) {}
 
   // Parse the value as an expression (handles unary operators like -2)
   const value = parsePrimary(ctx);

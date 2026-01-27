@@ -45,6 +45,28 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       expect((kv.value as Token).lexeme).to.equal("treble");
     });
 
+    it("should parse KV expressions with whitespace around equals", () => {
+      // Regression test: whitespace around = should not break KV parsing
+      const tokens = [
+        new Token(TT.IDENTIFIER, "clef", context.generateId()),
+        new Token(TT.WS, " ", context.generateId()),
+        new Token(TT.EQL, "=", context.generateId()),
+        new Token(TT.WS, " ", context.generateId()),
+        new Token(TT.IDENTIFIER, "treble", context.generateId()),
+      ];
+
+      const ctx = new ParseCtx(tokens, context);
+      const expressions = parseInfoLine2(ctx);
+
+      expect(expressions.length).to.equal(1);
+      expect(expressions[0]).to.be.an.instanceof(KV);
+      const kv = expressions[0] as KV;
+      expect(kv.key).to.not.be.undefined;
+      expect((kv.key! as Token).lexeme).to.equal("clef");
+      expect(kv.equals!.lexeme).to.equal("=");
+      expect((kv.value as Token).lexeme).to.equal("treble");
+    });
+
     it("should parse KV expressions without keys", () => {
       const tokens = [new Token(TT.IDENTIFIER, "major", context.generateId())];
 
