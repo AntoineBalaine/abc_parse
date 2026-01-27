@@ -11,7 +11,6 @@ import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import { stringifyVoice } from "../parsers/voices2";
 import {
-  Expr,
   File_structure,
   Info_line,
   MultiMeasureRest,
