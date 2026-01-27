@@ -55,19 +55,33 @@ export class VoiceCtx {
 }
 
 /**
- * Extract the voice name from a voice marker
+ * Extract the voice ID from a voice marker.
+ *
+ * Voice markers can contain metadata (clef, name, etc.) after the ID.
+ * Examples:
+ *   V:Tenor clef=treble name="Tenor Voice" -> extracts "Tenor"
+ *   V:1 -> extracts "1"
+ *   [V:S1 stem=up] -> extracts "S1"
+ *
+ * We extract only the first token that is not whitespace and not the header itself.
  */
-export function stringifyVoice(expr: Info_line | Inline_field): string {
+export function extractVoiceId(expr: Info_line | Inline_field): string {
   if (expr instanceof Inline_field) {
-    return expr.text
-      .map((e) => e.lexeme)
-      .join("")
-      .trim();
+    // For inline fields like [V:Tenor clef=treble], extract just the ID
+    // Skip any leading WS tokens and the INF_HDR token (which the parser includes in text)
+    const firstToken = expr.text.find(t => isToken(t) && t.type !== TT.WS && t.type !== TT.INF_HDR);
+    if (firstToken && isToken(firstToken)) {
+      return firstToken.lexeme.trim();
+    }
+    return "";
   } else {
-    return expr.value
-      .map((e) => e.lexeme)
-      .join("")
-      .trim();
+    // For info lines like V:Tenor clef=treble, the ID is the first non-WS token in value
+    // Skip any leading WS tokens
+    const firstToken = expr.value.find(t => isToken(t) && t.type !== TT.WS);
+    if (firstToken && isToken(firstToken)) {
+      return firstToken.lexeme.trim();
+    }
+    return "";
   }
 }
 
@@ -77,14 +91,22 @@ export function stringifyVoice(expr: Info_line | Inline_field): string {
  *
  * How the check is made:
  * Check the voice of the last entry in the current system.
- if the current voice is not after the index of the last voice in this.voices, start a new system.
-*/
-export function isNewSystem(ctx: VoiceCtx): boolean {
+ * If the current voice is not after the index of the last voice in this.voices, start a new system.
+ *
+ * @param ctx - The voice parsing context
+ * @param linear - When true, enables dynamic voice discovery (voices are added to ctx.voices as encountered)
+ */
+export function isNewSystem(ctx: VoiceCtx, linear: boolean = false): boolean {
   let result = false;
   const current = ctx.peek();
 
   if (isVoiceMarker(current)) {
-    const voice = stringifyVoice(current);
+    const voice = extractVoiceId(current);
+
+    // In linear mode, dynamically add unknown voices to the voice list
+    if (linear && !ctx.voices.includes(voice)) {
+      ctx.voices.push(voice);
+    }
 
     if (ctx.lastVoice === "") {
       result = true;
@@ -134,8 +156,11 @@ export function parseNoVoices(ctx: VoiceCtx): System[] {
 
 /**
  * Parse elements when there are multiple voices
+ *
+ * @param ctx - The voice parsing context
+ * @param linear - When true, enables dynamic voice discovery for linear-style parsing
  */
-export function parseVoices(ctx: VoiceCtx): System[] {
+export function parseVoices(ctx: VoiceCtx, linear: boolean = false): System[] {
   let foundFirstVoice = false;
 
   while (!ctx.isAtEnd() && ctx.peek() !== undefined) {
@@ -150,7 +175,14 @@ export function parseVoices(ctx: VoiceCtx): System[] {
           ctx.systems.push(ctx.curSystem);
         }
         ctx.curSystem = [];
-        ctx.lastVoice = stringifyVoice(expr);
+
+        // In linear mode, add the voice to the voice list if it is not present
+        const voice = extractVoiceId(expr);
+        if (linear && !ctx.voices.includes(voice)) {
+          ctx.voices.push(voice);
+        }
+        ctx.lastVoice = voice;
+
         ctx.curSystem.push(expr);
         ctx.advance();
       } else if (isToken(expr) && expr.type === TT.EOL) {
@@ -174,14 +206,15 @@ export function parseVoices(ctx: VoiceCtx): System[] {
 
     // Handle content after first voice marker
     if (isVoiceMarker(expr)) {
-      if (isNewSystem(ctx)) {
+      // isNewSystem already handles voice discovery in linear mode
+      if (isNewSystem(ctx, linear)) {
         if (ctx.curSystem) {
           ctx.systems.push(ctx.curSystem);
         }
         ctx.curSystem = [];
-        ctx.lastVoice = stringifyVoice(expr);
+        ctx.lastVoice = extractVoiceId(expr);
       } else {
-        ctx.lastVoice = stringifyVoice(expr);
+        ctx.lastVoice = extractVoiceId(expr);
       }
     }
 
@@ -251,7 +284,7 @@ function processExprForBarMapping(
 ): void {
   // Voice marker at beginning of line changes current voice
   if (isVoiceMarker(expr)) {
-    state.currentVoiceId = stringifyVoice(expr);
+    state.currentVoiceId = extractVoiceId(expr);
     if (!state.barCounters.has(state.currentVoiceId)) {
       state.barCounters.set(state.currentVoiceId, 0);
     }
@@ -404,12 +437,21 @@ function parseVoicesWithBarOverlap(lines: tune_body_code[][]): System[] {
 
 /**
  * Parse music elements into systems
+ *
+ * @param elements - The music elements to parse
+ * @param voices - The list of voice identifiers from the tune header
+ * @param linear - When true, uses linear-style parsing where voice markers indicate system breaks.
+ *                 In linear mode, voices are discovered dynamically and a voice marker appearing
+ *                 before a previously encountered voice starts a new system.
  */
-export function parseSystemsWithVoices(elements: tune_body_code[], voices: string[] = []): System[] {
+export function parseSystemsWithVoices(elements: tune_body_code[], voices: string[] = [], linear: boolean = false): System[] {
   const ctx = new VoiceCtx(elements, voices);
 
-  if (voices.length < 2) {
+  if (voices.length < 2 && !linear) {
     return parseNoVoices(ctx);
+  } else if (linear) {
+    // In linear mode, use parseVoices with dynamic voice discovery
+    return parseVoices(ctx, true);
   } else {
     const lines = splitIntoLines(elements);
     return parseVoicesWithBarOverlap(lines);

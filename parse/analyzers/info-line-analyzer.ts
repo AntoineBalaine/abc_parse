@@ -847,10 +847,10 @@ export function analyzeVoiceInfo(expr: Info_line, analyzer: SemanticAnalyzer): I
   let voiceId = "";
   const properties: VoiceProperties = {};
 
-  // 1. Parse voice ID from first token in value array
-  const firstToken = expr.value[0];
-  if (isToken(firstToken)) {
-    voiceId = firstToken.lexeme;
+  // 1. Parse voice ID from first non-whitespace token in value array
+  const firstToken = expr.value.find((t) => isToken(t) && t.type !== TT.WS);
+  if (firstToken && isToken(firstToken)) {
+    voiceId = firstToken.lexeme.trim();
   }
 
   // 2. Parse KV properties from value2 (if it exists) or from value

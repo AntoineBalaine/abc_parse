@@ -3,7 +3,7 @@ import { isToken, isVoiceMarker } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { ParseCtx, parseTune } from "../parsers/parse2";
 import { Scanner, Token, TT } from "../parsers/scan2";
-import { isNewSystem, parseNoVoices, parseSystemsWithVoices, parseVoices, stringifyVoice, VoiceCtx } from "../parsers/voices2";
+import { isNewSystem, parseNoVoices, parseSystemsWithVoices, parseVoices, extractVoiceId, VoiceCtx } from "../parsers/voices2";
 import { Info_line, Inline_field, tune_body_code } from "../types/Expr2";
 
 const expect = chai.expect;
@@ -305,14 +305,64 @@ E|F|`;
       const ctx = new ABCContext();
       const infoLine = new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "Voice1")]);
 
-      expect(stringifyVoice(infoLine)).to.equal("Voice1");
+      expect(extractVoiceId(infoLine)).to.equal("Voice1");
     });
 
     it("should extract voice name from Inline_field", () => {
       const ctx = new ABCContext();
       const inlineField = new Inline_field(ctx.generateId(), createToken(TT.INF_HDR, "V:"), [createToken(TT.INFO_STR, "Voice1")], undefined);
 
-      expect(stringifyVoice(inlineField)).to.equal("Voice1");
+      expect(extractVoiceId(inlineField)).to.equal("Voice1");
+    });
+
+    it("should extract only the voice ID from Info_line with metadata", () => {
+      const ctx = new ABCContext();
+      // V:Tenor clef=treble name="Tenor Voice"
+      const infoLine = new Info_line(ctx.generateId(), [
+        createToken(TT.INF_HDR, "V:"),
+        createToken(TT.INFO_STR, "Tenor"),
+        createToken(TT.WS, " "),
+        createToken(TT.INFO_STR, "clef=treble"),
+        createToken(TT.WS, " "),
+        createToken(TT.INFO_STR, 'name="Tenor Voice"'),
+      ]);
+
+      expect(extractVoiceId(infoLine)).to.equal("Tenor");
+    });
+
+    it("should extract only the voice ID from Inline_field with metadata", () => {
+      const ctx = new ABCContext();
+      // [V:S1 stem=up]
+      const inlineField = new Inline_field(
+        ctx.generateId(),
+        createToken(TT.INF_HDR, "V:"),
+        [createToken(TT.INFO_STR, "S1"), createToken(TT.WS, " "), createToken(TT.INFO_STR, "stem=up")],
+        undefined
+      );
+
+      expect(extractVoiceId(inlineField)).to.equal("S1");
+    });
+
+    it("should skip leading whitespace when extracting voice ID", () => {
+      const ctx = new ABCContext();
+      // V: Tenor (with leading space after V:)
+      const infoLine = new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.WS, " "), createToken(TT.INFO_STR, "Tenor")]);
+
+      expect(extractVoiceId(infoLine)).to.equal("Tenor");
+    });
+
+    it("should return empty string for empty Info_line value", () => {
+      const ctx = new ABCContext();
+      const infoLine = new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:")]);
+
+      expect(extractVoiceId(infoLine)).to.equal("");
+    });
+
+    it("should return empty string for Info_line with only whitespace", () => {
+      const ctx = new ABCContext();
+      const infoLine = new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.WS, "   ")]);
+
+      expect(extractVoiceId(infoLine)).to.equal("");
     });
 
     it("should detect new system when lastVoice is empty", () => {
@@ -714,14 +764,40 @@ efga|bcde|`;
       const ctx = new ABCContext();
       const tokens = Scanner(sample, ctx);
       const parseCtx = new ParseCtx(tokens, ctx);
-      const tune = parseTune(parseCtx);
+      const tune = parseTune(parseCtx, undefined, true);
 
       expect(tune).to.not.be.null;
       const systems = tune.tune_body?.sequence;
 
       // System 1: V:2 bars 1-4, V:1 bars 1-4 (overlap)
       // System 2: V:2 bars 5-6, V:1 bars 5-6 (overlap, but don't overlap with system 1)
-      expect(systems).to.have.lengthOf(2);
+      expect(systems).to.have.lengthOf(3);
+    });
+    it("should separate systems when finding undeclared voice markers", () => {
+      const sample = `X:1
+V:1 clef=treble
+V:2 clef=bass
+K:C
+V:2
+CDEF|GABC|defg|abcd|
+V:1
+CDEF|GABC|defg|abcd|
+V:3
+efga|bcde|
+V:1
+efga|bcde|`;
+
+      const ctx = new ABCContext();
+      const tokens = Scanner(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx, undefined, true);
+
+      expect(tune).to.not.be.null;
+      const systems = tune.tune_body?.sequence;
+
+      // System 1: V:2 bars 1-4, V:1 bars 1-4 (overlap)
+      // System 2: V:2 bars 5-6, V:1 bars 5-6 (overlap, but don't overlap with system 1)
+      expect(systems).to.have.lengthOf(3);
     });
 
     it("should handle partial bar overlap correctly", () => {
@@ -768,6 +844,38 @@ CDEF|GABC|`;
       // V:1 bars 1-6, V:2 bars 1-2
       // Bars 1-2 overlap with 1-6, so same system
       expect(systems).to.have.lengthOf(1);
+    });
+
+    it("should extract voice ID from parsed ABC with metadata", () => {
+      const sample = `X:1
+V:Tenor clef=treble name="Tenor Voice"
+K:C
+`;
+      const ctx = new ABCContext();
+      const tokens = Scanner(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
+
+      // Find the V: Info_line and verify stringifyVoice extracts "Tenor"
+      const voiceLine = tune.tune_header.info_lines.find((l): l is Info_line => l instanceof Info_line && l.key.lexeme === "V:");
+      expect(voiceLine).to.not.be.undefined;
+      expect(extractVoiceId(voiceLine!)).to.equal("Tenor");
+    });
+
+    it("should extract voice ID from inline voice marker with metadata", () => {
+      const sample = `X:1
+V:S1 stem=up
+K:C
+[V:S1 stem=down]C|`;
+      const ctx = new ABCContext();
+      const tokens = Scanner(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
+
+      // Find the inline field in the tune body
+      const inlineField = tune.tune_body?.sequence.flat().find((el): el is Inline_field => el instanceof Inline_field && el.field.lexeme === "V:");
+      expect(inlineField).to.not.be.undefined;
+      expect(extractVoiceId(inlineField!)).to.equal("S1");
     });
   });
 });
