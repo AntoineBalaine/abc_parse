@@ -16,5 +16,7 @@ export * from "./Visitors/VoiceFilterVisitor";
 export { IRational, createRational, addRational, subtractRational, multiplyRational, divideRational, rationalToNumber, rationalToString, compareRational, isInfiniteRational, equalRational, greaterRational, rationalFromNumber } from "./Visitors/fmt2/rational";
 // ABCx chord sheet notation support (unified exports)
 export * from "./abcx";
+// ABCL linear style support
+export * from "./abcl";
 // Playback module for MuseSampler integration
 export * from "./playback";
