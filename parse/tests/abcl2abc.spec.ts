@@ -1,11 +1,12 @@
 import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { abclToAbc, convertFileToDeferred } from "../abcl";
+import { abclToAbc, convertFileToDeferred, getAllVoices } from "../abcl";
 import { Scanner } from "../parsers/scan2";
 import { parse } from "../parsers/parse2";
 import { AbcFormatter } from "../Visitors/Formatter2";
 import { Tune } from "../types/Expr2";
+import { LinearVoiceCtx, parseVoices } from "../parsers/voices2";
 
 function createCtx(): ABCContext {
   return new ABCContext(new AbcErrorReporter());
@@ -58,7 +59,9 @@ defg`;
       const tokens = Scanner(input, ctx);
       const ast = parse(tokens, ctx, { linear: true });
 
-      const systems = (ast.contents[0] as unknown as Tune).tune_body?.sequence;
+      const tune = ast.contents[0] as unknown as Tune;
+      const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
+      const systems = parseVoices(new LinearVoiceCtx(tune.tune_body!.sequence[0], vxls));
       expect(systems).to.have.lengthOf(3);
 
       const astDeferred = convertFileToDeferred(ast, ctx);

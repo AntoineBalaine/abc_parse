@@ -2,40 +2,19 @@
  * AbclToAbcConverter - Converts ABCL (linear style) to ABC (deferred style)
  *
  * In linear style, voice markers act as headers for subsequent content lines.
- * Each line of music content under a voice marker represents one "row" of the
- * score that must align with content from other voices.
- *
- * The converter uses a grid-based algorithm:
- * 1. Parse content into voice sections (content under each voice marker)
- * 2. Count lines per voice section
- * 3. Create a grid where each row has one line from each voice
- * 4. Fill missing cells with silenced (X rest) lines
+ * The converter uses parseVoicesLinear to get a map-based structure where each
+ * system is represented as Map<voiceId, sequence | null>, then fills null entries
+ * with silenced content and flattens to deferred style.
  */
 
 import { isGraceGroup, isTuplet, isVoiceMarker } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
-import { extractVoiceId } from "../parsers/voices2";
+import { extractVoiceId, LinearVoiceCtx, parseVoices, VoiceSequenceMap } from "../parsers/voices2";
 import { File_structure, Info_line, MultiMeasureRest, System, Tune, Tune_Body, tune_body_code } from "../types/Expr2";
 import { isTimeEvent } from "../Visitors/fmt2/fmt_timeMap";
 import { isBarLine } from "../helpers";
 import { cloneLine } from "../Visitors/CloneVisitor";
-
-/**
- * A voice section is content under a voice marker until the next voice marker
- */
-export interface VoiceSection {
-  voiceId: string;
-  voiceMarker: Info_line; // The original voice marker
-  lines: tune_body_code[][]; // Each inner array is one line of content
-}
-
-/**
- * A row in the output grid
- */
-export interface GridRow {
-  content: Map<string, tune_body_code[]>; // voiceId -> line content
-}
 
 /**
  * Silence a music line by removing time events, grace groups, and tuplet markers,
@@ -140,8 +119,8 @@ export function getAllVoiceIds(system: System): string[] {
  * Get all unique voices across all systems in a tune body.
  * Kept for backwards compatibility with tests.
  */
-export function getAllVoices(tuneBody: Tune_Body): string[] {
-  const allVoices: string[] = [];
+export function getAllVoices(tuneBody: Tune_Body, vxls: string[]): string[] {
+  const allVoices: string[] = vxls;
 
   for (const system of tuneBody.sequence) {
     const systemVoices = getAllVoiceIds(system);
@@ -194,64 +173,110 @@ export function insertVoicePrefix(line: tune_body_code[], voiceId: string, ctx: 
 }
 
 /**
+ * Fill null voice entries in a system map with silenced content.
+ *
+ * For each voice that has a null sequence, we clone a non-null sequence from
+ * the same system, silence it, and prepend a voice marker.
+ */
+function fillNullVoices(systemMap: VoiceSequenceMap, allVoices: string[], ctx: ABCContext): void {
+  // Find a template sequence (any non-null sequence)
+  let templateSeq: tune_body_code[] | null = null;
+  for (const seq of systemMap.values()) {
+    if (seq !== null) {
+      templateSeq = seq;
+      break;
+    }
+  }
+
+  // Fill null entries
+  for (const [vxId, seq] of systemMap.entries()) {
+    if (seq === null) {
+      const cloned = cloneLine(templateSeq!, ctx);
+      // Remove the voice marker from the cloned template before silencing
+      const withoutVoiceMarker = cloned.filter((el) => !isVoiceMarker(el));
+      const silenced = silenceLine(withoutVoiceMarker, ctx);
+      const completeLine = insertVoicePrefix(silenced, vxId, ctx);
+      systemMap.set(vxId, completeLine);
+    }
+  }
+}
+
+/**
+ * Flatten a system map into a single array of elements in voice discovery order.
+ * Ensures each voice sequence starts with a voice marker (for implicit continuations
+ * that don't have one).
+ */
+function flattenSystemMap(systemMap: VoiceSequenceMap, allVoices: string[], ctx: ABCContext): tune_body_code[] {
+  const result: tune_body_code[] = [];
+
+  for (const vxId of allVoices) {
+    const seq = systemMap.get(vxId);
+    if (seq && seq.length > 0) {
+      // Ensure sequence starts with a voice marker (for implicit continuations)
+      const finalSeq = !isVoiceMarker(seq[0]) ? insertVoicePrefix(seq, vxId, ctx) : seq;
+
+      result.push(...finalSeq);
+      // Ensure sequence ends with EOL
+      const lastElement = finalSeq[finalSeq.length - 1];
+      if (!(lastElement instanceof Token && lastElement.type === TT.EOL)) {
+        result.push(new Token(TT.EOL, "\n", ctx.generateId()));
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
  * Convert a linear-parsed Tune to deferred style.
  *
- * The algorithm iterates over each system from the linear parser:
- * 1. Get all voices present across the entire tune
- * 2. For each system, find which voices are present
- * 3. For each missing voice, create a silenced line and append it to the system
+ * The algorithm:
+ * 1. Extract elements from the single system (linear mode returns all elements as one system)
+ * 2. Call parseVoices with LinearVoiceCtx to get map-based structure
+ * 3. For each system, fill null entries with silenced content
+ * 4. Flatten the maps to produce deferred-style systems
  */
 export function convertTuneToDeferred(tune: Tune, ctx: ABCContext): Tune {
   const tune_body = tune.tune_body;
-  if (!tune_body) {
+  if (!tune_body || tune_body.sequence.length === 0) {
     return tune;
   }
 
-  // Get all voices across all systems
-  const allVoices = getAllVoices(tune_body);
+  // In linear mode, the parser returns a single system with all elements
+  const allElements = tune_body.sequence[0];
+  const vxls = getAllVoices(tune_body, tune.tune_header.voices);
+  // Parse into map-based structure using LinearVoiceCtx
+  const linearCtx = new LinearVoiceCtx(allElements, vxls);
+  parseVoices(linearCtx);
 
-  // If there is only one voice or no voices, no conversion is needed
+  // If no systems (no voice markers found), return as-is
+  if (linearCtx.systems.length === 0) {
+    return tune;
+  }
+
+  // Get the complete voice list from the context
+  const allVoices = linearCtx.voices;
+
+  // If only one voice, no conversion needed
   if (allVoices.length <= 1) {
     return tune;
   }
 
-  // Process each system
-  const newSystems: System[] = [];
+  // Process each system: fill null entries and flatten
+  const processedSystems: System[] = [];
 
-  for (const system of tune_body.sequence) {
-    // Get voices present in this system
-    const presentVoices = getAllVoiceIds(system);
-
-    // Find missing voices
-    const missingVoices = allVoices.filter((v) => !presentVoices.includes(v));
-
-    // Start with a deep clone of the original system elements
-    const newSystem: System = cloneLine(system, ctx);
-
-    // For each missing voice, create and append a silenced line
-    for (const missingVoice of missingVoices) {
-      // Find a music line template from this system
-      const originalLine = findMusicLine(system);
-
-      // Clone and silence it
-      const copiedLine = cloneLine(originalLine, ctx);
-      const silencedLine = silenceLine(copiedLine, ctx);
-
-      // Insert voice prefix and append to system
-      const completeLine = insertVoicePrefix(silencedLine, missingVoice, ctx);
-      newSystem.push(...completeLine);
-
-      // Ensure line ends with EOL
-      const lastElement = newSystem[newSystem.length - 1];
-      if (!(lastElement instanceof Token && lastElement.type === TT.EOL)) {
-        newSystem.push(new Token(TT.EOL, "\n", ctx.generateId()));
-      }
-    }
-
-    newSystems.push(newSystem);
+  for (const systemMap of linearCtx.systems) {
+    fillNullVoices(systemMap, allVoices, ctx);
+    const flatSystem = flattenSystemMap(systemMap, allVoices, ctx);
+    processedSystems.push(flatSystem);
   }
 
-  const newTuneBody = new Tune_Body(ctx.generateId(), newSystems);
+  // Prepend prefix to the first system
+  if (linearCtx.prefix.length > 0 && processedSystems.length > 0) {
+    processedSystems[0] = [...linearCtx.prefix, ...processedSystems[0]];
+  }
+
+  const newTuneBody = new Tune_Body(ctx.generateId(), processedSystems);
   return new Tune(ctx.generateId(), tune.tune_header, newTuneBody);
 }
 
