@@ -2,6 +2,13 @@ import { isBarLine, isComment, isInfo_line, isMusicCode, isMusicExpr, isToken, i
 import { Info_line, Inline_field, System, tune_body_code } from "../types/Expr2";
 import { Token, TT } from "./scan2";
 
+export type VoiceSequenceMap = Map<string, tune_body_code[] | null>;
+
+export type LinearParseResult = {
+  prefix: tune_body_code[];
+  systems: VoiceSequenceMap[];
+};
+
 /**
  * Context for voice parsing operations
  */
@@ -55,6 +62,74 @@ export class VoiceCtx {
 }
 
 /**
+ * Context for linear-style voice parsing.
+ * This context is separate from VoiceCtx because it tracks map-based state
+ * for the linear-to-deferred conversion.
+ */
+export class LinearVoiceCtx {
+  elements: tune_body_code[];
+  voices: string[];
+  current: number;
+  systems: VoiceSequenceMap[];
+  curSystem: VoiceSequenceMap;
+  lastVoice: string;
+  curVoiceSequence: tune_body_code[];
+  prefix: tune_body_code[];
+
+  constructor(elements: tune_body_code[], vxls: string[]) {
+    this.elements = elements;
+    this.voices = vxls;
+    this.current = 0;
+    this.systems = [];
+    this.curSystem = new Map();
+    this.lastVoice = "";
+    this.curVoiceSequence = [];
+    this.prefix = [];
+  }
+
+  peek(): tune_body_code {
+    return this.elements[this.current];
+  }
+
+  advance(): tune_body_code {
+    if (!this.isAtEnd()) {
+      this.current++;
+    }
+    return this.elements[this.current - 1];
+  }
+
+  isAtEnd(): boolean {
+    return this.current >= this.elements.length || (isToken(this.elements[this.current]) && (this.elements[this.current] as Token).type === TT.EOF);
+  }
+
+  initMap(): void {
+    this.curSystem = new Map();
+    for (const v of this.voices) {
+      this.curSystem.set(v, null);
+    }
+  }
+
+  saveVxSeq(): void {
+    if (this.lastVoice === "") return;
+
+    const existing = this.curSystem.get(this.lastVoice);
+    if (existing) {
+      existing.push(...this.curVoiceSequence);
+    } else {
+      this.curSystem.set(this.lastVoice, this.curVoiceSequence);
+    }
+    this.curVoiceSequence = [];
+  }
+
+  pushSystem(): void {
+    if (this.curSystem.size > 0) {
+      this.systems.push(this.curSystem);
+    }
+    this.initMap();
+  }
+}
+
+/**
  * Extract the voice ID from a voice marker.
  *
  * Voice markers can contain metadata (clef, name, etc.) after the ID.
@@ -69,7 +144,7 @@ export function extractVoiceId(expr: Info_line | Inline_field): string {
   if (expr instanceof Inline_field) {
     // For inline fields like [V:Tenor clef=treble], extract just the ID
     // Skip any leading WS tokens and the INF_HDR token (which the parser includes in text)
-    const firstToken = expr.text.find(t => isToken(t) && t.type !== TT.WS && t.type !== TT.INF_HDR);
+    const firstToken = expr.text.find((t) => isToken(t) && t.type !== TT.WS && t.type !== TT.INF_HDR);
     if (firstToken && isToken(firstToken)) {
       return firstToken.lexeme.trim();
     }
@@ -77,12 +152,30 @@ export function extractVoiceId(expr: Info_line | Inline_field): string {
   } else {
     // For info lines like V:Tenor clef=treble, the ID is the first non-WS token in value
     // Skip any leading WS tokens
-    const firstToken = expr.value.find(t => isToken(t) && t.type !== TT.WS);
+    const firstToken = expr.value.find((t) => isToken(t) && t.type !== TT.WS);
     if (firstToken && isToken(firstToken)) {
       return firstToken.lexeme.trim();
     }
     return "";
   }
+}
+
+/**
+ * Count unique voice IDs found in the elements by scanning for voice markers.
+ * This allows detecting voices declared in the tune body even if they weren't
+ * declared in the tune header.
+ */
+export function countVoicesInElements(elements: tune_body_code[]): number {
+  const voiceIds = new Set<string>();
+  for (const element of elements) {
+    if (isVoiceMarker(element)) {
+      const voiceId = extractVoiceId(element as Info_line | Inline_field);
+      if (voiceId) {
+        voiceIds.add(voiceId);
+      }
+    }
+  }
+  return voiceIds.size;
 }
 
 /**
@@ -96,17 +189,12 @@ export function extractVoiceId(expr: Info_line | Inline_field): string {
  * @param ctx - The voice parsing context
  * @param linear - When true, enables dynamic voice discovery (voices are added to ctx.voices as encountered)
  */
-export function isNewSystem(ctx: VoiceCtx, linear: boolean = false): boolean {
+export function isNewSystem(ctx: VoiceCtx | LinearVoiceCtx): boolean {
   let result = false;
   const current = ctx.peek();
 
   if (isVoiceMarker(current)) {
     const voice = extractVoiceId(current);
-
-    // In linear mode, dynamically add unknown voices to the voice list
-    if (linear && !ctx.voices.includes(voice)) {
-      ctx.voices.push(voice);
-    }
 
     if (ctx.lastVoice === "") {
       result = true;
@@ -155,13 +243,16 @@ export function parseNoVoices(ctx: VoiceCtx): System[] {
 }
 
 /**
- * Parse elements when there are multiple voices
+ * Parse elements when there are multiple voices.
  *
- * @param ctx - The voice parsing context
- * @param linear - When true, enables dynamic voice discovery for linear-style parsing
+ * When ctx is a LinearVoiceCtx, this function populates the map-based structure
+ * for linear-to-deferred conversion. At each voice boundary, it saves the current
+ * voice sequence to the map. At each system boundary, it pushes the current map.
  */
-export function parseVoices(ctx: VoiceCtx, linear: boolean = false): System[] {
+export function parseVoices(ctx: LinearVoiceCtx): VoiceSequenceMap[] {
   let foundFirstVoice = false;
+  let atLineStart = false;
+  let sawMusicSinceVoiceMarker = false;
 
   while (!ctx.isAtEnd() && ctx.peek() !== undefined) {
     const expr = ctx.peek();
@@ -169,65 +260,80 @@ export function parseVoices(ctx: VoiceCtx, linear: boolean = false): System[] {
     // Handle content before first voice marker
     if (!foundFirstVoice) {
       if (isVoiceMarker(expr)) {
-        // End of pre-voice content
         foundFirstVoice = true;
-        if (ctx.curSystem && ctx.curSystem.length) {
-          ctx.systems.push(ctx.curSystem);
-        }
-        ctx.curSystem = [];
-
-        // In linear mode, add the voice to the voice list if it is not present
+        ctx.initMap();
+        ctx.curVoiceSequence = [];
         const voice = extractVoiceId(expr);
-        if (linear && !ctx.voices.includes(voice)) {
-          ctx.voices.push(voice);
-        }
         ctx.lastVoice = voice;
 
-        ctx.curSystem.push(expr);
+        ctx.curVoiceSequence.push(expr);
         ctx.advance();
+        atLineStart = false;
       } else if (isToken(expr) && expr.type === TT.EOL) {
-        // End of current unmarked line
-        if (ctx.curSystem && ctx.curSystem.length) {
-          ctx.curSystem.push(expr);
-          ctx.systems.push(ctx.curSystem);
-          ctx.curSystem = [];
-        }
+        ctx.prefix.push(expr);
+
         ctx.advance();
+        atLineStart = true;
       } else {
-        // Collect content in current unmarked line
-        if (!ctx.curSystem) {
-          ctx.curSystem = [];
-        }
-        ctx.curSystem.push(expr);
+        ctx.prefix.push(expr);
+
         ctx.advance();
+        atLineStart = false;
       }
-      continue; // Skip the voice-based processing
+      continue;
+    }
+
+    // Handle EOL
+    if (isToken(expr) && expr.type === TT.EOL) {
+      ctx.curVoiceSequence.push(expr);
+
+      ctx.advance();
+      atLineStart = true;
+      continue;
     }
 
     // Handle content after first voice marker
     if (isVoiceMarker(expr)) {
-      // isNewSystem already handles voice discovery in linear mode
-      if (isNewSystem(ctx, linear)) {
-        if (ctx.curSystem) {
-          ctx.systems.push(ctx.curSystem);
-        }
-        ctx.curSystem = [];
-        ctx.lastVoice = extractVoiceId(expr);
-      } else {
-        ctx.lastVoice = extractVoiceId(expr);
+      ctx.saveVxSeq();
+
+      // Check for system boundary
+      if (isNewSystem(ctx)) {
+        ctx.pushSystem();
       }
+
+      // Always update lastVoice to the new voice
+      ctx.lastVoice = extractVoiceId(expr);
+      ctx.curVoiceSequence.push(expr);
+
+      atLineStart = false;
+      sawMusicSinceVoiceMarker = false;
+      ctx.advance();
+      continue;
     }
 
-    if (ctx.curSystem) {
-      ctx.curSystem.push(expr);
-    } else {
-      ctx.curSystem = [expr];
+    // Check for implicit system boundary in linear mode
+    if (atLineStart && sawMusicSinceVoiceMarker && isMusicExpr(expr)) {
+      const currentVoiceIndex = ctx.voices.indexOf(ctx.lastVoice);
+      if (currentVoiceIndex >= 0) {
+        ctx.saveVxSeq();
+        ctx.pushSystem();
+        ctx.curVoiceSequence = [];
+      }
+      atLineStart = false;
+      sawMusicSinceVoiceMarker = true;
+    } else if (isMusicExpr(expr)) {
+      sawMusicSinceVoiceMarker = true;
+      atLineStart = false;
+    } else if (!isToken(expr) || (expr.type !== TT.WS && expr.type !== TT.EOL)) {
+      atLineStart = false;
     }
+
+    ctx.curVoiceSequence.push(expr);
     ctx.advance();
   }
 
-  // Don't forget last system
-  if (ctx.curSystem && ctx.curSystem.length) {
+  ctx.saveVxSeq();
+  if (ctx.curSystem.size > 0) {
     ctx.systems.push(ctx.curSystem);
   }
 
@@ -445,13 +551,17 @@ function parseVoicesWithBarOverlap(lines: tune_body_code[][]): System[] {
  *                 before a previously encountered voice starts a new system.
  */
 export function parseSystemsWithVoices(elements: tune_body_code[], voices: string[] = [], linear: boolean = false): System[] {
+  if (linear) {
+    return [elements];
+  }
+
   const ctx = new VoiceCtx(elements, voices);
 
-  if (voices.length < 2 && !linear) {
+  // Check both header-declared voices and voices found in the tune body,
+  // because users may declare voices only via V: markers without header declarations.
+  const voiceCount = Math.max(voices.length, countVoicesInElements(elements));
+  if (voiceCount < 2) {
     return parseNoVoices(ctx);
-  } else if (linear) {
-    // In linear mode, use parseVoices with dynamic voice discovery
-    return parseVoices(ctx, true);
   } else {
     const lines = splitIntoLines(elements);
     return parseVoicesWithBarOverlap(lines);

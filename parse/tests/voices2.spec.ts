@@ -1,9 +1,10 @@
 import chai from "chai";
+import * as fc from "fast-check";
 import { isToken, isVoiceMarker } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { ParseCtx, parseTune } from "../parsers/parse2";
 import { Scanner, Token, TT } from "../parsers/scan2";
-import { isNewSystem, parseNoVoices, parseSystemsWithVoices, parseVoices, extractVoiceId, VoiceCtx } from "../parsers/voices2";
+import { isNewSystem, parseNoVoices, parseSystemsWithVoices, parseVoices, extractVoiceId, VoiceCtx, LinearVoiceCtx } from "../parsers/voices2";
 import { Info_line, Inline_field, tune_body_code } from "../types/Expr2";
 
 const expect = chai.expect;
@@ -44,7 +45,10 @@ function createToken(type: TT, lexeme: string, line: number = 0, position: numbe
 }
 
 // Helper function to create a VoiceCtx with the given elements and voices
-function createVoiceCtx(elements: tune_body_code[], voices: string[] = []): VoiceCtx {
+function createLinVoiceCtx(elements: tune_body_code[], voices: string[] = []) {
+  return new LinearVoiceCtx(elements, voices);
+}
+function createVoiceCtx(elements: tune_body_code[], voices: string[] = []) {
   return new VoiceCtx(elements, voices);
 }
 
@@ -56,6 +60,7 @@ function parseABC(abc: string): Token[] {
 
 // Import the internal functions for testing (we'll need to export them temporarily)
 import { buildBarMapsFromLines, splitIntoLines } from "../parsers/voices2";
+import { getAllVoices } from "../abcl";
 
 describe("voices2.ts", () => {
   describe("Helper functions - splitIntoLines", () => {
@@ -183,86 +188,6 @@ E|F|`;
       expect(ranges[1][1].voice).to.equal("1");
       expect(ranges[1][1].start).to.equal(2);
       expect(ranges[1][1].end).to.equal(3);
-    });
-  });
-
-  describe("VoiceCtx class", () => {
-    it("should initialize with the provided elements and voices", () => {
-      const elements: tune_body_code[] = [createToken(TT.NOTE_LETTER, "C"), createToken(TT.NOTE_LETTER, "D")];
-      const voices = ["Voice1", "Voice2"];
-
-      const ctx = createVoiceCtx(elements, voices);
-
-      expect(ctx.elements).to.equal(elements);
-      expect(ctx.voices).to.equal(voices);
-      expect(ctx.current).to.equal(0);
-      expect(ctx.systems).to.be.an("array").that.is.empty;
-      expect(ctx.curSystem).to.be.undefined;
-      expect(ctx.lastVoice).to.equal("");
-    });
-
-    it("should peek at the current element without advancing", () => {
-      const elements: tune_body_code[] = [createToken(TT.NOTE_LETTER, "C"), createToken(TT.NOTE_LETTER, "D")];
-
-      const ctx = createVoiceCtx(elements);
-
-      expect(ctx.peek()).to.equal(elements[0]);
-      expect(ctx.current).to.equal(0); // Should not advance
-    });
-
-    it("should return the previous element", () => {
-      const elements: tune_body_code[] = [createToken(TT.NOTE_LETTER, "C"), createToken(TT.NOTE_LETTER, "D")];
-
-      const ctx = createVoiceCtx(elements);
-      ctx.current = 1; // Set current to 1
-
-      expect(ctx.previous()).to.equal(elements[0]);
-    });
-
-    it("should advance to the next element and return the previous one", () => {
-      const elements: tune_body_code[] = [createToken(TT.NOTE_LETTER, "C"), createToken(TT.NOTE_LETTER, "D")];
-
-      const ctx = createVoiceCtx(elements);
-
-      const result = ctx.advance();
-
-      expect(result).to.equal(elements[0]);
-      expect(ctx.current).to.equal(1);
-    });
-
-    it("should not advance past the end of the elements", () => {
-      const elements: tune_body_code[] = [createToken(TT.NOTE_LETTER, "C")];
-
-      const ctx = createVoiceCtx(elements);
-      ctx.current = 0;
-
-      ctx.advance(); // Advance to the end
-      expect(ctx.current).to.equal(1);
-
-      ctx.advance(); // Try to advance past the end
-      expect(ctx.current).to.equal(1); // Should not change
-    });
-
-    it("should detect when at the end of the elements", () => {
-      const elements: tune_body_code[] = [createToken(TT.NOTE_LETTER, "C")];
-
-      const ctx = createVoiceCtx(elements);
-
-      expect(ctx.isAtEnd()).to.be.false;
-
-      ctx.current = 1; // Set to end
-      expect(ctx.isAtEnd()).to.be.true;
-    });
-
-    it("should detect EOF token as end of elements", () => {
-      const elements: tune_body_code[] = [createToken(TT.NOTE_LETTER, "C"), createToken(TT.EOF, "")];
-
-      const ctx = createVoiceCtx(elements);
-
-      expect(ctx.isAtEnd()).to.be.false;
-
-      ctx.current = 1; // Set to EOF token
-      expect(ctx.isAtEnd()).to.be.true;
     });
   });
 
@@ -457,13 +382,13 @@ E|F|`;
         createToken(TT.NOTE_LETTER, "F"),
       ];
 
-      const voiceCtx = createVoiceCtx(elements, ["Voice1"]);
+      const voiceCtx = createLinVoiceCtx(elements, ["Voice1"]);
 
       const systems = parseVoices(voiceCtx);
 
-      expect(systems).to.have.lengthOf(2);
-      expect(systems[0]).to.have.lengthOf(3); // C, D, EOL
-      expect(systems[1]).to.have.lengthOf(3); // V:Voice1, E, F
+      expect(systems).to.have.lengthOf(1);
+      expect(voiceCtx.prefix).to.have.lengthOf(3); // C, D, EOL
+      expect(systems[0].get("Voice1")).to.have.lengthOf(3); // V:Voice1, E, F
     });
 
     it("should create a new system when a voice with lower index appears", () => {
@@ -481,13 +406,14 @@ E|F|`;
         createToken(TT.NOTE_LETTER, "A"),
       ];
 
-      const voiceCtx = createVoiceCtx(elements, ["Voice1", "Voice2"]);
+      const voiceCtx = createLinVoiceCtx(elements, ["Voice1", "Voice2"]);
 
       const systems = parseVoices(voiceCtx);
 
       expect(systems).to.have.lengthOf(2);
-      expect(systems[0]).to.have.lengthOf(6); // V:Voice1, C, D, V:Voice2, E, F
-      expect(systems[1]).to.have.lengthOf(3); // V:Voice1, G, A
+      expect(systems[0].get("Voice1")).to.have.lengthOf(3); // V:Voice1, C, D, V:Voice2, E, F
+      expect(systems[0].get("Voice2")).to.have.lengthOf(3); // V:Voice1, C, D, V:Voice2, E, F
+      expect(systems[1].get("Voice1")).to.have.lengthOf(3); // V:Voice1, G, A
     });
 
     it("should handle inline voice markers", () => {
@@ -502,12 +428,39 @@ E|F|`;
         createToken(TT.NOTE_LETTER, "F"),
       ];
 
-      const voiceCtx = createVoiceCtx(elements, ["Voice1", "Voice2"]);
+      const voiceCtx = createLinVoiceCtx(elements, ["Voice1", "Voice2"]);
 
       const systems = parseVoices(voiceCtx);
 
       expect(systems).to.have.lengthOf(1);
-      expect(systems[0]).to.have.lengthOf(6);
+      expect(systems[0].get("Voice1")).to.have.lengthOf(3);
+      expect(systems[0].get("Voice2")).to.have.lengthOf(3);
+    });
+
+    it("should create system boundary when new music line continues same voice in linear mode", () => {
+      // In linear mode, a new line of music without a voice marker is an implicit
+      // continuation of the current voice. If the current voice's index is not less
+      // than the last voice's index, this marks a system boundary.
+      //
+      // Expected: 2 systems
+      //   System 1: V:1 abcde
+      //   System 2: V:1 dfgef, V:2 abcde
+      const sample = `X:1
+K:C
+V:1
+abcde
+dfgef
+V:2
+abcde`;
+
+      const ctx = new ABCContext();
+      const tokens = Scanner(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx, undefined, true); // linear = true
+      const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
+      const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
+
+      expect(systems).to.have.lengthOf(2);
     });
   });
 
@@ -766,8 +719,9 @@ efga|bcde|`;
       const parseCtx = new ParseCtx(tokens, ctx);
       const tune = parseTune(parseCtx, undefined, true);
 
-      expect(tune).to.not.be.null;
-      const systems = tune.tune_body?.sequence;
+      tune.tune_header.voices;
+      const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
+      const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
 
       // System 1: V:2 bars 1-4, V:1 bars 1-4 (overlap)
       // System 2: V:2 bars 5-6, V:1 bars 5-6 (overlap, but don't overlap with system 1)
@@ -791,9 +745,8 @@ efga|bcde|`;
       const tokens = Scanner(sample, ctx);
       const parseCtx = new ParseCtx(tokens, ctx);
       const tune = parseTune(parseCtx, undefined, true);
-
-      expect(tune).to.not.be.null;
-      const systems = tune.tune_body?.sequence;
+      const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
+      const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
 
       // System 1: V:2 bars 1-4, V:1 bars 1-4 (overlap)
       // System 2: V:2 bars 5-6, V:1 bars 5-6 (overlap, but don't overlap with system 1)
@@ -876,6 +829,213 @@ K:C
       const inlineField = tune.tune_body?.sequence.flat().find((el): el is Inline_field => el instanceof Inline_field && el.field.lexeme === "V:");
       expect(inlineField).to.not.be.undefined;
       expect(extractVoiceId(inlineField!)).to.equal("S1");
+    });
+  });
+
+  describe("Property-based tests for linear parsing", () => {
+    // Generator for linear-style systems where:
+    // - The first system includes ALL voices (to establish discovery order)
+    // - Each voice has exactly 1 line of content
+    // - Subsequent systems may omit some voices but maintain order
+    const genLinearAbcSimple = fc
+      .tuple(
+        fc.integer({ min: 2, max: 4 }), // number of voices
+        fc.integer({ min: 1, max: 4 }) // number of systems
+      )
+      .chain(([numVoices, numSystems]) => {
+        // For systems after the first, generate which voices are included
+        const genSubsequentSystemVoices = fc.array(fc.boolean(), { minLength: numVoices, maxLength: numVoices }).map((include) => {
+          // Ensure at least one voice
+          if (!include.some((v) => v)) include[0] = true;
+          return include.map((inc, idx) => (inc ? idx + 1 : null)).filter((v): v is number => v !== null);
+        });
+
+        const subsequentSystemsCount = Math.max(0, numSystems - 1);
+
+        return fc.array(genSubsequentSystemVoices, { minLength: subsequentSystemsCount, maxLength: subsequentSystemsCount }).map((subsequentSystems) => {
+          // First system always includes all voices in order
+          const allVoices = Array.from({ length: numVoices }, (_, i) => i + 1);
+          const systems = [allVoices, ...subsequentSystems];
+
+          // Build the ABC string
+          let abc = "X:1\nK:C\n";
+
+          // Track last voice index for system boundary detection
+          let lastVoiceIdx = -1;
+          let expectedSystemCount = 0;
+
+          for (const voices of systems) {
+            for (const voiceNum of voices) {
+              const voiceIdx = voiceNum - 1; // 0-based index matches discovery order
+
+              // System boundary when voice index goes backward (or first voice)
+              if (lastVoiceIdx === -1 || voiceIdx < lastVoiceIdx) {
+                expectedSystemCount++;
+              }
+              lastVoiceIdx = voiceIdx;
+
+              // Add voice marker and single line of content
+              abc += `V:${voiceNum}\nC|D|\n`;
+            }
+          }
+
+          return {
+            numVoices,
+            numSystems,
+            systems,
+            expectedSystemCount,
+            abc,
+          };
+        });
+      });
+
+    it("should produce the expected number of systems for linear-style ABC", () => {
+      fc.assert(
+        fc.property(genLinearAbcSimple, ({ abc, expectedSystemCount }) => {
+          const ctx = new ABCContext();
+          const tokens = Scanner(abc, ctx);
+          const parseCtx = new ParseCtx(tokens, ctx);
+          const tune = parseTune(parseCtx, undefined, true); // linear = true
+          const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
+          const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
+
+          const actualSystemCount = systems.length;
+
+          if (actualSystemCount !== expectedSystemCount) {
+            console.log("ABC:", abc);
+            console.log("Expected systems:", expectedSystemCount);
+            console.log("Actual systems:", actualSystemCount);
+            return false;
+          }
+          return true;
+        }),
+        { numRuns: 100, verbose: true }
+      );
+    });
+
+    it("should detect system boundaries when voice index goes backwards", () => {
+      // Property: If we have V:2 followed by V:1, that's a system boundary
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 2, max: 5 }), // numVoices
+          fc.integer({ min: 1, max: 3 }), // numSystems
+          (numVoices, numSystems) => {
+            // Build ABC with explicit voice cycling (V:1, V:2, ... V:n, V:1, V:2, ...)
+            let abc = "X:1\nK:C\n";
+            for (let sys = 0; sys < numSystems; sys++) {
+              for (let v = 1; v <= numVoices; v++) {
+                abc += `V:${v}\nC|D|\n`;
+              }
+            }
+
+            const ctx = new ABCContext();
+            const tokens = Scanner(abc, ctx);
+            const parseCtx = new ParseCtx(tokens, ctx);
+            const tune = parseTune(parseCtx, undefined, true);
+            const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
+            const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
+
+            const actualSystems = systems.length;
+
+            // Each complete cycle of all voices should be one system
+            return actualSystems === numSystems;
+          }
+        ),
+        { numRuns: 50 }
+      );
+    });
+
+    it("should detect system boundaries on implicit voice continuation (new music line without voice marker)", () => {
+      // Property: If V:1 has multiple lines of content, each line after the first starts a new system
+      fc.assert(
+        fc.property(fc.integer({ min: 1, max: 4 }), (numContentLines) => {
+          // Build ABC with single voice but multiple content lines
+          let abc = "X:1\nK:C\nV:1\n";
+          for (let i = 0; i < numContentLines; i++) {
+            abc += "C|D|\n";
+          }
+
+          const ctx = new ABCContext();
+          const tokens = Scanner(abc, ctx);
+          const parseCtx = new ParseCtx(tokens, ctx);
+          const tune = parseTune(parseCtx, undefined, true);
+          const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
+          const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
+
+          const actualSystems = systems.length;
+
+          // Each content line becomes its own system in linear mode
+          return actualSystems === numContentLines;
+        }),
+        { numRuns: 20 }
+      );
+    });
+
+    it("should handle systems with missing voices correctly", () => {
+      // Property: When voices are omitted from subsequent systems, system boundaries
+      // are still detected correctly based on voice index going backwards
+      const genSystemsWithMissingVoices = fc
+        .tuple(
+          fc.integer({ min: 2, max: 4 }), // numVoices
+          fc.integer({ min: 2, max: 4 }) // numSystems
+        )
+        .chain(([numVoices, numSystems]) => {
+          // Generate which voices to include in each subsequent system
+          // Each system must have at least one voice, voices in ascending order
+          const genSubsetVoices = fc.array(fc.boolean(), { minLength: numVoices, maxLength: numVoices }).map((include) => {
+            if (!include.some((v) => v)) include[0] = true;
+            return include.map((inc, idx) => (inc ? idx + 1 : null)).filter((v): v is number => v !== null);
+          });
+
+          return fc.array(genSubsetVoices, { minLength: numSystems - 1, maxLength: numSystems - 1 }).map((subsets) => {
+            // First system has all voices
+            const allVoices = Array.from({ length: numVoices }, (_, i) => i + 1);
+            const systems = [allVoices, ...subsets];
+
+            // Build ABC and calculate expected systems
+            let abc = "X:1\nK:C\n";
+            let lastVoiceIdx = -1;
+            let expectedSystemCount = 0;
+
+            for (const voices of systems) {
+              for (const voiceNum of voices) {
+                const voiceIdx = voiceNum - 1;
+                if (lastVoiceIdx === -1 || voiceIdx < lastVoiceIdx) {
+                  expectedSystemCount++;
+                }
+                lastVoiceIdx = voiceIdx;
+                abc += `V:${voiceNum}\nC|D|\n`;
+              }
+            }
+
+            // Track which systems have missing voices for reporting
+            const systemsWithMissingVoices = systems.filter((s) => s.length < numVoices).length;
+
+            return { abc, expectedSystemCount, numVoices, systems, systemsWithMissingVoices };
+          });
+        });
+
+      fc.assert(
+        fc.property(genSystemsWithMissingVoices, ({ abc, expectedSystemCount, systemsWithMissingVoices }) => {
+          const ctx = new ABCContext();
+          const tokens = Scanner(abc, ctx);
+          const parseCtx = new ParseCtx(tokens, ctx);
+          const tune = parseTune(parseCtx, undefined, true);
+          const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
+          const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
+
+          const actualSystemCount = systems.length;
+
+          if (actualSystemCount !== expectedSystemCount) {
+            console.log("ABC:", abc);
+            console.log("Expected:", expectedSystemCount, "Actual:", actualSystemCount);
+            console.log("Systems with missing voices:", systemsWithMissingVoices);
+            return false;
+          }
+          return true;
+        }),
+        { numRuns: 100 }
+      );
     });
   });
 });
