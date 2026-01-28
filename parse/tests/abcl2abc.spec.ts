@@ -1,7 +1,11 @@
 import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { abclToAbc } from "../abcl";
+import { abclToAbc, convertFileToDeferred } from "../abcl";
+import { Scanner } from "../parsers/scan2";
+import { parse } from "../parsers/parse2";
+import { AbcFormatter } from "../Visitors/Formatter2";
+import { Tune } from "../types/Expr2";
 
 function createCtx(): ABCContext {
   return new ABCContext(new AbcErrorReporter());
@@ -31,7 +35,8 @@ V:1
 abcd|
 dfca|
 V:2
-abde|`;
+abde|
+defg`;
 
       const expected = `X:1
 T:Test
@@ -43,11 +48,24 @@ X|
 V:1
 dfca|
 V:2
-abcde|`;
+abde|
+V:1
+X
+V:2
+defg`;
 
-      const ctx = createCtx();
-      const result = abclToAbc(input, ctx);
-      expect(normalize(result)).to.equal(normalize(expected));
+      const ctx = new ABCContext();
+      const tokens = Scanner(input, ctx);
+      const ast = parse(tokens, ctx, { linear: true });
+
+      const systems = (ast.contents[0] as unknown as Tune).tune_body?.sequence;
+      expect(systems).to.have.lengthOf(3);
+
+      const astDeferred = convertFileToDeferred(ast, ctx);
+
+      const formatter = new AbcFormatter(ctx);
+      const fmt = formatter.stringify(astDeferred);
+      expect(normalize(fmt)).to.equal(normalize(expected));
     });
 
     it("should insert X rest when V:1 is missing from second row", () => {
@@ -145,6 +163,8 @@ D|
 V:2
 E|
 V:3
+X|
+V:1
 X|
 V:2
 F|

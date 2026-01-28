@@ -16,7 +16,7 @@ import { isGraceGroup, isTuplet, isVoiceMarker } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import { extractVoiceId } from "../parsers/voices2";
-import { File_structure, Info_line, MultiMeasureRest, Tune, Tune_Body, tune_body_code } from "../types/Expr2";
+import { File_structure, Info_line, MultiMeasureRest, System, Tune, Tune_Body, tune_body_code } from "../types/Expr2";
 import { isTimeEvent } from "../Visitors/fmt2/fmt_timeMap";
 import { isBarLine } from "../helpers";
 import { cloneLine } from "../Visitors/CloneVisitor";
@@ -119,200 +119,12 @@ export function createVoiceMarker(voiceId: string, ctx: ABCContext): Info_line {
 }
 
 /**
- * Parse tune body elements into voice sections.
- *
- * Each voice section contains:
- * - The voice ID
- * - The original voice marker
- * - An array of content lines (split at EOL tokens)
- *
- * Returns voice sections in the order they appear, and the list of unique voice IDs.
- */
-export function parseVoiceSections(elements: tune_body_code[]): { sections: VoiceSection[]; voiceIds: string[] } {
-  const sections: VoiceSection[] = [];
-  const voiceIds: string[] = [];
-  let currentSection: VoiceSection | null = null;
-  let currentLine: tune_body_code[] = [];
-
-  for (const element of elements) {
-    if (isVoiceMarker(element)) {
-      // Save current line to current section before starting new section
-      if (currentSection && currentLine.length > 0) {
-        currentSection.lines.push(currentLine);
-        currentLine = [];
-      }
-
-      // Save current section
-      if (currentSection) {
-        sections.push(currentSection);
-      }
-
-      const voiceId = extractVoiceId(element);
-      if (!voiceIds.includes(voiceId)) {
-        voiceIds.push(voiceId);
-      }
-
-      currentSection = {
-        voiceId,
-        voiceMarker: element as Info_line,
-        lines: [],
-      };
-    } else if (element instanceof Token && element.type === TT.EOL) {
-      // End of line - save current line to current section
-      if (currentSection) {
-        // Include EOL in the line
-        currentLine.push(element);
-        if (currentLine.length > 1 || !(currentLine[0] instanceof Token && currentLine[0].type === TT.EOL)) {
-          // Only add non-empty lines (more than just EOL)
-          currentSection.lines.push(currentLine);
-        }
-        currentLine = [];
-      }
-    } else if (currentSection) {
-      // Add element to current line
-      currentLine.push(element);
-    }
-    // Elements before first voice marker are ignored for conversion
-  }
-
-  // Save final line and section
-  if (currentSection) {
-    if (currentLine.length > 0) {
-      currentSection.lines.push(currentLine);
-    }
-    sections.push(currentSection);
-  }
-
-  return { sections, voiceIds };
-}
-
-/**
- * Build a grid from voice sections.
- *
- * The grid aligns content across voices:
- * - Each row represents one "line" of the score
- * - Each cell in a row contains content for one voice
- * - Missing cells (voice has no content for this row) get filled with silenced lines
- *
- * Voice sections are grouped: a new group starts when we see a voice ID that has
- * a lower index than the previous voice ID (indicating the start of a new "system"
- * in linear style).
- */
-export function buildGrid(sections: VoiceSection[], voiceIds: string[], ctx: ABCContext): GridRow[] {
-  if (sections.length === 0) {
-    return [];
-  }
-
-  // Group sections into "systems" - a new system starts when voice index decreases
-  const voiceSystems: VoiceSection[][] = [];
-  let currentSystem: VoiceSection[] = [];
-  let lastVoiceIndex = -1;
-
-  for (const section of sections) {
-    const voiceIndex = voiceIds.indexOf(section.voiceId);
-
-    if (voiceIndex <= lastVoiceIndex && currentSystem.length > 0) {
-      // New system starts - voice index went backwards
-      voiceSystems.push(currentSystem);
-      currentSystem = [];
-    }
-
-    currentSystem.push(section);
-    lastVoiceIndex = voiceIndex;
-  }
-
-  // Save final system
-  if (currentSystem.length > 0) {
-    voiceSystems.push(currentSystem);
-  }
-
-  // Build grid rows from each system
-  const rows: GridRow[] = [];
-
-  for (const system of voiceSystems) {
-    // Find the maximum number of lines in this system
-    let maxLines = 0;
-    for (const section of system) {
-      maxLines = Math.max(maxLines, section.lines.length);
-    }
-
-    // Build a map of voiceId -> lines for this system
-    const voiceLines = new Map<string, tune_body_code[][]>();
-    for (const section of system) {
-      voiceLines.set(section.voiceId, section.lines);
-    }
-
-    // Create rows for this system
-    for (let lineIdx = 0; lineIdx < maxLines; lineIdx++) {
-      const row: GridRow = { content: new Map() };
-
-      for (const voiceId of voiceIds) {
-        const lines = voiceLines.get(voiceId);
-        if (lines && lineIdx < lines.length) {
-          // Voice has content for this row
-          row.content.set(voiceId, lines[lineIdx]);
-        } else {
-          // Voice has no content - use silenced line
-          // If voice has any content in this system, clone and silence it
-          // Otherwise create a simple X rest
-          if (lines && lines.length > 0) {
-            const template = lines[0];
-            const cloned = cloneLine(template, ctx);
-            row.content.set(voiceId, silenceLine(cloned, ctx));
-          } else {
-            row.content.set(voiceId, [createXRest(ctx)]);
-          }
-        }
-      }
-
-      rows.push(row);
-    }
-  }
-
-  return rows;
-}
-
-/**
- * Convert a grid to deferred-style tune body elements.
- *
- * For each row, output each voice's content prefixed with its voice marker.
- */
-export function gridToTuneBody(grid: GridRow[], voiceIds: string[], ctx: ABCContext): tune_body_code[] {
-  const elements: tune_body_code[] = [];
-
-  for (const row of grid) {
-    for (const voiceId of voiceIds) {
-      // Add voice marker
-      const voiceMarker = createVoiceMarker(voiceId, ctx);
-      elements.push(voiceMarker);
-
-      // Add EOL after voice marker
-      elements.push(new Token(TT.EOL, "\n", ctx.generateId()));
-
-      // Add content
-      const content = row.content.get(voiceId);
-      if (content) {
-        elements.push(...content);
-      }
-
-      // Ensure line ends with EOL
-      const lastElement = elements[elements.length - 1];
-      if (!(lastElement instanceof Token && lastElement.type === TT.EOL)) {
-        elements.push(new Token(TT.EOL, "\n", ctx.generateId()));
-      }
-    }
-  }
-
-  return elements;
-}
-
-/**
  * Collect all voice IDs from tune body elements.
  */
-export function getAllVoiceIds(elements: tune_body_code[]): string[] {
+export function getAllVoiceIds(system: System): string[] {
   const voiceIds: string[] = [];
 
-  for (const element of elements) {
+  for (const element of system) {
     if (isVoiceMarker(element)) {
       const voiceId = extractVoiceId(element);
       if (!voiceIds.includes(voiceId)) {
@@ -325,14 +137,6 @@ export function getAllVoiceIds(elements: tune_body_code[]): string[] {
 }
 
 /**
- * Get the voice IDs present in a system.
- * Kept for backwards compatibility with tests.
- */
-export function getSystemVoices(system: tune_body_code[]): string[] {
-  return getAllVoiceIds(system);
-}
-
-/**
  * Get all unique voices across all systems in a tune body.
  * Kept for backwards compatibility with tests.
  */
@@ -340,7 +144,7 @@ export function getAllVoices(tuneBody: Tune_Body): string[] {
   const allVoices: string[] = [];
 
   for (const system of tuneBody.sequence) {
-    const systemVoices = getSystemVoices(system);
+    const systemVoices = getAllVoiceIds(system);
     for (const voice of systemVoices) {
       if (!allVoices.includes(voice)) {
         allVoices.push(voice);
@@ -380,41 +184,74 @@ export function findMusicLine(system: tune_body_code[]): tune_body_code[] {
 }
 
 /**
+ * Prepend a voice marker to a line of music content.
+ * Returns a new array with the voice marker and EOL at the beginning.
+ */
+export function insertVoicePrefix(line: tune_body_code[], voiceId: string, ctx: ABCContext): tune_body_code[] {
+  const voiceMarker = createVoiceMarker(voiceId, ctx);
+  const eol = new Token(TT.EOL, "\n", ctx.generateId());
+  return [voiceMarker, eol, ...line];
+}
+
+/**
  * Convert a linear-parsed Tune to deferred style.
  *
- * The algorithm:
- * 1. Parse tune body into voice sections
- * 2. Build a grid aligning content across voices
- * 3. Convert grid to deferred-style tune body
+ * The algorithm iterates over each system from the linear parser:
+ * 1. Get all voices present across the entire tune
+ * 2. For each system, find which voices are present
+ * 3. For each missing voice, create a silenced line and append it to the system
  */
 export function convertTuneToDeferred(tune: Tune, ctx: ABCContext): Tune {
-  if (!tune.tune_body) {
+  const tune_body = tune.tune_body;
+  if (!tune_body) {
     return tune;
   }
 
-  // Flatten all systems into a single array of elements
-  const allElements: tune_body_code[] = [];
-  for (const system of tune.tune_body.sequence) {
-    allElements.push(...system);
-  }
-
-  // Parse into voice sections
-  const { sections, voiceIds } = parseVoiceSections(allElements);
+  // Get all voices across all systems
+  const allVoices = getAllVoices(tune_body);
 
   // If there is only one voice or no voices, no conversion is needed
-  if (voiceIds.length <= 1) {
+  if (allVoices.length <= 1) {
     return tune;
   }
 
-  // Build the grid
-  const grid = buildGrid(sections, voiceIds, ctx);
+  // Process each system
+  const newSystems: System[] = [];
 
-  // Convert grid to tune body elements
-  const convertedElements = gridToTuneBody(grid, voiceIds, ctx);
+  for (const system of tune_body.sequence) {
+    // Get voices present in this system
+    const presentVoices = getAllVoiceIds(system);
 
-  // Wrap in a single system (the whole converted content is one system)
-  const newTuneBody = new Tune_Body(ctx.generateId(), [convertedElements]);
+    // Find missing voices
+    const missingVoices = allVoices.filter((v) => !presentVoices.includes(v));
 
+    // Start with a deep clone of the original system elements
+    const newSystem: System = cloneLine(system, ctx);
+
+    // For each missing voice, create and append a silenced line
+    for (const missingVoice of missingVoices) {
+      // Find a music line template from this system
+      const originalLine = findMusicLine(system);
+
+      // Clone and silence it
+      const copiedLine = cloneLine(originalLine, ctx);
+      const silencedLine = silenceLine(copiedLine, ctx);
+
+      // Insert voice prefix and append to system
+      const completeLine = insertVoicePrefix(silencedLine, missingVoice, ctx);
+      newSystem.push(...completeLine);
+
+      // Ensure line ends with EOL
+      const lastElement = newSystem[newSystem.length - 1];
+      if (!(lastElement instanceof Token && lastElement.type === TT.EOL)) {
+        newSystem.push(new Token(TT.EOL, "\n", ctx.generateId()));
+      }
+    }
+
+    newSystems.push(newSystem);
+  }
+
+  const newTuneBody = new Tune_Body(ctx.generateId(), newSystems);
   return new Tune(ctx.generateId(), tune.tune_header, newTuneBody);
 }
 
