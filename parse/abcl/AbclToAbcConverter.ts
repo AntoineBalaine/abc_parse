@@ -7,7 +7,7 @@
  * with silenced content and flattens to deferred style.
  */
 
-import { isGraceGroup, isTuplet, isVoiceMarker } from "../helpers";
+import { isGraceGroup, isInfo_line, isTuplet, isVoiceMarker, isWS } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import { extractVoiceId, LinearVoiceCtx, parseVoices, VoiceSequenceMap } from "../parsers/voices2";
@@ -193,7 +193,18 @@ function fillNullVoices(systemMap: VoiceSequenceMap, allVoices: string[], ctx: A
     if (seq === null) {
       const cloned = cloneLine(templateSeq!, ctx);
       // Remove the voice marker from the cloned template before silencing
-      const withoutVoiceMarker = cloned.filter((el) => !isVoiceMarker(el));
+      const withoutVoiceMarker: tune_body_code[] = [];
+      for (let i = 0; i < cloned.length; i++) {
+        let el = cloned[i];
+        if (isVoiceMarker(el)) {
+          if (isInfo_line(el)) {
+            i++; // skip EOL
+          }
+          continue;
+        }
+        withoutVoiceMarker.push(el);
+      }
+
       const silenced = silenceLine(withoutVoiceMarker, ctx);
       const completeLine = insertVoicePrefix(silenced, vxId, ctx);
       systemMap.set(vxId, completeLine);
