@@ -230,7 +230,7 @@ async function applyTransform(
 
   try {
     const result = await client.sendRequest<ApplyTransformResult>(
-      "abct2.applyTransform",
+      "abc.applyTransform",
       {
         uri,
         transform,

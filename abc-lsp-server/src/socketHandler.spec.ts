@@ -200,7 +200,7 @@ describe("Socket Handler", () => {
     it("returns error for missing URI", async () => {
       const response = await sendRequest({
         id: 1,
-        method: "abct2.applySelector",
+        method: "abc.applySelector",
         params: {
           selector: "selectChords",
         },
@@ -212,7 +212,7 @@ describe("Socket Handler", () => {
     it("returns error for invalid URI format", async () => {
       const response = await sendRequest({
         id: 1,
-        method: "abct2.applySelector",
+        method: "abc.applySelector",
         params: {
           uri: "http://example.com/file.abc",
           selector: "selectChords",
@@ -225,7 +225,7 @@ describe("Socket Handler", () => {
     it("returns error for path traversal in URI", async () => {
       const response = await sendRequest({
         id: 1,
-        method: "abct2.applySelector",
+        method: "abc.applySelector",
         params: {
           uri: "file:///path/../etc/passwd",
           selector: "selectChords",
@@ -238,7 +238,7 @@ describe("Socket Handler", () => {
     it("returns error for unknown selector", async () => {
       const response = await sendRequest({
         id: 1,
-        method: "abct2.applySelector",
+        method: "abc.applySelector",
         params: {
           uri: "file:///path/to/file.abc",
           selector: "nonExistentSelector",
@@ -251,7 +251,7 @@ describe("Socket Handler", () => {
     it("returns error when document is not found", async () => {
       const response = await sendRequest({
         id: 1,
-        method: "abct2.applySelector",
+        method: "abc.applySelector",
         params: {
           uri: "file:///path/to/file.abc",
           selector: "selectChords",
@@ -266,7 +266,7 @@ describe("Socket Handler", () => {
 
       const response = await sendRequest({
         id: 1,
-        method: "abct2.applySelector",
+        method: "abc.applySelector",
         params: {
           uri: "file:///path/to/file.abcx",
           selector: "selectChords",
@@ -282,7 +282,7 @@ describe("Socket Handler", () => {
 
       const response = await sendRequest({
         id: 1,
-        method: "abct2.applySelector",
+        method: "abc.applySelector",
         params: {
           uri: "file:///path/to/file.abc",
           selector: "selectChords",
@@ -303,7 +303,7 @@ describe("Socket Handler", () => {
       // First get all chords
       const fullResponse = await sendRequest({
         id: 1,
-        method: "abct2.applySelector",
+        method: "abc.applySelector",
         params: {
           uri: "file:///path/to/file.abc",
           selector: "selectChords",
@@ -315,7 +315,7 @@ describe("Socket Handler", () => {
       // Now scope to only the first chord's range
       const scopedResponse = await sendRequest({
         id: 2,
-        method: "abct2.applySelector",
+        method: "abc.applySelector",
         params: {
           uri: "file:///path/to/file.abc",
           selector: "selectChords",
@@ -333,7 +333,7 @@ describe("Socket Handler", () => {
       // First select chords
       const chordsResponse = await sendRequest({
         id: 1,
-        method: "abct2.applySelector",
+        method: "abc.applySelector",
         params: {
           uri: "file:///path/to/file.abc",
           selector: "selectChords",
@@ -347,7 +347,7 @@ describe("Socket Handler", () => {
       // Now narrow to notes within those chords
       const notesResponse = await sendRequest({
         id: 2,
-        method: "abct2.applySelector",
+        method: "abc.applySelector",
         params: {
           uri: "file:///path/to/file.abc",
           selector: "selectNotes",
@@ -365,7 +365,7 @@ describe("Socket Handler", () => {
 
       const response = await sendRequest({
         id: 42,
-        method: "abct2.applySelector",
+        method: "abc.applySelector",
         params: {
           uri: "file:///path/to/file.abc",
           selector: "selectNotes",

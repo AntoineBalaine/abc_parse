@@ -509,10 +509,10 @@ export class SocketHandler {
       try {
         let result: SelectorResult | TransformResult;
 
-        if (request.method === "abct2.applySelector") {
+        if (request.method === "abc.applySelector") {
           const validatedParams = validateApplySelectorParams(request.params);
           result = handleApplySelector(validatedParams, this.getDocument, this.getCsTree);
-        } else if (request.method === "abct2.applyTransform") {
+        } else if (request.method === "abc.applyTransform") {
           const validatedParams = validateApplyTransformParams(request.params);
           result = handleApplyTransform(validatedParams, this.getDocument);
         } else {

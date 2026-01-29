@@ -232,7 +232,7 @@ connection.onHover((_params: TextDocumentPositionParams): Hover | null => {
 // Selector Command Request Handlers
 // ============================================================================
 
-connection.onRequest("abct2.applySelector", (params: ApplySelectorParams): ApplySelectorResult => {
+connection.onRequest("abc.applySelector", (params: ApplySelectorParams): ApplySelectorResult => {
   const doc = abcServer.abcDocuments.get(params.uri);
   if (!doc || !(doc instanceof AbcDocument) || !doc.AST) {
     return { ranges: [] };
@@ -343,7 +343,7 @@ connection.onRequest("abc.wrapDynamic", (params: WrapDynamicParams): WrapDynamic
 // Transform Command Request Handler
 // ============================================================================
 
-connection.onRequest("abct2.applyTransform", (params: ApplyTransformParams): ApplyTransformResult => {
+connection.onRequest("abc.applyTransform", (params: ApplyTransformParams): ApplyTransformResult => {
   const doc = abcServer.abcDocuments.get(params.uri);
   if (!doc || !(doc instanceof AbcDocument) || !doc.AST || !doc.ctx) {
     return { textEdits: [], cursorRanges: [] };

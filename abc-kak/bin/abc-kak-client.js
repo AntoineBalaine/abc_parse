@@ -384,7 +384,7 @@ async function main() {
   if (args.selector) {
     request = {
       id: 1,
-      method: "abct2.applySelector",
+      method: "abc.applySelector",
       params: {
         uri: args.uri,
         selector: args.selector,
@@ -395,7 +395,7 @@ async function main() {
   } else {
     request = {
       id: 1,
-      method: "abct2.applyTransform",
+      method: "abc.applyTransform",
       params: {
         uri: args.uri,
         transform: args.transform,

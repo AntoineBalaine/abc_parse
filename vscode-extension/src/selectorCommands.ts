@@ -76,7 +76,7 @@ export function registerSelectorCommands(
         const ranges = getSelectionRanges(editor);
 
         try {
-          const result = await client.sendRequest<ApplySelectorResult>("abct2.applySelector", {
+          const result = await client.sendRequest<ApplySelectorResult>("abc.applySelector", {
             uri,
             selector: selectorName,
             ranges,
@@ -114,7 +114,7 @@ export function registerSelectorCommands(
       const ranges = getSelectionRanges(editor);
 
       try {
-        const result = await client.sendRequest<ApplySelectorResult>("abct2.applySelector", {
+        const result = await client.sendRequest<ApplySelectorResult>("abc.applySelector", {
           uri,
           selector: "selectNthFromTop",
           args: [Number(input)],

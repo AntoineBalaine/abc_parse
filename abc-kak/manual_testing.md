@@ -265,7 +265,7 @@ Wait a moment for the LSP to connect (you should see diagnostics if there are an
 To see what the client is sending/receiving, you can manually run the client:
 
 ```bash
-echo '{"id":1,"method":"abct2.applySelector","params":{"uri":"file:///path/to/test.abc","selector":"selectChords","cursorNodeIds":[]}}' | \
+echo '{"id":1,"method":"abc.applySelector","params":{"uri":"file:///path/to/test.abc","selector":"selectChords","cursorNodeIds":[]}}' | \
   node /path/to/abc_parse/abc-kak/bin/abc-kak-client.js \
     --socket="${XDG_RUNTIME_DIR:-/tmp/abc-lsp-$USER}/abc-lsp.sock" \
     --uri="file:///path/to/test.abc" \
