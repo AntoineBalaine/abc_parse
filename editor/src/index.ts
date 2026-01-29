@@ -53,9 +53,10 @@ export {
   selectAroundGrouping,
 } from "./selectors/delimiterSelectors";
 export { selectVoice } from "./selectors/voiceSelector";
+export { selectMeasures } from "./selectors/measureSelector";
 export { selectRange } from "./selectors/rangeSelector";
 export { fanOutByPredicate, WalkStrategy } from "./selectors/fanOut";
-export { firstTokenData, lastTokenData, comparePositions, buildIdMap, findNodeById } from "./selectors/treeWalk";
+export { firstTokenData, lastTokenData, comparePositions, buildIdMap, findNodeById, findTuneBodies } from "./selectors/treeWalk";
 
 // Transforms
 export {

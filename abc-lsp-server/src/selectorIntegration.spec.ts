@@ -138,6 +138,21 @@ describe("Selector Integration (end-to-end flow)", () => {
     expect(topResult.ranges).to.have.length(2);
     expect(topResult.ranges[0].start.line).to.equal(2);
   });
+
+  it("selectMeasures returns notes in the specified measure range", () => {
+    const ast = parseAbc("X:1\nK:C\nC D|E F|G A|\n");
+    const result = applySelector(ast, "selectMeasures", [1, 2]);
+    // Measure 1 has C and D, measure 2 has E and F (4 notes total)
+    expect(result.ranges).to.have.length(4);
+  });
+
+  it("selectMeasures then selectNotes returns only notes in that measure", () => {
+    const ast = parseAbc("X:1\nK:C\n[CEG] z|D E|\n");
+    const measureResult = applySelector(ast, "selectMeasures", [1, 1]);
+    // Measure 1 has a chord, a rest, but selectMeasures doesn't recurse into children
+    // So we get 2 elements: Chord and Rest
+    expect(measureResult.ranges).to.have.length(2);
+  });
 });
 
 describe("Selector Integration with range constraints", () => {

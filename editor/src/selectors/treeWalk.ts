@@ -1,4 +1,4 @@
-import { CSNode, isTokenNode, TokenData, getTokenData } from "../csTree/types";
+import { CSNode, isTokenNode, TokenData, getTokenData, TAGS } from "../csTree/types";
 
 /**
  * Returns the TokenData of the leftmost Token descendant, or null if the node
@@ -100,5 +100,29 @@ function walkForFind(ctx: FindByIdCtx, node: CSNode | null): boolean {
 export function findNodeById(root: CSNode, id: number): CSNode | null {
   const ctx: FindByIdCtx = { id, result: null };
   walkForFind(ctx, root);
+  return ctx.result;
+}
+
+function walkForTuneBodies(ctx: { result: CSNode[] }, node: CSNode | null): void {
+  let current = node;
+  while (current !== null) {
+    if (current.tag === TAGS.Tune_Body) {
+      ctx.result.push(current);
+    }
+    if (current.firstChild) {
+      walkForTuneBodies(ctx, current.firstChild);
+    }
+    current = current.nextSibling;
+  }
+}
+
+/**
+ * Collects all Tune_Body nodes found in the tree rooted at the given node.
+ * Used by selectors that need to operate on tune body content
+ * (e.g., voiceSelector, measureSelector).
+ */
+export function findTuneBodies(root: CSNode): CSNode[] {
+  const ctx: FindTuneBodiesCtx = { result: [] };
+  walkForTuneBodies(ctx, root);
   return ctx.result;
 }
