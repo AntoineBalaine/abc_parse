@@ -340,5 +340,40 @@ K:C`;
       expect(result).to.include("T:Test");
       expect(result).to.include("K:C");
     });
+
+    it("should convert linear style with header-declared voices and implicit system break", () => {
+      const input = `X:1
+T:Test
+M:4 / 4
+L:1 / 4
+V:1 name=A clef=treble
+V:2 name=B clef=bass
+K:C
+V:1
+CDEF |
+FDEA
+V:2
+FDEC |`;
+
+      const expected = `X:1
+T:Test
+M:4 / 4
+L:1 / 4
+V:1 name=A clef=treble
+V:2 name=B clef=bass
+K:C
+V:1
+CDEF |
+V:2
+X|
+V:1
+FDEA
+V:2
+FDEC |`;
+
+      const ctx = createCtx();
+      const result = abclToAbc(input, ctx);
+      expect(normalize(result)).to.equal(normalize(expected));
+    });
   });
 });
