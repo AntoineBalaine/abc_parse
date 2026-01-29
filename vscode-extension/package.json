@@ -14,8 +14,7 @@
   "license": "GPL-3.0-or-later",
   "icon": "assets/trebleclef_abc.png",
   "activationEvents": [
-    "onLanguage:abc",
-    "onLanguage:abct"
+    "onLanguage:abc"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -110,42 +109,6 @@
         "title": "ABC: Initialize Playback",
         "group": "Playback",
         "description": "Initialize the MuseSampler playback engine"
-      },
-      {
-        "command": "abct.evaluate",
-        "title": "ABCT: Evaluate File",
-        "group": "ABCT",
-        "description": "Evaluate the entire ABCT file and show the resulting ABC output"
-      },
-      {
-        "command": "abct.evaluateToLine",
-        "title": "ABCT: Evaluate to Cursor",
-        "group": "ABCT",
-        "description": "Evaluate the ABCT file up to the current cursor line (for debugging)"
-      },
-      {
-        "command": "abct.evaluateSelection",
-        "title": "ABCT: Evaluate Selection",
-        "group": "ABCT",
-        "description": "Evaluate only the selected ABCT expression"
-      },
-      {
-        "command": "abct.exportToFile",
-        "title": "ABCT: Export to ABC File",
-        "group": "ABCT",
-        "description": "Evaluate the ABCT file and save the result to an ABC file"
-      },
-      {
-        "command": "abct.openEvaluatedOutput",
-        "title": "ABCT: Open Evaluated Output",
-        "group": "ABCT",
-        "description": "Open the evaluated ABC output in an editable document. Saving the document generates patches."
-      },
-      {
-        "command": "abct.refreshEvaluatedOutput",
-        "title": "ABCT: Refresh Evaluated Output",
-        "group": "ABCT",
-        "description": "Re-evaluate the source ABCT file and refresh the virtual document with new content."
       },
       {
         "command": "abc.resetSelection",
@@ -506,9 +469,6 @@
     "configurationDefaults": {
       "[abc]": {
         "editor.semanticHighlighting.enabled": true
-      },
-      "[abct]": {
-        "editor.semanticHighlighting.enabled": true
       }
     },
     "configuration": {
@@ -612,18 +572,6 @@
         "capabilities": {
           "documentFormattingProvider": "true"
         },
-        "configuration": "./language-configuration.json"
-      },
-      {
-        "id": "abct",
-        "aliases": [
-          "abct",
-          "ABCT",
-          "ABC Transform"
-        ],
-        "extensions": [
-          ".abct"
-        ],
         "configuration": "./language-configuration.json"
       }
     ],

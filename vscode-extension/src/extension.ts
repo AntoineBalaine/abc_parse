@@ -11,7 +11,6 @@ import { setMscorePath } from "abc-musesampler-native";
 import { registerCommands } from "./extensionCommands";
 import { registerRendererCommands, setLspClient } from "./renderer";
 import { registerPlaybackCommands } from "./playback";
-import { registerAbctCommands, disposeAbctCommands } from "./abctCommands";
 import { registerSelectorCommands } from "./selectorCommands";
 import { registerTransformCommands } from "./transformCommands";
 
@@ -45,19 +44,14 @@ export async function activate(context: ExtensionContext) {
 
   // Options to control the language client
   const clientOptions: LanguageClientOptions = {
-    // Register the server for abc and abct documents
-    documentSelector: [
-      { scheme: "file", language: "abc" },
-      { scheme: "file", language: "abct" },
-      // Register the abct-eval scheme with abc language for semantic highlighting on virtual docs
-      { scheme: "abct-eval", language: "abc" },
-    ],
+    // Register the server for abc documents
+    documentSelector: [{ scheme: "file", language: "abc" }],
   };
 
   // Create the language client and start the client.
   client = new LanguageClient("abcLanguageServer", "ABC Language Server", serverOptions, clientOptions);
 
-  // Set the LSP client for the renderer (enables ABCT preview)
+  // Set the LSP client for the renderer
   setLspClient(client);
 
   // register list of extension's commands
@@ -68,9 +62,6 @@ export async function activate(context: ExtensionContext) {
 
   // register playback commands (play, stop, pause)
   registerPlaybackCommands(context);
-
-  // register ABCT evaluation commands
-  registerAbctCommands(context, client);
 
   // Start the client. This will also launch the server
   await client.start();
@@ -88,9 +79,6 @@ export async function activate(context: ExtensionContext) {
 }
 
 export function deactivate(): Thenable<void> | undefined {
-  // Dispose ABCT resources
-  disposeAbctCommands();
-
   if (!client) {
     return undefined;
   }

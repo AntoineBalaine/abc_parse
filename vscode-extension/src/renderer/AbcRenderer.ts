@@ -18,22 +18,7 @@ let _context: vscode.ExtensionContext;
 let _client: LanguageClient | undefined;
 
 /**
- * Result from ABCT evaluation LSP request
- */
-interface AbctEvalResult {
-  abc: string;
-  diagnostics: Array<{
-    severity: number; // 1 = error, 2 = warning, 3 = info, 4 = hint
-    range: {
-      start: { line: number; character: number };
-      end: { line: number; character: number };
-    };
-    message: string;
-  }>;
-}
-
-/**
- * Set the LSP client for ABCT evaluation
+ * Set the LSP client for preview content requests
  */
 export function setLspClient(client: LanguageClient | undefined) {
   _client = client;
@@ -55,60 +40,6 @@ async function getPreviewContent(uri: string): Promise<string> {
     return result.content ?? "";
   } catch (error) {
     outputChannel.appendLine(`Preview content error: ${error}`);
-    return "";
-  }
-}
-
-/**
- * Evaluate ABCT file for preview, with partial output on error
- * @param uri The URI of the ABCT file to evaluate
- * @returns The evaluated ABC string, or partial output up to the first error
- */
-export async function evaluateAbctForPreview(uri: string): Promise<string> {
-  if (!_client) {
-    outputChannel.appendLine("ABCT evaluation: No LSP client available");
-    return "";
-  }
-
-  try {
-    const result = await _client.sendRequest<AbctEvalResult>("abct.evaluate", { uri });
-
-    // Check for errors (severity 1 = Error)
-    const hasErrors = result.diagnostics.some((d) => d.severity === 1);
-
-    if (!hasErrors) {
-      return result.abc;
-    }
-
-    // On error, evaluate up to the line before the first error
-    // Sort errors by line number to find the topmost error
-    const errors = result.diagnostics.filter((d) => d.severity === 1).sort((a, b) => a.range.start.line - b.range.start.line);
-    const firstError = errors[0];
-    if (!firstError) {
-      return result.abc;
-    }
-
-    const errorLine = firstError.range.start.line; // 0-based
-
-    if (errorLine > 0) {
-      // Evaluate up to but not including the error line
-      // evaluateToLine expects the 0-based line number of the first line to exclude
-      try {
-        const partialResult = await _client.sendRequest<AbctEvalResult>("abct.evaluateToLine", {
-          uri,
-          line: errorLine,
-        });
-        return partialResult.abc;
-      } catch (partialError) {
-        outputChannel.appendLine(`ABCT partial evaluation error: ${partialError}`);
-        return "";
-      }
-    } else {
-      // Error on first line (line 0), no partial output possible
-      return "";
-    }
-  } catch (error) {
-    outputChannel.appendLine(`ABCT evaluation error: ${error}`);
     return "";
   }
 }
@@ -290,7 +221,7 @@ async function updatePreview(eventArgs: vscode.TextEditor | vscode.TextDocumentC
   }
 
   const language = eventArgs.document.languageId;
-  if (language !== "abc" && language !== "plaintext" && language !== "abct") {
+  if (language !== "abc" && language !== "plaintext") {
     return;
   }
 
@@ -315,13 +246,7 @@ async function getCurrentEditorContent(): Promise<string> {
   }
 
   const filePath = editor.document.fileName;
-  const languageId = editor.document.languageId;
   const uri = editor.document.uri.toString();
-
-  // ABCT files use a separate evaluation endpoint
-  if (languageId === "abct" || filePath.endsWith(".abct")) {
-    return await evaluateAbctForPreview(uri);
-  }
 
   if (filePath.endsWith(".abc") || filePath.endsWith(".abcl") || filePath.endsWith(".abcx")) {
     let content = await getPreviewContent(uri);

@@ -1,7 +1,7 @@
 /**
  * Transform commands for the VSCode extension.
  *
- * These commands apply ABCt2 transforms to the current editor selections.
+ * These commands apply editor transforms to the current editor selections.
  * The API is editor-agnostic: selections go in, text edits and result ranges come out.
  */
 

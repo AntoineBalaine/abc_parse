@@ -183,7 +183,7 @@
                 case 'contentChange':
                     if (abc !== message.content) {
                         abc = message.content;
-                        // Clear the display when content is empty (e.g., ABCT evaluation error)
+                        // Clear the display when content is empty
                         if (!abc || abc.trim() === '') {
                             document.getElementById('paper').innerHTML = '';
                             document.getElementById('source').classList.remove('show');
