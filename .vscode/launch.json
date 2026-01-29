@@ -1,5 +1,11 @@
 {
   "version": "0.2.0",
+  "compounds": [
+    {
+      "name": "Extension + Server",
+      "configurations": ["Run VSCode Extension", "Attach to LSP"]
+    }
+  ],
   "configurations": [
     {
       "type": "node",
@@ -37,6 +43,21 @@
       "request": "launch",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}/vscode-extension"],
       "outFiles": ["${workspaceFolder}/vscode-extension/dist/**/*.js"]
-    }
+    },
+    {
+      "name": "Attach to LSP",
+      "port": 6009,
+      "request": "attach",
+      "skipFiles": ["<node_internals>/**"],
+      "type": "node",
+      "outFiles": ["${workspaceFolder}/vscode-extension/dist/**/*.js"],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ],
+      "trace": true,
+      "timeout": 30000
+    },
+
   ]
 }

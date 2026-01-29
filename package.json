@@ -13,6 +13,7 @@
   ],
   "scripts": {
     "build": "npm run build:parse && npm run build:abct && npm run build:abct2 && npm run build:native && npm run build:lsp && npm run build:cli && npm run build:vscode",
+    "build:production": "npm run build:parse && npm run build:abct && npm run build:abct2 && npm run build:native && npm run build:lsp && npm run build:cli && npm run build:vscode-production",
     "build:parse": "npm run build -w parse",
     "build:abct": "npm run build -w abct",
     "build:abct2": "npm run build -w abct2",
@@ -20,6 +21,7 @@
     "build:lsp": "npm run build -w abc-lsp-server",
     "build:cli": "npm run build -w abc-cli",
     "build:vscode": "npm run build -w vscode-extension",
+    "build:vscode-production": "npm run build:production -w vscode-extension",
     "watch:parse": "npm run watch -w parse",
     "watch:lsp": "npm run watch -w abc-lsp-server",
     "watch:cli": "npm run watch -w abc-cli",

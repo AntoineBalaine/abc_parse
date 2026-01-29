@@ -25,6 +25,18 @@
           "endsPattern": "^\\[watch\\] build finished$"
         }
       }
+    },
+    {
+      "label": "build-extension-debug",
+      "type": "shell",
+      "command": "npm run build:debug",
+      "options": {
+        "cwd": "${workspaceFolder}/vscode-extension"
+      },
+      "presentation": {
+        "reveal": "silent"
+      },
+      "problemMatcher": "$tsc"
     }
   ]
 }
