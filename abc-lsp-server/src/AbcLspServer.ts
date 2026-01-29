@@ -1,4 +1,4 @@
-import { AbcFormatter } from "abc-parser";
+import { AbcFormatter, convertFileToDeferred } from "abc-parser";
 import { HandlerResult, Position, Range, SemanticTokens, SemanticTokensBuilder, TextDocuments, TextEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcDocument } from "./AbcDocument";
@@ -170,22 +170,10 @@ export class AbcLspServer {
           const lines = token.lexeme.split("\n");
           for (let i = 0; i < lines.length; i++) {
             if (lines[i].length === 0) continue;
-            builder.push(
-              token.line + i,
-              i === 0 ? token.position : 0,
-              lines[i].length,
-              scope,
-              0
-            );
+            builder.push(token.line + i, i === 0 ? token.position : 0, lines[i].length, scope, 0);
           }
         } else {
-          builder.push(
-            token.line,
-            token.position,
-            token.lexeme.length,
-            scope,
-            0
-          );
+          builder.push(token.line, token.position, token.lexeme.length, scope, 0);
         }
       }
     }
@@ -217,10 +205,7 @@ export class AbcLspServer {
       const formatter = new AbctFormatter();
       const source = abcDocument.document.getText();
       const formatted = formatter.format(abcDocument.AST, source);
-      const edit = TextEdit.replace(
-        Range.create(Position.create(0, 0), Position.create(Number.MAX_VALUE, Number.MAX_VALUE)),
-        formatted
-      );
+      const edit = TextEdit.replace(Range.create(Position.create(0, 0), Position.create(Number.MAX_VALUE, Number.MAX_VALUE)), formatted);
       return [edit];
     }
 
@@ -256,4 +241,38 @@ export class AbcLspServer {
     return lineText.charAt(char);
   }
 
+  /**
+   * Get preview content for any ABC-family document.
+   * Handles the appropriate conversion based on file type:
+   * - .abc: returns formatted content
+   * - .abcl: converts to deferred style
+   * - .abcx: converts to ABC (TODO: implement)
+   */
+  getPreviewContent(uri: string): string {
+    const abcDocument = this.abcDocuments.get(uri);
+    if (!abcDocument || !abcDocument.AST) {
+      return "";
+    }
+
+    // ABCL files: convert to deferred style
+    if (isAbclDocument(abcDocument)) {
+      const deferredAst = convertFileToDeferred(abcDocument.AST, abcDocument.ctx);
+      const formatter = new AbcFormatter(abcDocument.ctx);
+      return formatter.stringify(deferredAst);
+    }
+
+    // ABCx files: convert to ABC
+    if (isAbcxDocument(abcDocument)) {
+      const formatter = new AbcFormatter(abcDocument.ctx);
+      return formatter.stringify(abcDocument.AST);
+    }
+
+    // ABC files: return formatted content
+    if (isAbcDocument(abcDocument)) {
+      const formatter = new AbcFormatter(abcDocument.ctx);
+      return formatter.stringify(abcDocument.AST);
+    }
+
+    return "";
+  }
 }

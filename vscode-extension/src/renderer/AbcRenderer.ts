@@ -8,8 +8,8 @@ import * as os from "os";
 import { pathToFileURL } from "url";
 import { LanguageClient } from "vscode-languageclient/node";
 
-// Import ABC parser for ABCx conversion and voice filtering
-import { ABCContext, AbcErrorReporter, convertAbcxToAbc as abcxToAbc, filterVoicesInAbc, abclToAbc as abclToAbcParser } from "abc-parser";
+// Import ABC parser for voice filtering
+import { ABCContext, AbcErrorReporter, filterVoicesInAbc } from "abc-parser";
 
 let panel: vscode.WebviewPanel | undefined;
 let outputChannel: vscode.OutputChannel;
@@ -37,6 +37,26 @@ interface AbctEvalResult {
  */
 export function setLspClient(client: LanguageClient | undefined) {
   _client = client;
+}
+/**
+ * Get preview content for any ABC-family file via LSP request.
+ * The server handles all conversions (ABCL to deferred, ABCx to ABC, etc.)
+ */
+async function getPreviewContent(uri: string): Promise<string> {
+  if (!_client) {
+    outputChannel.appendLine("Preview content: No LSP client available");
+    return "";
+  }
+
+  try {
+    const result = await _client.sendRequest<{
+      content: string;
+    }>("abc.getPreviewContent", { uri });
+    return result.content ?? "";
+  } catch (error) {
+    outputChannel.appendLine(`Preview content error: ${error}`);
+    return "";
+  }
 }
 
 /**
@@ -285,7 +305,8 @@ async function updatePreview(eventArgs: vscode.TextEditor | vscode.TextDocumentC
 }
 
 /**
- * Get editor content, converting ABCx to ABC or evaluating ABCT if needed
+ * Get editor content for preview.
+ * Uses the LSP server to get properly converted content for all ABC-family files.
  */
 async function getCurrentEditorContent(): Promise<string> {
   const editor = getEditor();
@@ -295,30 +316,21 @@ async function getCurrentEditorContent(): Promise<string> {
 
   const filePath = editor.document.fileName;
   const languageId = editor.document.languageId;
+  const uri = editor.document.uri.toString();
 
-  // Evaluate ABCT files via LSP
+  // ABCT files use a separate evaluation endpoint
   if (languageId === "abct" || filePath.endsWith(".abct")) {
-    const uri = editor.document.uri.toString();
     return await evaluateAbctForPreview(uri);
   }
 
-  let content = getNormalizedEditorContent(editor);
-
-  // Convert ABCx to ABC if needed
-  if (filePath.endsWith(".abcx")) {
-    content = convertAbcxToAbc(content);
+  if (filePath.endsWith(".abc") || filePath.endsWith(".abcl") || filePath.endsWith(".abcx")) {
+    let content = await getPreviewContent(uri);
+    // Apply voice filter if %%abcls directive is present
+    content = applyVoiceFilter(content);
+    return content;
   }
 
-  // Convert ABCL to ABC if needed (must happen before voice filtering
-  // because the voice filter needs deferred-style voice structure)
-  if (filePath.endsWith(".abcl")) {
-    content = convertAbclToAbc(content);
-  }
-
-  // Apply voice filter if %%abcls directive is present
-  content = applyVoiceFilter(content);
-
-  return content;
+  return "";
 }
 
 /**
@@ -342,48 +354,6 @@ function applyVoiceFilter(content: string): string {
     // Return original content if filter fails
     return content;
   }
-}
-
-/**
- * Convert ABCx content to ABC format
- */
-function convertAbcxToAbc(content: string): string {
-  try {
-    const errorReporter = new AbcErrorReporter();
-    const ctx = new ABCContext(errorReporter);
-    return abcxToAbc(content, ctx);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    outputChannel.appendLine(`ABCx conversion error: ${message}`);
-    // Return original content if conversion fails
-    return content;
-  }
-}
-
-/**
- * Convert ABCL content to ABC format
- * ABCL files use "linear writing style" for multi-voice ABC notation.
- * The converter inserts silenced lines for missing voices in each system,
- * allowing ABCJS to render the score correctly.
- */
-function convertAbclToAbc(content: string): string {
-  const errorReporter = new AbcErrorReporter();
-  const ctx = new ABCContext(errorReporter);
-  return abclToAbcParser(content, ctx);
-}
-
-function getNormalizedEditorContent(editor: vscode.TextEditor): string {
-  let content = editor.document.getText();
-
-  // Escape backslashes
-  content = content.replaceAll("\\", "\\\\");
-
-  // Normalize line endings
-  if (editor.document.eol === vscode.EndOfLine.CRLF) {
-    content = content.replace(/\r\n/g, "\n");
-  }
-
-  return content;
 }
 
 function getEditor(): vscode.TextEditor | undefined {
