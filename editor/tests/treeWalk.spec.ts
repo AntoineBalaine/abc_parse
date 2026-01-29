@@ -8,6 +8,8 @@ import {
   comparePositions,
   findNodeById,
   buildIdMap,
+  findByTag as productionFindByTag,
+  findTuneBodies,
 } from "../src/selectors/treeWalk";
 import { toCSTree, collectAll, findByTag, genAbcTune, genAbcWithChords } from "./helpers";
 
@@ -150,6 +152,62 @@ describe("treeWalk", () => {
         expect(found!.id).to.equal(node.id);
         expect(found!.tag).to.equal(node.tag);
       }
+    });
+  });
+
+  describe("findByTag", () => {
+    it("finds all notes in a simple tune", () => {
+      const root = toCSTree("X:1\nK:C\nCDE|\n");
+      const notes = productionFindByTag(root, TAGS.Note);
+      expect(notes.length).to.equal(3);
+      notes.forEach((n) => expect(n.tag).to.equal(TAGS.Note));
+    });
+
+    it("finds all chords in a tune with chords", () => {
+      const root = toCSTree("X:1\nK:C\n[CE] [DF] G|\n");
+      const chords = productionFindByTag(root, TAGS.Chord);
+      expect(chords.length).to.equal(2);
+      chords.forEach((c) => expect(c.tag).to.equal(TAGS.Chord));
+    });
+
+    it("returns empty array when no matching nodes exist", () => {
+      const root = toCSTree("X:1\nK:C\nCDE|\n");
+      const chords = productionFindByTag(root, TAGS.Chord);
+      expect(chords).to.deep.equal([]);
+    });
+
+    it("returns same results as test helper findByTag", () => {
+      const root = toCSTree("X:1\nK:C\n[CEG] D E [FA]|\n");
+      const helperResults = findByTag(root, TAGS.Chord);
+      const productionResults = productionFindByTag(root, TAGS.Chord);
+      expect(productionResults.length).to.equal(helperResults.length);
+      expect(productionResults.map((n) => n.id).sort()).to.deep.equal(
+        helperResults.map((n) => n.id).sort()
+      );
+    });
+  });
+
+  describe("findTuneBodies", () => {
+    it("finds single tune body", () => {
+      const root = toCSTree("X:1\nK:C\nCDE|\n");
+      const bodies = findTuneBodies(root);
+      expect(bodies.length).to.equal(1);
+      expect(bodies[0].tag).to.equal(TAGS.Tune_Body);
+    });
+
+    it("finds multiple tune bodies in multi-tune file", () => {
+      const root = toCSTree("X:1\nK:C\nCDE|\n\nX:2\nK:G\nGAB|\n");
+      const bodies = findTuneBodies(root);
+      expect(bodies.length).to.equal(2);
+      bodies.forEach((b) => expect(b.tag).to.equal(TAGS.Tune_Body));
+    });
+
+    it("returns results consistent with findByTag", () => {
+      const root = toCSTree("X:1\nK:C\nCDE|\n\nX:2\nK:G\nGAB|\n");
+      const byTuneBodies = findTuneBodies(root);
+      const byTag = productionFindByTag(root, TAGS.Tune_Body);
+      expect(byTuneBodies.length).to.equal(byTag.length);
+      expect(byTuneBodies.map((n) => n.id)).to.deep.equal(byTag.map((n) => n.id));
     });
   });
 

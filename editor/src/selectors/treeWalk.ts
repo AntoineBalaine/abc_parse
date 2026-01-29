@@ -103,17 +103,32 @@ export function findNodeById(root: CSNode, id: number): CSNode | null {
   return ctx.result;
 }
 
-function walkForTuneBodies(ctx: { result: CSNode[] }, node: CSNode | null): void {
+interface FindByTagCtx {
+  tag: string;
+  result: CSNode[];
+}
+
+function walkForTag(ctx: FindByTagCtx, node: CSNode | null): void {
   let current = node;
   while (current !== null) {
-    if (current.tag === TAGS.Tune_Body) {
+    if (current.tag === ctx.tag) {
       ctx.result.push(current);
     }
     if (current.firstChild) {
-      walkForTuneBodies(ctx, current.firstChild);
+      walkForTag(ctx, current.firstChild);
     }
     current = current.nextSibling;
   }
+}
+
+/**
+ * Collects all nodes matching the given tag in the tree rooted at the given node.
+ * Walks depth-first, collecting all matches.
+ */
+export function findByTag(root: CSNode, tag: string): CSNode[] {
+  const ctx: FindByTagCtx = { tag, result: [] };
+  walkForTag(ctx, root);
+  return ctx.result;
 }
 
 /**
@@ -122,7 +137,5 @@ function walkForTuneBodies(ctx: { result: CSNode[] }, node: CSNode | null): void
  * (e.g., voiceSelector, measureSelector).
  */
 export function findTuneBodies(root: CSNode): CSNode[] {
-  const ctx: FindTuneBodiesCtx = { result: [] };
-  walkForTuneBodies(ctx, root);
-  return ctx.result;
+  return findByTag(root, TAGS.Tune_Body);
 }
