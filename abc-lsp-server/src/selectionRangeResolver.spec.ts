@@ -2,10 +2,7 @@ import { expect } from "chai";
 import { describe, it } from "mocha";
 import { resolveSelectionRanges, findNodeById } from "./selectionRangeResolver";
 import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
-import { fromAst } from "../../abct2/src/csTree/fromAst";
-import { createSelection } from "../../abct2/src/selection";
-import { selectChords, selectNotes } from "../../abct2/src/selectors/typeSelectors";
-import { selectTop } from "../../abct2/src/selectors/chordSelectors";
+import { fromAst, createSelection, selectChords, selectNotes, selectTop } from "editor";
 
 function parseAbc(source: string): File_structure {
   const ctx = new ABCContext();

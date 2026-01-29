@@ -12,13 +12,16 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "target": "es2020"
+    "target": "es2020",
+    "paths": {
+      "editor": ["../editor/src/index"]
+    }
   },
   "include": ["./src/**/*.ts"],
   "exclude": ["node_modules", ".vscode-test", "**/*.spec.ts"],
   "references": [
     { "path": "../parse" },
     { "path": "../abct" },
-    { "path": "../abct2" }
+    { "path": "../editor" }
   ]
 }

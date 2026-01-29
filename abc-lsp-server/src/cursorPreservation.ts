@@ -5,8 +5,7 @@
  * map them to positions in freshly-parsed trees for accurate highlighting.
  */
 
-import { CSNode, TAGS } from "../../abct2/src/csTree/types";
-import { Selection } from "../../abct2/src/selection";
+import { CSNode, TAGS, Selection } from "editor";
 import { Range } from "vscode-languageserver";
 import { computeNodeRange } from "./selectionRangeResolver";
 

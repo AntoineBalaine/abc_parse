@@ -3,9 +3,7 @@ import { describe, it } from "mocha";
 import { Range } from "vscode-languageserver/node";
 import { resolveSelectionRanges } from "./selectionRangeResolver";
 import { lookupSelector } from "./selectorLookup";
-import { fromAst } from "../../abct2/src/csTree/fromAst";
-import { createSelection, Selection } from "../../abct2/src/selection";
-import { selectRange } from "../../abct2/src/selectors/rangeSelector";
+import { fromAst, createSelection, Selection, selectRange } from "editor";
 import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
 
 function parseAbc(source: string): File_structure {

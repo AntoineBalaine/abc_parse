@@ -9,14 +9,14 @@
     "abc-cli",
     "vscode-extension",
     "abct",
-    "abct2"
+    "editor"
   ],
   "scripts": {
-    "build": "npm run build:parse && npm run build:abct && npm run build:abct2 && npm run build:native && npm run build:lsp && npm run build:cli && npm run build:vscode",
-    "build:production": "npm run build:parse && npm run build:abct && npm run build:abct2 && npm run build:native && npm run build:lsp && npm run build:cli && npm run build:vscode-production",
+    "build": "npm run build:parse && npm run build:abct && npm run build:editor && npm run build:native && npm run build:lsp && npm run build:cli && npm run build:vscode",
+    "build:production": "npm run build:parse && npm run build:abct && npm run build:editor && npm run build:native && npm run build:lsp && npm run build:cli && npm run build:vscode-production",
     "build:parse": "npm run build -w parse",
     "build:abct": "npm run build -w abct",
-    "build:abct2": "npm run build -w abct2",
+    "build:editor": "npm run build -w editor",
     "build:native": "npm run build -w abc-musesampler-native",
     "build:lsp": "npm run build -w abc-lsp-server",
     "build:cli": "npm run build -w abc-cli",
@@ -27,7 +27,7 @@
     "watch:cli": "npm run watch -w abc-cli",
     "watch:vscode": "npm run watch -w vscode-extension",
     "package:vscode": "npm run package -w vscode-extension",
-    "test": "result=0; npm run test -w parse || result=1; npm run test -w abct || result=1; npm run test -w abct2 || result=1; exit $result",
+    "test": "result=0; npm run test -w parse || result=1; npm run test -w abct || result=1; npm run test -w editor || result=1; exit $result",
     "lint": "npm run lint -w parse && npm run lint -w abc-lsp-server",
     "lint:fix": "npm run lint:fix -w parse && npm run lint:fix -w abc-lsp-server",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",

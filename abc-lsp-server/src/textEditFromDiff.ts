@@ -5,7 +5,7 @@
  */
 
 import { TextEdit, Range } from "vscode-languageserver";
-import { diffChars, Change } from "../../abct2/src/utils/diffToPatches";
+import { diffChars, Change } from "editor";
 
 /**
  * Computes LSP TextEdits from character-level diff between old and new text.

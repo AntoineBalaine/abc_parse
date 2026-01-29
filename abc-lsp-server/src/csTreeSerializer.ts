@@ -4,8 +4,7 @@
  * Converts a CSTree back to ABC text using the AST formatter.
  */
 
-import { CSNode } from "../../abct2/src/csTree/types";
-import { toAst } from "../../abct2/src/csTree/toAst";
+import { CSNode, toAst } from "editor";
 import { AbcFormatter, ABCContext, Expr, Token } from "abc-parser";
 
 /**

@@ -1,12 +1,10 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { toCSTreeWithContext, findByTag, formatSelection } from "../../abct2/tests/helpers";
-import { TAGS } from "../../abct2/src/csTree/types";
-import { Selection } from "../../abct2/src/selection";
+import { toCSTreeWithContext, findByTag, formatSelection } from "../../editor/tests/helpers";
+import { TAGS, Selection, fromAst } from "editor";
 import { lookupTransform } from "./transformLookup";
 import { collectSurvivingCursorIds } from "./cursorPreservation";
 import { serializeCSTree } from "./csTreeSerializer";
-import { fromAst } from "../../abct2/src/csTree/fromAst";
 import { Scanner, parse, ABCContext, createRational } from "abc-parser";
 
 /**

@@ -1,20 +1,16 @@
-import { Selection } from "../../abct2/src/selection";
 import {
+  Selection,
   selectChords, selectNotes, selectNonChordNotes,
-  selectChordNotes, selectRests, selectRhythm, selectRhythmParent
-} from "../../abct2/src/selectors/typeSelectors";
-import { selectTune } from "../../abct2/src/selectors/structureSelectors";
-import {
+  selectChordNotes, selectRests, selectRhythm, selectRhythmParent,
+  selectTune,
   selectTop, selectBottom, selectNthFromTop,
-  selectAllButTop, selectAllButBottom
-} from "../../abct2/src/selectors/chordSelectors";
-import {
+  selectAllButTop, selectAllButBottom,
   selectInsideChord, selectAroundChord,
   selectInsideGraceGroup, selectAroundGraceGroup,
   selectInsideInlineField, selectAroundInlineField,
-  selectInsideGrouping, selectAroundGrouping
-} from "../../abct2/src/selectors/delimiterSelectors";
-import { selectVoice } from "../../abct2/src/selectors/voiceSelector";
+  selectInsideGrouping, selectAroundGrouping,
+  selectVoice,
+} from "editor";
 
 type SelectorFn = (sel: Selection, ...args: (number | string)[]) => Selection;
 

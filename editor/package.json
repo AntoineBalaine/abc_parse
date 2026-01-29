@@ -1,8 +1,9 @@
 {
-  "name": "abct2",
+  "name": "editor",
   "version": "0.0.1",
   "private": true,
-  "main": "../out/abct2/src/selection.js",
+  "main": "../out/editor/src/index.js",
+  "types": "../out/editor/src/index.d.ts",
   "dependencies": {
     "abc-parser": "*"
   },

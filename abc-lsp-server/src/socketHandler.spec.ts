@@ -7,9 +7,8 @@ import * as os from "os";
 import { SocketHandler, computeSocketPath, ERROR_CODES } from "./socketHandler";
 import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
-import { fromAst } from "../../abct2/src/csTree/fromAst";
+import { fromAst, CSNode } from "editor";
 import { Scanner, parse, ABCContext, File_structure, ScannerAbcx, parseAbcx } from "abc-parser";
-import { CSNode } from "../../abct2/src/csTree/types";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
 // Helper to parse ABC content

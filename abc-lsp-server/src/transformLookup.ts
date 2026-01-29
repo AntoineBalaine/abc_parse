@@ -1,13 +1,12 @@
 /**
  * Transform lookup module for the LSP server.
  *
- * Maps transform names to their implementation functions from abct2.
+ * Maps transform names to their implementation functions from the editor module.
  * Each transform operates on a Selection and returns a modified Selection.
  */
 
-import { Selection } from "../../abct2/src/selection";
-import { ABCContext, IRational } from "abc-parser";
 import {
+  Selection,
   transpose,
   enharmonize,
   setRhythm,
@@ -18,9 +17,10 @@ import {
   addVoice,
   VoiceParams,
   insertVoiceLine,
-} from "../../abct2/src/transforms";
-import { harmonize } from "../../abct2/src/transforms/harmonize";
-import { consolidateRests } from "../../abct2/src/transforms/consolidateRests";
+  harmonize,
+  consolidateRests,
+} from "editor";
+import { ABCContext, IRational } from "abc-parser";
 
 export type TransformFn = (
   selection: Selection,
