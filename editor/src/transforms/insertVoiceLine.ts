@@ -3,6 +3,7 @@ import { CSNode, TAGS, createCSNode, isTokenNode, getTokenData } from "../csTree
 import { ABCContext, TT } from "abc-parser";
 import { noteToRest, chordToRest } from "./toRest";
 import { addVoice } from "./addVoice";
+import { findFirstByTag } from "../selectors/treeWalk";
 
 /**
  * Inserts a new voice line by duplicating lines containing selected notes.
@@ -318,28 +319,14 @@ function voiceExistsInHeader(root: CSNode, voiceId: string): boolean {
  * Finds the Tune_header in the tree.
  */
 function findTuneHeader(root: CSNode): CSNode | null {
-  return walkForTag(root, TAGS.Tune_header);
+  return findFirstByTag(root, TAGS.Tune_header);
 }
 
 /**
  * Finds the Tune_Body in the tree.
  */
 function findTuneBody(root: CSNode): CSNode | null {
-  return walkForTag(root, TAGS.Tune_Body);
-}
-
-/**
- * Walks the tree to find a node with the given tag.
- */
-function walkForTag(node: CSNode, tag: string): CSNode | null {
-  if (node.tag === tag) return node;
-  let current = node.firstChild;
-  while (current !== null) {
-    const result = walkForTag(current, tag);
-    if (result !== null) return result;
-    current = current.nextSibling;
-  }
-  return null;
+  return findFirstByTag(root, TAGS.Tune_Body);
 }
 
 /**

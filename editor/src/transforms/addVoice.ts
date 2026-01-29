@@ -2,6 +2,7 @@ import { Selection } from "../selection";
 import { CSNode, TAGS, createCSNode, isTokenNode, getTokenData } from "../csTree/types";
 import { insertBefore, appendChild } from "./treeUtils";
 import { ABCContext, TT } from "abc-parser";
+import { findFirstByTag } from "../selectors/treeWalk";
 
 export interface VoiceParams {
   name?: string;
@@ -70,18 +71,7 @@ function buildVoiceInfoLineNode(voiceText: string, ctx: ABCContext): CSNode {
 }
 
 function findTuneHeader(root: CSNode): CSNode | null {
-  return walkForTag(root, TAGS.Tune_header);
-}
-
-function walkForTag(node: CSNode, tag: string): CSNode | null {
-  if (node.tag === tag) return node;
-  let current = node.firstChild;
-  while (current !== null) {
-    const result = walkForTag(current, tag);
-    if (result !== null) return result;
-    current = current.nextSibling;
-  }
-  return null;
+  return findFirstByTag(root, TAGS.Tune_header);
 }
 
 function findKLine(tuneHeader: CSNode): { node: CSNode; prev: CSNode | null } | null {

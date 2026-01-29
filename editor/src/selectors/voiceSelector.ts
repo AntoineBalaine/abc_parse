@@ -1,6 +1,6 @@
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { Selection } from "../selection";
-import { findTuneBodies } from "./treeWalk";
+import { findByTag } from "./treeWalk";
 
 interface VoiceWalkCtx {
   targetVoice: string;
@@ -37,7 +37,7 @@ function extractVoiceId(node: CSNode): string | null {
 }
 
 function walkForVoice(ctx: VoiceWalkCtx, root: CSNode): void {
-  const bodies = findTuneBodies(root);
+  const bodies = findByTag(root, TAGS.Tune_Body);
 
   for (const body of bodies) {
     let currentVoice: string | null = null;

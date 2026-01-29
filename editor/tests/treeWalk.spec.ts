@@ -9,7 +9,7 @@ import {
   findNodeById,
   buildIdMap,
   findByTag as productionFindByTag,
-  findTuneBodies,
+  findFirstByTag,
 } from "../src/selectors/treeWalk";
 import { toCSTree, collectAll, findByTag, genAbcTune, genAbcWithChords } from "./helpers";
 
@@ -187,27 +187,44 @@ describe("treeWalk", () => {
     });
   });
 
-  describe("findTuneBodies", () => {
-    it("finds single tune body", () => {
+  describe("findFirstByTag", () => {
+    it("finds first note in a tune", () => {
       const root = toCSTree("X:1\nK:C\nCDE|\n");
-      const bodies = findTuneBodies(root);
-      expect(bodies.length).to.equal(1);
-      expect(bodies[0].tag).to.equal(TAGS.Tune_Body);
+      const firstNote = findFirstByTag(root, TAGS.Note);
+      expect(firstNote).to.not.be.null;
+      expect(firstNote!.tag).to.equal(TAGS.Note);
     });
 
-    it("finds multiple tune bodies in multi-tune file", () => {
-      const root = toCSTree("X:1\nK:C\nCDE|\n\nX:2\nK:G\nGAB|\n");
-      const bodies = findTuneBodies(root);
-      expect(bodies.length).to.equal(2);
-      bodies.forEach((b) => expect(b.tag).to.equal(TAGS.Tune_Body));
+    it("returns first match when multiple exist", () => {
+      const root = toCSTree("X:1\nK:C\nCDE|\n");
+      const allNotes = productionFindByTag(root, TAGS.Note);
+      const firstNote = findFirstByTag(root, TAGS.Note);
+      expect(allNotes.length).to.be.greaterThan(1);
+      expect(firstNote).to.not.be.null;
+      expect(firstNote!.id).to.equal(allNotes[0].id);
     });
 
-    it("returns results consistent with findByTag", () => {
+    it("returns null when no match exists", () => {
+      const root = toCSTree("X:1\nK:C\nCDE|\n");
+      const result = findFirstByTag(root, TAGS.Chord);
+      expect(result).to.be.null;
+    });
+
+    it("finds first tune body in multi-tune file", () => {
       const root = toCSTree("X:1\nK:C\nCDE|\n\nX:2\nK:G\nGAB|\n");
-      const byTuneBodies = findTuneBodies(root);
-      const byTag = productionFindByTag(root, TAGS.Tune_Body);
-      expect(byTuneBodies.length).to.equal(byTag.length);
-      expect(byTuneBodies.map((n) => n.id)).to.deep.equal(byTag.map((n) => n.id));
+      const allBodies = productionFindByTag(root, TAGS.Tune_Body);
+      const firstBody = findFirstByTag(root, TAGS.Tune_Body);
+      expect(allBodies.length).to.equal(2);
+      expect(firstBody).to.not.be.null;
+      expect(firstBody!.id).to.equal(allBodies[0].id);
+    });
+
+    it("returns first in pre-order traversal (depth-first)", () => {
+      const root = toCSTree("X:1\nK:C\n[CEG]|\n");
+      const allNotes = productionFindByTag(root, TAGS.Note);
+      const firstNote = findFirstByTag(root, TAGS.Note);
+      expect(allNotes.length).to.equal(3);
+      expect(firstNote!.id).to.equal(allNotes[0].id);
     });
   });
 

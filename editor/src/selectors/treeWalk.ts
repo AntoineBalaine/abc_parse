@@ -131,11 +131,32 @@ export function findByTag(root: CSNode, tag: string): CSNode[] {
   return ctx.result;
 }
 
+interface FindFirstByTagCtx {
+  tag: string;
+  result: CSNode | null;
+}
+
+function walkForFirstTag(ctx: FindFirstByTagCtx, node: CSNode | null): boolean {
+  let current = node;
+  while (current !== null) {
+    if (current.tag === ctx.tag) {
+      ctx.result = current;
+      return true;
+    }
+    if (current.firstChild && walkForFirstTag(ctx, current.firstChild)) {
+      return true;
+    }
+    current = current.nextSibling;
+  }
+  return false;
+}
+
 /**
- * Collects all Tune_Body nodes found in the tree rooted at the given node.
- * Used by selectors that need to operate on tune body content
- * (e.g., voiceSelector, measureSelector).
+ * Finds the first node matching the given tag in the tree rooted at the given node.
+ * Returns null if no match is found. Use findByTag when all matches are needed.
  */
-export function findTuneBodies(root: CSNode): CSNode[] {
-  return findByTag(root, TAGS.Tune_Body);
+export function findFirstByTag(root: CSNode, tag: string): CSNode | null {
+  const ctx: FindFirstByTagCtx = { tag, result: null };
+  walkForFirstTag(ctx, root);
+  return ctx.result;
 }

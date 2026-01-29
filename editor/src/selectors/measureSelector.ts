@@ -8,7 +8,7 @@
 
 import { CSNode, TAGS } from "../csTree/types";
 import { Selection } from "../selection";
-import { findTuneBodies } from "./treeWalk";
+import { findByTag } from "./treeWalk";
 
 interface MeasureWalkCtx {
   startMeasure: number;
@@ -27,7 +27,7 @@ function isMusicElement(node: CSNode): boolean {
 }
 
 function walkForMeasures(ctx: MeasureWalkCtx, root: CSNode): void {
-  const bodies = findTuneBodies(root);
+  const bodies = findByTag(root, TAGS.Tune_Body);
 
   for (const body of bodies) {
     let currentMeasure = 1;
