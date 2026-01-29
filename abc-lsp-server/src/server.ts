@@ -634,6 +634,11 @@ connection.onRequest("abct.evaluateSelection", async (params: AbctEvalSelectionP
   };
 });
 
+connection.onRequest("abc.getPreviewContent", (params: { uri: string }): { content: string } => {
+  const content = abcServer.getPreviewContent(params.uri);
+  return { content };
+});
+
 documents.listen(connection);
 connection.listen();
 
