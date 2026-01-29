@@ -1,6 +1,5 @@
 import { AbcError, RangeVisitor, TT } from "abc-parser";
 import { Diagnostic, PublishDiagnosticsParams } from "vscode-languageserver";
-import { AbctTT } from "../../abct/src/scanner";
 
 /**
  * convert errors from an {@link AbcErrorReporter} to the server's {@link Diagnostic}s
@@ -112,49 +111,6 @@ export function mapTTtoStandardScope(type: number): number {
 }
 
 export type LspEventListener = (type: "diagnostics", params: PublishDiagnosticsParams) => void;
-
-/**
- * Map ABCT scanner token type to LSP semantic token scope.
- * Uses the scanner's AbctTT enum directly rather than reconstructing tokens from AST.
- */
-export function mapAbctTTtoScope(type: AbctTT): number {
-  switch (type) {
-    case AbctTT.COMMENT:
-      return standardTokenScopes.comment;
-    case AbctTT.AND:
-    case AbctTT.OR:
-    case AbctTT.NOT:
-      return standardTokenScopes.keyword;
-    case AbctTT.FILTER:
-      return standardTokenScopes.function; // Highlight like other transforms (bass, transpose, etc.)
-    case AbctTT.NUMBER:
-      return standardTokenScopes.number;
-    case AbctTT.STRING:
-      return standardTokenScopes.string;
-    case AbctTT.IDENTIFIER:
-      return standardTokenScopes.function; // Default for identifiers, may be overridden for variables
-    case AbctTT.AT:
-      return standardTokenScopes.decorator; // Selector prefix
-    case AbctTT.PIPE:
-    case AbctTT.PLUS:
-    case AbctTT.EQ:
-    case AbctTT.MINUS:
-    case AbctTT.GT:
-    case AbctTT.LT:
-    case AbctTT.GTE:
-    case AbctTT.LTE:
-    case AbctTT.EQEQ:
-    case AbctTT.BANGEQ:
-      return standardTokenScopes.operator;
-    case AbctTT.ABC_FENCE_OPEN:
-    case AbctTT.ABC_CONTENT:
-    case AbctTT.ABC_FENCE_CLOSE:
-      return standardTokenScopes.string; // ABC literal content
-    default:
-      // Skip: WS, EOL, COLON, DOT, COMMA, parens, brackets, EOF, INVALID
-      return -1;
-  }
-}
 
 /**
  * These are the standard scope names that are used for syntax highlighting.

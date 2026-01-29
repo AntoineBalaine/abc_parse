@@ -9,7 +9,6 @@ import { fromAst, createSelection, Selection, selectRange, CSNode, TAGS } from "
 import { File_structure } from "abc-parser";
 import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
-import { AbctDocument } from "./AbctDocument";
 import { serializeCSTree } from "./csTreeSerializer";
 import { computeTextEditsFromDiff } from "./textEditFromDiff";
 
@@ -69,7 +68,7 @@ interface SocketResponse {
   };
 }
 
-type DocumentGetter = (uri: string) => AbcDocument | AbcxDocument | AbctDocument | undefined;
+type DocumentGetter = (uri: string) => AbcDocument | AbcxDocument | undefined;
 type CsTreeGetter = (ast: File_structure) => CSNode;
 
 // ============================================================================
@@ -291,10 +290,6 @@ function handleApplySelector(
     throw { code: ERROR_CODES.FILE_TYPE_NOT_SUPPORTED, message: "Selectors are not supported for ABCx files" };
   }
 
-  if (doc instanceof AbctDocument) {
-    throw { code: ERROR_CODES.FILE_TYPE_NOT_SUPPORTED, message: "Selectors are not supported for ABCT files" };
-  }
-
   if (!(doc instanceof AbcDocument) || !doc.AST) {
     throw { code: ERROR_CODES.DOCUMENT_NOT_FOUND, message: "Document has no parsed AST" };
   }
@@ -365,10 +360,6 @@ function handleApplyTransform(
 
   if (doc instanceof AbcxDocument) {
     throw { code: ERROR_CODES.FILE_TYPE_NOT_SUPPORTED, message: "Transforms are not supported for ABCx files" };
-  }
-
-  if (doc instanceof AbctDocument) {
-    throw { code: ERROR_CODES.FILE_TYPE_NOT_SUPPORTED, message: "Transforms are not supported for ABCT files" };
   }
 
   if (!(doc instanceof AbcDocument) || !doc.AST) {

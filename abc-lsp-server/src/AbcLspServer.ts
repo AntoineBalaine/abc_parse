@@ -3,15 +3,11 @@ import { HandlerResult, Position, Range, SemanticTokens, SemanticTokensBuilder, 
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcDocument } from "./AbcDocument";
 import { AbclDocument } from "./AbclDocument";
-import { AbctFormatter } from "./abct/AbctFormatter";
-import { AbctDocument } from "./AbctDocument";
 import { AbcxDocument } from "./AbcxDocument";
-import { LspEventListener, mapTTtoStandardScope, mapAbctTTtoScope, standardTokenScopes } from "./server_helpers";
-import { AbctTT } from "../../abct/src/scanner";
-import { isAssignment } from "../../abct/src/ast";
+import { LspEventListener, mapTTtoStandardScope } from "./server_helpers";
 
-/** Common interface for ABC, ABCx, ABCL, and ABCT documents */
-type DocumentType = AbcDocument | AbcxDocument | AbclDocument | AbctDocument;
+/** Common interface for ABC, ABCx, and ABCL documents */
+type DocumentType = AbcDocument | AbcxDocument | AbclDocument;
 
 /** Type guard to check if a document is an AbcDocument (has ctx property) */
 function isAbcDocument(doc: DocumentType): doc is AbcDocument {
@@ -65,13 +61,6 @@ export class AbcLspServer {
   }
 
   /**
-   * Checks if a URI refers to an ABCT file
-   */
-  private isAbctFile(uri: string): boolean {
-    return uri.toLowerCase().endsWith(".abct");
-  }
-
-  /**
    * Checks if a URI refers to an ABCL file
    */
   private isAbclFile(uri: string): boolean {
@@ -89,9 +78,7 @@ export class AbcLspServer {
       const document = this.documents.get(uri);
       if (document) {
         // Create appropriate document type based on file extension
-        if (this.isAbctFile(uri)) {
-          abcDocument = new AbctDocument(document);
-        } else if (this.isAbcxFile(uri)) {
+        if (this.isAbcxFile(uri)) {
           abcDocument = new AbcxDocument(document);
         } else if (this.isAbclFile(uri)) {
           abcDocument = new AbclDocument(document);
@@ -126,55 +113,19 @@ export class AbcLspServer {
 
     const builder = new SemanticTokensBuilder();
 
-    // ABCT documents use scanner tokens directly
-    if (abcDocument instanceof AbctDocument) {
-      // Build set of variable definition positions from AST
-      const varDefPositions = new Set<string>();
-      if (abcDocument.AST) {
-        for (const stmt of abcDocument.AST.statements) {
-          if (isAssignment(stmt)) {
-            varDefPositions.add(`${stmt.idLoc.start.line}:${stmt.idLoc.start.column}`);
-          }
+    for (const token of abcDocument.tokens) {
+      const scope = mapTTtoStandardScope(token.type);
+      if (scope === -1) continue; // Skip whitespace, punctuation, etc.
+
+      // Handle multi-line tokens by splitting them across lines
+      if (token.lexeme.includes("\n")) {
+        const lines = token.lexeme.split("\n");
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].length === 0) continue;
+          builder.push(token.line + i, i === 0 ? token.position : 0, lines[i].length, scope, 0);
         }
-      }
-
-      // Iterate scanner tokens and map to semantic scopes
-      for (const token of abcDocument.tokens) {
-        let scope = mapAbctTTtoScope(token.type);
-        if (scope === -1) continue; // Skip whitespace, punctuation, etc.
-
-        // Special case: variable definitions get variable scope
-        if (token.type === AbctTT.IDENTIFIER) {
-          const posKey = `${token.line}:${token.column}`;
-          if (varDefPositions.has(posKey)) {
-            scope = standardTokenScopes.variable;
-          }
-        }
-
-        builder.push(
-          token.line, // Token positions are already 0-based
-          token.column,
-          token.lexeme.length,
-          scope,
-          0
-        );
-      }
-    } else {
-      // ABC and ABCx documents
-      for (const token of abcDocument.tokens) {
-        const scope = mapTTtoStandardScope(token.type);
-        if (scope === -1) continue; // Skip whitespace, punctuation, etc.
-
-        // Handle multi-line tokens by splitting them across lines
-        if (token.lexeme.includes("\n")) {
-          const lines = token.lexeme.split("\n");
-          for (let i = 0; i < lines.length; i++) {
-            if (lines[i].length === 0) continue;
-            builder.push(token.line + i, i === 0 ? token.position : 0, lines[i].length, scope, 0);
-          }
-        } else {
-          builder.push(token.line, token.position, token.lexeme.length, scope, 0);
-        }
+      } else {
+        builder.push(token.line, token.position, token.lexeme.length, scope, 0);
       }
     }
 
@@ -187,8 +138,7 @@ export class AbcLspServer {
    * Handler for Formatting request
    *
    * Find the requested document and format it using the appropriate formatter.
-   * For ABC/ABCx documents, uses {@link AbcFormatter}.
-   * For ABCT documents, uses {@link AbctFormatter}.
+   * Uses {@link AbcFormatter} for ABC/ABCx/ABCL documents.
    * Returns an array of {@link TextEdit}s.
    */
   onFormat(uri: string): HandlerResult<TextEdit[], void> {
@@ -197,19 +147,7 @@ export class AbcLspServer {
       return [];
     }
 
-    // Handle ABCT documents with their own formatter
-    if (abcDocument instanceof AbctDocument) {
-      if (!abcDocument.AST || abcDocument.diagnostics.length > 0) {
-        return [];
-      }
-      const formatter = new AbctFormatter();
-      const source = abcDocument.document.getText();
-      const formatted = formatter.format(abcDocument.AST, source);
-      const edit = TextEdit.replace(Range.create(Position.create(0, 0), Position.create(Number.MAX_VALUE, Number.MAX_VALUE)), formatted);
-      return [edit];
-    }
-
-    // Handle ABC and ABCx documents - need hasCtx for ctx property access
+    // Need hasCtx for ctx property access
     if (!hasCtx(abcDocument)) {
       return [];
     }
@@ -261,18 +199,12 @@ export class AbcLspServer {
       return formatter.stringify(deferredAst);
     }
 
-    // ABCx files: convert to ABC
-    if (isAbcxDocument(abcDocument)) {
-      const formatter = new AbcFormatter(abcDocument.ctx);
-      return formatter.stringify(abcDocument.AST);
-    }
-
-    // ABC files: return formatted content
-    if (isAbcDocument(abcDocument)) {
-      const formatter = new AbcFormatter(abcDocument.ctx);
-      return formatter.stringify(abcDocument.AST);
-    }
-
-    return "";
+    // ABCx and ABC files: return formatted content
+    // After the AbclDocument check, we know this is AbcxDocument | AbcDocument
+    // TypeScript's narrowing doesn't handle AbclDocument extending AbcDocument well,
+    // so we use type assertion here. AST is guaranteed non-null from check above.
+    const doc = abcDocument as AbcxDocument | AbcDocument;
+    const formatter = new AbcFormatter(doc.ctx);
+    return formatter.stringify(doc.AST!);
   }
 }

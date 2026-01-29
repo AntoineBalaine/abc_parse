@@ -20,12 +20,9 @@ import {
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcLspServer } from "./AbcLspServer";
-import { AbctDocument } from "./AbctDocument";
 import { AbcDocument } from "./AbcDocument";
 import { DECORATION_SYMBOLS } from "./completions";
 import { standardTokenScopes } from "./server_helpers";
-import { provideHover } from "./abct/AbctHoverProvider";
-import { provideAbctCompletions } from "./abct/AbctCompletionProvider";
 import { resolveSelectionRanges, findNodesInRange } from "./selectionRangeResolver";
 import { lookupSelector } from "./selectorLookup";
 import { lookupTransform } from "./transformLookup";
@@ -66,53 +63,6 @@ const TRANSFORM_NODE_TAGS: Record<string, string[]> = {
   consolidateRests: [TAGS.Rest],
   insertVoiceLine: [TAGS.Note, TAGS.Chord],
 };
-
-// ============================================================================
-// ABCT Evaluation Request Types
-// ============================================================================
-
-/**
- * Parameters for the abct.evaluate request.
- */
-interface AbctEvalParams {
-  /** The URI of the ABCT document to evaluate */
-  uri: string;
-}
-
-/**
- * Parameters for the abct.evaluateToLine request.
- */
-interface AbctEvalToLineParams {
-  /** The URI of the ABCT document to evaluate */
-  uri: string;
-  /** Evaluate up to and including this line (1-based, as shown in editor) */
-  line: number;
-}
-
-/**
- * Parameters for the abct.evaluateSelection request.
- */
-interface AbctEvalSelectionParams {
-  /** The URI of the ABCT document to evaluate */
-  uri: string;
-  /** The selection range to evaluate */
-  selection: Range;
-}
-
-/**
- * Result of an ABCT evaluation request.
- */
-interface AbctEvalResult {
-  /** The formatted ABC output */
-  abc: string;
-  /** Any diagnostics generated during evaluation */
-  diagnostics: Array<{
-    severity: number;
-    range: Range;
-    message: string;
-    source: string;
-  }>;
-}
 
 // ============================================================================
 // Selector Command Request Types
@@ -219,13 +169,13 @@ connection.onInitialize((params: InitializeParams) => {
   const result: InitializeResult = {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Full,
-      definitionProvider: false, // Not implemented for ABCT
-      referencesProvider: false, // Not implemented for ABCT
-      hoverProvider: true,
+      definitionProvider: false,
+      referencesProvider: false,
+      hoverProvider: false,
       completionProvider: {
         resolveProvider: true,
-        // Trigger characters: "!" for ABC decorations, "@" and "|" for ABCT completions
-        triggerCharacters: ["!", "@", "|"],
+        // Trigger character "!" for ABC decorations
+        triggerCharacters: ["!"],
       },
     },
   };
@@ -266,12 +216,6 @@ connection.onDocumentFormatting((params) => abcServer.onFormat(params.textDocume
 
 connection.onFoldingRanges((params: FoldingRangeParams): FoldingRange[] => {
   const uri = params.textDocument.uri;
-
-  // Folding is only supported for ABC files (not ABCT)
-  if (uri.toLowerCase().endsWith(".abct")) {
-    return [];
-  }
-
   const doc = abcServer.abcDocuments.get(uri);
   if (!doc || !(doc instanceof AbcDocument) || !doc.AST) {
     return [];
@@ -280,20 +224,8 @@ connection.onFoldingRanges((params: FoldingRangeParams): FoldingRange[] => {
   return computeFoldingRanges(doc.AST, doc.tokens, DEFAULT_FOLDING_CONFIG);
 });
 
-connection.onHover((params: TextDocumentPositionParams): Hover | null => {
-  const uri = params.textDocument.uri;
-
-  // Hover is only supported for ABCT files
-  if (!uri.toLowerCase().endsWith(".abct")) {
-    return null;
-  }
-
-  const doc = abcServer.abcDocuments.get(uri);
-  if (!doc || !(doc instanceof AbctDocument) || !doc.AST) {
-    return null;
-  }
-
-  return provideHover(doc.AST, params.position);
+connection.onHover((_params: TextDocumentPositionParams): Hover | null => {
+  return null;
 });
 
 // ============================================================================
@@ -478,17 +410,6 @@ connection.onRequest("abct2.applyTransform", (params: ApplyTransformParams): App
 
 connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
   const uri = textDocumentPosition.textDocument.uri;
-
-  // Handle ABCT files with the ABCT completion provider
-  if (uri.toLowerCase().endsWith(".abct")) {
-    const doc = documents.get(uri);
-    if (!doc) {
-      return [];
-    }
-    return provideAbctCompletions(doc, textDocumentPosition.position);
-  }
-
-  // Handle ABC files with the existing completion logic
   const doc = abcServer.abcDocuments.get(uri);
   if (!doc) {
     return [];
@@ -520,115 +441,6 @@ connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): Comp
 
 connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
   return item;
-});
-
-// ============================================================================
-// ABCT Evaluation Request Handlers
-// ============================================================================
-
-/**
- * Helper to get an AbctDocument from the server's document map.
- * Returns null if the document is not found or is not an ABCT document.
- */
-function getAbctDocument(uri: string): AbctDocument | null {
-  const doc = abcServer.abcDocuments.get(uri);
-  if (!doc || !(doc instanceof AbctDocument)) {
-    return null;
-  }
-  return doc;
-}
-
-/**
- * Handler for abct.evaluate - Evaluate entire ABCT file
- */
-connection.onRequest("abct.evaluate", async (params: AbctEvalParams): Promise<AbctEvalResult> => {
-  const doc = getAbctDocument(params.uri);
-  if (!doc) {
-    return {
-      abc: "",
-      diagnostics: [
-        {
-          severity: 1, // Error
-          range: Range.create(0, 0, 0, 0),
-          message: "Document not found or not an ABCT file",
-          source: "abct",
-        },
-      ],
-    };
-  }
-
-  const result = await doc.evaluate({});
-  return {
-    abc: result.abc,
-    diagnostics: result.diagnostics.map((d) => ({
-      severity: d.severity ?? 1,
-      range: d.range,
-      message: d.message,
-      source: d.source ?? "abct",
-    })),
-  };
-});
-
-/**
- * Handler for abct.evaluateToLine - Evaluate up to specific line
- */
-connection.onRequest("abct.evaluateToLine", async (params: AbctEvalToLineParams): Promise<AbctEvalResult> => {
-  const doc = getAbctDocument(params.uri);
-  if (!doc) {
-    return {
-      abc: "",
-      diagnostics: [
-        {
-          severity: 1,
-          range: Range.create(0, 0, 0, 0),
-          message: "Document not found or not an ABCT file",
-          source: "abct",
-        },
-      ],
-    };
-  }
-
-  const result = await doc.evaluate({ toLine: params.line });
-  return {
-    abc: result.abc,
-    diagnostics: result.diagnostics.map((d) => ({
-      severity: d.severity ?? 1,
-      range: d.range,
-      message: d.message,
-      source: d.source ?? "abct",
-    })),
-  };
-});
-
-/**
- * Handler for abct.evaluateSelection - Evaluate only selected expression
- */
-connection.onRequest("abct.evaluateSelection", async (params: AbctEvalSelectionParams): Promise<AbctEvalResult> => {
-  const doc = getAbctDocument(params.uri);
-  if (!doc) {
-    return {
-      abc: "",
-      diagnostics: [
-        {
-          severity: 1,
-          range: Range.create(0, 0, 0, 0),
-          message: "Document not found or not an ABCT file",
-          source: "abct",
-        },
-      ],
-    };
-  }
-
-  const result = await doc.evaluate({ selection: params.selection });
-  return {
-    abc: result.abc,
-    diagnostics: result.diagnostics.map((d) => ({
-      severity: d.severity ?? 1,
-      range: d.range,
-      message: d.message,
-      source: d.source ?? "abct",
-    })),
-  };
 });
 
 connection.onRequest("abc.getPreviewContent", (params: { uri: string }): { content: string } => {
