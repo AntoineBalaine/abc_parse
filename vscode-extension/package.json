@@ -181,6 +181,11 @@
         "category": "ABC"
       },
       {
+        "command": "abc.selectMeasures",
+        "title": "ABC: Select Measures",
+        "category": "ABC"
+      },
+      {
         "command": "abc.wrapCrescendo",
         "title": "ABC: Wrap Selection in Crescendo",
         "category": "ABC"
@@ -362,6 +367,10 @@
         },
         {
           "command": "abc.selectRhythmParent",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.selectMeasures",
           "when": "editorLangId == abc"
         },
         {
