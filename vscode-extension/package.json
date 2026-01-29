@@ -637,7 +637,8 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run package-bundle && npm run copy-binary",
-    "build": "tsc -p ./ && node esbuild.js --production && npm run copy-binary",
+    "build": "tsc -p ./ && node esbuild.js && npm run copy-binary",
+    "build:production": "tsc -p ./ && node esbuild.js --production && npm run copy-binary",
     "compile": "tsc -p ./",
     "watch": "npm run watch-bundle",
     "watch-bundle": "node esbuild.js --watch",
