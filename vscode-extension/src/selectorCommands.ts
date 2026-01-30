@@ -64,6 +64,7 @@ export function registerSelectorCommands(
     ["abc.selectAllButBottom", "selectAllButBottom"],
     ["abc.selectRhythm", "selectRhythm"],
     ["abc.selectRhythmParent", "selectRhythmParent"],
+    ["abc.selectMeasures", "selectMeasures"],
   ];
 
   for (const [commandId, selectorName] of selectorCommands) {
@@ -118,61 +119,6 @@ export function registerSelectorCommands(
           uri,
           selector: "selectNthFromTop",
           args: [Number(input)],
-          ranges,
-        });
-
-        if (result.ranges.length > 0) {
-          applySelectionsToEditor(editor, result.ranges);
-          updateStatusBar(statusBarItem, result.ranges.length);
-        } else if (ranges) {
-          // Silent no-op: selection provided but no matches found
-        } else {
-          statusBarItem.hide();
-        }
-      } catch (error) {
-        vscode.window.showErrorMessage(`Selector command failed: ${error}`);
-      }
-    })
-  );
-
-  // selectMeasures requires start and end measure numbers
-  context.subscriptions.push(
-    vscode.commands.registerCommand("abc.selectMeasures", async () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor || editor.document.languageId !== "abc") return;
-
-      const startInput = await vscode.window.showInputBox({
-        prompt: "Enter start measure number (1-indexed)",
-        validateInput: (v) => {
-          const n = Number(v);
-          if (isNaN(n) || !Number.isInteger(n) || n < 1) {
-            return "Must be a positive integer";
-          }
-          return null;
-        },
-      });
-      if (startInput === undefined) return;
-
-      const endInput = await vscode.window.showInputBox({
-        prompt: "Enter end measure number (1-indexed)",
-        validateInput: (v) => {
-          const n = Number(v);
-          if (isNaN(n) || !Number.isInteger(n) || n < 1) {
-            return "Must be a positive integer";
-          }
-          return null;
-        },
-      });
-      if (endInput === undefined) return;
-
-      const uri = editor.document.uri.toString();
-      const ranges = getSelectionRanges(editor);
-
-      try {
-        const result = await client.sendRequest<ApplySelectorResult>("abc.applySelector", {
-          uri,
-          selector: "selectMeasures",
-          args: [Number(startInput), Number(endInput)],
           ranges,
         });
 

@@ -38,7 +38,7 @@ const SELECTOR_MAP: Record<string, SelectorFn> = {
   selectAroundInlineField: (sel) => selectAroundInlineField(sel),
   selectInsideGrouping: (sel) => selectInsideGrouping(sel),
   selectAroundGrouping: (sel) => selectAroundGrouping(sel),
-  selectMeasures: (sel, start, end) => selectMeasures(sel, start as number, end as number),
+  selectMeasures: (sel) => selectMeasures(sel),
   selectVoices: (sel, voiceIds) => selectVoices(sel, voiceIds as string),
 };
 

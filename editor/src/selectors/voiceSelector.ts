@@ -1,6 +1,11 @@
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
-import { Selection, Cursor } from "../selection";
+import { Selection } from "../selection";
 import { findByTag } from "./treeWalk";
+import {
+  collectCursorIds,
+  expandScopeToDescendants,
+  isInScope,
+} from "./scopeUtils";
 
 /**
  * Parses a voice ID input string into an array of unique voice IDs.
@@ -11,90 +16,6 @@ function parseVoiceIds(input: string): string[] {
   const ids = input.split(/[, \t]+/).filter(id => id !== "");
   const normalized = ids.map(id => id === "default" ? "" : id);
   return [...new Set(normalized)];
-}
-
-/**
- * Collects all node IDs from all cursor sets into a single Set.
- */
-function collectCursorIds(cursors: Cursor[]): Set<number> {
-  const result = new Set<number>();
-  for (const cursor of cursors) {
-    for (const id of cursor) {
-      result.add(id);
-    }
-  }
-  return result;
-}
-
-/**
- * Collects all descendant IDs of a node (including the node itself).
- */
-function collectDescendantIds(node: CSNode, result: Set<number>): void {
-  result.add(node.id);
-  let child = node.firstChild;
-  while (child !== null) {
-    collectDescendantIds(child, result);
-    child = child.nextSibling;
-  }
-}
-
-/**
- * Finds a node by ID in the tree.
- */
-function findNodeById(node: CSNode, targetId: number): CSNode | null {
-  if (node.id === targetId) return node;
-  let child = node.firstChild;
-  while (child !== null) {
-    const found = findNodeById(child, targetId);
-    if (found) return found;
-    child = child.nextSibling;
-  }
-  return null;
-}
-
-/**
- * Expands scopeIds to include all descendants of each node in the set.
- * This ensures that when a parent is selected, all its children are considered in scope.
- */
-function expandScopeToDescendants(root: CSNode, scopeIds: Set<number>): Set<number> {
-  const expanded = new Set<number>();
-  for (const id of scopeIds) {
-    const node = findNodeById(root, id);
-    if (node) {
-      collectDescendantIds(node, expanded);
-    }
-  }
-  return expanded;
-}
-
-/**
- * Returns true if the node's ID is in scopeIds, OR if any descendant's ID is in scopeIds.
- * This ensures that if the user selected specific notes within a Music_code line,
- * that line is considered in scope.
- */
-function hasDescendantInScope(node: CSNode, scopeIds: Set<number>): boolean {
-  if (scopeIds.has(node.id)) {
-    return true;
-  }
-  let child = node.firstChild;
-  while (child !== null) {
-    if (hasDescendantInScope(child, scopeIds)) {
-      return true;
-    }
-    child = child.nextSibling;
-  }
-  return false;
-}
-
-/**
- * Checks if a node is in scope. If there is no scope constraint (hasScope is false),
- * all nodes are considered in scope.
- */
-function isInScope(node: CSNode, scopeIds: Set<number>, hasScope: boolean): boolean {
-  if (!hasScope) {
-    return true;
-  }
-  return hasDescendantInScope(node, scopeIds);
 }
 
 /**

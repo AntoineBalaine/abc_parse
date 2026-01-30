@@ -265,7 +265,7 @@ connection.onRequest("abc.applySelector", (params: ApplySelectorParams): ApplySe
   }
 
   const newSelection = selectorFn(selection, ...(params.args ?? []));
-  const ranges = params.selector === "selectVoices"
+  const ranges = params.selector === "selectVoices" || params.selector === "selectMeasures"
     ? resolveContiguousRanges(newSelection)
     : resolveSelectionRanges(newSelection);
   return { ranges };
