@@ -55,6 +55,9 @@
         "${workspaceFolder}/**",
         "!**/node_modules/**"
       ],
+      "sourceMapPathOverrides": {
+        "../../*": "${workspaceFolder}/*"
+      },
       "trace": true,
       "timeout": 30000
     },
