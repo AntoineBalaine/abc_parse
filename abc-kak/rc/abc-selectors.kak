@@ -193,12 +193,3 @@ define-command abc-select-around-grouping \
     -docstring "Select entire grouping including parentheses" %{
     abc-select-impl selectAroundGrouping
 }
-
-# ============================================================================
-# Voice Selector
-# ============================================================================
-
-define-command abc-select-voice -params 1 \
-    -docstring "Select all elements in a specific voice (by voice ID)" %{
-    abc-select-impl selectVoice "[\"$1\"]"
-}

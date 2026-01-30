@@ -9,8 +9,8 @@ import {
   selectInsideGraceGroup, selectAroundGraceGroup,
   selectInsideInlineField, selectAroundInlineField,
   selectInsideGrouping, selectAroundGrouping,
-  selectVoice,
   selectMeasures,
+  selectVoices,
 } from "editor";
 
 type SelectorFn = (sel: Selection, ...args: (number | string)[]) => Selection;
@@ -38,8 +38,8 @@ const SELECTOR_MAP: Record<string, SelectorFn> = {
   selectAroundInlineField: (sel) => selectAroundInlineField(sel),
   selectInsideGrouping: (sel) => selectInsideGrouping(sel),
   selectAroundGrouping: (sel) => selectAroundGrouping(sel),
-  selectVoice: (sel, voiceId) => selectVoice(sel, voiceId as string),
   selectMeasures: (sel, start, end) => selectMeasures(sel, start as number, end as number),
+  selectVoices: (sel, voiceIds) => selectVoices(sel, voiceIds as string),
 };
 
 export function lookupSelector(name: string): SelectorFn | null {

@@ -186,6 +186,11 @@
         "category": "ABC"
       },
       {
+        "command": "abc.selectVoice",
+        "title": "ABC: Select Voice",
+        "category": "ABC"
+      },
+      {
         "command": "abc.wrapCrescendo",
         "title": "ABC: Wrap Selection in Crescendo",
         "category": "ABC"
@@ -371,6 +376,10 @@
         },
         {
           "command": "abc.selectMeasures",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.selectVoice",
           "when": "editorLangId == abc"
         },
         {

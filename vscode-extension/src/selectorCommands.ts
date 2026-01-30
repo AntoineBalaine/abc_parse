@@ -190,6 +190,42 @@ export function registerSelectorCommands(
     })
   );
 
+  // selectVoices requires voice ID(s) from user input
+  context.subscriptions.push(
+    vscode.commands.registerCommand("abc.selectVoices", async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor || editor.document.languageId !== "abc") return;
+
+      const input = await vscode.window.showInputBox({
+        prompt: "Enter voice ID(s) separated by space or comma (e.g., '1 2' or '1,2')",
+      });
+      if (input === undefined) return;
+
+      const uri = editor.document.uri.toString();
+      const ranges = getSelectionRanges(editor);
+
+      try {
+        const result = await client.sendRequest<ApplySelectorResult>("abc.applySelector", {
+          uri,
+          selector: "selectVoices",
+          args: [input],
+          ranges,
+        });
+
+        if (result.ranges.length > 0) {
+          applySelectionsToEditor(editor, result.ranges);
+          updateStatusBar(statusBarItem, result.ranges.length);
+        } else if (ranges) {
+          // Silent no-op: selection provided but no matches found
+        } else {
+          statusBarItem.hide();
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(`Selector command failed: ${error}`);
+      }
+    })
+  );
+
   // resetSelection clears selections and hides the status bar
   context.subscriptions.push(
     vscode.commands.registerCommand("abc.resetSelection", () => {

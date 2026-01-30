@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { resolveSelectionRanges, findNodeById } from "./selectionRangeResolver";
+import { resolveSelectionRanges, resolveContiguousRanges, findNodeById } from "./selectionRangeResolver";
 import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
-import { fromAst, createSelection, selectChords, selectNotes, selectTop } from "editor";
+import { fromAst, createSelection, selectChords, selectNotes, selectTop, selectVoices } from "editor";
 
 function parseAbc(source: string): File_structure {
   const ctx = new ABCContext();
@@ -96,5 +96,84 @@ describe("resolveSelectionRanges", () => {
     const selection = { root, cursors: [new Set([999999])] };
     const ranges = resolveSelectionRanges(selection);
     expect(ranges).to.have.length(0);
+  });
+});
+
+describe("resolveContiguousRanges", () => {
+  it("computes bounding range for a cursor with multiple IDs", () => {
+    const ast = parseAbc("X:1\nK:C\nV:1\nCDEF|\nV:2\nGABc|\n");
+    const root = fromAst(ast);
+    const selection = createSelection(root);
+    const voiceSelection = selectVoices(selection, "1");
+    const ranges = resolveContiguousRanges(voiceSelection);
+    // Voice 1 content should produce one contiguous range
+    expect(ranges.length).to.be.greaterThan(0);
+    // The range should span from V:1 to the end of CDEF|
+    const range = ranges[0];
+    expect(range.start.line).to.equal(2); // V:1 line
+    expect(range.end.line).to.equal(3); // CDEF| line
+  });
+
+  it("produces separate ranges for non-contiguous voice sections", () => {
+    const ast = parseAbc("X:1\nK:C\nV:1\nCDEF|\nV:2\nGABc|\nV:1\ndefg|\n");
+    const root = fromAst(ast);
+    const selection = createSelection(root);
+    const voiceSelection = selectVoices(selection, "1");
+    const ranges = resolveContiguousRanges(voiceSelection);
+    // Voice 1 appears twice, separated by V:2, so we should have 2 ranges
+    expect(ranges).to.have.length(2);
+  });
+
+  it("returns empty array for a selection with no cursors", () => {
+    const ast = parseAbc("X:1\nK:C\nC2|\n");
+    const root = fromAst(ast);
+    const selection = { root, cursors: [] };
+    const ranges = resolveContiguousRanges(selection);
+    expect(ranges).to.have.length(0);
+  });
+
+  it("skips IDs that cannot be found in the tree", () => {
+    const ast = parseAbc("X:1\nK:C\nC2|\n");
+    const root = fromAst(ast);
+    const selection = { root, cursors: [new Set([999999])] };
+    const ranges = resolveContiguousRanges(selection);
+    expect(ranges).to.have.length(0);
+  });
+
+  it("handles user input with voice re-entry pattern", () => {
+    const input = `X:1
+T:Test
+M:4 / 4
+L:1 / 4
+V:1 name=A clef=treble
+V:3
+V:2 name=B clef=bass
+V:4
+K:C
+V:1
+FDEC            | A C     D B     |
+V:3
+AFGE            | c E     F d     |
+V:2
+[F,A,]2 [E,G,]2 | [A,B,]2 [F,A,]2 |
+V:4
+D,2 C,2         | C,2     C,2     |
+%
+V:1
+ABC             | DFE             | DBA
+`;
+    const ast = parseAbc(input);
+    const root = fromAst(ast);
+    const selection = createSelection(root);
+    const voiceSelection = selectVoices(selection, "1");
+    const ranges = resolveContiguousRanges(voiceSelection);
+    // Voice 1 appears twice in the music body (after K:C), separated by other voices
+    expect(ranges.length).to.be.greaterThanOrEqual(2);
+    // Each range should span multiple characters (not just single nodes)
+    for (const range of ranges) {
+      const charSpan = range.end.character - range.start.character;
+      const lineSpan = range.end.line - range.start.line;
+      expect(charSpan > 0 || lineSpan > 0).to.be.true;
+    }
   });
 });

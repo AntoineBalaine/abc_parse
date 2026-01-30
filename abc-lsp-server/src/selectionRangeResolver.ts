@@ -21,8 +21,12 @@ function tokenRange(data: TokenData): Range {
   };
 }
 
+function isValidTokenData(data: TokenData): boolean {
+  return data.line >= 0 && data.position >= 0;
+}
+
 function firstLeafToken(node: CSNode): TokenData | null {
-  if (isTokenNode(node)) return node.data;
+  if (isTokenNode(node) && isValidTokenData(node.data)) return node.data;
   let child = node.firstChild;
   while (child) {
     const found = firstLeafToken(child);
@@ -41,12 +45,15 @@ function lastLeafToken(node: CSNode): TokenData | null {
     child = child.nextSibling;
   }
   if (last) return last;
-  if (isTokenNode(node)) return node.data;
+  if (isTokenNode(node) && isValidTokenData(node.data)) return node.data;
   return null;
 }
 
 export function computeNodeRange(node: CSNode): Range | null {
-  if (isTokenNode(node)) return tokenRange(node.data);
+  if (isTokenNode(node)) {
+    if (!isValidTokenData(node.data)) return null;
+    return tokenRange(node.data);
+  }
   const first = firstLeafToken(node);
   const last = lastLeafToken(node);
   if (!first || !last) return null;
@@ -65,6 +72,52 @@ export function resolveSelectionRanges(selection: Selection): Range[] {
 
     const range = computeNodeRange(csNode);
     if (range) ranges.push(range);
+  }
+
+  return ranges;
+}
+
+/**
+ * Computes bounding ranges for cursors that contain multiple contiguous node IDs.
+ * Each cursor produces a single range spanning from the earliest start position
+ * to the latest end position across all nodes in the cursor.
+ */
+export function resolveContiguousRanges(selection: Selection): Range[] {
+  const ranges: Range[] = [];
+
+  for (const cursor of selection.cursors) {
+    let boundingRange: Range | null = null;
+
+    for (const id of cursor) {
+      const csNode = findNodeById(selection.root, id);
+      if (!csNode) continue;
+
+      const nodeRange = computeNodeRange(csNode);
+      if (!nodeRange) continue;
+
+      if (boundingRange === null) {
+        boundingRange = { start: { ...nodeRange.start }, end: { ...nodeRange.end } };
+      } else {
+        if (
+          nodeRange.start.line < boundingRange.start.line ||
+          (nodeRange.start.line === boundingRange.start.line &&
+            nodeRange.start.character < boundingRange.start.character)
+        ) {
+          boundingRange.start = { ...nodeRange.start };
+        }
+        if (
+          nodeRange.end.line > boundingRange.end.line ||
+          (nodeRange.end.line === boundingRange.end.line &&
+            nodeRange.end.character > boundingRange.end.character)
+        ) {
+          boundingRange.end = { ...nodeRange.end };
+        }
+      }
+    }
+
+    if (boundingRange) {
+      ranges.push(boundingRange);
+    }
   }
 
   return ranges;
