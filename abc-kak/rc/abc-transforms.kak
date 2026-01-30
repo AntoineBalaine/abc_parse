@@ -86,3 +86,73 @@ define-command abc-insert-voice-line -params 1 \
     -docstring "abc-insert-voice-line <voice-id>: Insert a voice line from selected notes" %{
     abc-transform-impl insertVoiceLine "[\"$1\"]"
 }
+
+define-command abc-add-voice -params 1..2 \
+    -docstring "abc-add-voice <voice-id> [params-json]: Add a new voice with selected notes" %{
+    evaluate-commands %sh{
+        voice_id="$1"
+        params="${2:-{}}"
+        printf '%s\n' "abc-transform-impl addVoice '[\"$voice_id\", $params]'"
+    }
+}
+
+# ============================================================================
+# Pitch Transform Commands
+# ============================================================================
+
+define-command abc-transpose -params 1 \
+    -docstring "abc-transpose <semitones>: Transpose selected notes by semitone count" %{
+    abc-transform-impl transpose "[$1]"
+}
+
+define-command abc-enharmonize \
+    -docstring "Convert selected notes to their enharmonic equivalents" %{
+    abc-transform-impl enharmonize
+}
+
+define-command abc-harmonize -params 1 \
+    -docstring "abc-harmonize <interval>: Harmonize selected notes at the given interval" %{
+    abc-transform-impl harmonize "[$1]"
+}
+
+# ============================================================================
+# Rhythm Transform Commands
+# ============================================================================
+
+define-command abc-set-rhythm -params 2 \
+    -docstring "abc-set-rhythm <num> <denom>: Set rhythm to the specified fraction (e.g., 1 2 for 1/2)" %{
+    abc-transform-impl setRhythm "[{\"num\": $1, \"denom\": $2}]"
+}
+
+define-command abc-add-to-rhythm -params 2 \
+    -docstring "abc-add-to-rhythm <num> <denom>: Add the specified fraction to current rhythm" %{
+    abc-transform-impl addToRhythm "[{\"num\": $1, \"denom\": $2}]"
+}
+
+# ============================================================================
+# Conversion Transform Commands
+# ============================================================================
+
+define-command abc-to-rest \
+    -docstring "Convert selected notes to rests" %{
+    abc-transform-impl toRest
+}
+
+define-command abc-consolidate-rests \
+    -docstring "Consolidate consecutive rests into a single rest" %{
+    abc-transform-impl consolidateRests
+}
+
+# ============================================================================
+# Structural Transform Commands
+# ============================================================================
+
+define-command abc-unwrap-single \
+    -docstring "Unwrap single-note chords (e.g., [C] becomes C)" %{
+    abc-transform-impl unwrapSingle
+}
+
+define-command abc-remove \
+    -docstring "Remove selected elements" %{
+    abc-transform-impl remove
+}

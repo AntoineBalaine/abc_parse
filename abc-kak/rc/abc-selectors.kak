@@ -121,6 +121,16 @@ define-command abc-select-tune \
     abc-select-impl selectTune
 }
 
+define-command abc-select-measures \
+    -docstring "Select all measures" %{
+    abc-select-impl selectMeasures
+}
+
+define-command abc-select-voices -params 1 \
+    -docstring "abc-select-voices <voice-ids>: Select notes/chords in specified voices (comma-separated IDs)" %{
+    abc-select-impl selectVoices "[\"$1\"]"
+}
+
 # ============================================================================
 # Chord Note Selectors
 # ============================================================================
