@@ -449,34 +449,70 @@ export function grace_grp(ctx: Ctx): boolean {
   return true;
 }
 
+/**
+ * Scan content tokens for V: (voice) inline fields.
+ *
+ * Because voice IDs can look like key signatures (e.g., "DMix" could be
+ * D Mixolydian), we prioritize identifiers and do not attempt to match
+ * absolute pitches or special literals.
+ */
+function scanVoiceFieldContent(ctx: Ctx): boolean {
+  if (infoLineIdentifier(ctx)) return true;
+  if (stringLiteral(ctx)) return true;
+  if (singleChar(ctx, "=", TT.EQL)) return true;
+  if (singleChar(ctx, "-", TT.MINUS)) return true;
+  if (singleChar(ctx, "+", TT.PLUS)) return true;
+  if (unsignedNumber(ctx)) return true;
+  return false;
+}
+
+/**
+ * Scan content tokens for general inline fields (K:, M:, L:, Q:, etc.).
+ *
+ * Uses the original scanning order with absolutePitch before identifier
+ * to correctly recognize key signatures and tempo note references.
+ */
+function scanGeneralFieldContent(ctx: Ctx): boolean {
+  if (specialLiteral(ctx)) return true; // C, C|
+  if (absolutePitch(ctx)) return true; // G4, F#5
+  if (tuneBodyPitch(ctx)) return true; // ^c, _b
+  if (infoLineIdentifier(ctx)) return true; // treble, major
+  if (stringLiteral(ctx)) return true; // "Allegro"
+  if (singleChar(ctx, "=", TT.EQL)) return true;
+  if (singleChar(ctx, "-", TT.MINUS)) return true;
+  if (singleChar(ctx, "+", TT.PLUS)) return true;
+  if (singleChar(ctx, "/", TT.SLASH)) return true;
+  if (singleChar(ctx, "(", TT.LPAREN)) return true;
+  if (singleChar(ctx, ")", TT.RPAREN)) return true;
+  if (unsignedNumber(ctx)) return true;
+  return false;
+}
+
 export function inline_field(ctx: Ctx): boolean {
   if (!ctx.test(pInlineField)) return false;
   advance(ctx);
   ctx.push(TT.INLN_FLD_LFT_BRKT); // [
 
+  // Capture the field type before consuming the header
+  const headerStart = ctx.current;
+
   // Scan the field header (K:, M:, etc.)
   while (!isAtEnd(ctx) && !ctx.test(":")) {
     advance(ctx);
   }
+
+  // Extract field type (e.g., "V" from "[V:...")
+  const fieldType = ctx.source.substring(headerStart, ctx.current).trim().toUpperCase();
+
   advance(ctx); // consume the :
   ctx.push(TT.INF_HDR);
 
-  // KEY CHANGE: Tokenize content using scanInfoLine2 logic
-  // Reuse the same helper functions for structured tokenization
+  // Tokenize content using appropriate scanners based on field type
+  const scanContent = fieldType === "V" ? scanVoiceFieldContent : scanGeneralFieldContent;
+
   while (!(isAtEnd(ctx) || ctx.test("]"))) {
     if (WS(ctx)) continue;
-    if (specialLiteral(ctx)) continue; // C, C|
-    if (absolutePitch(ctx)) continue; // G4, F#5
-    if (tuneBodyPitch(ctx)) continue; // ^c, _b
-    if (infoLineIdentifier(ctx)) continue; // treble, major
-    if (stringLiteral(ctx)) continue; // "Allegro"
-    if (singleChar(ctx, "=", TT.EQL)) continue;
-    if (singleChar(ctx, "-", TT.MINUS)) continue;
-    if (singleChar(ctx, "+", TT.PLUS)) continue;
-    if (singleChar(ctx, "/", TT.SLASH)) continue;
-    if (singleChar(ctx, "(", TT.LPAREN)) continue;
-    if (singleChar(ctx, ")", TT.RPAREN)) continue;
-    if (unsignedNumber(ctx)) continue;
+    if (scanContent(ctx)) continue;
 
     // Invalid token
     collectInvalidToken(ctx);

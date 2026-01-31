@@ -2,7 +2,7 @@ import { Visitor } from "../types/Expr2";
 import { ABCContext } from "./Context";
 import { AbcErrorReporter } from "./ErrorReporter";
 import { scanDirective } from "./infoLines/scanDirective";
-import { scanInfoLine2, scanHistoryField } from "./infoLines/scanInfoLine2";
+import { scanInfoLine2, scanHistoryField, scanVoiceInfoLine } from "./infoLines/scanInfoLine2";
 import { scanKeyInfoLine } from "./infoLines/scanKeyInfoLine";
 import { comment, pEOL, pInfoLine, pMacroLine, pSectionBrk, pTuneHeadStrt, pUserSymbol, scanTune, symbol } from "./scan_tunebody";
 
@@ -359,8 +359,13 @@ export function info_line(ctx: Ctx): boolean {
     return scanKeyInfoLine(ctx);
   }
 
+  // Use dedicated scanner for V: info lines to avoid misinterpreting voice IDs as key signatures
+  if (infoType === "V:") {
+    return scanVoiceInfoLine(ctx);
+  }
+
   // Use unified scanner for other specific info line types
-  if (infoType === "M:" || infoType === "L:" || infoType === "Q:" || infoType === "V:") {
+  if (infoType === "M:" || infoType === "L:" || infoType === "Q:") {
     return scanInfoLine2(ctx);
   }
 

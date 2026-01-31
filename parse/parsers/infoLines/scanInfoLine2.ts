@@ -227,3 +227,41 @@ export function scanHistoryField(ctx: Ctx): void {
     ctx.push(TT.FREE_TXT);
   }
 }
+
+/**
+ * Dedicated scanner for V: (voice) info lines
+ *
+ * Voice info lines contain voice declarations like:
+ *   V:1 clef=treble name="Soprano"
+ *   V:DMix clef=bass
+ *   V:Tenor name="Tenor voice"
+ *
+ * Because voice IDs can look like key signatures (e.g., "DMix" could be
+ * D Mixolydian), we use a dedicated scanner that prioritizes identifiers
+ * and does not attempt to match absolute pitches or key signature patterns.
+ *
+ * Tokens produced:
+ *   - IDENTIFIER: voice ID, parameter names, clef values
+ *   - NUMBER: numeric voice IDs or parameter values
+ *   - ANNOTATION: quoted strings for name values
+ *   - EQL, MINUS, PLUS: operators
+ */
+export function scanVoiceInfoLine(ctx: Ctx): boolean {
+  if (!infoHeader(ctx)) return false;
+
+  while (!(isAtEnd(ctx) || ctx.test(pEOL) || ctx.test("%"))) {
+    if (WS(ctx)) continue;
+    if (infoLineIdentifier(ctx)) continue;
+    if (stringLiteral(ctx)) continue;
+    if (singleChar(ctx, "=", TT.EQL)) continue;
+    if (singleChar(ctx, "-", TT.MINUS)) continue;
+    if (singleChar(ctx, "+", TT.PLUS)) continue;
+    if (unsignedNumber(ctx)) continue;
+
+    // Invalid token
+    collectInvalidInfoLn(ctx, "Invalid token in voice info line");
+    break;
+  }
+
+  return true;
+}
