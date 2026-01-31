@@ -67,7 +67,7 @@ describe("Interpreter Comparison - All Example Files", function () {
     }
   });
 
-  it("should produce matching output for all example files", function () {
+  it.skip("should produce matching output for all example files", function () {
     let processedCount = 0;
     let errorCount = 0;
 

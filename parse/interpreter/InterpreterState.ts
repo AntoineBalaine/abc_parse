@@ -390,9 +390,9 @@ export function initVxNomenclature(state: InterpreterState, voiceId: string, pro
  * Finds an available system for a voice to write to, or returns the index
  * for a new system if all existing systems have content for this voice.
  *
- * Because voices can be written in any order and need to fill systems incrementally,
- * we implement the "find-or-create" pattern from abcjs:
- * - Search from `curSystem` for the first system where this voice slot is empty
+ * Implements the "find-or-create" pattern from abcjs's setCurrentVoice:
+ * - Always search from system 0 for the first system where this voice slot is empty
+ * - Uses containsNotes logic: a slot is available if it has no notes or bars
  * - If all systems have content, return tune.systems.length (create new system)
  */
 export function getSystemIdx(state: InterpreterState, voiceId: string): number {
@@ -402,12 +402,12 @@ export function getSystemIdx(state: InterpreterState, voiceId: string): number {
     throw new Error(`Voice ${voiceId} not assigned to staff. Call assignStaff first.`);
   }
 
-  const curSystem = state.voiceCurrentSystem.get(voiceId) ?? 0;
   const tune = state.tune;
-
   const { staffNum, index: voiceIndex } = vxStaff;
-  // Search from curSystem for first available slot
-  for (let i = curSystem; i < tune.systems.length; i++) {
+
+  // Always search from system 0 for first available slot
+  // This matches abcjs's setCurrentVoice which always starts from i=0
+  for (let i = 0; i < tune.systems.length; i++) {
     const system = tune.systems[i];
 
     // Skip non-music lines (text, subtitles, etc.)
@@ -415,8 +415,12 @@ export function getSystemIdx(state: InterpreterState, voiceId: string): number {
 
     const staff = (system as StaffSystem).staff;
 
-    // Check if this voice slot is empty or has no notes
-    if (!staff[staffNum] || !staff[staffNum].voices[voiceIndex] || staff[staffNum].voices[voiceIndex].length === 0) {
+    // Check if this voice slot is empty or has no notes (containsNotes check from abcjs)
+    if (
+      !staff[staffNum] ||
+      !staff[staffNum].voices[voiceIndex] ||
+      !staff[staffNum].voices[voiceIndex].some((el) => el.el_type === "note" || el.el_type === "bar")
+    ) {
       return i;
     }
   }
@@ -529,11 +533,8 @@ export function switchToVoice(state: InterpreterState, voiceID: string): void {
   state.currentStaffNum = vxNomenclature.staffNum;
   state.currentVoiceIndex = vxNomenclature.index;
   state.currentVoice = voiceID;
-
-  // Next time we switch to this voice, start searching from the NEXT system
-  // because we just wrote to the current system. Other voices can still write
-  // to the current system (interleaving).
-  state.voiceCurrentSystem.set(voiceID, systemIdx + 1);
+  // Note: We don't update voiceCurrentSystem anymore because we always search from 0
+  // This matches abcjs's setCurrentVoice behavior
 }
 
 /**

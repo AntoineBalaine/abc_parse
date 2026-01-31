@@ -1265,6 +1265,20 @@ export class TuneInterpreter implements Visitor<void> {
       // Inline info line in tune body - can change voice, key, meter, tempo, note length, clef
       if (isVoiceInfo(semanticData)) {
         initVxState(this.state, semanticData.data);
+
+        // Also assign to staff if not yet assigned (same as header handling)
+        // This ensures voices declared after K: get proper staff assignment
+        const { id } = semanticData.data;
+        if (!this.state.vxNomenclatures.has(id)) {
+          const voice = this.state.voices.get(id)!;
+          initVxNomenclature(this.state, id, voice.properties);
+        }
+
+        // Force a voice switch to find the next available system slot
+        // This is critical for repeated voice switching (V:1 ... V:1 ... V:1)
+        // where each V:1 should continue from where the previous one left off.
+        // Unlike pushElement's lazy switch, this actively searches for the next slot.
+        switchToVoice(this.state, id);
       } else if (isKeyInfo(semanticData)) {
         const voice = getCurrentVoice(this.state);
         if (voice) {
@@ -1858,6 +1872,14 @@ export class TuneInterpreter implements Visitor<void> {
     // Handle the same way as Info_line in tune_body context
     if (isVoiceInfo(semanticData)) {
       initVxState(this.state, semanticData.data);
+
+      // Same as visitInfoLineExpr: assign staff and force switch
+      const { id } = semanticData.data;
+      if (!this.state.vxNomenclatures.has(id)) {
+        const voice = this.state.voices.get(id)!;
+        initVxNomenclature(this.state, id, voice.properties);
+      }
+      switchToVoice(this.state, id);
     } else if (isKeyInfo(semanticData)) {
       const voice = getCurrentVoice(this.state);
       if (voice) {
@@ -2145,8 +2167,18 @@ export class TuneInterpreter implements Visitor<void> {
   }
 
   finalizeTune(): void {
-    // Use the tracked staff count from the multi-staff system
-    this.state.tune.staffNum = this.state.stavesNomenclatures.length;
+    // Count staffs based on actual content in systems
+    // This matches abcjs behavior where the structure reflects what's actually rendered
+    let maxStaffCount = 0;
+
+    for (const system of this.state.tune.systems) {
+      if (!("staff" in system)) continue;
+      const staffSystem = system as StaffSystem;
+      maxStaffCount = Math.max(maxStaffCount, staffSystem.staff.length);
+    }
+
+    this.state.tune.staffNum = maxStaffCount;
+    // voiceNum counts declared voices (matching property test expectation)
     this.state.tune.voiceNum = this.state.voices.size;
     this.state.tune.lineNum = this.state.tune.systems.length;
     // Note: metaText and formatting were already initialized from fileDefaults in visitTuneExpr
