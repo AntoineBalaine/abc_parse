@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Token, TT } from "../parsers/scan2";
-import { Directive, Rational, KV } from "../types/Expr2";
+import { Directive, Rational, KV, Pitch } from "../types/Expr2";
 import { SemanticAnalyzer } from "./semantic-analyzer";
 
 describe("Directive Analyzer - MIDI Part 1 (Simple Commands)", () => {
@@ -1275,7 +1275,7 @@ describe("Directive Analyzer - MIDI Part 5 (Special Cases)", () => {
     it("should parse %%midi drummap C 36", () => {
       const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
         new Token(TT.IDENTIFIER, "drummap", context.generateId()),
-        new Token(TT.IDENTIFIER, "C", context.generateId()),
+        new Pitch(context.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "C", context.generateId()) }),
         new Token(TT.NUMBER, "36", context.generateId()),
       ]);
 
@@ -1292,7 +1292,7 @@ describe("Directive Analyzer - MIDI Part 5 (Special Cases)", () => {
     it("should parse %%midi drummap D 38", () => {
       const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
         new Token(TT.IDENTIFIER, "drummap", context.generateId()),
-        new Token(TT.IDENTIFIER, "D", context.generateId()),
+        new Pitch(context.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "D", context.generateId()) }),
         new Token(TT.NUMBER, "38", context.generateId()),
       ]);
 
@@ -1308,7 +1308,7 @@ describe("Directive Analyzer - MIDI Part 5 (Special Cases)", () => {
     it("should parse %%midi drummap F 41", () => {
       const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
         new Token(TT.IDENTIFIER, "drummap", context.generateId()),
-        new Token(TT.IDENTIFIER, "F", context.generateId()),
+        new Pitch(context.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "F", context.generateId()) }),
         new Token(TT.NUMBER, "41", context.generateId()),
       ]);
 
@@ -1322,12 +1322,14 @@ describe("Directive Analyzer - MIDI Part 5 (Special Cases)", () => {
     });
   });
 
-  describe("drummap command with 3-token format (accidentals)", () => {
-    it("should parse %%midi drummap ^ F 42 (sharp F)", () => {
+  describe("drummap command with accidentals", () => {
+    it("should parse %%midi drummap ^F 42 (sharp F)", () => {
       const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
         new Token(TT.IDENTIFIER, "drummap", context.generateId()),
-        new Token(TT.IDENTIFIER, "^", context.generateId()),
-        new Token(TT.IDENTIFIER, "F", context.generateId()),
+        new Pitch(context.generateId(), {
+          alteration: new Token(TT.ACCIDENTAL, "^", context.generateId()),
+          noteLetter: new Token(TT.NOTE_LETTER, "F", context.generateId()),
+        }),
         new Token(TT.NUMBER, "42", context.generateId()),
       ]);
 
@@ -1341,11 +1343,13 @@ describe("Directive Analyzer - MIDI Part 5 (Special Cases)", () => {
       });
     });
 
-    it("should parse %%midi drummap _ B 46 (flat B)", () => {
+    it("should parse %%midi drummap _B 46 (flat B)", () => {
       const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
         new Token(TT.IDENTIFIER, "drummap", context.generateId()),
-        new Token(TT.IDENTIFIER, "_", context.generateId()),
-        new Token(TT.IDENTIFIER, "B", context.generateId()),
+        new Pitch(context.generateId(), {
+          alteration: new Token(TT.ACCIDENTAL, "_", context.generateId()),
+          noteLetter: new Token(TT.NOTE_LETTER, "B", context.generateId()),
+        }),
         new Token(TT.NUMBER, "46", context.generateId()),
       ]);
 
@@ -1358,11 +1362,13 @@ describe("Directive Analyzer - MIDI Part 5 (Special Cases)", () => {
       });
     });
 
-    it("should parse %%midi drummap = G 43 (natural G)", () => {
+    it("should parse %%midi drummap =G 43 (natural G)", () => {
       const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
         new Token(TT.IDENTIFIER, "drummap", context.generateId()),
-        new Token(TT.IDENTIFIER, "=", context.generateId()),
-        new Token(TT.IDENTIFIER, "G", context.generateId()),
+        new Pitch(context.generateId(), {
+          alteration: new Token(TT.ACCIDENTAL, "=", context.generateId()),
+          noteLetter: new Token(TT.NOTE_LETTER, "G", context.generateId()),
+        }),
         new Token(TT.NUMBER, "43", context.generateId()),
       ]);
 
@@ -1690,7 +1696,7 @@ describe("Directive Analyzer - MIDI Part 5 (Special Cases)", () => {
     it("should accept uppercase command names for drummap", () => {
       const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "midi", context.generateId()), [
         new Token(TT.IDENTIFIER, "DRUMMAP", context.generateId()),
-        new Token(TT.IDENTIFIER, "C", context.generateId()),
+        new Pitch(context.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "C", context.generateId()) }),
         new Token(TT.NUMBER, "36", context.generateId()),
       ]);
 

@@ -64,8 +64,8 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     case "bagpipes":
     case "flatbeams":
     case "jazzchords":
-    case "accentAbove":
-    case "germanAlphabet":
+    case "accentabove":
+    case "germanalphabet":
     case "landscape":
     case "titlecaps":
     case "titleleft":
@@ -120,7 +120,7 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     // ============================================================================
     // Simple Number Directives (no constraints)
     // ============================================================================
-    case "lineThickness":
+    case "linethickness":
     case "voicescale":
     case "scale":
     case "fontboxpadding":
@@ -375,7 +375,7 @@ function parseSizeOnlyFormat(
   }
 
   return {
-    type: directive.key.lexeme.toLowerCase() as any,
+    type: directive.key.lexeme as any,
     data: result,
   };
 }
@@ -547,7 +547,7 @@ function parseFullFontDefinition(
   }
 
   return {
-    type: directive.key.lexeme.toLowerCase() as any,
+    type: directive.key.lexeme as any,
     data: result,
   };
 }
@@ -562,7 +562,7 @@ function parseFullFontDefinition(
 function parseBooleanFlag(directive: Directive, _analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   // Silently ignore any parameters - this matches abcjs behavior
   return {
-    type: directive.key.lexeme.toLowerCase() as any,
+    type: directive.key.lexeme as any,
     data: true,
   };
 }
@@ -587,7 +587,7 @@ function parseIdentifier(directive: Directive, analyzer: SemanticAnalyzer): Dire
   }
 
   return {
-    type: directive.key.lexeme.toLowerCase() as any,
+    type: directive.key.lexeme as any,
     data: value.lexeme,
   };
 }
@@ -657,7 +657,7 @@ function parseBooleanValue(directive: Directive, analyzer: SemanticAnalyzer): Di
   }
 
   return {
-    type: directive.key.lexeme.toLowerCase() as any,
+    type: directive.key.lexeme as any,
     data: boolValue,
   };
 }
@@ -698,7 +698,7 @@ function parseNumber(directive: Directive, analyzer: SemanticAnalyzer, constrain
   }
 
   return {
-    type: directive.key.lexeme.toLowerCase() as any,
+    type: directive.key.lexeme as any,
     data: num,
   };
 }
@@ -710,7 +710,7 @@ function parseStretchLast(directive: Directive, analyzer: SemanticAnalyzer): Dir
   // No parameters: default to 1 (true)
   if (directive.values.length === 0) {
     return {
-      type: directive.key.lexeme.toLowerCase() as any,
+      type: directive.key.lexeme as any,
       data: 1,
     };
   }
@@ -724,14 +724,14 @@ function parseStretchLast(directive: Directive, analyzer: SemanticAnalyzer): Dir
   // Handle boolean keywords
   if (value.lexeme === "false") {
     return {
-      type: directive.key.lexeme.toLowerCase() as any,
+      type: directive.key.lexeme as any,
       data: 0,
     };
   }
 
   if (value.lexeme === "true") {
     return {
-      type: directive.key.lexeme.toLowerCase() as any,
+      type: directive.key.lexeme as any,
       data: 1,
     };
   }
@@ -750,7 +750,7 @@ function parseStretchLast(directive: Directive, analyzer: SemanticAnalyzer): Dir
     }
 
     return {
-      type: directive.key.lexeme.toLowerCase() as any,
+      type: directive.key.lexeme as any,
       data: num,
     };
   }
@@ -786,7 +786,7 @@ function parsePositionChoice(directive: Directive, analyzer: SemanticAnalyzer): 
   }
 
   return {
-    type: directive.key.lexeme.toLowerCase() as any,
+    type: directive.key.lexeme as any,
     data: lexeme as "auto" | "above" | "below" | "hidden",
   };
 }
@@ -815,7 +815,7 @@ function parseMeasurement(directive: Directive, analyzer: SemanticAnalyzer): Dir
     }
 
     return {
-      type: directive.key.lexeme.toLowerCase() as any,
+      type: directive.key.lexeme as any,
       data: {
         value: numValue,
         unit: value.scale.lexeme as "pt" | "in" | "cm" | "mm",
@@ -836,7 +836,7 @@ function parseMeasurement(directive: Directive, analyzer: SemanticAnalyzer): Dir
     }
 
     return {
-      type: directive.key.lexeme.toLowerCase() as any,
+      type: directive.key.lexeme as any,
       data: {
         value: numValue,
       },
@@ -887,7 +887,7 @@ function parseSep(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSe
   }
 
   return {
-    type: directive.key.lexeme.toLowerCase() as any,
+    type: directive.key.lexeme as any,
     data: result,
   };
 }
@@ -957,7 +957,7 @@ function parseNewpage(directive: Directive, analyzer: SemanticAnalyzer): Directi
   if (directive.values.length === 0) {
     // No page number specified
     return {
-      type: directive.key.lexeme.toLowerCase() as any,
+      type: directive.key.lexeme as any,
       data: null,
     };
   }
@@ -979,7 +979,7 @@ function parseNewpage(directive: Directive, analyzer: SemanticAnalyzer): Directi
   }
 
   return {
-    type: directive.key.lexeme.toLowerCase() as any,
+    type: directive.key.lexeme as any,
     data: pageNum,
   };
 }
@@ -1863,7 +1863,7 @@ function parseAnnotation(directive: Directive, analyzer: SemanticAnalyzer): Dire
   }
 
   return {
-    type: directive.key.lexeme.toLowerCase() as any,
+    type: directive.key.lexeme as any,
     data: textParts.join(" "),
   };
 }
