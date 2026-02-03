@@ -1,4 +1,5 @@
 import { AbcErrorReporter } from "./ErrorReporter";
+import { FormatterConfig, DEFAULT_FORMATTER_CONFIG } from "../types/Expr2";
 
 class IdGenerator {
   private static instance: IdGenerator;
@@ -34,6 +35,10 @@ export class ABCContext {
   public linear: boolean = false;
   /** Current tune's effective linear value. Inherits from file header, can be overridden in tune header. */
   public tuneLinear: boolean = false;
+  /** File-level formatter config from %%abcls-fmt in file header */
+  public formatterConfig: FormatterConfig = { ...DEFAULT_FORMATTER_CONFIG };
+  /** Current tune's effective formatter config. Inherits from file header, can be overridden in tune header. */
+  public tuneFormatterConfig: FormatterConfig = { ...DEFAULT_FORMATTER_CONFIG };
   constructor(
     errorReporter?: AbcErrorReporter,
     public options: AbcContextOpts = {

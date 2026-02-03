@@ -11,6 +11,44 @@ import { parseKV } from "./parseInfoLine2";
 export type HeaderContext = "file" | "tune";
 
 /**
+ * Check if a directive is %%abcls-fmt and update the context accordingly.
+ * This is called internally by parseDirective when a headerContext is provided.
+ *
+ * Syntax: %%abcls-fmt system-comments
+ *
+ * The presence of the directive enables both the feature and linear mode.
+ * System comments only make sense for linear (interleaved voice) tunes,
+ * so we enable linear mode implicitly.
+ *
+ * @param directive - The directive to check
+ * @param ctx - The parsing context
+ * @param headerContext - Whether this is in a "file" header or "tune" header
+ */
+function checkFormatterDirective(directive: Directive, ctx: ParseCtx, headerContext: HeaderContext): void {
+  if (directive.key.lexeme.toLowerCase() !== "abcls-fmt") {
+    return;
+  }
+
+  if (directive.values.length === 0) {
+    return; // no option specified, semantic analyzer will report error
+  }
+
+  const option = directive.values[0];
+  if (!(option instanceof Token) || option.lexeme.toLowerCase() !== "system-comments") {
+    return; // unknown option, semantic analyzer will report error
+  }
+
+  // The presence of "%%abcls-fmt system-comments" enables both the feature and linear mode.
+  if (headerContext === "file") {
+    ctx.abcContext.formatterConfig = { ...ctx.abcContext.formatterConfig, systemComments: true };
+    ctx.abcContext.linear = true;
+  } else {
+    ctx.abcContext.tuneFormatterConfig = { ...ctx.abcContext.tuneFormatterConfig, systemComments: true };
+    ctx.abcContext.tuneLinear = true;
+  }
+}
+
+/**
  * Check if a directive is %%linear and update the context accordingly.
  * This is called internally by parseDirective when a headerContext is provided.
  *
@@ -115,6 +153,7 @@ export function parseDirective(
   // Check for %%linear directive and update context before pushing to parent array
   if (headerContext) {
     checkLinearDirective(rv, ctx, headerContext);
+    checkFormatterDirective(rv, ctx, headerContext);
   }
 
   if (prnt_arr) prnt_arr.push(rv);
@@ -245,6 +284,7 @@ function parseTextDirective(
   // Check for %%linear directive and update context before pushing to parent array
   if (headerContext) {
     checkLinearDirective(rv, ctx, headerContext);
+    checkFormatterDirective(rv, ctx, headerContext);
   }
 
   if (prnt_arr) prnt_arr.push(rv);

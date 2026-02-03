@@ -348,6 +348,32 @@ describe("Directive Scanner Tests", () => {
     });
   });
 
+  describe("Formatter directive (%%abcls-fmt)", () => {
+    it("should scan %%abcls-fmt system-comments with expected token sequence", () => {
+      const ctx = createCtx("%%abcls-fmt system-comments");
+      const result = scanDirective(ctx);
+
+      expect(result).to.equal(true);
+      expect(ctx.tokens[0].type).to.equal(TT.STYLESHEET_DIRECTIVE);
+      expect(ctx.tokens[0].lexeme).to.equal("%%");
+      expect(ctx.tokens[1].type).to.equal(TT.IDENTIFIER);
+      expect(ctx.tokens[1].lexeme).to.equal("abcls-fmt");
+      expect(ctx.tokens[2].type).to.equal(TT.IDENTIFIER);
+      expect(ctx.tokens[2].lexeme).to.equal("system-comments");
+    });
+
+    it("should scan %%abcls-fmt without parameter", () => {
+      const ctx = createCtx("%%abcls-fmt");
+      const result = scanDirective(ctx);
+
+      expect(result).to.equal(true);
+      expect(ctx.tokens[0].type).to.equal(TT.STYLESHEET_DIRECTIVE);
+      expect(ctx.tokens[1].type).to.equal(TT.IDENTIFIER);
+      expect(ctx.tokens[1].lexeme).to.equal("abcls-fmt");
+      expect(ctx.tokens.length).to.equal(2);
+    });
+  });
+
   describe("Header/Footer directives (%%header, %%footer)", () => {
     it("should scan %%header directive with FREE_TXT token", () => {
       const ctx = createCtx("%%header Page $P");

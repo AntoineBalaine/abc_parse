@@ -382,7 +382,7 @@ export function convertTuneToDeferred(tune: Tune, ctx: ABCContext): Tune {
   }
 
   const newTuneBody = new Tune_Body(ctx.generateId(), processedSystems);
-  return new Tune(ctx.generateId(), tune.tune_header, newTuneBody);
+  return new Tune(ctx.generateId(), tune.tune_header, newTuneBody, tune.linear, tune.formatterConfig);
 }
 
 /**
@@ -399,5 +399,5 @@ export function convertFileToDeferred(fileStructure: File_structure, ctx: ABCCon
     }
   }
 
-  return new File_structure(ctx.generateId(), fileStructure.file_header, convertedContents);
+  return new File_structure(ctx.generateId(), fileStructure.file_header, convertedContents, fileStructure.linear, fileStructure.formatterConfig);
 }

@@ -166,6 +166,19 @@ export function isInstructionInfo(info: InfoLineUnion): info is { type: "instruc
   return info.type === "instruction";
 }
 
+/**
+ * Configuration for formatter-specific behavior.
+ * These settings control how the formatter processes and outputs ABC notation.
+ */
+export type FormatterConfig = {
+  /** When true, insert empty comment lines between systems in linear tunes */
+  systemComments: boolean;
+};
+
+export const DEFAULT_FORMATTER_CONFIG: FormatterConfig = {
+  systemComments: false,
+};
+
 export abstract class Expr {
   public id: number;
 
@@ -179,11 +192,19 @@ export class File_structure extends Expr {
   file_header: File_header | null;
   contents: Array<Tune | Token>;
   linear: boolean;
-  constructor(id: number, file_header: File_header | null, tune: Array<Tune | Token>, linear: boolean = false) {
+  formatterConfig: FormatterConfig;
+  constructor(
+    id: number,
+    file_header: File_header | null,
+    tune: Array<Tune | Token>,
+    linear: boolean = false,
+    formatterConfig: FormatterConfig = DEFAULT_FORMATTER_CONFIG
+  ) {
     super(id);
     this.file_header = file_header;
     this.contents = tune;
     this.linear = linear;
+    this.formatterConfig = formatterConfig;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitFileStructureExpr(this);
@@ -369,11 +390,19 @@ export class Tune extends Expr {
   tune_header: Tune_header;
   tune_body?: Tune_Body;
   linear: boolean;
-  constructor(id: number, tune_header: Tune_header, tune_body: Tune_Body | null, linear: boolean = false) {
+  formatterConfig: FormatterConfig;
+  constructor(
+    id: number,
+    tune_header: Tune_header,
+    tune_body: Tune_Body | null,
+    linear: boolean = false,
+    formatterConfig: FormatterConfig = DEFAULT_FORMATTER_CONFIG
+  ) {
     super(id);
     this.tune_header = tune_header;
     this.tune_body = tune_body || undefined;
     this.linear = linear;
+    this.formatterConfig = formatterConfig;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitTuneExpr(this);

@@ -236,7 +236,8 @@ export class VoiceFilterVisitor {
       this.context.generateId(),
       filteredFileHeader,
       filteredContents,
-      ast.linear
+      ast.linear,
+      structuredClone(ast.formatterConfig)
     );
   }
 
@@ -272,7 +273,7 @@ export class VoiceFilterVisitor {
       ? this.filterTuneBody(tune.tune_body, filterState)
       : undefined;
 
-    return new Tune(this.context.generateId(), filteredHeader, filteredBody || null, tune.linear);
+    return new Tune(this.context.generateId(), filteredHeader, filteredBody || null, tune.linear, { ...tune.formatterConfig });
   }
 
   filterTuneHeader(header: Tune_header, filterState: VoiceFilterState): Tune_header {

@@ -1,4 +1,4 @@
-import { isNote, isToken } from "../helpers";
+import { isComment, isNote, isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import {
@@ -36,6 +36,7 @@ import {
   Rest,
   Rhythm,
   Symbol,
+  System,
   Tune,
   Tune_Body,
   Tune_header,
@@ -48,6 +49,90 @@ import {
 } from "../types/Expr2";
 import { alignTune } from "./fmt2/fmt_aligner";
 import { resolveRules } from "./fmt2/fmt_rules_assignment";
+
+/**
+ * Checks if a comment is "empty" (contains only % or % followed by whitespace).
+ * Because the comment token is typically "%..." or "% ...", we check that
+ * after removing the leading % there is only whitespace remaining.
+ */
+function isEmptyComment(comment: Comment): boolean {
+  const text = comment.token.lexeme;
+  // Remove the leading % and check if the rest is only whitespace
+  const afterPercent = text.startsWith("%") ? text.slice(1) : text;
+  return afterPercent.trim() === "";
+}
+
+/**
+ * Checks if a system has an empty comment at the specified boundary.
+ *
+ * @param system - The system (array of tune body elements)
+ * @param boundary - Whether to check the "start" or "end" of the system
+ * @returns true if an empty comment exists at the boundary
+ */
+export function hasCommentAtBoundary(system: System, boundary: "start" | "end"): boolean {
+  if (system.length === 0) {
+    return false;
+  }
+
+  if (boundary === "start") {
+    // Find the first non-whitespace element
+    for (const element of system) {
+      if (isToken(element) && (element.type === TT.WS || element.type === TT.EOL)) {
+        continue;
+      }
+      if (isComment(element) && isEmptyComment(element)) {
+        return true;
+      }
+      // First non-whitespace element is not an empty comment
+      return false;
+    }
+    return false;
+  } else {
+    // Find the last non-whitespace, non-EOL element
+    for (let i = system.length - 1; i >= 0; i--) {
+      const element = system[i];
+      if (isToken(element) && (element.type === TT.WS || element.type === TT.EOL)) {
+        continue;
+      }
+      if (isComment(element) && isEmptyComment(element)) {
+        return true;
+      }
+      // Last non-whitespace element is not an empty comment
+      return false;
+    }
+    return false;
+  }
+}
+
+/**
+ * Joins formatted system strings, inserting empty comment lines between systems
+ * where neither system boundary already has an empty comment.
+ *
+ * @param formattedSystems - Array of formatted system strings
+ * @param systems - Array of original System AST nodes for boundary checking
+ * @returns The joined result with comment separators inserted as needed
+ */
+export function joinSystemsWithComments(formattedSystems: string[], systems: System[]): string {
+  const result: string[] = [];
+  for (let i = 0; i < formattedSystems.length; i++) {
+    result.push(formattedSystems[i]);
+
+    // Check if we need to insert a comment between this system and the next
+    if (i < formattedSystems.length - 1) {
+      const currentSystem = systems[i];
+      const nextSystem = systems[i + 1];
+
+      // Insert comment if neither system boundary has an empty comment
+      const currentHasEndComment = hasCommentAtBoundary(currentSystem, "end");
+      const nextHasStartComment = hasCommentAtBoundary(nextSystem, "start");
+
+      if (!currentHasEndComment && !nextHasStartComment) {
+        result.push("%\n");
+      }
+    }
+  }
+  return result.join("");
+}
 
 /**
  * A pretty printer for a score's AST.
@@ -72,6 +157,11 @@ export class AbcFormatter implements Visitor<string> {
    * use this flag to indicate if we just want to stringify the tree, without pretty-printing
    */
   no_format: boolean = false;
+  /**
+   * Current tune being formatted. Used by visitTuneBodyExpr to access
+   * the tune's formatterConfig for system separator comment insertion.
+   */
+  currentTune: Tune | null = null;
   formatFile(ast: File_structure): string {
     this.no_format = false;
     const rv = ast.contents
@@ -428,28 +518,44 @@ export class AbcFormatter implements Visitor<string> {
   }
 
   visitTuneBodyExpr(expr: Tune_Body): string {
-    return expr.sequence
-      .map((system) => {
-        return system
-          .map((node) => {
-            if (isToken(node)) {
-              return node.lexeme;
-            } else {
-              return node.accept(this);
-            }
-          })
-          .join("");
-      })
-      .join("");
+    const systems = expr.sequence;
+
+    // Check if we need to insert system separator comments
+    const shouldInsertComments =
+      this.currentTune &&
+      this.currentTune.linear &&
+      systems.length > 1 &&
+      this.currentTune.formatterConfig.systemComments;
+
+    const formattedSystems = systems.map((system) => {
+      return system
+        .map((node) => {
+          if (isToken(node)) {
+            return node.lexeme;
+          } else {
+            return node.accept(this);
+          }
+        })
+        .join("");
+    });
+
+    if (!shouldInsertComments) {
+      return formattedSystems.join("");
+    }
+
+    return joinSystemsWithComments(formattedSystems, systems);
   }
 
   visitTuneExpr(expr: Tune): string {
+    // Store current tune for access by visitTuneBodyExpr
+    this.currentTune = expr;
     let formatted = "";
     formatted += this.visitTuneHeaderExpr(expr.tune_header);
     if (expr.tune_body && expr.tune_body.sequence.length) {
       formatted += "\n";
       formatted += this.visitTuneBodyExpr(expr.tune_body);
     }
+    this.currentTune = null;
     return formatted;
   }
 

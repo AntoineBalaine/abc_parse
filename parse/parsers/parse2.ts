@@ -127,6 +127,8 @@ export function parse(tokens: Token[], abcContext: ABCContext, options?: ParseOp
     if (isTune(ctx)) {
       // Initialize tune's linear flag from file-level value before parsing the tune
       ctx.abcContext.tuneLinear = ctx.abcContext.linear;
+      // Initialize tune's formatter config from file-level value before parsing the tune
+      ctx.abcContext.tuneFormatterConfig = structuredClone(ctx.abcContext.formatterConfig);
       parseTune(ctx, seq);
       continue;
     }
@@ -147,7 +149,7 @@ export function parse(tokens: Token[], abcContext: ABCContext, options?: ParseOp
 
     ctx.report("unexpected");
   }
-  return new File_structure(ctx.abcContext.generateId(), fileHeader, seq, ctx.abcContext.linear);
+  return new File_structure(ctx.abcContext.generateId(), fileHeader, seq, ctx.abcContext.linear, structuredClone(ctx.abcContext.formatterConfig));
 }
 export function isTuneStart(token: Token): boolean {
   return token.type === TT.INF_HDR && token.lexeme.trim() === "X:";
@@ -215,7 +217,7 @@ export function parseTune(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Tune {
   // Parse body (music sections) with voices from the header
   const tuneBody = prsBody(ctx, tuneHeader.voices);
 
-  const rv = new Tune(ctx.abcContext.generateId(), tuneHeader, tuneBody, ctx.abcContext.tuneLinear);
+  const rv = new Tune(ctx.abcContext.generateId(), tuneHeader, tuneBody, ctx.abcContext.tuneLinear, structuredClone(ctx.abcContext.tuneFormatterConfig));
   if (prnt_arr) prnt_arr.push(rv);
   return rv;
 }
