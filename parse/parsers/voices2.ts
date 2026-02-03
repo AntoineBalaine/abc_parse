@@ -1,4 +1,4 @@
-import { isBarLine, isComment, isInfo_line, isMusicCode, isMusicExpr, isToken, isVoiceMarker } from "../helpers";
+import { isBarLine, isComment, isInfo_line, isMusicCode, isMusicExpr, isToken, isVoiceMarker, isWS } from "../helpers";
 import { Info_line, Inline_field, System, tune_body_code } from "../types/Expr2";
 import { Token, TT } from "./scan2";
 
@@ -610,9 +610,10 @@ export function buildLinearSystems(elements: tune_body_code[], voices: string[])
     }
 
     // Check for implicit system boundary (new music line without voice marker)
-    // This matches parseVoices() lines 314-326
-    // Guard: only create boundary if we have a valid lastVoice
-    if (atLineStart && sawMusicSinceVoiceMarker && isMusicExpr(element)) {
+    // Because any non-whitespace content at line start after music indicates a new line,
+    // we need to create a boundary when we have a valid lastVoice.
+    const isSignificantContent = !isWS(element) && !(isToken(element) && element.type === TT.EOL);
+    if (atLineStart && sawMusicSinceVoiceMarker && isSignificantContent) {
       const lastVoiceIndex = voices.indexOf(lastVoice);
       if (lastVoiceIndex >= 0) {
         systems.push(currentSystem);
@@ -620,10 +621,8 @@ export function buildLinearSystems(elements: tune_body_code[], voices: string[])
       }
       atLineStart = false;
       sawMusicSinceVoiceMarker = true;
-    } else if (isMusicExpr(element)) {
+    } else if (isSignificantContent) {
       sawMusicSinceVoiceMarker = true;
-      atLineStart = false;
-    } else if (!isToken(element) || (element.type !== TT.WS && element.type !== TT.EOL)) {
       atLineStart = false;
     }
 

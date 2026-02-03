@@ -1,12 +1,13 @@
 import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { abclToAbc, convertFileToDeferred, getAllVoices } from "../abcl";
+import { abclToAbc, convertFileToDeferred, convertTuneToDeferred, getAllVoices } from "../abcl";
 import { Scanner } from "../parsers/scan2";
-import { parse } from "../parsers/parse2";
+import { parse, parseTune, ParseCtx } from "../parsers/parse2";
 import { AbcFormatter } from "../Visitors/Formatter2";
-import { Tune } from "../types/Expr2";
-import { LinearVoiceCtx, parseVoices } from "../parsers/voices2";
+import { Info_line, Tune } from "../types/Expr2";
+import { LinearVoiceCtx, parseVoices, extractVoiceId } from "../parsers/voices2";
+import { isVoiceMarker, isComment } from "../helpers";
 
 function createCtx(): ABCContext {
   return new ABCContext(new AbcErrorReporter());
@@ -61,9 +62,8 @@ defg`;
       const ast = parse(tokens, ctx);
 
       const tune = ast.contents[0] as unknown as Tune;
-      const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
-      const systems = parseVoices(new LinearVoiceCtx(tune.tune_body!.sequence[0], vxls));
-      expect(systems).to.have.lengthOf(3);
+      // System detection now happens in the parser via buildLinearSystems
+      expect(tune.tune_body!.sequence).to.have.lengthOf(3);
 
       const astDeferred = convertFileToDeferred(ast, ctx);
 
@@ -375,6 +375,89 @@ FDEC |`;
       const ctx = createCtx();
       const result = abclToAbc(input, ctx);
       expect(normalize(result)).to.equal(normalize(expected));
+    });
+  });
+
+  describe("convertTuneToDeferred with pre-split systems", () => {
+    it("should process each system independently", () => {
+      const sample = `X:1
+K:C
+V:1
+C|D|
+V:2
+E|F|
+V:1
+G|A|`;
+
+      const ctx = new ABCContext();
+      ctx.tuneLinear = true;
+      const tokens = Scanner(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
+
+      // After Phase 1, tune should have 2 systems
+      expect(tune.tune_body?.sequence).to.have.lengthOf(2);
+
+      // Convert to deferred
+      const converted = convertTuneToDeferred(tune, ctx);
+
+      // Should still have 2 systems
+      expect(converted.tune_body?.sequence).to.have.lengthOf(2);
+    });
+
+    it("should fill null voices per system independently", () => {
+      const sample = `X:1
+K:C
+V:1
+C|D|
+V:2
+E|F|
+V:1
+G|A|`;
+
+      const ctx = new ABCContext();
+      ctx.tuneLinear = true;
+      const tokens = Scanner(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
+      const converted = convertTuneToDeferred(tune, ctx);
+
+      // Verify second system has both V:1 and V:2
+      const system2 = converted.tune_body?.sequence[1];
+      const voiceMarkers = system2?.filter(el => isVoiceMarker(el));
+      const voiceIds = voiceMarkers?.map(el => extractVoiceId(el as Info_line));
+
+      expect(voiceIds).to.include("1");
+      expect(voiceIds).to.include("2");
+    });
+
+    it("should preserve prefix from first system only", () => {
+      const sample = `X:1
+K:C
+% comment before voices
+V:1
+C|D|
+V:2
+E|F|
+V:1
+G|A|`;
+
+      const ctx = new ABCContext();
+      ctx.tuneLinear = true;
+      const tokens = Scanner(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
+      const converted = convertTuneToDeferred(tune, ctx);
+
+      // Verify comment appears in first system
+      const system1 = converted.tune_body?.sequence[0];
+      const hasComment = system1?.some(el => isComment(el));
+      expect(hasComment).to.be.true;
+
+      // Verify comment does not appear in second system
+      const system2 = converted.tune_body?.sequence[1];
+      const hasCommentInSystem2 = system2?.some(el => isComment(el));
+      expect(hasCommentInSystem2).to.be.false;
     });
   });
 });

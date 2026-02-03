@@ -458,10 +458,9 @@ abcde`;
       const parseCtx = new ParseCtx(tokens, ctx);
       parseCtx.abcContext.tuneLinear = true;
       const tune = parseTune(parseCtx);
-      const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
-      const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
 
-      expect(systems).to.have.lengthOf(2);
+      // System detection now happens in the parser via buildLinearSystems
+      expect(tune.tune_body!.sequence).to.have.lengthOf(2);
     });
   });
 
@@ -879,13 +878,11 @@ efga|bcde|`;
       parseCtx.abcContext.tuneLinear = true;
       const tune = parseTune(parseCtx);
 
-      tune.tune_header.voices;
-      const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
-      const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
-
-      // System 1: V:2 bars 1-4, V:1 bars 1-4 (overlap)
-      // System 2: V:2 bars 5-6, V:1 bars 5-6 (overlap, but don't overlap with system 1)
-      expect(systems).to.have.lengthOf(3);
+      // System detection now happens in the parser via buildLinearSystems
+      // System 1: V:2 (first voice marker)
+      // System 2: V:1 (reversal from V:2), V:2 (ascending)
+      // System 3: V:1 (reversal from V:2)
+      expect(tune.tune_body!.sequence).to.have.lengthOf(3);
     });
     it("should separate systems when finding undeclared voice markers", () => {
       const sample = `X:1
@@ -906,12 +903,12 @@ efga|bcde|`;
       const parseCtx = new ParseCtx(tokens, ctx);
       parseCtx.abcContext.tuneLinear = true;
       const tune = parseTune(parseCtx);
-      const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
-      const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
 
-      // System 1: V:2 bars 1-4, V:1 bars 1-4 (overlap)
-      // System 2: V:2 bars 5-6, V:1 bars 5-6 (overlap, but don't overlap with system 1)
-      expect(systems).to.have.lengthOf(3);
+      // System detection now happens in the parser via buildLinearSystems
+      // System 1: V:2 (first voice marker)
+      // System 2: V:1 (reversal from V:2), V:3 (dynamically discovered, ascending)
+      // System 3: V:1 (reversal from V:3)
+      expect(tune.tune_body!.sequence).to.have.lengthOf(3);
     });
 
     it("should handle partial bar overlap correctly", () => {
@@ -1058,10 +1055,9 @@ K:C
           const parseCtx = new ParseCtx(tokens, ctx);
           parseCtx.abcContext.tuneLinear = true;
           const tune = parseTune(parseCtx);
-          const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
-          const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
 
-          const actualSystemCount = systems.length;
+          // System detection now happens in the parser via buildLinearSystems
+          const actualSystemCount = tune.tune_body!.sequence.length;
 
           if (actualSystemCount !== expectedSystemCount) {
             console.log("ABC:", abc);
@@ -1095,10 +1091,9 @@ K:C
             const parseCtx = new ParseCtx(tokens, ctx);
             parseCtx.abcContext.tuneLinear = true;
             const tune = parseTune(parseCtx);
-            const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
-            const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
 
-            const actualSystems = systems.length;
+            // System detection now happens in the parser via buildLinearSystems
+            const actualSystems = tune.tune_body!.sequence.length;
 
             // Each complete cycle of all voices should be one system
             return actualSystems === numSystems;
@@ -1123,10 +1118,9 @@ K:C
           const parseCtx = new ParseCtx(tokens, ctx);
           parseCtx.abcContext.tuneLinear = true;
           const tune = parseTune(parseCtx);
-          const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
-          const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
 
-          const actualSystems = systems.length;
+          // System detection now happens in the parser via buildLinearSystems
+          const actualSystems = tune.tune_body!.sequence.length;
 
           // Each content line becomes its own system in linear mode
           return actualSystems === numContentLines;
@@ -1186,10 +1180,9 @@ K:C
           const parseCtx = new ParseCtx(tokens, ctx);
           parseCtx.abcContext.tuneLinear = true;
           const tune = parseTune(parseCtx);
-          const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
-          const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
 
-          const actualSystemCount = systems.length;
+          // System detection now happens in the parser via buildLinearSystems
+          const actualSystemCount = tune.tune_body!.sequence.length;
 
           if (actualSystemCount !== expectedSystemCount) {
             console.log("ABC:", abc);

@@ -2,15 +2,15 @@
  * AbclToAbcConverter - Converts ABCL (linear style) to ABC (deferred style)
  *
  * In linear style, voice markers act as headers for subsequent content lines.
- * The converter uses parseVoicesLinear to get a map-based structure where each
- * system is represented as Map<voiceId, sequence | null>, then fills null entries
- * with silenced content and flattens to deferred style.
+ * The parser now provides correct system boundaries. This converter iterates
+ * over each system, groups elements by voice into a map-based structure,
+ * fills null entries with silenced content, and flattens to deferred style.
  */
 
 import { isGraceGroup, isInfo_line, isTuplet, isVoiceMarker, isWS } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
-import { extractVoiceId, LinearVoiceCtx, parseVoices, VoiceSequenceMap } from "../parsers/voices2";
+import { extractVoiceId, VoiceSequenceMap } from "../parsers/voices2";
 import { File_structure, Info_line, MultiMeasureRest, System, Tune, Tune_Body, tune_body_code } from "../types/Expr2";
 import { isTimeEvent } from "../Visitors/fmt2/fmt_timeMap";
 import { isBarLine } from "../helpers";
@@ -239,13 +239,91 @@ function flattenSystemMap(systemMap: VoiceSequenceMap, allVoices: string[], ctx:
 }
 
 /**
+ * Convert a system (flat array of elements) to a voice sequence map.
+ *
+ * This function groups elements by voice, returning a map where each voice ID
+ * maps to its sequence of elements. Elements before the first voice marker are
+ * returned as the prefix (unless continuationVoice is specified, in which case
+ * they are assigned to that voice).
+ *
+ * @param system - A single system (flat array of tune_body_code)
+ * @param allVoices - All known voice IDs across the tune (may be mutated if new voices are discovered)
+ * @param continuationVoice - Optional voice ID for elements before the first voice marker
+ *                           (used when a system starts with implicit voice continuation)
+ * @returns Object with map (voice ID to elements), prefix (elements before first voice marker
+ *          when no continuationVoice), and lastVoice (the last voice seen in this system)
+ */
+function systemToVoiceMap(
+  system: System,
+  allVoices: string[],
+  continuationVoice: string = ""
+): { map: VoiceSequenceMap; prefix: tune_body_code[]; lastVoice: string } {
+  const map: VoiceSequenceMap = new Map<string, tune_body_code[] | null>();
+  const prefix: tune_body_code[] = [];
+  let currentVoice = continuationVoice;
+  let currentSequence: tune_body_code[] = [];
+
+  // Initialize map with null for all known voices
+  for (const voice of allVoices) {
+    map.set(voice, null);
+  }
+
+  for (const element of system) {
+    if (isVoiceMarker(element)) {
+      // Save current sequence if we were in a voice and have content
+      if (currentVoice !== "" && currentSequence.length > 0) {
+        const existing = map.get(currentVoice);
+        if (existing) {
+          existing.push(...currentSequence);
+        } else {
+          map.set(currentVoice, currentSequence);
+        }
+      }
+
+      currentVoice = extractVoiceId(element);
+      currentSequence = [element];
+
+      // Handle dynamically discovered voice
+      if (!map.has(currentVoice)) {
+        map.set(currentVoice, null);
+        allVoices.push(currentVoice);
+      }
+
+      continue;
+    }
+
+    if (currentVoice === "") {
+      // Content before first voice marker (and no continuation voice)
+      prefix.push(element);
+    } else {
+      currentSequence.push(element);
+    }
+  }
+
+  // Save final voice sequence
+  if (currentVoice !== "" && currentSequence.length > 0) {
+    const existing = map.get(currentVoice);
+    if (existing) {
+      existing.push(...currentSequence);
+    } else {
+      map.set(currentVoice, currentSequence);
+    }
+  }
+
+  return { map, prefix, lastVoice: currentVoice };
+}
+
+/**
  * Convert a linear-parsed Tune to deferred style.
  *
  * The algorithm:
- * 1. Extract elements from the single system (linear mode returns all elements as one system)
- * 2. Call parseVoices with LinearVoiceCtx to get map-based structure
- * 3. For each system, fill null entries with silenced content
- * 4. Flatten the maps to produce deferred-style systems
+ * 1. Get all unique voices across the tune body
+ * 2. For each system (boundaries already correct from parser):
+ *    a. Convert system to voice map (grouping only), passing continuation voice
+ *       from the previous system for implicit voice continuation
+ *    b. Fill null voice entries with silenced content
+ *    c. Flatten to deferred style
+ * 3. Prepend prefix from first system to the output
  */
 export function convertTuneToDeferred(tune: Tune, ctx: ABCContext): Tune {
   const tune_body = tune.tune_body;
@@ -253,38 +331,54 @@ export function convertTuneToDeferred(tune: Tune, ctx: ABCContext): Tune {
     return tune;
   }
 
-  // In linear mode, the parser returns a single system with all elements
-  const allElements = tune_body.sequence[0];
-  const vxls = getAllVoices(tune_body, tune.tune_header.voices);
-  // Parse into map-based structure using LinearVoiceCtx
-  const linearCtx = new LinearVoiceCtx(allElements, vxls);
-  parseVoices(linearCtx);
-
-  // If no systems (no voice markers found), return as-is
-  if (linearCtx.systems.length === 0) {
-    return tune;
-  }
-
-  // Get the complete voice list from the context
-  const allVoices = linearCtx.voices;
+  const allVoices = getAllVoices(tune_body, tune.tune_header.voices);
 
   // If only one voice, no conversion needed
   if (allVoices.length <= 1) {
     return tune;
   }
 
-  // Process each system: fill null entries and flatten
   const processedSystems: System[] = [];
+  let globalPrefix: tune_body_code[] = [];
+  let continuationVoice = "";
 
-  for (const systemMap of linearCtx.systems) {
+  for (let i = 0; i < tune_body.sequence.length; i++) {
+    const system = tune_body.sequence[i];
+
+    // Convert system to voice map (grouping only, boundaries already correct)
+    // Pass continuationVoice so implicit voice continuations are properly assigned
+    const { map: systemMap, prefix, lastVoice } = systemToVoiceMap(system, allVoices, continuationVoice);
+
+    // Update continuation voice for next system
+    continuationVoice = lastVoice;
+
+    // Collect prefix from first system only
+    if (i === 0 && prefix.length > 0) {
+      globalPrefix = prefix;
+    }
+
+    // Skip systems where all voices have null content (no voice content found)
+    const hasVoiceContent = Array.from(systemMap.values()).some(seq => seq !== null);
+    if (!hasVoiceContent) {
+      continue;
+    }
+
+    // Fill null voices with silenced content
     fillNullVoices(systemMap, allVoices, ctx);
+
+    // Flatten to deferred style
     const flatSystem = flattenSystemMap(systemMap, allVoices, ctx);
     processedSystems.push(flatSystem);
   }
 
-  // Prepend prefix to the first system
-  if (linearCtx.prefix.length > 0 && processedSystems.length > 0) {
-    processedSystems[0] = [...linearCtx.prefix, ...processedSystems[0]];
+  // If no systems were processed, return as-is
+  if (processedSystems.length === 0) {
+    return tune;
+  }
+
+  // Prepend global prefix to the first system
+  if (globalPrefix.length > 0) {
+    processedSystems[0] = [...globalPrefix, ...processedSystems[0]];
   }
 
   const newTuneBody = new Tune_Body(ctx.generateId(), processedSystems);
