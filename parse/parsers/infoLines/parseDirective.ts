@@ -5,6 +5,52 @@ import { Token, TT } from "../scan2";
 import { parseKV } from "./parseInfoLine2";
 
 /**
+ * Context indicating whether we are parsing a file header or tune header.
+ * This is used by the linear directive check to know which context flag to set.
+ */
+export type HeaderContext = "file" | "tune";
+
+/**
+ * Check if a directive is %%linear and update the context accordingly.
+ * This is called internally by parseDirective when a headerContext is provided.
+ *
+ * @param directive - The directive to check
+ * @param ctx - The parsing context
+ * @param headerContext - Whether this is in a "file" header or "tune" header
+ */
+function checkLinearDirective(directive: Directive, ctx: ParseCtx, headerContext: HeaderContext): void {
+  if (directive.key.lexeme.toLowerCase() !== "linear") {
+    return;
+  }
+
+  if (directive.values.length === 0) {
+    return; // no value, semantic analyzer will report error
+  }
+
+  const value = directive.values[0];
+  let boolValue: boolean | null = null;
+
+  if (value instanceof Token) {
+    const lexeme = value.lexeme.toLowerCase();
+    if (lexeme === "true" || lexeme === "1") {
+      boolValue = true;
+    } else if (lexeme === "false" || lexeme === "0") {
+      boolValue = false;
+    }
+  }
+
+  if (boolValue === null) {
+    return; // invalid value, semantic analyzer will report error
+  }
+
+  if (headerContext === "file") {
+    ctx.abcContext.linear = boolValue;
+  } else {
+    ctx.abcContext.tuneLinear = boolValue;
+  }
+}
+
+/**
  * Parse directive content after %% token has been consumed
  *
  * This parser follows the same precedence order as scanDirective.ts:
@@ -15,8 +61,16 @@ import { parseKV } from "./parseInfoLine2";
  * 5. signedNumber() - may create Rational objects if followed by /
  * 6. Single characters (=, /) - creates Token objects
  * 7. Special case: begintext multi-line directive with FREE_TXT content
+ *
+ * @param ctx - The parsing context
+ * @param prnt_arr - Optional array to push the parsed directive to
+ * @param headerContext - Optional context indicating file or tune header (for %%linear handling)
  */
-export function parseDirective(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Directive | null {
+export function parseDirective(
+  ctx: ParseCtx,
+  prnt_arr?: Array<Expr | Token>,
+  headerContext?: HeaderContext
+): Directive | null {
   if (!ctx.match(TT.STYLESHEET_DIRECTIVE)) {
     return null;
   }
@@ -30,7 +84,7 @@ export function parseDirective(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): D
   const options = ["begintext", "text", "center", "header", "footer"];
   // Special case: begintext, text, center, header, and footer directives expect FREE_TXT token
   if (options.includes(directiveKey.lexeme.toLowerCase())) {
-    return parseTextDirective(ctx, directiveKey, prnt_arr);
+    return parseTextDirective(ctx, directiveKey, prnt_arr, headerContext);
   }
 
   const values: Array<Token | Rational | Pitch | KV | Measurement | Annotation> = [];
@@ -57,6 +111,12 @@ export function parseDirective(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): D
   }
 
   const rv = new Directive(ctx.abcContext.generateId(), directiveKey, values);
+
+  // Check for %%linear directive and update context before pushing to parent array
+  if (headerContext) {
+    checkLinearDirective(rv, ctx, headerContext);
+  }
+
   if (prnt_arr) prnt_arr.push(rv);
   return rv;
 }
@@ -159,7 +219,12 @@ function parseRationalOrNumber(ctx: ParseCtx, values: Array<Token | Rational | P
  * Because the scanner handles text capture for these directives,
  * we simply consume the FREE_TXT token that contains the text content.
  */
-function parseTextDirective(ctx: ParseCtx, directiveKey: Token, prnt_arr?: Array<Expr | Token>): Directive | null {
+function parseTextDirective(
+  ctx: ParseCtx,
+  directiveKey: Token,
+  prnt_arr?: Array<Expr | Token>,
+  headerContext?: HeaderContext
+): Directive | null {
   const values: Array<Token | Rational | Pitch | KV | Measurement | Annotation> = [];
 
   // Next token should be FREE_TXT containing the text content
@@ -176,6 +241,12 @@ function parseTextDirective(ctx: ParseCtx, directiveKey: Token, prnt_arr?: Array
   }
 
   const rv = new Directive(ctx.abcContext.generateId(), directiveKey, values);
+
+  // Check for %%linear directive and update context before pushing to parent array
+  if (headerContext) {
+    checkLinearDirective(rv, ctx, headerContext);
+  }
+
   if (prnt_arr) prnt_arr.push(rv);
   return rv;
 }

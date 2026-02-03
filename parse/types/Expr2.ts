@@ -178,10 +178,12 @@ export abstract class Expr {
 export class File_structure extends Expr {
   file_header: File_header | null;
   contents: Array<Tune | Token>;
-  constructor(id: number, file_header: File_header | null, tune: Array<Tune | Token>) {
+  linear: boolean;
+  constructor(id: number, file_header: File_header | null, tune: Array<Tune | Token>, linear: boolean = false) {
     super(id);
     this.file_header = file_header;
     this.contents = tune;
+    this.linear = linear;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitFileStructureExpr(this);
@@ -366,10 +368,12 @@ export type System = Array<tune_body_code>;
 export class Tune extends Expr {
   tune_header: Tune_header;
   tune_body?: Tune_Body;
-  constructor(id: number, tune_header: Tune_header, tune_body: Tune_Body | null) {
+  linear: boolean;
+  constructor(id: number, tune_header: Tune_header, tune_body: Tune_Body | null, linear: boolean = false) {
     super(id);
     this.tune_header = tune_header;
     this.tune_body = tune_body || undefined;
+    this.linear = linear;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitTuneExpr(this);

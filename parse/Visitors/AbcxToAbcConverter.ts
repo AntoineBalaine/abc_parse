@@ -95,7 +95,8 @@ export class AbcxToAbcConverter {
     return new File_structure(
       this.abcContext.generateId(),
       convertedFileHeader,
-      convertedContents
+      convertedContents,
+      ast.linear
     );
   }
 
@@ -202,7 +203,7 @@ export class AbcxToAbcConverter {
       ? this.convertTuneBody(tune.tune_body)
       : null;
 
-    return new Tune(this.abcContext.generateId(), convertedHeader, convertedBody);
+    return new Tune(this.abcContext.generateId(), convertedHeader, convertedBody, tune.linear);
   }
 
   /**

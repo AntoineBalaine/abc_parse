@@ -456,7 +456,8 @@ abcde`;
       const ctx = new ABCContext();
       const tokens = Scanner(sample, ctx);
       const parseCtx = new ParseCtx(tokens, ctx);
-      const tune = parseTune(parseCtx, undefined, true); // linear = true
+      parseCtx.abcContext.tuneLinear = true;
+      const tune = parseTune(parseCtx);
       const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
       const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
 
@@ -717,7 +718,8 @@ efga|bcde|`;
       const ctx = new ABCContext();
       const tokens = Scanner(sample, ctx);
       const parseCtx = new ParseCtx(tokens, ctx);
-      const tune = parseTune(parseCtx, undefined, true);
+      parseCtx.abcContext.tuneLinear = true;
+      const tune = parseTune(parseCtx);
 
       tune.tune_header.voices;
       const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
@@ -744,7 +746,8 @@ efga|bcde|`;
       const ctx = new ABCContext();
       const tokens = Scanner(sample, ctx);
       const parseCtx = new ParseCtx(tokens, ctx);
-      const tune = parseTune(parseCtx, undefined, true);
+      parseCtx.abcContext.tuneLinear = true;
+      const tune = parseTune(parseCtx);
       const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
       const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
 
@@ -895,7 +898,8 @@ K:C
           const ctx = new ABCContext();
           const tokens = Scanner(abc, ctx);
           const parseCtx = new ParseCtx(tokens, ctx);
-          const tune = parseTune(parseCtx, undefined, true); // linear = true
+          parseCtx.abcContext.tuneLinear = true;
+          const tune = parseTune(parseCtx);
           const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
           const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
 
@@ -931,7 +935,8 @@ K:C
             const ctx = new ABCContext();
             const tokens = Scanner(abc, ctx);
             const parseCtx = new ParseCtx(tokens, ctx);
-            const tune = parseTune(parseCtx, undefined, true);
+            parseCtx.abcContext.tuneLinear = true;
+            const tune = parseTune(parseCtx);
             const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
             const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
 
@@ -958,7 +963,8 @@ K:C
           const ctx = new ABCContext();
           const tokens = Scanner(abc, ctx);
           const parseCtx = new ParseCtx(tokens, ctx);
-          const tune = parseTune(parseCtx, undefined, true);
+          parseCtx.abcContext.tuneLinear = true;
+          const tune = parseTune(parseCtx);
           const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
           const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
 
@@ -1020,7 +1026,8 @@ K:C
           const ctx = new ABCContext();
           const tokens = Scanner(abc, ctx);
           const parseCtx = new ParseCtx(tokens, ctx);
-          const tune = parseTune(parseCtx, undefined, true);
+          parseCtx.abcContext.tuneLinear = true;
+          const tune = parseTune(parseCtx);
           const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);
           const systems = parseVoices(createLinVoiceCtx(tune.tune_body!.sequence[0], vxls));
 

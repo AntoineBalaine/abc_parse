@@ -148,6 +148,7 @@ export const DIRECTIVE_SPECS: Record<string, { params: ParamSpec[] }> = {
   // Simple Parameter Directives
   papersize: { params: [{ type: "identifier" }] },
   graceslurs: { params: [{ type: "boolean" }] },
+  linear: { params: [{ type: "boolean" }] },
   lineThickness: { params: [{ type: "number" }] },
   stretchlast: { params: [{ type: "number", optional: true, min: 0, max: 1 }] },
 
@@ -462,6 +463,7 @@ export type DirectiveSemanticData =
 
   // Boolean value directives
   | { type: "graceslurs"; data: boolean }
+  | { type: "linear"; data: boolean }
   | { type: "staffnonote"; data: boolean }
   | { type: "printtempo"; data: boolean }
   | { type: "partsbox"; data: boolean }

@@ -137,7 +137,7 @@ export class Cloner implements Visitor<Expr | Token> {
         return e.accept(this) as Tune;
       }
     });
-    return new File_structure(this.ctx.generateId(), newHeader, newContents);
+    return new File_structure(this.ctx.generateId(), newHeader, newContents, expr.linear);
   }
 
   visitGraceGroupExpr(expr: Grace_group): Grace_group {
@@ -255,7 +255,7 @@ export class Cloner implements Visitor<Expr | Token> {
   visitTuneExpr(expr: Tune): Tune {
     const newHeader = expr.tune_header.accept(this) as Tune_header;
     const newBody = expr.tune_body ? (expr.tune_body.accept(this) as Tune_Body) : null;
-    return new Tune(this.ctx.generateId(), newHeader, newBody);
+    return new Tune(this.ctx.generateId(), newHeader, newBody, expr.linear);
   }
 
   visitTuneHeaderExpr(expr: Tune_header): Tune_header {

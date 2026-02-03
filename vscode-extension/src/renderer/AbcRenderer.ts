@@ -25,7 +25,7 @@ export function setLspClient(client: LanguageClient | undefined) {
 }
 /**
  * Get preview content for any ABC-family file via LSP request.
- * The server handles all conversions (ABCL to deferred, ABCx to ABC, etc.)
+ * The server handles all conversions (linear to deferred, ABCx to ABC, etc.)
  */
 async function getPreviewContent(uri: string): Promise<string> {
   if (!_client) {
@@ -248,7 +248,7 @@ async function getCurrentEditorContent(): Promise<string> {
   const filePath = editor.document.fileName;
   const uri = editor.document.uri.toString();
 
-  if (filePath.endsWith(".abc") || filePath.endsWith(".abcl") || filePath.endsWith(".abcx")) {
+  if (filePath.endsWith(".abc") || filePath.endsWith(".abcx")) {
     let content = await getPreviewContent(uri);
     // Apply voice filter if %%abcls directive is present
     content = applyVoiceFilter(content);

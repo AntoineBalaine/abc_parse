@@ -7,6 +7,7 @@ import {
   Chord,
   Comment,
   Decoration,
+  Directive,
   ErrorExpr,
   Expr,
   File_header,
@@ -107,8 +108,7 @@ export class ParseCtx {
  * Parse options for the main parse function
  */
 export interface ParseOptions {
-  /** When true, uses linear-style parsing for ABCL files */
-  linear?: boolean;
+  // Reserved for future parse options
 }
 
 /**
@@ -116,18 +116,18 @@ export interface ParseOptions {
  *
  * @param tokens - The tokens to parse
  * @param abcContext - The ABC parsing context
- * @param options - Optional parsing options (e.g., linear mode for ABCL)
+ * @param options - Optional parsing options (reserved for future use)
  */
 export function parse(tokens: Token[], abcContext: ABCContext, options?: ParseOptions): File_structure {
-  const linear = options?.linear ?? false;
   const ctx = new ParseCtx(tokens, abcContext);
   const seq: Array<Tune | Token> = [];
   const fileHeader = parseFileHeader(ctx);
   while (!ctx.isAtEnd()) {
     const cur = ctx.peek();
     if (isTune(ctx)) {
-      // TODO: modifiy signature so that parseTune returns Tune | null
-      parseTune(ctx, seq, linear);
+      // Initialize tune's linear flag from file-level value before parsing the tune
+      ctx.abcContext.tuneLinear = ctx.abcContext.linear;
+      parseTune(ctx, seq);
       continue;
     }
     switch (cur.type) {
@@ -147,7 +147,7 @@ export function parse(tokens: Token[], abcContext: ABCContext, options?: ParseOp
 
     ctx.report("unexpected");
   }
-  return new File_structure(ctx.abcContext.generateId(), fileHeader, seq);
+  return new File_structure(ctx.abcContext.generateId(), fileHeader, seq, ctx.abcContext.linear);
 }
 export function isTuneStart(token: Token): boolean {
   return token.type === TT.INF_HDR && token.lexeme.trim() === "X:";
@@ -170,7 +170,7 @@ export function parseFileHeader(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): 
   const contents: Array<Expr | Token> = [];
   while (!ctx.isAtEnd() && !ctx.check(TT.SCT_BRK)) {
     if (prsComment(ctx, contents)) continue;
-    if (parseDirective(ctx, contents)) continue;
+    if (parseDirective(ctx, contents, "file")) continue;
     if (prsMacroDecl(ctx, contents)) continue;
     if (prsUserSymbolDecl(ctx, contents)) continue;
     if (prsInfoLine(ctx, contents)) continue;
@@ -208,15 +208,14 @@ export function isTune(ctx: ParseCtx) {
  *
  * @param ctx - The parsing context
  * @param prnt_arr - Optional parent array to push the result to
- * @param linear - When true, uses linear-style parsing for ABCL files
  */
-export function parseTune(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>, linear: boolean = false): Tune {
-  // Parse header information
+export function parseTune(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Tune {
+  // Parse header information (may update ctx.abcContext.tuneLinear if %%linear is found)
   const tuneHeader = prsTuneHdr(ctx);
   // Parse body (music sections) with voices from the header
-  const tuneBody = prsBody(ctx, tuneHeader.voices, linear);
+  const tuneBody = prsBody(ctx, tuneHeader.voices);
 
-  const rv = new Tune(ctx.abcContext.generateId(), tuneHeader, tuneBody);
+  const rv = new Tune(ctx.abcContext.generateId(), tuneHeader, tuneBody, ctx.abcContext.tuneLinear);
   if (prnt_arr) prnt_arr.push(rv);
   return rv;
 }
@@ -226,7 +225,7 @@ export function prsTuneHdr(ctx: ParseCtx): Tune_header {
   const voices: string[] = [];
   while (!ctx.isAtEnd() && !ctx.check(TT.SCT_BRK)) {
     if (prsComment(ctx, infoLines)) continue;
-    if (parseDirective(ctx, infoLines)) continue;
+    if (parseDirective(ctx, infoLines, "tune")) continue;
     if (prsMacroDecl(ctx, infoLines)) continue;
     if (prsUserSymbolDecl(ctx, infoLines)) continue;
     if (alreadyHasVoice(ctx, voices)) {
@@ -381,9 +380,8 @@ export function isLyricToken(ctx: ParseCtx): boolean {
  *
  * @param ctx - The parsing context
  * @param voices - The list of voice identifiers from the tune header
- * @param linear - When true, uses linear-style parsing for ABCL files
  */
-export function prsBody(ctx: ParseCtx, voices: string[] = [], linear: boolean = false): Tune_Body | null {
+export function prsBody(ctx: ParseCtx, voices: string[] = []): Tune_Body | null {
   const elmnts: Array<tune_body_code> = [];
 
   // Parse until end of file or section break
@@ -403,7 +401,7 @@ export function prsBody(ctx: ParseCtx, voices: string[] = [], linear: boolean = 
   // Process beams in the elements array
   const processedElements = prcssBms(elmnts, ctx.abcContext);
 
-  return new Tune_Body(ctx.abcContext.generateId(), prsSystems(processedElements as tune_body_code[], voices, linear));
+  return new Tune_Body(ctx.abcContext.generateId(), prsSystems(processedElements as tune_body_code[], voices, ctx.abcContext.tuneLinear));
 }
 
 export function prcssBms(elmnts: Array<Expr | Token>, abcContext: ABCContext): Array<Expr | Token> {

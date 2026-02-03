@@ -1,13 +1,13 @@
-import { AbcFormatter, convertFileToDeferred } from "abc-parser";
+import { AbcFormatter, convertTuneToDeferred, File_structure, Tune } from "abc-parser";
 import { HandlerResult, Position, Range, SemanticTokens, SemanticTokensBuilder, TextDocuments, TextEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcDocument } from "./AbcDocument";
-import { AbclDocument } from "./AbclDocument";
 import { AbcxDocument } from "./AbcxDocument";
 import { LspEventListener, mapTTtoStandardScope } from "./server_helpers";
+import { Token } from "abc-parser";
 
-/** Common interface for ABC, ABCx, and ABCL documents */
-type DocumentType = AbcDocument | AbcxDocument | AbclDocument;
+/** Common interface for ABC and ABCx documents */
+type DocumentType = AbcDocument | AbcxDocument;
 
 /** Type guard to check if a document is an AbcDocument (has ctx property) */
 function isAbcDocument(doc: DocumentType): doc is AbcDocument {
@@ -19,14 +19,9 @@ function isAbcxDocument(doc: DocumentType): doc is AbcxDocument {
   return doc instanceof AbcxDocument;
 }
 
-/** Type guard to check if a document is an AbclDocument (has ctx property) */
-function isAbclDocument(doc: DocumentType): doc is AbclDocument {
-  return doc instanceof AbclDocument;
-}
-
-/** Type guard to check if a document has ctx property (AbcDocument, AbcxDocument, or AbclDocument) */
-function hasCtx(doc: DocumentType): doc is AbcDocument | AbcxDocument | AbclDocument {
-  return isAbcDocument(doc) || isAbcxDocument(doc) || isAbclDocument(doc);
+/** Type guard to check if a document has ctx property (AbcDocument or AbcxDocument) */
+function hasCtx(doc: DocumentType): doc is AbcDocument | AbcxDocument {
+  return isAbcDocument(doc) || isAbcxDocument(doc);
 }
 
 /**
@@ -61,13 +56,6 @@ export class AbcLspServer {
   }
 
   /**
-   * Checks if a URI refers to an ABCL file
-   */
-  private isAbclFile(uri: string): boolean {
-    return uri.toLowerCase().endsWith(".abcl");
-  }
-
-  /**
    * Get the updated changes in the document,
    * parse it and send diagnostics to the client.
    * @param uri
@@ -80,8 +68,6 @@ export class AbcLspServer {
         // Create appropriate document type based on file extension
         if (this.isAbcxFile(uri)) {
           abcDocument = new AbcxDocument(document);
-        } else if (this.isAbclFile(uri)) {
-          abcDocument = new AbclDocument(document);
         } else {
           abcDocument = new AbcDocument(document);
         }
@@ -138,7 +124,7 @@ export class AbcLspServer {
    * Handler for Formatting request
    *
    * Find the requested document and format it using the appropriate formatter.
-   * Uses {@link AbcFormatter} for ABC/ABCx/ABCL documents.
+   * Uses {@link AbcFormatter} for ABC/ABCx documents.
    * Returns an array of {@link TextEdit}s.
    */
   onFormat(uri: string): HandlerResult<TextEdit[], void> {
@@ -181,10 +167,9 @@ export class AbcLspServer {
 
   /**
    * Get preview content for any ABC-family document.
-   * Handles the appropriate conversion based on file type:
-   * - .abc: returns formatted content
-   * - .abcl: converts to deferred style
-   * - .abcx: converts to ABC (TODO: implement)
+   * Handles the appropriate conversion based on document type:
+   * - ABCx files: returns formatted content directly
+   * - ABC files: converts linear tunes to deferred style, leaves others unchanged
    */
   getPreviewContent(uri: string): string {
     const abcDocument = this.abcDocuments.get(uri);
@@ -192,19 +177,39 @@ export class AbcLspServer {
       return "";
     }
 
-    // ABCL files: convert to deferred style
-    if (isAbclDocument(abcDocument)) {
-      const deferredAst = convertFileToDeferred(abcDocument.AST, abcDocument.ctx);
+    // ABCx files: return formatted content directly
+    if (isAbcxDocument(abcDocument)) {
       const formatter = new AbcFormatter(abcDocument.ctx);
-      return formatter.stringify(deferredAst);
+      return formatter.stringify(abcDocument.AST);
     }
 
-    // ABCx and ABC files: return formatted content
-    // After the AbclDocument check, we know this is AbcxDocument | AbcDocument
-    // TypeScript's narrowing doesn't handle AbclDocument extending AbcDocument well,
-    // so we use type assertion here. AST is guaranteed non-null from check above.
-    const doc = abcDocument as AbcxDocument | AbcDocument;
+    // ABC files: convert linear tunes to deferred style
+    // TypeScript's narrowing doesn't handle the DocumentType union well here,
+    // so we use type assertion since we know this is AbcDocument after the AbcxDocument check.
+    const doc = abcDocument as AbcDocument;
+    const ast = doc.AST!;
+    const convertedContents: Array<Tune | Token> = [];
+
+    for (const content of ast.contents) {
+      if (content instanceof Tune) {
+        if (content.linear === true) {
+          convertedContents.push(convertTuneToDeferred(content, doc.ctx));
+        } else {
+          convertedContents.push(content);
+        }
+      } else {
+        convertedContents.push(content);
+      }
+    }
+
+    const convertedAst = new File_structure(
+      doc.ctx.generateId(),
+      ast.file_header,
+      convertedContents,
+      ast.linear
+    );
+
     const formatter = new AbcFormatter(doc.ctx);
-    return formatter.stringify(doc.AST!);
+    return formatter.stringify(convertedAst);
   }
 }

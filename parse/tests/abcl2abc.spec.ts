@@ -56,8 +56,9 @@ V:2
 defg`;
 
       const ctx = new ABCContext();
+      ctx.linear = true; // Enable linear mode
       const tokens = Scanner(input, ctx);
-      const ast = parse(tokens, ctx, { linear: true });
+      const ast = parse(tokens, ctx);
 
       const tune = ast.contents[0] as unknown as Tune;
       const vxls = getAllVoices(tune.tune_body!, tune.tune_header.voices);

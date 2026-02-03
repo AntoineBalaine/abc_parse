@@ -249,7 +249,7 @@ export const genIdentifierDirective = fc
 // Boolean Value Directive Generators
 // ============================================================================
 
-export const booleanValueDirectives = ["graceslurs", "staffnonote", "printtempo", "partsbox", "freegchord"] as const;
+export const booleanValueDirectives = ["graceslurs", "linear", "staffnonote", "printtempo", "partsbox", "freegchord"] as const;
 
 export const genBooleanValueDirectiveName = fc.constantFrom(...booleanValueDirectives);
 

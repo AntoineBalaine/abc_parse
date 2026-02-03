@@ -21,13 +21,19 @@ export * from "./AbclToAbcConverter";
  * In linear mode, voices are discovered dynamically and voice markers
  * indicate system breaks.
  *
+ * Note: This function mutates ctx.linear = true. If you need to parse
+ * non-linear files afterwards using the same ABCContext, you should
+ * either use a fresh context or reset ctx.linear = false manually.
+ *
  * @param source - The ABCL source string
  * @param ctx - The ABC context for error reporting and ID generation
  * @returns The parsed File_structure AST
  */
 export function parseAbcl(source: string, ctx: ABCContext): File_structure {
+  // Set file-level linear flag before parsing so all tunes are treated as linear
+  ctx.linear = true;
   const tokens = Scanner(source, ctx);
-  return parse(tokens, ctx, { linear: true });
+  return parse(tokens, ctx);
 }
 
 /**
