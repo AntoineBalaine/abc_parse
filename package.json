@@ -25,7 +25,7 @@
     "watch:cli": "npm run watch -w abc-cli",
     "watch:vscode": "npm run watch -w vscode-extension",
     "package:vscode": "npm run package -w vscode-extension",
-    "test": "result=0; npm run test -w parse || result=1; npm run test -w editor || result=1; exit $result",
+    "test": "npm run test -w parse && npm run test -w editor",
     "lint": "npm run lint -w parse && npm run lint -w abc-lsp-server",
     "lint:fix": "npm run lint:fix -w parse && npm run lint:fix -w abc-lsp-server",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
