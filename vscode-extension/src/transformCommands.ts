@@ -86,6 +86,8 @@ export function registerTransformCommands(
     ["abc.unwrapSingle", "unwrapSingle"],
     ["abc.remove", "remove"],
     ["abc.consolidateRests", "consolidateRests"],
+    ["abc.voiceInfoLineToInline", "voiceInfoLineToInline"],
+    ["abc.voiceInlineToInfoLine", "voiceInlineToInfoLine"],
   ];
 
   for (const [commandId, transformName] of simpleTransforms) {

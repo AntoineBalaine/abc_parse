@@ -314,6 +314,16 @@
         "command": "abc.consolidateRests",
         "title": "ABC: Consolidate Rests",
         "category": "ABC"
+      },
+      {
+        "command": "abc.voiceInfoLineToInline",
+        "title": "ABC: Convert Voice Info Line to Inline",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.voiceInlineToInfoLine",
+        "title": "ABC: Convert Voice Inline to Info Line",
+        "category": "ABC"
       }
     ],
     "menus": {
@@ -480,6 +490,14 @@
         },
         {
           "command": "abc.consolidateRests",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.voiceInfoLineToInline",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.voiceInlineToInfoLine",
           "when": "editorLangId == abc"
         }
       ]

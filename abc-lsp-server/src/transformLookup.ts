@@ -19,6 +19,8 @@ import {
   insertVoiceLine,
   harmonize,
   consolidateRests,
+  voiceInfoLineToInline,
+  voiceInlineToInfoLine,
 } from "editor";
 import { ABCContext, IRational } from "abc-parser";
 
@@ -40,6 +42,8 @@ const TRANSFORM_MAP: Record<string, TransformFn> = {
   harmonize: (sel, ctx, ...args) => harmonize(sel, args[0] as number, ctx),
   consolidateRests: (sel, ctx) => consolidateRests(sel, ctx),
   insertVoiceLine: (sel, ctx, ...args) => insertVoiceLine(sel, args[0] as string, ctx),
+  voiceInfoLineToInline: (sel, ctx) => voiceInfoLineToInline(sel, ctx),
+  voiceInlineToInfoLine: (sel, ctx) => voiceInlineToInfoLine(sel, ctx),
 };
 
 export function lookupTransform(name: string): TransformFn | null {

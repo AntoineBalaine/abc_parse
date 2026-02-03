@@ -96,6 +96,8 @@ export {
   stepDiatonic,
   consolidateRests,
   insertVoiceLine,
+  voiceInfoLineToInline,
+  voiceInlineToInfoLine,
 } from "./transforms";
 
 // Utils

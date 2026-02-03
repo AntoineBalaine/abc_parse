@@ -68,4 +68,47 @@ describe("Transform integration (simulated LSP flow)", () => {
         .to.throw("Unknown transform");
     });
   });
+
+  describe("voiceInfoLineToInline", () => {
+    it("converts V: info line to [V:] inline field", () => {
+      const source = "X:1\nK:C\nV:1\nCDE|\n";
+      const { root } = toCSTreeWithContext(source);
+      // Find V: info lines
+      const infoLines = findByTag(root, TAGS.Info_line).filter(n => {
+        const firstChild = n.firstChild;
+        if (!firstChild) return false;
+        return firstChild.data.type === "token" && firstChild.data.lexeme === "V:";
+      });
+      const cursorIds = infoLines.map(n => n.id);
+
+      const result = simulateApplyTransform(source, cursorIds, "voiceInfoLineToInline", []);
+
+      expect(result.newText).to.contain("[V:1]");
+      expect(result.newText).to.not.match(/^V:1$/m); // No standalone V:1 line
+    });
+  });
+
+  describe("voiceInlineToInfoLine", () => {
+    it("converts [V:] inline field to V: info line", () => {
+      const source = "X:1\nK:C\n[V:1] CDE|\n";
+      const { root } = toCSTreeWithContext(source);
+      // Find V: inline fields
+      const inlineFields = findByTag(root, TAGS.Inline_field).filter(n => {
+        let child = n.firstChild;
+        while (child) {
+          if (child.data.type === "token" && child.data.lexeme === "V:") {
+            return true;
+          }
+          child = child.nextSibling;
+        }
+        return false;
+      });
+      const cursorIds = inlineFields.map(n => n.id);
+
+      const result = simulateApplyTransform(source, cursorIds, "voiceInlineToInfoLine", []);
+
+      expect(result.newText).to.match(/V:1\n/); // V:1 on its own line
+      expect(result.newText).to.not.contain("[V:1]");
+    });
+  });
 });
