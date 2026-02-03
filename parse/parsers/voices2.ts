@@ -542,6 +542,103 @@ function parseVoicesWithBarOverlap(lines: tune_body_code[][]): System[] {
 }
 
 /**
+ * Build systems from linear-style ABC input by detecting system boundaries.
+ *
+ * System boundaries are detected when:
+ * 1. A voice marker appears with a lower index than the previous voice (voice order reversal)
+ * 2. A new line of music continues without a voice marker (implicit continuation)
+ *
+ * This function replicates the boundary detection logic from parseVoices(), but instead of
+ * building a VoiceSequenceMap[], it returns System[] where each system contains elements
+ * in their original input order.
+ *
+ * @param elements - The flat array of tune body elements
+ * @param voices - The voice IDs from the tune header, in declaration order (may be mutated if new voices are discovered)
+ * @returns Array of systems, where each system is an array of elements in input order
+ */
+export function buildLinearSystems(elements: tune_body_code[], voices: string[]): System[] {
+  const systems: System[] = [];
+  let currentSystem: System = [];
+  let lastVoice = "";
+  let atLineStart = false;
+  let sawMusicSinceVoiceMarker = false;
+
+  for (let i = 0; i < elements.length; i++) {
+    const element = elements[i];
+
+    // Handle EOL tokens
+    if (isToken(element) && element.type === TT.EOL) {
+      currentSystem.push(element);
+      atLineStart = true;
+      continue;
+    }
+
+    // Handle voice markers
+    if (isVoiceMarker(element)) {
+      const voiceId = extractVoiceId(element as Info_line | Inline_field);
+
+      if (lastVoice === "") {
+        // First voice marker - no boundary check needed
+        lastVoice = voiceId;
+        // Handle dynamically discovered first voice
+        if (voices.indexOf(voiceId) === -1) {
+          voices.push(voiceId);
+        }
+      } else {
+        const lastVoiceIndex = voices.indexOf(lastVoice);
+        let currentVoiceIndex = voices.indexOf(voiceId);
+
+        // Handle dynamically discovered voice
+        if (currentVoiceIndex === -1) {
+          voices.push(voiceId);
+          currentVoiceIndex = voices.length - 1;
+        }
+
+        // Voice order reversal - start new system
+        if (lastVoiceIndex > currentVoiceIndex) {
+          systems.push(currentSystem);
+          currentSystem = [];
+        }
+
+        lastVoice = voiceId;
+      }
+
+      currentSystem.push(element);
+      atLineStart = false;
+      sawMusicSinceVoiceMarker = false;
+      continue;
+    }
+
+    // Check for implicit system boundary (new music line without voice marker)
+    // This matches parseVoices() lines 314-326
+    // Guard: only create boundary if we have a valid lastVoice
+    if (atLineStart && sawMusicSinceVoiceMarker && isMusicExpr(element)) {
+      const lastVoiceIndex = voices.indexOf(lastVoice);
+      if (lastVoiceIndex >= 0) {
+        systems.push(currentSystem);
+        currentSystem = [];
+      }
+      atLineStart = false;
+      sawMusicSinceVoiceMarker = true;
+    } else if (isMusicExpr(element)) {
+      sawMusicSinceVoiceMarker = true;
+      atLineStart = false;
+    } else if (!isToken(element) || (element.type !== TT.WS && element.type !== TT.EOL)) {
+      atLineStart = false;
+    }
+
+    currentSystem.push(element);
+  }
+
+  // Don't forget last system
+  if (currentSystem.length > 0) {
+    systems.push(currentSystem);
+  }
+
+  return systems;
+}
+
+/**
  * Parse music elements into systems
  *
  * @param elements - The music elements to parse
@@ -552,7 +649,8 @@ function parseVoicesWithBarOverlap(lines: tune_body_code[][]): System[] {
  */
 export function parseSystemsWithVoices(elements: tune_body_code[], voices: string[] = [], linear: boolean = false): System[] {
   if (linear) {
-    return [elements];
+    const voicesCopy = [...voices]; // Don't mutate the original
+    return buildLinearSystems(elements, voicesCopy);
   }
 
   const ctx = new VoiceCtx(elements, voices);

@@ -4,7 +4,7 @@ import { isToken, isVoiceMarker } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { ParseCtx, parseTune } from "../parsers/parse2";
 import { Scanner, Token, TT } from "../parsers/scan2";
-import { isNewSystem, parseNoVoices, parseSystemsWithVoices, parseVoices, extractVoiceId, VoiceCtx, LinearVoiceCtx } from "../parsers/voices2";
+import { isNewSystem, parseNoVoices, parseSystemsWithVoices, parseVoices, extractVoiceId, VoiceCtx, LinearVoiceCtx, buildLinearSystems } from "../parsers/voices2";
 import { Info_line, Inline_field, tune_body_code } from "../types/Expr2";
 
 const expect = chai.expect;
@@ -494,6 +494,164 @@ abcde`;
 
       expect(systems).to.have.lengthOf(1);
       expect(systems[0]).to.have.lengthOf(4);
+    });
+
+    it("should return correct systems for linear=true", () => {
+      const sample = `X:1
+K:C
+V:1
+C|D|
+V:2
+E|F|
+V:1
+G|A|`;
+
+      const ctx = new ABCContext();
+      ctx.tuneLinear = true;
+      const tokens = Scanner(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
+
+      expect(tune.tune_body?.sequence).to.have.lengthOf(2);
+    });
+
+    it("should preserve element order for linear=true", () => {
+      const sample = `X:1
+K:C
+V:1
+C|
+V:2
+D|`;
+
+      const ctx = new ABCContext();
+      ctx.tuneLinear = true;
+      const tokens = Scanner(sample, ctx);
+      const parseCtx = new ParseCtx(tokens, ctx);
+      const tune = parseTune(parseCtx);
+
+      expect(tune.tune_body?.sequence).to.have.lengthOf(1);
+      // Verify V:1 appears before V:2 in the system
+      const system = tune.tune_body!.sequence[0];
+      let foundV1 = false;
+      let foundV2 = false;
+      let v1Index = -1;
+      let v2Index = -1;
+
+      for (let i = 0; i < system.length; i++) {
+        if (isVoiceMarker(system[i])) {
+          const id = extractVoiceId(system[i] as Info_line);
+          if (id === "1") { foundV1 = true; v1Index = i; }
+          if (id === "2") { foundV2 = true; v2Index = i; }
+        }
+      }
+
+      expect(foundV1).to.be.true;
+      expect(foundV2).to.be.true;
+      expect(v1Index).to.be.lessThan(v2Index);
+    });
+  });
+
+  describe("buildLinearSystems", () => {
+    it("should return empty array for empty elements", () => {
+      const systems = buildLinearSystems([], []);
+      expect(systems).to.have.lengthOf(0);
+    });
+
+    it("should return single system for single voice with single line", () => {
+      const ctx = new ABCContext();
+      const elements: tune_body_code[] = [
+        new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "1")]),
+        createToken(TT.NOTE_LETTER, "C"),
+        createToken(TT.EOL, "\n")
+      ];
+      const systems = buildLinearSystems(elements, ["1"]);
+      expect(systems).to.have.lengthOf(1);
+      expect(systems[0]).to.have.lengthOf(3);
+    });
+
+    it("should detect boundary on voice order reversal", () => {
+      const ctx = new ABCContext();
+      const elements: tune_body_code[] = [
+        new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "1")]),
+        createToken(TT.NOTE_LETTER, "C"),
+        createToken(TT.EOL, "\n"),
+        new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "2")]),
+        createToken(TT.NOTE_LETTER, "D"),
+        createToken(TT.EOL, "\n"),
+        new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "1")]),
+        createToken(TT.NOTE_LETTER, "E"),
+        createToken(TT.EOL, "\n")
+      ];
+      const systems = buildLinearSystems(elements, ["1", "2"]);
+      expect(systems).to.have.lengthOf(2);
+    });
+
+    it("should detect implicit boundary on new music line", () => {
+      const ctx = new ABCContext();
+      const elements: tune_body_code[] = [
+        new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "1")]),
+        createToken(TT.NOTE_LETTER, "C"),
+        createToken(TT.EOL, "\n"),
+        createToken(TT.NOTE_LETTER, "D"),
+        createToken(TT.EOL, "\n")
+      ];
+      const systems = buildLinearSystems(elements, ["1"]);
+      expect(systems).to.have.lengthOf(2);
+    });
+
+    it("should handle dynamically discovered voices", () => {
+      const ctx = new ABCContext();
+      const elements: tune_body_code[] = [
+        new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "1")]),
+        createToken(TT.NOTE_LETTER, "C"),
+        createToken(TT.EOL, "\n"),
+        new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "3")]),
+        createToken(TT.NOTE_LETTER, "D"),
+        createToken(TT.EOL, "\n"),
+        new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "1")]),
+        createToken(TT.NOTE_LETTER, "E"),
+        createToken(TT.EOL, "\n")
+      ];
+      const voices = ["1", "2"];
+      const systems = buildLinearSystems(elements, voices);
+      expect(systems).to.have.lengthOf(2);
+      expect(voices).to.include("3"); // Voice 3 was discovered
+    });
+
+    it("should handle dynamically discovered first voice", () => {
+      const ctx = new ABCContext();
+      const elements: tune_body_code[] = [
+        new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "3")]),
+        createToken(TT.NOTE_LETTER, "C"),
+        createToken(TT.EOL, "\n"),
+        new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "1")]),
+        createToken(TT.NOTE_LETTER, "D"),
+        createToken(TT.EOL, "\n")
+      ];
+      const voices = ["1", "2"];
+      const systems = buildLinearSystems(elements, voices);
+      // V:3 (discovered, becomes index 2) followed by V:1 (index 0) should create boundary
+      expect(systems).to.have.lengthOf(2);
+      expect(voices).to.include("3"); // Voice 3 was discovered as first voice
+    });
+
+    it("should preserve element order within each system", () => {
+      const ctx = new ABCContext();
+      const v1 = new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "1")]);
+      const noteC = createToken(TT.NOTE_LETTER, "C");
+      const eol1 = createToken(TT.EOL, "\n");
+      const v2 = new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "2")]);
+      const noteD = createToken(TT.NOTE_LETTER, "D");
+      const eol2 = createToken(TT.EOL, "\n");
+
+      const elements: tune_body_code[] = [v1, noteC, eol1, v2, noteD, eol2];
+      const systems = buildLinearSystems(elements, ["1", "2"]);
+
+      expect(systems).to.have.lengthOf(1);
+      expect(systems[0][0]).to.equal(v1);
+      expect(systems[0][1]).to.equal(noteC);
+      expect(systems[0][2]).to.equal(eol1);
+      expect(systems[0][3]).to.equal(v2);
     });
   });
 
