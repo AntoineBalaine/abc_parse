@@ -44,15 +44,18 @@ function flushCurrentRun(ctx: MeasureWalkCtx): void {
 }
 
 /**
- * Walks the children of a container node (Tune_Body or Music_code), splitting
+ * Walks the children of a container node (Tune_Body, System, or Music_code), splitting
  * by barlines and collecting music elements that are in scope.
- * Recurses into Music_code nodes because multi-line tunes have barlines inside
- * Music_code children of Tune_Body.
+ * Recurses into System and Music_code nodes because the CSTree wraps tune body content
+ * in System nodes, and multi-line tunes have barlines inside Music_code children.
  */
 function walkChildren(ctx: MeasureWalkCtx, containerNode: CSNode): void {
   let child = containerNode.firstChild;
   while (child !== null) {
-    if (child.tag === TAGS.Music_code) {
+    // Recurse into System nodes (Tune_Body's direct children after CSTree conversion)
+    if (child.tag === TAGS.System) {
+      walkChildren(ctx, child);
+    } else if (child.tag === TAGS.Music_code) {
       walkChildren(ctx, child);
     } else if (child.tag === TAGS.BarLine) {
       flushCurrentRun(ctx);

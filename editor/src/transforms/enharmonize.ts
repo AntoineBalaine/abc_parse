@@ -111,6 +111,6 @@ function enharmonizePitchChild(noteNode: CSNode, ctx: ABCContext): void {
 
   if (newPitchExpr === null) return;
 
-  const newPitchCSNode = fromAst(newPitchExpr);
+  const newPitchCSNode = fromAst(newPitchExpr, ctx);
   replaceChild(noteNode, pitchResult.prev, pitchCSNode, newPitchCSNode);
 }

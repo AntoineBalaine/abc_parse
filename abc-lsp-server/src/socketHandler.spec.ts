@@ -41,10 +41,10 @@ describe("Socket Handler", () => {
   let documents: Map<string, AbcDocument | AbcxDocument>;
   let csTreeCache: WeakMap<File_structure, CSNode>;
 
-  function getCsTree(ast: File_structure): CSNode {
+  function getCsTree(ast: File_structure, ctx: ABCContext): CSNode {
     let tree = csTreeCache.get(ast);
     if (!tree) {
-      tree = fromAst(ast);
+      tree = fromAst(ast, ctx);
       csTreeCache.set(ast, tree);
     }
     return tree;

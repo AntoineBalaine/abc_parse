@@ -30,6 +30,12 @@ export function toAst(node: CSNode): Expr | Token {
     token.position = data.position;
     return token;
   }
+
+  // Handle Tune_Body specially to reconstruct System[] structure from System wrapper nodes
+  if (node.tag === TAGS.Tune_Body) {
+    return buildTuneBodyFromSystems(node);
+  }
+
   const children = collectChildren(node).map(toAst);
   return buildExpr(node, children);
 }
@@ -437,9 +443,37 @@ function buildGrouping(id: number, children: Array<Expr | Token>): Grouping {
 
 // --- Structural builders ---
 
-// Because fromAst flattens expr.sequence (Array<System>) into a single child list,
-// the reconstructed AST places all children into one system. The formatter handles
-// line breaks via EOL tokens within the content, so the output is unchanged.
+/**
+ * Build Tune_Body from a CSNode with System wrapper children.
+ * Each System child's contents are collected into a separate System array.
+ */
+function buildTuneBodyFromSystems(tuneBodyNode: CSNode): Tune_Body {
+  const systems: Array<tune_body_code[]> = [];
+  let systemChild = tuneBodyNode.firstChild;
+
+  while (systemChild !== null) {
+    if (systemChild.tag === TAGS.System) {
+      // Collect System node's children and convert them
+      const systemElements: tune_body_code[] = [];
+      let element = systemChild.firstChild;
+      while (element !== null) {
+        systemElements.push(toAst(element) as tune_body_code);
+        element = element.nextSibling;
+      }
+      systems.push(systemElements);
+    }
+    systemChild = systemChild.nextSibling;
+  }
+
+  // If no System children were found, return empty Tune_Body
+  if (systems.length === 0) {
+    return new Tune_Body(tuneBodyNode.id, []);
+  }
+
+  return new Tune_Body(tuneBodyNode.id, systems);
+}
+
+// Legacy function kept for compatibility - not used when System nodes are present
 function buildTuneBody(id: number, children: Array<Expr | Token>): Tune_Body {
   return new Tune_Body(id, [children as tune_body_code[]]);
 }

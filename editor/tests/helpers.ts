@@ -10,7 +10,7 @@ export function toCSTree(source: string): CSNode {
   const ctx = new ABCContext();
   const tokens = Scanner(source, ctx);
   const ast = parse(tokens, ctx);
-  return fromAst(ast);
+  return fromAst(ast, ctx);
 }
 
 export function toSelection(source: string): Selection {
@@ -125,7 +125,7 @@ export function toCSTreeWithContext(source: string): { root: CSNode; ctx: ABCCon
   const ctx = new ABCContext();
   const tokens = Scanner(source, ctx);
   const ast = parse(tokens, ctx);
-  return { root: fromAst(ast), ctx };
+  return { root: fromAst(ast, ctx), ctx };
 }
 
 export function formatSelection(sel: Selection): string {

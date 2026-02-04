@@ -104,7 +104,7 @@ function wrapNoteInChord(root: CSNode, noteNode: CSNode, steps: number, ctx: ABC
 
   // Create harmony note (pitch only, no rhythm/tie)
   const harmonyNoteExpr = new Note(ctx.generateId(), harmonyPitchExpr, undefined, undefined);
-  const harmonyNoteCSNode = fromAst(harmonyNoteExpr);
+  const harmonyNoteCSNode = fromAst(harmonyNoteExpr, ctx);
 
   // Extract rhythm and tie from original note (will move to chord level)
   let rhythmNode: CSNode | null = null;
@@ -126,8 +126,8 @@ function wrapNoteInChord(root: CSNode, noteNode: CSNode, steps: number, ctx: ABC
   const chordCSNode = createCSNode(TAGS.Chord, ctx.generateId(), { type: "empty" });
 
   // Create bracket tokens
-  const leftBracketCSNode = fromAst(new Token(TT.CHRD_LEFT_BRKT, "[", ctx.generateId()));
-  const rightBracketCSNode = fromAst(new Token(TT.CHRD_RIGHT_BRKT, "]", ctx.generateId()));
+  const leftBracketCSNode = fromAst(new Token(TT.CHRD_LEFT_BRKT, "[", ctx.generateId()), ctx);
+  const rightBracketCSNode = fromAst(new Token(TT.CHRD_RIGHT_BRKT, "]", ctx.generateId()), ctx);
 
   // Save the original note's sibling (the chord will take its place in the tree)
   const originalNextSibling = noteNode.nextSibling;
@@ -188,7 +188,7 @@ function harmonizeChord(chordNode: CSNode, steps: number, ctx: ABCContext): void
     const harmonyPitchExpr = stepDiatonic(pitchExpr, steps, ctx);
 
     const harmonyNoteExpr = new Note(ctx.generateId(), harmonyPitchExpr, undefined, undefined);
-    harmonyNotes.push(fromAst(harmonyNoteExpr));
+    harmonyNotes.push(fromAst(harmonyNoteExpr, ctx));
   }
 
   // Find the last original note in the chord

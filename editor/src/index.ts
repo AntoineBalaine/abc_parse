@@ -55,6 +55,7 @@ export {
 export { selectMeasures } from "./selectors/measureSelector";
 export { selectRange } from "./selectors/rangeSelector";
 export { selectVoices } from "./selectors/voiceSelector";
+export { selectSystem } from "./selectors/systemSelector";
 export { fanOutByPredicate, WalkStrategy } from "./selectors/fanOut";
 export { firstTokenData, lastTokenData, comparePositions, buildIdMap, findNodeById, findByTag, findFirstByTag } from "./selectors/treeWalk";
 

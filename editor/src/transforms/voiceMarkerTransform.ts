@@ -270,9 +270,15 @@ export function voiceInfoLineToInline(selection: Selection, ctx: ABCContext): Se
       if (!parentInfo) continue;
       const { parent, prev } = parentInfo;
 
-      // Only convert V: info lines in Tune_Body, not in Tune_Header
-      if (parent.tag !== TAGS.Tune_Body) continue;
-      const tuneBody = parent;
+      // Only convert V: info lines in Tune_Body (via System), not in Tune_Header
+      // Because of the System wrapper nodes, V: info lines are now children of System, not directly of Tune_Body
+      let systemParent: CSNode | null = null;
+      if (parent.tag === TAGS.System) {
+        systemParent = parent;
+      } else if (parent.tag !== TAGS.Tune_Body) {
+        continue;
+      }
+      const containerParent = systemParent ?? parent;
 
       // Extract voice content (children after V: token)
       const voiceContent = extractVoiceContent(voiceLine);
@@ -296,13 +302,31 @@ export function voiceInfoLineToInline(selection: Selection, ctx: ABCContext): Se
         afterVoiceLine = afterVoiceLine.nextSibling;
       }
 
+      // If no music content in current System, check the next System
+      // because V: info lines might trigger system boundaries
+      let insertContainer = containerParent;
+      if (nextMusic === null && systemParent !== null) {
+        const nextSystem = systemParent.nextSibling;
+        if (nextSystem !== null && nextSystem.tag === TAGS.System) {
+          // Find first non-whitespace content in next system
+          let firstInNextSystem = nextSystem.firstChild;
+          while (firstInNextSystem !== null && isEOLorWS(firstInNextSystem)) {
+            firstInNextSystem = firstInNextSystem.nextSibling;
+          }
+          if (firstInNextSystem !== null) {
+            nextMusic = firstInNextSystem;
+            insertContainer = nextSystem;
+          }
+        }
+      }
+
       // Remove voice info line and trailing EOL/WS first
-      removeNodeAndTrailingEOL(tuneBody, prev, voiceLine);
+      removeNodeAndTrailingEOL(containerParent, prev, voiceLine);
 
       // Now insert the inline field
       if (nextMusic !== null) {
         // Find predecessor of nextMusic (may have changed after removal)
-        const nextPrev = findPrev(tuneBody, nextMusic);
+        const nextPrev = findPrev(insertContainer, nextMusic);
 
         // Create space token
         const spaceToken = createCSNode(TAGS.Token, ctx.generateId(), {
@@ -314,11 +338,11 @@ export function voiceInfoLineToInline(selection: Selection, ctx: ABCContext): Se
         });
 
         // Insert inline field and space before next music content
-        insertBefore(tuneBody, nextPrev, nextMusic, inlineField);
-        insertBefore(tuneBody, inlineField, nextMusic, spaceToken);
+        insertBefore(insertContainer, nextPrev, nextMusic, inlineField);
+        insertBefore(insertContainer, inlineField, nextMusic, spaceToken);
       } else {
         // No following content - append inline field and preserve trailing EOL if there was one
-        appendChild(tuneBody, inlineField);
+        appendChild(containerParent, inlineField);
         if (hasTrailingEOL) {
           const trailingEOL = createCSNode(TAGS.Token, ctx.generateId(), {
             type: "token",
@@ -327,7 +351,7 @@ export function voiceInfoLineToInline(selection: Selection, ctx: ABCContext): Se
             line: 0,
             position: 0,
           });
-          appendChild(tuneBody, trailingEOL);
+          appendChild(containerParent, trailingEOL);
         }
       }
     }
@@ -337,14 +361,73 @@ export function voiceInfoLineToInline(selection: Selection, ctx: ABCContext): Se
 }
 
 /**
+ * Finds the System node that contains the given node, and returns it along with
+ * the container (System or Tune_Body for legacy paths) and the child within that container.
+ */
+function findContainerForNode(root: CSNode, target: CSNode): { container: CSNode; containerChild: CSNode; containerChildPrev: CSNode | null } | null {
+  const parentInfo = findParent(root, target);
+  if (!parentInfo) return null;
+
+  const { parent: immediateParent, prev: prevInParent } = parentInfo;
+
+  // Determine the container: System node or Tune_Body (for legacy paths)
+  let container: CSNode;
+  if (immediateParent.tag === TAGS.System) {
+    container = immediateParent;
+  } else {
+    // Find the System or Tune_Body that contains this node
+    const tuneBody = findFirstByTag(root, TAGS.Tune_Body);
+    if (!tuneBody) return null;
+
+    // Check if immediateParent is a System
+    const systemParentInfo = findParent(root, immediateParent);
+    if (systemParentInfo && systemParentInfo.parent.tag === TAGS.System) {
+      container = systemParentInfo.parent;
+    } else if (immediateParent === tuneBody) {
+      container = tuneBody;
+    } else {
+      // Find which System contains the target
+      let systemNode = tuneBody.firstChild;
+      while (systemNode !== null) {
+        if (systemNode.tag === TAGS.System && nodeContains(systemNode, target)) {
+          container = systemNode;
+          break;
+        }
+        systemNode = systemNode.nextSibling;
+      }
+      if (!container!) return null;
+    }
+  }
+
+  // Find the direct child of container that contains or is the target
+  let containerChild: CSNode | null = null;
+  let containerChildPrev: CSNode | null = null;
+
+  if (immediateParent === container) {
+    containerChild = target;
+    containerChildPrev = prevInParent;
+  } else {
+    let current: CSNode | null = container.firstChild;
+    while (current !== null) {
+      if (current === immediateParent || nodeContains(current, target)) {
+        containerChild = current;
+        break;
+      }
+      containerChildPrev = current;
+      current = current.nextSibling;
+    }
+  }
+
+  if (!containerChild) return null;
+
+  return { container, containerChild, containerChildPrev };
+}
+
+/**
  * Converts [V:...] inline fields to V: info lines.
  * Operates on all voice inline fields in the selection.
  */
 export function voiceInlineToInfoLine(selection: Selection, ctx: ABCContext): Selection {
-  // Find Tune_Body - this is where Info_lines are direct children
-  const tuneBody = findFirstByTag(selection.root, TAGS.Tune_Body);
-  if (!tuneBody) return selection;
-
   for (const cursor of selection.cursors) {
     const nodes = findNodesById(selection.root, cursor);
 
@@ -355,6 +438,11 @@ export function voiceInlineToInfoLine(selection: Selection, ctx: ABCContext): Se
       const parentInfo = findParent(selection.root, inlineField);
       if (!parentInfo) continue;
       const { parent: immediateParent, prev: prevInParent } = parentInfo;
+
+      // Find the container (System or Tune_Body) and the child within it
+      const containerInfo = findContainerForNode(selection.root, inlineField);
+      if (!containerInfo) continue;
+      const { container, containerChild, containerChildPrev } = containerInfo;
 
       // Extract voice content (children between brackets, excluding V: token)
       const voiceContent = extractVoiceContent(inlineField);
@@ -371,40 +459,17 @@ export function voiceInlineToInfoLine(selection: Selection, ctx: ABCContext): Se
         position: 0,
       });
 
-      // Find the Tune_Body child that contains (or is) the inline field
-      // Case 1: inline field is a direct child of Tune_Body
-      // Case 2: inline field is nested inside a Music_code (or other container) which is a child of Tune_Body
-      let tuneBodyChild: CSNode | null = null;
-      let tuneBodyChildPrev: CSNode | null = null;
-
-      if (immediateParent === tuneBody) {
-        // Case 1: inline field is a direct child of Tune_Body
-        tuneBodyChild = inlineField;
-        tuneBodyChildPrev = prevInParent;
-      } else {
-        // Case 2: inline field is nested, find which Tune_Body child contains it
-        let current: CSNode | null = tuneBody.firstChild;
-        while (current !== null) {
-          if (current === immediateParent || nodeContains(current, inlineField)) {
-            tuneBodyChild = current;
-            break;
-          }
-          tuneBodyChildPrev = current;
-          current = current.nextSibling;
-        }
-      }
-
-      if (!tuneBodyChild) continue;
-
       // Check if there's non-whitespace content before the inline field on the same line
       // If so, we need to insert an EOL first to end the current line
       let needsLeadingEOL = false;
-      if (tuneBodyChildPrev !== null) {
+      let currentContainerChildPrev = containerChildPrev;
+
+      if (currentContainerChildPrev !== null) {
         // Walk backwards from prev to find if there's content on this line
         // We need an EOL if prev is not an EOL and there's real content
-        if (!isTokenNode(tuneBodyChildPrev) || getTokenData(tuneBodyChildPrev).tokenType !== TT.EOL) {
-          // Check if there's any non-WS content before tuneBodyChild
-          let checkNode: CSNode | null = tuneBodyChildPrev;
+        if (!isTokenNode(currentContainerChildPrev) || getTokenData(currentContainerChildPrev).tokenType !== TT.EOL) {
+          // Check if there's any non-WS content before containerChild
+          let checkNode: CSNode | null = currentContainerChildPrev;
           while (checkNode !== null) {
             if (isTokenNode(checkNode)) {
               const tt = getTokenData(checkNode).tokenType;
@@ -418,7 +483,7 @@ export function voiceInlineToInfoLine(selection: Selection, ctx: ABCContext): Se
               needsLeadingEOL = true;
               break;
             }
-            checkNode = findPrev(tuneBody, checkNode);
+            checkNode = findPrev(container, checkNode);
           }
         }
       }
@@ -435,33 +500,33 @@ export function voiceInlineToInfoLine(selection: Selection, ctx: ABCContext): Se
 
         // Skip any trailing WS before the inline field when inserting EOL
         // We want: CDEF\n not CDEF \n
-        let insertPrev = tuneBodyChildPrev;
+        let insertPrev = currentContainerChildPrev;
         while (insertPrev !== null && isTokenNode(insertPrev) && getTokenData(insertPrev).tokenType === TT.WS) {
-          insertPrev = findPrev(tuneBody, insertPrev);
+          insertPrev = findPrev(container, insertPrev);
         }
 
-        // Remove the WS nodes between insertPrev and tuneBodyChild
+        // Remove the WS nodes between insertPrev and containerChild
         if (insertPrev === null) {
-          tuneBody.firstChild = leadingEOL;
+          container.firstChild = leadingEOL;
         } else {
           insertPrev.nextSibling = leadingEOL;
         }
-        leadingEOL.nextSibling = tuneBodyChild;
+        leadingEOL.nextSibling = containerChild;
 
-        // Update tuneBodyChildPrev to point to the newly inserted EOL
-        tuneBodyChildPrev = leadingEOL;
+        // Update currentContainerChildPrev to point to the newly inserted EOL
+        currentContainerChildPrev = leadingEOL;
       }
 
-      // Insert Info_line and EOL before the tuneBodyChild
-      insertBefore(tuneBody, tuneBodyChildPrev, tuneBodyChild, infoLine);
-      insertBefore(tuneBody, infoLine, tuneBodyChild, eolToken);
+      // Insert Info_line and EOL before the containerChild
+      insertBefore(container, currentContainerChildPrev, containerChild, infoLine);
+      insertBefore(container, infoLine, containerChild, eolToken);
 
       // Remove inline field and surrounding whitespace from its immediate parent
       // After insertion, we need to find the new predecessor of the inline field
-      if (immediateParent === tuneBody) {
-        // The inline field is a direct child of Tune_Body
+      if (immediateParent === container) {
+        // The inline field is a direct child of container
         // After inserting Info_line and EOL, the predecessor of inline field is now EOL
-        removeNodeAndSurroundingWS(tuneBody, eolToken, inlineField);
+        removeNodeAndSurroundingWS(container, eolToken, inlineField);
       } else {
         // The inline field is nested, remove from its immediate parent
         removeNodeAndSurroundingWS(immediateParent, prevInParent, inlineField);

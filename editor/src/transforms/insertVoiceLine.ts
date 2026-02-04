@@ -109,23 +109,34 @@ export function insertVoiceLine(
 }
 
 /**
- * Groups Tune_Body direct children by their source line number.
+ * Recursively collects elements from a container node into a line number map.
+ * Recurses into System nodes because tune body content is wrapped in System wrapper nodes.
  */
-function groupElementsBySourceLine(tuneBody: CSNode): Map<number, CSNode[]> {
-  const result = new Map<number, CSNode[]>();
-  let current = tuneBody.firstChild;
-
+function collectElementsByLine(parent: CSNode, result: Map<number, CSNode[]>): void {
+  let current = parent.firstChild;
   while (current !== null) {
-    const lineNum = getSourceLineNumber(current);
-    if (lineNum !== -1) {
-      if (!result.has(lineNum)) {
-        result.set(lineNum, []);
+    // Recurse into System nodes to find actual content
+    if (current.tag === TAGS.System) {
+      collectElementsByLine(current, result);
+    } else {
+      const lineNum = getSourceLineNumber(current);
+      if (lineNum !== -1) {
+        if (!result.has(lineNum)) {
+          result.set(lineNum, []);
+        }
+        result.get(lineNum)!.push(current);
       }
-      result.get(lineNum)!.push(current);
     }
     current = current.nextSibling;
   }
+}
 
+/**
+ * Groups tune body elements by their source line number.
+ */
+function groupElementsBySourceLine(tuneBody: CSNode): Map<number, CSNode[]> {
+  const result = new Map<number, CSNode[]>();
+  collectElementsByLine(tuneBody, result);
   return result;
 }
 

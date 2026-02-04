@@ -47,7 +47,7 @@ function transposePitchChild(noteNode: CSNode, semitones: number, ctx: ABCContex
   const newPitchExpr = fromMidiPitch(newMidi, ctx);
 
   // Bridge: convert computed Pitch Expr back to CSNode subtree
-  const newPitchCSNode = fromAst(newPitchExpr);
+  const newPitchCSNode = fromAst(newPitchExpr, ctx);
 
   // Replace the old Pitch child with the new one
   replaceChild(noteNode, pitchResult.prev, pitchCSNode, newPitchCSNode);

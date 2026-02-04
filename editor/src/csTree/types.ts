@@ -40,6 +40,7 @@ export const TAGS: Record<string, string> = {
   Tune: "Tune",
   Tune_header: "Tune_header",
   Tune_Body: "Tune_Body",
+  System: "System",
   Info_line: "Info_line",
   Note: "Note",
   Pitch: "Pitch",

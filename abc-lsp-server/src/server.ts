@@ -151,10 +151,10 @@ const abcServer = new AbcLspServer(documents, (type, params) => {
 // garbage-collects stale trees when the AST is replaced.
 const csTreeCache = new WeakMap<File_structure, CSNode>();
 
-function getCsTree(ast: File_structure): CSNode {
+function getCsTree(ast: File_structure, ctx: ABCContext): CSNode {
   let tree = csTreeCache.get(ast);
   if (!tree) {
-    tree = fromAst(ast);
+    tree = fromAst(ast, ctx);
     csTreeCache.set(ast, tree);
   }
   return tree;
@@ -236,11 +236,11 @@ connection.onHover((_params: TextDocumentPositionParams): Hover | null => {
 
 connection.onRequest("abc.applySelector", (params: ApplySelectorParams): ApplySelectorResult => {
   const doc = abcServer.abcDocuments.get(params.uri);
-  if (!doc || !(doc instanceof AbcDocument) || !doc.AST) {
+  if (!doc || !(doc instanceof AbcDocument) || !doc.AST || !doc.ctx) {
     return { ranges: [] };
   }
 
-  const root = getCsTree(doc.AST);
+  const root = getCsTree(doc.AST, doc.ctx);
 
   const selectorFn = lookupSelector(params.selector);
   if (!selectorFn) {
@@ -359,7 +359,7 @@ connection.onRequest("abc.applyTransform", (params: ApplyTransformParams): Apply
   }
 
   // Build a fresh CSTree from the AST (we do not cache because transforms mutate in place)
-  const root = fromAst(doc.AST);
+  const root = fromAst(doc.AST, doc.ctx);
 
   // Convert editor selections to cursors
   let selection: Selection;
@@ -404,7 +404,7 @@ connection.onRequest("abc.applyTransform", (params: ApplyTransformParams): Apply
   const freshCtx = new ABCContext();
   const freshTokens = Scanner(newText, freshCtx);
   const freshAST = parse(freshTokens, freshCtx);
-  const freshRoot = fromAst(freshAST);
+  const freshRoot = fromAst(freshAST, freshCtx);
 
   // Map surviving cursor IDs to their positions in the fresh tree
   const cursorRanges = computeCursorRangesFromFreshTree(survivingCursorIds, newSelection.root, freshRoot);

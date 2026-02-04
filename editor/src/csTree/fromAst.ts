@@ -7,7 +7,8 @@ import {
   Directive, Measurement, Rational, File_header, Lyric_section,
   AbsolutePitch, Lyric_line, Macro_decl, Macro_invocation,
   User_symbol_decl, User_symbol_invocation, KV, Binary,
-  Unary, Grouping, ChordSymbol, ErrorExpr, Visitor
+  Unary, Grouping, ChordSymbol, ErrorExpr, Visitor,
+  ABCContext
 } from "abc-parser";
 import { CSNode, TAGS, NodeData, createCSNode } from "./types";
 
@@ -93,6 +94,9 @@ export const childrenVisitor: Visitor<ChildList> = {
   visitTuneHeaderExpr(expr: Tune_header): ChildList {
     return [...expr.info_lines];
   },
+  // Note: fromAst handles Tune_Body specially to preserve System boundaries via System wrapper nodes.
+  // This visitor method is still used by other callers (e.g., stripValue2 in test helpers) that need
+  // flattened children for recursive traversal. The flattening here does not affect CSTree structure.
   visitTuneBodyExpr(expr: Tune_Body): ChildList {
     return expr.sequence.flat();
   },
@@ -271,20 +275,56 @@ export const childrenVisitor: Visitor<ChildList> = {
   },
 };
 
-export function fromAst(node: Expr | Token): CSNode {
+export function fromAst(node: Expr | Token, ctx: ABCContext): CSNode {
   const tag = resolveTag(node);
   const data = extractData(node);
   const csNode = createCSNode(tag, node.id, data);
 
+  // Handle Tune_Body specially to preserve System boundaries
+  if (node instanceof Tune_Body) {
+    const systems = node.sequence;
+    if (systems.length > 0) {
+      // Create first System wrapper node
+      let firstSystemNode = createCSNode(TAGS.System, ctx.generateId(), { type: "empty" });
+      buildSystemChildren(firstSystemNode, systems[0], ctx);
+      csNode.firstChild = firstSystemNode;
+
+      // Create remaining System wrapper nodes
+      let currentSystem = firstSystemNode;
+      for (let i = 1; i < systems.length; i++) {
+        const systemNode = createCSNode(TAGS.System, ctx.generateId(), { type: "empty" });
+        buildSystemChildren(systemNode, systems[i], ctx);
+        currentSystem.nextSibling = systemNode;
+        currentSystem = systemNode;
+      }
+    }
+    return csNode;
+  }
+
+  // Standard processing for all other nodes
   const children = node.accept(childrenVisitor);
   if (children.length > 0) {
-    csNode.firstChild = fromAst(children[0]);
+    csNode.firstChild = fromAst(children[0], ctx);
     let current = csNode.firstChild;
     for (let i = 1; i < children.length; i++) {
-      current.nextSibling = fromAst(children[i]);
+      current.nextSibling = fromAst(children[i], ctx);
       current = current.nextSibling;
     }
   }
 
   return csNode;
+}
+
+/**
+ * Build children for a System wrapper node from an array of tune_body_code elements.
+ */
+function buildSystemChildren(systemNode: CSNode, elements: Array<Expr | Token>, ctx: ABCContext): void {
+  if (elements.length === 0) return;
+
+  systemNode.firstChild = fromAst(elements[0], ctx);
+  let current = systemNode.firstChild;
+  for (let i = 1; i < elements.length; i++) {
+    current.nextSibling = fromAst(elements[i], ctx);
+    current = current.nextSibling;
+  }
 }

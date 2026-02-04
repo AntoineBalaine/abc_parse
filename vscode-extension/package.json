@@ -186,6 +186,11 @@
         "category": "ABC"
       },
       {
+        "command": "abc.selectSystem",
+        "title": "ABC: Select System",
+        "category": "ABC"
+      },
+      {
         "command": "abc.selectVoice",
         "title": "ABC: Select Voice",
         "category": "ABC"
@@ -386,6 +391,10 @@
         },
         {
           "command": "abc.selectMeasures",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.selectSystem",
           "when": "editorLangId == abc"
         },
         {

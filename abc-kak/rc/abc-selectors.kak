@@ -126,6 +126,11 @@ define-command abc-select-measures \
     abc-select-impl selectMeasures
 }
 
+define-command abc-select-system \
+    -docstring "Expand selection to cover entire system(s)" %{
+    abc-select-impl selectSystem
+}
+
 define-command abc-select-voices -params 1 \
     -docstring "abc-select-voices <voice-ids>: Select notes/chords in specified voices (comma-separated IDs)" %{
     abc-select-impl selectVoices "[\"$1\"]"

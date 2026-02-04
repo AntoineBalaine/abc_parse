@@ -4,30 +4,31 @@ import { resolveSelectionRanges, resolveContiguousRanges, findNodeById } from ".
 import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
 import { fromAst, createSelection, selectChords, selectNotes, selectTop, selectVoices } from "editor";
 
-function parseAbc(source: string): File_structure {
+function parseAbc(source: string): { ast: File_structure; ctx: ABCContext } {
   const ctx = new ABCContext();
   const tokens = Scanner(source, ctx);
-  return parse(tokens, ctx);
+  const ast = parse(tokens, ctx);
+  return { ast, ctx };
 }
 
 describe("findNodeById", () => {
   it("returns the root node when the target ID matches the root", () => {
-    const ast = parseAbc("X:1\nK:C\nC2|\n");
-    const root = fromAst(ast);
+    const { ast, ctx } = parseAbc("X:1\nK:C\nC2|\n");
+    const root = fromAst(ast, ctx);
     const found = findNodeById(root, root.id);
     expect(found).to.equal(root);
   });
 
   it("returns null for an ID that does not exist in the tree", () => {
-    const ast = parseAbc("X:1\nK:C\nC2|\n");
-    const root = fromAst(ast);
+    const { ast, ctx } = parseAbc("X:1\nK:C\nC2|\n");
+    const root = fromAst(ast, ctx);
     const found = findNodeById(root, 999999);
     expect(found).to.be.null;
   });
 
   it("finds a nested child node by ID", () => {
-    const ast = parseAbc("X:1\nK:C\nC2|\n");
-    const root = fromAst(ast);
+    const { ast, ctx } = parseAbc("X:1\nK:C\nC2|\n");
+    const root = fromAst(ast, ctx);
     // The first child of root should exist
     const child = root.firstChild;
     expect(child).to.not.be.null;
@@ -38,8 +39,8 @@ describe("findNodeById", () => {
 
 describe("resolveSelectionRanges", () => {
   it("on an initial selection returns a single range spanning the file", () => {
-    const ast = parseAbc("X:1\nK:C\nC2 D2|\n");
-    const root = fromAst(ast);
+    const { ast, ctx } = parseAbc("X:1\nK:C\nC2 D2|\n");
+    const root = fromAst(ast, ctx);
     const selection = createSelection(root);
     const ranges = resolveSelectionRanges(selection);
     expect(ranges).to.have.length(1);
@@ -50,8 +51,8 @@ describe("resolveSelectionRanges", () => {
   });
 
   it("after selectChords returns one range per chord", () => {
-    const ast = parseAbc("X:1\nK:C\n[CEG]2 C2 D2|\n");
-    const root = fromAst(ast);
+    const { ast, ctx } = parseAbc("X:1\nK:C\n[CEG]2 C2 D2|\n");
+    const root = fromAst(ast, ctx);
     const selection = createSelection(root);
     const chordSelection = selectChords(selection);
     const ranges = resolveSelectionRanges(chordSelection);
@@ -61,8 +62,8 @@ describe("resolveSelectionRanges", () => {
   });
 
   it("after selectNotes returns one range per note", () => {
-    const ast = parseAbc("X:1\nK:C\n[CEG]2 C2 D2|\n");
-    const root = fromAst(ast);
+    const { ast, ctx } = parseAbc("X:1\nK:C\n[CEG]2 C2 D2|\n");
+    const root = fromAst(ast, ctx);
     const selection = createSelection(root);
     const noteSelection = selectNotes(selection);
     const ranges = resolveSelectionRanges(noteSelection);
@@ -72,8 +73,8 @@ describe("resolveSelectionRanges", () => {
   });
 
   it("after selectTop(selectChords(...)) returns ranges for the top note of each chord only", () => {
-    const ast = parseAbc("X:1\nK:C\n[CEG]2 C2 D2|\n");
-    const root = fromAst(ast);
+    const { ast, ctx } = parseAbc("X:1\nK:C\n[CEG]2 C2 D2|\n");
+    const root = fromAst(ast, ctx);
     const selection = createSelection(root);
     const topSelection = selectTop(selectChords(selection));
     const ranges = resolveSelectionRanges(topSelection);
@@ -83,16 +84,16 @@ describe("resolveSelectionRanges", () => {
   });
 
   it("returns empty array for a selection with no cursors", () => {
-    const ast = parseAbc("X:1\nK:C\nC2|\n");
-    const root = fromAst(ast);
+    const { ast, ctx } = parseAbc("X:1\nK:C\nC2|\n");
+    const root = fromAst(ast, ctx);
     const selection = { root, cursors: [] };
     const ranges = resolveSelectionRanges(selection);
     expect(ranges).to.have.length(0);
   });
 
   it("skips cursors whose ID cannot be found in the tree", () => {
-    const ast = parseAbc("X:1\nK:C\nC2|\n");
-    const root = fromAst(ast);
+    const { ast, ctx } = parseAbc("X:1\nK:C\nC2|\n");
+    const root = fromAst(ast, ctx);
     const selection = { root, cursors: [new Set([999999])] };
     const ranges = resolveSelectionRanges(selection);
     expect(ranges).to.have.length(0);
@@ -101,8 +102,8 @@ describe("resolveSelectionRanges", () => {
 
 describe("resolveContiguousRanges", () => {
   it("computes bounding range for a cursor with multiple IDs", () => {
-    const ast = parseAbc("X:1\nK:C\nV:1\nCDEF|\nV:2\nGABc|\n");
-    const root = fromAst(ast);
+    const { ast, ctx } = parseAbc("X:1\nK:C\nV:1\nCDEF|\nV:2\nGABc|\n");
+    const root = fromAst(ast, ctx);
     const selection = createSelection(root);
     const voiceSelection = selectVoices(selection, "1");
     const ranges = resolveContiguousRanges(voiceSelection);
@@ -115,8 +116,8 @@ describe("resolveContiguousRanges", () => {
   });
 
   it("produces separate ranges for non-contiguous voice sections", () => {
-    const ast = parseAbc("X:1\nK:C\nV:1\nCDEF|\nV:2\nGABc|\nV:1\ndefg|\n");
-    const root = fromAst(ast);
+    const { ast, ctx } = parseAbc("X:1\nK:C\nV:1\nCDEF|\nV:2\nGABc|\nV:1\ndefg|\n");
+    const root = fromAst(ast, ctx);
     const selection = createSelection(root);
     const voiceSelection = selectVoices(selection, "1");
     const ranges = resolveContiguousRanges(voiceSelection);
@@ -125,16 +126,16 @@ describe("resolveContiguousRanges", () => {
   });
 
   it("returns empty array for a selection with no cursors", () => {
-    const ast = parseAbc("X:1\nK:C\nC2|\n");
-    const root = fromAst(ast);
+    const { ast, ctx } = parseAbc("X:1\nK:C\nC2|\n");
+    const root = fromAst(ast, ctx);
     const selection = { root, cursors: [] };
     const ranges = resolveContiguousRanges(selection);
     expect(ranges).to.have.length(0);
   });
 
   it("skips IDs that cannot be found in the tree", () => {
-    const ast = parseAbc("X:1\nK:C\nC2|\n");
-    const root = fromAst(ast);
+    const { ast, ctx } = parseAbc("X:1\nK:C\nC2|\n");
+    const root = fromAst(ast, ctx);
     const selection = { root, cursors: [new Set([999999])] };
     const ranges = resolveContiguousRanges(selection);
     expect(ranges).to.have.length(0);
@@ -162,8 +163,8 @@ D,2 C,2         | C,2     C,2     |
 V:1
 ABC             | DFE             | DBA
 `;
-    const ast = parseAbc(input);
-    const root = fromAst(ast);
+    const { ast, ctx } = parseAbc(input);
+    const root = fromAst(ast, ctx);
     const selection = createSelection(root);
     const voiceSelection = selectVoices(selection, "1");
     const ranges = resolveContiguousRanges(voiceSelection);

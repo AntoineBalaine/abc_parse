@@ -90,13 +90,19 @@ function flushCurrentRun(ctx: VoiceWalkCtx): void {
 }
 
 /**
- * Walks the children of a container node (Tune_Body or Music_code), tracking voice
- * changes and selecting matching elements. Recurses into Music_code nodes to detect
- * inline voice markers.
+ * Walks the children of a container node (Tune_Body, System, or Music_code), tracking voice
+ * changes and selecting matching elements. Recurses into System and Music_code nodes.
  */
 function walkChildren(ctx: VoiceWalkCtx, containerNode: CSNode): void {
   let child = containerNode.firstChild;
   while (child !== null) {
+    // Recurse into System nodes (Tune_Body's direct children after CSTree conversion)
+    if (child.tag === TAGS.System) {
+      walkChildren(ctx, child);
+      child = child.nextSibling;
+      continue;
+    }
+
     if (isVoiceMarker(child)) {
       const extractedId = extractVoiceId(child);
       ctx.currentVoice = extractedId || "";

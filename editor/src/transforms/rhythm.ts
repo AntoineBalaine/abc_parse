@@ -77,7 +77,7 @@ export function rationalToRhythm(rational: IRational, ctx: ABCContext, brokenTok
   const rhythmExpr = new Rhythm(ctx.generateId(), numToken, sepToken, denToken ?? null);
 
   // Convert to CSNode subtree
-  const rhythmCSNode = fromAst(rhythmExpr);
+  const rhythmCSNode = fromAst(rhythmExpr, ctx);
 
   // Append the broken token at the end of the Rhythm's child chain (if provided)
   if (brokenToken) {

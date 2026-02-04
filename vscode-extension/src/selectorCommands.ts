@@ -65,6 +65,7 @@ export function registerSelectorCommands(
     ["abc.selectRhythm", "selectRhythm"],
     ["abc.selectRhythmParent", "selectRhythmParent"],
     ["abc.selectMeasures", "selectMeasures"],
+    ["abc.selectSystem", "selectSystem"],
   ];
 
   for (const [commandId, selectorName] of selectorCommands) {

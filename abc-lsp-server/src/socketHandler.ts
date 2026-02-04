@@ -6,7 +6,7 @@ import { resolveSelectionRanges, findNodesInRange } from "./selectionRangeResolv
 import { lookupSelector, getAvailableSelectors } from "./selectorLookup";
 import { lookupTransform } from "./transformLookup";
 import { fromAst, createSelection, Selection, selectRange, CSNode, TAGS } from "editor";
-import { File_structure } from "abc-parser";
+import { File_structure, ABCContext } from "abc-parser";
 import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
 import { serializeCSTree } from "./csTreeSerializer";
@@ -69,7 +69,7 @@ interface SocketResponse {
 }
 
 type DocumentGetter = (uri: string) => AbcDocument | AbcxDocument | undefined;
-type CsTreeGetter = (ast: File_structure) => CSNode;
+type CsTreeGetter = (ast: File_structure, ctx: ABCContext) => CSNode;
 
 // ============================================================================
 // Socket Path Computation
@@ -294,7 +294,7 @@ function handleApplySelector(
     throw { code: ERROR_CODES.DOCUMENT_NOT_FOUND, message: "Document has no parsed AST" };
   }
 
-  const root = getCsTree(doc.AST);
+  const root = getCsTree(doc.AST, doc.ctx);
   const selectorFn = lookupSelector(params.selector);
 
   if (!selectorFn) {
@@ -374,7 +374,7 @@ function handleApplyTransform(
   }
 
   // Build a fresh CSTree from the AST (transforms mutate in place)
-  const root = fromAst(doc.AST);
+  const root = fromAst(doc.AST, doc.ctx);
 
   // Determine which node tags this transform operates on
   const tags = TRANSFORM_NODE_TAGS[params.transform] ?? [TAGS.Note, TAGS.Chord];
