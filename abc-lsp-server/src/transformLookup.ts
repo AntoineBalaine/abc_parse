@@ -21,6 +21,10 @@ import {
   consolidateRests,
   voiceInfoLineToInline,
   voiceInlineToInfoLine,
+  explode,
+  explode2,
+  explode3,
+  explode4,
 } from "editor";
 import { ABCContext, IRational } from "abc-parser";
 
@@ -44,6 +48,10 @@ const TRANSFORM_MAP: Record<string, TransformFn> = {
   insertVoiceLine: (sel, ctx, ...args) => insertVoiceLine(sel, args[0] as string, ctx),
   voiceInfoLineToInline: (sel, ctx) => voiceInfoLineToInline(sel, ctx),
   voiceInlineToInfoLine: (sel, ctx) => voiceInlineToInfoLine(sel, ctx),
+  explode: (sel, ctx, ...args) => explode(sel, args[0] as number, ctx),
+  explode2: (sel, ctx) => explode2(sel, ctx),
+  explode3: (sel, ctx) => explode3(sel, ctx),
+  explode4: (sel, ctx) => explode4(sel, ctx),
 };
 
 export function lookupTransform(name: string): TransformFn | null {

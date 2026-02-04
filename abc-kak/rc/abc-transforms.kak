@@ -156,3 +156,27 @@ define-command abc-remove \
     -docstring "Remove selected elements" %{
     abc-transform-impl remove
 }
+
+# ============================================================================
+# Explode Transform Commands
+# ============================================================================
+
+define-command abc-explode -params 1 \
+    -docstring "abc-explode <parts>: Explode chords into the specified number of voice parts" %{
+    abc-transform-impl explode "[$1]"
+}
+
+define-command abc-explode2 \
+    -docstring "Explode chords into 2 voice parts" %{
+    abc-transform-impl explode2
+}
+
+define-command abc-explode3 \
+    -docstring "Explode chords into 3 voice parts" %{
+    abc-transform-impl explode3
+}
+
+define-command abc-explode4 \
+    -docstring "Explode chords into 4 voice parts" %{
+    abc-transform-impl explode4
+}

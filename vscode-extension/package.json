@@ -329,6 +329,26 @@
         "command": "abc.voiceInlineToInfoLine",
         "title": "ABC: Convert Voice Inline to Info Line",
         "category": "ABC"
+      },
+      {
+        "command": "abc.explode",
+        "title": "ABC: Explode Chords to Parts",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.explode2",
+        "title": "ABC: Explode to 2 Parts",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.explode3",
+        "title": "ABC: Explode to 3 Parts",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.explode4",
+        "title": "ABC: Explode to 4 Parts",
+        "category": "ABC"
       }
     ],
     "menus": {
@@ -507,6 +527,22 @@
         },
         {
           "command": "abc.voiceInlineToInfoLine",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.explode",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.explode2",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.explode3",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.explode4",
           "when": "editorLangId == abc"
         }
       ]

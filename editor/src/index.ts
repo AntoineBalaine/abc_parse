@@ -99,6 +99,10 @@ export {
   insertVoiceLine,
   voiceInfoLineToInline,
   voiceInlineToInfoLine,
+  explode,
+  explode2,
+  explode3,
+  explode4,
 } from "./transforms";
 
 // Utils

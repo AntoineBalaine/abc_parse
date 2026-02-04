@@ -88,6 +88,9 @@ export function registerTransformCommands(
     ["abc.consolidateRests", "consolidateRests"],
     ["abc.voiceInfoLineToInline", "voiceInfoLineToInline"],
     ["abc.voiceInlineToInfoLine", "voiceInlineToInfoLine"],
+    ["abc.explode2", "explode2"],
+    ["abc.explode3", "explode3"],
+    ["abc.explode4", "explode4"],
   ];
 
   for (const [commandId, transformName] of simpleTransforms) {
@@ -173,6 +176,23 @@ export function registerTransformCommands(
       if (!voiceName) return;
 
       await applyTransform(client, "insertVoiceLine", [voiceName], statusBarItem);
+    })
+  );
+
+  // explode: prompt for part count
+  context.subscriptions.push(
+    vscode.commands.registerCommand("abc.explode", async () => {
+      const input = await vscode.window.showInputBox({
+        prompt: "Number of parts to explode into (2-8)",
+        validateInput: v => {
+          const n = Number(v);
+          if (isNaN(n) || !Number.isInteger(n)) return "Must be an integer";
+          if (n < 2 || n > 8) return "Must be between 2 and 8";
+          return null;
+        },
+      });
+      if (input === undefined) return;
+      await applyTransform(client, "explode", [Number(input)], statusBarItem);
     })
   );
 

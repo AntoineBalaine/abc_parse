@@ -17,3 +17,4 @@ export { harmonize, pitchToDiatonic, diatonicToPitch, stepDiatonic } from "./har
 export { consolidateRests } from "./consolidateRests";
 export { insertVoiceLine } from "./insertVoiceLine";
 export { voiceInfoLineToInline, voiceInlineToInfoLine } from "./voiceMarkerTransform";
+export { explode, explode2, explode3, explode4 } from "./explode";
