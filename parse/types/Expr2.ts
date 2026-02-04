@@ -167,16 +167,26 @@ export function isInstructionInfo(info: InfoLineUnion): info is { type: "instruc
 }
 
 /**
+ * Style preference for voice markers in formatted output.
+ * - 'inline': Use inline voice markers like [V:1]
+ * - 'infoline': Use info line voice markers like V:1 on their own line
+ */
+export type VoiceMarkerStyle = "inline" | "infoline";
+
+/**
  * Configuration for formatter-specific behavior.
  * These settings control how the formatter processes and outputs ABC notation.
  */
 export type FormatterConfig = {
   /** When true, insert empty comment lines between systems in linear tunes */
   systemComments: boolean;
+  /** When set, convert voice markers to the specified style during formatting */
+  voiceMarkerStyle: VoiceMarkerStyle | null;
 };
 
 export const DEFAULT_FORMATTER_CONFIG: FormatterConfig = {
   systemComments: false,
+  voiceMarkerStyle: null,
 };
 
 export abstract class Expr {

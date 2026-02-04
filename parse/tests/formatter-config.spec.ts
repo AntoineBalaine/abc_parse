@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import {
   File_structure,
@@ -19,6 +20,10 @@ describe("FormatterConfig", () => {
     it("has systemComments set to false", () => {
       expect(DEFAULT_FORMATTER_CONFIG.systemComments).to.equal(false);
     });
+
+    it("has voiceMarkerStyle set to null", () => {
+      expect(DEFAULT_FORMATTER_CONFIG.voiceMarkerStyle).to.equal(null);
+    });
   });
 
   describe("File_structure", () => {
@@ -36,7 +41,7 @@ describe("FormatterConfig", () => {
 
     it("preserves custom formatterConfig when specified", () => {
       const ctx = new ABCContext();
-      const customConfig: FormatterConfig = { systemComments: true };
+      const customConfig: FormatterConfig = { systemComments: true, voiceMarkerStyle: "inline" };
       const fileStructure = new File_structure(
         ctx.generateId(),
         null,
@@ -45,6 +50,7 @@ describe("FormatterConfig", () => {
         customConfig
       );
       expect(fileStructure.formatterConfig.systemComments).to.equal(true);
+      expect(fileStructure.formatterConfig.voiceMarkerStyle).to.equal("inline");
     });
   });
 
@@ -55,21 +61,23 @@ describe("FormatterConfig", () => {
       const tune = new Tune(ctx.generateId(), tuneHeader, null, false);
       expect(tune.formatterConfig).to.deep.equal(DEFAULT_FORMATTER_CONFIG);
       expect(tune.formatterConfig.systemComments).to.equal(false);
+      expect(tune.formatterConfig.voiceMarkerStyle).to.equal(null);
     });
 
     it("preserves custom formatterConfig when specified", () => {
       const ctx = new ABCContext();
       const tuneHeader = new Tune_header(ctx.generateId(), [], []);
-      const customConfig: FormatterConfig = { systemComments: true };
+      const customConfig: FormatterConfig = { systemComments: true, voiceMarkerStyle: "infoline" };
       const tune = new Tune(ctx.generateId(), tuneHeader, null, false, customConfig);
       expect(tune.formatterConfig.systemComments).to.equal(true);
+      expect(tune.formatterConfig.voiceMarkerStyle).to.equal("infoline");
     });
   });
 
   describe("Cloner preserves formatterConfig", () => {
     it("cloned File_structure has same formatterConfig", () => {
       const ctx = new ABCContext();
-      const customConfig: FormatterConfig = { systemComments: true };
+      const customConfig: FormatterConfig = { systemComments: true, voiceMarkerStyle: "inline" };
       const fileStructure = new File_structure(
         ctx.generateId(),
         new File_header(ctx.generateId(), []),
@@ -81,6 +89,7 @@ describe("FormatterConfig", () => {
       const cloned = cloneExpr(fileStructure, ctx);
 
       expect(cloned.formatterConfig.systemComments).to.equal(true);
+      expect(cloned.formatterConfig.voiceMarkerStyle).to.equal("inline");
       // Verify it's a copy, not the same reference
       expect(cloned.formatterConfig).to.not.equal(fileStructure.formatterConfig);
     });
@@ -88,12 +97,13 @@ describe("FormatterConfig", () => {
     it("cloned Tune has same formatterConfig", () => {
       const ctx = new ABCContext();
       const tuneHeader = new Tune_header(ctx.generateId(), [], []);
-      const customConfig: FormatterConfig = { systemComments: true };
+      const customConfig: FormatterConfig = { systemComments: true, voiceMarkerStyle: "infoline" };
       const tune = new Tune(ctx.generateId(), tuneHeader, null, true, customConfig);
 
       const cloned = cloneExpr(tune, ctx);
 
       expect(cloned.formatterConfig.systemComments).to.equal(true);
+      expect(cloned.formatterConfig.voiceMarkerStyle).to.equal("infoline");
       // Verify it's a copy, not the same reference
       expect(cloned.formatterConfig).to.not.equal(tune.formatterConfig);
     });
@@ -102,7 +112,7 @@ describe("FormatterConfig", () => {
   describe("VoiceFilterVisitor preserves formatterConfig", () => {
     it("filtered File_structure has same formatterConfig", () => {
       const ctx = new ABCContext();
-      const customConfig: FormatterConfig = { systemComments: true };
+      const customConfig: FormatterConfig = { systemComments: true, voiceMarkerStyle: "inline" };
       const fileStructure = new File_structure(
         ctx.generateId(),
         new File_header(ctx.generateId(), []),
@@ -114,6 +124,7 @@ describe("FormatterConfig", () => {
       const filtered = filterVoiceInAst(fileStructure, ctx);
 
       expect(filtered.formatterConfig.systemComments).to.equal(true);
+      expect(filtered.formatterConfig.voiceMarkerStyle).to.equal("inline");
       // Verify it's a copy, not the same reference
       expect(filtered.formatterConfig).to.not.equal(fileStructure.formatterConfig);
     });
@@ -125,15 +136,17 @@ describe("FormatterConfig", () => {
       const ast = parse(tokens, ctx);
 
       // Set custom config on the file and tune
-      const customConfig: FormatterConfig = { systemComments: true };
+      const customConfig: FormatterConfig = { systemComments: true, voiceMarkerStyle: "infoline" };
       ast.formatterConfig = customConfig;
       (ast.contents[0] as Tune).formatterConfig = customConfig;
 
       const filtered = filterVoiceInAst(ast, ctx);
 
       expect(filtered.formatterConfig.systemComments).to.equal(true);
+      expect(filtered.formatterConfig.voiceMarkerStyle).to.equal("infoline");
       const filteredTune = filtered.contents[0] as Tune;
       expect(filteredTune.formatterConfig.systemComments).to.equal(true);
+      expect(filteredTune.formatterConfig.voiceMarkerStyle).to.equal("infoline");
     });
   });
 
@@ -202,6 +215,119 @@ describe("FormatterConfig", () => {
       expect(tune.formatterConfig.systemComments).to.equal(true);
     });
 
+  });
+
+  describe("%%abcls-fmt voice-markers directive parsing", () => {
+    it("file-level %%abcls-fmt voice-markers=inline sets voiceMarkerStyle on File_structure", () => {
+      const ctx = new ABCContext();
+      const input = "%%abcls-fmt voice-markers=inline\n\nX:1\nK:C\nCDEF|\n";
+      const tokens = Scanner(input, ctx);
+      const ast = parse(tokens, ctx);
+
+      expect(ast.formatterConfig.voiceMarkerStyle).to.equal("inline");
+    });
+
+    it("file-level %%abcls-fmt voice-markers=infoline sets voiceMarkerStyle on File_structure", () => {
+      const ctx = new ABCContext();
+      const input = "%%abcls-fmt voice-markers=infoline\n\nX:1\nK:C\nCDEF|\n";
+      const tokens = Scanner(input, ctx);
+      const ast = parse(tokens, ctx);
+
+      expect(ast.formatterConfig.voiceMarkerStyle).to.equal("infoline");
+    });
+
+    it("tune-level %%abcls-fmt voice-markers=inline sets voiceMarkerStyle on Tune", () => {
+      const ctx = new ABCContext();
+      const input = "X:1\n%%abcls-fmt voice-markers=inline\nK:C\nCDEF|\n";
+      const tokens = Scanner(input, ctx);
+      const ast = parse(tokens, ctx);
+
+      // File level should be default (null)
+      expect(ast.formatterConfig.voiceMarkerStyle).to.equal(null);
+      // Tune level should be "inline"
+      const tune = ast.contents[0] as Tune;
+      expect(tune.formatterConfig.voiceMarkerStyle).to.equal("inline");
+    });
+
+    it("tune-level %%abcls-fmt voice-markers=infoline sets voiceMarkerStyle on Tune", () => {
+      const ctx = new ABCContext();
+      const input = "X:1\n%%abcls-fmt voice-markers=infoline\nK:C\nCDEF|\n";
+      const tokens = Scanner(input, ctx);
+      const ast = parse(tokens, ctx);
+
+      // File level should be default (null)
+      expect(ast.formatterConfig.voiceMarkerStyle).to.equal(null);
+      // Tune level should be "infoline"
+      const tune = ast.contents[0] as Tune;
+      expect(tune.formatterConfig.voiceMarkerStyle).to.equal("infoline");
+    });
+
+    it("no directive leaves voiceMarkerStyle as null", () => {
+      const ctx = new ABCContext();
+      const input = "X:1\nK:C\nCDEF|\n";
+      const tokens = Scanner(input, ctx);
+      const ast = parse(tokens, ctx);
+
+      expect(ast.formatterConfig.voiceMarkerStyle).to.equal(null);
+      const tune = ast.contents[0] as Tune;
+      expect(tune.formatterConfig.voiceMarkerStyle).to.equal(null);
+    });
+
+    it("invalid value leaves voiceMarkerStyle as null", () => {
+      const ctx = new ABCContext();
+      const input = "%%abcls-fmt voice-markers=unknown\n\nX:1\nK:C\nCDEF|\n";
+      const tokens = Scanner(input, ctx);
+      const ast = parse(tokens, ctx);
+
+      expect(ast.formatterConfig.voiceMarkerStyle).to.equal(null);
+    });
+
+    it("tune inherits file-level voiceMarkerStyle", () => {
+      const ctx = new ABCContext();
+      const input = "%%abcls-fmt voice-markers=inline\n\nX:1\nK:C\nCDEF|\n";
+      const tokens = Scanner(input, ctx);
+      const ast = parse(tokens, ctx);
+
+      const tune = ast.contents[0] as Tune;
+      expect(tune.formatterConfig.voiceMarkerStyle).to.equal("inline");
+    });
+
+    it("tune-level directive overrides file-level", () => {
+      const ctx = new ABCContext();
+      const input = "%%abcls-fmt voice-markers=inline\n\nX:1\n%%abcls-fmt voice-markers=infoline\nK:C\nCDEF|\n";
+      const tokens = Scanner(input, ctx);
+      const ast = parse(tokens, ctx);
+
+      // File level should be "inline"
+      expect(ast.formatterConfig.voiceMarkerStyle).to.equal("inline");
+      // Tune level should be "infoline" (overridden)
+      const tune = ast.contents[0] as Tune;
+      expect(tune.formatterConfig.voiceMarkerStyle).to.equal("infoline");
+    });
+
+    it("voice-markers directive does not affect linear mode", () => {
+      const ctx = new ABCContext();
+      const input = "%%abcls-fmt voice-markers=inline\n\nX:1\nK:C\nCDEF|\n";
+      const tokens = Scanner(input, ctx);
+      const ast = parse(tokens, ctx);
+
+      // voice-markers should not enable linear mode (unlike system-comments)
+      expect(ast.linear).to.equal(false);
+    });
+
+    it("property: valid voice-markers values set the correct voiceMarkerStyle", () => {
+      fc.assert(
+        fc.property(fc.constantFrom("inline", "infoline"), (style) => {
+          const ctx = new ABCContext();
+          const input = `%%abcls-fmt voice-markers=${style}\n\nX:1\nK:C\nCDEF|\n`;
+          const tokens = Scanner(input, ctx);
+          const ast = parse(tokens, ctx);
+
+          return ast.formatterConfig.voiceMarkerStyle === style;
+        }),
+        { numRuns: 20 }
+      );
+    });
   });
 
   describe("system separator comment insertion", () => {

@@ -1,5 +1,5 @@
 import { followedBy } from "../../helpers";
-import { Annotation, Directive, Expr, KV, Measurement, Pitch, Rational } from "../../types/Expr2";
+import { Annotation, Directive, Expr, KV, Measurement, Pitch, Rational, VoiceMarkerStyle } from "../../types/Expr2";
 import { parseAnnotation, ParseCtx, parsePitch } from "../parse2";
 import { Token, TT } from "../scan2";
 import { parseKV } from "./parseInfoLine2";
@@ -14,9 +14,12 @@ export type HeaderContext = "file" | "tune";
  * Check if a directive is %%abcls-fmt and update the context accordingly.
  * This is called internally by parseDirective when a headerContext is provided.
  *
- * Syntax: %%abcls-fmt system-comments
+ * Syntax:
+ * - %%abcls-fmt system-comments
+ * - %%abcls-fmt voice-markers=inline
+ * - %%abcls-fmt voice-markers=infoline
  *
- * The presence of the directive enables both the feature and linear mode.
+ * For system-comments, the presence of the directive enables both the feature and linear mode.
  * System comments only make sense for linear (interleaved voice) tunes,
  * so we enable linear mode implicitly.
  *
@@ -34,17 +37,35 @@ function checkFormatterDirective(directive: Directive, ctx: ParseCtx, headerCont
   }
 
   const option = directive.values[0];
-  if (!(option instanceof Token) || option.lexeme.toLowerCase() !== "system-comments") {
-    return; // unknown option, semantic analyzer will report error
+
+  // Check for "system-comments" option (standalone identifier)
+  if (option instanceof Token && option.lexeme.toLowerCase() === "system-comments") {
+    // The presence of "%%abcls-fmt system-comments" enables both the feature and linear mode.
+    if (headerContext === "file") {
+      ctx.abcContext.formatterConfig = { ...ctx.abcContext.formatterConfig, systemComments: true };
+      ctx.abcContext.linear = true;
+    } else {
+      ctx.abcContext.tuneFormatterConfig = { ...ctx.abcContext.tuneFormatterConfig, systemComments: true };
+      ctx.abcContext.tuneLinear = true;
+    }
+    return;
   }
 
-  // The presence of "%%abcls-fmt system-comments" enables both the feature and linear mode.
-  if (headerContext === "file") {
-    ctx.abcContext.formatterConfig = { ...ctx.abcContext.formatterConfig, systemComments: true };
-    ctx.abcContext.linear = true;
-  } else {
-    ctx.abcContext.tuneFormatterConfig = { ...ctx.abcContext.tuneFormatterConfig, systemComments: true };
-    ctx.abcContext.tuneLinear = true;
+  // Check for "voice-markers=inline|infoline" option (KV expression)
+  if (option instanceof KV && option.key instanceof Token && option.key.lexeme.toLowerCase() === "voice-markers") {
+    const value = option.value;
+    if (value instanceof Token) {
+      const valueLexeme = value.lexeme.toLowerCase();
+      if (valueLexeme === "inline" || valueLexeme === "infoline") {
+        const style: VoiceMarkerStyle = valueLexeme as VoiceMarkerStyle;
+        if (headerContext === "file") {
+          ctx.abcContext.formatterConfig = { ...ctx.abcContext.formatterConfig, voiceMarkerStyle: style };
+        } else {
+          ctx.abcContext.tuneFormatterConfig = { ...ctx.abcContext.tuneFormatterConfig, voiceMarkerStyle: style };
+        }
+      }
+    }
+    return;
   }
 }
 

@@ -49,6 +49,7 @@ import {
 } from "../types/Expr2";
 import { alignTune } from "./fmt2/fmt_aligner";
 import { resolveRules } from "./fmt2/fmt_rules_assignment";
+import { VoiceMarkerStyleVisitor } from "./VoiceMarkerStyleVisitor";
 
 /**
  * Checks if a comment is "empty" (contains only % or % followed by whitespace).
@@ -180,13 +181,28 @@ export class AbcFormatter implements Visitor<string> {
   }
   format(ast: Tune): string {
     this.no_format = false;
-    // 1. Rules resolution phase
-    const withRules = resolveRules(ast, this.ctx);
 
-    // 2. align multi-voices tunes
+    // 1. Transform voice markers if configured
+    let tuneToFormat = ast;
+    if (ast.formatterConfig.voiceMarkerStyle !== null && ast.tune_body) {
+      const visitor = new VoiceMarkerStyleVisitor(this.ctx, ast.formatterConfig.voiceMarkerStyle);
+      const transformedBody = visitor.transformTuneBody(ast.tune_body);
+      tuneToFormat = new Tune(
+        ast.id,
+        ast.tune_header,
+        transformedBody,
+        ast.linear,
+        ast.formatterConfig
+      );
+    }
+
+    // 2. Rules resolution phase
+    const withRules = resolveRules(tuneToFormat, this.ctx);
+
+    // 3. Align multi-voices tunes
     const alignedTune = alignTune(withRules, this.ctx, this);
 
-    // 3. Print using visitor
+    // 4. Print using visitor
     return this.stringify(alignedTune, false);
   }
 
