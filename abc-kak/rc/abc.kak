@@ -64,6 +64,6 @@ hook global BufCreate .*\.abcx %{
 # The transform commands are defined in abc-transforms.kak
 # The mode definitions are defined in abc-modes.kak
 
-source "%val{source}/abc-selectors.kak"
-source "%val{source}/abc-transforms.kak"
-source "%val{source}/abc-modes.kak"
+source "%sh{dirname $kak_source}/abc-selectors.kak"
+source "%sh{dirname $kak_source}/abc-transforms.kak"
+source "%sh{dirname $kak_source}/abc-modes.kak"

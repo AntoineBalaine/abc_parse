@@ -204,7 +204,7 @@ map global abc-transform <a-P> ':abc-transform-harmonize-down<ret>'  -docstring 
 
 # --- Pitch Transforms: Accidentals ---
 map global abc-transform + ':abc-add-sharp<ret>'                -docstring 'add sharp'
-map global abc-transform - ':abc-add-flat<ret>'                 -docstring 'add flat'
+map global abc-transform <minus> ':abc-add-flat<ret>'           -docstring 'add flat'
 map global abc-transform e ':abc-enharmonize<ret>'              -docstring 'enharmonize'
 
 # --- Rhythm Transforms ---

@@ -68,9 +68,9 @@ define-command -hidden abc-transform-impl -params 1..2 %{
 
         # Check if result file has content (transform produced changes)
         if [ -s "$kak_opt_abc_resultfile" ]; then
-            # Replace entire buffer with result
-            printf '%s\n' "execute-keys '%d'"
-            printf '%s\n' "execute-keys '!cat %opt{abc_resultfile}<ret>'"
+            # Replace entire buffer with result using execute-keys
+            # Note: %d deletes all, then ! inserts shell command output
+            printf '%s\n' "execute-keys '%d!cat $kak_opt_abc_resultfile<ret>'"
         fi
 
         # Clean up result file
@@ -84,7 +84,7 @@ define-command -hidden abc-transform-impl -params 1..2 %{
 
 define-command abc-insert-voice-line -params 1 \
     -docstring "abc-insert-voice-line <voice-id>: Insert a voice line from selected notes" %{
-    abc-transform-impl insertVoiceLine "[\"$1\"]"
+    abc-transform-impl insertVoiceLine "[\""%arg{1}"\"]"
 }
 
 define-command abc-add-voice -params 1..2 \
@@ -102,7 +102,7 @@ define-command abc-add-voice -params 1..2 \
 
 define-command abc-transpose -params 1 \
     -docstring "abc-transpose <semitones>: Transpose selected notes by semitone count" %{
-    abc-transform-impl transpose "[$1]"
+    abc-transform-impl transpose "[%arg{1}]"
 }
 
 define-command abc-enharmonize \
@@ -112,7 +112,7 @@ define-command abc-enharmonize \
 
 define-command abc-harmonize -params 1 \
     -docstring "abc-harmonize <interval>: Harmonize selected notes at the given interval" %{
-    abc-transform-impl harmonize "[$1]"
+    abc-transform-impl harmonize "[%arg{1}]"
 }
 
 # ============================================================================
@@ -135,12 +135,12 @@ define-command abc-add-flat \
 
 define-command abc-set-rhythm -params 2 \
     -docstring "abc-set-rhythm <num> <denom>: Set rhythm to the specified fraction (e.g., 1 2 for 1/2)" %{
-    abc-transform-impl setRhythm "[{\"num\": $1, \"denom\": $2}]"
+    abc-transform-impl setRhythm "[{\"num\": %arg{1}, \"denom\": %arg{2}}]"
 }
 
 define-command abc-add-to-rhythm -params 2 \
     -docstring "abc-add-to-rhythm <num> <denom>: Add the specified fraction to current rhythm" %{
-    abc-transform-impl addToRhythm "[{\"num\": $1, \"denom\": $2}]"
+    abc-transform-impl addToRhythm "[{\"num\": %arg{1}, \"denom\": %arg{2}}]"
 }
 
 define-command abc-multiply-rhythm -params 0..1 \
@@ -193,7 +193,7 @@ define-command abc-remove \
 
 define-command abc-explode -params 1 \
     -docstring "abc-explode <parts>: Explode chords into the specified number of voice parts" %{
-    abc-transform-impl explode "[$1]"
+    abc-transform-impl explode "[%arg{1}]"
 }
 
 define-command abc-explode2 \
