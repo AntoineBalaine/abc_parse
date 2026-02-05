@@ -5,6 +5,7 @@ import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
 import { LspEventListener, mapTTtoStandardScope } from "./server_helpers";
 import { Token } from "abc-parser";
+import { PreviewManager } from "./PreviewManager";
 
 /** Common interface for ABC and ABCx documents */
 type DocumentType = AbcDocument | AbcxDocument;
@@ -35,10 +36,17 @@ export class AbcLspServer {
    * Supports both ABC (.abc) and ABCx (.abcx) documents.
    */
   abcDocuments: Map<string, DocumentType> = new Map();
+  previewManager: PreviewManager | null = null;
+  documents: TextDocuments<TextDocument>;
+  listener: LspEventListener;
+
   constructor(
-    private documents: TextDocuments<TextDocument>,
-    private listener: LspEventListener
+    documents: TextDocuments<TextDocument>,
+    listener: LspEventListener
   ) {
+    this.documents = documents;
+    this.listener = listener;
+
     this.documents.onDidChangeContent((change) => {
       this.onDidChangeContent(change.document.uri);
     });
@@ -48,10 +56,8 @@ export class AbcLspServer {
     });
   }
 
-  /**
-   * Checks if a URI refers to an ABCx file
-   */
-  private isAbcxFile(uri: string): boolean {
+  // Checks if a URI refers to an ABCx file
+  isAbcxFile(uri: string): boolean {
     return uri.toLowerCase().endsWith(".abcx");
   }
 
@@ -81,6 +87,11 @@ export class AbcLspServer {
         uri: uri,
         diagnostics: abcDocument.diagnostics,
       });
+
+      // Push content update to preview server if preview is enabled for this URI
+      if (this.previewManager?.isPreviewEnabled(uri)) {
+        this.previewManager.pushContentUpdate(uri);
+      }
     }
   }
 

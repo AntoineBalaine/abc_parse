@@ -11,6 +11,7 @@ import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
 import { serializeCSTree } from "./csTreeSerializer";
 import { computeTextEditsFromDiff } from "./textEditFromDiff";
+import { PreviewManager } from "./PreviewManager";
 
 // ============================================================================
 // Error Codes (JSON-RPC style)
@@ -59,9 +60,21 @@ interface TransformResult {
   edits: Array<{ range: LSPRange; newText: string }>;
 }
 
+interface StartPreviewResult {
+  port: number;
+  slug: string;
+  url: string;
+}
+
+interface SuccessResult {
+  success: boolean;
+}
+
+type SocketResult = SelectorResult | TransformResult | StartPreviewResult | SuccessResult;
+
 interface SocketResponse {
   id: number | string;
-  result?: SelectorResult | TransformResult;
+  result?: SocketResult;
   error?: {
     code: number;
     message: string;
@@ -266,6 +279,39 @@ function validateApplyTransformParams(params: SocketRequest["params"]): {
   };
 }
 
+function validatePreviewUriParams(params: SocketRequest["params"]): { uri: string } {
+  if (!params) {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Missing params" };
+  }
+
+  if (!validateUri(params.uri)) {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Invalid or missing URI" };
+  }
+
+  return { uri: params.uri };
+}
+
+function validatePreviewCursorParams(params: SocketRequest["params"]): { uri: string; positions: number[] } {
+  if (!params) {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Missing params" };
+  }
+
+  if (!validateUri(params.uri)) {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Invalid or missing URI" };
+  }
+
+  const rawParams = params as { uri?: string; positions?: unknown };
+  if (!Array.isArray(rawParams.positions)) {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "positions must be an array" };
+  }
+
+  if (!rawParams.positions.every((p) => typeof p === "number")) {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "positions must be an array of numbers" };
+  }
+
+  return { uri: params.uri!, positions: rawParams.positions as number[] };
+}
+
 // ============================================================================
 // Request Handler
 // ============================================================================
@@ -419,11 +465,12 @@ function handleApplyTransform(
 // ============================================================================
 
 export class SocketHandler {
-  private server: net.Server | null = null;
-  private socketPath: string;
-  private getDocument: DocumentGetter;
-  private getCsTree: CsTreeGetter;
-  private isOwner = false;
+  server: net.Server | null = null;
+  socketPath: string;
+  getDocument: DocumentGetter;
+  getCsTree: CsTreeGetter;
+  isOwner = false;
+  previewManager: PreviewManager | null = null;
 
   constructor(
     socketPath: string,
@@ -433,6 +480,10 @@ export class SocketHandler {
     this.socketPath = socketPath;
     this.getDocument = getDocument;
     this.getCsTree = getCsTree;
+  }
+
+  setPreviewManager(previewManager: PreviewManager): void {
+    this.previewManager = previewManager;
   }
 
   /**
@@ -474,74 +525,99 @@ export class SocketHandler {
     });
   }
 
-  private handleConnection(socket: net.Socket): void {
+  handleConnection(socket: net.Socket): void {
     const rl = readline.createInterface({
       input: socket,
       crlfDelay: Infinity,
     });
 
     rl.on("line", (line) => {
-      let request: SocketRequest;
-      let response: SocketResponse;
-
-      try {
-        const parsed = JSON.parse(line);
-        request = validateRequest(parsed);
-      } catch (err) {
-        if (err instanceof SyntaxError) {
-          response = {
-            id: 0,
-            error: { code: ERROR_CODES.INVALID_REQUEST, message: "Invalid JSON" },
-          };
-        } else if (typeof err === "object" && err !== null && "code" in err) {
-          response = {
-            id: 0,
-            error: err as { code: number; message: string },
-          };
-        } else {
-          response = {
-            id: 0,
-            error: { code: ERROR_CODES.INVALID_REQUEST, message: String(err) },
-          };
-        }
-        socket.write(JSON.stringify(response) + "\n");
-        return;
-      }
-
-      try {
-        let result: SelectorResult | TransformResult;
-
-        if (request.method === "abc.applySelector") {
-          const validatedParams = validateApplySelectorParams(request.params);
-          result = handleApplySelector(validatedParams, this.getDocument, this.getCsTree);
-        } else if (request.method === "abc.applyTransform") {
-          const validatedParams = validateApplyTransformParams(request.params);
-          result = handleApplyTransform(validatedParams, this.getDocument);
-        } else {
-          throw { code: ERROR_CODES.UNKNOWN_METHOD, message: `Unknown method: "${request.method}"` };
-        }
-
-        response = { id: request.id, result };
-      } catch (err) {
-        if (typeof err === "object" && err !== null && "code" in err) {
-          response = {
-            id: request.id,
-            error: err as { code: number; message: string },
-          };
-        } else {
-          response = {
-            id: request.id,
-            error: { code: ERROR_CODES.INVALID_REQUEST, message: String(err) },
-          };
-        }
-      }
-
-      socket.write(JSON.stringify(response) + "\n");
+      this.processLine(socket, line);
     });
 
     socket.on("error", (err) => {
       console.error("[abc-lsp] Socket client error:", err.message);
     });
+  }
+
+  // Process a single line from the socket, handling async methods
+  async processLine(socket: net.Socket, line: string): Promise<void> {
+    let request: SocketRequest;
+    let response: SocketResponse;
+
+    try {
+      const parsed = JSON.parse(line);
+      request = validateRequest(parsed);
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        response = {
+          id: 0,
+          error: { code: ERROR_CODES.INVALID_REQUEST, message: "Invalid JSON" },
+        };
+      } else if (typeof err === "object" && err !== null && "code" in err) {
+        response = {
+          id: 0,
+          error: err as { code: number; message: string },
+        };
+      } else {
+        response = {
+          id: 0,
+          error: { code: ERROR_CODES.INVALID_REQUEST, message: String(err) },
+        };
+      }
+      socket.write(JSON.stringify(response) + "\n");
+      return;
+    }
+
+    try {
+      let result: SocketResult;
+
+      if (request.method === "abc.applySelector") {
+        const validatedParams = validateApplySelectorParams(request.params);
+        result = handleApplySelector(validatedParams, this.getDocument, this.getCsTree);
+      } else if (request.method === "abc.applyTransform") {
+        const validatedParams = validateApplyTransformParams(request.params);
+        result = handleApplyTransform(validatedParams, this.getDocument);
+      } else if (request.method === "abc.startPreview") {
+        if (!this.previewManager) {
+          throw { code: ERROR_CODES.INVALID_REQUEST, message: "Preview manager not initialized" };
+        }
+        const validatedParams = validatePreviewUriParams(request.params);
+        result = await this.previewManager.startPreview(validatedParams.uri);
+      } else if (request.method === "abc.stopPreview") {
+        if (!this.previewManager) {
+          throw { code: ERROR_CODES.INVALID_REQUEST, message: "Preview manager not initialized" };
+        }
+        const validatedParams = validatePreviewUriParams(request.params);
+        this.previewManager.stopPreview(validatedParams.uri);
+        result = { success: true };
+      } else if (request.method === "abc.previewCursor") {
+        if (!this.previewManager) {
+          throw { code: ERROR_CODES.INVALID_REQUEST, message: "Preview manager not initialized" };
+        }
+        const validatedParams = validatePreviewCursorParams(request.params);
+        this.previewManager.pushCursorUpdate(validatedParams.uri, validatedParams.positions);
+        result = { success: true };
+      } else {
+        throw { code: ERROR_CODES.UNKNOWN_METHOD, message: `Unknown method: "${request.method}"` };
+      }
+
+      response = { id: request.id, result };
+    } catch (err) {
+      if (typeof err === "object" && err !== null && "code" in err) {
+        response = {
+          id: request.id,
+          error: err as { code: number; message: string },
+        };
+      } else {
+        response = {
+          id: request.id,
+          error: { code: ERROR_CODES.INVALID_REQUEST, message: String(err) },
+        };
+      }
+    }
+
+    socket.write(JSON.stringify(response) + "\n");
   }
 
   /**

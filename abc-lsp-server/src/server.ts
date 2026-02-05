@@ -33,6 +33,7 @@ import { fromAst, createSelection, Selection, CSNode, TAGS, selectRange } from "
 import { File_structure, Scanner, parse, ABCContext } from "abc-parser";
 import { computeFoldingRanges, DEFAULT_FOLDING_CONFIG } from "./foldingRangeProvider";
 import { SocketHandler, computeSocketPath } from "./socketHandler";
+import { PreviewManager } from "./PreviewManager";
 
 // ============================================================================
 // CLI Argument Parsing
@@ -462,8 +463,13 @@ connection.listen();
 const socketPath = parseSocketArg();
 let socketHandler: SocketHandler | null = null;
 
+// Create PreviewManager and wire it to abcServer
+const previewManager = new PreviewManager((uri) => abcServer.getPreviewContent(uri));
+abcServer.previewManager = previewManager;
+
 if (socketPath) {
   socketHandler = new SocketHandler(socketPath, (uri) => abcServer.abcDocuments.get(uri), getCsTree);
+  socketHandler.setPreviewManager(previewManager);
 
   socketHandler
     .start()
@@ -481,12 +487,14 @@ if (socketPath) {
 
 // Cleanup on exit
 process.on("exit", () => {
+  previewManager.shutdown();
   if (socketHandler) {
     socketHandler.stop();
   }
 });
 
 process.on("SIGINT", () => {
+  previewManager.shutdown();
   if (socketHandler) {
     socketHandler.stop();
   }
@@ -494,6 +502,7 @@ process.on("SIGINT", () => {
 });
 
 process.on("SIGTERM", () => {
+  previewManager.shutdown();
   if (socketHandler) {
     socketHandler.stop();
   }
