@@ -13,9 +13,11 @@
  *   --uri=URI             Document URI (required)
  *   --selector=NAME       Selector name (use for selector operations)
  *   --transform=NAME      Transform name (use for transform operations)
+ *   --method=NAME         Generic method name (for preview operations)
  *   --args=JSON           Selector/transform arguments as JSON array (default: [])
  *   --ranges=DESC         Kakoune selection descriptors, space-separated (optional)
- *   --buffer-file=PATH    Path to temp file containing buffer content (required)
+ *   --positions=OFFSETS   Cursor byte offsets, space-separated (for abc.previewCursor)
+ *   --buffer-file=PATH    Path to temp file containing buffer content (for selector/transform)
  *   --timeout=MS          Request timeout in milliseconds (default: 5000)
  *
  * Selector mode output (on success, exit 0):
@@ -23,6 +25,10 @@
  *
  * Transform mode output (on success, exit 0):
  *   Lines: replacement text (entire buffer content after transform)
+ *
+ * Method mode output (on success, exit 0):
+ *   For abc.startPreview: outputs URL to stdout
+ *   For other methods: no output
  *
  * Output (on error, exit 1):
  *   stderr: error message
@@ -42,8 +48,10 @@ function parseArgs() {
     uri: null,
     selector: null,
     transform: null,
+    method: null,
     args: [],
     ranges: "",
+    positions: "",
     bufferFile: null,
     timeout: 5000,
   };
@@ -57,6 +65,8 @@ function parseArgs() {
       args.selector = arg.substring("--selector=".length);
     } else if (arg.startsWith("--transform=")) {
       args.transform = arg.substring("--transform=".length);
+    } else if (arg.startsWith("--method=")) {
+      args.method = arg.substring("--method=".length);
     } else if (arg.startsWith("--args=")) {
       try {
         args.args = JSON.parse(arg.substring("--args=".length));
@@ -65,6 +75,8 @@ function parseArgs() {
       }
     } else if (arg.startsWith("--ranges=")) {
       args.ranges = arg.substring("--ranges=".length);
+    } else if (arg.startsWith("--positions=")) {
+      args.positions = arg.substring("--positions=".length);
     } else if (arg.startsWith("--buffer-file=")) {
       args.bufferFile = arg.substring("--buffer-file=".length);
     } else if (arg.startsWith("--timeout=")) {
@@ -78,14 +90,19 @@ function parseArgs() {
   if (!args.uri) {
     error("Missing required --uri argument");
   }
-  if (!args.selector && !args.transform) {
-    error("Missing required --selector or --transform argument");
+
+  // Determine operation mode
+  const modeCount = [args.selector, args.transform, args.method].filter(Boolean).length;
+  if (modeCount === 0) {
+    error("Missing required --selector, --transform, or --method argument");
   }
-  if (args.selector && args.transform) {
-    error("Cannot specify both --selector and --transform");
+  if (modeCount > 1) {
+    error("Cannot specify more than one of --selector, --transform, or --method");
   }
-  if (!args.bufferFile) {
-    error("Missing required --buffer-file argument");
+
+  // Buffer file is only required for selector/transform modes
+  if ((args.selector || args.transform) && !args.bufferFile) {
+    error("Missing required --buffer-file argument for selector/transform mode");
   }
 
   return args;
@@ -370,6 +387,51 @@ function applyEdits(content, edits) {
 
 async function main() {
   const args = parseArgs();
+
+  // Handle generic method calls (preview operations)
+  if (args.method) {
+    let request;
+    if (args.method === "abc.startPreview" || args.method === "abc.stopPreview") {
+      request = {
+        id: 1,
+        method: args.method,
+        params: { uri: args.uri },
+      };
+    } else if (args.method === "abc.previewCursor") {
+      // Parse positions from space-separated string
+      const positions = args.positions
+        .split(/\s+/)
+        .filter((p) => p)
+        .map((p) => parseInt(p, 10));
+      request = {
+        id: 1,
+        method: args.method,
+        params: { uri: args.uri, positions },
+      };
+    } else {
+      error(`Unknown method: ${args.method}`);
+    }
+
+    let response;
+    try {
+      response = await sendRequest(args.socket, request, args.timeout);
+    } catch (err) {
+      error(err.message);
+    }
+
+    if (response.error) {
+      error(response.error.message);
+    }
+
+    // Output for abc.startPreview: the URL
+    if (args.method === "abc.startPreview" && response.result && response.result.url) {
+      console.log(response.result.url);
+    }
+    // Other methods: no output on success
+    process.exit(0);
+  }
+
+  // Selector/Transform mode requires buffer file
   const lines = readBufferLines(args.bufferFile);
   const bufferContent = lines.join("\n");
 
