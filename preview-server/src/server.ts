@@ -4,25 +4,6 @@ import http from "http";
 import path from "path";
 import WebSocket from "ws";
 import { ClientMessage, CleanupMessage, ContentMessage, ServerMessage } from "./types";
-import { ABCContext, convertAbcxToAbc } from "abc-parser";
-
-// ABCx file detection and conversion
-function isAbcxFile(filePath: string): boolean {
-  return filePath.endsWith(".abcx");
-}
-
-function processContent(filePath: string, content: string): string {
-  if (isAbcxFile(filePath)) {
-    try {
-      const ctx = new ABCContext();
-      return convertAbcxToAbc(content, ctx);
-    } catch (error) {
-      console.error("ABCx conversion error:", error);
-      return content; // Return original on error
-    }
-  }
-  return content;
-}
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -284,9 +265,6 @@ findAvailablePort(startPort).then((port) => {
         return;
       }
 
-      // Convert ABCx to ABC if needed
-      const processedContent = processContent(filePath, contentMsg.content);
-
       // Get or create score data
       let scoreData = scoresByPath.get(filePath);
 
@@ -296,7 +274,7 @@ findAvailablePort(startPort).then((port) => {
         const slug = generateSlug(filePath, existingSlugs);
 
         scoreData = {
-          content: processedContent,
+          content: contentMsg.content,
           slug: slug,
           clients: new Set()
         };
@@ -307,7 +285,7 @@ findAvailablePort(startPort).then((port) => {
         console.log(`Created new score: ${filePath} -> ${slug}`);
       } else {
         // Update existing score content
-        scoreData.content = processedContent;
+        scoreData.content = contentMsg.content;
       }
 
       // Broadcast to all clients for this score
@@ -315,7 +293,7 @@ findAvailablePort(startPort).then((port) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({
             type: "content",
-            content: processedContent
+            content: contentMsg.content
           }));
         }
       });
