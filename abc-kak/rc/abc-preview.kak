@@ -2,6 +2,14 @@
 # Live browser preview of ABC notation via LSP-managed preview server
 
 # ============================================================================
+# Options
+# ============================================================================
+
+# Set to false to disable automatic preview opening when ABC files are opened
+declare-option -docstring "Automatically open preview when ABC files are opened" \
+    bool abc_auto_preview true
+
+# ============================================================================
 # Preview Commands
 # ============================================================================
 
@@ -32,7 +40,7 @@ define-command abc-preview-open \
 }
 
 define-command abc-preview-close \
-    -docstring "Stop the ABC preview" %{
+    -docstring "Stop the ABC preview for the current buffer" %{
     evaluate-commands %sh{
         node "$kak_opt_abc_client_path" \
             --socket="$kak_opt_abc_socket_path" \
@@ -40,6 +48,15 @@ define-command abc-preview-close \
             --uri="file://$kak_buffile" 2>/dev/null
 
         printf '%s\n' "echo -markup '{Information}Preview closed'"
+    }
+}
+
+define-command abc-preview-shutdown \
+    -docstring "Shutdown the preview server entirely" %{
+    nop %sh{
+        node "$kak_opt_abc_client_path" \
+            --socket="$kak_opt_abc_socket_path" \
+            --method="abc.shutdownPreview" 2>/dev/null
     }
 }
 
@@ -58,10 +75,24 @@ define-command -hidden abc-preview-cursor %{
 }
 
 # ============================================================================
-# Hooks for Cursor Sync
+# Hooks
 # ============================================================================
 
 hook global WinSetOption filetype=(abc|abcx) %{
+    # Auto-open preview if enabled
+    evaluate-commands %sh{
+        if [ "$kak_opt_abc_auto_preview" = "true" ]; then
+            printf '%s\n' "abc-preview-open"
+        fi
+    }
+
+    # Cursor sync hooks
     hook buffer NormalIdle .* %{ abc-preview-cursor }
     hook buffer InsertIdle .* %{ abc-preview-cursor }
+
+    # Close preview when buffer is closed
+    hook -once buffer BufClose .* %{ abc-preview-close }
 }
+
+# Shutdown preview server when Kakoune exits
+hook global KakEnd .* %{ abc-preview-shutdown }

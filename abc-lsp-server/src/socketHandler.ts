@@ -598,6 +598,12 @@ export class SocketHandler {
         const validatedParams = validatePreviewCursorParams(request.params);
         this.previewManager.pushCursorUpdate(validatedParams.uri, validatedParams.positions);
         result = { success: true };
+      } else if (request.method === "abc.shutdownPreview") {
+        if (!this.previewManager) {
+          throw { code: ERROR_CODES.INVALID_REQUEST, message: "Preview manager not initialized" };
+        }
+        this.previewManager.shutdown();
+        result = { success: true };
       } else {
         throw { code: ERROR_CODES.UNKNOWN_METHOD, message: `Unknown method: "${request.method}"` };
       }

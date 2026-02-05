@@ -87,7 +87,9 @@ function parseArgs() {
   if (!args.socket) {
     error("Missing required --socket argument");
   }
-  if (!args.uri) {
+
+  // URI is required for all methods except abc.shutdownPreview
+  if (!args.uri && args.method !== "abc.shutdownPreview") {
     error("Missing required --uri argument");
   }
 
@@ -396,6 +398,12 @@ async function main() {
         id: 1,
         method: args.method,
         params: { uri: args.uri },
+      };
+    } else if (args.method === "abc.shutdownPreview") {
+      request = {
+        id: 1,
+        method: args.method,
+        params: {},
       };
     } else if (args.method === "abc.previewCursor") {
       // Parse positions from space-separated string
