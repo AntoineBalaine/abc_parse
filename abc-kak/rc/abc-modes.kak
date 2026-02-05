@@ -227,3 +227,22 @@ map global abc-transform x ':abc-transform-explode<ret>'             -docstring 
 # --- Convert Transforms ---
 map global abc-transform r ':abc-to-rest<ret>'                  -docstring 'to rest'
 map global abc-transform R ':abc-consolidate-rests<ret>'        -docstring 'consolidate rests'
+
+# ============================================================================
+# Inside/Around Submodes
+# ============================================================================
+
+# These submodes provide text-object-style selectors for delimited constructs.
+# Enter via 'i' (inside) or 'a' (around) from the abc-select mode.
+
+# --- Inside Submode ---
+map global abc-select-inside c ':abc-select-inside-chord<ret>'        -docstring 'inside chord'
+map global abc-select-inside g ':abc-select-inside-grace-group<ret>'  -docstring 'inside grace group'
+map global abc-select-inside f ':abc-select-inside-inline-field<ret>' -docstring 'inside inline field'
+map global abc-select-inside p ':abc-select-inside-grouping<ret>'     -docstring 'inside grouping'
+
+# --- Around Submode ---
+map global abc-select-around c ':abc-select-around-chord<ret>'        -docstring 'around chord'
+map global abc-select-around g ':abc-select-around-grace-group<ret>'  -docstring 'around grace group'
+map global abc-select-around f ':abc-select-around-inline-field<ret>' -docstring 'around inline field'
+map global abc-select-around p ':abc-select-around-grouping<ret>'     -docstring 'around grouping'
