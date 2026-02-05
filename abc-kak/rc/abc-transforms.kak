@@ -290,3 +290,13 @@ define-command abc-harmonize-6th-down \
     -docstring "Harmonize selection a sixth down" %{
     abc-harmonize -5
 }
+
+define-command abc-harmonize-octave-up \
+    -docstring "Harmonize selection an octave up" %{
+    abc-harmonize 7
+}
+
+define-command abc-harmonize-octave-down \
+    -docstring "Harmonize selection an octave down" %{
+    abc-harmonize -7
+}
