@@ -91,6 +91,8 @@ export function registerTransformCommands(
     ["abc.explode2", "explode2"],
     ["abc.explode3", "explode3"],
     ["abc.explode4", "explode4"],
+    ["abc.multiplyRhythm", "multiplyRhythm"],
+    ["abc.divideRhythm", "divideRhythm"],
   ];
 
   for (const [commandId, transformName] of simpleTransforms) {

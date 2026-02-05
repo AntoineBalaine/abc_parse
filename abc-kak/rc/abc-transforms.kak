@@ -143,6 +143,22 @@ define-command abc-add-to-rhythm -params 2 \
     abc-transform-impl addToRhythm "[{\"num\": $1, \"denom\": $2}]"
 }
 
+define-command abc-multiply-rhythm -params 0..1 \
+    -docstring "abc-multiply-rhythm [factor]: Multiply rhythm length by factor (default 2)" %{
+    evaluate-commands %sh{
+        factor="${1:-2}"
+        printf '%s\n' "abc-transform-impl multiplyRhythm '[$factor]'"
+    }
+}
+
+define-command abc-divide-rhythm -params 0..1 \
+    -docstring "abc-divide-rhythm [factor]: Divide rhythm length by factor (default 2)" %{
+    evaluate-commands %sh{
+        factor="${1:-2}"
+        printf '%s\n' "abc-transform-impl divideRhythm '[$factor]'"
+    }
+}
+
 # ============================================================================
 # Conversion Transform Commands
 # ============================================================================

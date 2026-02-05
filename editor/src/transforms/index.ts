@@ -1,5 +1,16 @@
 export { findNodesById, TransformFn, InspectionFn } from "./types";
-export { findChildByTag, removeChild, replaceChild, insertBefore, appendChild, collectChildren, findParent, findRhythmChild, findTieChild, replaceRhythm } from "./treeUtils";
+export {
+  findChildByTag,
+  removeChild,
+  replaceChild,
+  insertBefore,
+  appendChild,
+  collectChildren,
+  findParent,
+  findRhythmChild,
+  findTieChild,
+  replaceRhythm,
+} from "./treeUtils";
 export { rhythmToRational, rationalToRhythm, extractBrokenToken, getNodeRhythm } from "./rhythm";
 export { remove } from "./remove";
 export { transpose } from "./transpose";
@@ -19,3 +30,5 @@ export { insertVoiceLine } from "./insertVoiceLine";
 export { voiceInfoLineToInline, voiceInlineToInfoLine } from "./voiceMarkerTransform";
 export { explode, explode2, explode3, explode4 } from "./explode";
 export { addSharp, addFlat } from "./addAccidental";
+export { multiplyRhythm } from "./multiplyRhythm";
+export { divideRhythm } from "./divideRhythm";

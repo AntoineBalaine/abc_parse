@@ -349,6 +349,16 @@
         "command": "abc.explode4",
         "title": "ABC: Explode to 4 Parts",
         "category": "ABC"
+      },
+      {
+        "command": "abc.multiplyRhythm",
+        "title": "ABC: Double Rhythm Length",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.divideRhythm",
+        "title": "ABC: Halve Rhythm Length",
+        "category": "ABC"
       }
     ],
     "menus": {
@@ -543,6 +553,14 @@
         },
         {
           "command": "abc.explode4",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.multiplyRhythm",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.divideRhythm",
           "when": "editorLangId == abc"
         }
       ]

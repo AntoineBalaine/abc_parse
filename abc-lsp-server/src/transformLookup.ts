@@ -27,14 +27,12 @@ import {
   explode4,
   addSharp,
   addFlat,
+  multiplyRhythm,
+  divideRhythm,
 } from "editor";
 import { ABCContext, IRational } from "abc-parser";
 
-export type TransformFn = (
-  selection: Selection,
-  ctx: ABCContext,
-  ...args: unknown[]
-) => Selection;
+export type TransformFn = (selection: Selection, ctx: ABCContext, ...args: unknown[]) => Selection;
 
 const TRANSFORM_MAP: Record<string, TransformFn> = {
   transpose: (sel, ctx, ...args) => transpose(sel, args[0] as number, ctx),
@@ -56,6 +54,8 @@ const TRANSFORM_MAP: Record<string, TransformFn> = {
   explode4: (sel, ctx) => explode4(sel, ctx),
   addSharp: (sel, ctx) => addSharp(sel, ctx),
   addFlat: (sel, ctx) => addFlat(sel, ctx),
+  multiplyRhythm: (sel, ctx, ...args) => multiplyRhythm(sel, args[0] !== undefined ? Number(args[0]) : 2, ctx),
+  divideRhythm: (sel, ctx, ...args) => divideRhythm(sel, args[0] !== undefined ? Number(args[0]) : 2, ctx),
 };
 
 export function lookupTransform(name: string): TransformFn | null {
