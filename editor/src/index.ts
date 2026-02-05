@@ -103,6 +103,8 @@ export {
   explode2,
   explode3,
   explode4,
+  addSharp,
+  addFlat,
 } from "./transforms";
 
 // Utils

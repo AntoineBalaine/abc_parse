@@ -25,6 +25,8 @@ import {
   explode2,
   explode3,
   explode4,
+  addSharp,
+  addFlat,
 } from "editor";
 import { ABCContext, IRational } from "abc-parser";
 
@@ -52,6 +54,8 @@ const TRANSFORM_MAP: Record<string, TransformFn> = {
   explode2: (sel, ctx) => explode2(sel, ctx),
   explode3: (sel, ctx) => explode3(sel, ctx),
   explode4: (sel, ctx) => explode4(sel, ctx),
+  addSharp: (sel, ctx) => addSharp(sel, ctx),
+  addFlat: (sel, ctx) => addFlat(sel, ctx),
 };
 
 export function lookupTransform(name: string): TransformFn | null {

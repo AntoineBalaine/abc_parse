@@ -116,6 +116,20 @@ define-command abc-harmonize -params 1 \
 }
 
 # ============================================================================
+# Accidental Commands
+# ============================================================================
+
+define-command abc-add-sharp \
+    -docstring "Add sharp accidental to selected notes (or sharpen existing)" %{
+    abc-transform-impl addSharp
+}
+
+define-command abc-add-flat \
+    -docstring "Add flat accidental to selected notes (or flatten existing)" %{
+    abc-transform-impl addFlat
+}
+
+# ============================================================================
 # Rhythm Transform Commands
 # ============================================================================
 
