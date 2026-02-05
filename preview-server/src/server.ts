@@ -245,10 +245,122 @@ findAvailablePort(startPort).then((port) => {
     });
   });
 
+  // Parse base64 line protocol (for Kakoune)
+  // Format: type:path:base64content or type:value
+  function parseBase64Line(line: string): ServerMessage | null {
+    const colonIndex = line.indexOf(':');
+    if (colonIndex === -1) return null;
+
+    const type = line.substring(0, colonIndex);
+    const rest = line.substring(colonIndex + 1);
+
+    if (type === 'content') {
+      const secondColon = rest.indexOf(':');
+      if (secondColon === -1) return null;
+      const filepath = rest.substring(0, secondColon);
+      const base64Content = rest.substring(secondColon + 1);
+      const content = Buffer.from(base64Content, 'base64').toString('utf8');
+      return { type: 'content', path: filepath, content };
+    } else if (type === 'cursor') {
+      const position = parseInt(rest, 10);
+      if (isNaN(position)) return null;
+      return { type: 'cursorMove', position };
+    } else if (type === 'cleanup') {
+      return { type: 'cleanup', path: rest };
+    }
+
+    return null;
+  }
+
+  // Handle a parsed message (from either JSON or base64 protocol)
+  function handleMessage(message: ServerMessage): void {
+    if (message.type === "content") {
+      // Handle content update for a specific score
+      const contentMsg = message as ContentMessage;
+      const filePath = contentMsg.path;
+
+      if (!filePath) {
+        console.error("Content message missing path field");
+        return;
+      }
+
+      // Convert ABCx to ABC if needed
+      const processedContent = processContent(filePath, contentMsg.content);
+
+      // Get or create score data
+      let scoreData = scoresByPath.get(filePath);
+
+      if (!scoreData) {
+        // Generate slug for new score
+        const existingSlugs = new Set(slugToPath.keys());
+        const slug = generateSlug(filePath, existingSlugs);
+
+        scoreData = {
+          content: processedContent,
+          slug: slug,
+          clients: new Set()
+        };
+
+        scoresByPath.set(filePath, scoreData);
+        slugToPath.set(slug, filePath);
+
+        console.log(`Created new score: ${filePath} -> ${slug}`);
+      } else {
+        // Update existing score content
+        scoreData.content = processedContent;
+      }
+
+      // Broadcast to all clients for this score
+      scoreData.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            type: "content",
+            content: processedContent
+          }));
+        }
+      });
+    } else if (message.type === "cleanup") {
+      // Handle cleanup request
+      const cleanupMsg = message as CleanupMessage;
+      const filePath = cleanupMsg.path;
+
+      if (!filePath) {
+        console.error("Cleanup message missing path field");
+        return;
+      }
+
+      const scoreData = scoresByPath.get(filePath);
+      if (scoreData) {
+        // Close all client connections for this score
+        scoreData.clients.forEach(client => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.close();
+          }
+        });
+
+        // Remove from maps
+        slugToPath.delete(scoreData.slug);
+        scoresByPath.delete(filePath);
+
+        console.log(`Cleaned up score: ${filePath}`);
+      }
+    } else if (message.type === "config" || message.type === "cursorMove") {
+      // Broadcast config and cursor move to all clients (for now)
+      scoresByPath.forEach((scoreData) => {
+        scoreData.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(message));
+          }
+        });
+      });
+    }
+  }
+
   // Buffer for stdin line processing
   let stdinBuffer = '';
 
-  // Listen for input from Neovim (via stdin)
+  // Listen for input from editor (via stdin)
+  // Supports both JSON protocol (nvim) and base64 line protocol (kak)
   process.stdin.on("data", (data: Buffer) => {
     // Add incoming data to buffer
     stdinBuffer += data.toString();
@@ -264,93 +376,24 @@ findAvailablePort(startPort).then((port) => {
       const trimmed = line.trim();
       if (!trimmed) continue; // Skip empty lines
 
-      try {
-        const message = JSON.parse(trimmed) as ServerMessage;
-
-      if (message.type === "content") {
-        // Handle content update for a specific score
-        const contentMsg = message as ContentMessage;
-        const filePath = contentMsg.path;
-
-        if (!filePath) {
-          console.error("Content message missing path field");
-          continue;
+      // Detect protocol by checking if line starts with '{'
+      if (trimmed.startsWith('{')) {
+        // JSON protocol (nvim)
+        try {
+          const message = JSON.parse(trimmed) as ServerMessage;
+          handleMessage(message);
+        } catch (error) {
+          console.error("Error parsing JSON line:", error);
+          console.error("Line was:", trimmed);
         }
-
-        // Convert ABCx to ABC if needed
-        const processedContent = processContent(filePath, contentMsg.content);
-
-        // Get or create score data
-        let scoreData = scoresByPath.get(filePath);
-
-        if (!scoreData) {
-          // Generate slug for new score
-          const existingSlugs = new Set(slugToPath.keys());
-          const slug = generateSlug(filePath, existingSlugs);
-
-          scoreData = {
-            content: processedContent,
-            slug: slug,
-            clients: new Set()
-          };
-
-          scoresByPath.set(filePath, scoreData);
-          slugToPath.set(slug, filePath);
-
-          console.log(`Created new score: ${filePath} -> ${slug}`);
+      } else {
+        // Base64 line protocol (kak)
+        const message = parseBase64Line(trimmed);
+        if (message) {
+          handleMessage(message);
         } else {
-          // Update existing score content
-          scoreData.content = processedContent;
+          console.error("Error parsing base64 line:", trimmed);
         }
-
-        // Broadcast to all clients for this score
-        scoreData.clients.forEach((client) => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({
-              type: "content",
-              content: processedContent
-            }));
-          }
-        });
-      } else if (message.type === "cleanup") {
-        // Handle cleanup request
-        const cleanupMsg = message as CleanupMessage;
-        const filePath = cleanupMsg.path;
-
-        if (!filePath) {
-          console.error("Cleanup message missing path field");
-          continue;
-        }
-
-        const scoreData = scoresByPath.get(filePath);
-        if (scoreData) {
-          // Close all client connections for this score
-          scoreData.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.close();
-            }
-          });
-
-          // Remove from maps
-          slugToPath.delete(scoreData.slug);
-          scoresByPath.delete(filePath);
-
-          console.log(`Cleaned up score: ${filePath}`);
-        }
-      } else if (message.type === "config" || message.type === "cursorMove") {
-        // Broadcast config and cursor move to all clients (for now)
-        // TODO: Could be made per-score if needed
-        scoresByPath.forEach((scoreData) => {
-          scoreData.clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify(message));
-            }
-          });
-        });
-      }
-      } catch (error) {
-        console.error("Error parsing JSON line:", error);
-        console.error("Line was:", trimmed);
       }
     }
   });
