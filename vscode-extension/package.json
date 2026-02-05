@@ -359,6 +359,16 @@
         "command": "abc.divideRhythm",
         "title": "ABC: Halve Rhythm Length",
         "category": "ABC"
+      },
+      {
+        "command": "abc.addSharp",
+        "title": "ABC: Add Sharp",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.addFlat",
+        "title": "ABC: Add Flat",
+        "category": "ABC"
       }
     ],
     "menus": {
@@ -561,6 +571,14 @@
         },
         {
           "command": "abc.divideRhythm",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.addSharp",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.addFlat",
           "when": "editorLangId == abc"
         }
       ]
