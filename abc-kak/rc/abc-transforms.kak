@@ -180,3 +180,99 @@ define-command abc-explode4 \
     -docstring "Explode chords into 4 voice parts" %{
     abc-transform-impl explode4
 }
+
+# ============================================================================
+# Voice Marker Transform Commands
+# ============================================================================
+
+define-command abc-voice-info-to-inline \
+    -docstring "Convert voice info line (V:1) to inline format ([V:1])" %{
+    abc-transform-impl voiceInfoLineToInline
+}
+
+define-command abc-voice-inline-to-info \
+    -docstring "Convert inline voice marker ([V:1]) to info line format (V:1)" %{
+    abc-transform-impl voiceInlineToInfoLine
+}
+
+# ============================================================================
+# Dynamic Wrap Commands
+# ============================================================================
+
+define-command abc-wrap-crescendo \
+    -docstring "Wrap selection in crescendo markers (!<(! ... !<)!)" %{
+    execute-keys "i!<(!<esc>a!<)!<esc>"
+}
+
+define-command abc-wrap-decrescendo \
+    -docstring "Wrap selection in decrescendo markers (!>(! ... !>)!)" %{
+    execute-keys "i!>(!<esc>a!>)!<esc>"
+}
+
+# ============================================================================
+# Convenience Transpose Commands
+# ============================================================================
+
+define-command abc-transpose-octave-up \
+    -docstring "Transpose selection up one octave" %{
+    abc-transpose 12
+}
+
+define-command abc-transpose-octave-down \
+    -docstring "Transpose selection down one octave" %{
+    abc-transpose -12
+}
+
+define-command abc-transpose-halfstep-up \
+    -docstring "Transpose selection up one half step" %{
+    abc-transpose 1
+}
+
+define-command abc-transpose-halfstep-down \
+    -docstring "Transpose selection down one half step" %{
+    abc-transpose -1
+}
+
+# ============================================================================
+# Convenience Harmonize Commands
+# ============================================================================
+
+define-command abc-harmonize-3rd-up \
+    -docstring "Harmonize selection a third up" %{
+    abc-harmonize 2
+}
+
+define-command abc-harmonize-3rd-down \
+    -docstring "Harmonize selection a third down" %{
+    abc-harmonize -2
+}
+
+define-command abc-harmonize-4th-up \
+    -docstring "Harmonize selection a fourth up" %{
+    abc-harmonize 3
+}
+
+define-command abc-harmonize-4th-down \
+    -docstring "Harmonize selection a fourth down" %{
+    abc-harmonize -3
+}
+
+define-command abc-harmonize-5th-up \
+    -docstring "Harmonize selection a fifth up" %{
+    abc-harmonize 4
+}
+
+define-command abc-harmonize-5th-down \
+    -docstring "Harmonize selection a fifth down" %{
+    abc-harmonize -4
+}
+
+define-command abc-harmonize-6th-up \
+    -docstring "Harmonize selection a sixth up" %{
+    abc-harmonize 5
+}
+
+define-command abc-harmonize-6th-down \
+    -docstring "Harmonize selection a sixth down" %{
+    abc-harmonize -5
+}
