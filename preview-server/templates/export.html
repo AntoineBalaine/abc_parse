@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ABC Export</title>
+</head>
+<body>
+    <div id="content"></div>
+    
+    <script>
+        // This page will receive the SVG content via WebSocket
+        const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`);
+        
+        ws.onmessage = function(event) {
+            const message = JSON.parse(event.data);
+            
+            if (message.type === 'svgExport') {
+                document.getElementById('content').innerHTML = message.content;
+            }
+        };
+    </script>
+</body>
+</html>

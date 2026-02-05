@@ -1,0 +1,25 @@
+{
+  "name": "abc-preview-server",
+  "version": "1.0.0",
+  "description": "Preview server for ABC music notation",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/server.ts"
+  },
+  "dependencies": {
+    "abc-parser": "file:../parse",
+    "express": "^4.18.2",
+    "ws": "^8.13.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/node": "^18.15.11",
+    "@types/ws": "^8.5.4",
+    "nodemon": "^3.1.9",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.4"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ABC Print Preview</title>
+    <style>
+        @media screen {
+            #source {
+                width: 100%;
+                text-align: center;
+            }
+        }
+
+        @media print {
+            #source {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="paper"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/abcjs@6.2.0/dist/abcjs-basic-min.js"></script>
+    <script>
+        let options = {
+            print: true,
+        }
+        
+        // Connect to WebSocket to receive content
+        const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`);
+        
+        ws.onmessage = function(event) {
+            const message = JSON.parse(event.data);
+            
+            if (message.type === 'content') {
+                ABCJS.renderAbc('paper', message.content, options);
+                
+                // Auto-print after a short delay to allow rendering
+                setTimeout(() => {
+                    window.print();
+                }, 1000);
+            }
+        };
+    </script>
+</body>
+</html>
