@@ -79,3 +79,151 @@ map global abc-select 9 ':abc-select-nth-from-top 9<ret>'  -docstring '9th from 
 # --- Inside/Around Entry Points ---
 map global abc-select i ':enter-user-mode abc-select-inside<ret>' -docstring 'inside...'
 map global abc-select a ':enter-user-mode abc-select-around<ret>' -docstring 'around...'
+
+# ============================================================================
+# Count-Aware Transform Wrappers
+# ============================================================================
+
+# These wrapper commands read Kakoune's count register and pass the value to
+# the underlying transform commands. Commands default to 1 for pitch transforms
+# and 2 for rhythm/explode transforms when no count is specified.
+
+# --- Octave Transforms (default: 1 octave) ---
+
+define-command -hidden abc-transform-octave-up %{
+    evaluate-commands %sh{
+        count="${kak_count:-1}"
+        if [ "$count" = "0" ]; then count=1; fi
+        printf '%s\n' "abc-transpose $((count * 12))"
+    }
+}
+
+define-command -hidden abc-transform-octave-down %{
+    evaluate-commands %sh{
+        count="${kak_count:-1}"
+        if [ "$count" = "0" ]; then count=1; fi
+        printf '%s\n' "abc-transpose $((-count * 12))"
+    }
+}
+
+define-command -hidden abc-transform-harmonize-octave-up %{
+    evaluate-commands %sh{
+        count="${kak_count:-1}"
+        if [ "$count" = "0" ]; then count=1; fi
+        printf '%s\n' "abc-harmonize $((count * 7))"
+    }
+}
+
+define-command -hidden abc-transform-harmonize-octave-down %{
+    evaluate-commands %sh{
+        count="${kak_count:-1}"
+        if [ "$count" = "0" ]; then count=1; fi
+        printf '%s\n' "abc-harmonize $((-count * 7))"
+    }
+}
+
+# --- Semitone Transforms (default: 1 semitone) ---
+
+define-command -hidden abc-transform-transpose-up %{
+    evaluate-commands %sh{
+        count="${kak_count:-1}"
+        if [ "$count" = "0" ]; then count=1; fi
+        printf '%s\n' "abc-transpose $count"
+    }
+}
+
+define-command -hidden abc-transform-transpose-down %{
+    evaluate-commands %sh{
+        count="${kak_count:-1}"
+        if [ "$count" = "0" ]; then count=1; fi
+        printf '%s\n' "abc-transpose $((-count))"
+    }
+}
+
+# --- Diatonic Transforms (default: 1 step) ---
+
+define-command -hidden abc-transform-harmonize-up %{
+    evaluate-commands %sh{
+        count="${kak_count:-1}"
+        if [ "$count" = "0" ]; then count=1; fi
+        printf '%s\n' "abc-harmonize $count"
+    }
+}
+
+define-command -hidden abc-transform-harmonize-down %{
+    evaluate-commands %sh{
+        count="${kak_count:-1}"
+        if [ "$count" = "0" ]; then count=1; fi
+        printf '%s\n' "abc-harmonize $((-count))"
+    }
+}
+
+# --- Rhythm Transforms (default: factor of 2) ---
+
+define-command -hidden abc-transform-multiply-rhythm %{
+    evaluate-commands %sh{
+        count="${kak_count:-2}"
+        if [ "$count" = "0" ]; then count=2; fi
+        printf '%s\n' "abc-multiply-rhythm $count"
+    }
+}
+
+define-command -hidden abc-transform-divide-rhythm %{
+    evaluate-commands %sh{
+        count="${kak_count:-2}"
+        if [ "$count" = "0" ]; then count=2; fi
+        printf '%s\n' "abc-divide-rhythm $count"
+    }
+}
+
+# --- Explode Transform (default: 2 parts) ---
+
+define-command -hidden abc-transform-explode %{
+    evaluate-commands %sh{
+        count="${kak_count:-2}"
+        if [ "$count" = "0" ]; then count=2; fi
+        printf '%s\n' "abc-explode $count"
+    }
+}
+
+# ============================================================================
+# Transform Mode Mappings
+# ============================================================================
+
+# --- Pitch Transforms: Octave ---
+map global abc-transform o ':abc-transform-octave-up<ret>'           -docstring '[count] octave up'
+map global abc-transform O ':abc-transform-octave-down<ret>'         -docstring '[count] octave down'
+map global abc-transform <a-o> ':abc-transform-harmonize-octave-up<ret>'   -docstring '[count] harmonize octave up'
+map global abc-transform <a-O> ':abc-transform-harmonize-octave-down<ret>' -docstring '[count] harmonize octave down'
+
+# --- Pitch Transforms: Semitone/Diatonic ---
+map global abc-transform p ':abc-transform-transpose-up<ret>'        -docstring '[count] transpose up (semitone)'
+map global abc-transform P ':abc-transform-transpose-down<ret>'      -docstring '[count] transpose down'
+map global abc-transform <a-p> ':abc-transform-harmonize-up<ret>'    -docstring '[count] harmonize up (diatonic)'
+map global abc-transform <a-P> ':abc-transform-harmonize-down<ret>'  -docstring '[count] harmonize down'
+
+# --- Pitch Transforms: Accidentals ---
+map global abc-transform + ':abc-add-sharp<ret>'                -docstring 'add sharp'
+map global abc-transform - ':abc-add-flat<ret>'                 -docstring 'add flat'
+map global abc-transform e ':abc-enharmonize<ret>'              -docstring 'enharmonize'
+
+# --- Rhythm Transforms ---
+map global abc-transform * ':abc-transform-multiply-rhythm<ret>'     -docstring '[count] multiply length'
+map global abc-transform / ':abc-transform-divide-rhythm<ret>'       -docstring '[count] divide length'
+
+# --- Voice Transforms ---
+map global abc-transform v ':abc-voice-info-to-inline<ret>'     -docstring 'V:1 to [V:1]'
+map global abc-transform V ':abc-voice-inline-to-info<ret>'     -docstring '[V:1] to V:1'
+map global abc-transform <a-v> ':prompt "Voice ID: " %{ abc-insert-voice-line %val{text} }<ret>' -docstring 'insert voice line'
+map global abc-transform <a-V> ':prompt "Voice ID: " %{ abc-add-voice %val{text} }<ret>'         -docstring 'add voice'
+
+# --- Dynamics Transforms ---
+map global abc-transform <lt> ':abc-wrap-crescendo<ret>'        -docstring 'wrap crescendo'
+map global abc-transform <gt> ':abc-wrap-decrescendo<ret>'      -docstring 'wrap decrescendo'
+
+# --- Explode Transform ---
+map global abc-transform x ':abc-transform-explode<ret>'             -docstring '[count] explode chords'
+
+# --- Convert Transforms ---
+map global abc-transform r ':abc-to-rest<ret>'                  -docstring 'to rest'
+map global abc-transform R ':abc-consolidate-rests<ret>'        -docstring 'consolidate rests'
