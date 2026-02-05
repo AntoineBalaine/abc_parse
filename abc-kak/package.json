@@ -1,0 +1,17 @@
+{
+  "name": "abc-kak",
+  "version": "0.0.1",
+  "private": true,
+  "description": "ABC notation support for Kakoune via kak-lsp",
+  "scripts": {
+    "build": "node esbuild.js",
+    "build:production": "node esbuild.js --production",
+    "watch": "node esbuild.js --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.10"
+  },
+  "dependencies": {
+    "abc-lsp-server": "*"
+  }
+}

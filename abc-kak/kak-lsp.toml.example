@@ -6,7 +6,8 @@ filetypes = ["abc", "abcx"]
 roots = [".git"]
 command = "node"
 # Update the path to match your installation
-args = ["/path/to/abc-lsp-server/out/server.js", "--stdio", "--socket=auto"]
+# Use the bundled server from abc-kak/dist/server.js
+args = ["/path/to/abc-kak/dist/server.js", "--stdio", "--socket=auto"]
 
 # The --socket=auto argument tells the server to create a Unix socket
 # for custom commands (selectors). The socket path is computed automatically:

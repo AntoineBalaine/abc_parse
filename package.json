@@ -9,7 +9,8 @@
     "abc-cli",
     "vscode-extension",
     "editor",
-    "preview-server"
+    "preview-server",
+    "abc-kak"
   ],
   "scripts": {
     "build": "npm run build:parse && npm run build:editor && npm run build:native && npm run build:lsp && npm run build:cli && npm run build:vscode && npm run build:preview",
@@ -22,6 +23,7 @@
     "build:vscode": "npm run build -w vscode-extension",
     "build:vscode-production": "npm run build:production -w vscode-extension",
     "build:preview": "npm run build -w abc-preview-server",
+    "build:kak": "npm run build -w abc-kak",
     "watch:parse": "npm run watch -w parse",
     "watch:lsp": "npm run watch -w abc-lsp-server",
     "watch:cli": "npm run watch -w abc-cli",

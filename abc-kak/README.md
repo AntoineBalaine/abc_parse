@@ -10,21 +10,23 @@ This plugin integrates ABC notation selectors with Kakoune, enabling AST-level p
 
 ## Installation
 
-1. Add the `rc/` directory to your Kakoune autoload path:
+1. Build the bundled LSP server:
+
+```bash
+cd /path/to/abc_parse
+npm install
+npm run build:kak
+```
+
+This creates `abc-kak/dist/server.js`, a self-contained bundle with all dependencies.
+
+2. Add the `rc/` directory to your Kakoune autoload path:
 
 ```bash
 ln -s /path/to/abc-kak/rc ~/.config/kak/autoload/abc
 ```
 
-2. Configure kak-lsp by adding the ABC LSP server to your `kak-lsp.toml` (see `kak-lsp.toml.example`).
-
-3. Ensure the ABC LSP server is built and accessible:
-
-```bash
-cd /path/to/abc_parse/abc-lsp-server
-npm install
-npm run build
-```
+3. Configure kak-lsp by adding the ABC LSP server to your `kak-lsp.toml` (see `kak-lsp.toml.example`). Update the path to point to your `abc-kak/dist/server.js`.
 
 ## Configuration
 
