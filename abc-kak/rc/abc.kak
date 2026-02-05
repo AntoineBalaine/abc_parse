@@ -53,9 +53,17 @@ hook global BufCreate .*\.abcx %{
 # the selector commands.
 
 # ============================================================================
-# Include Selector and Transform Commands
+# Include Selector, Transform, and Mode Commands
 # ============================================================================
 
+# Kakoune's autoload mechanism loads all .kak files when the rc/ directory
+# is placed in ~/.config/kak/autoload/. For explicit loading, source this
+# file and the commands below will be available.
+#
 # The selector commands are defined in abc-selectors.kak
 # The transform commands are defined in abc-transforms.kak
-# They are loaded automatically if placed in the same rc/ directory
+# The mode definitions are defined in abc-modes.kak
+
+source "%val{source}/abc-selectors.kak"
+source "%val{source}/abc-transforms.kak"
+source "%val{source}/abc-modes.kak"
