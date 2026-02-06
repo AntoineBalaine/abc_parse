@@ -2,14 +2,6 @@
 # Live browser preview of ABC notation via LSP-managed preview server
 
 # ============================================================================
-# Options
-# ============================================================================
-
-# Set to false to disable automatic preview opening when ABC files are opened
-declare-option -docstring "Automatically open preview when ABC files are opened" \
-    bool abc_auto_preview true
-
-# ============================================================================
 # Preview Commands
 # ============================================================================
 

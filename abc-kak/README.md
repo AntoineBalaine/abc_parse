@@ -20,21 +20,29 @@ npm run build:kak
 
 This creates `abc-kak/dist/server.js`, a self-contained bundle with all dependencies.
 
-2. Add the `rc/` directory to your Kakoune autoload path:
+2. Add to your kakrc:
 
-```bash
-ln -s /path/to/abc-kak/rc ~/.config/kak/autoload/abc
+```kak
+hook -once global WinSetOption filetype=(abc|abcx) %{
+    source "/path/to/abc-kak/rc/abc.kak"
+}
 ```
 
-3. Configure kak-lsp by adding the ABC LSP server to your `kak-lsp.toml` (see `kak-lsp.toml.example`). Update the path to point to your `abc-kak/dist/server.js`.
+The plugin auto-configures kak-lsp with the bundled server.
 
 ## Configuration
 
-The plugin provides the following options:
+To customize options, pre-declare them in your kakrc before the plugin is sourced. Kakoune's `declare-option` is idempotent, so your values are preserved when the plugin loads.
 
-- `abc_client_cmd`: Path to the abc-kak-client.js script (auto-detected relative to plugin)
-- `abc_socket_path`: Unix socket path for ABC LSP server communication (auto-computed)
-- `abc_timeout`: Request timeout in milliseconds (default: 5000)
+```kak
+declare-option str abc_client_path ""       # Path to abc-kak-client.js (auto-detected)
+declare-option str abc_server_path ""       # Path to LSP server (auto-detected)
+declare-option str abc_socket_path ""       # Unix socket path (auto-computed)
+declare-option int abc_timeout 5000         # Request timeout in milliseconds
+declare-option bool abc_auto_preview false  # Open browser preview on file open
+declare-option str abc_select_key "h"       # Key for select mode (empty to disable)
+declare-option str abc_transform_key "k"    # Key for transform mode (empty to disable)
+```
 
 ## Commands
 

@@ -23,6 +23,22 @@ declare-option -docstring "Unix socket path for ABC LSP server" \
 declare-option -docstring "Timeout for selector requests (ms)" \
     int abc_timeout 5000
 
+# Automatically open preview when ABC files are opened (default: false).
+# To enable, pre-declare in your kakrc before the plugin loads:
+#   declare-option bool abc_auto_preview true
+declare-option -docstring "Automatically open preview when ABC files are opened" \
+    bool abc_auto_preview false
+
+# Path to the bundled LSP server
+declare-option -docstring "Path to the ABC LSP server script" \
+    str abc_server_path "%sh{dirname $(dirname $kak_source)}/dist/server.js"
+
+# Key mappings for ABC modes (set to empty string to disable)
+declare-option -docstring "Key to enter ABC select mode" \
+    str abc_select_key "h"
+declare-option -docstring "Key to enter ABC transform mode" \
+    str abc_transform_key "k"
+
 # ============================================================================
 # Buffer-Scoped Options
 # ============================================================================
@@ -48,9 +64,33 @@ hook global BufCreate .*\.abcx %{
 # ============================================================================
 # LSP Integration (via kak-lsp)
 # ============================================================================
-# Note: LSP setup (lsp-enable-window, semantic tokens) should be configured
-# in your kakrc alongside the lsp_servers option. This plugin only provides
-# the selector commands.
+
+hook global WinSetOption filetype=(abc|abcx) %{
+    # Configure LSP server for this buffer
+    set-option buffer lsp_servers %sh{
+        printf '[abc-lsp]\n'
+        printf 'root_globs = [".git", ".hg"]\n'
+        printf 'command = "node"\n'
+        printf 'args = ["%s", "--stdio", "--socket=auto"]\n' "$kak_opt_abc_server_path"
+    }
+
+    # Enable LSP and semantic tokens
+    lsp-enable-window
+    hook window -group abc-semantic-tokens BufReload .* lsp-semantic-tokens
+    hook window -group abc-semantic-tokens NormalIdle .* lsp-semantic-tokens
+    hook window -group abc-semantic-tokens InsertIdle .* lsp-semantic-tokens
+    lsp-semantic-tokens
+
+    # Set up key mappings if configured
+    evaluate-commands %sh{
+        if [ -n "$kak_opt_abc_select_key" ]; then
+            printf "map buffer normal %s ':abc-enter-select-mode<ret>' -docstring 'ABC select'\n" "$kak_opt_abc_select_key"
+        fi
+        if [ -n "$kak_opt_abc_transform_key" ]; then
+            printf "map buffer normal %s ':abc-enter-transform-mode<ret>' -docstring 'ABC transform'\n" "$kak_opt_abc_transform_key"
+        fi
+    }
+}
 
 # ============================================================================
 # Include Selector, Transform, and Mode Commands
@@ -67,3 +107,4 @@ hook global BufCreate .*\.abcx %{
 source "%sh{dirname $kak_source}/abc-selectors.kak"
 source "%sh{dirname $kak_source}/abc-transforms.kak"
 source "%sh{dirname $kak_source}/abc-modes.kak"
+source "%sh{dirname $kak_source}/abc-preview.kak"
