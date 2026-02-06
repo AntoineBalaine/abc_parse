@@ -114,6 +114,22 @@ describe("typeSelectors", () => {
         })
       );
     });
+
+    it("every cursor in selectRests result contains exactly 1 ID of a Rest or MultiMeasureRest CSNode", () => {
+      fc.assert(
+        fc.property(genAbcTune, (abc) => {
+          const sel = toSelection(abc);
+          const result = selectRests(sel);
+          for (const cursor of result.cursors) {
+            if (cursor.size !== 1) return false;
+            const id = [...cursor][0];
+            const node = findById(result.root, id);
+            if (!node || (node.tag !== TAGS.Rest && node.tag !== TAGS.MultiMeasureRest)) return false;
+          }
+          return true;
+        })
+      );
+    });
   });
 
   describe("examples", () => {
@@ -145,6 +161,30 @@ describe("typeSelectors", () => {
       const sel = toSelection("X:1\nK:C\nC2 z2 [DF]2 z2|\n");
       const rests = selectRests(sel);
       expect(rests.cursors.length).to.equal(2);
+    });
+
+    it("C | X4 | D| — selectRests produces 1 cursor (invisible multi-measure rest)", () => {
+      const sel = toSelection("X:1\nK:C\nC | X4 | D|\n");
+      const rests = selectRests(sel);
+      expect(rests.cursors.length).to.equal(1);
+      const id = [...rests.cursors[0]][0];
+      const node = findById(rests.root, id);
+      expect(node!.tag).to.equal(TAGS.MultiMeasureRest);
+    });
+
+    it("C | Z4 | D| — selectRests produces 1 cursor (visible multi-measure rest)", () => {
+      const sel = toSelection("X:1\nK:C\nC | Z4 | D|\n");
+      const rests = selectRests(sel);
+      expect(rests.cursors.length).to.equal(1);
+      const id = [...rests.cursors[0]][0];
+      const node = findById(rests.root, id);
+      expect(node!.tag).to.equal(TAGS.MultiMeasureRest);
+    });
+
+    it("z2 X2 Z2| — selectRests produces 3 cursors (regular + invisible + visible)", () => {
+      const sel = toSelection("X:1\nK:C\nz2 X2 Z2|\n");
+      const rests = selectRests(sel);
+      expect(rests.cursors.length).to.equal(3);
     });
 
     it("C2 z2 [DF]2 z2| — selectChords produces 1 cursor", () => {

@@ -84,7 +84,7 @@ export const TAGS: Record<string, string> = {
 };
 
 export function isRest(node: CSNode): boolean {
-  return node.tag === TAGS.Rest;
+  return node.tag === TAGS.Rest || node.tag === TAGS.MultiMeasureRest;
 }
 
 export function isNote(node: CSNode): boolean {
