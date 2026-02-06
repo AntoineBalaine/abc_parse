@@ -7,7 +7,7 @@
 
 # Path to the abc-kak-client.js script
 declare-option -docstring "Path to the ABC Kakoune client script" \
-    str abc_client_path "%sh{dirname $(dirname $kak_source)}/bin/abc-kak-client.js"
+    str abc_client_path "%sh{dirname $(dirname $kak_source)}/dist/abc-kak-client.js"
 
 # Socket path (computed using the same logic as the server)
 declare-option -docstring "Unix socket path for ABC LSP server" \

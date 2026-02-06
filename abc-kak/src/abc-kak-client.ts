@@ -1,6 +1,5 @@
-#!/usr/bin/env node
 /**
- * abc-kak-client.js
+ * abc-kak-client.ts
  *
  * Socket client for communicating with the ABC LSP server from Kakoune.
  * Handles UTF-16/byte offset conversion between LSP and Kakoune.
@@ -34,16 +33,89 @@
  *   stderr: error message
  */
 
-const net = require("net");
-const fs = require("fs");
-const readline = require("readline");
+import * as net from "net";
+import * as fs from "fs";
+import * as readline from "readline";
+
+// ============================================================================
+// Types
+// ============================================================================
+
+interface ClientArgs {
+  socket: string | null;
+  uri: string | null;
+  selector: string | null;
+  transform: string | null;
+  method: string | null;
+  args: unknown[];
+  ranges: string;
+  positions: string;
+  bufferFile: string | null;
+  timeout: number;
+}
+
+interface LspPosition {
+  line: number;
+  character: number;
+}
+
+interface LspRange {
+  start: LspPosition;
+  end: LspPosition;
+}
+
+interface LspTextEdit {
+  range: LspRange;
+  newText: string;
+}
+
+interface LspRequest {
+  id: number;
+  method: string;
+  params: Record<string, unknown>;
+}
+
+interface LspResponse {
+  id: number;
+  result?: {
+    ranges?: LspRange[];
+    edits?: LspTextEdit[];
+    url?: string;
+  };
+  error?: {
+    code: number;
+    message: string;
+  };
+}
+
+interface ParsedDescriptor {
+  startLine: number;
+  startCol: number;
+  endLine: number;
+  endCol: number;
+}
+
+interface EditResult {
+  commands: string[];
+  finalRanges: string[];
+}
+
+interface EditWithDelta {
+  startLine: number;
+  startChar: number;
+  newText: string;
+  originalEndLine: number;
+  originalEndChar: number;
+  originalRange: LspRange;
+  lineDelta: number;
+}
 
 // ============================================================================
 // Argument Parsing
 // ============================================================================
 
-function parseArgs() {
-  const args = {
+function parseArgs(): ClientArgs {
+  const args: ClientArgs = {
     socket: null,
     uri: null,
     selector: null,
@@ -110,7 +182,7 @@ function parseArgs() {
   return args;
 }
 
-function error(message) {
+function error(message: string): never {
   process.stderr.write(message + "\n");
   process.exit(1);
 }
@@ -123,7 +195,7 @@ function error(message) {
  * Reads the buffer file and returns an array of lines.
  * Lines are stored without line endings.
  */
-function readBufferLines(filePath) {
+function readBufferLines(filePath: string): string[] {
   try {
     const content = fs.readFileSync(filePath, "utf8");
     // Split by \n, handling potential trailing newline
@@ -131,7 +203,8 @@ function readBufferLines(filePath) {
     // If the last line is empty (file ends with \n), keep it for proper indexing
     return lines;
   } catch (err) {
-    error(`Failed to read buffer file: ${err.message}`);
+    const message = err instanceof Error ? err.message : String(err);
+    error(`Failed to read buffer file: ${message}`);
   }
 }
 
@@ -143,7 +216,7 @@ function readBufferLines(filePath) {
  * Converts a UTF-16 code unit offset to a byte offset within a line.
  * Node.js strings are UTF-16 internally.
  */
-function utf16ToByteOffset(line, utf16Offset) {
+function utf16ToByteOffset(line: string, utf16Offset: number): number {
   // Handle edge cases
   if (utf16Offset <= 0) return 0;
   if (utf16Offset >= line.length) {
@@ -158,7 +231,7 @@ function utf16ToByteOffset(line, utf16Offset) {
 /**
  * Converts a byte offset to a UTF-16 code unit offset within a line.
  */
-function byteToUtf16Offset(line, byteOffset) {
+function byteToUtf16Offset(line: string, byteOffset: number): number {
   if (byteOffset <= 0) return 0;
 
   const lineBytes = Buffer.from(line, "utf8");
@@ -181,7 +254,7 @@ function byteToUtf16Offset(line, byteOffset) {
  * Format: "line.col,line.col" where both are 1-indexed and col is byte offset.
  * Returns { startLine, startCol, endLine, endCol } with 0-indexed line and 1-indexed byte columns.
  */
-function parseKakDescriptor(desc) {
+function parseKakDescriptor(desc: string): ParsedDescriptor {
   const [startPart, endPart] = desc.split(",");
   const [startLine, startCol] = startPart.split(".").map((n) => parseInt(n, 10));
   const [endLine, endCol] = endPart.split(".").map((n) => parseInt(n, 10));
@@ -198,7 +271,7 @@ function parseKakDescriptor(desc) {
  * Normalizes a Kakoune descriptor so start <= end.
  * Kakoune can have backwards selections (anchor after cursor).
  */
-function normalizeDescriptor(desc) {
+function normalizeDescriptor(desc: string): ParsedDescriptor {
   const parsed = parseKakDescriptor(desc);
   const startPos = parsed.startLine * 100000 + parsed.startCol;
   const endPos = parsed.endLine * 100000 + parsed.endCol;
@@ -221,7 +294,7 @@ function normalizeDescriptor(desc) {
  * Kakoune uses 1-indexed, byte offsets, inclusive end.
  * LSP uses 0-indexed, UTF-16 code unit offsets, exclusive end.
  */
-function kakDescriptorToLspRange(desc, lines) {
+function kakDescriptorToLspRange(desc: string, lines: string[]): LspRange {
   const { startLine, startCol, endLine, endCol } = normalizeDescriptor(desc);
 
   const startLineContent = lines[startLine] || "";
@@ -248,7 +321,7 @@ function kakDescriptorToLspRange(desc, lines) {
  * LSP uses 0-indexed, UTF-16 code unit offsets, exclusive end.
  * Kakoune uses 1-indexed, byte offsets, inclusive end.
  */
-function lspRangeToKakDescriptor(range, lines) {
+function lspRangeToKakDescriptor(range: LspRange, lines: string[]): string | null {
   const startLine = range.start.line;
   const endLine = range.end.line;
 
@@ -264,7 +337,7 @@ function lspRangeToKakDescriptor(range, lines) {
 
   // LSP end is exclusive, Kakoune is inclusive
   // If endByte is 0, the inclusive end is the last byte of the previous line
-  let endCol;
+  let endCol: number;
   let adjustedEndLine = endLine;
 
   if (endByte === 0 && endLine > 0) {
@@ -282,10 +355,7 @@ function lspRangeToKakDescriptor(range, lines) {
   }
 
   // Handle zero-width ranges (not representable in Kakoune)
-  if (
-    startLine === adjustedEndLine &&
-    startCol > endCol
-  ) {
+  if (startLine === adjustedEndLine && startCol > endCol) {
     return null; // Skip this range
   }
 
@@ -296,7 +366,7 @@ function lspRangeToKakDescriptor(range, lines) {
 // Socket Communication
 // ============================================================================
 
-function sendRequest(socketPath, request, timeout) {
+function sendRequest(socketPath: string, request: LspRequest, timeout: number): Promise<LspResponse> {
   return new Promise((resolve, reject) => {
     const client = net.createConnection(socketPath, () => {
       client.write(JSON.stringify(request) + "\n");
@@ -324,7 +394,7 @@ function sendRequest(socketPath, request, timeout) {
       }
     });
 
-    client.on("error", (err) => {
+    client.on("error", (err: NodeJS.ErrnoException) => {
       clearTimeout(timeoutId);
       rl.close();
       if (err.code === "ENOENT") {
@@ -343,18 +413,24 @@ function sendRequest(socketPath, request, timeout) {
 // ============================================================================
 
 /**
- * Computes the end position after inserting text at a given start position.
- * Returns { line, character } in LSP coordinates (0-indexed).
+ * Checks if two LSP ranges overlap.
  */
-function computeEndPosition(startLine, startChar, text) {
-  const textLines = text.split("\n");
-  if (textLines.length === 1) {
-    return { line: startLine, character: startChar + textLines[0].length };
+function rangesOverlap(a: LspRange, b: LspRange): boolean {
+  // a ends before b starts
+  if (
+    a.end.line < b.start.line ||
+    (a.end.line === b.start.line && a.end.character <= b.start.character)
+  ) {
+    return false;
   }
-  return {
-    line: startLine + textLines.length - 1,
-    character: textLines[textLines.length - 1].length,
-  };
+  // b ends before a starts
+  if (
+    b.end.line < a.start.line ||
+    (b.end.line === a.start.line && b.end.character <= a.start.character)
+  ) {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -367,7 +443,11 @@ function computeEndPosition(startLine, startChar, text) {
  *   Following lines: Kakoune commands to apply edits
  *   Last line: "SELECT <final_ranges>"
  */
-function generateEditCommands(edits, lines) {
+function generateEditCommands(
+  edits: LspTextEdit[],
+  lines: string[],
+  selectionRanges: LspRange[]
+): EditResult | null {
   if (edits.length === 0) {
     return null;
   }
@@ -380,13 +460,8 @@ function generateEditCommands(edits, lines) {
     return b.range.start.character - a.range.start.character;
   });
 
-  const commands = [];
-  const finalRanges = [];
-
-  // Track cumulative line offset for computing final positions
-  // Since we apply end-to-start, earlier edits (in document order) are not affected
-  // We'll compute final ranges after all edits by re-sorting
-  const editResults = [];
+  const commands: string[] = [];
+  const editResults: Omit<EditWithDelta, "lineDelta">[] = [];
 
   for (const edit of sortedEdits) {
     const isInsert =
@@ -424,16 +499,13 @@ function generateEditCommands(edits, lines) {
       newText: edit.newText,
       originalEndLine: edit.range.end.line,
       originalEndChar: edit.range.end.character,
+      originalRange: edit.range,
     });
   }
 
   // Compute final selection ranges accounting for cumulative line shifts.
-  // Because edits are applied end-to-start, each edit's application position is correct.
-  // However, the final selection ranges must reflect positions after ALL edits are applied.
-  // If an edit at line N adds K lines, all edits at lines > N have their final position shifted by K.
-
   // First, compute line delta for each edit and sort by document order (ascending)
-  const editsWithDelta = editResults.map((edit) => {
+  const editsWithDelta: EditWithDelta[] = editResults.map((edit) => {
     const originalLineSpan = edit.originalEndLine - edit.startLine + 1;
     const newLineCount = edit.newText.split("\n").length;
     const lineDelta = newLineCount - originalLineSpan;
@@ -449,6 +521,7 @@ function generateEditCommands(edits, lines) {
   });
 
   // Compute final ranges with cumulative line shift tracking
+  const finalRanges: string[] = [];
   let cumulativeLineShift = 0;
 
   for (const edit of editsWithDelta) {
@@ -456,35 +529,42 @@ function generateEditCommands(edits, lines) {
     const startChar = edit.startChar;
     const newTextLines = edit.newText.split("\n");
 
-    // Convert start position to Kakoune format (1-indexed, byte offset)
-    const originalLineContent = lines[startLine] || "";
-    const startByteCol = utf16ToByteOffset(originalLineContent, startChar) + 1;
+    // Check if this edit overlaps with the original selection
+    const isInSelection =
+      !selectionRanges ||
+      selectionRanges.length === 0 ||
+      selectionRanges.some((sel) => rangesOverlap(edit.originalRange, sel));
 
-    // Apply cumulative line shift from previous edits (in document order)
-    const adjustedStartLine = startLine + cumulativeLineShift;
+    if (isInSelection) {
+      // Convert start position to Kakoune format (1-indexed, byte offset)
+      const originalLineContent = lines[startLine] || "";
+      const startByteCol = utf16ToByteOffset(originalLineContent, startChar) + 1;
 
-    // Compute end position based on new text
-    let endLineOffset, endByteCol;
-    if (newTextLines.length === 1) {
-      endLineOffset = 0;
-      endByteCol = startByteCol + Buffer.byteLength(edit.newText, "utf8") - 1;
-      if (endByteCol < startByteCol) endByteCol = startByteCol; // Empty text edge case
-    } else {
-      endLineOffset = newTextLines.length - 1;
-      endByteCol = Buffer.byteLength(newTextLines[newTextLines.length - 1], "utf8");
-      if (endByteCol === 0) endByteCol = 1;
+      // Apply cumulative line shift from previous edits (in document order)
+      const adjustedStartLine = startLine + cumulativeLineShift;
+
+      // Compute end position based on new text
+      let endLineOffset: number;
+      let endByteCol: number;
+      if (newTextLines.length === 1) {
+        endLineOffset = 0;
+        endByteCol = startByteCol + Buffer.byteLength(edit.newText, "utf8") - 1;
+        if (endByteCol < startByteCol) endByteCol = startByteCol; // Empty text edge case
+      } else {
+        endLineOffset = newTextLines.length - 1;
+        endByteCol = Buffer.byteLength(newTextLines[newTextLines.length - 1], "utf8");
+        if (endByteCol === 0) endByteCol = 1;
+      }
+
+      const startKakLine = adjustedStartLine + 1;
+      const endKakLine = adjustedStartLine + endLineOffset + 1;
+
+      finalRanges.push(`${startKakLine}.${startByteCol},${endKakLine}.${endByteCol}`);
     }
 
-    const startKakLine = adjustedStartLine + 1;
-    const endKakLine = adjustedStartLine + endLineOffset + 1;
-
-    finalRanges.push(`${startKakLine}.${startByteCol},${endKakLine}.${endByteCol}`);
-
-    // Update cumulative shift for subsequent edits
+    // Always update cumulative shift for subsequent edits
     cumulativeLineShift += edit.lineDelta;
   }
-
-  // finalRanges is now in document order (ascending), which is what Kakoune expects
 
   return {
     commands,
@@ -496,12 +576,12 @@ function generateEditCommands(edits, lines) {
 // Main
 // ============================================================================
 
-async function main() {
+async function main(): Promise<void> {
   const args = parseArgs();
 
   // Handle generic method calls (preview operations)
   if (args.method) {
-    let request;
+    let request: LspRequest;
     if (args.method === "abc.startPreview" || args.method === "abc.stopPreview") {
       request = {
         id: 1,
@@ -529,11 +609,12 @@ async function main() {
       error(`Unknown method: ${args.method}`);
     }
 
-    let response;
+    let response: LspResponse;
     try {
-      response = await sendRequest(args.socket, request, args.timeout);
+      response = await sendRequest(args.socket!, request, args.timeout);
     } catch (err) {
-      error(err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      error(message);
     }
 
     if (response.error) {
@@ -541,7 +622,7 @@ async function main() {
     }
 
     // Output for abc.startPreview: the URL
-    if (args.method === "abc.startPreview" && response.result && response.result.url) {
+    if (args.method === "abc.startPreview" && response.result?.url) {
       console.log(response.result.url);
     }
     // Other methods: no output on success
@@ -549,17 +630,16 @@ async function main() {
   }
 
   // Selector/Transform mode requires buffer file
-  const lines = readBufferLines(args.bufferFile);
-  const bufferContent = lines.join("\n");
+  const lines = readBufferLines(args.bufferFile!);
 
   // Convert kakoune selection descriptors to LSP ranges
-  let lspRanges = [];
+  let lspRanges: LspRange[] = [];
   if (args.ranges) {
     const descriptors = args.ranges.split(/\s+/).filter((d) => d);
     lspRanges = descriptors.map((desc) => kakDescriptorToLspRange(desc, lines));
   }
 
-  let request;
+  let request: LspRequest;
   if (args.selector) {
     request = {
       id: 1,
@@ -584,11 +664,12 @@ async function main() {
     };
   }
 
-  let response;
+  let response: LspResponse;
   try {
-    response = await sendRequest(args.socket, request, args.timeout);
+    response = await sendRequest(args.socket!, request, args.timeout);
   } catch (err) {
-    error(err.message);
+    const message = err instanceof Error ? err.message : String(err);
+    error(message);
   }
 
   if (response.error) {
@@ -599,7 +680,7 @@ async function main() {
 
   if (args.selector) {
     // Selector mode: output ranges as Kakoune descriptors
-    if (!result || !result.ranges || result.ranges.length === 0) {
+    if (!result?.ranges || result.ranges.length === 0) {
       // No matches - output empty line for descriptors
       console.log("");
       process.exit(0);
@@ -608,7 +689,7 @@ async function main() {
     // Convert LSP ranges to Kakoune descriptors
     const descriptors = result.ranges
       .map((range) => lspRangeToKakDescriptor(range, lines))
-      .filter((desc) => desc !== null);
+      .filter((desc): desc is string => desc !== null);
 
     if (descriptors.length === 0) {
       console.log("");
@@ -619,13 +700,14 @@ async function main() {
     console.log(descriptors.join(" "));
   } else {
     // Transform mode: output Kakoune commands to apply edits individually
-    if (!result || !result.edits || result.edits.length === 0) {
+    if (!result?.edits || result.edits.length === 0) {
       // No changes - output empty marker
       console.log("NO_EDITS");
       process.exit(0);
     }
 
-    const editResult = generateEditCommands(result.edits, lines);
+    // Pass original selection ranges to filter which edits affect the final selection
+    const editResult = generateEditCommands(result.edits, lines, lspRanges);
     if (!editResult) {
       console.log("NO_EDITS");
       process.exit(0);

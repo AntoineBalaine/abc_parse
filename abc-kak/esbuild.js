@@ -24,7 +24,8 @@ const esbuildProblemMatcherPlugin = {
 };
 
 async function main() {
-  const ctx = await esbuild.context({
+  // Build the LSP server
+  const serverCtx = await esbuild.context({
     entryPoints: ["../abc-lsp-server/src/server.ts"],
     bundle: true,
     format: "cjs",
@@ -44,11 +45,28 @@ async function main() {
     },
   });
 
+  // Build the Kakoune client
+  const clientCtx = await esbuild.context({
+    entryPoints: ["src/abc-kak-client.ts"],
+    bundle: true,
+    format: "cjs",
+    minify: production,
+    sourcemap: !production,
+    sourcesContent: !production,
+    platform: "node",
+    outfile: "dist/abc-kak-client.js",
+    logLevel: "silent",
+    plugins: [esbuildProblemMatcherPlugin],
+    banner: {
+      js: "#!/usr/bin/env node",
+    },
+  });
+
   if (watch) {
-    await ctx.watch();
+    await Promise.all([serverCtx.watch(), clientCtx.watch()]);
   } else {
-    await ctx.rebuild();
-    await ctx.dispose();
+    await Promise.all([serverCtx.rebuild(), clientCtx.rebuild()]);
+    await Promise.all([serverCtx.dispose(), clientCtx.dispose()]);
   }
 }
 
