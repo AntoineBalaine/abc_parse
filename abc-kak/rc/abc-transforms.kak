@@ -66,15 +66,43 @@ define-command -hidden abc-transform-impl -params 1..2 %{
             exit 0
         fi
 
-        # Check if result file has content (transform produced changes)
-        if [ -s "$kak_opt_abc_resultfile" ]; then
-            # Replace entire buffer with result using execute-keys
-            # Note: %d deletes all, then ! inserts shell command output
-            printf '%s\n' "execute-keys '%d!cat $kak_opt_abc_resultfile<ret>'"
+        # Check if result file has content
+        if [ ! -s "$kak_opt_abc_resultfile" ]; then
+            rm -f "$kak_opt_abc_resultfile"
+            exit 0
+        fi
+
+        # Read first line to check format
+        first_line=$(head -n 1 "$kak_opt_abc_resultfile")
+
+        if [ "$first_line" = "NO_EDITS" ]; then
+            rm -f "$kak_opt_abc_resultfile"
+            exit 0
+        fi
+
+        if [ "$first_line" = "EDITS" ]; then
+            # New format: individual edit commands
+            # Read remaining lines (skip first "EDITS" line)
+            # Last line is "SELECT <ranges>" for final selection
+            tail -n +2 "$kak_opt_abc_resultfile" > "$kak_opt_abc_resultfile.cmds"
+
+            # Extract and remove the SELECT line
+            select_line=$(tail -n 1 "$kak_opt_abc_resultfile.cmds")
+            # Use sed instead of head -n -1 for macOS compatibility
+            sed '$ d' "$kak_opt_abc_resultfile.cmds" > "$kak_opt_abc_resultfile.edit_cmds"
+
+            # Output the edit commands wrapped in evaluate-commands for single undo
+            printf '%s\n' "evaluate-commands %{"
+            cat "$kak_opt_abc_resultfile.edit_cmds"
+            # Apply final selection
+            printf '%s\n' "$select_line"
+            printf '%s\n' "}"
+
+            rm -f "$kak_opt_abc_resultfile.cmds" "$kak_opt_abc_resultfile.edit_cmds"
         fi
 
         # Clean up result file
-        printf '%s\n' "nop %sh{ rm -f \"$kak_opt_abc_resultfile\" }"
+        rm -f "$kak_opt_abc_resultfile"
     }
 }
 

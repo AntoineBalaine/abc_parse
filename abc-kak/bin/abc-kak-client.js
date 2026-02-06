@@ -339,15 +339,39 @@ function sendRequest(socketPath, request, timeout) {
 }
 
 // ============================================================================
-// Text Edit Application
+// Text Edit Output for Kakoune
 // ============================================================================
 
 /**
- * Applies LSP text edits to buffer content and returns the new content.
- * Edits are applied in reverse order (from end of document to start) to
- * preserve positions of earlier edits.
+ * Computes the end position after inserting text at a given start position.
+ * Returns { line, character } in LSP coordinates (0-indexed).
  */
-function applyEdits(content, edits) {
+function computeEndPosition(startLine, startChar, text) {
+  const textLines = text.split("\n");
+  if (textLines.length === 1) {
+    return { line: startLine, character: startChar + textLines[0].length };
+  }
+  return {
+    line: startLine + textLines.length - 1,
+    character: textLines[textLines.length - 1].length,
+  };
+}
+
+/**
+ * Generates Kakoune commands to apply text edits individually.
+ * Edits are output in reverse order (from end of document to start) to
+ * preserve positions of earlier edits.
+ *
+ * Output format:
+ *   Line 1: "EDITS"
+ *   Following lines: Kakoune commands to apply edits
+ *   Last line: "SELECT <final_ranges>"
+ */
+function generateEditCommands(edits, lines) {
+  if (edits.length === 0) {
+    return null;
+  }
+
   // Sort edits by position (descending) to apply from end to start
   const sortedEdits = [...edits].sort((a, b) => {
     if (b.range.start.line !== a.range.start.line) {
@@ -356,31 +380,116 @@ function applyEdits(content, edits) {
     return b.range.start.character - a.range.start.character;
   });
 
-  const lines = content.split("\n");
+  const commands = [];
+  const finalRanges = [];
+
+  // Track cumulative line offset for computing final positions
+  // Since we apply end-to-start, earlier edits (in document order) are not affected
+  // We'll compute final ranges after all edits by re-sorting
+  const editResults = [];
 
   for (const edit of sortedEdits) {
-    const startLine = edit.range.start.line;
-    const endLine = edit.range.end.line;
-    const startChar = edit.range.start.character;
-    const endChar = edit.range.end.character;
+    const isInsert =
+      edit.range.start.line === edit.range.end.line &&
+      edit.range.start.character === edit.range.end.character;
 
-    // Get the text before the edit range on the start line
-    const startLineText = lines[startLine] || "";
-    const prefix = startLineText.slice(0, startChar);
+    // Convert LSP range to Kakoune descriptor
+    const kakRange = lspRangeToKakDescriptor(edit.range, lines);
+    if (!kakRange && !isInsert) {
+      continue; // Skip invalid ranges
+    }
 
-    // Get the text after the edit range on the end line
-    const endLineText = lines[endLine] || "";
-    const suffix = endLineText.slice(endChar);
+    // Base64 encode the replacement text
+    const base64Text = Buffer.from(edit.newText, "utf8").toString("base64");
 
-    // Replace the affected lines with the new content
-    const newLines = edit.newText.split("\n");
-    newLines[0] = prefix + newLines[0];
-    newLines[newLines.length - 1] = newLines[newLines.length - 1] + suffix;
+    if (isInsert) {
+      // For insertions, we need to position cursor and insert
+      // Kakoune select with same start/end positions the cursor
+      const line = edit.range.start.line + 1; // 1-indexed
+      const col = utf16ToByteOffset(lines[edit.range.start.line] || "", edit.range.start.character) + 1;
+      commands.push(`select ${line}.${col},${line}.${col}`);
+      commands.push(`set-register a %sh{printf '%s' '${base64Text}' | base64 -d}`);
+      commands.push(`execute-keys '"aP'`);
+    } else {
+      // For replacements
+      commands.push(`select ${kakRange}`);
+      commands.push(`set-register a %sh{printf '%s' '${base64Text}' | base64 -d}`);
+      commands.push(`execute-keys '"aR'`);
+    }
 
-    lines.splice(startLine, endLine - startLine + 1, ...newLines);
+    // Track the edit for final range computation
+    editResults.push({
+      startLine: edit.range.start.line,
+      startChar: edit.range.start.character,
+      newText: edit.newText,
+      originalEndLine: edit.range.end.line,
+      originalEndChar: edit.range.end.character,
+    });
   }
 
-  return lines.join("\n");
+  // Compute final selection ranges accounting for cumulative line shifts.
+  // Because edits are applied end-to-start, each edit's application position is correct.
+  // However, the final selection ranges must reflect positions after ALL edits are applied.
+  // If an edit at line N adds K lines, all edits at lines > N have their final position shifted by K.
+
+  // First, compute line delta for each edit and sort by document order (ascending)
+  const editsWithDelta = editResults.map((edit) => {
+    const originalLineSpan = edit.originalEndLine - edit.startLine + 1;
+    const newLineCount = edit.newText.split("\n").length;
+    const lineDelta = newLineCount - originalLineSpan;
+    return { ...edit, lineDelta };
+  });
+
+  // Sort by document order (ascending by startLine, then startChar)
+  editsWithDelta.sort((a, b) => {
+    if (a.startLine !== b.startLine) {
+      return a.startLine - b.startLine;
+    }
+    return a.startChar - b.startChar;
+  });
+
+  // Compute final ranges with cumulative line shift tracking
+  let cumulativeLineShift = 0;
+
+  for (const edit of editsWithDelta) {
+    const startLine = edit.startLine;
+    const startChar = edit.startChar;
+    const newTextLines = edit.newText.split("\n");
+
+    // Convert start position to Kakoune format (1-indexed, byte offset)
+    const originalLineContent = lines[startLine] || "";
+    const startByteCol = utf16ToByteOffset(originalLineContent, startChar) + 1;
+
+    // Apply cumulative line shift from previous edits (in document order)
+    const adjustedStartLine = startLine + cumulativeLineShift;
+
+    // Compute end position based on new text
+    let endLineOffset, endByteCol;
+    if (newTextLines.length === 1) {
+      endLineOffset = 0;
+      endByteCol = startByteCol + Buffer.byteLength(edit.newText, "utf8") - 1;
+      if (endByteCol < startByteCol) endByteCol = startByteCol; // Empty text edge case
+    } else {
+      endLineOffset = newTextLines.length - 1;
+      endByteCol = Buffer.byteLength(newTextLines[newTextLines.length - 1], "utf8");
+      if (endByteCol === 0) endByteCol = 1;
+    }
+
+    const startKakLine = adjustedStartLine + 1;
+    const endKakLine = adjustedStartLine + endLineOffset + 1;
+
+    finalRanges.push(`${startKakLine}.${startByteCol},${endKakLine}.${endByteCol}`);
+
+    // Update cumulative shift for subsequent edits
+    cumulativeLineShift += edit.lineDelta;
+  }
+
+  // finalRanges is now in document order (ascending), which is what Kakoune expects
+
+  return {
+    commands,
+    finalRanges,
+  };
 }
 
 // ============================================================================
@@ -509,15 +618,28 @@ async function main() {
     // Output
     console.log(descriptors.join(" "));
   } else {
-    // Transform mode: apply edits and output new buffer content
+    // Transform mode: output Kakoune commands to apply edits individually
     if (!result || !result.edits || result.edits.length === 0) {
-      // No changes - output original content
-      process.stdout.write(bufferContent);
+      // No changes - output empty marker
+      console.log("NO_EDITS");
       process.exit(0);
     }
 
-    const newContent = applyEdits(bufferContent, result.edits);
-    process.stdout.write(newContent);
+    const editResult = generateEditCommands(result.edits, lines);
+    if (!editResult) {
+      console.log("NO_EDITS");
+      process.exit(0);
+    }
+
+    // Output format:
+    // Line 1: EDITS
+    // Following lines: Kakoune commands
+    // Last line: SELECT <ranges>
+    console.log("EDITS");
+    for (const cmd of editResult.commands) {
+      console.log(cmd);
+    }
+    console.log("select " + editResult.finalRanges.join(" "));
   }
 }
 
