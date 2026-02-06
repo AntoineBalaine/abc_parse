@@ -6,7 +6,8 @@
   "scripts": {
     "build": "node esbuild.js",
     "build:production": "node esbuild.js --production",
-    "watch": "node esbuild.js --watch"
+    "watch": "node esbuild.js --watch",
+    "test": "mocha --require ts-node/register 'test/**/*.test.ts'"
   },
   "devDependencies": {
     "esbuild": "^0.25.10"

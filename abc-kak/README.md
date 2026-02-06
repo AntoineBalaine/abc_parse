@@ -89,9 +89,71 @@ Use `abc-select-reset` to manually clear the narrowing state.
 
 ## Testing
 
-Tests use kak-spec. To run:
+Tests use Mocha/Chai with a custom `KakouneSession` helper that runs Kakoune in headless daemon mode.
+
+### Running Tests
 
 ```bash
-cd abc-kak
+# From monorepo root
+npm test -w abc-kak
+
+# Or from abc-kak directory
+npm test
+```
+
+### How It Works
+
+Because Kakoune requires a TTY for its UI, we cannot run it directly for automated testing. Instead, we use a headless daemon pattern:
+
+1. Start a Kakoune daemon: `kak -d -s <session>`
+2. Send commands via: `kak -p <session>`
+3. Capture results via a named FIFO (blocking read for synchronization)
+
+The `KakouneSession` class in `test/helpers/kakoune-session.ts` wraps this pattern:
+
+```typescript
+import { KakouneSession } from './helpers/kakoune-session';
+
+describe('my test', () => {
+  let kak: KakouneSession;
+  let testFile: string;
+
+  beforeEach(() => {
+    kak = new KakouneSession();
+    testFile = `/tmp/test-${kak.session}.abc`;
+    kak.start();
+  });
+
+  afterEach(() => {
+    kak.cleanup();
+    unlinkSync(testFile);
+  });
+
+  it('selects a note', () => {
+    writeFileSync(testFile, 'X:1\nK:C\nCDEF\n');
+    kak.edit(testFile);
+
+    // executeAndQuery combines key execution with state query
+    // in a single call to preserve selection state
+    const selection = kak.executeAndQuery('gg2j', '$kak_selection');
+
+    expect(selection).to.equal('C');
+  });
+});
+```
+
+### Key Methods
+
+- `start()` / `cleanup()` - session lifecycle
+- `edit(path)` - open a file (sets current buffer context)
+- `executeKeys(keys)` - run execute-keys in buffer context
+- `executeAndQuery(keys, expr)` - execute keys and query state in a single call
+- `getSelection()` / `getSelections()` / `getSelectionsDesc()` - query helpers
+
+### Legacy kak-spec Tests
+
+The `spec/` directory contains older kak-spec tests. To run them:
+
+```bash
 kak-spec spec/*.kak-spec
 ```
