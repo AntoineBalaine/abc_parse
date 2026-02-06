@@ -36,7 +36,7 @@ export interface PercMapSpec {
   noteHead?: string;
 }
 
-export interface AbclsDirectiveData {
+export interface AbclsVoicesDirectiveData {
   mode: "show" | "hide";
   voiceIds: string[];
 }
@@ -264,7 +264,7 @@ export const DIRECTIVE_SPECS: Record<string, { params: ParamSpec[] }> = {
   nobarcheck: { params: [] },
 
   // ABC Language Server Directives
-  abcls: {
+  "abcls-voices": {
     params: [
       { type: "identifier" }, // mode: show | hide
       { type: "identifier", multiple: true }, // voice IDs
@@ -513,7 +513,7 @@ export type DirectiveSemanticData =
   | { type: "midi"; data: MidiSpec }
   | { type: "percmap"; data: PercMapSpec }
   | { type: "deco"; data: { name: string; definition?: string } }
-  | { type: "abcls"; data: AbclsDirectiveData };
+  | { type: "abcls-voices"; data: AbclsVoicesDirectiveData };
 
 // ============================================================================
 // Drum Sound Names (MIDI notes 35-81)

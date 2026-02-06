@@ -9,11 +9,11 @@ import { Scanner, Ctx, Token, TT } from "../parsers/scan2";
 import { Directive, File_structure, Tune } from "../types/Expr2";
 import { analyzeDirective } from "../analyzers/directive-analyzer";
 import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
-import { AbclsDirectiveData } from "../types/directive-specs";
-import { genAbclsDirective } from "./scn_infoln_generators";
-import { genAbclsDirectiveExpr } from "./prs_pbt.generators.spec";
+import { AbclsVoicesDirectiveData } from "../types/directive-specs";
+import { genAbclsVoicesDirective } from "./scn_infoln_generators";
+import { genAbclsVoicesDirectiveExpr } from "./prs_pbt.generators.spec";
 
-describe("%%abcls Directive Tests", () => {
+describe("%%abcls-voices Directive Tests", () => {
   let context: ABCContext;
 
   beforeEach(() => {
@@ -24,16 +24,16 @@ describe("%%abcls Directive Tests", () => {
     return new Ctx(source, context);
   }
 
-  describe("Scanner: tokenization of %%abcls directive", () => {
-    it("should scan %%abcls show V1 V2", () => {
-      const ctx = createScanCtx("%%abcls show V1 V2");
+  describe("Scanner: tokenization of %%abcls-voices directive", () => {
+    it("should scan %%abcls-voices show V1 V2", () => {
+      const ctx = createScanCtx("%%abcls-voices show V1 V2");
       const result = scanDirective(ctx);
 
       expect(result).to.equal(true);
       expect(ctx.tokens[0].type).to.equal(TT.STYLESHEET_DIRECTIVE);
       expect(ctx.tokens[0].lexeme).to.equal("%%");
       expect(ctx.tokens[1].type).to.equal(TT.IDENTIFIER);
-      expect(ctx.tokens[1].lexeme).to.equal("abcls");
+      expect(ctx.tokens[1].lexeme).to.equal("abcls-voices");
       expect(ctx.tokens[2].type).to.equal(TT.IDENTIFIER);
       expect(ctx.tokens[2].lexeme).to.equal("show");
       expect(ctx.tokens[3].type).to.equal(TT.IDENTIFIER);
@@ -42,22 +42,22 @@ describe("%%abcls Directive Tests", () => {
       expect(ctx.tokens[4].lexeme).to.equal("V2");
     });
 
-    it("should scan %%abcls hide Melody", () => {
-      const ctx = createScanCtx("%%abcls hide Melody");
+    it("should scan %%abcls-voices hide Melody", () => {
+      const ctx = createScanCtx("%%abcls-voices hide Melody");
       const result = scanDirective(ctx);
 
       expect(result).to.equal(true);
-      expect(ctx.tokens[1].lexeme).to.equal("abcls");
+      expect(ctx.tokens[1].lexeme).to.equal("abcls-voices");
       expect(ctx.tokens[2].lexeme).to.equal("hide");
       expect(ctx.tokens[3].lexeme).to.equal("Melody");
     });
 
-    it("should scan %%abcls show with numeric voice IDs", () => {
-      const ctx = createScanCtx("%%abcls show 1 2 3");
+    it("should scan %%abcls-voices show with numeric voice IDs", () => {
+      const ctx = createScanCtx("%%abcls-voices show 1 2 3");
       const result = scanDirective(ctx);
 
       expect(result).to.equal(true);
-      expect(ctx.tokens[1].lexeme).to.equal("abcls");
+      expect(ctx.tokens[1].lexeme).to.equal("abcls-voices");
       expect(ctx.tokens[2].lexeme).to.equal("show");
       // Numeric IDs are tokenized as NUMBERs
       expect(ctx.tokens[3].type).to.equal(TT.NUMBER);
@@ -65,11 +65,11 @@ describe("%%abcls Directive Tests", () => {
     });
   });
 
-  describe("Parser: AST structure for %%abcls directive", () => {
-    it("should parse %%abcls show V1 V2 into Directive AST", () => {
+  describe("Parser: AST structure for %%abcls-voices directive", () => {
+    it("should parse %%abcls-voices show V1 V2 into Directive AST", () => {
       const tokens = [
         new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
-        new Token(TT.IDENTIFIER, "abcls", context.generateId()),
+        new Token(TT.IDENTIFIER, "abcls-voices", context.generateId()),
         new Token(TT.IDENTIFIER, "show", context.generateId()),
         new Token(TT.IDENTIFIER, "V1", context.generateId()),
         new Token(TT.IDENTIFIER, "V2", context.generateId()),
@@ -79,17 +79,17 @@ describe("%%abcls Directive Tests", () => {
       const result = parseDirective(ctx);
 
       expect(result).to.be.an.instanceof(Directive);
-      expect(result!.key.lexeme).to.equal("abcls");
+      expect(result!.key.lexeme).to.equal("abcls-voices");
       expect(result!.values).to.have.length(3);
       expect((result!.values[0] as Token).lexeme).to.equal("show");
       expect((result!.values[1] as Token).lexeme).to.equal("V1");
       expect((result!.values[2] as Token).lexeme).to.equal("V2");
     });
 
-    it("should parse %%abcls hide Soprano Alto Bass into Directive AST", () => {
+    it("should parse %%abcls-voices hide Soprano Alto Bass into Directive AST", () => {
       const tokens = [
         new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
-        new Token(TT.IDENTIFIER, "abcls", context.generateId()),
+        new Token(TT.IDENTIFIER, "abcls-voices", context.generateId()),
         new Token(TT.IDENTIFIER, "hide", context.generateId()),
         new Token(TT.IDENTIFIER, "Soprano", context.generateId()),
         new Token(TT.IDENTIFIER, "Alto", context.generateId()),
@@ -100,17 +100,17 @@ describe("%%abcls Directive Tests", () => {
       const result = parseDirective(ctx);
 
       expect(result).to.be.an.instanceof(Directive);
-      expect(result!.key.lexeme).to.equal("abcls");
+      expect(result!.key.lexeme).to.equal("abcls-voices");
       expect(result!.values).to.have.length(4);
       expect((result!.values[0] as Token).lexeme).to.equal("hide");
     });
   });
 
-  describe("Semantic Analyzer: data extraction for %%abcls directive", () => {
+  describe("Semantic Analyzer: data extraction for %%abcls-voices directive", () => {
     it("should extract show mode and voice IDs", () => {
       const tokens = [
         new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
-        new Token(TT.IDENTIFIER, "abcls", context.generateId()),
+        new Token(TT.IDENTIFIER, "abcls-voices", context.generateId()),
         new Token(TT.IDENTIFIER, "show", context.generateId()),
         new Token(TT.IDENTIFIER, "V1", context.generateId()),
         new Token(TT.IDENTIFIER, "V2", context.generateId()),
@@ -123,8 +123,8 @@ describe("%%abcls Directive Tests", () => {
       const semanticData = analyzeDirective(directive!, analyzer);
 
       expect(semanticData).to.not.be.null;
-      expect(semanticData!.type).to.equal("abcls");
-      const data = semanticData!.data as AbclsDirectiveData;
+      expect(semanticData!.type).to.equal("abcls-voices");
+      const data = semanticData!.data as AbclsVoicesDirectiveData;
       expect(data.mode).to.equal("show");
       expect(data.voiceIds).to.deep.equal(["V1", "V2"]);
     });
@@ -132,7 +132,7 @@ describe("%%abcls Directive Tests", () => {
     it("should extract hide mode and voice IDs", () => {
       const tokens = [
         new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
-        new Token(TT.IDENTIFIER, "abcls", context.generateId()),
+        new Token(TT.IDENTIFIER, "abcls-voices", context.generateId()),
         new Token(TT.IDENTIFIER, "hide", context.generateId()),
         new Token(TT.IDENTIFIER, "Melody", context.generateId()),
       ];
@@ -144,8 +144,8 @@ describe("%%abcls Directive Tests", () => {
       const semanticData = analyzeDirective(directive!, analyzer);
 
       expect(semanticData).to.not.be.null;
-      expect(semanticData!.type).to.equal("abcls");
-      const data = semanticData!.data as AbclsDirectiveData;
+      expect(semanticData!.type).to.equal("abcls-voices");
+      const data = semanticData!.data as AbclsVoicesDirectiveData;
       expect(data.mode).to.equal("hide");
       expect(data.voiceIds).to.deep.equal(["Melody"]);
     });
@@ -153,7 +153,7 @@ describe("%%abcls Directive Tests", () => {
     it("should handle case-insensitive mode (SHOW, Hide)", () => {
       const tokens = [
         new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
-        new Token(TT.IDENTIFIER, "abcls", context.generateId()),
+        new Token(TT.IDENTIFIER, "abcls-voices", context.generateId()),
         new Token(TT.IDENTIFIER, "SHOW", context.generateId()),
         new Token(TT.IDENTIFIER, "V1", context.generateId()),
       ];
@@ -165,14 +165,14 @@ describe("%%abcls Directive Tests", () => {
       const semanticData = analyzeDirective(directive!, analyzer);
 
       expect(semanticData).to.not.be.null;
-      const data = semanticData!.data as AbclsDirectiveData;
+      const data = semanticData!.data as AbclsVoicesDirectiveData;
       expect(data.mode).to.equal("show");
     });
 
     it("should handle numeric voice IDs", () => {
       const tokens = [
         new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
-        new Token(TT.IDENTIFIER, "abcls", context.generateId()),
+        new Token(TT.IDENTIFIER, "abcls-voices", context.generateId()),
         new Token(TT.IDENTIFIER, "show", context.generateId()),
         new Token(TT.NUMBER, "1", context.generateId()),
         new Token(TT.NUMBER, "2", context.generateId()),
@@ -185,14 +185,14 @@ describe("%%abcls Directive Tests", () => {
       const semanticData = analyzeDirective(directive!, analyzer);
 
       expect(semanticData).to.not.be.null;
-      const data = semanticData!.data as AbclsDirectiveData;
+      const data = semanticData!.data as AbclsVoicesDirectiveData;
       expect(data.voiceIds).to.deep.equal(["1", "2"]);
     });
 
     it("should report error for invalid mode", () => {
       const tokens = [
         new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
-        new Token(TT.IDENTIFIER, "abcls", context.generateId()),
+        new Token(TT.IDENTIFIER, "abcls-voices", context.generateId()),
         new Token(TT.IDENTIFIER, "invalid", context.generateId()),
         new Token(TT.IDENTIFIER, "V1", context.generateId()),
       ];
@@ -210,7 +210,7 @@ describe("%%abcls Directive Tests", () => {
     it("should report error for missing voice IDs", () => {
       const tokens = [
         new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
-        new Token(TT.IDENTIFIER, "abcls", context.generateId()),
+        new Token(TT.IDENTIFIER, "abcls-voices", context.generateId()),
         new Token(TT.IDENTIFIER, "show", context.generateId()),
       ];
 
@@ -227,7 +227,7 @@ describe("%%abcls Directive Tests", () => {
     it("should report error for missing mode", () => {
       const tokens = [
         new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
-        new Token(TT.IDENTIFIER, "abcls", context.generateId()),
+        new Token(TT.IDENTIFIER, "abcls-voices", context.generateId()),
       ];
 
       const ctx = new ParseCtx(tokens, context);
@@ -243,7 +243,7 @@ describe("%%abcls Directive Tests", () => {
     it("should handle mixed identifier and numeric voice IDs", () => {
       const tokens = [
         new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
-        new Token(TT.IDENTIFIER, "abcls", context.generateId()),
+        new Token(TT.IDENTIFIER, "abcls-voices", context.generateId()),
         new Token(TT.IDENTIFIER, "show", context.generateId()),
         new Token(TT.IDENTIFIER, "V1", context.generateId()),
         new Token(TT.NUMBER, "2", context.generateId()),
@@ -257,7 +257,7 @@ describe("%%abcls Directive Tests", () => {
       const semanticData = analyzeDirective(directive!, analyzer);
 
       expect(semanticData).to.not.be.null;
-      const data = semanticData!.data as AbclsDirectiveData;
+      const data = semanticData!.data as AbclsVoicesDirectiveData;
       expect(data.mode).to.equal("show");
       expect(data.voiceIds).to.deep.equal(["V1", "2", "Soprano"]);
     });
@@ -265,7 +265,7 @@ describe("%%abcls Directive Tests", () => {
 
   describe("Full pipeline integration", () => {
     it("should handle full pipeline from source to semantic data", () => {
-      const source = "%%abcls show V1 V2";
+      const source = "%%abcls-voices show V1 V2";
       const scanCtx = createScanCtx(source);
       const scanResult = scanDirective(scanCtx);
 
@@ -280,17 +280,17 @@ describe("%%abcls Directive Tests", () => {
       const semanticData = analyzeDirective(directive!, analyzer);
 
       expect(semanticData).to.not.be.null;
-      expect(semanticData!.type).to.equal("abcls");
-      const data = semanticData!.data as AbclsDirectiveData;
+      expect(semanticData!.type).to.equal("abcls-voices");
+      const data = semanticData!.data as AbclsVoicesDirectiveData;
       expect(data.mode).to.equal("show");
       expect(data.voiceIds).to.deep.equal(["V1", "V2"]);
     });
   });
 
   describe("Property-based tests", () => {
-    it("should always parse generated abcls directives into valid Directive AST", () => {
+    it("should always parse generated abcls-voices directives into valid Directive AST", () => {
       fc.assert(
-        fc.property(genAbclsDirective, (tokens) => {
+        fc.property(genAbclsVoicesDirective, (tokens) => {
           const ctx = new ABCContext(new AbcErrorReporter());
           // Filter out EOL and WS tokens for parsing (parser expects clean token stream)
           const parseTokens = tokens.filter(
@@ -302,8 +302,8 @@ describe("%%abcls Directive Tests", () => {
           // Property: parsing should always succeed
           if (!(result instanceof Directive)) return false;
 
-          // Property: directive key should be "abcls"
-          if (result.key.lexeme !== "abcls") return false;
+          // Property: directive key should be "abcls-voices"
+          if (result.key.lexeme !== "abcls-voices") return false;
 
           // Property: values array should have at least 2 elements (mode + at least one voice ID)
           if (result.values.length < 2) return false;
@@ -318,9 +318,9 @@ describe("%%abcls Directive Tests", () => {
       );
     });
 
-    it("should always produce valid semantic data from generated abcls directives", () => {
+    it("should always produce valid semantic data from generated abcls-voices directives", () => {
       fc.assert(
-        fc.property(genAbclsDirective, (tokens) => {
+        fc.property(genAbclsVoicesDirective, (tokens) => {
           const ctx = new ABCContext(new AbcErrorReporter());
           // Filter out EOL and WS tokens for parsing
           const parseTokens = tokens.filter(
@@ -337,10 +337,10 @@ describe("%%abcls Directive Tests", () => {
           // Property: semantic analysis should always succeed for valid directives
           if (!semanticData) return false;
 
-          // Property: type should be "abcls"
-          if (semanticData.type !== "abcls") return false;
+          // Property: type should be "abcls-voices"
+          if (semanticData.type !== "abcls-voices") return false;
 
-          const data = semanticData.data as AbclsDirectiveData;
+          const data = semanticData.data as AbclsVoicesDirectiveData;
 
           // Property: mode should be "show" or "hide"
           if (data.mode !== "show" && data.mode !== "hide") return false;
@@ -359,7 +359,7 @@ describe("%%abcls Directive Tests", () => {
 
     it("should preserve voice ID count through parsing and semantic analysis", () => {
       fc.assert(
-        fc.property(genAbclsDirective, (tokens) => {
+        fc.property(genAbclsVoicesDirective, (tokens) => {
           const ctx = new ABCContext(new AbcErrorReporter());
           // Filter out EOL and WS tokens, count IDENTIFIER tokens after mode
           const parseTokens = tokens.filter(
@@ -367,7 +367,7 @@ describe("%%abcls Directive Tests", () => {
           );
 
           // Count voice IDs in generated tokens (all IDENTIFIER tokens after position 2)
-          // Position 0: %%, Position 1: abcls, Position 2: mode, Position 3+: voice IDs
+          // Position 0: %%, Position 1: abcls-voices, Position 2: mode, Position 3+: voice IDs
           const generatedVoiceIdCount = parseTokens.slice(3).filter(
             (t) => t.type === TT.IDENTIFIER
           ).length;
@@ -382,7 +382,7 @@ describe("%%abcls Directive Tests", () => {
 
           if (!semanticData) return false;
 
-          const data = semanticData.data as AbclsDirectiveData;
+          const data = semanticData.data as AbclsVoicesDirectiveData;
 
           // Property: voice ID count should be preserved
           return data.voiceIds.length === generatedVoiceIdCount;
@@ -400,7 +400,7 @@ describe("%%abcls Directive Tests", () => {
           const ctx = new ABCContext(new AbcErrorReporter());
           const tokens = [
             new Token(TT.STYLESHEET_DIRECTIVE, "%%", ctx.generateId()),
-            new Token(TT.IDENTIFIER, "abcls", ctx.generateId()),
+            new Token(TT.IDENTIFIER, "abcls-voices", ctx.generateId()),
             new Token(TT.IDENTIFIER, mode, ctx.generateId()),
             new Token(TT.IDENTIFIER, "V1", ctx.generateId()),
           ];
@@ -415,7 +415,7 @@ describe("%%abcls Directive Tests", () => {
 
           if (!semanticData) return false;
 
-          const data = semanticData.data as AbclsDirectiveData;
+          const data = semanticData.data as AbclsVoicesDirectiveData;
 
           // Property: mode should be normalized to lowercase
           const expectedMode = mode.toLowerCase();
@@ -433,7 +433,7 @@ describe("%%abcls Directive Tests", () => {
     // Generator for a minimal tune body
     const genTuneBodyContent = fc.constantFrom("CDEF|", "GABc|", "defg|", "abcd|");
 
-    it("should parse %%abcls directive in file header of full tune", () => {
+    it("should parse %%abcls-voices directive in file header of full tune", () => {
       fc.assert(
         fc.property(
           fc.constantFrom("show", "hide"),
@@ -442,8 +442,8 @@ describe("%%abcls Directive Tests", () => {
           (mode, voiceIds, body) => {
             const ctx = new ABCContext(new AbcErrorReporter());
 
-            // Build a full ABC file with %%abcls in file header
-            const source = `%%abcls ${mode} ${voiceIds.join(" ")}
+            // Build a full ABC file with %%abcls-voices in file header
+            const source = `%%abcls-voices ${mode} ${voiceIds.join(" ")}
 
 X:1
 T:Test Tune
@@ -463,10 +463,10 @@ ${body}
             if (!ast.file_header) return false;
 
             const directives = ast.file_header.contents.filter(
-              (item) => item instanceof Directive && item.key.lexeme === "abcls"
+              (item) => item instanceof Directive && item.key.lexeme === "abcls-voices"
             );
 
-            // Property: exactly one %%abcls directive in file header
+            // Property: exactly one %%abcls-voices directive in file header
             if (directives.length !== 1) return false;
 
             const directive = directives[0] as Directive;
@@ -486,7 +486,7 @@ ${body}
       );
     });
 
-    it("should parse %%abcls directive in tune header of full tune", () => {
+    it("should parse %%abcls-voices directive in tune header of full tune", () => {
       fc.assert(
         fc.property(
           fc.constantFrom("show", "hide"),
@@ -495,12 +495,12 @@ ${body}
           (mode, voiceIds, body) => {
             const ctx = new ABCContext(new AbcErrorReporter());
 
-            // Build a full ABC file with %%abcls in tune header
+            // Build a full ABC file with %%abcls-voices in tune header
             const source = `X:1
 T:Test Tune
 M:4/4
 L:1/4
-%%abcls ${mode} ${voiceIds.join(" ")}
+%%abcls-voices ${mode} ${voiceIds.join(" ")}
 K:C
 ${body}
 `;
@@ -519,10 +519,10 @@ ${body}
 
             // Property: tune header should contain the directive
             const directives = tune.tune_header.info_lines.filter(
-              (item) => item instanceof Directive && item.key.lexeme === "abcls"
+              (item) => item instanceof Directive && item.key.lexeme === "abcls-voices"
             );
 
-            // Property: exactly one %%abcls directive in tune header
+            // Property: exactly one %%abcls-voices directive in tune header
             if (directives.length !== 1) return false;
 
             const directive = directives[0] as Directive;
@@ -542,7 +542,7 @@ ${body}
       );
     });
 
-    it("should parse multiple tunes with different %%abcls directives", () => {
+    it("should parse multiple tunes with different %%abcls-voices directives", () => {
       fc.assert(
         fc.property(
           fc.constantFrom("show", "hide"),
@@ -553,7 +553,7 @@ ${body}
             const ctx = new ABCContext(new AbcErrorReporter());
 
             // Build a file with file-level directive and tune-level override
-            const source = `%%abcls ${mode1} ${voiceId1}
+            const source = `%%abcls-voices ${mode1} ${voiceId1}
 
 X:1
 T:Tune 1
@@ -563,7 +563,7 @@ CDEF|
 
 X:2
 T:Tune 2
-%%abcls ${mode2} ${voiceId2}
+%%abcls-voices ${mode2} ${voiceId2}
 M:4/4
 K:C
 GABc|
@@ -576,7 +576,7 @@ GABc|
             // Property: file header should have directive
             if (!ast.file_header) return false;
             const fileDirectives = ast.file_header.contents.filter(
-              (item) => item instanceof Directive && item.key.lexeme === "abcls"
+              (item) => item instanceof Directive && item.key.lexeme === "abcls-voices"
             );
             if (fileDirectives.length !== 1) return false;
 
@@ -585,7 +585,7 @@ GABc|
             if (tunes.length !== 2) return false;
 
             const tune2Directives = tunes[1].tune_header.info_lines.filter(
-              (item) => item instanceof Directive && item.key.lexeme === "abcls"
+              (item) => item instanceof Directive && item.key.lexeme === "abcls-voices"
             );
             if (tune2Directives.length !== 1) return false;
 
@@ -611,7 +611,7 @@ GABc|
 
             const source = `X:1
 T:Test
-%%abcls ${mode} ${voiceIds.join(" ")}
+%%abcls-voices ${mode} ${voiceIds.join(" ")}
 K:C
 C|
 `;
@@ -624,7 +624,7 @@ C|
             if (tunes.length === 0) return false;
 
             const directives = tunes[0].tune_header.info_lines.filter(
-              (item) => item instanceof Directive && item.key.lexeme === "abcls"
+              (item) => item instanceof Directive && item.key.lexeme === "abcls-voices"
             ) as Directive[];
             if (directives.length !== 1) return false;
 

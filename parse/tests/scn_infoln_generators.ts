@@ -612,22 +612,22 @@ export const genStylesheetDirective = fc
   .map(([header, content, eol]) => [header, ...content, eol]);
 
 /**
- * Generator for %%abcls directive (voice filter)
- * Format: %%abcls show|hide <voice_id1> [voice_id2] [...]
- * Examples: %%abcls show V1, %%abcls hide Bass Tenor, %%abcls show melody
- * Produces: [TT.STYLESHEET_DIRECTIVE, TT.IDENTIFIER("abcls"), TT.WS, TT.IDENTIFIER(mode), TT.WS, ...voice_ids, TT.EOL]
+ * Generator for %%abcls-voices directive (voice filter)
+ * Format: %%abcls-voices show|hide <voice_id1> [voice_id2] [...]
+ * Examples: %%abcls-voices show V1, %%abcls-voices hide Bass Tenor, %%abcls-voices show melody
+ * Produces: [TT.STYLESHEET_DIRECTIVE, TT.IDENTIFIER("abcls-voices"), TT.WS, TT.IDENTIFIER(mode), TT.WS, ...voice_ids, TT.EOL]
  *
  * Note: WS tokens are included so tokens stay separate when concatenated for round-trip tests.
  * The directive scanner discards whitespace, and the round-trip test's filterDirectiveWhitespace
  * handles this by filtering WS from directive context before comparison.
  * Voice IDs must be at least 2 characters to avoid conflicts with single note letters (a-g, A-G).
  */
-export const genAbclsDirective = fc
+export const genAbclsVoicesDirective = fc
   .tuple(
     // Directive header (%%)
     fc.constant("%%").map((directive) => new Token(TT.STYLESHEET_DIRECTIVE, directive, sharedContext.generateId())),
-    // Directive name (abcls)
-    fc.constant("abcls").map((name) => new Token(TT.IDENTIFIER, name, sharedContext.generateId())),
+    // Directive name (abcls-voices)
+    fc.constant("abcls-voices").map((name) => new Token(TT.IDENTIFIER, name, sharedContext.generateId())),
     // Mode (show or hide)
     fc.constantFrom("show", "hide").map((mode) => new Token(TT.IDENTIFIER, mode, sharedContext.generateId())),
     // Voice IDs (at least one, up to 5)

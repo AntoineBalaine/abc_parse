@@ -250,7 +250,7 @@ async function getCurrentEditorContent(): Promise<string> {
 
   if (filePath.endsWith(".abc") || filePath.endsWith(".abcx")) {
     let content = await getPreviewContent(uri);
-    // Apply voice filter if %%abcls directive is present
+    // Apply voice filter if %%abcls-voices directive is present
     content = applyVoiceFilter(content);
     return content;
   }
@@ -259,13 +259,13 @@ async function getCurrentEditorContent(): Promise<string> {
 }
 
 /**
- * Apply voice filter to ABC content based on %%abcls directives.
+ * Apply voice filter to ABC content based on %%abcls-voices directives.
  * Because the directive is embedded in the ABC content, we process it here
  * to filter out voices before rendering.
  */
 function applyVoiceFilter(content: string): string {
-  // Quick check: only process if %%abcls directive is present
-  if (!content.includes("%%abcls")) {
+  // Quick check: only process if %%abcls-voices directive is present
+  if (!content.includes("%%abcls-voices")) {
     return content;
   }
 

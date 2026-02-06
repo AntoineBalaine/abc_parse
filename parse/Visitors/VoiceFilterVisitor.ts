@@ -1,11 +1,11 @@
 /**
  * Voice Filter Visitor
  *
- * Filters voices from ABC AST based on %%abcls show/hide directives.
+ * Filters voices from ABC AST based on %%abcls-voices show/hide directives.
  * Similar to AbcxToAbcConverter, this operates on the AST and returns a filtered AST.
  *
  * Architecture:
- *   1. VoiceFilterCollector: Traverses AST to collect %%abcls directives and determine filter state
+ *   1. VoiceFilterCollector: Traverses AST to collect %%abcls-voices directives and determine filter state
  *   2. VoiceFilterVisitor: Filters the AST based on collected filter state
  *   3. filterVoiceInAst: Main entry point that runs both passes
  *
@@ -37,7 +37,7 @@ import {
 } from "../types/Expr2";
 import { analyzeDirective } from "../analyzers/directive-analyzer";
 import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
-import { AbclsDirectiveData } from "../types/directive-specs";
+import { AbclsVoicesDirectiveData } from "../types/directive-specs";
 
 /**
  * Filter state for a single scope (file or tune)
@@ -118,21 +118,21 @@ function extractVoiceId(line: Info_line | Inline_field): string | null {
 }
 
 /**
- * Checks if a directive is an abcls directive and extracts its data
+ * Checks if a directive is an abcls-voices directive and extracts its data
  */
-function extractAbclsData(directive: Directive, analyzer: SemanticAnalyzer): AbclsDirectiveData | null {
-  if (directive.key.lexeme.toLowerCase() !== "abcls") {
+function extractAbclsVoicesData(directive: Directive, analyzer: SemanticAnalyzer): AbclsVoicesDirectiveData | null {
+  if (directive.key.lexeme.toLowerCase() !== "abcls-voices") {
     return null;
   }
   const result = analyzeDirective(directive, analyzer);
-  if (result && result.type === "abcls") {
-    return result.data as AbclsDirectiveData;
+  if (result && result.type === "abcls-voices") {
+    return result.data as AbclsVoicesDirectiveData;
   }
   return null;
 }
 
 /**
- * Pass 1: Collects %%abcls directives from the AST and builds FilterContext
+ * Pass 1: Collects %%abcls-voices directives from the AST and builds FilterContext
  */
 export class VoiceFilterCollector {
   context: ABCContext;
@@ -168,7 +168,7 @@ export class VoiceFilterCollector {
   collectFromFileHeader(header: File_header): void {
     for (const item of header.contents) {
       if (item instanceof Directive) {
-        const data = extractAbclsData(item, this.analyzer);
+        const data = extractAbclsVoicesData(item, this.analyzer);
         if (data) {
           // "Last wins" - overwrite any previous file-level directive
           this.filterContext.fileDefault = {
@@ -186,7 +186,7 @@ export class VoiceFilterCollector {
     // Collect from tune header
     for (const item of tune.tune_header.info_lines) {
       if (item instanceof Directive) {
-        const data = extractAbclsData(item, this.analyzer);
+        const data = extractAbclsVoicesData(item, this.analyzer);
         if (data) {
           // "Last wins" - overwrite any previous tune-level directive
           tuneState = {
@@ -251,9 +251,9 @@ export class VoiceFilterVisitor {
   }
 
   filterFileHeader(header: File_header): File_header {
-    // Remove %%abcls directives from file header
+    // Remove %%abcls-voices directives from file header
     const filteredContents = header.contents.filter(item => {
-      if (item instanceof Directive && item.key.lexeme.toLowerCase() === "abcls") {
+      if (item instanceof Directive && item.key.lexeme.toLowerCase() === "abcls-voices") {
         return false;
       }
       return true;
@@ -277,12 +277,12 @@ export class VoiceFilterVisitor {
   }
 
   filterTuneHeader(header: Tune_header, filterState: VoiceFilterState): Tune_header {
-    // If no filtering, still remove %%abcls directives
+    // If no filtering, still remove %%abcls-voices directives
     const filteredInfoLines: typeof header.info_lines = [];
 
     for (const item of header.info_lines) {
-      // Remove %%abcls directives
-      if (item instanceof Directive && item.key.lexeme.toLowerCase() === "abcls") {
+      // Remove %%abcls-voices directives
+      if (item instanceof Directive && item.key.lexeme.toLowerCase() === "abcls-voices") {
         continue;
       }
 
@@ -393,18 +393,18 @@ export class VoiceFilterVisitor {
 }
 
 /**
- * Main entry point: filters voices from ABC AST based on %%abcls directives
+ * Main entry point: filters voices from ABC AST based on %%abcls-voices directives
  *
  * @param ast The ABC file AST
  * @param context The ABC context for generating new node IDs
- * @returns A new AST with voices filtered according to %%abcls directives
+ * @returns A new AST with voices filtered according to %%abcls-voices directives
  */
 export function filterVoiceInAst(ast: File_structure, context: ABCContext): File_structure {
   // Pass 1: Collect directives and build filter context
   const collector = new VoiceFilterCollector(context);
   const filterContext = collector.collect(ast);
 
-  // Pass 2: Filter the AST (will also remove %%abcls directives regardless of filtering mode)
+  // Pass 2: Filter the AST (will also remove %%abcls-voices directives regardless of filtering mode)
   const visitor = new VoiceFilterVisitor(context, filterContext);
   return visitor.filter(ast);
 }
@@ -420,7 +420,7 @@ export function filterVoiceInAst(ast: File_structure, context: ABCContext): File
  *
  * @param abc The ABC notation string to filter
  * @param context The ABC context for parsing and generating new node IDs
- * @returns The filtered ABC string with voices filtered according to %%abcls directives
+ * @returns The filtered ABC string with voices filtered according to %%abcls-voices directives
  */
 export function filterVoicesInAbc(abc: string, context: ABCContext): string {
   // Avoid circular dependency by using dynamic require

@@ -27,12 +27,12 @@ describe("VoiceFilterVisitor", () => {
   }
 
   describe("Example-based tests", () => {
-    it("Basic show filtering: %%abcls show V1 on a 2-voice tune keeps only V1 content", () => {
+    it("Basic show filtering: %%abcls-voices show V1 on a 2-voice tune keeps only V1 content", () => {
       const source = `X:1
 T:Test
 M:4/4
 L:1/4
-%%abcls show V1
+%%abcls-voices show V1
 V:V1 clef=treble
 V:V2 clef=bass
 K:C
@@ -49,16 +49,16 @@ K:C
       expect(result).to.not.include("[V:V2]");
       expect(result).to.not.include("GFED");
 
-      // %%abcls directive should be removed
-      expect(result).to.not.include("%%abcls");
+      // %%abcls-voices directive should be removed
+      expect(result).to.not.include("%%abcls-voices");
     });
 
-    it("Basic hide filtering: %%abcls hide V1 on a 2-voice tune removes V1 content", () => {
+    it("Basic hide filtering: %%abcls-voices hide V1 on a 2-voice tune removes V1 content", () => {
       const source = `X:1
 T:Test
 M:4/4
 L:1/4
-%%abcls hide V1
+%%abcls-voices hide V1
 V:V1 clef=treble
 V:V2 clef=bass
 K:C
@@ -76,8 +76,8 @@ K:C
       expect(result).to.include("GFED");
     });
 
-    it("File header scope: file-level %%abcls show V1 filters all tunes", () => {
-      const source = `%%abcls show V1
+    it("File header scope: file-level %%abcls-voices show V1 filters all tunes", () => {
+      const source = `%%abcls-voices show V1
 
 X:1
 T:Tune 1
@@ -112,8 +112,8 @@ K:C
       expect(result).to.not.include("AGFE");
     });
 
-    it("Tune header override: file-level %%abcls show V1 overridden by tune-level %%abcls show V2", () => {
-      const source = `%%abcls show V1
+    it("Tune header override: file-level %%abcls-voices show V1 overridden by tune-level %%abcls-voices show V2", () => {
+      const source = `%%abcls-voices show V1
 
 X:1
 T:Tune 1 (uses file default)
@@ -129,7 +129,7 @@ X:2
 T:Tune 2 (overrides to V2)
 M:4/4
 L:1/4
-%%abcls show V2
+%%abcls-voices show V2
 V:V1 clef=treble
 V:V2 clef=bass
 K:C
@@ -146,20 +146,20 @@ K:C
       expect(result).to.not.include("EFGA");
     });
 
-    it("Removes %%abcls directive itself from output", () => {
+    it("Removes %%abcls-voices directive itself from output", () => {
       const source = `X:1
 T:Test
 M:4/4
 L:1/4
-%%abcls show V1
+%%abcls-voices show V1
 V:V1 clef=treble
 K:C
 [V:V1]CDEF|
 `;
       const result = filterAndStringify(source);
 
-      // %%abcls directive should be removed
-      expect(result).to.not.include("%%abcls");
+      // %%abcls-voices directive should be removed
+      expect(result).to.not.include("%%abcls-voices");
       expect(result).to.not.include("show V1");
     });
 
@@ -189,7 +189,7 @@ T:Test
 M:4/4
 L:1/4
 %%score [V1 V2]
-%%abcls show V1
+%%abcls-voices show V1
 V:V1 clef=treble
 V:V2 clef=bass
 K:C
@@ -201,8 +201,8 @@ K:C
       // %%score directive should be preserved
       expect(result).to.include("%%score");
 
-      // %%abcls should be removed
-      expect(result).to.not.include("%%abcls");
+      // %%abcls-voices should be removed
+      expect(result).to.not.include("%%abcls-voices");
     });
   });
 
@@ -212,7 +212,7 @@ K:C
 T:Test
 M:4/4
 L:1/4
-%%abcls show Melody
+%%abcls-voices show Melody
 V:Melody name="Main"
 V:Bass name="Low"
 K:C
@@ -239,8 +239,8 @@ GFED|
 T:Test
 M:4/4
 L:1/4
-%%abcls show V1
-%%abcls show V2
+%%abcls-voices show V1
+%%abcls-voices show V2
 V:V1 clef=treble
 V:V2 clef=bass
 K:C
@@ -263,8 +263,8 @@ K:C
 T:Test
 M:4/4
 L:1/4
-%%abcls hide V1
-%%abcls show V1
+%%abcls-voices hide V1
+%%abcls-voices show V1
 V:V1 clef=treble
 V:V2 clef=bass
 K:C
@@ -289,7 +289,7 @@ K:C
 T:Test
 M:4/4
 L:1/4
-%%abcls show V1
+%%abcls-voices show V1
 V:V1 clef=treble
 V:V2 clef=bass
 K:C
@@ -322,7 +322,7 @@ K:C
 T:Test
 M:4/4
 L:1/4
-%%abcls show V1
+%%abcls-voices show V1
 V:V1 clef=treble
 V:V2 clef=bass
 K:C
@@ -333,7 +333,7 @@ K:C
 T:Test
 M:4/4
 L:1/4
-%%abcls hide V2
+%%abcls-voices hide V2
 V:V1 clef=treble
 V:V2 clef=bass
 K:C
@@ -364,7 +364,7 @@ V:V1 clef=treble
 K:C
 CDEF|
 `;
-      // No %%abcls directive - should pass through unchanged
+      // No %%abcls-voices directive - should pass through unchanged
       const result = filterAndStringify(source);
       expect(result).to.include("CDEF");
     });
@@ -386,7 +386,7 @@ CDEF|
 T:Test
 M:4/4
 L:1/4
-%%abcls show NonExistent
+%%abcls-voices show NonExistent
 V:V1 clef=treble
 K:C
 [V:V1]CDEF|
@@ -402,7 +402,7 @@ K:C
 T:Test
 M:4/4
 L:1/4
-%%abcls hide NonExistent
+%%abcls-voices hide NonExistent
 V:V1 clef=treble
 K:C
 [V:V1]CDEF|
@@ -420,7 +420,7 @@ K:C
 T:Test
 M:4/4
 L:1/4
-%%abcls show V1
+%%abcls-voices show V1
 V:V1 clef=treble
 V:V2 clef=bass
 K:C
@@ -438,11 +438,11 @@ K:C
       expect(result).to.not.include("[V:V2]");
       expect(result).to.not.include("GFED");
 
-      // %%abcls directive should be removed
-      expect(result).to.not.include("%%abcls");
+      // %%abcls-voices directive should be removed
+      expect(result).to.not.include("%%abcls-voices");
     });
 
-    it("Returns unchanged content when no %%abcls directive is present", () => {
+    it("Returns unchanged content when no %%abcls-voices directive is present", () => {
       const source = `X:1
 T:Test
 M:4/4

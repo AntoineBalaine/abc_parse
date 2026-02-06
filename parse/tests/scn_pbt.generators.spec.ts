@@ -10,11 +10,11 @@ import {
   genTempoInfoLine2,
   genStylesheetDirective as genStylesheetDirectiveFromInfoLn,
   genTextDirective,
-  genAbclsDirective,
+  genAbclsVoicesDirective,
 } from "./scn_infoln_generators";
 
 // Re-export the new generators
-export { genInfoLine2, genKeyInfoLine2, genMeterInfoLine2, genNoteLenInfoLine2, genTempoInfoLine2, genTextDirective, genAbclsDirective };
+export { genInfoLine2, genKeyInfoLine2, genMeterInfoLine2, genNoteLenInfoLine2, genTempoInfoLine2, genTextDirective, genAbclsVoicesDirective };
 
 // Create a shared context for all generators
 export const sharedContext = new ABCContext(new AbcErrorReporter());
@@ -178,8 +178,8 @@ export const genEOL = fc.constantFrom(new Token(TT.EOL, "\n", sharedContext.gene
 
 export const genStylesheetDirective = fc.tuple(genEOL, genStylesheetDirectiveFromInfoLn).map((e) => e.flat());
 
-// Wrap genAbclsDirective with EOL at the beginning (directives must start on a new line)
-export const genAbclsDirectiveWrapped = fc.tuple(genEOL, genAbclsDirective).map((e) => e.flat());
+// Wrap genAbclsVoicesDirective with EOL at the beginning (directives must start on a new line)
+export const genAbclsVoicesDirectiveWrapped = fc.tuple(genEOL, genAbclsVoicesDirective).map((e) => e.flat());
 
 // Comment generator
 export const genCommentToken = fc.tuple(
@@ -394,7 +394,7 @@ export const baseMusicTokenGenerators = [
   // Unified info line generator (includes all info line types)
   { arbitrary: genInfoLine2, weight: 5 },
   { arbitrary: genStylesheetDirective, weight: 1 },
-  { arbitrary: genAbclsDirectiveWrapped, weight: 1 }, // %%abcls show/hide directive
+  { arbitrary: genAbclsVoicesDirectiveWrapped, weight: 1 }, // %%abcls-voices show/hide directive
   { arbitrary: genCommentToken, weight: 2 },
   { arbitrary: genLyricLine, weight: 1 },
 ];
