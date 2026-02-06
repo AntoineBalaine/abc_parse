@@ -56,13 +56,38 @@ function extractVoiceId(node: CSNode): string | null {
     valueChild = node.firstChild?.nextSibling?.nextSibling;
   }
 
-  if (valueChild === null || valueChild === undefined || !isTokenNode(valueChild)) {
+  if (valueChild === null || valueChild === undefined) {
     return null;
   }
 
-  const lexeme = getTokenData(valueChild).lexeme.trim();
-  const firstWord = lexeme.split(/\s+/)[0];
-  return firstWord || null;
+  // Handle token children (legacy format or simple values)
+  if (isTokenNode(valueChild)) {
+    const lexeme = getTokenData(valueChild).lexeme.trim();
+    const firstWord = lexeme.split(/\s+/)[0];
+    return firstWord || null;
+  }
+
+  // Handle KV expression children (new format with value2)
+  // For KV nodes, the value is the content we want. For voice IDs like "1" in "V:1",
+  // the KV has no key/equals, just a value. We need to extract the token from within.
+  // Note: This handles the common case where the KV's value is a token. If the value
+  // is a nested expression (e.g., Unary for negative numbers), we return null.
+  // In practice, voice IDs are simple identifiers or positive numbers, so this is fine.
+  if (valueChild.tag === TAGS.KV) {
+    // KV structure: [key?, equals?, value]
+    // Find the last child which should be the value
+    let child = valueChild.firstChild;
+    let lastChild: CSNode | null = null;
+    while (child) {
+      lastChild = child;
+      child = child.nextSibling;
+    }
+    if (lastChild && isTokenNode(lastChild)) {
+      return getTokenData(lastChild).lexeme.trim();
+    }
+  }
+
+  return null;
 }
 
 /**

@@ -322,26 +322,156 @@ function buildGraceGroup(node: CSNode, children: Array<Expr | Token>): Grace_gro
 // The Inline_field class invariant requires text[0] === field.
 // The parser establishes this (parseInlineField pushes field as tokens[0]),
 // and the Formatter2 relies on it (text.slice(1) skips the field token).
+// Because the CSTree may contain structured expressions (value2) from Info_line conversion,
+// we need to properly separate Token children into `text` and Expr children into `value2`.
+// When expressions are present, we extract tokens from them to populate `text` for
+// backward compatibility (similar to how buildInfoLine handles this).
 function buildInlineField(id: number, children: Array<Expr | Token>): Inline_field {
   let leftBracket: Token | undefined;
   let rightBracket: Token | undefined;
-  const text: Token[] = [];
+  const directTokens: Token[] = [];
+  const value2: Expr[] = [];
+
   for (const child of children) {
-    const token = child as Token;
-    if (token.type === TT.INLN_FLD_LFT_BRKT) {
-      leftBracket = token;
-    } else if (token.type === TT.INLN_FLD_RGT_BRKT) {
-      rightBracket = token;
+    if (child instanceof Token) {
+      if (child.type === TT.INLN_FLD_LFT_BRKT) {
+        leftBracket = child;
+      } else if (child.type === TT.INLN_FLD_RGT_BRKT) {
+        rightBracket = child;
+      } else {
+        directTokens.push(child);
+      }
     } else {
-      text.push(token);
+      // child is an Expr (e.g., KV, Binary, etc.)
+      value2.push(child);
     }
   }
-  const field = text[0];
-  return new Inline_field(id, field, text, undefined, leftBracket, rightBracket);
+
+  // Build text array: field token + tokens extracted from expressions
+  const field = directTokens[0];
+  let text: Token[];
+  if (value2.length > 0) {
+    const extractedTokens = extractTokensFromExpressions(value2);
+    text = [field, ...extractedTokens];
+  } else {
+    text = directTokens;
+  }
+
+  return new Inline_field(id, field, text, value2.length > 0 ? value2 : undefined, leftBracket, rightBracket);
 }
 
+// When expression children are present, we populate `value2` with the expressions and
+// extract all tokens from within those expressions to populate `value` for backward
+// compatibility. The Formatter2 prefers value2 when available, but other code may still
+// access the token array.
 function buildInfoLine(id: number, children: Array<Expr | Token>): Info_line {
+  const key = children[0] as Token;
+  const rest = children.slice(1);
+
+  // Check if we have expression children (KV, Binary, Unary, etc.)
+  const hasExpressions = rest.some(child => !(child instanceof Token));
+
+  if (hasExpressions) {
+    // Build with value2 (expressions take precedence)
+    // Extract tokens for the value array (for backward compatibility during transition)
+    const extractedTokens = extractTokensFromExpressions(rest);
+    return new Info_line(id, [key, ...extractedTokens], undefined, rest as Array<Expr>);
+  }
+
+  // Fallback: all children are tokens, use value only
   return new Info_line(id, children as Token[]);
+}
+
+/**
+ * Extract all tokens from an array of expressions/tokens for the value array.
+ * This is used during the transition period to maintain backward compatibility.
+ */
+function extractTokensFromExpressions(items: Array<Expr | Token>): Token[] {
+  const tokens: Token[] = [];
+  for (const item of items) {
+    if (item instanceof Token) {
+      tokens.push(item);
+    } else {
+      // Recursively extract tokens from expression
+      tokens.push(...getTokensFromExpr(item));
+    }
+  }
+  return tokens;
+}
+
+/**
+ * Recursively extract all tokens from an expression.
+ *
+ * Expected expression types in Info_line.value2 and Inline_field.value2:
+ * - KV: key-value pairs like "clef=treble" or standalone values like "1"
+ * - Binary: rationals like "4/4" in meter lines
+ * - Unary: signed numbers like "-2" in octave parameters
+ * - Grouping: parenthesized expressions like "(2+3+2)/8"
+ * - AbsolutePitch: absolute pitch notation in key signatures
+ *
+ * Other expression types return an empty array since they either don't appear
+ * in info line values or are handled as direct tokens.
+ */
+function getTokensFromExpr(expr: Expr): Token[] {
+  if (expr instanceof KV) {
+    const tokens: Token[] = [];
+    if (expr.key) {
+      if (expr.key instanceof Token) {
+        tokens.push(expr.key);
+      } else {
+        tokens.push(...getTokensFromExpr(expr.key));
+      }
+    }
+    if (expr.equals) tokens.push(expr.equals);
+    if (expr.value instanceof Token) {
+      tokens.push(expr.value);
+    } else {
+      tokens.push(...getTokensFromExpr(expr.value));
+    }
+    return tokens;
+  }
+  if (expr instanceof Binary) {
+    const tokens: Token[] = [];
+    if (expr.left instanceof Token) {
+      tokens.push(expr.left);
+    } else {
+      tokens.push(...getTokensFromExpr(expr.left));
+    }
+    tokens.push(expr.operator);
+    if (expr.right instanceof Token) {
+      tokens.push(expr.right);
+    } else {
+      tokens.push(...getTokensFromExpr(expr.right));
+    }
+    return tokens;
+  }
+  if (expr instanceof Unary) {
+    const tokens: Token[] = [expr.operator];
+    if (expr.operand instanceof Token) {
+      tokens.push(expr.operand);
+    } else {
+      tokens.push(...getTokensFromExpr(expr.operand));
+    }
+    return tokens;
+  }
+  if (expr instanceof Grouping) {
+    const tokens: Token[] = [];
+    if (expr.leftParen) tokens.push(expr.leftParen);
+    if (expr.expression instanceof Token) {
+      tokens.push(expr.expression);
+    } else {
+      tokens.push(...getTokensFromExpr(expr.expression));
+    }
+    if (expr.rightParen) tokens.push(expr.rightParen);
+    return tokens;
+  }
+  if (expr instanceof AbsolutePitch) {
+    const tokens: Token[] = [expr.noteLetter];
+    if (expr.alteration) tokens.push(expr.alteration);
+    if (expr.octave) tokens.push(expr.octave);
+    return tokens;
+  }
+  return [];
 }
 
 function buildSymbolLine(id: number, children: Array<Expr | Token>): SymbolLine {

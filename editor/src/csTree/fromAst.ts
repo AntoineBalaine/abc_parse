@@ -101,6 +101,10 @@ export const childrenVisitor: Visitor<ChildList> = {
     return expr.sequence.flat();
   },
   visitInfoLineExpr(expr: Info_line): ChildList {
+    // Prefer value2 (structured expressions) over value (raw tokens)
+    if (expr.value2 && expr.value2.length > 0) {
+      return [expr.key, ...expr.value2];
+    }
     return [expr.key, ...expr.value];
   },
   visitNoteExpr(expr: Note): ChildList {

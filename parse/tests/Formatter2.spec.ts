@@ -1,8 +1,8 @@
 import chai, { assert } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { ParseCtx, parseTune } from "../parsers/parse2";
-import { Scanner } from "../parsers/scan2";
-import { System } from "../types/Expr2";
+import { Scanner, Token, TT } from "../parsers/scan2";
+import { Info_line, System } from "../types/Expr2";
 import { AbcFormatter } from "../Visitors/Formatter2";
 
 const expect = chai.expect;
@@ -988,5 +988,80 @@ describe("Formatter2: Error Preservation", () => {
     }
     const result = formatter.format(ast);
     assert.equal(removeTuneHeader(result).trim(), expected);
+  });
+});
+
+describe("Formatter2: Info_line fallback path (no value2)", () => {
+  // These tests exercise the fallback path in visitInfoLineExpr when value2 is not populated.
+  // This happens when the AST is reconstructed from the CSTree (e.g., in the editor).
+
+  it("preserves spacing around = in key-value pairs when value2 is not populated", () => {
+    const ctx = new ABCContext();
+    const formatter = new AbcFormatter(ctx);
+
+    // Create an Info_line with tokens but WITHOUT value2 (simulating CSTree reconstruction).
+    // The tokens represent "V:1 clef=treble" where there is no space around the = sign.
+    const tokens = [
+      new Token(TT.INF_HDR, "V:", ctx.generateId()),
+      new Token(TT.IDENTIFIER, "1", ctx.generateId()),
+      new Token(TT.WS, " ", ctx.generateId()),
+      new Token(TT.IDENTIFIER, "clef", ctx.generateId()),
+      new Token(TT.EQL, "=", ctx.generateId()),
+      new Token(TT.IDENTIFIER, "treble", ctx.generateId()),
+    ];
+
+    // Create Info_line without value2 (the fourth parameter)
+    const infoLine = new Info_line(ctx.generateId(), tokens);
+
+    const result = formatter.visitInfoLineExpr(infoLine);
+    assert.equal(result, "V:1 clef=treble");
+  });
+
+  it("preserves original spacing when there are spaces around = sign", () => {
+    const ctx = new ABCContext();
+    const formatter = new AbcFormatter(ctx);
+
+    // Tokens for "V:1 clef = treble" (with spaces around =)
+    const tokens = [
+      new Token(TT.INF_HDR, "V:", ctx.generateId()),
+      new Token(TT.IDENTIFIER, "1", ctx.generateId()),
+      new Token(TT.WS, " ", ctx.generateId()),
+      new Token(TT.IDENTIFIER, "clef", ctx.generateId()),
+      new Token(TT.WS, " ", ctx.generateId()),
+      new Token(TT.EQL, "=", ctx.generateId()),
+      new Token(TT.WS, " ", ctx.generateId()),
+      new Token(TT.IDENTIFIER, "treble", ctx.generateId()),
+    ];
+
+    const infoLine = new Info_line(ctx.generateId(), tokens);
+
+    const result = formatter.visitInfoLineExpr(infoLine);
+    // We expect the original spacing to be preserved
+    assert.equal(result, "V:1 clef = treble");
+  });
+
+  it("handles multiple key-value pairs without adding extra spaces", () => {
+    const ctx = new ABCContext();
+    const formatter = new AbcFormatter(ctx);
+
+    // Tokens for "V:RH clef=treble octave=-2"
+    const tokens = [
+      new Token(TT.INF_HDR, "V:", ctx.generateId()),
+      new Token(TT.IDENTIFIER, "RH", ctx.generateId()),
+      new Token(TT.WS, " ", ctx.generateId()),
+      new Token(TT.IDENTIFIER, "clef", ctx.generateId()),
+      new Token(TT.EQL, "=", ctx.generateId()),
+      new Token(TT.IDENTIFIER, "treble", ctx.generateId()),
+      new Token(TT.WS, " ", ctx.generateId()),
+      new Token(TT.IDENTIFIER, "octave", ctx.generateId()),
+      new Token(TT.EQL, "=", ctx.generateId()),
+      new Token(TT.MINUS, "-", ctx.generateId()),
+      new Token(TT.NUMBER, "2", ctx.generateId()),
+    ];
+
+    const infoLine = new Info_line(ctx.generateId(), tokens);
+
+    const result = formatter.visitInfoLineExpr(infoLine);
+    assert.equal(result, "V:RH clef=treble octave=-2");
   });
 });

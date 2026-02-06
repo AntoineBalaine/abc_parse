@@ -219,10 +219,8 @@ function voiceExistsInHeader(root: CSNode, voiceId: string): boolean {
         if (keyData.lexeme === "V:") {
           // Check if this voice line declares the voiceId
           const valueChild = keyChild.nextSibling;
-          if (valueChild !== null && isTokenNode(valueChild)) {
-            const valueData = getTokenData(valueChild);
-            // Voice ID is the first word in the value
-            const declaredId = valueData.lexeme.split(/\s+/)[0];
+          if (valueChild !== null) {
+            const declaredId = extractVoiceIdFromValueChild(valueChild);
             if (declaredId === voiceId) {
               return true;
             }
@@ -234,6 +232,36 @@ function voiceExistsInHeader(root: CSNode, voiceId: string): boolean {
   }
 
   return false;
+}
+
+/**
+ * Extracts the voice ID from a value child node.
+ * Because the CSTree may contain KV expressions (from value2 preservation),
+ * we need to handle both token and KV cases.
+ */
+function extractVoiceIdFromValueChild(valueChild: CSNode): string | null {
+  // Handle token children (legacy format or simple values)
+  if (isTokenNode(valueChild)) {
+    const lexeme = getTokenData(valueChild).lexeme.trim();
+    const firstWord = lexeme.split(/\s+/)[0];
+    return firstWord || null;
+  }
+
+  // Handle KV expression children (new format with value2)
+  // For voice IDs like "ExistingVoice" in "V:ExistingVoice", the KV has just a value.
+  if (valueChild.tag === TAGS.KV) {
+    let child = valueChild.firstChild;
+    let lastChild: CSNode | null = null;
+    while (child) {
+      lastChild = child;
+      child = child.nextSibling;
+    }
+    if (lastChild && isTokenNode(lastChild)) {
+      return getTokenData(lastChild).lexeme.trim();
+    }
+  }
+
+  return null;
 }
 
 /**

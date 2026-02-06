@@ -1,24 +1,20 @@
-- id: ee6562bd-9093-4ee9-8a95-7bc3e95af097
-  content: remove this line
-  fileName: abc-lsp-server/src/selectorLookup.ts
-  lineNumber: 47
-  hash: 496d37fb722b04fad70fc1db0697a5b72297b202
-  parentHash: 29d4266f0d154957793f01365bf50d26ff3436f8
-  createdAt: '2026-01-29T11:55:46.654-05:00'
-  completed: false
-- id: 0270b4dc-b7ed-47f2-9b25-2370497a2db8
-  content: why are we not doing named imports instead of using relative paths?
-  fileName: abc-lsp-server/src/csTreeSerializer.ts
-  lineNumber: 7
-  hash: 29d4266f0d154957793f01365bf50d26ff3436f8
-  parentHash: 8c7906b19eb9cb1d409d9d77c7c52c33af4f425f
-  createdAt: '2026-01-29T11:53:02.933-05:00'
-  completed: false
-- id: a25568b5-f969-4f56-9923-fb1dae5025e6
-  content: let’s inline this type.
-  fileName: editor/src/selectors/treeWalk.ts
-  lineNumber: 106
-  hash: 496d37fb722b04fad70fc1db0697a5b72297b202
-  parentHash: 29d4266f0d154957793f01365bf50d26ff3436f8
-  createdAt: '2026-01-29T11:57:25.152-05:00'
+- id: a50edf4c-102b-400c-b7ae-10132489a55b
+  content: >-
+    I’m seeingg some serious issues from this commit that are going to prevent
+    me from dropping value1: Upon calling a transform like «consolidate rests»
+    on this tune, ``` X:1 T:Test M:4 / 4 L:1 / 4 K:C [V:1] [CEG]DEF | [CFA]Bc^c
+    [V:2] GDEF | ABcd [V:3] E z2 z | F z2 z [V:4] C z2 z | C z2 z ``` Info
+    line’s slashes get converted back without the slashes: ``` X:1 T:Test M:4 4
+    L:1 4 K:C [V:1] [CEG]DEF | [CFA]Bc^c [V:2] GDEF | ABcd [V:3] E z2 z | F z2 z
+    [V:4] C z2 z | C z2 z ``` I dunno whether that’s in the toAst, or fromAst,
+    or in the stringification, but that’s a new bug.  This means that so long as
+    we don’t have thorough property-based round-trip tests for every expression
+    and token type in the ast, we’re not ready to merge this PR.  This expands
+    the scope significantly of the testing needed, and needs to carry its own
+    implementation plan.
+  fileName: editor/src/csTree/toAst.ts
+  lineNumber: 334
+  hash: 88cb0514dd79625f3d7a19f64d5b1021b89f2ed3
+  parentHash: e917e2d8b4df4a1abed5d57550d6c0e6051004fd
+  createdAt: '2026-02-07T12:10:51.272-05:00'
   completed: false

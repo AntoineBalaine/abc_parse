@@ -86,8 +86,8 @@ describe("voiceMarkerTransform", () => {
       const input = "X:1\nT:Test\nM:4/4\nL:1/4\nV:1 name=A clef=treble\nV:2 name=B clef=bass\nK:C\nV:1\nFDEC\nV:2\n[F,A,]2\n";
       // Header V: lines (before K:) should stay as info lines
       // Body V: lines (after K:) should be converted to inline
-      // Formatter adds spaces around = and /
-      const expected = "X:1\nT:Test\nM:4 / 4\nL:1 / 4\nV:1 name = A clef = treble\nV:2 name = B clef = bass\nK:C\n[V:1] FDEC\n[V:2] [F,A,]2\n";
+      // Formatter preserves original spacing in info line content
+      const expected = "X:1\nT:Test\nM:4/4\nL:1/4\nV:1 name=A clef=treble\nV:2 name=B clef=bass\nK:C\n[V:1] FDEC\n[V:2] [F,A,]2\n";
       expect(applyInfoLineToInline(input)).to.equal(expected);
     });
   });
@@ -101,15 +101,15 @@ describe("voiceMarkerTransform", () => {
 
     it("converts [V:1 clef=bass] with parameter", () => {
       const input = "X:1\nK:C\n[V:1 clef=bass] CDEF|\n";
-      // Formatter adds spaces around = in info line content
-      const expected = "X:1\nK:C\nV:1 clef = bass\nCDEF|\n";
+      // Formatter preserves original spacing in info line content
+      const expected = "X:1\nK:C\nV:1 clef=bass\nCDEF|\n";
       expect(applyInlineToInfoLine(input)).to.equal(expected);
     });
 
     it("converts [V:1] with multiple parameters", () => {
       const input = "X:1\nK:C\n[V:1 clef=treble stem=up] CDEF|\n";
-      // Formatter adds spaces around = in info line content
-      const expected = "X:1\nK:C\nV:1 clef = treble stem = up\nCDEF|\n";
+      // Formatter preserves original spacing in info line content
+      const expected = "X:1\nK:C\nV:1 clef=treble stem=up\nCDEF|\n";
       expect(applyInlineToInfoLine(input)).to.equal(expected);
     });
 
@@ -144,9 +144,8 @@ describe("voiceMarkerTransform", () => {
       const input = "X:1\nK:C\nV:1 clef=treble\nCDEF|\n";
       const afterToInline = applyInfoLineToInline(input);
       const afterRoundtrip = applyInlineToInfoLine(afterToInline);
-      // Formatter adds spaces around = in info line content
-      const expected = "X:1\nK:C\nV:1 clef = treble\nCDEF|\n";
-      expect(afterRoundtrip).to.equal(expected);
+      // Formatter preserves original spacing, so roundtrip should match input
+      expect(afterRoundtrip).to.equal(input);
     });
 
     it("inline to info line and back preserves content", () => {

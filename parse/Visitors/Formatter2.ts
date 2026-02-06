@@ -416,15 +416,11 @@ export class AbcFormatter implements Visitor<string> {
       return `${key.lexeme}${formattedExpressions.join(" ")}`;
     }
 
-    // Fallback to original token-based formatting for compatibility
+    // Fallback to original token-based formatting for compatibility.
+    // We preserve the original spacing by including all tokens as-is.
     let val = "";
-    for (let i = 0; i < expr.value.length; i++) {
-      const tok = expr.value[i];
-      if (tok.type === TT.WS) {
-        continue;
-      } else {
-        val += (i === 0 ? "" : " ") + expr.value[i].lexeme;
-      }
+    for (const tok of expr.value) {
+      val += tok.lexeme;
     }
     return `${key.lexeme}${val}`;
   }
