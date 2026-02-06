@@ -212,7 +212,7 @@ export function isTune(ctx: ParseCtx) {
  * @param prnt_arr - Optional parent array to push the result to
  */
 export function parseTune(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Tune {
-  // Parse header information (may update ctx.abcContext.tuneLinear if %%linear is found)
+  // Parse header information (may update ctx.abcContext.tuneLinear if %%abcls-parse linear is found)
   const tuneHeader = prsTuneHdr(ctx);
   // Parse body (music sections) with voices from the header
   const tuneBody = prsBody(ctx, tuneHeader.voices);

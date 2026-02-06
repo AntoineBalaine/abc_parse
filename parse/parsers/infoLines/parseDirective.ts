@@ -70,42 +70,38 @@ function checkFormatterDirective(directive: Directive, ctx: ParseCtx, headerCont
 }
 
 /**
- * Check if a directive is %%linear and update the context accordingly.
+ * Check if a directive is %%abcls-parse and update the context accordingly.
  * This is called internally by parseDirective when a headerContext is provided.
+ *
+ * Syntax: %%abcls-parse linear
+ * The presence of `linear` option sets the linear flag to true (case-insensitive).
+ * If no option or an invalid option is provided, the flag remains unchanged.
  *
  * @param directive - The directive to check
  * @param ctx - The parsing context
  * @param headerContext - Whether this is in a "file" header or "tune" header
  */
-function checkLinearDirective(directive: Directive, ctx: ParseCtx, headerContext: HeaderContext): void {
-  if (directive.key.lexeme.toLowerCase() !== "linear") {
+function checkParseDirective(directive: Directive, ctx: ParseCtx, headerContext: HeaderContext): void {
+  if (directive.key.lexeme.toLowerCase() !== "abcls-parse") {
     return;
   }
 
   if (directive.values.length === 0) {
-    return; // no value, semantic analyzer will report error
+    return; // no option provided, flag remains unchanged
   }
 
   const value = directive.values[0];
-  let boolValue: boolean | null = null;
 
   if (value instanceof Token) {
     const lexeme = value.lexeme.toLowerCase();
-    if (lexeme === "true" || lexeme === "1") {
-      boolValue = true;
-    } else if (lexeme === "false" || lexeme === "0") {
-      boolValue = false;
+    if (lexeme === "linear") {
+      if (headerContext === "file") {
+        ctx.abcContext.linear = true;
+      } else {
+        ctx.abcContext.tuneLinear = true;
+      }
     }
-  }
-
-  if (boolValue === null) {
-    return; // invalid value, semantic analyzer will report error
-  }
-
-  if (headerContext === "file") {
-    ctx.abcContext.linear = boolValue;
-  } else {
-    ctx.abcContext.tuneLinear = boolValue;
+    // Any other value is silently ignored (flag remains unchanged)
   }
 }
 
@@ -123,7 +119,7 @@ function checkLinearDirective(directive: Directive, ctx: ParseCtx, headerContext
  *
  * @param ctx - The parsing context
  * @param prnt_arr - Optional array to push the parsed directive to
- * @param headerContext - Optional context indicating file or tune header (for %%linear handling)
+ * @param headerContext - Optional context indicating file or tune header (for %%abcls-parse handling)
  */
 export function parseDirective(
   ctx: ParseCtx,
@@ -171,9 +167,9 @@ export function parseDirective(
 
   const rv = new Directive(ctx.abcContext.generateId(), directiveKey, values);
 
-  // Check for %%linear directive and update context before pushing to parent array
+  // Check for %%abcls-parse directive and update context before pushing to parent array
   if (headerContext) {
-    checkLinearDirective(rv, ctx, headerContext);
+    checkParseDirective(rv, ctx, headerContext);
     checkFormatterDirective(rv, ctx, headerContext);
   }
 
@@ -302,9 +298,9 @@ function parseTextDirective(
 
   const rv = new Directive(ctx.abcContext.generateId(), directiveKey, values);
 
-  // Check for %%linear directive and update context before pushing to parent array
+  // Check for %%abcls-parse directive and update context before pushing to parent array
   if (headerContext) {
-    checkLinearDirective(rv, ctx, headerContext);
+    checkParseDirective(rv, ctx, headerContext);
     checkFormatterDirective(rv, ctx, headerContext);
   }
 

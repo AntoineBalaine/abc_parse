@@ -268,83 +268,55 @@ describe("Directive Scanner Tests", () => {
     });
   });
 
-  describe("Linear directive (%%linear)", () => {
-    it("should scan %%linear true with expected token sequence", () => {
-      const ctx = createCtx("%%linear true");
+  describe("Parse directive (%%abcls-parse)", () => {
+    it("should scan %%abcls-parse linear with expected token sequence", () => {
+      const ctx = createCtx("%%abcls-parse linear");
       const result = scanDirective(ctx);
 
       expect(result).to.equal(true);
       expect(ctx.tokens[0].type).to.equal(TT.STYLESHEET_DIRECTIVE);
       expect(ctx.tokens[0].lexeme).to.equal("%%");
       expect(ctx.tokens[1].type).to.equal(TT.IDENTIFIER);
-      expect(ctx.tokens[1].lexeme).to.equal("linear");
-      // The value "true" is tokenized as an identifier
+      expect(ctx.tokens[1].lexeme).to.equal("abcls-parse");
       expect(ctx.tokens[2].type).to.equal(TT.IDENTIFIER);
-      expect(ctx.tokens[2].lexeme).to.equal("true");
+      expect(ctx.tokens[2].lexeme).to.equal("linear");
     });
 
-    it("should scan %%linear false with expected token sequence", () => {
-      const ctx = createCtx("%%linear false");
+    it("should scan %%abcls-parse LINEAR with expected token sequence", () => {
+      const ctx = createCtx("%%abcls-parse LINEAR");
       const result = scanDirective(ctx);
 
       expect(result).to.equal(true);
       expect(ctx.tokens[0].type).to.equal(TT.STYLESHEET_DIRECTIVE);
       expect(ctx.tokens[0].lexeme).to.equal("%%");
       expect(ctx.tokens[1].type).to.equal(TT.IDENTIFIER);
-      expect(ctx.tokens[1].lexeme).to.equal("linear");
-      // The value "false" is tokenized as an identifier
+      expect(ctx.tokens[1].lexeme).to.equal("abcls-parse");
       expect(ctx.tokens[2].type).to.equal(TT.IDENTIFIER);
-      expect(ctx.tokens[2].lexeme).to.equal("false");
+      expect(ctx.tokens[2].lexeme).to.equal("LINEAR");
     });
 
-    it("should scan %%linear true with extra whitespace", () => {
-      const ctx = createCtx("%%linear   true");
+    it("should scan %%abcls-parse without parameter", () => {
+      const ctx = createCtx("%%abcls-parse");
       const result = scanDirective(ctx);
 
       expect(result).to.equal(true);
       expect(ctx.tokens[0].type).to.equal(TT.STYLESHEET_DIRECTIVE);
       expect(ctx.tokens[0].lexeme).to.equal("%%");
       expect(ctx.tokens[1].type).to.equal(TT.IDENTIFIER);
-      expect(ctx.tokens[1].lexeme).to.equal("linear");
-      expect(ctx.tokens[2].type).to.equal(TT.IDENTIFIER);
-      expect(ctx.tokens[2].lexeme).to.equal("true");
-    });
-
-    it("should scan %%linear without parameter", () => {
-      const ctx = createCtx("%%linear");
-      const result = scanDirective(ctx);
-
-      expect(result).to.equal(true);
-      expect(ctx.tokens[0].type).to.equal(TT.STYLESHEET_DIRECTIVE);
-      expect(ctx.tokens[0].lexeme).to.equal("%%");
-      expect(ctx.tokens[1].type).to.equal(TT.IDENTIFIER);
-      expect(ctx.tokens[1].lexeme).to.equal("linear");
-      // Only two tokens: the directive header and the identifier
+      expect(ctx.tokens[1].lexeme).to.equal("abcls-parse");
       expect(ctx.tokens.length).to.equal(2);
     });
 
-    it("should scan %%linear 1 with NUMBER token", () => {
-      const ctx = createCtx("%%linear 1");
+    it("should scan %%abcls-parse with unknown option", () => {
+      const ctx = createCtx("%%abcls-parse foo");
       const result = scanDirective(ctx);
 
       expect(result).to.equal(true);
       expect(ctx.tokens[0].type).to.equal(TT.STYLESHEET_DIRECTIVE);
       expect(ctx.tokens[1].type).to.equal(TT.IDENTIFIER);
-      expect(ctx.tokens[1].lexeme).to.equal("linear");
-      expect(ctx.tokens[2].type).to.equal(TT.NUMBER);
-      expect(ctx.tokens[2].lexeme).to.equal("1");
-    });
-
-    it("should scan %%linear 0 with NUMBER token", () => {
-      const ctx = createCtx("%%linear 0");
-      const result = scanDirective(ctx);
-
-      expect(result).to.equal(true);
-      expect(ctx.tokens[0].type).to.equal(TT.STYLESHEET_DIRECTIVE);
-      expect(ctx.tokens[1].type).to.equal(TT.IDENTIFIER);
-      expect(ctx.tokens[1].lexeme).to.equal("linear");
-      expect(ctx.tokens[2].type).to.equal(TT.NUMBER);
-      expect(ctx.tokens[2].lexeme).to.equal("0");
+      expect(ctx.tokens[1].lexeme).to.equal("abcls-parse");
+      expect(ctx.tokens[2].type).to.equal(TT.IDENTIFIER);
+      expect(ctx.tokens[2].lexeme).to.equal("foo");
     });
   });
 

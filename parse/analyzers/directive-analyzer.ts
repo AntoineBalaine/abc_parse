@@ -111,7 +111,6 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     // Boolean Value Directives
     // ============================================================================
     case "graceslurs":
-    case "linear":
     case "staffnonote":
     case "printtempo":
     case "partsbox":

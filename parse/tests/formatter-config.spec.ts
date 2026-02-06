@@ -334,7 +334,7 @@ describe("FormatterConfig", () => {
     it("does not insert comments when systemComments is false", () => {
       const ctx = new ABCContext();
       // Linear multi-voice tune without system-comments directive
-      const input = `%%linear true
+      const input = `%%abcls-parse linear
 X:1
 V:1
 V:2
@@ -414,8 +414,8 @@ GFED|
 
     it("does not insert comments when directive is absent", () => {
       const ctx = new ABCContext();
-      // Multi-voice tune without system-comments directive (uses %%linear for multi-system parsing)
-      const input = `%%linear
+      // Multi-voice tune without system-comments directive (uses %%abcls-parse for multi-system parsing)
+      const input = `%%abcls-parse linear
 X:1
 V:1
 V:2

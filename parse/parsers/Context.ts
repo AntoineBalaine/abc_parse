@@ -31,7 +31,7 @@ type AbcContextOpts = {
  */
 export class ABCContext {
   public errorReporter: AbcErrorReporter;
-  /** File-level linear flag from %%linear in file header */
+  /** File-level linear flag from %%abcls-parse linear in file header */
   public linear: boolean = false;
   /** Current tune's effective linear value. Inherits from file header, can be overridden in tune header. */
   public tuneLinear: boolean = false;
