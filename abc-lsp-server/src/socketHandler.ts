@@ -6,12 +6,13 @@ import { resolveSelectionRanges, findNodesInRange } from "./selectionRangeResolv
 import { lookupSelector, getAvailableSelectors } from "./selectorLookup";
 import { lookupTransform } from "./transformLookup";
 import { fromAst, createSelection, Selection, selectRange, CSNode, TAGS } from "editor";
-import { File_structure, ABCContext } from "abc-parser";
+import { File_structure, ABCContext, Scanner, parse } from "abc-parser";
 import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
 import { serializeCSTree } from "./csTreeSerializer";
 import { computeTextEditsFromDiff } from "./textEditFromDiff";
 import { PreviewManager } from "./PreviewManager";
+import { collectSurvivingCursorIds, computeCursorRangesFromFreshTree } from "./cursorPreservation";
 
 // ============================================================================
 // Error Codes (JSON-RPC style)
@@ -58,6 +59,7 @@ interface SelectorResult {
 
 interface TransformResult {
   edits: Array<{ range: LSPRange; newText: string }>;
+  cursorRanges: LSPRange[];
 }
 
 interface StartPreviewResult {
@@ -436,13 +438,16 @@ function handleApplyTransform(
 
   if (allCursors.length === 0) {
     // No nodes found within the selection ranges
-    return { edits: [] };
+    return { edits: [], cursorRanges: [] };
   }
 
   const selection: Selection = { root, cursors: allCursors };
 
-  // Apply transform (mutates tree in place)
+  // Apply transform (mutates tree in place, returns updated Selection)
   const newSelection = transformFn(selection, doc.ctx, ...params.args);
+
+  // Collect surviving cursor node IDs from the modified tree
+  const survivingCursorIds = collectSurvivingCursorIds(newSelection);
 
   // Serialize modified tree to text
   const newText = serializeCSTree(newSelection.root, doc.ctx);
@@ -457,7 +462,16 @@ function handleApplyTransform(
     newText: edit.newText,
   }));
 
-  return { edits };
+  // Re-parse new text to get accurate token positions for cursor ranges
+  const freshCtx = new ABCContext();
+  const freshTokens = Scanner(newText, freshCtx);
+  const freshAST = parse(freshTokens, freshCtx);
+  const freshRoot = fromAst(freshAST, freshCtx);
+
+  // Map surviving cursor IDs to their positions in the fresh tree
+  const cursorRanges = computeCursorRangesFromFreshTree(survivingCursorIds, newSelection.root, freshRoot);
+
+  return { edits, cursorRanges };
 }
 
 // ============================================================================

@@ -80,6 +80,7 @@ interface LspResponse {
   result?: {
     ranges?: LspRange[];
     edits?: LspTextEdit[];
+    cursorRanges?: LspRange[];
     url?: string;
   };
   error?: {
@@ -360,6 +361,46 @@ function lspRangeToKakDescriptor(range: LspRange, lines: string[]): string | nul
   }
 
   return `${startLine + 1}.${startCol},${adjustedEndLine + 1}.${endCol}`;
+}
+
+// ============================================================================
+// Text Edit Application
+// ============================================================================
+
+/**
+ * Applies LSP text edits to a text string and returns the result.
+ * Edits are applied in reverse order (from end to start) to preserve positions.
+ */
+function applyEditsToText(text: string, edits: LspTextEdit[]): string {
+  // Sort edits by position (descending) to apply from end to start
+  const sortedEdits = [...edits].sort((a, b) => {
+    if (b.range.start.line !== a.range.start.line) {
+      return b.range.start.line - a.range.start.line;
+    }
+    return b.range.start.character - a.range.start.character;
+  });
+
+  const lines = text.split("\n");
+
+  for (const edit of sortedEdits) {
+    const startLine = edit.range.start.line;
+    const endLine = edit.range.end.line;
+    const startChar = edit.range.start.character;
+    const endChar = edit.range.end.character;
+
+    // Get the text before and after the edit range
+    const beforeText = lines[startLine]?.slice(0, startChar) ?? "";
+    const afterText = lines[endLine]?.slice(endChar) ?? "";
+
+    // Combine with new text
+    const newContent = beforeText + edit.newText + afterText;
+    const newLines = newContent.split("\n");
+
+    // Replace the affected lines
+    lines.splice(startLine, endLine - startLine + 1, ...newLines);
+  }
+
+  return lines.join("\n");
 }
 
 // ============================================================================
@@ -706,12 +747,24 @@ async function main(): Promise<void> {
       process.exit(0);
     }
 
-    // Pass original selection ranges to filter which edits affect the final selection
+    // Generate edit commands (we still need these for applying edits)
     const editResult = generateEditCommands(result.edits, lines, lspRanges);
     if (!editResult) {
       console.log("NO_EDITS");
       process.exit(0);
     }
+
+    // Apply edits to the old text to get the new text for cursor range conversion.
+    // The server's cursorRanges are positions in the new text, so we need the new
+    // lines to correctly convert UTF-16 offsets to byte offsets.
+    const newText = applyEditsToText(lines.join("\n"), result.edits);
+    const newLines = newText.split("\n");
+
+    // Convert server's cursor ranges to Kakoune descriptors using the new text
+    const cursorRanges = result.cursorRanges ?? [];
+    const kakCursorRanges = cursorRanges
+      .map((range) => lspRangeToKakDescriptor(range, newLines))
+      .filter((desc): desc is string => desc !== null);
 
     // Output format:
     // Line 1: EDITS
@@ -721,7 +774,9 @@ async function main(): Promise<void> {
     for (const cmd of editResult.commands) {
       console.log(cmd);
     }
-    console.log("select " + editResult.finalRanges.join(" "));
+    if (kakCursorRanges.length > 0) {
+      console.log("select " + kakCursorRanges.join(" "));
+    }
   }
 }
 
