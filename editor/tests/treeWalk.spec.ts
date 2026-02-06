@@ -10,6 +10,7 @@ import {
   buildIdMap,
   findByTag as productionFindByTag,
   findFirstByTag,
+  findAncestorByTag,
 } from "../src/selectors/treeWalk";
 import { toCSTree, collectAll, findByTag, genAbcTune, genAbcWithChords } from "./helpers";
 
@@ -225,6 +226,53 @@ describe("treeWalk", () => {
       const firstNote = findFirstByTag(root, TAGS.Note);
       expect(allNotes.length).to.equal(3);
       expect(firstNote!.id).to.equal(allNotes[0].id);
+    });
+  });
+
+  describe("findAncestorByTag", () => {
+    it("returns the Tune ancestor for a Note inside a Tune", () => {
+      const root = toCSTree("X:1\nK:C\nCDE|\n");
+      const notes = findByTag(root, TAGS.Note);
+      const noteId = notes[0].id;
+      const ancestor = findAncestorByTag(root, noteId, TAGS.Tune);
+      expect(ancestor).to.not.be.null;
+      expect(ancestor!.tag).to.equal(TAGS.Tune);
+    });
+
+    it("returns null when node has no ancestor of that tag", () => {
+      const root = toCSTree("X:1\nK:C\nCDE|\n");
+      const tunes = findByTag(root, TAGS.Tune);
+      // Tune has no Tune ancestor (it is a Tune, but not inside another Tune)
+      const ancestor = findAncestorByTag(root, tunes[0].id, TAGS.Tune);
+      expect(ancestor).to.be.null;
+    });
+
+    it("returns null when targetId is not found", () => {
+      const root = toCSTree("X:1\nK:C\nCDE|\n");
+      const ancestor = findAncestorByTag(root, 999999, TAGS.Tune);
+      expect(ancestor).to.be.null;
+    });
+
+    it("returns the nearest ancestor when multiple levels match", () => {
+      // A Note is inside Beam inside System inside Tune_Body inside Tune
+      const root = toCSTree("X:1\nK:C\nCDEF|\n");
+      const notes = findByTag(root, TAGS.Note);
+      const noteId = notes[0].id;
+      // Looking for Tune should return the Tune
+      const tuneAncestor = findAncestorByTag(root, noteId, TAGS.Tune);
+      expect(tuneAncestor).to.not.be.null;
+      expect(tuneAncestor!.tag).to.equal(TAGS.Tune);
+    });
+
+    it("returns different Tune ancestors for notes in different tunes", () => {
+      const root = toCSTree("X:1\nK:C\nC|\n\nX:2\nK:G\nG|\n");
+      const notes = findByTag(root, TAGS.Note);
+      expect(notes.length).to.equal(2);
+      const tune1 = findAncestorByTag(root, notes[0].id, TAGS.Tune);
+      const tune2 = findAncestorByTag(root, notes[1].id, TAGS.Tune);
+      expect(tune1).to.not.be.null;
+      expect(tune2).to.not.be.null;
+      expect(tune1!.id).to.not.equal(tune2!.id);
     });
   });
 

@@ -79,6 +79,17 @@ export const genAbcWithChords: fc.Arbitrary<string> = fc
     return "X:1\nK:C\n" + tokensToString(allTokens) + "|\n";
   });
 
+export const genAbcWithMultiMeasureRests: fc.Arbitrary<string> = fc
+  .tuple(
+    fc.array(ParserGen.genMultiMeasureRestExpr, { minLength: 1, maxLength: 2 }),
+    fc.array(ParserGen.genNoteExpr, { minLength: 0, maxLength: 3 }),
+    fc.array(ParserGen.genRegularRestExpr, { minLength: 0, maxLength: 2 })
+  )
+  .map(([mmRests, notes, rests]) => {
+    const allTokens = [...mmRests, ...notes, ...rests].flatMap((e) => e.tokens);
+    return "X:1\nK:C\n" + tokensToString(allTokens) + "|\n";
+  });
+
 export const genAbcWithGraceGroups: fc.Arbitrary<string> = fc
   .tuple(fc.array(ParserGen.genGraceGroupExpr, { minLength: 1, maxLength: 3 }), fc.array(ParserGen.genNoteExpr, { minLength: 1, maxLength: 3 }))
   .map(([graces, notes]) => {

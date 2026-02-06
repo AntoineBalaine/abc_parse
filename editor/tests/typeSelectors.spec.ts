@@ -12,7 +12,7 @@ import {
   selectRhythmParent,
 } from "../src/selectors/typeSelectors";
 import { createSelection } from "../src/selection";
-import { toSelection, toCSTree, findById, findByTag, genAbcTune, genAbcWithChords } from "./helpers";
+import { toSelection, toCSTree, findById, findByTag, genAbcTune, genAbcWithChords, genAbcWithMultiMeasureRests } from "./helpers";
 
 describe("typeSelectors", () => {
   describe("properties", () => {
@@ -116,8 +116,10 @@ describe("typeSelectors", () => {
     });
 
     it("every cursor in selectRests result contains exactly 1 ID of a Rest or MultiMeasureRest CSNode", () => {
+      // We use genAbcWithMultiMeasureRests to guarantee at least one multi-measure rest
+      // is present, so the test does not pass vacuously on tunes with no rests.
       fc.assert(
-        fc.property(genAbcTune, (abc) => {
+        fc.property(genAbcWithMultiMeasureRests, (abc) => {
           const sel = toSelection(abc);
           const result = selectRests(sel);
           for (const cursor of result.cursors) {

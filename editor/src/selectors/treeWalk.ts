@@ -160,3 +160,44 @@ export function findFirstByTag(root: CSNode, tag: string): CSNode | null {
   walkForFirstTag(ctx, root);
   return ctx.result;
 }
+
+interface FindAncestorCtx {
+  targetId: number;
+  ancestorTag: string;
+  result: CSNode | null;
+}
+
+function walkForAncestor(ctx: FindAncestorCtx, node: CSNode | null, ancestors: CSNode[]): boolean {
+  let current = node;
+  while (current !== null) {
+    if (current.id === ctx.targetId) {
+      // Found target, search ancestors backwards for matching tag
+      for (let i = ancestors.length - 1; i >= 0; i--) {
+        if (ancestors[i].tag === ctx.ancestorTag) {
+          ctx.result = ancestors[i];
+          return true;
+        }
+      }
+      return true; // Found target but no matching ancestor
+    }
+    if (current.firstChild) {
+      ancestors.push(current);
+      if (walkForAncestor(ctx, current.firstChild, ancestors)) {
+        return true;
+      }
+      ancestors.pop();
+    }
+    current = current.nextSibling;
+  }
+  return false;
+}
+
+/**
+ * Finds the nearest ancestor of the node with the given ID that has the specified tag.
+ * Returns null if the target node is not found or has no ancestor with that tag.
+ */
+export function findAncestorByTag(root: CSNode, targetId: number, tag: string): CSNode | null {
+  const ctx: FindAncestorCtx = { targetId, ancestorTag: tag, result: null };
+  walkForAncestor(ctx, root, []);
+  return ctx.result;
+}

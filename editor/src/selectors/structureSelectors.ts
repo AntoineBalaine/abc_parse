@@ -1,34 +1,39 @@
-import { CSNode, TAGS } from "../csTree/types";
+import { TAGS } from "../csTree/types";
 import { Selection } from "../selection";
-
-interface TuneWalkCtx {
-  cursor: Set<number>;
-  outputCursors: Set<number>[];
-}
-
-function walk(ctx: TuneWalkCtx, node: CSNode, inScope: boolean): void {
-  let current: CSNode | null = node;
-  while (current) {
-    const nowInScope = inScope || ctx.cursor.has(current.id);
-
-    if (nowInScope && current.tag === TAGS.Tune) {
-      ctx.outputCursors.push(new Set([current.id]));
-    }
-
-    if (current.firstChild) {
-      walk(ctx, current.firstChild, nowInScope);
-    }
-
-    current = current.nextSibling;
-  }
-}
+import { findAncestorByTag, findByTag, findNodeById } from "./treeWalk";
 
 export function selectTune(input: Selection): Selection {
+  // Check if we have a meaningful scope (not empty and not just the root)
+  const hasScope =
+    input.cursors.length > 0 &&
+    !(input.cursors.length === 1 && input.cursors[0].size === 1 && input.cursors[0].has(input.root.id));
+
+  // If no meaningful scope, return all Tunes in the document
+  if (!hasScope) {
+    const allTunes = findByTag(input.root, TAGS.Tune);
+    const outputCursors = allTunes.map((tune) => new Set([tune.id]));
+    return { root: input.root, cursors: outputCursors };
+  }
+
+  // Otherwise, find the ancestor Tune for each node in the cursors
+  const seenTuneIds = new Set<number>();
   const outputCursors: Set<number>[] = [];
 
   for (const cursor of input.cursors) {
-    const ctx: TuneWalkCtx = { cursor, outputCursors };
-    walk(ctx, input.root, false);
+    for (const nodeId of cursor) {
+      let tuneNode = findAncestorByTag(input.root, nodeId, TAGS.Tune);
+      // If no ancestor Tune found, check if the node itself is a Tune
+      if (tuneNode === null) {
+        const node = findNodeById(input.root, nodeId);
+        if (node !== null && node.tag === TAGS.Tune) {
+          tuneNode = node;
+        }
+      }
+      if (tuneNode !== null && !seenTuneIds.has(tuneNode.id)) {
+        seenTuneIds.add(tuneNode.id);
+        outputCursors.push(new Set([tuneNode.id]));
+      }
+    }
   }
 
   return { root: input.root, cursors: outputCursors };
