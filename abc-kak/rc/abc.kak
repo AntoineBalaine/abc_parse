@@ -65,7 +65,7 @@ hook global BufCreate .*\.abcx %{
 # LSP Integration (via kak-lsp)
 # ============================================================================
 
-hook global WinSetOption filetype=(abc|abcx) %{
+hook global BufSetOption filetype=(?:abc|abcx) %{
     # Configure LSP server for this buffer
     set-option buffer lsp_servers %sh{
         printf '[abc-lsp]\n'
@@ -73,7 +73,10 @@ hook global WinSetOption filetype=(abc|abcx) %{
         printf 'command = "node"\n'
         printf 'args = ["%s", "--stdio", "--socket=auto"]\n' "$kak_opt_abc_server_path"
     }
+    set-option buffer lsp_language_id "abc"
+}
 
+hook global WinSetOption filetype=(?:abc|abcx) %{
     # Enable LSP and semantic tokens
     lsp-enable-window
     hook window -group abc-semantic-tokens BufReload .* lsp-semantic-tokens
@@ -96,15 +99,9 @@ hook global WinSetOption filetype=(abc|abcx) %{
 # Include Selector, Transform, and Mode Commands
 # ============================================================================
 
-# Kakoune's autoload mechanism loads all .kak files when the rc/ directory
-# is placed in ~/.config/kak/autoload/. For explicit loading, source this
-# file and the commands below will be available.
-#
-# The selector commands are defined in abc-selectors.kak
-# The transform commands are defined in abc-transforms.kak
-# The mode definitions are defined in abc-modes.kak
-
-source "%sh{dirname $kak_source}/abc-selectors.kak"
-source "%sh{dirname $kak_source}/abc-transforms.kak"
-source "%sh{dirname $kak_source}/abc-modes.kak"
-source "%sh{dirname $kak_source}/abc-preview.kak"
+# Kakoune's autoload mechanism loads all .kak files in this directory.
+# The following files are loaded automatically:
+#   - abc-selectors.kak: Selector commands
+#   - abc-transforms.kak: Transform commands
+#   - abc-modes.kak: Mode definitions
+#   - abc-preview.kak: Preview functionality

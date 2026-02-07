@@ -133,7 +133,7 @@ define-command abc-select-system \
 
 define-command abc-select-voices -params 1 \
     -docstring "abc-select-voices <voice-ids>: Select notes/chords in specified voices (comma-separated IDs)" %{
-    abc-select-impl selectVoices "[\"$1\"]"
+    abc-select-impl selectVoices %exp{["%arg{1}"]}
 }
 
 # ============================================================================
@@ -152,7 +152,7 @@ define-command abc-select-bottom \
 
 define-command abc-select-nth-from-top -params 1 \
     -docstring "Select the Nth note from top (0-indexed)" %{
-    abc-select-impl selectNthFromTop "[$1]"
+    abc-select-impl selectNthFromTop "[%arg{1}]"
 }
 
 define-command abc-select-all-but-top \
