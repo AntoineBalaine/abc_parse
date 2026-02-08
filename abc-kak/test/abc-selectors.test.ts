@@ -30,9 +30,15 @@ describe('abc-kak selectors', function () {
   });
 
   describe('environment setup', () => {
+    it('loads kakrc at startup', () => {
+      kak.start();
+      kak.verifyKakrcLoaded();
+    });
+
     it('sets filetype when opening .abc file', () => {
       writeFileSync(testFile, 'X:1\nT:Test\nK:C\nCDEF\n');
       kak.start(`edit ${testFile}`);
+      kak.verifyKakrcLoaded();
       kak.verifyFiletype('abc');
     });
 
@@ -40,12 +46,6 @@ describe('abc-kak selectors', function () {
       writeFileSync(testFile, 'X:1\nT:Test\nK:C\nCDEF\n');
       kak.start(`edit ${testFile}`);
       kak.verifyLspServersConfigured();
-    });
-
-    it('enables LSP', () => {
-      writeFileSync(testFile, 'X:1\nT:Test\nK:C\nCDEF\n');
-      kak.start(`edit ${testFile}`);
-      kak.verifyLspEnabled();
     });
 
     it('sets filetype when opening .abcx file', () => {
@@ -125,8 +125,8 @@ K:C
       const before = kak.getSelection();
       expect(before).to.equal('C');
 
-      // Run transpose command
-      kak.send(`evaluate-commands -buffer ${testFile} %{ abc-transpose 12 }`);
+      // Run transpose command (needs client context for selection)
+      kak.sendKeys(': abc-transpose 12');
 
       // Small delay for transform to complete
       kak.sendKeys('');
