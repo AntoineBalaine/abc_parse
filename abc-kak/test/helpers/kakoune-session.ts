@@ -69,18 +69,26 @@ export class KakouneSession {
     execSync(`mkfifo ${this.resultFifo}`);
     execSync(`tmux -S ${this.tmuxSocket} new-session -d -x 80 -y 24 -s ${this.session}`);
     execSync(`tmux -S ${this.tmuxSocket} send-keys -t ${this.session} 'kak -s ${this.session}' Enter`);
-    execSync('sleep 0.3');
 
-    // Verify kakoune started successfully by querying the session name
-    try {
-      const sessionName = this.query('$kak_session');
-      if (sessionName.trim() !== this.session) {
-        throw new Error(`Kakoune session mismatch: expected ${this.session}, got ${sessionName.trim()}`);
+    // Wait for kakoune to be ready with retries
+    const maxAttempts = 10;
+    const delayMs = 200;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      execSync(`sleep ${delayMs / 1000}`);
+      try {
+        const sessionName = this.query('$kak_session');
+        if (sessionName.trim() === this.session) {
+          return; // Success
+        }
+      } catch (e) {
+        lastError = e as Error;
       }
-    } catch (e) {
-      this.cleanup();
-      throw new Error(`Kakoune failed to start: ${e}`);
     }
+
+    this.cleanup();
+    throw new Error(`Kakoune failed to start after ${maxAttempts} attempts: ${lastError}`);
   }
 
   loadKakLsp(): void {
