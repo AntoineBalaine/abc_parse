@@ -71,7 +71,7 @@ hook global BufSetOption filetype=(?:abc|abcx) %{
         printf '[abc-lsp]\n'
         printf 'root_globs = [".git", ".hg"]\n'
         printf 'command = "node"\n'
-        printf 'args = ["%s", "--stdio", "--socket=auto"]\n' "$kak_opt_abc_server_path"
+        printf 'args = ["%s", "--stdio", "--socket=%s"]\n' "$kak_opt_abc_server_path" "$kak_opt_abc_socket_path"
     }
     set-option buffer lsp_language_id "abc"
 }
