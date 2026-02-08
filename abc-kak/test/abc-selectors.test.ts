@@ -1,76 +1,95 @@
 import { expect } from 'chai';
-import { writeFileSync, unlinkSync, existsSync } from 'fs';
+import { writeFileSync, existsSync } from 'fs';
+import { join } from 'path';
 import { KakouneSession } from './helpers/kakoune-session';
 
-describe('abc-kak selectors', () => {
+describe('abc-kak selectors', function () {
+  // These tests require tmux, kakoune, and kak-lsp
+  this.timeout(30000);
+
+  before(function () {
+    try {
+      KakouneSession.checkPrerequisites();
+    } catch (e) {
+      // Skip all tests if prerequisites are not met (e.g., in CI without tmux/kak)
+      console.log(`Skipping abc-kak tests: ${(e as Error).message}`);
+      this.skip();
+    }
+  });
+
   let kak: KakouneSession;
   let testFile: string;
 
   beforeEach(() => {
     kak = new KakouneSession();
-    testFile = `/tmp/test-${kak.session}.abc`;
-    kak.start();
+    testFile = join(kak.testHome, 'test.abc');
   });
 
   afterEach(() => {
     kak.cleanup();
-    try {
-      unlinkSync(testFile);
-    } catch {
-      // File may not exist
-    }
   });
 
-  describe('basic navigation (no LSP)', () => {
+  describe('environment setup', () => {
+    it('sets filetype when opening .abc file', () => {
+      writeFileSync(testFile, 'X:1\nT:Test\nK:C\nCDEF\n');
+      kak.start(`edit ${testFile}`);
+      kak.verifyFiletype('abc');
+    });
+
+    it('configures lsp_servers for abc-lsp', () => {
+      writeFileSync(testFile, 'X:1\nT:Test\nK:C\nCDEF\n');
+      kak.start(`edit ${testFile}`);
+      kak.verifyLspServersConfigured();
+    });
+
+    it('enables LSP', () => {
+      writeFileSync(testFile, 'X:1\nT:Test\nK:C\nCDEF\n');
+      kak.start(`edit ${testFile}`);
+      kak.verifyLspEnabled();
+    });
+
+    it('sets filetype when opening .abcx file', () => {
+      const abcxFile = join(kak.testHome, 'test.abcx');
+      writeFileSync(abcxFile, 'X:1\nT:Test\nK:C\nCDEF\n');
+      kak.start(`edit ${abcxFile}`);
+      kak.verifyFiletype('abcx');
+    });
+  });
+
+  describe('basic navigation', () => {
     it('selects a single note', () => {
-      writeFileSync(testFile, `X:1\nT:Test\nK:C\nCDEFGABc\n`);
-      kak.edit(testFile);
+      writeFileSync(testFile, 'X:1\nT:Test\nK:C\nCDEFGABc\n');
+      kak.start(`edit ${testFile}`);
+      kak.verifyHookFlow();
+
       const selection = kak.executeAndQuery('gg3j', '$kak_selection');
       expect(selection).to.equal('C');
     });
 
     it('can navigate to a specific position', () => {
-      writeFileSync(testFile, `X:1\nT:Test\nK:C\n[V:1] CDEFGABc\n`);
-      kak.edit(testFile);
+      writeFileSync(testFile, 'X:1\nT:Test\nK:C\n[V:1] CDEFGABc\n');
+      kak.start(`edit ${testFile}`);
+      kak.verifyHookFlow();
+
       const selection = kak.executeAndQuery('gg3j6l', '$kak_selection');
       expect(selection).to.equal('C');
     });
   });
 
-  describe('LSP integration', function () {
-    this.timeout(15000);
+  describe('selectors', () => {
+    it('abc-select-notes returns valid selection descriptors', () => {
+      writeFileSync(testFile, 'X:1\nT:Test\nK:C\nCDEF\n');
+      kak.start(`edit ${testFile}`);
+      kak.verifyHookFlow();
 
-    let lspAvailable = false;
+      kak.executeKeys('%');  // Select all
+      const result = kak.commandAndQuery('abc-select-notes', '$kak_selections_desc');
 
-    beforeEach(async function () {
-      kak.loadKakLsp();
-      kak.loadAbcPlugin();
-
-      // Write a test file to trigger LSP initialization
-      writeFileSync(testFile, `X:1\nT:Test\nK:C\nCDEF\n`);
-
-      // Try to wait for the socket with a short timeout
-      try {
-        await kak.editAndWaitForLsp(testFile, 3000);
-        lspAvailable = true;
-      } catch {
-        // LSP socket didn't become ready - kak-lsp may not be properly configured
-        kak.edit(testFile);
-        lspAvailable = false;
-      }
+      expect(result).to.not.equal('1.1,1.1');
+      expect(result).to.match(/^\d+\.\d+,\d+\.\d+/);
     });
 
-    it('abc plugin loads and sets filetype', () => {
-      const filetype = kak.query('%opt{filetype}', testFile);
-      expect(filetype.trim()).to.equal('abc');
-    });
-
-    it('selector returns valid selection descriptors', async function () {
-      if (!lspAvailable) {
-        this.skip();
-        return;
-      }
-
+    it('abc-select-voices returns valid selection descriptors', () => {
       const input = `X:1
 T:Test
 M:4/4
@@ -82,11 +101,10 @@ K:C
 [V:2] FGAB | cdef
 `;
       writeFileSync(testFile, input);
-      kak.edit(testFile);
+      kak.start(`edit ${testFile}`);
+      kak.verifyHookFlow();
 
-      // Select all content first
-      kak.executeKeys('%');
-
+      kak.executeKeys('%');  // Select all
       const selectionsDesc = kak.commandAndQuery('abc-select-voices 1', '$kak_selections_desc');
 
       // Verify we got valid selection descriptors (not the default 1.1,1.1)
@@ -94,38 +112,51 @@ K:C
       // Verify format matches kakoune selection descriptor pattern
       expect(selectionsDesc).to.match(/^\d+\.\d+,\d+\.\d+/);
     });
+  });
 
-    it('transform modifies buffer content', async function () {
-      if (!lspAvailable) {
-        this.skip();
-        return;
-      }
+  describe('transforms', () => {
+    it('abc-transpose modifies buffer content', () => {
+      writeFileSync(testFile, 'X:1\nT:Test\nK:C\nCDEF\n');
+      kak.start(`edit ${testFile}`);
+      kak.verifyHookFlow();
 
-      const input = `X:1
-T:Test
-K:C
-CDEF
-`;
-      writeFileSync(testFile, input);
-      kak.edit(testFile);
+      // Move to first note and verify
+      kak.executeKeys('gg3j');
+      const before = kak.getSelection();
+      expect(before).to.equal('C');
 
-      // In kakoune, moving to a position already selects the character under cursor
-      const initialSelection = kak.executeAndQuery('gg3j', '$kak_selection');
-      expect(initialSelection).to.equal('C');
+      // Run transpose command
+      kak.send(`evaluate-commands -buffer ${testFile} %{ abc-transpose 12 }`);
 
-      // Run the transform command with the selection already set
-      kak.send(`evaluate-commands -buffer ${testFile} %{
-        execute-keys 'gg3j'
-        abc-transpose 12
-      }`);
+      // Small delay for transform to complete
+      kak.sendKeys('');
 
-      // Give time for transform to complete
-      kak.send('nop');
+      // Navigate back to same position and check
+      kak.executeKeys('gg3j');
+      const after = kak.getSelection();
+      // C + 12 semitones = c (one octave up)
+      expect(after).to.equal('c');
+    });
+  });
 
-      // Query the buffer content at the same position
-      const newSelection = kak.executeAndQuery('gg3j', '$kak_selection');
-      // C transposed by 12 semitones should become c (one octave up)
-      expect(newSelection).to.equal('c');
+  describe('cleanup behavior', () => {
+    it('cleanup is idempotent', () => {
+      writeFileSync(testFile, 'X:1\nK:C\nCDEF\n');
+      kak.start(`edit ${testFile}`);
+
+      kak.cleanup();
+      // Second call should not throw
+      expect(() => kak.cleanup()).to.not.throw();
+    });
+
+    it('testHome is removed after cleanup', () => {
+      const homeDir = kak.testHome;
+      expect(existsSync(homeDir)).to.be.true;
+
+      kak.start();
+      kak.cleanup();
+
+      expect(existsSync(homeDir)).to.be.false;
     });
   });
 });
