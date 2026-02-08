@@ -21,7 +21,7 @@ function parseVoiceIds(input: string): string[] {
 /**
  * Checks if a node is a voice marker (V: info line or [V:...] inline field).
  */
-function isVoiceMarker(node: CSNode): boolean {
+export function isVoiceMarker(node: CSNode): boolean {
   if (node.tag === TAGS.Info_line) {
     if (node.firstChild === null || !isTokenNode(node.firstChild)) {
       return false;

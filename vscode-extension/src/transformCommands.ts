@@ -88,6 +88,7 @@ export function registerTransformCommands(context: vscode.ExtensionContext, clie
     ["abc.divideRhythm", "divideRhythm"],
     ["abc.addSharp", "addSharp"],
     ["abc.addFlat", "addFlat"],
+    ["abc.legato", "legato"],
   ];
 
   for (const [commandId, transformName] of simpleTransforms) {

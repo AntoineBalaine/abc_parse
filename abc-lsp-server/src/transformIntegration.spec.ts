@@ -42,8 +42,7 @@ describe("Transform integration (simulated LSP flow)", () => {
 
       const result = simulateApplyTransform(source, cursorIds, "transpose", [2]);
 
-      // CDE transposed by 2 semitones: C->D, D->E, E->F# (^F)
-      expect(result.newText).to.contain("DE^F");
+      expect(result.newText).to.equal("X:1\nK:C\nDE^F|\n");
       expect(result.survivingIds.length).to.equal(3);
     });
   });
@@ -57,7 +56,7 @@ describe("Transform integration (simulated LSP flow)", () => {
 
       const result = simulateApplyTransform(source, cursorIds, "enharmonize", []);
 
-      expect(result.newText).to.contain("_D");
+      expect(result.newText).to.equal("X:1\nK:C\n_D|\n");
       expect(result.survivingIds.length).to.equal(1);
     });
   });
@@ -69,11 +68,147 @@ describe("Transform integration (simulated LSP flow)", () => {
     });
   });
 
+  describe("legato with grouped cursor", () => {
+    /**
+     * The legato transform requires all notes and rests to be in a single cursor
+     * so that it can traverse them sequentially and replace rests with tied copies
+     * of the preceding note. This test verifies that the grouped cursor approach works.
+     */
+    it("extends note through following rests when using grouped cursor", () => {
+      const source = "X:1\nK:C\nC z z z|\n";
+      const { root, ctx } = toCSTreeWithContext(source);
+      const notes = findByTag(root, TAGS.Note);
+      const rests = findByTag(root, TAGS.Rest);
+
+      const groupedIds = new Set<number>();
+      for (const n of notes) groupedIds.add(n.id);
+      for (const r of rests) groupedIds.add(r.id);
+
+      const selection: Selection = { root, cursors: [groupedIds] };
+
+      const transformFn = lookupTransform("legato");
+      if (!transformFn) throw new Error("legato transform not found");
+
+      const newSelection = transformFn(selection, ctx);
+      const newText = serializeCSTree(newSelection.root, ctx);
+
+      expect(newText).to.equal("X:1\nK:C\nC4   |\n");
+    });
+
+    it("does not work when each node has its own cursor (old behavior)", () => {
+      const source = "X:1\nK:C\nC z z z|\n";
+      const { root, ctx } = toCSTreeWithContext(source);
+      const notes = findByTag(root, TAGS.Note);
+      const rests = findByTag(root, TAGS.Rest);
+
+      const individualCursors = [
+        ...notes.map(n => new Set([n.id])),
+        ...rests.map(r => new Set([r.id])),
+      ];
+
+      const selection: Selection = { root, cursors: individualCursors };
+
+      const transformFn = lookupTransform("legato");
+      if (!transformFn) throw new Error("legato transform not found");
+
+      const newSelection = transformFn(selection, ctx);
+      const newText = serializeCSTree(newSelection.root, ctx);
+
+      // With individual cursors, the source remains unchanged
+      expect(newText).to.equal("X:1\nK:C\nC z z z|\n");
+    });
+
+    it("extends chord through following rest", () => {
+      const source = "X:1\nK:C\n[CE] z G|\n";
+      const { root, ctx } = toCSTreeWithContext(source);
+      const chords = findByTag(root, TAGS.Chord);
+      const notes = findByTag(root, TAGS.Note);
+      const rests = findByTag(root, TAGS.Rest);
+
+      const groupedIds = new Set<number>();
+      for (const c of chords) groupedIds.add(c.id);
+      for (const n of notes) groupedIds.add(n.id);
+      for (const r of rests) groupedIds.add(r.id);
+
+      const selection: Selection = { root, cursors: [groupedIds] };
+
+      const transformFn = lookupTransform("legato");
+      if (!transformFn) throw new Error("legato transform not found");
+
+      const newSelection = transformFn(selection, ctx);
+      const newText = serializeCSTree(newSelection.root, ctx);
+
+      expect(newText).to.equal("X:1\nK:C\n[CE]2  G|\n");
+    });
+
+    it("creates tied notes across bar boundary", () => {
+      const source = "X:1\nK:C\nC z | z z D|\n";
+      const { root, ctx } = toCSTreeWithContext(source);
+      const notes = findByTag(root, TAGS.Note);
+      const rests = findByTag(root, TAGS.Rest);
+
+      const groupedIds = new Set<number>();
+      for (const n of notes) groupedIds.add(n.id);
+      for (const r of rests) groupedIds.add(r.id);
+
+      const selection: Selection = { root, cursors: [groupedIds] };
+
+      const transformFn = lookupTransform("legato");
+      if (!transformFn) throw new Error("legato transform not found");
+
+      const newSelection = transformFn(selection, ctx);
+      const newText = serializeCSTree(newSelection.root, ctx);
+
+      expect(newText).to.equal("X:1\nK:C\nC2-  | C2  D|\n");
+    });
+
+    it("handles multiple notes with interleaved rests", () => {
+      const source = "X:1\nK:C\nC z D z|\n";
+      const { root, ctx } = toCSTreeWithContext(source);
+      const notes = findByTag(root, TAGS.Note);
+      const rests = findByTag(root, TAGS.Rest);
+
+      const groupedIds = new Set<number>();
+      for (const n of notes) groupedIds.add(n.id);
+      for (const r of rests) groupedIds.add(r.id);
+
+      const selection: Selection = { root, cursors: [groupedIds] };
+
+      const transformFn = lookupTransform("legato");
+      if (!transformFn) throw new Error("legato transform not found");
+
+      const newSelection = transformFn(selection, ctx);
+      const newText = serializeCSTree(newSelection.root, ctx);
+
+      expect(newText).to.equal("X:1\nK:C\nC2  D2 |\n");
+    });
+
+    it("extends note through y-spacer", () => {
+      const source = "X:1\nK:C\nC y D|\n";
+      const { root, ctx } = toCSTreeWithContext(source);
+      const notes = findByTag(root, TAGS.Note);
+      const yspacers = findByTag(root, TAGS.YSPACER);
+
+      const groupedIds = new Set<number>();
+      for (const n of notes) groupedIds.add(n.id);
+      for (const y of yspacers) groupedIds.add(y.id);
+
+      const selection: Selection = { root, cursors: [groupedIds] };
+
+      const transformFn = lookupTransform("legato");
+      if (!transformFn) throw new Error("legato transform not found");
+
+      const newSelection = transformFn(selection, ctx);
+      const newText = serializeCSTree(newSelection.root, ctx);
+
+      expect(newText).to.equal("X:1\nK:C\nC2  D|\n");
+    });
+  });
+
   describe("voiceInfoLineToInline", () => {
     it("converts V: info line to [V:] inline field", () => {
       const source = "X:1\nK:C\nV:1\nCDE|\n";
       const { root } = toCSTreeWithContext(source);
-      // Find V: info lines
       const infoLines = findByTag(root, TAGS.Info_line).filter(n => {
         const firstChild = n.firstChild;
         if (!firstChild) return false;
@@ -83,8 +218,7 @@ describe("Transform integration (simulated LSP flow)", () => {
 
       const result = simulateApplyTransform(source, cursorIds, "voiceInfoLineToInline", []);
 
-      expect(result.newText).to.contain("[V:1]");
-      expect(result.newText).to.not.match(/^V:1$/m); // No standalone V:1 line
+      expect(result.newText).to.equal("X:1\nK:C\n[V:1] CDE|\n");
     });
   });
 
@@ -92,7 +226,6 @@ describe("Transform integration (simulated LSP flow)", () => {
     it("converts [V:] inline field to V: info line", () => {
       const source = "X:1\nK:C\n[V:1] CDE|\n";
       const { root } = toCSTreeWithContext(source);
-      // Find V: inline fields
       const inlineFields = findByTag(root, TAGS.Inline_field).filter(n => {
         let child = n.firstChild;
         while (child) {
@@ -107,8 +240,7 @@ describe("Transform integration (simulated LSP flow)", () => {
 
       const result = simulateApplyTransform(source, cursorIds, "voiceInlineToInfoLine", []);
 
-      expect(result.newText).to.match(/V:1\n/); // V:1 on its own line
-      expect(result.newText).to.not.contain("[V:1]");
+      expect(result.newText).to.equal("X:1\nK:C\nV:1\nCDE|\n");
     });
   });
 });

@@ -29,6 +29,7 @@ import {
   addFlat,
   multiplyRhythm,
   divideRhythm,
+  legato,
 } from "editor";
 import { ABCContext, IRational } from "abc-parser";
 
@@ -56,6 +57,7 @@ const TRANSFORM_MAP: Record<string, TransformFn> = {
   addFlat: (sel, ctx) => addFlat(sel, ctx),
   multiplyRhythm: (sel, ctx, ...args) => multiplyRhythm(sel, args[0] !== undefined ? Number(args[0]) : 2, ctx),
   divideRhythm: (sel, ctx, ...args) => divideRhythm(sel, args[0] !== undefined ? Number(args[0]) : 2, ctx),
+  legato: (sel, ctx) => legato(sel, ctx),
 };
 
 export function lookupTransform(name: string): TransformFn | null {

@@ -1,9 +1,11 @@
 import { Selection } from "../selection";
-import { CSNode, TAGS, isRest, isBarLine, isTokenNode, getTokenData } from "../csTree/types";
-import { ABCContext, IRational, addRational, TT } from "abc-parser";
+import { CSNode, isRest, isBarLine, isTokenNode, getTokenData } from "../csTree/types";
+import { ABCContext, addRational, equalRational, TT } from "abc-parser";
 import { findNodesById } from "./types";
 import { getNodeRhythm, rationalToRhythm } from "./rhythm";
 import { findParent, replaceRhythm, removeChild } from "./treeUtils";
+import { isPowerOfTwoRational, nextMeaningfulSibling } from "./consolidationUtils";
+import { isVoiceMarker } from "../selectors/voiceSelector";
 
 /**
  * Extracts the rest type ('z' or 'x') from a Rest node.
@@ -20,65 +22,6 @@ function getRestType(restNode: CSNode): string | null {
     current = current.nextSibling;
   }
   return null;
-}
-
-/**
- * Checks if a number is a power of two.
- */
-function isPowerOfTwo(n: number): boolean {
-  return n > 0 && (n & (n - 1)) === 0;
-}
-
-/**
- * Checks if a rational is a power-of-two ratio (2^n / 2^m for integers n, m >= 0).
- */
-function isPowerOfTwoRational(r: IRational): boolean {
-  return isPowerOfTwo(r.numerator) && isPowerOfTwo(r.denominator);
-}
-
-/**
- * Checks if two rationals are equal.
- */
-function equalRational(a: IRational, b: IRational): boolean {
-  return a.numerator === b.numerator && a.denominator === b.denominator;
-}
-
-/**
- * Skips whitespace nodes to find the next meaningful sibling.
- */
-function nextMeaningfulSibling(node: CSNode): CSNode | null {
-  let current = node.nextSibling;
-  while (current !== null) {
-    if (isTokenNode(current)) {
-      const tokenData = getTokenData(current);
-      if (tokenData.tokenType === TT.WS) {
-        current = current.nextSibling;
-        continue;
-      }
-    }
-    return current;
-  }
-  return null;
-}
-
-/**
- * Checks if a node is an inline field containing a voice directive [V:...].
- */
-function isVoiceChangingField(node: CSNode): boolean {
-  if (node.tag !== TAGS.Inline_field) {
-    return false;
-  }
-  let current = node.firstChild;
-  while (current !== null) {
-    if (isTokenNode(current)) {
-      const tokenData = getTokenData(current);
-      if (tokenData.tokenType === TT.INF_HDR && tokenData.lexeme.startsWith("V")) {
-        return true;
-      }
-    }
-    current = current.nextSibling;
-  }
-  return false;
 }
 
 /**
@@ -108,7 +51,7 @@ function consolidatePass(selection: Selection, ctx: ABCContext, consumedIds: Set
       if (next === null) {
         continue;
       }
-      if (isBarLine(next) || isVoiceChangingField(next)) {
+      if (isBarLine(next) || isVoiceMarker(next)) {
         continue;
       }
       if (!isRest(next)) {

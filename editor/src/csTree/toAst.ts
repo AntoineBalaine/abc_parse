@@ -347,7 +347,11 @@ function buildInlineField(id: number, children: Array<Expr | Token>): Inline_fie
     }
   }
 
-  // Build text array: field token + tokens extracted from expressions
+  // Build text array: field token + tokens extracted from expressions.
+  // The field token (e.g., K:, V:) should always be present in a valid inline field.
+  if (directTokens.length === 0) {
+    throw new Error("Invalid Inline_field: no field token found");
+  }
   const field = directTokens[0];
   let text: Token[];
   if (value2.length > 0) {

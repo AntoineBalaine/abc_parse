@@ -13,18 +13,7 @@ import { serializeCSTree } from "./csTreeSerializer";
 import { computeTextEditsFromDiff } from "./textEditFromDiff";
 import { PreviewManager } from "./PreviewManager";
 import { collectSurvivingCursorIds, computeCursorRangesFromFreshTree } from "./cursorPreservation";
-
-// ============================================================================
-// Error Codes (JSON-RPC style)
-// ============================================================================
-
-export const ERROR_CODES = {
-  DOCUMENT_NOT_FOUND: -32001,
-  FILE_TYPE_NOT_SUPPORTED: -32002,
-  INVALID_REQUEST: -32600,
-  UNKNOWN_METHOD: -32601,
-  INVALID_PARAMS: -32602,
-};
+import { ERROR_CODES, GROUPED_CURSOR_TRANSFORMS, TRANSFORM_NODE_TAGS } from "./constants";
 
 // ============================================================================
 // Types
@@ -376,18 +365,6 @@ function handleApplySelector(
   return { ranges: resultRanges };
 }
 
-/**
- * Map of transform names to the node tags they operate on.
- * Default is [Note, Chord] if not specified.
- */
-const TRANSFORM_NODE_TAGS: Record<string, string[]> = {
-  harmonize: [TAGS.Note, TAGS.Chord],
-  consolidateRests: [TAGS.Rest],
-  insertVoiceLine: [TAGS.Note, TAGS.Chord],
-  voiceInfoLineToInline: [TAGS.Info_line],
-  voiceInlineToInfoLine: [TAGS.Inline_field],
-};
-
 function handleApplyTransform(
   params: {
     uri: string;
@@ -422,12 +399,29 @@ function handleApplyTransform(
   // Determine which node tags this transform operates on
   const tags = TRANSFORM_NODE_TAGS[params.transform] ?? [TAGS.Note, TAGS.Chord];
 
-  // Convert each editor selection range to a cursor containing nodes of the appropriate type
+  // Convert each editor selection range to a cursor containing nodes of the appropriate type.
+  // For transforms that need to see sequential relationships between nodes (like legato),
+  // we put all nodes in a single cursor. For other transforms, each node gets its own cursor.
   const allCursors: Set<number>[] = [];
-  for (const range of params.ranges) {
-    const nodeIds = findNodesInRange(root, range, tags);
-    for (const id of nodeIds) {
-      allCursors.push(new Set([id]));
+  const needsGroupedCursor = GROUPED_CURSOR_TRANSFORMS.has(params.transform);
+
+  if (needsGroupedCursor) {
+    const groupedIds = new Set<number>();
+    for (const range of params.ranges) {
+      const nodeIds = findNodesInRange(root, range, tags);
+      for (const id of nodeIds) {
+        groupedIds.add(id);
+      }
+    }
+    if (groupedIds.size > 0) {
+      allCursors.push(groupedIds);
+    }
+  } else {
+    for (const range of params.ranges) {
+      const nodeIds = findNodesInRange(root, range, tags);
+      for (const id of nodeIds) {
+        allCursors.push(new Set([id]));
+      }
     }
   }
 

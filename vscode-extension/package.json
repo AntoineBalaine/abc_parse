@@ -369,6 +369,11 @@
         "command": "abc.addFlat",
         "title": "ABC: Add Flat",
         "category": "ABC"
+      },
+      {
+        "command": "abc.legato",
+        "title": "ABC: Legato",
+        "category": "ABC"
       }
     ],
     "menus": {
@@ -579,6 +584,10 @@
         },
         {
           "command": "abc.addFlat",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.legato",
           "when": "editorLangId == abc"
         }
       ]

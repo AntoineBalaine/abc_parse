@@ -189,6 +189,28 @@ K:C
       // C + 12 semitones = c (one octave up)
       expect(after).to.equal("c");
     });
+
+    it("abc-legato extends note through following rests", () => {
+      writeFileSync(testFile, "X:1\nT:Test\nK:C\nC z z z|\n");
+      kak.start(`edit ${testFile}`);
+      kak.verifyHookFlow();
+
+      // Select entire document - legato will find notes and rests within
+      kak.executeKeys("%");
+
+      // Run legato command
+      kak.sendKeys(": abc-legato");
+
+      // Delay for transform to complete
+      kak.sendKeys("");
+      kak.sendKeys("");
+
+      // Select all content to verify the transformation
+      kak.executeKeys("%");
+      const after = kak.getSelection();
+      // C z z z should become C4 (note extended through all rests, whitespace preserved)
+      expect(after).to.equal("X:1\nT:Test\nK:C\nC4   |\n");
+    });
   });
 
   describe("cleanup behavior", () => {

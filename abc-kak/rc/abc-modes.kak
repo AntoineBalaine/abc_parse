@@ -234,6 +234,7 @@ map global abc-transform x ':abc-transform-explode<ret>'             -docstring 
 # --- Convert Transforms ---
 map global abc-transform r ':abc-to-rest<ret>'                  -docstring 'to rest'
 map global abc-transform R ':abc-consolidate-rests<ret>'        -docstring 'consolidate rests'
+map global abc-transform l ':abc-legato<ret>'                   -docstring 'legato (extend through rests)'
 
 # ============================================================================
 # Inside/Around Submodes

@@ -42,6 +42,7 @@ import { File_structure, Scanner, parse, ABCContext } from "abc-parser";
 import { computeFoldingRanges, DEFAULT_FOLDING_CONFIG } from "./foldingRangeProvider";
 import { SocketHandler, computeSocketPath } from "./socketHandler";
 import { PreviewManager } from "./PreviewManager";
+import { GROUPED_CURSOR_TRANSFORMS, TRANSFORM_NODE_TAGS } from "./constants";
 
 // ============================================================================
 // CLI Argument Parsing
@@ -58,22 +59,6 @@ function parseSocketArg(): string | null {
   }
   return value;
 }
-
-// ============================================================================
-// Transform Node Tags Mapping
-// ============================================================================
-
-/**
- * Maps transform names to the node tags they operate on.
- * If a transform is not listed, it defaults to [Note, Chord].
- */
-const TRANSFORM_NODE_TAGS: Record<string, string[]> = {
-  harmonize: [TAGS.Note, TAGS.Chord],
-  consolidateRests: [TAGS.Rest],
-  insertVoiceLine: [TAGS.Note, TAGS.Chord],
-  voiceInfoLineToInline: [TAGS.Info_line],
-  voiceInlineToInfoLine: [TAGS.Inline_field],
-};
 
 // ============================================================================
 // Selector Command Request Types
@@ -378,12 +363,29 @@ connection.onRequest("abc.applyTransform", (params: ApplyTransformParams): Apply
   // Determine which node tags this transform operates on
   const tags = TRANSFORM_NODE_TAGS[params.transform] ?? [TAGS.Note, TAGS.Chord];
 
-  // Convert each editor selection range to a cursor containing nodes of the appropriate type
+  // Convert each editor selection range to a cursor containing nodes of the appropriate type.
+  // For transforms that need to see sequential relationships between nodes (like legato),
+  // we put all nodes in a single cursor. For other transforms, each node gets its own cursor.
   const allCursors: Set<number>[] = [];
-  for (const range of params.selections) {
-    const nodeIds = findNodesInRange(root, range, tags);
-    for (const id of nodeIds) {
-      allCursors.push(new Set([id]));
+  const needsGroupedCursor = GROUPED_CURSOR_TRANSFORMS.has(params.transform);
+
+  if (needsGroupedCursor) {
+    const groupedIds = new Set<number>();
+    for (const range of params.selections) {
+      const nodeIds = findNodesInRange(root, range, tags);
+      for (const id of nodeIds) {
+        groupedIds.add(id);
+      }
+    }
+    if (groupedIds.size > 0) {
+      allCursors.push(groupedIds);
+    }
+  } else {
+    for (const range of params.selections) {
+      const nodeIds = findNodesInRange(root, range, tags);
+      for (const id of nodeIds) {
+        allCursors.push(new Set([id]));
+      }
     }
   }
 

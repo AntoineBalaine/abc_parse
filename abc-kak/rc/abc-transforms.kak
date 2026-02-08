@@ -201,6 +201,11 @@ define-command abc-consolidate-rests \
     abc-transform-impl consolidateRests
 }
 
+define-command abc-legato \
+    -docstring "Extend notes through following rests (legato articulation)" %{
+    abc-transform-impl legato
+}
+
 # ============================================================================
 # Structural Transform Commands
 # ============================================================================
