@@ -45,10 +45,23 @@ function walkRange(ctx: RangeWalkCtx, node: CSNode, inScope: boolean): void {
           current = current.nextSibling;
           continue;
         }
+
+        // Partial overlap: recurse into children first to find more specific matches
+        const lengthBeforeRecursion = ctx.outputCursors.length;
+        if (current.firstChild) {
+          walkRange(ctx, current.firstChild, nowInScope);
+        }
+        // If no children were selected during recursion but this node overlaps, select it.
+        // This handles the case of a single-char cursor on a multi-char token.
+        if (ctx.outputCursors.length === lengthBeforeRecursion) {
+          ctx.outputCursors.push(new Set([current.id]));
+        }
+        current = current.nextSibling;
+        continue;
       }
     }
 
-    // Partial overlap or not yet in scope: recurse into children
+    // Node has invalid positions or not yet in scope: recurse into children
     if (current.firstChild) {
       walkRange(ctx, current.firstChild, nowInScope);
     }

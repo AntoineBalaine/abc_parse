@@ -305,3 +305,17 @@ describe("Selector Integration - selectSystem", () => {
     expect(result.ranges[0].end.line).to.equal(3);
   });
 });
+
+describe("Selector Integration with single-character ranges", () => {
+  // Property-based coverage for single-char ranges is in editor/tests/rangeSelector.spec.ts.
+  // This example demonstrates the end-to-end integration with the LSP selector API.
+  it("selectTune with single-character range on music line returns the tune", () => {
+    const { ast, ctx } = parseAbc("X:1\nK:C\nCDEF|\n");
+    // Single-character range on first note (line 2, char 0-1)
+    const ranges = [{ start: { line: 2, character: 0 }, end: { line: 2, character: 1 } }];
+    const result = applySelector(ast, ctx, "selectTune", undefined, ranges);
+    expect(result.ranges).to.have.length(1);
+    // The tune should span from X:1 to the end
+    expect(result.ranges[0].start.line).to.equal(0);
+  });
+});
