@@ -1,4 +1,4 @@
-import { followedBy, foundBeam, isBeamBreaker } from "../helpers";
+import { followedBy, foundBeam, isBeamBreaker, isVoiceFollowedByMusic } from "../helpers";
 import {
   Annotation,
   BarLine,
@@ -232,6 +232,11 @@ export function prsTuneHdr(ctx: ParseCtx): Tune_header {
     if (prsUserSymbolDecl(ctx, infoLines)) continue;
     if (alreadyHasVoice(ctx, voices)) {
       return new Tune_header(ctx.abcContext.generateId(), infoLines as Array<Info_line | Comment>, voices);
+    }
+    // Check if this is a V: line followed by music code.
+    // If so, the V: belongs in the tune body, not the header.
+    if (ctx.check(TT.INF_HDR) && ctx.peek().lexeme.trim() === "V:" && isVoiceFollowedByMusic(ctx)) {
+      break;
     }
     if (prsInfoLine(ctx, infoLines)) {
       const info_line = infoLines[infoLines.length - 1] as Info_line;

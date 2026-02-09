@@ -88,6 +88,51 @@ export function followedBy(ctx: ParseCtx, needle: TT[], ignoreTokens: TT[]): boo
   return false;
 }
 
+/**
+ * Checks if a V: info line at the current position is followed by music code.
+ * Used to determine whether the V: belongs in the header (voice declaration)
+ * or in the body (voice switch).
+ *
+ * Returns true if the token following the V: line content and EOL is NOT
+ * a header-valid token type (INF_HDR, COMMENT, STYLESHEET_DIRECTIVE, FREE_TXT).
+ */
+export function isVoiceFollowedByMusic(ctx: ParseCtx): boolean {
+  let i = ctx.current;
+
+  // Skip the INF_HDR token
+  if (i < ctx.tokens.length && ctx.tokens[i].type === TT.INF_HDR) {
+    i++;
+  } else {
+    return false;
+  }
+
+  // Skip tokens until EOL (the info line content)
+  while (i < ctx.tokens.length && ctx.tokens[i].type !== TT.EOL) {
+    i++;
+  }
+
+  // Skip EOL and any WS tokens
+  while (i < ctx.tokens.length) {
+    const tokenType = ctx.tokens[i].type;
+    if (tokenType === TT.EOL || tokenType === TT.WS) {
+      i++;
+    } else {
+      break;
+    }
+  }
+
+  // At EOF means no music follows
+  if (i >= ctx.tokens.length || ctx.tokens[i].type === TT.EOF) {
+    return false;
+  }
+
+  // Check if the next token is a header-valid type
+  const nextType = ctx.tokens[i].type;
+  const headerValidTypes = [TT.INF_HDR, TT.COMMENT, TT.STYLESHEET_DIRECTIVE, TT.FREE_TXT];
+
+  return !headerValidTypes.includes(nextType);
+}
+
 // Check if there's a note following the current element before a beam breaker
 export function followedByNote(elements: Array<Expr | Token>, index: number): boolean {
   for (let i = index; i < elements.length; i++) {
