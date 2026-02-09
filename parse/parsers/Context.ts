@@ -60,6 +60,21 @@ export class ABCContext {
   generateId() {
     return this.idGenerator.generate();
   }
+
+  /**
+   * Resets all mutable state to default values.
+   * Called before each parse to ensure flags from previous parses do not persist.
+   */
+  reset() {
+    this.linear = false;
+    this.tuneLinear = false;
+
+    Object.assign(this.formatterConfig, DEFAULT_FORMATTER_CONFIG);
+    Object.assign(this.tuneFormatterConfig, DEFAULT_FORMATTER_CONFIG);
+
+    this.errorReporter.resetWarnings();
+    this.errorReporter.resetErrors();
+  }
 }
 /*
 Possible future additions:

@@ -68,8 +68,9 @@ export class AbcLspServer {
    */
   onDidChangeContent(uri: string) {
     let abcDocument = this.abcDocuments.get(uri);
+    const document = this.documents.get(uri);
+
     if (!abcDocument) {
-      const document = this.documents.get(uri);
       if (document) {
         // Create appropriate document type based on file extension
         if (this.isAbcxFile(uri)) {
@@ -79,6 +80,10 @@ export class AbcLspServer {
         }
         this.abcDocuments.set(uri, abcDocument);
       }
+    } else if (document) {
+      // Update the document reference because TextDocuments creates new immutable
+      // TextDocument objects on each content change
+      abcDocument.document = document;
     }
 
     if (abcDocument) {

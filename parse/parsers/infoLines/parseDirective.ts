@@ -40,13 +40,12 @@ function checkFormatterDirective(directive: Directive, ctx: ParseCtx, headerCont
 
   // Check for "system-comments" option (standalone identifier)
   if (option instanceof Token && option.lexeme.toLowerCase() === "system-comments") {
-    // The presence of "%%abcls-fmt system-comments" enables both the feature and linear mode.
+    // Set the systemComments flag only. Linear mode must be explicitly enabled via %%abcls-parse linear.
+    // The formatter will only insert comments when both tune.linear and tune.formatterConfig.systemComments are true.
     if (headerContext === "file") {
       ctx.abcContext.formatterConfig = { ...ctx.abcContext.formatterConfig, systemComments: true };
-      ctx.abcContext.linear = true;
     } else {
       ctx.abcContext.tuneFormatterConfig = { ...ctx.abcContext.tuneFormatterConfig, systemComments: true };
-      ctx.abcContext.tuneLinear = true;
     }
     return;
   }

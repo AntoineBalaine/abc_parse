@@ -181,15 +181,16 @@ describe("FormatterConfig", () => {
       expect(ast.formatterConfig.systemComments).to.equal(true);
     });
 
-    it("directive also enables linear mode", () => {
+    it("system-comments directive does NOT enable linear mode", () => {
+      // system-comments only works when %%abcls-parse linear is also present
       const ctx = new ABCContext();
       const input = "%%abcls-fmt system-comments\n\nX:1\nK:C\nCDEF|\n";
       const tokens = Scanner(input, ctx);
       const ast = parse(tokens, ctx);
 
-      expect(ast.linear).to.equal(true);
+      expect(ast.linear).to.equal(false);
       const tune = ast.contents[0] as Tune;
-      expect(tune.linear).to.equal(true);
+      expect(tune.linear).to.equal(false);
     });
 
     it("tune inherits file-level formatterConfig", () => {
@@ -360,10 +361,11 @@ ABCD|
       expect(output).to.not.include("\n%\n");
     });
 
-    it("inserts comments between systems when enabled", () => {
+    it("inserts comments between systems when both linear and system-comments are enabled", () => {
       const ctx = new ABCContext();
-      // Linear multi-voice tune WITH system-comments directive (which also enables linear mode)
-      const input = `%%abcls-fmt system-comments
+      // Requires BOTH %%abcls-parse linear AND %%abcls-fmt system-comments
+      const input = `%%abcls-parse linear
+%%abcls-fmt system-comments
 X:1
 V:1
 V:2
@@ -388,10 +390,39 @@ ABCD|
       expect(output).to.include("\n%\n");
     });
 
+    it("does NOT insert comments when only system-comments is present without linear", () => {
+      const ctx = new ABCContext();
+      // system-comments alone should NOT insert comments because linear mode is not enabled
+      const input = `%%abcls-fmt system-comments
+X:1
+V:1
+V:2
+K:C
+V:1
+CDEF|
+V:2
+GFED|
+V:1
+EFGA|
+V:2
+ABCD|
+`;
+      const tokens = Scanner(input, ctx);
+      const ast = parse(tokens, ctx);
+      const tune = ast.contents[0] as Tune;
+
+      const formatter = new AbcFormatter(ctx);
+      const output = formatter.stringify(tune);
+
+      // Should NOT contain separator comments because linear mode is not enabled
+      expect(output).to.not.include("\n%\n");
+    });
+
     it("does not insert comments for single system", () => {
       const ctx = new ABCContext();
-      // Linear tune with only one system
-      const input = `%%abcls-fmt system-comments
+      // Linear tune with only one system - requires both directives
+      const input = `%%abcls-parse linear
+%%abcls-fmt system-comments
 X:1
 V:1
 V:2
@@ -442,8 +473,9 @@ ABCD|
 
     it("does not insert comment if boundary already has empty comment", () => {
       const ctx = new ABCContext();
-      // Linear tune with existing empty comment at system boundary
-      const input = `%%abcls-fmt system-comments
+      // Linear tune with existing empty comment at system boundary - requires both directives
+      const input = `%%abcls-parse linear
+%%abcls-fmt system-comments
 X:1
 V:1
 V:2
@@ -473,7 +505,9 @@ ABCD|
 
     it("inserts system separator for multi-voice linear tune (input/output comparison)", () => {
       const ctx = new ABCContext();
-      const input = `%%abcls-fmt system-comments
+      // Requires BOTH %%abcls-parse linear AND %%abcls-fmt system-comments
+      const input = `%%abcls-parse linear
+%%abcls-fmt system-comments
 
 X:1
 T:Test
@@ -491,7 +525,8 @@ FDEA
 V:2
 FDEC |
 `;
-      const expected = `%%abcls-fmt system-comments
+      const expected = `%%abcls-parse linear
+%%abcls-fmt system-comments
 
 X:1
 T:Test
