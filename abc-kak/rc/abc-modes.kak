@@ -24,17 +24,24 @@ declare-user-mode abc-transform
 declare-user-mode abc-select-inside
 declare-user-mode abc-select-around
 
+# Count is captured when entering a mode (since entering user-mode resets kak_count)
+declare-option -hidden int abc_mode_count 0
+
 # ============================================================================
 # Entry Commands
 # ============================================================================
 
 define-command abc-enter-select-mode \
     -docstring "Enter ABC selection mode for structural selection" %{
+    # Capture count before entering mode (entering user-mode resets kak_count)
+    set-option window abc_mode_count %sh{ echo "${kak_count:-0}" }
     enter-user-mode abc-select
 }
 
 define-command abc-enter-transform-mode \
     -docstring "Enter ABC transform mode for applying transformations" %{
+    # Capture count before entering mode (entering user-mode resets kak_count)
+    set-option window abc_mode_count %sh{ echo "${kak_count:-0}" }
     enter-user-mode abc-transform
 }
 
@@ -92,7 +99,7 @@ map global abc-select a ':enter-user-mode abc-select-around<ret>' -docstring 'ar
 
 define-command -hidden abc-transform-octave-up %{
     evaluate-commands %sh{
-        count="${kak_count:-1}"
+        count="${kak_opt_abc_mode_count:-1}"
         if [ "$count" = "0" ]; then count=1; fi
         printf '%s\n' "abc-transpose $((count * 12))"
     }
@@ -100,7 +107,7 @@ define-command -hidden abc-transform-octave-up %{
 
 define-command -hidden abc-transform-octave-down %{
     evaluate-commands %sh{
-        count="${kak_count:-1}"
+        count="${kak_opt_abc_mode_count:-1}"
         if [ "$count" = "0" ]; then count=1; fi
         printf '%s\n' "abc-transpose $((-count * 12))"
     }
@@ -108,7 +115,7 @@ define-command -hidden abc-transform-octave-down %{
 
 define-command -hidden abc-transform-harmonize-octave-up %{
     evaluate-commands %sh{
-        count="${kak_count:-1}"
+        count="${kak_opt_abc_mode_count:-1}"
         if [ "$count" = "0" ]; then count=1; fi
         printf '%s\n' "abc-harmonize $((count * 7))"
     }
@@ -116,7 +123,7 @@ define-command -hidden abc-transform-harmonize-octave-up %{
 
 define-command -hidden abc-transform-harmonize-octave-down %{
     evaluate-commands %sh{
-        count="${kak_count:-1}"
+        count="${kak_opt_abc_mode_count:-1}"
         if [ "$count" = "0" ]; then count=1; fi
         printf '%s\n' "abc-harmonize $((-count * 7))"
     }
