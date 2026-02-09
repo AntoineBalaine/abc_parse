@@ -62,7 +62,7 @@ export function computeNodeRange(node: CSNode): Range | null {
   return { start, end };
 }
 
-export function resolveSelectionRanges(selection: Selection): Range[] {
+function resolveSelectionRanges(selection: Selection): Range[] {
   const ranges: Range[] = [];
 
   for (const cursor of selection.cursors) {
@@ -82,7 +82,7 @@ export function resolveSelectionRanges(selection: Selection): Range[] {
  * Each cursor produces a single range spanning from the earliest start position
  * to the latest end position across all nodes in the cursor.
  */
-export function resolveContiguousRanges(selection: Selection): Range[] {
+function resolveContiguousRanges(selection: Selection): Range[] {
   const ranges: Range[] = [];
 
   for (const cursor of selection.cursors) {
@@ -100,15 +100,13 @@ export function resolveContiguousRanges(selection: Selection): Range[] {
       } else {
         if (
           nodeRange.start.line < boundingRange.start.line ||
-          (nodeRange.start.line === boundingRange.start.line &&
-            nodeRange.start.character < boundingRange.start.character)
+          (nodeRange.start.line === boundingRange.start.line && nodeRange.start.character < boundingRange.start.character)
         ) {
           boundingRange.start = { ...nodeRange.start };
         }
         if (
           nodeRange.end.line > boundingRange.end.line ||
-          (nodeRange.end.line === boundingRange.end.line &&
-            nodeRange.end.character > boundingRange.end.character)
+          (nodeRange.end.line === boundingRange.end.line && nodeRange.end.character > boundingRange.end.character)
         ) {
           boundingRange.end = { ...nodeRange.end };
         }
@@ -123,6 +121,17 @@ export function resolveContiguousRanges(selection: Selection): Range[] {
   return ranges;
 }
 
+export function resolveRanges(
+  params: {
+    selector: string;
+  },
+  newSelection: Selection
+) {
+  return params.selector === "selectVoices" || params.selector === "selectMeasures"
+    ? resolveContiguousRanges(newSelection)
+    : resolveSelectionRanges(newSelection);
+}
+
 function rangesOverlap(a: Range, b: Range): boolean {
   // Check if range a ends before range b starts (no overlap)
   if (a.end.line < b.start.line) return false;
@@ -135,12 +144,7 @@ function rangesOverlap(a: Range, b: Range): boolean {
   return true;
 }
 
-function collectNodesInRange(
-  node: CSNode,
-  editorRange: Range,
-  tags: Set<string>,
-  result: number[]
-): void {
+function collectNodesInRange(node: CSNode, editorRange: Range, tags: Set<string>, result: number[]): void {
   if (tags.has(node.tag)) {
     const nodeRange = computeNodeRange(node);
     if (nodeRange && rangesOverlap(editorRange, nodeRange)) {
@@ -156,11 +160,7 @@ function collectNodesInRange(
   }
 }
 
-export function findNodesInRange(
-  root: CSNode,
-  editorRange: Range,
-  tags: string[]
-): number[] {
+export function findNodesInRange(root: CSNode, editorRange: Range, tags: string[]): number[] {
   const result: number[] = [];
   const tagSet = new Set(tags);
   collectNodesInRange(root, editorRange, tagSet, result);

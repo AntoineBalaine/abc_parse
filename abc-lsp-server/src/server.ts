@@ -23,7 +23,7 @@ import { AbcLspServer } from "./AbcLspServer";
 import { AbcDocument } from "./AbcDocument";
 import { DECORATION_SYMBOLS } from "./completions";
 import { standardTokenScopes } from "./server_helpers";
-import { resolveSelectionRanges, resolveContiguousRanges, findNodesInRange } from "./selectionRangeResolver";
+import { findNodesInRange, resolveRanges } from "./selectionRangeResolver";
 import { lookupSelector } from "./selectorLookup";
 import { lookupTransform } from "./transformLookup";
 import { collectSurvivingCursorIds, computeCursorRangesFromFreshTree } from "./cursorPreservation";
@@ -268,9 +268,7 @@ connection.onRequest("abc.applySelector", (params: ApplySelectorParams): ApplySe
   }
 
   const newSelection = selectorFn(selection, ...(params.args ?? []));
-  const ranges = params.selector === "selectVoices" || params.selector === "selectMeasures"
-    ? resolveContiguousRanges(newSelection)
-    : resolveSelectionRanges(newSelection);
+  const ranges = resolveRanges(params, newSelection);
   return { ranges };
 });
 

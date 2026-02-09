@@ -440,4 +440,27 @@ ABC             | DFE             | DBA
       expect(result.cursors.length).to.be.greaterThanOrEqual(2);
     });
   });
+
+  describe("voice marker in header (no K: line)", () => {
+    it("selects first voice when V: is in header", () => {
+      // When there's no K: line, the parser places the first V: in the header.
+      // The selector should still find elements belonging to that voice.
+      const sel = toSelection("X:1\nT:Test\nV:0\ndef\nV:1\nGDEF|\n");
+      const result = selectVoices(sel, "0");
+      // Should not return input unchanged
+      expect(result).to.not.equal(sel);
+      expect(result.cursors.length).to.be.greaterThan(0);
+    });
+
+    it("selects all declared voices when V: is in header", () => {
+      const sel = toSelection("X:1\nV:0\ndef\nV:1\nGDEF|\nV:2\nABC|\n");
+      const result0 = selectVoices(sel, "0");
+      const result1 = selectVoices(sel, "1");
+      const result2 = selectVoices(sel, "2");
+      // All should find matches
+      expect(result0).to.not.equal(sel, "V:0 should find matches");
+      expect(result1).to.not.equal(sel, "V:1 should find matches");
+      expect(result2).to.not.equal(sel, "V:2 should find matches");
+    });
+  });
 });

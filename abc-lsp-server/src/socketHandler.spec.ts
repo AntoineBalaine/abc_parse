@@ -375,5 +375,152 @@ describe("Socket Handler", () => {
 
       expect((response as any).id).to.equal(42);
     });
+
+    // Tests for selectVoices using resolveContiguousRanges
+    describe("selectVoices with contiguous ranges", () => {
+      it("returns full voice content for inline voice marker", async () => {
+        const source = "X:1\nK:C\n[V:1]CDEF|[V:2]GABC|\n";
+        documents.set("file:///path/to/file.abc", createMockAbcDocument(source));
+
+        const response = await sendRequest({
+          id: 1,
+          method: "abc.applySelector",
+          params: {
+            uri: "file:///path/to/file.abc",
+            selector: "selectVoices",
+            args: ["1"],
+          },
+        });
+
+        expect(response).to.have.property("result");
+        const result = (response as any).result;
+        expect(result.ranges).to.have.length(1);
+        // Range should cover [V:1]CDEF| (not just [V:1])
+        const range = result.ranges[0];
+        expect(range.start.line).to.equal(2);
+        expect(range.start.character).to.equal(0);
+        // End should be after the barline following CDEF
+        expect(range.end.character).to.be.greaterThan(5);
+      });
+
+      it("returns full voice content for V: info line marker", async () => {
+        const source = "X:1\nK:C\nV:1\nCDEF|\nV:2\nGABC|\n";
+        documents.set("file:///path/to/file.abc", createMockAbcDocument(source));
+
+        const response = await sendRequest({
+          id: 1,
+          method: "abc.applySelector",
+          params: {
+            uri: "file:///path/to/file.abc",
+            selector: "selectVoices",
+            args: ["1"],
+          },
+        });
+
+        expect(response).to.have.property("result");
+        const result = (response as any).result;
+        expect(result.ranges).to.have.length(1);
+        // Range should cover from V:1 through end of CDEF|
+        const range = result.ranges[0];
+        expect(range.start.line).to.equal(2);
+        expect(range.end.line).to.equal(3);
+      });
+
+      it("returns input selection unchanged for non-existent voice ID", async () => {
+        // When a voice ID doesn't exist, selectVoices returns the input selection unchanged
+        // (per the design: "If no matching voice IDs exist in the tune, returns the input selection unchanged")
+        const source = "X:1\nK:C\n[V:1]CDEF|\n";
+        documents.set("file:///path/to/file.abc", createMockAbcDocument(source));
+
+        const response = await sendRequest({
+          id: 1,
+          method: "abc.applySelector",
+          params: {
+            uri: "file:///path/to/file.abc",
+            selector: "selectVoices",
+            args: ["99"],
+          },
+        });
+
+        expect(response).to.have.property("result");
+        const result = (response as any).result;
+        // Returns input selection (the root), so 1 range covering the document
+        expect(result.ranges).to.have.length(1);
+      });
+
+      it("groups same voice appearing in multiple sections into single range", async () => {
+        // Same voice ID appearing multiple times is grouped into a single cursor
+        const source = "X:1\nK:C\n[V:1]CDEF|\nV:1\nGABC|\n";
+        documents.set("file:///path/to/file.abc", createMockAbcDocument(source));
+
+        const response = await sendRequest({
+          id: 1,
+          method: "abc.applySelector",
+          params: {
+            uri: "file:///path/to/file.abc",
+            selector: "selectVoices",
+            args: ["1"],
+          },
+        });
+
+        expect(response).to.have.property("result");
+        const result = (response as any).result;
+        // All voice 1 content is grouped into a single cursor
+        expect(result.ranges).to.have.length(1);
+        // The range should span from [V:1] through GABC|
+        const range = result.ranges[0];
+        expect(range.start.line).to.equal(2);
+        expect(range.end.line).to.equal(4);
+      });
+
+      it("returns range for voice marker with no music content", async () => {
+        const source = "X:1\nK:C\nV:1\nV:2\nCDEF|\n";
+        documents.set("file:///path/to/file.abc", createMockAbcDocument(source));
+
+        const response = await sendRequest({
+          id: 1,
+          method: "abc.applySelector",
+          params: {
+            uri: "file:///path/to/file.abc",
+            selector: "selectVoices",
+            args: ["1"],
+          },
+        });
+
+        expect(response).to.have.property("result");
+        const result = (response as any).result;
+        // Should have a range covering only V:1 line
+        expect(result.ranges).to.have.length(1);
+        const range = result.ranges[0];
+        expect(range.start.line).to.equal(2);
+        expect(range.end.line).to.equal(2);
+      });
+    });
+
+    // Tests for selectMeasures using resolveContiguousRanges
+    describe("selectMeasures with contiguous ranges", () => {
+      it("returns full measure content including barline", async () => {
+        const source = "X:1\nK:C\nCDEF|GABC|\n";
+        documents.set("file:///path/to/file.abc", createMockAbcDocument(source));
+
+        const response = await sendRequest({
+          id: 1,
+          method: "abc.applySelector",
+          params: {
+            uri: "file:///path/to/file.abc",
+            selector: "selectMeasures",
+          },
+        });
+
+        expect(response).to.have.property("result");
+        const result = (response as any).result;
+        // Should have two ranges, one for each measure
+        expect(result.ranges).to.have.length(2);
+        // First measure should include CDEF|
+        const firstRange = result.ranges[0];
+        expect(firstRange.start.line).to.equal(2);
+        expect(firstRange.start.character).to.equal(0);
+      });
+    });
   });
 });

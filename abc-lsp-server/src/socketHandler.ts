@@ -2,7 +2,7 @@ import * as net from "net";
 import * as fs from "fs";
 import * as path from "path";
 import * as readline from "readline";
-import { resolveSelectionRanges, findNodesInRange } from "./selectionRangeResolver";
+import { findNodesInRange, resolveRanges } from "./selectionRangeResolver";
 import { lookupSelector, getAvailableSelectors } from "./selectorLookup";
 import { lookupTransform } from "./transformLookup";
 import { fromAst, createSelection, Selection, selectRange, CSNode, TAGS } from "editor";
@@ -356,13 +356,7 @@ function handleApplySelector(
     const allCursors: Set<number>[] = [];
     for (const range of params.ranges) {
       const baseSelection = createSelection(root);
-      const narrowed = selectRange(
-        baseSelection,
-        range.start.line,
-        range.start.character,
-        range.end.line,
-        range.end.character
-      );
+      const narrowed = selectRange(baseSelection, range.start.line, range.start.character, range.end.line, range.end.character);
       allCursors.push(...narrowed.cursors);
     }
     if (allCursors.length === 0) {
@@ -376,7 +370,8 @@ function handleApplySelector(
   }
 
   const newSelection = selectorFn(selection, ...params.args);
-  const resultRanges = resolveSelectionRanges(newSelection);
+
+  const resultRanges = resolveRanges(params, newSelection);
 
   return { ranges: resultRanges };
 }
@@ -486,11 +481,7 @@ export class SocketHandler {
   isOwner = false;
   previewManager: PreviewManager | null = null;
 
-  constructor(
-    socketPath: string,
-    getDocument: DocumentGetter,
-    getCsTree: CsTreeGetter
-  ) {
+  constructor(socketPath: string, getDocument: DocumentGetter, getCsTree: CsTreeGetter) {
     this.socketPath = socketPath;
     this.getDocument = getDocument;
     this.getCsTree = getCsTree;

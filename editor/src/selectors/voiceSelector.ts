@@ -160,16 +160,50 @@ function walkChildren(ctx: VoiceWalkCtx, containerNode: CSNode): void {
 }
 
 /**
+ * Finds the last voice declaration in a tune header.
+ * When there's no K: line, the parser places the first V: declaration in the header,
+ * so we need to check the header to initialize the voice state correctly.
+ */
+function findLastHeaderVoice(tuneNode: CSNode): string | null {
+  let child = tuneNode.firstChild;
+  while (child !== null) {
+    if (child.tag === TAGS.Tune_header) {
+      let lastVoiceId: string | null = null;
+      let headerChild = child.firstChild;
+      while (headerChild !== null) {
+        if (isVoiceMarker(headerChild)) {
+          const voiceId = extractVoiceId(headerChild);
+          if (voiceId !== null) {
+            lastVoiceId = voiceId;
+          }
+        }
+        headerChild = headerChild.nextSibling;
+      }
+      return lastVoiceId;
+    }
+    child = child.nextSibling;
+  }
+  return null;
+}
+
+/**
  * Walks all tune bodies in the tree, selecting elements that belong to the target voice(s).
  */
 function walkForVoice(ctx: VoiceWalkCtx, root: CSNode): void {
-  const tuneBodies = findByTag(root, TAGS.Tune_Body);
+  const tunes = findByTag(root, TAGS.Tune);
 
-  for (const tuneBody of tuneBodies) {
-    ctx.currentVoice = "";
+  for (const tune of tunes) {
+    // Check for voice declarations in the header (happens when there's no K: line)
+    const headerVoice = findLastHeaderVoice(tune);
+    ctx.currentVoice = headerVoice ?? "";
     ctx.lastMatchingVoice = null;
-    walkChildren(ctx, tuneBody);
-    flushCurrentRun(ctx);
+
+    // Find and walk the tune body
+    const tuneBodies = findByTag(tune, TAGS.Tune_Body);
+    for (const tuneBody of tuneBodies) {
+      walkChildren(ctx, tuneBody);
+      flushCurrentRun(ctx);
+    }
   }
 }
 

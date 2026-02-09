@@ -191,8 +191,8 @@
         "category": "ABC"
       },
       {
-        "command": "abc.selectVoice",
-        "title": "ABC: Select Voice",
+        "command": "abc.selectVoices",
+        "title": "ABC: Select Voices",
         "category": "ABC"
       },
       {
@@ -438,7 +438,7 @@
           "when": "editorLangId == abc"
         },
         {
-          "command": "abc.selectVoice",
+          "command": "abc.selectVoices",
           "when": "editorLangId == abc"
         },
         {
