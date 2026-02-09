@@ -6,7 +6,7 @@
  * Barlines act as delimiters and are excluded from the output.
  */
 
-import { CSNode, TAGS } from "../csTree/types";
+import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { Selection } from "../selection";
 import { findByTag } from "./treeWalk";
 import {
@@ -34,6 +34,22 @@ function isMusicElement(node: CSNode): boolean {
 }
 
 /**
+ * Checks if a node is an inline voice marker [V:...].
+ * Inline voice markers act as measure delimiters because switching voices
+ * starts a new musical context.
+ */
+function isInlineVoiceMarker(node: CSNode): boolean {
+  if (node.tag !== TAGS.Inline_field) {
+    return false;
+  }
+  const headerChild = node.firstChild?.nextSibling;
+  if (headerChild === null || headerChild === undefined || !isTokenNode(headerChild)) {
+    return false;
+  }
+  return getTokenData(headerChild).lexeme.trim().startsWith("V:");
+}
+
+/**
  * Flushes the current run of contiguous matching elements to outputCursors.
  */
 function flushCurrentRun(ctx: MeasureWalkCtx): void {
@@ -52,12 +68,23 @@ function flushCurrentRun(ctx: MeasureWalkCtx): void {
 function walkChildren(ctx: MeasureWalkCtx, containerNode: CSNode): void {
   let child = containerNode.firstChild;
   while (child !== null) {
-    // Recurse into System nodes (Tune_Body's direct children after CSTree conversion)
+    // Recurse into System nodes (Tune_Body's direct children after CSTree conversion).
+    // Because System nodes represent line boundaries in ABC source, and a line break
+    // implicitly ends the current measure (since ABC notation is displayed line by line),
+    // we flush measures at System boundaries to prevent content from one line carrying
+    // over to the next. This differs from voiceSelector which does NOT flush at System
+    // boundaries because voices span multiple lines.
     if (child.tag === TAGS.System) {
       walkChildren(ctx, child);
+      flushCurrentRun(ctx);
     } else if (child.tag === TAGS.Music_code) {
       walkChildren(ctx, child);
     } else if (child.tag === TAGS.BarLine) {
+      flushCurrentRun(ctx);
+    } else if (isInlineVoiceMarker(child)) {
+      // Inline voice markers act as measure delimiters because switching voices
+      // starts a new musical context. This also works around CSTree not creating
+      // separate System nodes for consecutive lines starting with voice markers.
       flushCurrentRun(ctx);
     } else if (isMusicElement(child) && isInScope(child, ctx.scopeIds, ctx.hasScope)) {
       ctx.foundMatch = true;

@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { Range } from "vscode-languageserver/node";
-import { resolveSelectionRanges } from "./selectionRangeResolver";
+import { resolveSelectionRanges, resolveContiguousRanges } from "./selectionRangeResolver";
 import { lookupSelector } from "./selectorLookup";
 import { fromAst, createSelection, Selection, selectRange } from "editor";
 import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
@@ -51,7 +51,11 @@ function applySelector(
   }
 
   const newSelection = selectorFn(selection, ...(args ?? []));
-  const resultRanges = resolveSelectionRanges(newSelection);
+  // Use resolveContiguousRanges for selectors that group elements into cursors,
+  // which matches the behavior in server.ts
+  const resultRanges = selectorName === "selectMeasures" || selectorName === "selectVoices"
+    ? resolveContiguousRanges(newSelection)
+    : resolveSelectionRanges(newSelection);
   return { ranges: resultRanges };
 }
 
@@ -141,18 +145,19 @@ describe("Selector Integration (end-to-end flow)", () => {
     expect(topResult.ranges[0].start.line).to.equal(2);
   });
 
-  it("selectMeasures returns notes in the specified measure range", () => {
+  it("selectMeasures returns one range per measure", () => {
     const { ast, ctx } = parseAbc("X:1\nK:C\nC D|E F|G A|\n");
-    const result = applySelector(ast, ctx, "selectMeasures", [1, 2]);
-    // Measure 1 has C and D, measure 2 has E and F (4 notes total)
-    expect(result.ranges).to.have.length(4);
+    const result = applySelector(ast, ctx, "selectMeasures");
+    // 3 measures: (C D), (E F), (G A)
+    // resolveContiguousRanges returns one range per cursor (measure)
+    expect(result.ranges).to.have.length(3);
   });
 
-  it("selectMeasures then selectNotes returns only notes in that measure", () => {
+  it("selectMeasures groups contiguous elements within each measure", () => {
     const { ast, ctx } = parseAbc("X:1\nK:C\n[CEG] z|D E|\n");
-    const measureResult = applySelector(ast, ctx, "selectMeasures", [1, 1]);
-    // Measure 1 has a chord, a rest, but selectMeasures doesn't recurse into children
-    // So we get 2 elements: Chord and Rest
+    const measureResult = applySelector(ast, ctx, "selectMeasures");
+    // 2 measures: (Chord, Rest), (D, E)
+    // Each measure is one contiguous range
     expect(measureResult.ranges).to.have.length(2);
   });
 });

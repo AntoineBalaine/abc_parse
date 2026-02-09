@@ -112,6 +112,33 @@ K:C
       // Verify format matches kakoune selection descriptor pattern
       expect(selectionsDesc).to.match(/^\d+\.\d+,\d+\.\d+/);
     });
+
+    it('abc-select-measures returns valid selection descriptors for multi-line content', () => {
+      // Content with measures that don't end with barlines at line end.
+      // The second line's measures should NOT merge with the first line.
+      const input = `X:1
+K:C
+C D | E F
+G A | B c |
+`;
+      writeFileSync(testFile, input);
+      kak.start(`edit ${testFile}`);
+      kak.verifyHookFlow();
+
+      kak.executeKeys('%');  // Select all
+      const result = kak.commandAndQuery('abc-select-measures', '$kak_selections_desc');
+
+      // Should have 4 selections (4 measures)
+      const selections = result.trim().split(' ');
+      expect(selections.length).to.equal(4);
+      // Each selection should be on a single line (no cross-line ranges)
+      for (const sel of selections) {
+        const [start, end] = sel.split(',');
+        const startLine = parseInt(start.split('.')[0]);
+        const endLine = parseInt(end.split('.')[0]);
+        expect(startLine).to.equal(endLine);
+      }
+    });
   });
 
   describe('transforms', () => {

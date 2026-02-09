@@ -4,6 +4,7 @@ import { TAGS } from "../src/csTree/types";
 import { selectMeasures } from "../src/selectors/measureSelector";
 import { selectRange } from "../src/selectors/rangeSelector";
 import { selectNotes } from "../src/selectors/typeSelectors";
+import { firstTokenData } from "../src/selectors/treeWalk";
 import { toSelection, findByTag, findById } from "./helpers";
 
 describe("measureSelector", () => {
@@ -150,13 +151,14 @@ describe("measureSelector", () => {
       expect(result.cursors.length).to.equal(2);
     });
 
-    it("continues measure across line breaks", () => {
+    it("treats line breaks as measure delimiters", () => {
       const sel = toSelection("X:1\nK:C\nC D\nE | F |\n");
       const result = selectMeasures(sel);
-      // Measure 1 spans lines: C D E (before first |), Measure 2: F
-      expect(result.cursors.length).to.equal(2);
-      // First measure should have 3 notes (C, D, E)
-      expect(result.cursors[0].size).to.equal(3);
+      // Line 1: C D (measure 1), Line 2: E before |, F before second |
+      // Line boundaries act as measure delimiters, so 3 measures total
+      expect(result.cursors.length).to.equal(3);
+      // First measure should have 2 notes (C, D)
+      expect(result.cursors[0].size).to.equal(2);
     });
   });
 
@@ -194,6 +196,87 @@ describe("measureSelector", () => {
       const result = selectMeasures(sel);
       // No music elements, so foundMatch is false, returns original
       expect(result).to.equal(sel);
+    });
+  });
+
+  describe("line boundaries as measure delimiters", () => {
+    it("flushes measure at end of line even without trailing barline", () => {
+      // Line 1 has two measures, second measure has no trailing barline
+      // Line 2 has two measures
+      // Without the fix, line 2 would incorrectly merge with line 1
+      // because line 1 has no trailing barline, resulting in 3 measures instead of 4
+      const sel = toSelection("X:1\nK:C\nC D | E F\nG A | B c |\n");
+      const result = selectMeasures(sel);
+      expect(result.cursors.length).to.equal(4);
+    });
+
+    it("handles inline voice markers without merging across lines", () => {
+      const sel = toSelection("X:1\n[CEG]DEF| [CFA]Bc^c\n[V:1]GDEF | ABc^c\n");
+      const result = selectMeasures(sel);
+      // Line 1: 2 measures, Line 2: 2 measures = 4 total
+      expect(result.cursors.length).to.equal(4);
+      // First measure should only contain elements from line 1 (0-indexed)
+      const measure1Ids = [...result.cursors[0]];
+      const measure1Nodes = measure1Ids.map(id => findById(sel.root, id));
+      const measure1Lines = new Set(measure1Nodes.map(n => {
+        if (!n) return undefined;
+        const first = firstTokenData(n);
+        return first?.line;
+      }));
+      // All elements in first measure should be on the same line
+      expect(measure1Lines.size).to.equal(1);
+    });
+
+    it("handles multi-voice file with single-bar lines", () => {
+      const sel = toSelection("X:1\n[V:1]C |\n[V:2]D |\n[V:3]E |\n");
+      const result = selectMeasures(sel);
+      // Each line has 1 measure
+      expect(result.cursors.length).to.equal(3);
+    });
+
+    it("handles multiple lines without trailing barlines", () => {
+      const sel = toSelection("X:1\nK:C\nC D E F\nG A B c\nd e f g\n");
+      const result = selectMeasures(sel);
+      // Each line is a separate measure (no barlines anywhere)
+      expect(result.cursors.length).to.equal(3);
+    });
+
+    it("handles blank lines that terminate tunes", () => {
+      // Blank lines in ABC notation terminate tunes,
+      // so content after a blank line is a separate tune (or ignored if no header)
+      const sel = toSelection("X:1\nK:C\nC D |\n\nE F |\n");
+      const result = selectMeasures(sel);
+      // Only 1 measure: the blank line terminates the tune,
+      // so "E F |" is not part of the same tune body
+      expect(result.cursors.length).to.equal(1);
+    });
+
+    it("handles multi-voice tunes with inline markers across lines", () => {
+      // Replicating the exact structure from the passing test
+      // "handles inline voice markers without merging across lines"
+      // First line: beamed notes + barline + beamed notes
+      // Second line: voice marker + beamed notes + barline + beamed notes
+      const sel = toSelection("X:1\nABCD| EFGA\n[V:2]cdef | gabc\n");
+      const result = selectMeasures(sel);
+      // Line 1: 2 measures, Line 2: 2 measures = 4 total
+      expect(result.cursors.length).to.equal(4);
+    });
+
+    it("treats consecutive voice marker lines as separate measures", () => {
+      // When multiple consecutive lines start with voice markers,
+      // the CSTree may collapse them into a single System node.
+      // Voice markers should still act as measure delimiters.
+      const sel = toSelection(`X:1
+T:my cool title
+[CEG]DEF| [CFA]Bc^c
+[V:1]GDEF | ABc^c
+[V:2]Ez2z | Fz2z
+[V:3]Cz2z | Cz2z
+[V:4]X | X
+`);
+      const result = selectMeasures(sel);
+      // Each line has 2 measures: 5 lines * 2 = 10 measures
+      expect(result.cursors.length).to.equal(10);
     });
   });
 });
