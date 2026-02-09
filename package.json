@@ -29,7 +29,7 @@
     "watch:cli": "npm run watch -w abc-cli",
     "watch:vscode": "npm run watch -w vscode-extension",
     "package:vscode": "npm run package -w vscode-extension",
-    "test": "npm run test -w parse && npm run test -w editor && npm run test -w abc-kak",
+    "test": "npm run test -w parse && npm run test -w editor && npm run test -w abc-lsp-server && npm run test -w abc-kak",
     "lint": "npm run lint -w parse && npm run lint -w abc-lsp-server",
     "lint:fix": "npm run lint:fix -w parse && npm run lint:fix -w abc-lsp-server",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
