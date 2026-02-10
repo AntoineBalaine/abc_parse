@@ -13,7 +13,7 @@
     "abc-kak"
   ],
   "scripts": {
-    "build": "npm run build:parse && npm run build:editor && npm run build:native && npm run build:lsp && npm run build:cli && npm run build:vscode && npm run build:preview",
+    "build": "npm run build:parse && npm run build:editor && npm run build:native && npm run build:lsp && npm run build:cli && npm run build:vscode && npm run build:preview && npm run build:kak",
     "build:production": "npm run build:parse && npm run build:editor && npm run build:native && npm run build:lsp && npm run build:cli && npm run build:vscode-production && npm run build:preview",
     "build:parse": "npm run build -w parse",
     "build:editor": "npm run build -w editor",
