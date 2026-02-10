@@ -88,7 +88,7 @@ function voiceIsIncluded(voiceId: string, state: VoiceFilterState): boolean {
  *   field: "V:", text: ["V:", "melody"]
  *   (note: text[0] duplicates the field key)
  */
-function extractVoiceId(line: Info_line | Inline_field): string | null {
+function extractVoiceIdFromMarker(line: Info_line | Inline_field): string | null {
   if (line instanceof Info_line) {
     const key = line.key.lexeme.trim().toUpperCase();
     if (key === "V:") {
@@ -288,7 +288,7 @@ export class VoiceFilterVisitor {
 
       // Filter V: info lines based on voice filter state
       if (item instanceof Info_line) {
-        const voiceId = extractVoiceId(item);
+        const voiceId = extractVoiceIdFromMarker(item);
         if (voiceId !== null) {
           if (!voiceIsIncluded(voiceId, filterState)) {
             continue;
@@ -348,7 +348,7 @@ export class VoiceFilterVisitor {
     for (const element of system) {
       // Check for voice switches
       if (element instanceof Info_line) {
-        const voiceId = extractVoiceId(element);
+        const voiceId = extractVoiceIdFromMarker(element);
         if (voiceId !== null) {
           currentVoice = voiceId;
           currentVoiceIncluded = voiceIsIncluded(currentVoice, filterState);
@@ -362,7 +362,7 @@ export class VoiceFilterVisitor {
 
       // Check for inline voice field [V:id]
       if (element instanceof Inline_field) {
-        const voiceId = extractVoiceId(element);
+        const voiceId = extractVoiceIdFromMarker(element);
         if (voiceId !== null) {
           currentVoice = voiceId;
           currentVoiceIncluded = voiceIsIncluded(currentVoice, filterState);

@@ -47,7 +47,7 @@ import {
   Voice_overlay,
   YSPACER,
 } from "../types/Expr2";
-import { alignTune } from "./fmt2/fmt_aligner";
+import { alignTune, discoverVoicesInTuneBody } from "./fmt2/fmt_aligner";
 import { resolveRules } from "./fmt2/fmt_rules_assignment";
 import { VoiceMarkerStyleVisitor } from "./VoiceMarkerStyleVisitor";
 
@@ -196,13 +196,18 @@ export class AbcFormatter implements Visitor<string> {
       );
     }
 
-    // 2. Rules resolution phase
+    // 2. Discover voices declared in tune body and update the voices list
+    if (tuneToFormat.tune_body) {
+      discoverVoicesInTuneBody(tuneToFormat.tune_header.voices, tuneToFormat.tune_body);
+    }
+
+    // 3. Rules resolution phase
     const withRules = resolveRules(tuneToFormat, this.ctx);
 
-    // 3. Align multi-voices tunes
+    // 4. Align multi-voices tunes
     const alignedTune = alignTune(withRules, this.ctx, this);
 
-    // 4. Print using visitor
+    // 5. Print using visitor
     return this.stringify(alignedTune, false);
   }
 

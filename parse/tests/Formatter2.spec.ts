@@ -959,7 +959,8 @@ describe("Formatter2: Error Preservation", () => {
   // Test that errors are preserved even in complex contexts
   it("preserves errors in multi-voice context", () => {
     const input = `X:1\n[V:1]abc ~23 |\n[V:2]def \\e |\n`;
-    const expected = `[V:1] abc ~23 |\n[V:2] def \\e |`;
+    // Note: V:2 has extra space before | due to alignment with V:1
+    const expected = `[V:1] abc ~23 |\n[V:2] def \\e  |`;
 
     const ctx = new ABCContext();
     const formatter = new AbcFormatter(ctx);
