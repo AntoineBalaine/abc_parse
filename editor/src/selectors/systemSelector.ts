@@ -10,7 +10,7 @@
 import { CSNode, TAGS } from "../csTree/types";
 import { Selection, Cursor } from "../selection";
 import { findByTag } from "./treeWalk";
-import { collectCursorIds, hasDescendantInScope, collectDescendantIds } from "./scopeUtils";
+import { collectCursorIds, hasDescendantInScope, collectDescendantIds, expandScopeToDescendants } from "./scopeUtils";
 
 /**
  * Finds preceding Info_line nodes for a System node.
@@ -80,12 +80,16 @@ function findPrecedingInfoLines(systemNode: CSNode, parentNode: CSNode): CSNode[
  *          if no Systems matched
  */
 export function selectSystem(input: Selection): Selection {
-  // Collect all input cursor IDs
-  const scopeIds = collectCursorIds(input.cursors);
+  // Collect all input cursor IDs and expand to include descendants.
+  // This ensures that when the root (or any parent node) is selected,
+  // all its descendant systems are considered in scope.
+  const rawScopeIds = collectCursorIds(input.cursors);
 
-  if (scopeIds.size === 0) {
+  if (rawScopeIds.size === 0) {
     return input;
   }
+
+  const scopeIds = expandScopeToDescendants(input.root, rawScopeIds);
 
   const outputCursors: Cursor[] = [];
 

@@ -53,9 +53,12 @@ function applySelector(
   const newSelection = selectorFn(selection, ...(args ?? []));
   // Use resolveContiguousRanges for selectors that group elements into cursors,
   // which matches the behavior in server.ts
-  const resultRanges = selectorName === "selectMeasures" || selectorName === "selectVoices"
-    ? resolveContiguousRanges(newSelection)
-    : resolveSelectionRanges(newSelection);
+  const resultRanges =
+    selectorName === "selectMeasures" ||
+    selectorName === "selectVoices" ||
+    selectorName === "selectSystem"
+      ? resolveContiguousRanges(newSelection)
+      : resolveSelectionRanges(newSelection);
   return { ranges: resultRanges };
 }
 

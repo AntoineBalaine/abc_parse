@@ -205,14 +205,14 @@ CDEF|`;
       expect(result).to.equal(inputSel);
     });
 
-    it("should return original when selecting root only", () => {
+    it("should select all systems when selecting root", () => {
       // Even a minimal tune has a Tune_Body with a System
       const source = `X:1
 K:C
 CDEF|`;
       const sel = parseToSelection(source);
 
-      // Select only the root node itself (not its descendants)
+      // Select the root node (which represents "select entire document")
       const inputSel: Selection = {
         root: sel.root,
         cursors: [new Set([sel.root.id])],
@@ -220,13 +220,10 @@ CDEF|`;
 
       const result = selectSystem(inputSel);
 
-      // Because we're selecting IDs and the root's descendants include Systems,
-      // we check that selecting just the root ID doesn't match any System
-      // (root ID is not a descendant of any System)
-      // Actually, hasDescendantInScope checks if scopeIds contains the node or any descendant.
-      // So if we select root ID, Systems don't contain root ID as descendant.
-      // This should return input unchanged.
-      expect(result).to.equal(inputSel);
+      // When the root is selected, the scope expands to include all descendants,
+      // so all systems should be matched. This aligns with user expectations:
+      // calling a selector without range constraints should find all matching elements.
+      expect(result.cursors).to.have.length(1);
     });
   });
 

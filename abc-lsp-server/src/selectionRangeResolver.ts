@@ -127,9 +127,11 @@ export function resolveRanges(
   },
   newSelection: Selection
 ) {
-  return params.selector === "selectVoices" || params.selector === "selectMeasures"
-    ? resolveContiguousRanges(newSelection)
-    : resolveSelectionRanges(newSelection);
+  return params.selector === "selectVoices" ||
+    params.selector === "selectMeasures" ||
+    params.selector === "selectSystem"
+      ? resolveContiguousRanges(newSelection)
+      : resolveSelectionRanges(newSelection);
 }
 
 function rangesOverlap(a: Range, b: Range): boolean {
