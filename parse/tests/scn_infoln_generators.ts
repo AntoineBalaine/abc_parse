@@ -235,6 +235,7 @@ export const genKeyInfoLine2 = fc
   .map(([header, leadingWs, keySig, modifiers, eol]) => [header, ...(leadingWs ? [leadingWs] : []), keySig, ...modifiers.flat()]);
 
 // Meter info: M: 4/4 or M: (2+3)/8 or M: C|
+// Includes optional whitespace around operators to test parser robustness
 export const genMeterInfoLine2 = fc
   .tuple(
     fc.constantFrom(new Token(TT.INF_HDR, "M:", sharedContext.generateId())),
@@ -242,39 +243,67 @@ export const genMeterInfoLine2 = fc
     fc.oneof(
       // Special literals
       genSpecialLiteral,
-      // Simple rationals
-      fc.tuple(genNumber, genSlash, genNumber).map(([num, slash, denom]) => [num, slash, denom]),
-      // Complex expressions
+      // Simple rationals with optional whitespace: 4/4, 4 / 4, 4/ 4, 4 /4
+      fc
+        .tuple(genNumber, fc.option(genWhitespace), genSlash, fc.option(genWhitespace), genNumber)
+        .map(([num, ws1, slash, ws2, denom]) => [num, ws1, slash, ws2, denom].filter((t): t is Token => t !== null)),
+      // Complex expressions with optional whitespace
       fc
         .tuple(
           genLParen,
+          fc.option(genWhitespace),
           genNumber,
+          fc.option(genWhitespace),
           genPlus,
+          fc.option(genWhitespace),
           genNumber,
-          fc.option(fc.tuple(genPlus, genNumber).map(([plus, num]) => [plus, num])),
+          fc.option(fc.tuple(fc.option(genWhitespace), genPlus, fc.option(genWhitespace), genNumber)),
+          fc.option(genWhitespace),
           genRParen,
+          fc.option(genWhitespace),
           genSlash,
+          fc.option(genWhitespace),
           genNumber
         )
-        .map(([lparen, num1, plus1, num2, optionalTerm, rparen, slash, denom]) => [
-          lparen,
-          num1,
-          plus1,
-          num2,
-          ...(optionalTerm || []),
-          rparen,
-          slash,
-          denom,
-        ])
+        .map(([lparen, ws1, num1, ws2, plus1, ws3, num2, optionalTerm, ws4, rparen, ws5, slash, ws6, denom]) =>
+          [
+            lparen,
+            ws1,
+            num1,
+            ws2,
+            plus1,
+            ws3,
+            num2,
+            ...(optionalTerm ? optionalTerm : []),
+            ws4,
+            rparen,
+            ws5,
+            slash,
+            ws6,
+            denom,
+          ].filter((t): t is Token => t !== null)
+        )
     ),
     genEOL
   )
   .map(([header, ws, content, eol]) => [header, ...(ws ? [ws] : []), ...(Array.isArray(content) ? content : [content])]);
 
 // Note length info: L: 1/4
+// Includes optional whitespace around the slash operator
 export const genNoteLenInfoLine2 = fc
-  .tuple(fc.constantFrom(new Token(TT.INF_HDR, "L:", sharedContext.generateId())), fc.option(genWhitespace), genNumber, genSlash, genNumber, genEOL)
-  .map(([header, ws, num, slash, denom, eol]) => [header, ...(ws ? [ws] : []), num, slash, denom]);
+  .tuple(
+    fc.constantFrom(new Token(TT.INF_HDR, "L:", sharedContext.generateId())),
+    fc.option(genWhitespace),
+    genNumber,
+    fc.option(genWhitespace),
+    genSlash,
+    fc.option(genWhitespace),
+    genNumber,
+    genEOL
+  )
+  .map(([header, ws, num, ws1, slash, ws2, denom, eol]) =>
+    [header, ws, num, ws1, slash, ws2, denom].filter((t): t is Token => t !== null)
+  );
 
 // Tempo info: Q: "Allegro" 1/4=120
 export const genTempoInfoLine2 = fc

@@ -99,6 +99,29 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       expect((binary.right as Token).lexeme).to.equal("4");
     });
 
+    it("should parse binary expressions with whitespace around operator (e.g., 4 / 4)", () => {
+      // Regression test: whitespace around / should not break Binary parsing
+      // This matches M:4 / 4 in real ABC notation
+      const tokens = [
+        new Token(TT.NUMBER, "4", context.generateId()),
+        new Token(TT.WS, " ", context.generateId()),
+        new Token(TT.SLASH, "/", context.generateId()),
+        new Token(TT.WS, " ", context.generateId()),
+        new Token(TT.NUMBER, "4", context.generateId()),
+      ];
+
+      const ctx = new ParseCtx(tokens, context);
+      const expressions = parseInfoLine2(ctx);
+
+      // Should produce a single Binary expression, not [KV, Token, KV]
+      expect(expressions.length).to.equal(1);
+      expect(expressions[0]).to.be.an.instanceof(Binary);
+      const binary = expressions[0] as Binary;
+      expect((binary.left as Token).lexeme).to.equal("4");
+      expect(binary.operator.lexeme).to.equal("/");
+      expect((binary.right as Token).lexeme).to.equal("4");
+    });
+
     it("should parse parenthesized expressions", () => {
       const tokens = [
         new Token(TT.LPAREN, "(", context.generateId()),

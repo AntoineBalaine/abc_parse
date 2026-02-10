@@ -84,20 +84,28 @@ export function parseKV(ctx: ParseCtx): KV | null {
 }
 
 /**
- * Parse binary expressions: handles both + and / operators with proper precedence
+ * Parse binary expressions: handles both + and / operators with proper precedence.
+ * Whitespace around operators is allowed (e.g., "4 / 4" is valid).
  */
 export function prsBinaryExpr(ctx: ParseCtx): Expr | null {
+  // Skip leading whitespace (important for expressions inside parentheses)
+  while (ctx.match(TT.WS)) {}
+
   let left = parsePrimary(ctx);
   if (!left) return null;
 
+  while (ctx.match(TT.WS)) {}
+
   while (ctx.check(TT.PLUS) || ctx.check(TT.SLASH)) {
     const operator = ctx.advance();
+    while (ctx.match(TT.WS)) {}
     const right = parsePrimary(ctx);
     if (!right) {
       ctx.report(`Expected expression after '${operator.lexeme}'`);
       return null;
     }
     left = new Binary(ctx.abcContext.generateId(), left, operator, right);
+    while (ctx.match(TT.WS)) {}
   }
 
   return left;

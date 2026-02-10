@@ -3,12 +3,25 @@ import { describe, it } from "mocha";
 import * as fc from "fast-check";
 import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import { toAst } from "../src/csTree/toAst";
-import { TT, File_structure, Tune, Music_code, Inline_field, KV, isToken, Scanner, parse, ABCContext } from "abc-parser";
+import { TT, File_structure, Tune, Music_code, Inline_field, KV, isToken, Scanner, parse, ABCContext, Token } from "abc-parser";
 import {
   toCSTree, collectAll, collectSubtree, findByTag, siblingCount,
   genAbcTune, genAbcWithChords, genAbcMultiTune,
   roundtrip, formatAst
 } from "./helpers";
+import {
+  genMeterInfoLine2,
+  genNoteLenInfoLine2,
+  genKeyInfoLine2,
+  genTempoInfoLine2,
+} from "../../parse/tests/scn_infoln_generators";
+
+/**
+ * Convert a token array to a string by concatenating lexemes.
+ */
+function tokensToString(tokens: Token[]): string {
+  return tokens.map((t) => t.lexeme).join("");
+}
 
 describe("csTree - fromAst", () => {
   describe("properties", () => {
@@ -544,39 +557,30 @@ describe("csTree - Info_line value2 reconstruction (Phase 2: toAst)", () => {
     });
   });
 
-  describe("property-based roundtrip tests", () => {
-    it("roundtrip preserves value2 expression count for V: lines", () => {
-      fc.assert(
-        fc.property(
-          fc.record({
-            voiceId: fc.stringMatching(/^[A-Za-z][A-Za-z0-9]*$/),
-            hasClef: fc.boolean(),
-          }),
-          ({ voiceId, hasClef }) => {
-            const clefPart = hasClef ? " clef=treble" : "";
-            const input = `X:1\nV:${voiceId}${clefPart}\nK:C\nCDE|\n`;
-            const result = roundtrip(input);
-            return result === input;
-          }
-        ),
-        { numRuns: 50 }
-      );
-    });
+  describe("property-based roundtrip tests using scanner generators", () => {
+    // Generate any info line type
+    const genAnyInfoLine = fc.oneof(
+      genMeterInfoLine2,
+      genNoteLenInfoLine2,
+      genKeyInfoLine2,
+      genTempoInfoLine2
+    );
 
-    it("roundtrip preserves KV structure in V: lines", () => {
+    it("CSTree ↔ AST conversion is lossless for info lines", () => {
       fc.assert(
-        fc.property(
-          fc.record({
-            voiceId: fc.stringMatching(/^[A-Za-z][A-Za-z0-9]*$/),
-            clef: fc.constantFrom("treble", "bass", "alto", "tenor"),
-          }),
-          ({ voiceId, clef }) => {
-            const input = `X:1\nV:${voiceId} clef=${clef}\nK:C\nCDE|\n`;
-            const result = roundtrip(input);
-            return result === input;
-          }
-        ),
-        { numRuns: 50 }
+        fc.property(genAnyInfoLine, (tokens) => {
+          const infoLine = tokensToString(tokens);
+          // K: lines don't need an extra K: line after them
+          const isKeyLine = infoLine.startsWith("K:");
+          const input = isKeyLine
+            ? `X:1\n${infoLine}\nCDE|\n`
+            : `X:1\n${infoLine}\nK:C\nCDE|\n`;
+
+          const first = roundtrip(input);
+          const second = roundtrip(first);
+          return first === second;
+        }),
+        { numRuns: 200 }
       );
     });
   });

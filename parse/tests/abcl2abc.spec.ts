@@ -345,8 +345,8 @@ K:C`;
     it("should convert linear style with header-declared voices and implicit system break", () => {
       const input = `X:1
 T:Test
-M:4 / 4
-L:1 / 4
+M:4/4
+L:1/4
 V:1 name=A clef=treble
 V:2 name=B clef=bass
 K:C
@@ -358,8 +358,8 @@ FDEC |`;
 
       const expected = `X:1
 T:Test
-M:4 / 4
-L:1 / 4
+M:4/4
+L:1/4
 V:1 name=A clef=treble
 V:2 name=B clef=bass
 K:C
