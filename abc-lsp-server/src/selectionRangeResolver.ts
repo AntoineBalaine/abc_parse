@@ -62,7 +62,7 @@ export function computeNodeRange(node: CSNode): Range | null {
   return { start, end };
 }
 
-function resolveSelectionRanges(selection: Selection): Range[] {
+export function resolveSelectionRanges(selection: Selection): Range[] {
   const ranges: Range[] = [];
 
   for (const cursor of selection.cursors) {
@@ -82,7 +82,7 @@ function resolveSelectionRanges(selection: Selection): Range[] {
  * Each cursor produces a single range spanning from the earliest start position
  * to the latest end position across all nodes in the cursor.
  */
-function resolveContiguousRanges(selection: Selection): Range[] {
+export function resolveContiguousRanges(selection: Selection): Range[] {
   const ranges: Range[] = [];
 
   for (const cursor of selection.cursors) {
