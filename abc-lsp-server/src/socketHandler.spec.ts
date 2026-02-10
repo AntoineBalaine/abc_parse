@@ -4,12 +4,29 @@ import * as net from "net";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import { SocketHandler, computeSocketPath, ERROR_CODES } from "./socketHandler";
+import { SocketHandler, computeSocketPath } from "./socketHandler";
+import { ERROR_CODES } from "./constants";
 import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
 import { fromAst, CSNode } from "editor";
 import { Scanner, parse, ABCContext, File_structure, ScannerAbcx, parseAbcx } from "abc-parser";
 import { TextDocument } from "vscode-languageserver-textdocument";
+
+interface LSPRange {
+  start: { line: number; character: number };
+  end: { line: number; character: number };
+}
+
+interface SelectorResponse {
+  id: number | string;
+  result?: { ranges: LSPRange[] };
+  error?: { code: number; message: string };
+}
+
+interface ErrorResponse {
+  id: number | string;
+  error: { code: number; message: string };
+}
 
 // Helper to parse ABC content
 function parseAbc(source: string): File_structure {
@@ -133,7 +150,7 @@ describe("Socket Handler", () => {
       await handler.start();
     });
 
-    function sendRequest(request: object): Promise<object> {
+    function sendRequest<T = SelectorResponse>(request: object): Promise<T> {
       return new Promise((resolve, reject) => {
         const client = net.createConnection(socketPath, () => {
           client.write(JSON.stringify(request) + "\n");
@@ -145,7 +162,7 @@ describe("Socket Handler", () => {
           if (data.includes("\n")) {
             client.destroy();
             try {
-              resolve(JSON.parse(data.trim()));
+              resolve(JSON.parse(data.trim()) as T);
             } catch {
               reject(new Error("Invalid JSON response"));
             }
@@ -161,7 +178,7 @@ describe("Socket Handler", () => {
     }
 
     it("returns error for invalid JSON", async () => {
-      const response = await new Promise<object>((resolve, reject) => {
+      const response = await new Promise<ErrorResponse>((resolve, reject) => {
         const client = net.createConnection(socketPath, () => {
           client.write("not valid json\n");
         });
@@ -178,27 +195,27 @@ describe("Socket Handler", () => {
       });
 
       expect(response).to.have.property("error");
-      expect((response as any).error.code).to.equal(ERROR_CODES.INVALID_REQUEST);
+      expect(response.error.code).to.equal(ERROR_CODES.INVALID_REQUEST);
     });
 
     it("returns error for missing method", async () => {
-      const response = await sendRequest({ id: 1 });
+      const response = await sendRequest<ErrorResponse>({ id: 1 });
       expect(response).to.have.property("error");
-      expect((response as any).error.code).to.equal(ERROR_CODES.INVALID_REQUEST);
+      expect(response.error.code).to.equal(ERROR_CODES.INVALID_REQUEST);
     });
 
     it("returns error for unknown method", async () => {
-      const response = await sendRequest({
+      const response = await sendRequest<ErrorResponse>({
         id: 1,
         method: "unknownMethod",
         params: {},
       });
       expect(response).to.have.property("error");
-      expect((response as any).error.code).to.equal(ERROR_CODES.UNKNOWN_METHOD);
+      expect(response.error.code).to.equal(ERROR_CODES.UNKNOWN_METHOD);
     });
 
     it("returns error for missing URI", async () => {
-      const response = await sendRequest({
+      const response = await sendRequest<ErrorResponse>({
         id: 1,
         method: "abc.applySelector",
         params: {
@@ -206,11 +223,11 @@ describe("Socket Handler", () => {
         },
       });
       expect(response).to.have.property("error");
-      expect((response as any).error.code).to.equal(ERROR_CODES.INVALID_PARAMS);
+      expect(response.error.code).to.equal(ERROR_CODES.INVALID_PARAMS);
     });
 
     it("returns error for invalid URI format", async () => {
-      const response = await sendRequest({
+      const response = await sendRequest<ErrorResponse>({
         id: 1,
         method: "abc.applySelector",
         params: {
@@ -219,11 +236,11 @@ describe("Socket Handler", () => {
         },
       });
       expect(response).to.have.property("error");
-      expect((response as any).error.code).to.equal(ERROR_CODES.INVALID_PARAMS);
+      expect(response.error.code).to.equal(ERROR_CODES.INVALID_PARAMS);
     });
 
     it("returns error for path traversal in URI", async () => {
-      const response = await sendRequest({
+      const response = await sendRequest<ErrorResponse>({
         id: 1,
         method: "abc.applySelector",
         params: {
@@ -232,11 +249,11 @@ describe("Socket Handler", () => {
         },
       });
       expect(response).to.have.property("error");
-      expect((response as any).error.code).to.equal(ERROR_CODES.INVALID_PARAMS);
+      expect(response.error.code).to.equal(ERROR_CODES.INVALID_PARAMS);
     });
 
     it("returns error for unknown selector", async () => {
-      const response = await sendRequest({
+      const response = await sendRequest<ErrorResponse>({
         id: 1,
         method: "abc.applySelector",
         params: {
@@ -245,11 +262,11 @@ describe("Socket Handler", () => {
         },
       });
       expect(response).to.have.property("error");
-      expect((response as any).error.code).to.equal(ERROR_CODES.INVALID_PARAMS);
+      expect(response.error.code).to.equal(ERROR_CODES.INVALID_PARAMS);
     });
 
     it("returns error when document is not found", async () => {
-      const response = await sendRequest({
+      const response = await sendRequest<ErrorResponse>({
         id: 1,
         method: "abc.applySelector",
         params: {
@@ -258,13 +275,13 @@ describe("Socket Handler", () => {
         },
       });
       expect(response).to.have.property("error");
-      expect((response as any).error.code).to.equal(ERROR_CODES.DOCUMENT_NOT_FOUND);
+      expect(response.error.code).to.equal(ERROR_CODES.DOCUMENT_NOT_FOUND);
     });
 
     it("returns error for ABCx files", async () => {
       documents.set("file:///path/to/file.abcx", createMockAbcxDocument());
 
-      const response = await sendRequest({
+      const response = await sendRequest<ErrorResponse>({
         id: 1,
         method: "abc.applySelector",
         params: {
@@ -273,7 +290,7 @@ describe("Socket Handler", () => {
         },
       });
       expect(response).to.have.property("error");
-      expect((response as any).error.code).to.equal(ERROR_CODES.FILE_TYPE_NOT_SUPPORTED);
+      expect(response.error.code).to.equal(ERROR_CODES.FILE_TYPE_NOT_SUPPORTED);
     });
 
     it("returns ranges for valid selector request", async () => {
@@ -286,31 +303,27 @@ describe("Socket Handler", () => {
         params: {
           uri: "file:///path/to/file.abc",
           selector: "selectChords",
-          cursorNodeIds: [],
         },
       });
 
       expect(response).to.have.property("result");
-      const result = (response as any).result;
-      expect(result.ranges).to.have.length(1);
-      expect(result.cursorNodeIds).to.have.length(1);
+      expect(response.result!.ranges).to.have.length(1);
     });
 
-    it("supports scope filtering", async () => {
+    it("supports scope filtering via ranges", async () => {
       const source = "X:1\nK:C\n[CEG] [FAC]|\n";
       documents.set("file:///path/to/file.abc", createMockAbcDocument(source));
 
-      // First get all chords
+      // First get all chords (no ranges = select entire document)
       const fullResponse = await sendRequest({
         id: 1,
         method: "abc.applySelector",
         params: {
           uri: "file:///path/to/file.abc",
           selector: "selectChords",
-          cursorNodeIds: [],
         },
       });
-      expect((fullResponse as any).result.ranges).to.have.length(2);
+      expect(fullResponse.result!.ranges).to.have.length(2);
 
       // Now scope to only the first chord's range
       const scopedResponse = await sendRequest({
@@ -319,14 +332,13 @@ describe("Socket Handler", () => {
         params: {
           uri: "file:///path/to/file.abc",
           selector: "selectChords",
-          cursorNodeIds: [],
-          scope: [{ start: { line: 2, character: 0 }, end: { line: 2, character: 5 } }],
+          ranges: [{ start: { line: 2, character: 0 }, end: { line: 2, character: 5 } }],
         },
       });
-      expect((scopedResponse as any).result.ranges).to.have.length(1);
+      expect(scopedResponse.result!.ranges).to.have.length(1);
     });
 
-    it("supports narrowing with cursorNodeIds", async () => {
+    it("supports narrowing with ranges from previous response", async () => {
       const source = "X:1\nK:C\n[CEG]2 C2 D2|\n";
       documents.set("file:///path/to/file.abc", createMockAbcDocument(source));
 
@@ -337,26 +349,25 @@ describe("Socket Handler", () => {
         params: {
           uri: "file:///path/to/file.abc",
           selector: "selectChords",
-          cursorNodeIds: [],
         },
       });
 
-      const chordIds = (chordsResponse as any).result.cursorNodeIds;
-      expect(chordIds).to.have.length(1);
+      const chordRanges = chordsResponse.result!.ranges;
+      expect(chordRanges).to.have.length(1);
 
-      // Now narrow to notes within those chords
+      // Now narrow to notes within those chord ranges
       const notesResponse = await sendRequest({
         id: 2,
         method: "abc.applySelector",
         params: {
           uri: "file:///path/to/file.abc",
           selector: "selectNotes",
-          cursorNodeIds: chordIds,
+          ranges: chordRanges,
         },
       });
 
       // Should get 3 notes (C, E, G) from within the chord
-      expect((notesResponse as any).result.ranges).to.have.length(3);
+      expect(notesResponse.result!.ranges).to.have.length(3);
     });
 
     it("returns id from request in response", async () => {
@@ -369,11 +380,10 @@ describe("Socket Handler", () => {
         params: {
           uri: "file:///path/to/file.abc",
           selector: "selectNotes",
-          cursorNodeIds: [],
         },
       });
 
-      expect((response as any).id).to.equal(42);
+      expect(response.id).to.equal(42);
     });
 
     // Tests for selectVoices using resolveContiguousRanges
@@ -393,10 +403,9 @@ describe("Socket Handler", () => {
         });
 
         expect(response).to.have.property("result");
-        const result = (response as any).result;
-        expect(result.ranges).to.have.length(1);
+        expect(response.result!.ranges).to.have.length(1);
         // Range should cover [V:1]CDEF| (not just [V:1])
-        const range = result.ranges[0];
+        const range = response.result!.ranges[0];
         expect(range.start.line).to.equal(2);
         expect(range.start.character).to.equal(0);
         // End should be after the barline following CDEF
@@ -418,10 +427,9 @@ describe("Socket Handler", () => {
         });
 
         expect(response).to.have.property("result");
-        const result = (response as any).result;
-        expect(result.ranges).to.have.length(1);
+        expect(response.result!.ranges).to.have.length(1);
         // Range should cover from V:1 through end of CDEF|
-        const range = result.ranges[0];
+        const range = response.result!.ranges[0];
         expect(range.start.line).to.equal(2);
         expect(range.end.line).to.equal(3);
       });
@@ -443,9 +451,8 @@ describe("Socket Handler", () => {
         });
 
         expect(response).to.have.property("result");
-        const result = (response as any).result;
         // Returns input selection (the root), so 1 range covering the document
-        expect(result.ranges).to.have.length(1);
+        expect(response.result!.ranges).to.have.length(1);
       });
 
       it("groups same voice appearing in multiple sections into single range", async () => {
@@ -464,11 +471,10 @@ describe("Socket Handler", () => {
         });
 
         expect(response).to.have.property("result");
-        const result = (response as any).result;
         // All voice 1 content is grouped into a single cursor
-        expect(result.ranges).to.have.length(1);
+        expect(response.result!.ranges).to.have.length(1);
         // The range should span from [V:1] through GABC|
-        const range = result.ranges[0];
+        const range = response.result!.ranges[0];
         expect(range.start.line).to.equal(2);
         expect(range.end.line).to.equal(4);
       });
@@ -488,10 +494,9 @@ describe("Socket Handler", () => {
         });
 
         expect(response).to.have.property("result");
-        const result = (response as any).result;
         // Should have a range covering only V:1 line
-        expect(result.ranges).to.have.length(1);
-        const range = result.ranges[0];
+        expect(response.result!.ranges).to.have.length(1);
+        const range = response.result!.ranges[0];
         expect(range.start.line).to.equal(2);
         expect(range.end.line).to.equal(2);
       });
@@ -513,11 +518,10 @@ describe("Socket Handler", () => {
         });
 
         expect(response).to.have.property("result");
-        const result = (response as any).result;
         // Should have two ranges, one for each measure
-        expect(result.ranges).to.have.length(2);
+        expect(response.result!.ranges).to.have.length(2);
         // First measure should include CDEF|
-        const firstRange = result.ranges[0];
+        const firstRange = response.result!.ranges[0];
         expect(firstRange.start.line).to.equal(2);
         expect(firstRange.start.character).to.equal(0);
       });

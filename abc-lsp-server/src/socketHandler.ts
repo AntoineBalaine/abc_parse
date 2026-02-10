@@ -518,7 +518,6 @@ export class SocketHandler {
 
       this.server.listen(this.socketPath, () => {
         this.isOwner = true;
-        console.error(`[abc-lsp] Socket listening on ${this.socketPath}`);
         resolve(true);
       });
     });
