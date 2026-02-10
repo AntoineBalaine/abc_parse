@@ -25,6 +25,19 @@ import {
   DECORATION_SYMBOLS,
   getDirectiveCompletionContext,
   getDirectiveCompletions,
+  getFontDirectiveCompletions,
+  getMeasurementDirectiveCompletions,
+  getBooleanFlagDirectiveCompletions,
+  getPositionDirectiveCompletions,
+  getBooleanValueDirectiveCompletions,
+  getNumberDirectiveCompletions,
+  getIdentifierDirectiveCompletions,
+  getTextDirectiveCompletions,
+  getComplexDirectiveCompletions,
+  getMidiCommandCompletions,
+  getMeasurementUnitCompletions,
+  getPositionChoiceCompletions,
+  getBooleanChoiceCompletions,
   ABCLS_DIRECTIVES,
   ABCLS_PARSE_OPTIONS,
   ABCLS_FMT_OPTIONS,
@@ -146,6 +159,13 @@ const abcServer = new AbcLspServer(documents, (type, params) => {
 // garbage-collects stale trees when the AST is replaced.
 const csTreeCache = new WeakMap<File_structure, CSNode>();
 
+// Client capabilities stored during initialization
+let clientCapabilities: InitializeParams["capabilities"] | null = null;
+
+function supportsSnippets(): boolean {
+  return clientCapabilities?.textDocument?.completion?.completionItem?.snippetSupport === true;
+}
+
 function getCsTree(ast: File_structure, ctx: ABCContext): CSNode {
   let tree = csTreeCache.get(ast);
   if (!tree) {
@@ -162,6 +182,7 @@ function getCsTree(ast: File_structure, ctx: ABCContext): CSNode {
  */
 connection.onInitialize((params: InitializeParams) => {
   const capabilities = params.capabilities;
+  clientCapabilities = capabilities;
   const hasSemanticTokensCapability = !!capabilities.textDocument?.semanticTokens?.requests?.full;
   const result: InitializeResult = {
     capabilities: {
@@ -520,21 +541,41 @@ connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): Comp
 
   switch (directiveContext.type) {
     case "directive-name":
-      return getDirectiveCompletions(ABCLS_DIRECTIVES, directiveContext.prefix, CompletionItemKind.Keyword);
+      return [
+        ...getDirectiveCompletions(ABCLS_DIRECTIVES, directiveContext.prefix, CompletionItemKind.Keyword),
+        ...getFontDirectiveCompletions(directiveContext.prefix, supportsSnippets()),
+        ...getMeasurementDirectiveCompletions(directiveContext.prefix, supportsSnippets()),
+        ...getBooleanFlagDirectiveCompletions(directiveContext.prefix),
+        ...getPositionDirectiveCompletions(directiveContext.prefix, supportsSnippets()),
+        ...getBooleanValueDirectiveCompletions(directiveContext.prefix, supportsSnippets()),
+        ...getNumberDirectiveCompletions(directiveContext.prefix, supportsSnippets()),
+        ...getIdentifierDirectiveCompletions(directiveContext.prefix, supportsSnippets()),
+        ...getTextDirectiveCompletions(directiveContext.prefix, supportsSnippets()),
+        ...getComplexDirectiveCompletions(directiveContext.prefix, supportsSnippets()),
+      ];
     case "abcls-parse-options":
       return getDirectiveCompletions(ABCLS_PARSE_OPTIONS, directiveContext.prefix, CompletionItemKind.Value);
     case "abcls-fmt-options":
       return getDirectiveCompletions(ABCLS_FMT_OPTIONS, directiveContext.prefix, CompletionItemKind.Value);
     case "abcls-voices-options":
       return getDirectiveCompletions(ABCLS_VOICES_OPTIONS, directiveContext.prefix, CompletionItemKind.Value);
+    case "midi-command":
+      return getMidiCommandCompletions(directiveContext.prefix, supportsSnippets());
+    case "measurement-unit":
+      return getMeasurementUnitCompletions(directiveContext.prefix);
+    case "position-choice":
+      return getPositionChoiceCompletions(directiveContext.prefix);
+    case "boolean-choice":
+      return getBooleanChoiceCompletions(directiveContext.prefix);
     case "none":
       // Fall through to decoration completion
       break;
   }
 
   // Decoration completion logic
-  const char = abcServer.findCharInDoc(uri, charPosition, position.line);
-  if (char === "!") {
+  // Check if the character just typed (at charPosition - 1) is "!"
+  // We check charPosition - 1 because the cursor is positioned after the trigger character
+  if (charPosition > 0 && lineText.charAt(charPosition - 1) === "!") {
     // TODO check that the char is in the body.
     return DECORATION_SYMBOLS.map((symbol, index) => {
       return <CompletionItem>{
