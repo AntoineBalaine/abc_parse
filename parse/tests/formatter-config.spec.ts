@@ -390,9 +390,9 @@ ABCD|
       expect(output).to.include("\n%\n");
     });
 
-    it("does NOT insert comments when only system-comments is present without linear", () => {
+    it("inserts comments for deferred style tunes with system-comments directive", () => {
       const ctx = new ABCContext();
-      // system-comments alone should NOT insert comments because linear mode is not enabled
+      // system-comments should insert comments for deferred style multi-voice tunes
       const input = `%%abcls-fmt system-comments
 X:1
 V:1
@@ -414,8 +414,8 @@ ABCD|
       const formatter = new AbcFormatter(ctx);
       const output = formatter.stringify(tune);
 
-      // Should NOT contain separator comments because linear mode is not enabled
-      expect(output).to.not.include("\n%\n");
+      // Should contain separator comments for deferred style tunes
+      expect(output).to.include("\n%\n");
     });
 
     it("does not insert comments for single system", () => {

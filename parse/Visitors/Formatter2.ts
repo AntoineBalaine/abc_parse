@@ -540,7 +540,6 @@ export class AbcFormatter implements Visitor<string> {
     // Check if we need to insert system separator comments
     const shouldInsertComments =
       this.currentTune &&
-      this.currentTune.linear &&
       systems.length > 1 &&
       this.currentTune.formatterConfig.systemComments;
 

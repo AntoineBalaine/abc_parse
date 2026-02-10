@@ -377,6 +377,83 @@ function isCommentOrInfoLine(line: tune_body_code[]): boolean {
 }
 
 /**
+ * Check if a line contains a voice marker (V: info line or [V:] inline field).
+ * The line may also contain whitespace and EOL tokens.
+ */
+function isVoiceMarkerLine(line: tune_body_code[]): boolean {
+  for (const expr of line) {
+    if (isVoiceMarker(expr)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Find the index of the next line that has music (i.e., has an entry in lineToBarRange).
+ * Stops looking if another voice marker line is encountered, because the music after
+ * that voice marker belongs to it, not to the voice marker we started from.
+ * Returns null if no music line is found before another voice marker or end of lines.
+ */
+function findNextMusicLineIdx(
+  lines: tune_body_code[][],
+  lineToBarRange: Map<number, { start: number; end: number; voice: string }>,
+  startIdx: number
+): number | null {
+  for (let j = startIdx; j < lines.length; j++) {
+    if (lineToBarRange.has(j)) {
+      return j;
+    }
+    if (isVoiceMarkerLine(lines[j])) {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Compute the bar range of the current system by scanning all lines from
+ * currentSystemStartLineIdx up to (but not including) endIdx.
+ */
+function getSystemBarRange(
+  lineToBarRange: Map<number, { start: number; end: number; voice: string }>,
+  currentSystemStartLineIdx: number,
+  endIdx: number
+): { start: number; end: number } | null {
+  let systemMinBar = Infinity;
+  let systemMaxBar = -Infinity;
+  for (let j = currentSystemStartLineIdx; j < endIdx; j++) {
+    const range = lineToBarRange.get(j);
+    if (range) {
+      systemMinBar = Math.min(systemMinBar, range.start);
+      systemMaxBar = Math.max(systemMaxBar, range.end);
+    }
+  }
+  return systemMinBar !== Infinity ? { start: systemMinBar, end: systemMaxBar } : null;
+}
+
+/**
+ * Check if a music line at the given index would start a new system.
+ * This happens when the line's bar range does not overlap with the current system's bar range.
+ */
+function lineStartsNewSystem(
+  lineIdx: number,
+  lineToBarRange: Map<number, { start: number; end: number; voice: string }>,
+  currentSystemStartLineIdx: number | null
+): boolean {
+  if (currentSystemStartLineIdx === null) {
+    // No current system yet, so this line starts the first system, not a "new" one
+    return false;
+  }
+  const lineRange = lineToBarRange.get(lineIdx);
+  if (!lineRange) {
+    return false;
+  }
+  const systemRange = getSystemBarRange(lineToBarRange, currentSystemStartLineIdx, lineIdx);
+  return !rangesOverlap(lineRange, systemRange);
+}
+
+/**
  * Helper to process an expression for bar mapping
  */
 function processExprForBarMapping(
@@ -489,10 +566,27 @@ function parseVoicesWithBarOverlap(lines: tune_body_code[][]): System[] {
     const line = lines[i];
 
     if (isCommentOrInfoLine(line)) {
-      // if (currentSystem.length === 0) {
-      //   systems.push(line);
-      // } else {
-      // }
+      if (isVoiceMarkerLine(line)) {
+        const nextMusicIdx = findNextMusicLineIdx(lines, lineToBarRange, i + 1);
+
+        if (nextMusicIdx === null) {
+          // No immediate music for this voice marker (another voice marker came first,
+          // or no music at all). Add to current system.
+          currentSystem.push(...line);
+          continue;
+        }
+
+        if (lineStartsNewSystem(nextMusicIdx, lineToBarRange, currentSystemStartLineIdx)) {
+          // The music starts a new system, so this voice marker belongs to the new system
+          if (currentSystem.length > 0) {
+            systems.push(currentSystem);
+          }
+          currentSystem = [...line];
+          currentSystemStartLineIdx = null; // Will be set when we encounter the music line
+          continue;
+        }
+      }
+      // Non-voice-marker info lines, or voice markers whose music is in current system
       currentSystem.push(...line);
       continue;
     }
@@ -512,18 +606,7 @@ function parseVoicesWithBarOverlap(lines: tune_body_code[][]): System[] {
       continue;
     }
 
-    // Find the bar range of the current system by scanning all lines in it
-    let systemMinBar = Infinity;
-    let systemMaxBar = -Infinity;
-    for (let j = currentSystemStartLineIdx || 0; j < i; j++) {
-      const range = lineToBarRange.get(j);
-      if (range) {
-        systemMinBar = Math.min(systemMinBar, range.start);
-        systemMaxBar = Math.max(systemMaxBar, range.end);
-      }
-    }
-
-    const systemRange = systemMinBar !== Infinity ? { start: systemMinBar, end: systemMaxBar } : null;
+    const systemRange = getSystemBarRange(lineToBarRange, currentSystemStartLineIdx, i);
 
     if (rangesOverlap(lineRange, systemRange)) {
       currentSystem.push(...line);
