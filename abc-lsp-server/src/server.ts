@@ -21,7 +21,15 @@ import {
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcLspServer } from "./AbcLspServer";
 import { AbcDocument } from "./AbcDocument";
-import { DECORATION_SYMBOLS } from "./completions";
+import {
+  DECORATION_SYMBOLS,
+  getDirectiveCompletionContext,
+  getDirectiveCompletions,
+  ABCLS_DIRECTIVES,
+  ABCLS_PARSE_OPTIONS,
+  ABCLS_FMT_OPTIONS,
+  ABCLS_VOICES_OPTIONS,
+} from "./completions";
 import { standardTokenScopes } from "./server_helpers";
 import { findNodesInRange, resolveRanges } from "./selectionRangeResolver";
 import { lookupSelector } from "./selectorLookup";
@@ -177,8 +185,8 @@ connection.onInitialize((params: InitializeParams) => {
       hoverProvider: false,
       completionProvider: {
         resolveProvider: true,
-        // Trigger character "!" for ABC decorations
-        triggerCharacters: ["!"],
+        // Trigger characters: "!" for decorations, "%" for directives
+        triggerCharacters: ["!", "%"],
       },
     },
   };
@@ -417,29 +425,45 @@ connection.onCompletion((textDocumentPosition: TextDocumentPositionParams): Comp
   if (!doc) {
     return [];
   }
-  const char = abcServer.findCharInDoc(uri, textDocumentPosition.position.character, textDocumentPosition.position.line);
 
-  /**
-   * If the char is not a completion trigger, ignore.
-   */
-  if (!char || char !== "!") {
-    return [];
+  const position = textDocumentPosition.position;
+  const lineText = doc.document.getText().split("\n")[position.line] || "";
+  const charPosition = position.character;
+
+  // Check for directive completion (takes precedence)
+  const directiveContext = getDirectiveCompletionContext(lineText, charPosition);
+
+  switch (directiveContext.type) {
+    case "directive-name":
+      return getDirectiveCompletions(ABCLS_DIRECTIVES, directiveContext.prefix, CompletionItemKind.Keyword);
+    case "abcls-parse-options":
+      return getDirectiveCompletions(ABCLS_PARSE_OPTIONS, directiveContext.prefix, CompletionItemKind.Value);
+    case "abcls-fmt-options":
+      return getDirectiveCompletions(ABCLS_FMT_OPTIONS, directiveContext.prefix, CompletionItemKind.Value);
+    case "abcls-voices-options":
+      return getDirectiveCompletions(ABCLS_VOICES_OPTIONS, directiveContext.prefix, CompletionItemKind.Value);
+    case "none":
+      // Fall through to decoration completion
+      break;
   }
-  // TODO check that the char is in the body.
-  return DECORATION_SYMBOLS.map((symbol, index) => {
-    /**
-     * TODO if documentation doesn't display,
-     * use the onCompletionResolve
-     */
-    return <CompletionItem>{
-      data: index + 1,
-      documentation: symbol.documentation,
-      kind: CompletionItemKind.Text,
-      insertText: symbol.label.replace(/[!]/g, ""),
-      label: symbol.label,
-      labelDetails: "decoration",
-    };
-  });
+
+  // Decoration completion logic
+  const char = abcServer.findCharInDoc(uri, charPosition, position.line);
+  if (char === "!") {
+    // TODO check that the char is in the body.
+    return DECORATION_SYMBOLS.map((symbol, index) => {
+      return <CompletionItem>{
+        data: index + 1,
+        documentation: symbol.documentation,
+        kind: CompletionItemKind.Text,
+        insertText: symbol.label.replace(/[!]/g, ""),
+        label: symbol.label,
+        labelDetails: "decoration",
+      };
+    });
+  }
+
+  return [];
 });
 
 connection.onCompletionResolve((item: CompletionItem): CompletionItem => {

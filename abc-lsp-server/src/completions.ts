@@ -1,3 +1,5 @@
+import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
+
 /**
  * {@property label} is the string that will be inserted into the editor,
  * using the format `!<symbol>!`.
@@ -84,3 +86,132 @@ export const DECORATION_SYMBOLS: Array<DecorationSymbol> = [
   { label: "!uppermordent!", documentation: "short /|/|/ squiggle" },
   { label: "!wedge!", documentation: "small filled-in wedge mark" },
 ];
+
+// =============================================================================
+// Directive Completions
+// =============================================================================
+
+export type DirectiveCompletion = {
+  label: string;
+  documentation: string;
+};
+
+export const ABCLS_DIRECTIVES: DirectiveCompletion[] = [
+  {
+    label: "abcls-fmt",
+    documentation: "Formatter configuration directive. Options: system-comments, voice-markers=inline/infoline",
+  },
+  {
+    label: "abcls-parse",
+    documentation: "Parser configuration directive. Options: linear",
+  },
+  {
+    label: "abcls-voices",
+    documentation: "Voice filtering directive. Syntax: show/hide <voiceIds...>",
+  },
+];
+
+export const ABCLS_PARSE_OPTIONS: DirectiveCompletion[] = [
+  {
+    label: "linear",
+    documentation: "Enable linear (interleaved voice) parsing mode",
+  },
+];
+
+export const ABCLS_FMT_OPTIONS: DirectiveCompletion[] = [
+  {
+    label: "system-comments",
+    documentation: "Insert empty comment lines between systems in linear tunes",
+  },
+  {
+    label: "voice-markers=inline",
+    documentation: "Convert voice markers to inline [V:id] style",
+  },
+  {
+    label: "voice-markers=infoline",
+    documentation: "Convert voice markers to info line V:id style",
+  },
+];
+
+export const ABCLS_VOICES_OPTIONS: DirectiveCompletion[] = [
+  {
+    label: "show",
+    documentation: "Include only the specified voices in output",
+  },
+  {
+    label: "hide",
+    documentation: "Exclude the specified voices from output",
+  },
+];
+
+// =============================================================================
+// Directive Completion Context Detection
+// =============================================================================
+
+export type DirectiveCompletionContext =
+  | { type: "none" }
+  | { type: "directive-name"; prefix: string }
+  | { type: "abcls-parse-options"; prefix: string }
+  | { type: "abcls-fmt-options"; prefix: string }
+  | { type: "abcls-voices-options"; prefix: string };
+
+/**
+ * Determines the type of directive completion needed based on the line content
+ * and cursor position. Because textBeforeCursor is the text from the start of
+ * the line up to the cursor, the regex /^%%/ only matches when %% appears at
+ * the very beginning of the line with no preceding whitespace.
+ */
+export function getDirectiveCompletionContext(
+  lineText: string,
+  charPosition: number
+): DirectiveCompletionContext {
+  const textBeforeCursor = lineText.slice(0, charPosition);
+
+  // Check if we're after %% at line start (no leading whitespace allowed)
+  if (!textBeforeCursor.match(/^%%/)) {
+    return { type: "none" };
+  }
+
+  // Extract what's after %%
+  const afterPercent = textBeforeCursor.slice(2);
+
+  // Check for specific directive contexts (case-insensitive)
+  // We trim the captured prefix to handle multiple spaces gracefully
+  const abclsParseMatch = afterPercent.match(/^abcls-parse\s+(.*)$/i);
+  if (abclsParseMatch) {
+    return { type: "abcls-parse-options", prefix: abclsParseMatch[1].trim() };
+  }
+
+  const abclsFmtMatch = afterPercent.match(/^abcls-fmt\s+(.*)$/i);
+  if (abclsFmtMatch) {
+    return { type: "abcls-fmt-options", prefix: abclsFmtMatch[1].trim() };
+  }
+
+  const abclsVoicesMatch = afterPercent.match(/^abcls-voices\s+(.*)$/i);
+  if (abclsVoicesMatch) {
+    return { type: "abcls-voices-options", prefix: abclsVoicesMatch[1].trim() };
+  }
+
+  // If just %% or %%<partial>, offer directive names
+  return { type: "directive-name", prefix: afterPercent };
+}
+
+/**
+ * Creates completion items from a directive options array, filtering by prefix.
+ * This consolidated helper is used for all directive option completions.
+ */
+export function getDirectiveCompletions(
+  options: DirectiveCompletion[],
+  prefix: string,
+  kind: CompletionItemKind
+): CompletionItem[] {
+  return options
+    .filter((d) => d.label.toLowerCase().startsWith(prefix.toLowerCase()))
+    .map((directive, index) => ({
+      label: directive.label,
+      kind,
+      documentation: directive.documentation,
+      insertText: directive.label,
+      data: { type: "directive-completion", index },
+    }));
+}
