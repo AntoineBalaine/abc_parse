@@ -249,7 +249,7 @@ export class Cloner implements Visitor<Expr | Token> {
         }
       }) as System;
     });
-    return new Tune_Body(this.ctx.generateId(), newSequence);
+    return new Tune_Body(this.ctx.generateId(), newSequence, [...expr.voices]);
   }
 
   visitTuneExpr(expr: Tune): Tune {

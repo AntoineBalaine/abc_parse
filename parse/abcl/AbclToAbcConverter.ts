@@ -381,7 +381,7 @@ export function convertTuneToDeferred(tune: Tune, ctx: ABCContext): Tune {
     processedSystems[0] = [...globalPrefix, ...processedSystems[0]];
   }
 
-  const newTuneBody = new Tune_Body(ctx.generateId(), processedSystems);
+  const newTuneBody = new Tune_Body(ctx.generateId(), processedSystems, allVoices);
   return new Tune(ctx.generateId(), tune.tune_header, newTuneBody, tune.linear, tune.formatterConfig);
 }
 

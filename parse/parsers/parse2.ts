@@ -43,7 +43,7 @@ import { ABCContext } from "./Context";
 import { parseDirective } from "./infoLines/parseDirective";
 import { parseInfoLine2, parseExpression } from "./infoLines/parseInfoLine2";
 import { Token, TT } from "./scan2";
-import { parseSystemsWithVoices } from "./voices2";
+import { collectVoicesInElements, parseSystemsWithVoices } from "./voices2";
 
 // Parse Context
 export class ParseCtx {
@@ -408,7 +408,14 @@ export function prsBody(ctx: ParseCtx, voices: string[] = []): Tune_Body | null 
   // Process beams in the elements array
   const processedElements = prcssBms(elmnts, ctx.abcContext);
 
-  return new Tune_Body(ctx.abcContext.generateId(), prsSystems(processedElements as tune_body_code[], voices, ctx.abcContext.tuneLinear));
+  // Collect voices from body elements (in addition to header-declared voices)
+  const allVoices = collectVoicesInElements(processedElements as tune_body_code[], voices);
+
+  return new Tune_Body(
+    ctx.abcContext.generateId(),
+    prsSystems(processedElements as tune_body_code[], allVoices, ctx.abcContext.tuneLinear),
+    allVoices
+  );
 }
 
 export function prcssBms(elmnts: Array<Expr | Token>, abcContext: ABCContext): Array<Expr | Token> {

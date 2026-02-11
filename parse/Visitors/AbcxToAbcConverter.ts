@@ -221,7 +221,7 @@ export class AbcxToAbcConverter {
    */
   convertTuneBody(body: Tune_Body): Tune_Body {
     const convertedSystems = body.sequence.map(system => this.convertSystem(system));
-    return new Tune_Body(this.abcContext.generateId(), convertedSystems);
+    return new Tune_Body(this.abcContext.generateId(), convertedSystems, body.voices);
   }
 
   /**

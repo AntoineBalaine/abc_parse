@@ -85,7 +85,7 @@ export class VoiceMarkerStyleVisitor {
       transformedSystems.push(pendingInlineFields as System);
     }
 
-    return new Tune_Body(this.ctx.generateId(), transformedSystems);
+    return new Tune_Body(this.ctx.generateId(), transformedSystems, tuneBody.voices);
   }
 
   /**
@@ -94,7 +94,7 @@ export class VoiceMarkerStyleVisitor {
    */
   transformToInfoline(tuneBody: Tune_Body): Tune_Body {
     const transformedSystems = tuneBody.sequence.map((system) => this.convertInlineToInfoLines(system));
-    return new Tune_Body(this.ctx.generateId(), transformedSystems);
+    return new Tune_Body(this.ctx.generateId(), transformedSystems, tuneBody.voices);
   }
 
   /**

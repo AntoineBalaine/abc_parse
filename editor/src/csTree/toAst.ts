@@ -600,16 +600,18 @@ function buildTuneBodyFromSystems(tuneBodyNode: CSNode): Tune_Body {
   }
 
   // If no System children were found, return empty Tune_Body
+  // Note: voices list is not preserved in CSTree, so we pass empty array.
+  // The caller can re-collect voices from the body if needed.
   if (systems.length === 0) {
-    return new Tune_Body(tuneBodyNode.id, []);
+    return new Tune_Body(tuneBodyNode.id, [], []);
   }
 
-  return new Tune_Body(tuneBodyNode.id, systems);
+  return new Tune_Body(tuneBodyNode.id, systems, []);
 }
 
 // Legacy function kept for compatibility - not used when System nodes are present
 function buildTuneBody(id: number, children: Array<Expr | Token>): Tune_Body {
-  return new Tune_Body(id, [children as tune_body_code[]]);
+  return new Tune_Body(id, [children as tune_body_code[]], []);
 }
 
 function buildTune(id: number, children: Array<Expr | Token>): Tune {

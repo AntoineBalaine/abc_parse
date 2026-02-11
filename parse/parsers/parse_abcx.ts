@@ -170,7 +170,8 @@ function parseAbcxBody(ctx: ParseCtx): Tune_Body | null {
     elements.push(ctx.advance());
   }
 
-  return new Tune_Body(ctx.abcContext.generateId(), parseAbcxSystems(elements));
+  // ABCx doesn't support multi-voice, so voices list is empty
+  return new Tune_Body(ctx.abcContext.generateId(), parseAbcxSystems(elements), []);
 }
 
 /**

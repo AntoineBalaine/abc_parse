@@ -603,9 +603,11 @@ export class Chord extends Expr {
 
 export class Tune_Body extends Expr {
   sequence: Array<System>;
-  constructor(id: number, sequence: Array<System>) {
+  voices: string[];
+  constructor(id: number, sequence: Array<System>, voices: string[] = []) {
     super(id);
     this.sequence = sequence;
+    this.voices = voices;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitTuneBodyExpr(this);

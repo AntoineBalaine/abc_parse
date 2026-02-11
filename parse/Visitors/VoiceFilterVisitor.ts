@@ -334,7 +334,12 @@ export class VoiceFilterVisitor {
       }
     }
 
-    return new Tune_Body(this.context.generateId(), filteredSequence);
+    // Filter voices list to match filtered content
+    const filteredVoices = body.voices.filter(voiceId =>
+      voiceIsIncluded(voiceId, filterState)
+    );
+
+    return new Tune_Body(this.context.generateId(), filteredSequence, filteredVoices);
   }
 
   filterSystem(

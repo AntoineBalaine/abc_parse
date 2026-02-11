@@ -161,21 +161,26 @@ export function extractVoiceId(expr: Info_line | Inline_field): string {
 }
 
 /**
- * Count unique voice IDs found in the elements by scanning for voice markers.
- * This allows detecting voices declared in the tune body even if they weren't
+ * Collect voice IDs from elements by scanning for voice markers.
+ * Appends any newly discovered voice IDs to the provided list (preserving order).
+ * Returns the updated list.
+ *
+ * This allows detecting voices declared in the tune body even if they were not
  * declared in the tune header.
  */
-export function countVoicesInElements(elements: tune_body_code[]): number {
-  const voiceIds = new Set<string>();
+export function collectVoicesInElements(elements: tune_body_code[], existingVoices: string[]): string[] {
+  const seen = new Set<string>(existingVoices);
+  const result = [...existingVoices];
   for (const element of elements) {
     if (isVoiceMarker(element)) {
       const voiceId = extractVoiceId(element as Info_line | Inline_field);
-      if (voiceId) {
-        voiceIds.add(voiceId);
+      if (voiceId && !seen.has(voiceId)) {
+        seen.add(voiceId);
+        result.push(voiceId);
       }
     }
   }
-  return voiceIds.size;
+  return result;
 }
 
 /**
@@ -737,10 +742,9 @@ export function parseSystemsWithVoices(elements: tune_body_code[], voices: strin
 
   const ctx = new VoiceCtx(elements, voices);
 
-  // Check both header-declared voices and voices found in the tune body,
-  // because users may declare voices only via V: markers without header declarations.
-  const voiceCount = Math.max(voices.length, countVoicesInElements(elements));
-  if (voiceCount < 2) {
+  // The voices list should already include both header-declared voices and
+  // voices discovered in the tune body (collected by prsBody before calling this).
+  if (voices.length < 2) {
     return parseNoVoices(ctx);
   } else {
     const lines = splitIntoLines(elements);
