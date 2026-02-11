@@ -20,12 +20,10 @@ import {
   newVxState,
   createTuneDefaults,
   createFileDefaults,
-  getDefaultKeySignature,
-  getDefaultClef,
 } from "./InterpreterState";
 import { Meter, KeySignature, ClefProperties, TempoProperties, MeterType } from "../types/abcjs-ast";
 import { SemanticData } from "../analyzers/semantic-analyzer";
-import { IRational, createRational } from "../Visitors/fmt2/rational";
+import { IRational } from "../Visitors/fmt2/rational";
 import { ABCContext } from "../parsers/Context";
 import { RangeVisitor } from "../Visitors/RangeVisitor";
 import { Range } from "../types/types";
@@ -154,10 +152,22 @@ export interface ContextSnapshot {
 }
 
 /**
- * Type alias for the per-voice snapshot map for a single tune.
- * Maps voice ID to an array of position-snapshot pairs, sorted by position.
+ * Contains both per-voice and flat snapshot lists for a single tune.
+ *
+ * - byVoice: Maps voice ID to an array of position-snapshot pairs, sorted by position.
+ *   Use this when you know the voice ID and need voice-specific context.
+ *
+ * - all: A flat array of all snapshots across all voices in document order.
+ *   Use this when you need to find the context at a position without knowing the voice.
+ *   Each snapshot includes voiceId, so the caller can determine which voice is active.
+ *
+ * Memory note: Snapshot objects are stored by reference in both structures,
+ * so the additional overhead is minimal (only array entries are duplicated).
  */
-export type TuneSnapshots = Map<string, Array<{ pos: number; snapshot: ContextSnapshot }>>;
+export interface TuneSnapshots {
+  byVoice: Map<string, Array<{ pos: number; snapshot: ContextSnapshot }>>;
+  all: Array<{ pos: number; snapshot: ContextSnapshot }>;
+}
 
 /**
  * The return type of the interpret method.
@@ -177,7 +187,9 @@ export interface ContextInterpreterState {
   currentVoiceId: string;
   measureNumber: number;
   /** Accumulates snapshots for current tune, keyed by voice ID */
-  snapshotsByVoice: TuneSnapshots;
+  snapshotsByVoice: Map<string, Array<{ pos: number; snapshot: ContextSnapshot }>>;
+  /** Accumulates all snapshots in document order, across all voices */
+  allSnapshots: Array<{ pos: number; snapshot: ContextSnapshot }>;
 }
 
 // ============================================================================
@@ -228,13 +240,13 @@ export function binarySearchFloor(snapshots: Array<{ pos: number }>, target: num
  * Queries the context snapshot at a given position for a specific voice.
  * Returns the most recent snapshot at or before `pos`, or null if none exists.
  *
- * @param tuneSnapshots The per-voice snapshots for a tune
+ * @param tuneSnapshots The snapshots for a tune
  * @param pos The encoded position to query
  * @param voiceId The voice ID to query
  * @returns The snapshot at or before the position, or null if none exists
  */
 export function getSnapshot(tuneSnapshots: TuneSnapshots, pos: number, voiceId: string): ContextSnapshot | null {
-  const snapshots = tuneSnapshots.get(voiceId);
+  const snapshots = tuneSnapshots.byVoice.get(voiceId);
   if (!snapshots || snapshots.length === 0) {
     return null;
   }
@@ -250,7 +262,7 @@ export function getSnapshot(tuneSnapshots: TuneSnapshots, pos: number, voiceId: 
 /**
  * Returns all snapshots within a given range for a specific voice.
  *
- * @param tuneSnapshots The per-voice snapshots for a tune
+ * @param tuneSnapshots The snapshots for a tune
  * @param range The range to query
  * @param voiceId The voice ID to query
  * @returns An array of position-snapshot pairs within the range
@@ -260,7 +272,7 @@ export function getRangeSnapshots(
   range: Range,
   voiceId: string
 ): Array<{ pos: number; snapshot: ContextSnapshot }> {
-  const snapshots = tuneSnapshots.get(voiceId);
+  const snapshots = tuneSnapshots.byVoice.get(voiceId);
   if (!snapshots || snapshots.length === 0) {
     return [];
   }
@@ -279,6 +291,24 @@ export function getRangeSnapshots(
   }
 
   return snapshots.slice(baseIndex, endIndex);
+}
+
+/**
+ * Queries the context snapshot at a given position across all voices.
+ * Returns the most recent snapshot at or before `pos`, or null if none exists.
+ * The returned snapshot includes the voiceId, so the caller can determine
+ * which voice is active at that position.
+ *
+ * @param tuneSnapshots The snapshots for a tune
+ * @param pos The encoded position to query (line * 1_000_000 + char)
+ * @returns The snapshot at or before the position, or null if none exists
+ */
+export function getSnapshotAtPosition(tuneSnapshots: TuneSnapshots, pos: number): ContextSnapshot | null {
+  const index = binarySearchFloor(tuneSnapshots.all, pos);
+  if (index < 0) {
+    return null;
+  }
+  return tuneSnapshots.all[index].snapshot;
 }
 
 // ============================================================================
@@ -323,6 +353,7 @@ export class ContextInterpreter implements Visitor<void> {
       currentVoiceId: "", // Default voice is empty string
       measureNumber: 1,
       snapshotsByVoice: new Map(),
+      allSnapshots: [],
     };
 
     // Initialize empty snapshot arrays for all known voices (including default)
@@ -387,6 +418,7 @@ export class ContextInterpreter implements Visitor<void> {
     };
 
     this.state.snapshotsByVoice.get(voiceId)!.push({ pos, snapshot });
+    this.state.allSnapshots.push({ pos, snapshot });
   }
 
   // ============================================================================
@@ -415,7 +447,10 @@ export class ContextInterpreter implements Visitor<void> {
     }
 
     // Store results keyed by Tune.id (guaranteed unique)
-    this.result.set(expr.id, this.state.snapshotsByVoice);
+    this.result.set(expr.id, {
+      byVoice: this.state.snapshotsByVoice,
+      all: this.state.allSnapshots,
+    });
   }
 
   visitTuneHeaderExpr(expr: Tune_header): void {

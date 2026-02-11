@@ -6,8 +6,7 @@ import {
   ContextInterpreter,
   getSnapshot,
   getRangeSnapshots,
-  TuneSnapshots,
-  ContextSnapshot,
+  getSnapshotAtPosition,
 } from "./ContextInterpreter";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
@@ -160,7 +159,7 @@ describe("ContextInterpreter", () => {
       expect(tuneSnapshots).to.not.be.undefined;
 
       // Default voice should have snapshots
-      const snapshots = tuneSnapshots!.get("")!;
+      const snapshots = tuneSnapshots!.byVoice.get("")!;
       expect(snapshots.length).to.be.greaterThan(0);
 
       // Check that we have a snapshot with the key signature
@@ -185,7 +184,7 @@ describe("ContextInterpreter", () => {
 
       const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
       const tuneSnapshots = result.get(tune.id)!;
-      const snapshots = tuneSnapshots.get("")!;
+      const snapshots = tuneSnapshots.byVoice.get("")!;
 
       // Should have snapshots for M:4/4, K:C, and [M:3/4]
       expect(snapshots.length).to.equal(3);
@@ -203,7 +202,7 @@ describe("ContextInterpreter", () => {
 
       const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
       const tuneSnapshots = result.get(tune.id)!;
-      const snapshots = tuneSnapshots.get("")!;
+      const snapshots = tuneSnapshots.byVoice.get("")!;
 
       // Should have snapshots for M:4/4, Q:120, and K:C
       expect(snapshots.length).to.equal(3);
@@ -276,7 +275,7 @@ describe("ContextInterpreter", () => {
 
           const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
           const tuneSnapshots = result.get(tune.id);
-          const snapshots = tuneSnapshots?.get("") ?? [];
+          const snapshots = tuneSnapshots?.byVoice.get("") ?? [];
 
           for (const line of directiveLines) {
             // Check that at least one snapshot has this line
@@ -444,6 +443,121 @@ K:G
 
       expect(snapshot1!.meter.value![0].numerator).to.equal(4);
       expect(snapshot2!.meter.value![0].numerator).to.equal(3);
+    });
+  });
+
+  // ============================================================================
+  // Flat Snapshot List Tests
+  // ============================================================================
+
+  describe("flat snapshot list (all)", () => {
+    it("should contain all snapshots from all voices in document order", () => {
+      const input = `X:1
+M:4/4
+K:C
+V:1
+K:G
+|C D|
+V:2
+K:D
+|E F|
+`;
+      const { ast, semanticData, ctx } = parseWithSemantics(input);
+      const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
+
+      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
+      const tuneSnapshots = result.get(tune.id)!;
+
+      // allSnapshots should have entries for M:, K:C, V:1/K:G, V:2/K:D
+      expect(tuneSnapshots.all.length).to.be.greaterThanOrEqual(4);
+
+      // Should be sorted by position
+      for (let i = 1; i < tuneSnapshots.all.length; i++) {
+        expect(tuneSnapshots.all[i].pos).to.be.greaterThanOrEqual(tuneSnapshots.all[i - 1].pos);
+      }
+    });
+
+    it("should allow getSnapshotAtPosition to return voice context at position", () => {
+      const input = `X:1
+M:4/4
+K:C
+V:1
+|C D|
+V:2
+|E F|
+`;
+      const { ast, semanticData, ctx } = parseWithSemantics(input);
+      const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
+
+      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
+      const tuneSnapshots = result.get(tune.id)!;
+
+      // Query at a position after V:2 (line 6, 0-indexed)
+      const posAfterV2 = encode(6, 0);
+      const snapshot = getSnapshotAtPosition(tuneSnapshots, posAfterV2);
+
+      expect(snapshot).to.not.be.null;
+      expect(snapshot!.voiceId).to.equal("2");
+    });
+
+    it("should maintain getSnapshot with voiceId after type change", () => {
+      const input = `X:1
+M:4/4
+K:C
+V:1
+K:G
+|C D|
+`;
+      const { ast, semanticData, ctx } = parseWithSemantics(input);
+      const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
+
+      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
+      const tuneSnapshots = result.get(tune.id)!;
+
+      const snapshot = getSnapshot(tuneSnapshots, encode(100, 0), "1");
+      expect(snapshot).to.not.be.null;
+      expect(snapshot!.key.root).to.equal("G");
+    });
+
+    it("should return consistent results between flat and per-voice queries", () => {
+      const input = `X:1
+M:4/4
+K:C
+V:1
+K:G
+|C D|
+`;
+      const { ast, semanticData, ctx } = parseWithSemantics(input);
+      const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
+
+      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
+      const tuneSnapshots = result.get(tune.id)!;
+
+      const pos = encode(5, 0); // After K:G
+      const snapshotFlat = getSnapshotAtPosition(tuneSnapshots, pos);
+      const snapshotVoice = getSnapshot(tuneSnapshots, pos, "1");
+
+      // The flat snapshot should match the per-voice snapshot for voice "1"
+      expect(snapshotFlat).to.not.be.null;
+      expect(snapshotVoice).to.not.be.null;
+      expect(snapshotFlat!.voiceId).to.equal(snapshotVoice!.voiceId);
+      expect(snapshotFlat!.key.root).to.equal(snapshotVoice!.key.root);
+    });
+
+    it("should create snapshots for header directives in flat list", () => {
+      const input = `X:1
+M:4/4
+K:C
+|C D E F|
+`;
+      const { ast, semanticData, ctx } = parseWithSemantics(input);
+      const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
+
+      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
+      const tuneSnapshots = result.get(tune.id)!;
+
+      // Should have snapshots for M: and K:
+      expect(tuneSnapshots.all.length).to.be.greaterThanOrEqual(2);
     });
   });
 });
