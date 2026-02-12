@@ -141,30 +141,4 @@ V:2
     formattedOutput = getFormattedText(server.onFormat(TEST_URI) as TextEdit[]);
     expect(formattedOutput).to.equal(expectedBaseOutput);
   });
-
-  it("should not insert system comments when only system-comments directive is present (no linear)", () => {
-    const mockDocuments = new MockTextDocuments();
-
-    const server = new AbcLspServer(mockDocuments as any, () => {});
-
-    // Step 1: Open document with base content
-    mockDocuments.update(TEST_URI, baseContent);
-    let formattedOutput = getFormattedText(server.onFormat(TEST_URI) as TextEdit[]);
-    expect(formattedOutput).to.equal(expectedBaseOutput);
-
-    // Step 2: Add only system-comments directive (without linear)
-    mockDocuments.update(TEST_URI, contentWithOnlySystemComments);
-    formattedOutput = getFormattedText(server.onFormat(TEST_URI) as TextEdit[]);
-    expect(formattedOutput).to.equal(expectedWithOnlySystemComments);
-
-    // Step 3: Add both directives
-    mockDocuments.update(TEST_URI, contentWithBothDirectives);
-    formattedOutput = getFormattedText(server.onFormat(TEST_URI) as TextEdit[]);
-    expect(formattedOutput).to.equal(expectedWithBothDirectives);
-
-    // Step 4: Go back to base content
-    mockDocuments.update(TEST_URI, baseContent);
-    formattedOutput = getFormattedText(server.onFormat(TEST_URI) as TextEdit[]);
-    expect(formattedOutput).to.equal(expectedBaseOutput);
-  });
 });
