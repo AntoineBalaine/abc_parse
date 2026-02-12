@@ -14,13 +14,7 @@
  * - Reuses semantic analyzer output rather than re-parsing directives
  */
 
-import {
-  TuneDefaults,
-  VoiceState,
-  newVxState,
-  createTuneDefaults,
-  createFileDefaults,
-} from "./InterpreterState";
+import { TuneDefaults, VoiceState, newVxState, createTuneDefaults, createFileDefaults } from "./InterpreterState";
 import { Meter, KeySignature, ClefProperties, TempoProperties, MeterType } from "../types/abcjs-ast";
 import { SemanticData } from "../analyzers/semantic-analyzer";
 import { IRational } from "../Visitors/fmt2/rational";
@@ -190,6 +184,8 @@ export interface ContextInterpreterState {
   snapshotsByVoice: Map<string, Array<{ pos: number; snapshot: ContextSnapshot }>>;
   /** Accumulates all snapshots in document order, across all voices */
   allSnapshots: Array<{ pos: number; snapshot: ContextSnapshot }>;
+  /** True when we've entered the tune body (past the header). Info lines in header don't create snapshots. */
+  inBody: boolean;
 }
 
 // ============================================================================
@@ -260,20 +256,17 @@ export function getSnapshot(tuneSnapshots: TuneSnapshots, pos: number, voiceId: 
 }
 
 /**
- * Returns all snapshots within a given range for a specific voice.
+ * Returns all snapshots within a given range across all voices.
+ * Each snapshot includes voiceId, so the caller can determine which voice
+ * each context change belongs to.
  *
  * @param tuneSnapshots The snapshots for a tune
  * @param range The range to query
- * @param voiceId The voice ID to query
  * @returns An array of position-snapshot pairs within the range
  */
-export function getRangeSnapshots(
-  tuneSnapshots: TuneSnapshots,
-  range: Range,
-  voiceId: string
-): Array<{ pos: number; snapshot: ContextSnapshot }> {
-  const snapshots = tuneSnapshots.byVoice.get(voiceId);
-  if (!snapshots || snapshots.length === 0) {
+export function getRangeSnapshots(tuneSnapshots: TuneSnapshots, range: Range): Array<{ pos: number; snapshot: ContextSnapshot }> {
+  const snapshots = tuneSnapshots.all;
+  if (snapshots.length === 0) {
     return [];
   }
 
@@ -354,6 +347,7 @@ export class ContextInterpreter implements Visitor<void> {
       measureNumber: 1,
       snapshotsByVoice: new Map(),
       allSnapshots: [],
+      inBody: false,
     };
 
     // Initialize empty snapshot arrays for all known voices (including default)
@@ -389,9 +383,9 @@ export class ContextInterpreter implements Visitor<void> {
   }
 
   /**
-   * Creates and stores a snapshot at the current position for the current voice.
+   * Creates and stores a snapshot at the given position for the current voice.
    */
-  pushSnapshot(expr: Expr): void {
+  pushSnapshot(expr: Expr | Token): void {
     const { line, char } = this.getPosition(expr);
     const voice = this.getCurrentVoice();
     const voiceId = voice.id;
@@ -462,6 +456,12 @@ export class ContextInterpreter implements Visitor<void> {
   }
 
   visitTuneBodyExpr(expr: Tune_Body): void {
+    // Because we've entered the body, info lines from now on should create snapshots.
+    this.state.inBody = true;
+
+    // Push initial snapshot at body start with accumulated header state
+    this.pushSnapshot(expr);
+
     for (const system of expr.sequence) {
       for (const element of system) {
         if (element instanceof Token) {
@@ -536,12 +536,23 @@ export class ContextInterpreter implements Visitor<void> {
     return false;
   }
 
+  /**
+   * Handles info lines (standalone directive lines like M:4/4, V:1, etc.).
+   *
+   * - In the header: Updates state but does NOT push a snapshot, because the
+   *   accumulated header state is captured in a single snapshot at body start.
+   * - In the body: Updates state AND pushes a snapshot, because these represent
+   *   context changes within the music that transforms need to see.
+   */
   visitInfoLineExpr(expr: Info_line): void {
     const sem = this.semanticData.get(expr.id);
     if (!sem || !isContextInfoLineData(sem)) return;
 
     if (this.handleContextDirective(expr, sem)) {
-      this.pushSnapshot(expr);
+      // Only push snapshot if we're in the body (not header)
+      if (this.state.inBody) {
+        this.pushSnapshot(expr);
+      }
     }
   }
 

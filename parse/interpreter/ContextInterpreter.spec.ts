@@ -186,9 +186,15 @@ describe("ContextInterpreter", () => {
       const tuneSnapshots = result.get(tune.id)!;
       const snapshots = tuneSnapshots.byVoice.get("")!;
 
-      // Should have snapshots for M:4/4, K:C, and [M:3/4]
-      expect(snapshots.length).to.equal(3);
+      // Should have snapshots for: initial body snapshot (with M:4/4, K:C) + [M:3/4] inline field
+      // Header directives (M:4/4, K:C) are accumulated into one initial snapshot at body start
+      expect(snapshots.length).to.equal(2);
 
+      // First snapshot: initial body state with 4/4 meter
+      expect(snapshots[0].snapshot.meter.value![0].numerator).to.equal(4);
+      expect(snapshots[0].snapshot.meter.value![0].denominator).to.equal(4);
+
+      // Second snapshot: after [M:3/4] inline field
       const lastSnapshot = snapshots[snapshots.length - 1].snapshot;
       expect(lastSnapshot.meter.type).to.equal(MeterType.Specified);
       expect(lastSnapshot.meter.value![0].numerator).to.equal(3);
@@ -204,13 +210,14 @@ describe("ContextInterpreter", () => {
       const tuneSnapshots = result.get(tune.id)!;
       const snapshots = tuneSnapshots.byVoice.get("")!;
 
-      // Should have snapshots for M:4/4, Q:120, and K:C
-      expect(snapshots.length).to.equal(3);
+      // Should have 1 snapshot: initial body snapshot (with M:4/4, Q:120, K:C accumulated)
+      // Header directives don't create individual snapshots; they're captured at body start
+      expect(snapshots.length).to.equal(1);
 
-      // Check that tempo snapshot was created and has BPM
-      const lastSnapshot = snapshots[snapshots.length - 1].snapshot;
-      expect(lastSnapshot.tempo).to.not.be.undefined;
-      expect(lastSnapshot.tempo.bpm).to.equal(120);
+      // Check that the initial body snapshot has the accumulated tempo
+      const snapshot = snapshots[0].snapshot;
+      expect(snapshot.tempo).to.not.be.undefined;
+      expect(snapshot.tempo.bpm).to.equal(120);
     });
 
     it("property: measureNumber equals barline count + 1", () => {
@@ -249,7 +256,7 @@ describe("ContextInterpreter", () => {
       );
     });
 
-    it("property: snapshot exists at each directive position", () => {
+    it("property: initial body snapshot captures all header context", () => {
       const genMeter = fc.constantFrom("4/4", "3/4", "6/8", "2/4");
       const genKey = fc.constantFrom("C", "G", "D", "Am", "Em");
 
@@ -259,17 +266,18 @@ describe("ContextInterpreter", () => {
           const header = `X:1\nM:${meter}\nK:${key}\n`;
           const body = notes.join(" ") + "\n";
 
-          // Directive positions: M: is on line 1, K: is on line 2
-          const directiveLines = [1, 2]; // 0-indexed
+          const [num, denom] = meter.split("/").map(Number);
 
           return {
             tuneString: header + body,
-            directiveLines,
+            expectedMeterNum: num,
+            expectedMeterDenom: denom,
+            expectedKeyRoot: key.replace("m", ""), // "Am" -> "A"
           };
         });
 
       fc.assert(
-        fc.property(genTuneWithDirectives, ({ tuneString, directiveLines }) => {
+        fc.property(genTuneWithDirectives, ({ tuneString, expectedMeterNum, expectedMeterDenom, expectedKeyRoot }) => {
           const { ast, semanticData, ctx } = parseWithSemantics(tuneString);
           const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
 
@@ -277,11 +285,16 @@ describe("ContextInterpreter", () => {
           const tuneSnapshots = result.get(tune.id);
           const snapshots = tuneSnapshots?.byVoice.get("") ?? [];
 
-          for (const line of directiveLines) {
-            // Check that at least one snapshot has this line
-            const found = snapshots.some((s) => s.snapshot.line === line);
-            if (!found) return false;
-          }
+          // Should have exactly 1 snapshot (initial body snapshot)
+          if (snapshots.length !== 1) return false;
+
+          const snapshot = snapshots[0].snapshot;
+
+          // Verify header context was captured
+          if (snapshot.meter.value![0].numerator !== expectedMeterNum) return false;
+          if (snapshot.meter.value![0].denominator !== expectedMeterDenom) return false;
+          if (snapshot.key.root !== expectedKeyRoot) return false;
+
           return true;
         }),
         { numRuns: 100 }
@@ -347,7 +360,7 @@ K:C
         end: { line: 3, character: 30 },
       };
 
-      const rangeSnapshots = getRangeSnapshots(tuneSnapshots, range, "");
+      const rangeSnapshots = getRangeSnapshots(tuneSnapshots, range);
 
       expect(rangeSnapshots.length).to.be.greaterThan(0);
       expect(rangeSnapshots.every((s) => s.pos <= encode(range.end.line, range.end.character))).to.be.true;
@@ -544,7 +557,7 @@ K:G
       expect(snapshotFlat!.key.root).to.equal(snapshotVoice!.key.root);
     });
 
-    it("should create snapshots for header directives in flat list", () => {
+    it("should create one initial snapshot capturing all header context", () => {
       const input = `X:1
 M:4/4
 K:C
@@ -556,8 +569,15 @@ K:C
       const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
       const tuneSnapshots = result.get(tune.id)!;
 
-      // Should have snapshots for M: and K:
-      expect(tuneSnapshots.all.length).to.be.greaterThanOrEqual(2);
+      // Should have exactly 1 snapshot: initial body snapshot capturing M: and K: context
+      // Header directives don't create individual snapshots; they're accumulated into body start
+      expect(tuneSnapshots.all.length).to.equal(1);
+
+      // Verify it captured the header context
+      const snapshot = tuneSnapshots.all[0].snapshot;
+      expect(snapshot.meter.value![0].numerator).to.equal(4);
+      expect(snapshot.meter.value![0].denominator).to.equal(4);
+      expect(snapshot.key.root).to.equal("C");
     });
   });
 });
