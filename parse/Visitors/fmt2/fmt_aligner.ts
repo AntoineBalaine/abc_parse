@@ -1,5 +1,5 @@
 import { SemanticAnalyzer } from "../../analyzers/semantic-analyzer";
-import { ContextInterpreter, TuneSnapshots } from "../../interpreter/ContextInterpreter";
+import { ContextInterpreter, DocumentSnapshots } from "../../interpreter/ContextInterpreter";
 import { ABCContext } from "../../parsers/Context";
 import { Token, TT } from "../../parsers/scan2";
 import { extractVoiceId } from "../../parsers/voices2";
@@ -66,25 +66,24 @@ export function discoverVoicesInTuneBody(voices: string[], tuneBody: Tune_Body):
 }
 
 /**
- * Checks if the tune body contains zero-length notes and returns TuneSnapshots if so.
+ * Checks if the tune body contains zero-length notes and returns DocumentSnapshots if so.
  * This is used to determine the correct note length for alignment purposes.
  */
-export function getSnapshotsIfZeroLength(tune: Tune, ctx: ABCContext): TuneSnapshots | null {
+export function getSnapshotsIfZeroLength(tune: Tune, ctx: ABCContext): DocumentSnapshots | null {
   if (!tune.tune_body) return null;
   if (!tune.tune_body.accept(new ZeroLengthNoteDetector())) return null;
 
   const analyzer = new SemanticAnalyzer(ctx);
   tune.accept(analyzer);
   const interpreter = new ContextInterpreter();
-  const result = interpreter.interpret(tune, analyzer.data, ctx);
-  return result.get(tune.id) ?? null;
+  return interpreter.interpret(tune, analyzer.data, ctx);
 }
 
 /**
  * Add alignment padding to multi-voice tunes.
  * Does nothing if tune is single-voice.
  */
-export function alignTune(tune: Tune, stringifyVisitor: AbcFormatter, tuneSnapshots?: TuneSnapshots): Tune {
+export function alignTune(tune: Tune, stringifyVisitor: AbcFormatter, documentSnapshots?: DocumentSnapshots): Tune {
   if (tune.tune_body && tune.tune_header.voices.length > 1) {
     tune.tune_body.sequence = tune.tune_body.sequence.map((system) => {
       // Split system into voices/noformat lines
@@ -95,7 +94,7 @@ export function alignTune(tune: Tune, stringifyVisitor: AbcFormatter, tuneSnapsh
         return system;
       }
 
-      const gCtx = scanAlignPoints(voiceSplits, tuneSnapshots);
+      const gCtx = scanAlignPoints(voiceSplits, documentSnapshots);
       const alignedVoiceSplits = aligner(gCtx, voiceSplits, stringifyVisitor);
       const alignedSystem = alignedVoiceSplits.flatMap((split) => split.content);
 

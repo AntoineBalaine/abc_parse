@@ -3,6 +3,10 @@
  *
  * Maps transform names to their implementation functions from the editor module.
  * Each transform operates on a Selection and returns a modified Selection.
+ *
+ * Context-aware transforms (like toSlashNotation) require additional context
+ * from the ContextInterpreter. These are identified by CONTEXT_AWARE_TRANSFORMS
+ * and their context is computed via interpretContext.
  */
 
 import {
@@ -30,8 +34,10 @@ import {
   multiplyRhythm,
   divideRhythm,
   legato,
+  toSlashNotation,
 } from "editor";
-import { ABCContext, IRational } from "abc-parser";
+import { ABCContext, IRational, SemanticAnalyzer, File_structure } from "abc-parser";
+import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
 
 export type TransformFn = (selection: Selection, ctx: ABCContext, ...args: unknown[]) => Selection;
 
@@ -58,8 +64,30 @@ const TRANSFORM_MAP: Record<string, TransformFn> = {
   multiplyRhythm: (sel, ctx, ...args) => multiplyRhythm(sel, args[0] !== undefined ? Number(args[0]) : 2, ctx),
   divideRhythm: (sel, ctx, ...args) => divideRhythm(sel, args[0] !== undefined ? Number(args[0]) : 2, ctx),
   legato: (sel, ctx) => legato(sel, ctx),
+  toSlashNotation: (sel, ctx, ...args) => toSlashNotation(sel, ctx, args[0] as DocumentSnapshots),
 };
 
 export function lookupTransform(name: string): TransformFn | null {
   return TRANSFORM_MAP[name] ?? null;
+}
+
+// ============================================================================
+// Context-Aware Transforms
+// ============================================================================
+
+/**
+ * Transforms that require DocumentSnapshots from ContextInterpreter.
+ * These transforms need musical context like meter, note length, and clef.
+ */
+export const CONTEXT_AWARE_TRANSFORMS = new Set(["toSlashNotation"]);
+
+/**
+ * Runs the semantic analyzer and context interpreter to get DocumentSnapshots.
+ */
+export function interpretContext(ast: File_structure, ctx: ABCContext): DocumentSnapshots {
+  const analyzer = new SemanticAnalyzer(ctx);
+  ast.accept(analyzer);
+
+  const interpreter = new ContextInterpreter();
+  return interpreter.interpret(ast, analyzer.data, ctx);
 }

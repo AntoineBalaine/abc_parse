@@ -142,6 +142,69 @@ CDEF|
   });
 });
 
+describe("AbcDocument lazy snapshots", () => {
+  describe("getSnapshots()", () => {
+    it("returns null before analyze() is called", () => {
+      const content = `X:1\nK:C\nCDEF|`;
+      const doc = new AbcDocument(createTextDocument("file:///test.abc", content));
+      // Do not call analyze()
+      expect(doc.getSnapshots()).to.equal(null);
+    });
+
+    it("returns DocumentSnapshots array after analyze()", () => {
+      const content = `X:1\nM:4/4\nK:C\nCDEF|`;
+      const doc = new AbcDocument(createTextDocument("file:///test.abc", content));
+      doc.analyze();
+
+      const snapshots = doc.getSnapshots();
+      expect(snapshots).to.not.equal(null);
+      expect(Array.isArray(snapshots)).to.equal(true);
+      expect(snapshots!.length).to.be.greaterThan(0);
+    });
+
+    it("returns same cached array on repeated calls (referential equality)", () => {
+      const content = `X:1\nK:C\nCDEF|`;
+      const doc = new AbcDocument(createTextDocument("file:///test.abc", content));
+      doc.analyze();
+
+      const first = doc.getSnapshots();
+      const second = doc.getSnapshots();
+      expect(first).to.equal(second);
+    });
+
+    it("returns fresh array after document update and analyze()", () => {
+      const content1 = `X:1\nK:C\nCDEF|`;
+      const doc = new AbcDocument(createTextDocument("file:///test.abc", content1));
+      doc.analyze();
+
+      const first = doc.getSnapshots();
+
+      // Update document and re-analyze
+      const content2 = `X:1\nK:G\nGABc|`;
+      doc.document = createTextDocument("file:///test.abc", content2);
+      doc.analyze();
+
+      const second = doc.getSnapshots();
+      expect(first).to.not.equal(second);
+    });
+
+    it("captures context from header directives", () => {
+      const content = `X:1\nM:4/4\nL:1/8\nK:G\nGABc|`;
+      const doc = new AbcDocument(createTextDocument("file:///test.abc", content));
+      doc.analyze();
+
+      const snapshots = doc.getSnapshots();
+      expect(snapshots).to.not.equal(null);
+
+      // Find a snapshot and verify it has the expected context
+      const snapshot = snapshots![snapshots!.length - 1].snapshot;
+      expect(snapshot.key?.root).to.equal("G");
+      expect(snapshot.noteLength.numerator).to.equal(1);
+      expect(snapshot.noteLength.denominator).to.equal(8);
+    });
+  });
+});
+
 describe("AbcxDocument context reset on re-parse", () => {
   // Note: AbcxDocument uses ScannerAbcx and parseAbcx which do not support the
   // %%abcls-parse linear directive. We verify that the reset mechanism works

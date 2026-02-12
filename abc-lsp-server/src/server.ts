@@ -33,7 +33,7 @@ import {
 import { standardTokenScopes } from "./server_helpers";
 import { findNodesInRange, resolveRanges } from "./selectionRangeResolver";
 import { lookupSelector } from "./selectorLookup";
-import { lookupTransform } from "./transformLookup";
+import { lookupTransform, CONTEXT_AWARE_TRANSFORMS } from "./transformLookup";
 import { collectSurvivingCursorIds, computeCursorRangesFromFreshTree } from "./cursorPreservation";
 import { serializeCSTree } from "./csTreeSerializer";
 import { computeTextEditsFromDiff } from "./textEditFromDiff";
@@ -397,7 +397,15 @@ connection.onRequest("abc.applyTransform", (params: ApplyTransformParams): Apply
   selection = { root, cursors: allCursors };
 
   // Apply transform (mutates tree in place, returns updated Selection)
-  const newSelection = transformFn(selection, doc.ctx, ...params.args);
+  let transformArgs = params.args;
+  if (CONTEXT_AWARE_TRANSFORMS.has(params.transform)) {
+    const snapshots = doc.getSnapshots();
+    if (!snapshots) {
+      return { textEdits: [], cursorRanges: [] };
+    }
+    transformArgs = [snapshots, ...transformArgs];
+  }
+  const newSelection = transformFn(selection, doc.ctx, ...transformArgs);
 
   // Collect surviving cursor node IDs from the modified tree
   const survivingCursorIds = collectSurvivingCursorIds(newSelection);

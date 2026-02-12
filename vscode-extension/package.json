@@ -374,6 +374,11 @@
         "command": "abc.legato",
         "title": "ABC: Legato",
         "category": "ABC"
+      },
+      {
+        "command": "abc.toSlashNotation",
+        "title": "ABC: Convert to Slash Notation",
+        "category": "ABC"
       }
     ],
     "menus": {
@@ -588,6 +593,10 @@
         },
         {
           "command": "abc.legato",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.toSlashNotation",
           "when": "editorLangId == abc"
         }
       ]

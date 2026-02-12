@@ -4,12 +4,14 @@ export {
   removeChild,
   replaceChild,
   insertBefore,
+  insertAfter,
   appendChild,
   collectChildren,
   findParent,
   findRhythmChild,
   findTieChild,
   replaceRhythm,
+  replaceNodeWithSequence,
 } from "./treeUtils";
 export { rhythmToRational, rationalToRhythm, extractBrokenToken, getNodeRhythm } from "./rhythm";
 export { remove } from "./remove";
@@ -35,3 +37,4 @@ export { addSharp, addFlat } from "./addAccidental";
 export { multiplyRhythm } from "./multiplyRhythm";
 export { divideRhythm } from "./divideRhythm";
 export { legato } from "./legato";
+export { toSlashNotation } from "./toSlashNotation";

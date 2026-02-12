@@ -1,13 +1,6 @@
 import { expect } from "chai";
 import * as fc from "fast-check";
-import {
-  encode,
-  binarySearchFloor,
-  ContextInterpreter,
-  getSnapshot,
-  getRangeSnapshots,
-  getSnapshotAtPosition,
-} from "./ContextInterpreter";
+import { encode, binarySearchFloor, ContextInterpreter, getRangeSnapshots, getSnapshotAtPosition } from "./ContextInterpreter";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Scanner } from "../parsers/scan2";
@@ -53,29 +46,23 @@ describe("ContextInterpreter", () => {
 
     it("property: encode() preserves lexicographic ordering", () => {
       fc.assert(
-        fc.property(
-          fc.nat(100000),
-          fc.nat(999999),
-          fc.nat(100000),
-          fc.nat(999999),
-          (line1, char1, line2, char2) => {
-            // Compare (line1, char1) with (line2, char2) lexicographically
-            const cmp1 = line1 < line2 || (line1 === line2 && char1 < char2);
-            const cmp2 = encode(line1, char1) < encode(line2, char2);
+        fc.property(fc.nat(100000), fc.nat(999999), fc.nat(100000), fc.nat(999999), (line1, char1, line2, char2) => {
+          // Compare (line1, char1) with (line2, char2) lexicographically
+          const cmp1 = line1 < line2 || (line1 === line2 && char1 < char2);
+          const cmp2 = encode(line1, char1) < encode(line2, char2);
 
-            // If (line1, char1) < (line2, char2), then encode(line1, char1) < encode(line2, char2)
-            if (cmp1) {
-              return cmp2 === true;
-            }
-            // If (line1, char1) > (line2, char2), then encode(line1, char1) > encode(line2, char2)
-            const cmp3 = line1 > line2 || (line1 === line2 && char1 > char2);
-            if (cmp3) {
-              return encode(line1, char1) > encode(line2, char2);
-            }
-            // If equal, encoded values should be equal
-            return encode(line1, char1) === encode(line2, char2);
+          // If (line1, char1) < (line2, char2), then encode(line1, char1) < encode(line2, char2)
+          if (cmp1) {
+            return cmp2 === true;
           }
-        ),
+          // If (line1, char1) > (line2, char2), then encode(line1, char1) > encode(line2, char2)
+          const cmp3 = line1 > line2 || (line1 === line2 && char1 > char2);
+          if (cmp3) {
+            return encode(line1, char1) > encode(line2, char2);
+          }
+          // If equal, encoded values should be equal
+          return encode(line1, char1) === encode(line2, char2);
+        }),
         { numRuns: 1000 }
       );
     });
@@ -151,19 +138,10 @@ describe("ContextInterpreter", () => {
       const interpreter = new ContextInterpreter();
       const result = interpreter.interpret(ast, semanticData, ctx);
 
-      // Get the first tune from the AST
-      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
-      expect(tune).to.not.be.undefined;
-
-      const tuneSnapshots = result.get(tune.id);
-      expect(tuneSnapshots).to.not.be.undefined;
-
-      // Default voice should have snapshots
-      const snapshots = tuneSnapshots!.byVoice.get("")!;
-      expect(snapshots.length).to.be.greaterThan(0);
+      expect(result.length).to.be.greaterThan(0);
 
       // Check that we have a snapshot with the key signature
-      const lastSnapshot = snapshots[snapshots.length - 1].snapshot;
+      const lastSnapshot = result[result.length - 1].snapshot;
       expect(lastSnapshot.key.root).to.equal("G");
     });
 
@@ -182,20 +160,16 @@ describe("ContextInterpreter", () => {
       const { ast, semanticData, ctx } = parseWithSemantics(input);
       const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
 
-      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
-      const tuneSnapshots = result.get(tune.id)!;
-      const snapshots = tuneSnapshots.byVoice.get("")!;
-
       // Should have snapshots for: initial body snapshot (with M:4/4, K:C) + [M:3/4] inline field
       // Header directives (M:4/4, K:C) are accumulated into one initial snapshot at body start
-      expect(snapshots.length).to.equal(2);
+      expect(result.length).to.equal(2);
 
       // First snapshot: initial body state with 4/4 meter
-      expect(snapshots[0].snapshot.meter.value![0].numerator).to.equal(4);
-      expect(snapshots[0].snapshot.meter.value![0].denominator).to.equal(4);
+      expect(result[0].snapshot.meter.value![0].numerator).to.equal(4);
+      expect(result[0].snapshot.meter.value![0].denominator).to.equal(4);
 
       // Second snapshot: after [M:3/4] inline field
-      const lastSnapshot = snapshots[snapshots.length - 1].snapshot;
+      const lastSnapshot = result[result.length - 1].snapshot;
       expect(lastSnapshot.meter.type).to.equal(MeterType.Specified);
       expect(lastSnapshot.meter.value![0].numerator).to.equal(3);
       expect(lastSnapshot.meter.value![0].denominator).to.equal(4);
@@ -206,16 +180,12 @@ describe("ContextInterpreter", () => {
       const { ast, semanticData, ctx } = parseWithSemantics(input);
       const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
 
-      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
-      const tuneSnapshots = result.get(tune.id)!;
-      const snapshots = tuneSnapshots.byVoice.get("")!;
-
       // Should have 1 snapshot: initial body snapshot (with M:4/4, Q:120, K:C accumulated)
       // Header directives don't create individual snapshots; they're captured at body start
-      expect(snapshots.length).to.equal(1);
+      expect(result.length).to.equal(1);
 
       // Check that the initial body snapshot has the accumulated tempo
-      const snapshot = snapshots[0].snapshot;
+      const snapshot = result[0].snapshot;
       expect(snapshot.tempo).to.not.be.undefined;
       expect(snapshot.tempo.bpm).to.equal(120);
     });
@@ -224,15 +194,10 @@ describe("ContextInterpreter", () => {
       const genNote = fc.constantFrom("C", "D", "E", "F", "G", "A", "B");
 
       const genTuneBodyWithBarlines = fc
-        .tuple(
-          fc.array(genNote, { minLength: 1, maxLength: 20 }),
-          fc.array(fc.integer({ min: 0, max: 25 }), { minLength: 0, maxLength: 10 })
-        )
+        .tuple(fc.array(genNote, { minLength: 1, maxLength: 20 }), fc.array(fc.integer({ min: 0, max: 25 }), { minLength: 0, maxLength: 10 }))
         .map(([notes, barlinePositions]) => {
           // Deduplicate and sort positions, then clamp to valid range
-          const uniquePositions = [...new Set(barlinePositions)]
-            .map((p) => Math.min(p, notes.length))
-            .sort((a, b) => b - a); // Sort descending to insert from right to left
+          const uniquePositions = [...new Set(barlinePositions)].map((p) => Math.min(p, notes.length)).sort((a, b) => b - a); // Sort descending to insert from right to left
 
           const elements: string[] = [...notes];
           for (const pos of uniquePositions) {
@@ -281,14 +246,10 @@ describe("ContextInterpreter", () => {
           const { ast, semanticData, ctx } = parseWithSemantics(tuneString);
           const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
 
-          const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
-          const tuneSnapshots = result.get(tune.id);
-          const snapshots = tuneSnapshots?.byVoice.get("") ?? [];
-
           // Should have exactly 1 snapshot (initial body snapshot)
-          if (snapshots.length !== 1) return false;
+          if (result.length !== 1) return false;
 
-          const snapshot = snapshots[0].snapshot;
+          const snapshot = result[0].snapshot;
 
           // Verify header context was captured
           if (snapshot.meter.value![0].numerator !== expectedMeterNum) return false;
@@ -306,27 +267,14 @@ describe("ContextInterpreter", () => {
   // Phase 3: Query Function Tests
   // ============================================================================
 
-  describe("getSnapshot()", () => {
-    it("should return null for unknown voice", () => {
-      const input = "X:1\nM:4/4\nK:C\n|C D E F|";
-      const { ast, semanticData, ctx } = parseWithSemantics(input);
-      const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
-
-      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
-      const tuneSnapshots = result.get(tune.id)!;
-      const snapshot = getSnapshot(tuneSnapshots, encode(10, 0), "nonexistent");
-      expect(snapshot).to.be.null;
-    });
-
+  describe("getSnapshotAtPosition()", () => {
     it("should return null for position before all snapshots", () => {
       const input = "X:1\nM:4/4\nK:C\n|C D E F|";
       const { ast, semanticData, ctx } = parseWithSemantics(input);
       const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
 
-      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
-      const tuneSnapshots = result.get(tune.id)!;
-      // Position (0, 0) is before M: on line 1
-      const snapshot = getSnapshot(tuneSnapshots, encode(0, 0), "");
+      // Position (0, 0) is before body start
+      const snapshot = getSnapshotAtPosition(result, encode(0, 0));
       expect(snapshot).to.be.null;
     });
 
@@ -335,9 +283,7 @@ describe("ContextInterpreter", () => {
       const { ast, semanticData, ctx } = parseWithSemantics(input);
       const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
 
-      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
-      const tuneSnapshots = result.get(tune.id)!;
-      const snapshot = getSnapshot(tuneSnapshots, encode(100, 0), "");
+      const snapshot = getSnapshotAtPosition(result, encode(100, 0));
       expect(snapshot).to.not.be.null;
       expect(snapshot!.key.root).to.equal("C");
     });
@@ -353,141 +299,37 @@ K:C
       const { ast, semanticData, ctx } = parseWithSemantics(input);
       const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
 
-      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
-      const tuneSnapshots = result.get(tune.id)!;
       const range = {
         start: { line: 3, character: 0 },
         end: { line: 3, character: 30 },
       };
 
-      const rangeSnapshots = getRangeSnapshots(tuneSnapshots, range);
+      const rangeSnapshots = getRangeSnapshots(result, range);
 
       expect(rangeSnapshots.length).to.be.greaterThan(0);
       expect(rangeSnapshots.every((s) => s.pos <= encode(range.end.line, range.end.character))).to.be.true;
     });
   });
 
-  describe("per-voice isolation", () => {
-    it("should maintain different keys per voice", () => {
+  describe("voice context in snapshots", () => {
+    it("should track voice switches via voiceId field", () => {
       const input = `X:1
 M:4/4
 K:C
 V:1
-K:G
-|C D E F|
-V:2
-K:D
-|A B c d|
-`;
-      const { ast, semanticData, ctx } = parseWithSemantics(input);
-      const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
-
-      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
-      const tuneSnapshots = result.get(tune.id)!;
-      const endPos = encode(100, 0);
-
-      const snapshot1 = getSnapshot(tuneSnapshots, endPos, "1");
-      const snapshot2 = getSnapshot(tuneSnapshots, endPos, "2");
-
-      expect(snapshot1).to.not.be.null;
-      expect(snapshot2).to.not.be.null;
-      expect(snapshot1!.key.root).to.equal("G");
-      expect(snapshot2!.key.root).to.equal("D");
-    });
-
-    it("should persist voice context across switches", () => {
-      const input = `X:1
-M:4/4
-K:C
-V:1
-K:G
 |C D|
 V:2
-K:D
-|E F|
-V:1
-|G A|
-`;
-      const { ast, semanticData, ctx } = parseWithSemantics(input);
-      const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
-
-      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
-      const tuneSnapshots = result.get(tune.id)!;
-      const endPos = encode(100, 0);
-      const snapshot = getSnapshot(tuneSnapshots, endPos, "1");
-
-      expect(snapshot).to.not.be.null;
-      // Voice 1's key should still be G after switching back
-      expect(snapshot!.key.root).to.equal("G");
-    });
-  });
-
-  describe("multiple tunes", () => {
-    it("should index tunes by Tune.id", () => {
-      const input = `X:1
-M:4/4
-K:C
-|C D E F|
-
-X:5
-M:3/4
-K:G
-|G A B|
-`;
-      const { ast, semanticData, ctx } = parseWithSemantics(input);
-      const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
-
-      // Get both tunes from the AST
-      const tunes = ast.contents.filter((c) => c instanceof Tune) as Tune[];
-      expect(tunes.length).to.equal(2);
-
-      const tune1 = tunes[0];
-      const tune2 = tunes[1];
-
-      expect(result.has(tune1.id)).to.be.true;
-      expect(result.has(tune2.id)).to.be.true;
-
-      const tune1Snapshots = result.get(tune1.id)!;
-      const tune2Snapshots = result.get(tune2.id)!;
-
-      // Tune 1 should have 4/4 meter, tune 2 should have 3/4
-      const snapshot1 = getSnapshot(tune1Snapshots, encode(100, 0), "");
-      const snapshot2 = getSnapshot(tune2Snapshots, encode(100, 0), "");
-
-      expect(snapshot1!.meter.value![0].numerator).to.equal(4);
-      expect(snapshot2!.meter.value![0].numerator).to.equal(3);
-    });
-  });
-
-  // ============================================================================
-  // Flat Snapshot List Tests
-  // ============================================================================
-
-  describe("flat snapshot list (all)", () => {
-    it("should contain all snapshots from all voices in document order", () => {
-      const input = `X:1
-M:4/4
-K:C
-V:1
-K:G
-|C D|
-V:2
-K:D
 |E F|
 `;
       const { ast, semanticData, ctx } = parseWithSemantics(input);
       const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
 
-      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
-      const tuneSnapshots = result.get(tune.id)!;
+      // Find snapshots for each voice by filtering
+      const voice1Snapshots = result.filter((s) => s.snapshot.voiceId === "1");
+      const voice2Snapshots = result.filter((s) => s.snapshot.voiceId === "2");
 
-      // allSnapshots should have entries for M:, K:C, V:1/K:G, V:2/K:D
-      expect(tuneSnapshots.all.length).to.be.greaterThanOrEqual(4);
-
-      // Should be sorted by position
-      for (let i = 1; i < tuneSnapshots.all.length; i++) {
-        expect(tuneSnapshots.all[i].pos).to.be.greaterThanOrEqual(tuneSnapshots.all[i - 1].pos);
-      }
+      expect(voice1Snapshots.length).to.be.greaterThan(0);
+      expect(voice2Snapshots.length).to.be.greaterThan(0);
     });
 
     it("should allow getSnapshotAtPosition to return voice context at position", () => {
@@ -502,59 +344,104 @@ V:2
       const { ast, semanticData, ctx } = parseWithSemantics(input);
       const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
 
-      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
-      const tuneSnapshots = result.get(tune.id)!;
-
       // Query at a position after V:2 (line 6, 0-indexed)
       const posAfterV2 = encode(6, 0);
-      const snapshot = getSnapshotAtPosition(tuneSnapshots, posAfterV2);
+      const snapshot = getSnapshotAtPosition(result, posAfterV2);
 
       expect(snapshot).to.not.be.null;
       expect(snapshot!.voiceId).to.equal("2");
     });
+  });
 
-    it("should maintain getSnapshot with voiceId after type change", () => {
-      const input = `X:1
-M:4/4
-K:C
-V:1
-K:G
-|C D|
-`;
+  // ============================================================================
+  // Multi-Tune Tests
+  // ============================================================================
+
+  describe("multiple tunes", () => {
+    it("should accumulate snapshots across multiple tunes in position order", () => {
+      const input = "X:1\nK:C\nCDE|\n\nX:2\nK:G\nGAB|";
       const { ast, semanticData, ctx } = parseWithSemantics(input);
       const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
 
-      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
-      const tuneSnapshots = result.get(tune.id)!;
+      // Verify snapshots exist for both tunes
+      expect(result.length).to.be.greaterThan(1);
 
-      const snapshot = getSnapshot(tuneSnapshots, encode(100, 0), "1");
-      expect(snapshot).to.not.be.null;
-      expect(snapshot!.key.root).to.equal("G");
+      // Verify position ordering
+      for (let i = 1; i < result.length; i++) {
+        expect(result[i].pos).to.be.greaterThan(result[i - 1].pos);
+      }
+
+      // Verify we have snapshots from both keys
+      const keys = result.map((s) => s.snapshot.key.root);
+      expect(keys).to.include("C");
+      expect(keys).to.include("G");
     });
 
-    it("should return consistent results between flat and per-voice queries", () => {
+    it("should return snapshots from multiple tunes when range spans them", () => {
+      const input = "X:1\nK:C\nCDE|\n\nX:2\nK:G\nGAB|";
+      const { ast, semanticData, ctx } = parseWithSemantics(input);
+      const snapshots = new ContextInterpreter().interpret(ast, semanticData, ctx);
+
+      // Query a range spanning the entire document
+      const range = { start: { line: 0, character: 0 }, end: { line: 10, character: 0 } };
+      const rangeSnapshots = getRangeSnapshots(snapshots, range);
+
+      // Verify snapshots from both tunes are present
+      const keys = rangeSnapshots.map((s) => s.snapshot.key.root);
+      expect(keys).to.include("C");
+      expect(keys).to.include("G");
+    });
+
+    it("should reset tune state between tunes but maintain snapshot order", () => {
+      const input = `X:1
+M:4/4
+K:C
+|C D E F|
+
+X:5
+M:3/4
+K:G
+|G A B|
+`;
+      const { ast, semanticData, ctx } = parseWithSemantics(input);
+      const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
+
+      // Should have at least 2 snapshots (one per tune body start)
+      expect(result.length).to.be.greaterThanOrEqual(2);
+
+      // Verify both meters are present
+      const meters = result.map((s) => s.snapshot.meter.value?.[0]?.numerator);
+      expect(meters).to.include(4); // 4/4 from tune 1
+      expect(meters).to.include(3); // 3/4 from tune 2
+    });
+  });
+
+  // ============================================================================
+  // Flat Snapshot List Tests
+  // ============================================================================
+
+  describe("flat snapshot list", () => {
+    it("should contain all snapshots from all voices in document order", () => {
       const input = `X:1
 M:4/4
 K:C
 V:1
 K:G
 |C D|
+V:2
+K:D
+|E F|
 `;
       const { ast, semanticData, ctx } = parseWithSemantics(input);
       const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
 
-      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
-      const tuneSnapshots = result.get(tune.id)!;
+      // Should have entries for initial + V:1/K:G + V:2/K:D
+      expect(result.length).to.be.greaterThanOrEqual(3);
 
-      const pos = encode(5, 0); // After K:G
-      const snapshotFlat = getSnapshotAtPosition(tuneSnapshots, pos);
-      const snapshotVoice = getSnapshot(tuneSnapshots, pos, "1");
-
-      // The flat snapshot should match the per-voice snapshot for voice "1"
-      expect(snapshotFlat).to.not.be.null;
-      expect(snapshotVoice).to.not.be.null;
-      expect(snapshotFlat!.voiceId).to.equal(snapshotVoice!.voiceId);
-      expect(snapshotFlat!.key.root).to.equal(snapshotVoice!.key.root);
+      // Should be sorted by position
+      for (let i = 1; i < result.length; i++) {
+        expect(result[i].pos).to.be.greaterThanOrEqual(result[i - 1].pos);
+      }
     });
 
     it("should create one initial snapshot capturing all header context", () => {
@@ -566,18 +453,40 @@ K:C
       const { ast, semanticData, ctx } = parseWithSemantics(input);
       const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
 
-      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
-      const tuneSnapshots = result.get(tune.id)!;
-
       // Should have exactly 1 snapshot: initial body snapshot capturing M: and K: context
       // Header directives don't create individual snapshots; they're accumulated into body start
-      expect(tuneSnapshots.all.length).to.equal(1);
+      expect(result.length).to.equal(1);
 
       // Verify it captured the header context
-      const snapshot = tuneSnapshots.all[0].snapshot;
+      const snapshot = result[0].snapshot;
       expect(snapshot.meter.value![0].numerator).to.equal(4);
       expect(snapshot.meter.value![0].denominator).to.equal(4);
       expect(snapshot.key.root).to.equal("C");
+    });
+
+    it("property: snapshots array is always sorted by position", () => {
+      const genMeter = fc.constantFrom("4/4", "3/4", "6/8");
+      const genKey = fc.constantFrom("C", "G", "D", "Am");
+
+      const genMultiTune = fc.array(fc.tuple(genMeter, genKey), { minLength: 1, maxLength: 3 }).map((tunes) => {
+        return tunes.map(([meter, key], i) => `X:${i + 1}\nM:${meter}\nK:${key}\n|C D E|\n`).join("\n");
+      });
+
+      fc.assert(
+        fc.property(genMultiTune, (tuneString) => {
+          const { ast, semanticData, ctx } = parseWithSemantics(tuneString);
+          const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
+
+          // Verify monotonically increasing positions
+          for (let i = 1; i < result.length; i++) {
+            if (result[i].pos < result[i - 1].pos) {
+              return false;
+            }
+          }
+          return true;
+        }),
+        { numRuns: 100 }
+      );
     });
   });
 });

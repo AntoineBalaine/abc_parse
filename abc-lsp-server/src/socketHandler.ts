@@ -4,7 +4,7 @@ import * as path from "path";
 import * as readline from "readline";
 import { findNodesInRange, resolveRanges } from "./selectionRangeResolver";
 import { lookupSelector, getAvailableSelectors } from "./selectorLookup";
-import { lookupTransform } from "./transformLookup";
+import { lookupTransform, CONTEXT_AWARE_TRANSFORMS } from "./transformLookup";
 import { fromAst, createSelection, Selection, selectRange, CSNode, TAGS } from "editor";
 import { File_structure, ABCContext, Scanner, parse } from "abc-parser";
 import { AbcDocument } from "./AbcDocument";
@@ -433,7 +433,16 @@ function handleApplyTransform(
   const selection: Selection = { root, cursors: allCursors };
 
   // Apply transform (mutates tree in place, returns updated Selection)
-  const newSelection = transformFn(selection, doc.ctx, ...params.args);
+  // For context-aware transforms, we get DocumentSnapshots from the document and prepend to args
+  let transformArgs = params.args ?? [];
+  if (CONTEXT_AWARE_TRANSFORMS.has(params.transform)) {
+    const snapshots = doc.getSnapshots();
+    if (!snapshots) {
+      return { edits: [], cursorRanges: [] };
+    }
+    transformArgs = [snapshots, ...transformArgs];
+  }
+  const newSelection = transformFn(selection, doc.ctx, ...transformArgs);
 
   // Collect surviving cursor node IDs from the modified tree
   const survivingCursorIds = collectSurvivingCursorIds(newSelection);

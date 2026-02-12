@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { describe, it } from "mocha";
 import { toCSTreeWithContext, findByTag, formatSelection } from "../../editor/tests/helpers";
 import { TAGS, Selection, fromAst } from "editor";
-import { lookupTransform } from "./transformLookup";
+import { lookupTransform, CONTEXT_AWARE_TRANSFORMS, interpretContext } from "./transformLookup";
 import { collectSurvivingCursorIds } from "./cursorPreservation";
 import { serializeCSTree } from "./csTreeSerializer";
 import { Scanner, parse, ABCContext, createRational } from "abc-parser";
@@ -18,9 +18,8 @@ function simulateApplyTransform(
 ): { newText: string; survivingIds: number[]; rangeCount: number } {
   const { root, ctx } = toCSTreeWithContext(source);
 
-  const selection: Selection = cursorNodeIds.length === 0
-    ? { root, cursors: [new Set([root.id])] }
-    : { root, cursors: cursorNodeIds.map(id => new Set([id])) };
+  const selection: Selection =
+    cursorNodeIds.length === 0 ? { root, cursors: [new Set([root.id])] } : { root, cursors: cursorNodeIds.map((id) => new Set([id])) };
 
   const transformFn = lookupTransform(transformName);
   if (!transformFn) throw new Error(`Unknown transform: ${transformName}`);
@@ -38,7 +37,7 @@ describe("Transform integration (simulated LSP flow)", () => {
       const source = "X:1\nK:C\nCDE|\n";
       const { root } = toCSTreeWithContext(source);
       const notes = findByTag(root, TAGS.Note);
-      const cursorIds = notes.map(n => n.id);
+      const cursorIds = notes.map((n) => n.id);
 
       const result = simulateApplyTransform(source, cursorIds, "transpose", [2]);
 
@@ -52,7 +51,7 @@ describe("Transform integration (simulated LSP flow)", () => {
       const source = "X:1\nK:C\n^C|\n";
       const { root } = toCSTreeWithContext(source);
       const notes = findByTag(root, TAGS.Note);
-      const cursorIds = notes.map(n => n.id);
+      const cursorIds = notes.map((n) => n.id);
 
       const result = simulateApplyTransform(source, cursorIds, "enharmonize", []);
 
@@ -63,8 +62,7 @@ describe("Transform integration (simulated LSP flow)", () => {
 
   describe("error handling", () => {
     it("unknown transform name throws error", () => {
-      expect(() => simulateApplyTransform("X:1\nK:C\nC|\n", [], "nonExistent", []))
-        .to.throw("Unknown transform");
+      expect(() => simulateApplyTransform("X:1\nK:C\nC|\n", [], "nonExistent", [])).to.throw("Unknown transform");
     });
   });
 
@@ -101,10 +99,7 @@ describe("Transform integration (simulated LSP flow)", () => {
       const notes = findByTag(root, TAGS.Note);
       const rests = findByTag(root, TAGS.Rest);
 
-      const individualCursors = [
-        ...notes.map(n => new Set([n.id])),
-        ...rests.map(r => new Set([r.id])),
-      ];
+      const individualCursors = [...notes.map((n) => new Set([n.id])), ...rests.map((r) => new Set([r.id]))];
 
       const selection: Selection = { root, cursors: individualCursors };
 
@@ -209,12 +204,12 @@ describe("Transform integration (simulated LSP flow)", () => {
     it("converts V: info line to [V:] inline field", () => {
       const source = "X:1\nK:C\nV:1\nCDE|\n";
       const { root } = toCSTreeWithContext(source);
-      const infoLines = findByTag(root, TAGS.Info_line).filter(n => {
+      const infoLines = findByTag(root, TAGS.Info_line).filter((n) => {
         const firstChild = n.firstChild;
         if (!firstChild) return false;
         return firstChild.data.type === "token" && firstChild.data.lexeme === "V:";
       });
-      const cursorIds = infoLines.map(n => n.id);
+      const cursorIds = infoLines.map((n) => n.id);
 
       const result = simulateApplyTransform(source, cursorIds, "voiceInfoLineToInline", []);
 
@@ -226,7 +221,7 @@ describe("Transform integration (simulated LSP flow)", () => {
     it("converts [V:] inline field to V: info line", () => {
       const source = "X:1\nK:C\n[V:1] CDE|\n";
       const { root } = toCSTreeWithContext(source);
-      const inlineFields = findByTag(root, TAGS.Inline_field).filter(n => {
+      const inlineFields = findByTag(root, TAGS.Inline_field).filter((n) => {
         let child = n.firstChild;
         while (child) {
           if (child.data.type === "token" && child.data.lexeme === "V:") {
@@ -236,11 +231,83 @@ describe("Transform integration (simulated LSP flow)", () => {
         }
         return false;
       });
-      const cursorIds = inlineFields.map(n => n.id);
+      const cursorIds = inlineFields.map((n) => n.id);
 
       const result = simulateApplyTransform(source, cursorIds, "voiceInlineToInfoLine", []);
 
       expect(result.newText).to.equal("X:1\nK:C\nV:1\nCDE|\n");
+    });
+  });
+
+  describe("toSlashNotation", () => {
+    it("is recognized as a context-aware transform", () => {
+      expect(CONTEXT_AWARE_TRANSFORMS.has("toSlashNotation")).to.be.true;
+      expect(CONTEXT_AWARE_TRANSFORMS.has("transpose")).to.be.false;
+    });
+
+    it("converts quarter notes to slash notation in 4/4 (treble clef uses B)", () => {
+      const source = "X:1\nM:4/4\nL:1/4\nK:C\n|C D E F|\n";
+      const expected = "X:1\nM:4/4\nL:1/4\nK:C\n|[K: style=rhythm]B0B0B0B0[K: style=normal]   |\n";
+
+      const ctx = new ABCContext();
+      const tokens = Scanner(source, ctx);
+      const ast = parse(tokens, ctx);
+      const root = fromAst(ast, ctx);
+
+      const notes = findByTag(root, TAGS.Note);
+      const noteIds = new Set(notes.map((n) => n.id));
+      const selection: Selection = { root, cursors: [noteIds] };
+
+      const snapshots = interpretContext(ast, ctx);
+      const transformFn = lookupTransform("toSlashNotation");
+      const newSelection = transformFn!(selection, ctx, snapshots);
+
+      const newText = serializeCSTree(newSelection.root, ctx);
+      expect(newText).to.equal(expected);
+    });
+
+    it("converts quarter notes to slash notation (bass clef uses D)", () => {
+      const source = "X:1\nM:4/4\nL:1/4\nK:C clef=bass\n|C, D, E, F,|\n";
+      const expected = "X:1\nM:4/4\nL:1/4\nK:C clef=bass\n|[K: style=rhythm]D0D0D0D0[K: style=normal]   |\n";
+
+      const ctx = new ABCContext();
+      const tokens = Scanner(source, ctx);
+      const ast = parse(tokens, ctx);
+      const root = fromAst(ast, ctx);
+
+      const notes = findByTag(root, TAGS.Note);
+      const noteIds = new Set(notes.map((n) => n.id));
+      const selection: Selection = { root, cursors: [noteIds] };
+
+      const snapshots = interpretContext(ast, ctx);
+      const transformFn = lookupTransform("toSlashNotation");
+      const newSelection = transformFn!(selection, ctx, snapshots);
+
+      const newText = serializeCSTree(newSelection.root, ctx);
+      expect(newText).to.equal(expected);
+    });
+
+    it("converts beamed notes across multiple bars", () => {
+      // Notes without spaces form beams - this tests the bug where beamed notes in later bars disappeared
+      // Note: whitespace is preserved from the original source between nodes
+      const source = "X:1\nM:4/4\nL:1/4\nK:C\n|a a a a| dcga|\n";
+      const expected = "X:1\nM:4/4\nL:1/4\nK:C\n|[K: style=rhythm]B0B0B0B0   | B0B0B0B0[K: style=normal]|\n";
+
+      const ctx = new ABCContext();
+      const tokens = Scanner(source, ctx);
+      const ast = parse(tokens, ctx);
+      const root = fromAst(ast, ctx);
+
+      const notes = findByTag(root, TAGS.Note);
+      const noteIds = new Set(notes.map((n) => n.id));
+      const selection: Selection = { root, cursors: [noteIds] };
+
+      const snapshots = interpretContext(ast, ctx);
+      const transformFn = lookupTransform("toSlashNotation");
+      const newSelection = transformFn!(selection, ctx, snapshots);
+
+      const newText = serializeCSTree(newSelection.root, ctx);
+      expect(newText).to.equal(expected);
     });
   });
 });

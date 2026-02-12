@@ -54,12 +54,14 @@ export {
   removeChild,
   replaceChild,
   insertBefore,
+  insertAfter,
   appendChild,
   collectChildren,
   findParent,
   findRhythmChild,
   findTieChild,
   replaceRhythm,
+  replaceNodeWithSequence,
   rhythmToRational,
   rationalToRhythm,
   extractBrokenToken,
@@ -95,6 +97,7 @@ export {
   divideRhythm,
   consolidateTiedNotes,
   legato,
+  toSlashNotation,
 } from "./transforms";
 
 // Context utilities

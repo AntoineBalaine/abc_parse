@@ -1,14 +1,53 @@
 import {
-  Token, TT, Expr, File_structure, Tune, Tune_header, Tune_Body,
-  Info_line, Note, Pitch, Rhythm, Rest, Chord, Beam,
-  Grace_group, BarLine, Decoration, Annotation, Inline_field,
-  MultiMeasureRest, YSPACER, SystemBreak, Symbol, Tuplet,
-  Music_code, Voice_overlay, Line_continuation, Comment,
-  Directive, Measurement, Rational, File_header, Lyric_section,
-  AbsolutePitch, Lyric_line, Macro_decl, Macro_invocation,
-  User_symbol_decl, User_symbol_invocation, KV, Binary,
-  Unary, Grouping, ChordSymbol, ErrorExpr, SymbolLine,
-  tune_body_code, Beam_contents, music_code
+  Token,
+  TT,
+  Expr,
+  File_structure,
+  Tune,
+  Tune_header,
+  Tune_Body,
+  Info_line,
+  Note,
+  Pitch,
+  Rhythm,
+  Rest,
+  Chord,
+  Beam,
+  Grace_group,
+  BarLine,
+  Decoration,
+  Annotation,
+  Inline_field,
+  MultiMeasureRest,
+  YSPACER,
+  SystemBreak,
+  Symbol,
+  Tuplet,
+  Music_code,
+  Voice_overlay,
+  Line_continuation,
+  Comment,
+  Directive,
+  Measurement,
+  Rational,
+  File_header,
+  Lyric_section,
+  AbsolutePitch,
+  Lyric_line,
+  Macro_decl,
+  Macro_invocation,
+  User_symbol_decl,
+  User_symbol_invocation,
+  KV,
+  Binary,
+  Unary,
+  Grouping,
+  ChordSymbol,
+  ErrorExpr,
+  SymbolLine,
+  tune_body_code,
+  Beam_contents,
+  music_code,
 } from "abc-parser";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "./types";
 
@@ -42,49 +81,92 @@ export function toAst(node: CSNode): Expr | Token {
 
 function buildExpr(node: CSNode, children: Array<Expr | Token>): Expr {
   switch (node.tag) {
-    case TAGS.Note: return buildNote(node.id, children);
-    case TAGS.Chord: return buildChord(node.id, children);
-    case TAGS.Pitch: return buildPitch(node.id, children);
-    case TAGS.AbsolutePitch: return buildAbsolutePitch(node.id, children);
-    case TAGS.Rest: return buildRest(node.id, children);
-    case TAGS.BarLine: return buildBarLine(node.id, children);
-    case TAGS.Tuplet: return buildTuplet(node.id, children);
-    case TAGS.Grace_group: return buildGraceGroup(node, children);
-    case TAGS.Inline_field: return buildInlineField(node.id, children);
-    case TAGS.Directive: return buildDirective(node.id, children);
-    case TAGS.Music_code: return buildMusicCode(node.id, children);
-    case TAGS.Beam: return buildBeam(node.id, children);
-    case TAGS.Tune_Body: return buildTuneBody(node.id, children);
-    case TAGS.Decoration: return buildDecoration(node.id, children);
-    case TAGS.Annotation: return buildAnnotation(node.id, children);
-    case TAGS.Info_line: return buildInfoLine(node.id, children);
-    case TAGS.SymbolLine: return buildSymbolLine(node.id, children);
-    case TAGS.Tune: return buildTune(node.id, children);
-    case TAGS.Tune_header: return buildTuneHeader(node.id, children);
-    case TAGS.File_structure: return buildFileStructure(node.id, children);
-    case TAGS.File_header: return buildFileHeader(node.id, children);
-    case TAGS.Rhythm: return buildRhythm(node.id, children);
-    case TAGS.MultiMeasureRest: return buildMultiMeasureRest(node.id, children);
-    case TAGS.YSPACER: return buildYSpacer(node.id, children);
-    case TAGS.SystemBreak: return buildSystemBreak(node.id, children);
-    case TAGS.Symbol: return buildSymbol(node.id, children);
-    case TAGS.Voice_overlay: return buildVoiceOverlay(node.id, children);
-    case TAGS.Line_continuation: return buildLineContinuation(node.id, children);
-    case TAGS.Comment: return buildComment(node.id, children);
-    case TAGS.Measurement: return buildMeasurement(node.id, children);
-    case TAGS.Rational: return buildRational(node.id, children);
-    case TAGS.Lyric_section: return buildLyricSection(node.id, children);
-    case TAGS.Lyric_line: return buildLyricLine(node.id, children);
-    case TAGS.Macro_decl: return buildMacroDecl(node.id, children);
-    case TAGS.Macro_invocation: return buildMacroInvocation(node.id, children);
-    case TAGS.User_symbol_decl: return buildUserSymbolDecl(node.id, children);
-    case TAGS.User_symbol_invocation: return buildUserSymbolInvocation(node.id, children);
-    case TAGS.KV: return buildKV(node.id, children);
-    case TAGS.Binary: return buildBinary(node.id, children);
-    case TAGS.Unary: return buildUnary(node.id, children);
-    case TAGS.Grouping: return buildGrouping(node.id, children);
-    case TAGS.ChordSymbol: return buildChordSymbol(node.id, children);
-    case TAGS.ErrorExpr: return buildErrorExpr(node.id, children);
+    case TAGS.Note:
+      return buildNote(node.id, children);
+    case TAGS.Chord:
+      return buildChord(node.id, children);
+    case TAGS.Pitch:
+      return buildPitch(node.id, children);
+    case TAGS.AbsolutePitch:
+      return buildAbsolutePitch(node.id, children);
+    case TAGS.Rest:
+      return buildRest(node.id, children);
+    case TAGS.BarLine:
+      return buildBarLine(node.id, children);
+    case TAGS.Tuplet:
+      return buildTuplet(node.id, children);
+    case TAGS.Grace_group:
+      return buildGraceGroup(node, children);
+    case TAGS.Inline_field:
+      return buildInlineField(node.id, children);
+    case TAGS.Directive:
+      return buildDirective(node.id, children);
+    case TAGS.Music_code:
+      return buildMusicCode(node.id, children);
+    case TAGS.Beam:
+      return buildBeam(node.id, children);
+    case TAGS.Tune_Body:
+      return buildTuneBody(node.id, children);
+    case TAGS.Decoration:
+      return buildDecoration(node.id, children);
+    case TAGS.Annotation:
+      return buildAnnotation(node.id, children);
+    case TAGS.Info_line:
+      return buildInfoLine(node.id, children);
+    case TAGS.SymbolLine:
+      return buildSymbolLine(node.id, children);
+    case TAGS.Tune:
+      return buildTune(node.id, children);
+    case TAGS.Tune_header:
+      return buildTuneHeader(node.id, children);
+    case TAGS.File_structure:
+      return buildFileStructure(node.id, children);
+    case TAGS.File_header:
+      return buildFileHeader(node.id, children);
+    case TAGS.Rhythm:
+      return buildRhythm(node.id, children);
+    case TAGS.MultiMeasureRest:
+      return buildMultiMeasureRest(node.id, children);
+    case TAGS.YSPACER:
+      return buildYSpacer(node.id, children);
+    case TAGS.SystemBreak:
+      return buildSystemBreak(node.id, children);
+    case TAGS.Symbol:
+      return buildSymbol(node.id, children);
+    case TAGS.Voice_overlay:
+      return buildVoiceOverlay(node.id, children);
+    case TAGS.Line_continuation:
+      return buildLineContinuation(node.id, children);
+    case TAGS.Comment:
+      return buildComment(node.id, children);
+    case TAGS.Measurement:
+      return buildMeasurement(node.id, children);
+    case TAGS.Rational:
+      return buildRational(node.id, children);
+    case TAGS.Lyric_section:
+      return buildLyricSection(node.id, children);
+    case TAGS.Lyric_line:
+      return buildLyricLine(node.id, children);
+    case TAGS.Macro_decl:
+      return buildMacroDecl(node.id, children);
+    case TAGS.Macro_invocation:
+      return buildMacroInvocation(node.id, children);
+    case TAGS.User_symbol_decl:
+      return buildUserSymbolDecl(node.id, children);
+    case TAGS.User_symbol_invocation:
+      return buildUserSymbolInvocation(node.id, children);
+    case TAGS.KV:
+      return buildKV(node.id, children);
+    case TAGS.Binary:
+      return buildBinary(node.id, children);
+    case TAGS.Unary:
+      return buildUnary(node.id, children);
+    case TAGS.Grouping:
+      return buildGrouping(node.id, children);
+    case TAGS.ChordSymbol:
+      return buildChordSymbol(node.id, children);
+    case TAGS.ErrorExpr:
+      return buildErrorExpr(node.id, children);
     default:
       throw new Error(`toAst: unrecognized tag "${node.tag}"`);
   }
@@ -163,9 +245,15 @@ function buildPitch(id: number, children: Array<Expr | Token>): Pitch {
   for (const child of children) {
     const token = child as Token;
     switch (token.type) {
-      case TT.NOTE_LETTER: noteLetter = token; break;
-      case TT.ACCIDENTAL: alteration = token; break;
-      case TT.OCTAVE: octave = token; break;
+      case TT.NOTE_LETTER:
+        noteLetter = token;
+        break;
+      case TT.ACCIDENTAL:
+        alteration = token;
+        break;
+      case TT.OCTAVE:
+        octave = token;
+        break;
     }
   }
   return new Pitch(id, { alteration, noteLetter: noteLetter!, octave });
@@ -178,9 +266,15 @@ function buildAbsolutePitch(id: number, children: Array<Expr | Token>): Absolute
   for (const child of children) {
     const token = child as Token;
     switch (token.type) {
-      case TT.NOTE_LETTER: noteLetter = token; break;
-      case TT.ACCIDENTAL: alteration = token; break;
-      case TT.OCTAVE: octave = token; break;
+      case TT.NOTE_LETTER:
+        noteLetter = token;
+        break;
+      case TT.ACCIDENTAL:
+        alteration = token;
+        break;
+      case TT.OCTAVE:
+        octave = token;
+        break;
     }
   }
   return new AbsolutePitch(id, noteLetter!, alteration, octave);
@@ -194,10 +288,18 @@ function buildRhythm(id: number, children: Array<Expr | Token>): Rhythm {
   for (const child of children) {
     const token = child as Token;
     switch (token.type) {
-      case TT.RHY_NUMER: numerator = token; break;
-      case TT.RHY_SEP: separator = token; break;
-      case TT.RHY_DENOM: denominator = token; break;
-      case TT.RHY_BRKN: broken = token; break;
+      case TT.RHY_NUMER:
+        numerator = token;
+        break;
+      case TT.RHY_SEP:
+        separator = token;
+        break;
+      case TT.RHY_DENOM:
+        denominator = token;
+        break;
+      case TT.RHY_BRKN:
+        broken = token;
+        break;
     }
   }
   return new Rhythm(id, numerator, separator, denominator, broken);
@@ -208,8 +310,7 @@ function buildBarLine(id: number, children: Array<Expr | Token>): BarLine {
   const repeatNumbers: Token[] = [];
   for (const child of children) {
     const token = child as Token;
-    if (token.type === TT.REPEAT_NUMBER || token.type === TT.REPEAT_COMMA ||
-        token.type === TT.REPEAT_DASH || token.type === TT.REPEAT_X) {
+    if (token.type === TT.REPEAT_NUMBER || token.type === TT.REPEAT_COMMA || token.type === TT.REPEAT_DASH || token.type === TT.REPEAT_X) {
       repeatNumbers.push(token);
     } else {
       barline.push(token);
@@ -229,14 +330,26 @@ function buildTuplet(id: number, children: Array<Expr | Token>): Tuplet {
   for (const child of children) {
     const token = child as Token;
     switch (token.type) {
-      case TT.TUPLET_LPAREN: leftParen = token; break;
-      case TT.TUPLET_COLON:
-        if (colonCount === 0) { firstColon = token; colonCount++; }
-        else { secondColon = token; }
+      case TT.TUPLET_LPAREN:
+        leftParen = token;
         break;
-      case TT.TUPLET_P: p = token; break;
-      case TT.TUPLET_Q: q = token; break;
-      case TT.TUPLET_R: r = token; break;
+      case TT.TUPLET_COLON:
+        if (colonCount === 0) {
+          firstColon = token;
+          colonCount++;
+        } else {
+          secondColon = token;
+        }
+        break;
+      case TT.TUPLET_P:
+        p = token;
+        break;
+      case TT.TUPLET_Q:
+        q = token;
+        break;
+      case TT.TUPLET_R:
+        r = token;
+        break;
     }
   }
   return new Tuplet(id, p!, q, r, leftParen, firstColon, secondColon);
@@ -279,19 +392,19 @@ function buildChord(id: number, children: Array<Expr | Token>): Chord {
 
 function buildRest(id: number, children: Array<Expr | Token>): Rest {
   const rest = children[0] as Token;
-  const rhythm = children.length > 1 ? children[1] as Rhythm : undefined;
+  const rhythm = children.length > 1 ? (children[1] as Rhythm) : undefined;
   return new Rest(id, rest, rhythm);
 }
 
 function buildMultiMeasureRest(id: number, children: Array<Expr | Token>): MultiMeasureRest {
   const rest = children[0] as Token;
-  const length = children.length > 1 ? children[1] as Token : undefined;
+  const length = children.length > 1 ? (children[1] as Token) : undefined;
   return new MultiMeasureRest(id, rest, length);
 }
 
 function buildYSpacer(id: number, children: Array<Expr | Token>): YSPACER {
   const ySpacer = children[0] as Token;
-  const rhythm = children.length > 1 ? children[1] as Rhythm : undefined;
+  const rhythm = children.length > 1 ? (children[1] as Rhythm) : undefined;
   return new YSPACER(id, ySpacer, rhythm);
 }
 
@@ -373,7 +486,7 @@ function buildInfoLine(id: number, children: Array<Expr | Token>): Info_line {
   const rest = children.slice(1);
 
   // Check if we have expression children (KV, Binary, Unary, etc.)
-  const hasExpressions = rest.some(child => !(child instanceof Token));
+  const hasExpressions = rest.some((child) => !(child instanceof Token));
 
   if (hasExpressions) {
     // Build with value2 (expressions take precedence)
@@ -616,7 +729,7 @@ function buildTuneBody(id: number, children: Array<Expr | Token>): Tune_Body {
 
 function buildTune(id: number, children: Array<Expr | Token>): Tune {
   const header = children[0] as Tune_header;
-  const body = children.length > 1 ? children[1] as Tune_Body : undefined;
+  const body = children.length > 1 ? (children[1] as Tune_Body) : undefined;
   return new Tune(id, header, body ?? null);
 }
 

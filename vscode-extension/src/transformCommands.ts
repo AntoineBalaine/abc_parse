@@ -89,6 +89,7 @@ export function registerTransformCommands(context: vscode.ExtensionContext, clie
     ["abc.addSharp", "addSharp"],
     ["abc.addFlat", "addFlat"],
     ["abc.legato", "legato"],
+    ["abc.toSlashNotation", "toSlashNotation"],
   ];
 
   for (const [commandId, transformName] of simpleTransforms) {

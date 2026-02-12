@@ -1,5 +1,5 @@
 import { isChord, isNote, isToken } from "../../helpers";
-import { encode, getSnapshotAtPosition, TuneSnapshots } from "../../interpreter/ContextInterpreter";
+import { encode, getSnapshotAtPosition, DocumentSnapshots } from "../../interpreter/ContextInterpreter";
 import { Token, TT } from "../../parsers/scan2";
 import { Expr, Rest } from "../../types/Expr2";
 import { AbcFormatter } from "../Formatter2";
@@ -53,9 +53,9 @@ type AlignPt = [IRational | BarNumber, Array<Location>];
 class GCtx {
   list: Array<AlignPt> = [[0, []]];
   barIndexes: Array<number> = [0];
-  tuneSnapshots?: TuneSnapshots;
+  tuneSnapshots?: DocumentSnapshots;
 
-  constructor(tuneSnapshots?: TuneSnapshots) {
+  constructor(tuneSnapshots?: DocumentSnapshots) {
     this.tuneSnapshots = tuneSnapshots;
   }
 
@@ -185,7 +185,7 @@ class GCtx {
   }
 }
 
-export function scanAlignPoints(voiceSplits: Array<VoiceSplit>, tuneSnapshots?: TuneSnapshots) {
+export function scanAlignPoints(voiceSplits: Array<VoiceSplit>, tuneSnapshots?: DocumentSnapshots) {
   const gCtx = new GCtx(tuneSnapshots);
   for (let i = 0; i < voiceSplits.length; i++) {
     if (voiceSplits[i].type === "formatted") {

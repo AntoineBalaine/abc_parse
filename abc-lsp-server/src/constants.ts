@@ -16,7 +16,7 @@ export const ERROR_CODES = {
  * Because these transforms operate on the sequential relationship between nodes,
  * they need to see all nodes together rather than each node in isolation.
  */
-export const GROUPED_CURSOR_TRANSFORMS = new Set(["legato", "consolidateRests"]);
+export const GROUPED_CURSOR_TRANSFORMS = new Set(["legato", "consolidateRests", "toSlashNotation"]);
 
 // ============================================================================
 // Transform Node Tags Mapping
@@ -32,4 +32,5 @@ export const TRANSFORM_NODE_TAGS: Record<string, string[]> = {
   voiceInfoLineToInline: [TAGS.Info_line],
   voiceInlineToInfoLine: [TAGS.Inline_field],
   legato: [TAGS.Note, TAGS.Chord, TAGS.Rest, TAGS.YSPACER],
+  toSlashNotation: [TAGS.Note, TAGS.Chord, TAGS.Rest, TAGS.MultiMeasureRest],
 };

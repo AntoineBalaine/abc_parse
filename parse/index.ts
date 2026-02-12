@@ -13,8 +13,23 @@ export * from "./Visitors/RangeVisitor";
 export * from "./Visitors/RhythmTransform";
 export * from "./Visitors/Transposer";
 export * from "./Visitors/VoiceFilterVisitor";
-export { IRational, createRational, addRational, subtractRational, multiplyRational, divideRational, rationalToNumber, rationalToString, compareRational, isInfiniteRational, equalRational, greaterRational, rationalFromNumber } from "./Visitors/fmt2/rational";
+export {
+  IRational,
+  createRational,
+  addRational,
+  subtractRational,
+  multiplyRational,
+  divideRational,
+  rationalToNumber,
+  rationalToString,
+  compareRational,
+  isInfiniteRational,
+  equalRational,
+  greaterRational,
+  rationalFromNumber,
+} from "./Visitors/fmt2/rational";
 export { SemanticAnalyzer } from "./analyzers/semantic-analyzer";
+export { ContextInterpreter, DocumentSnapshots, ContextSnapshot, getRangeSnapshots, getSnapshotAtPosition, encode } from "./interpreter/ContextInterpreter";
 // ABCx chord sheet notation support (unified exports)
 export * from "./abcx";
 // ABCL linear style support

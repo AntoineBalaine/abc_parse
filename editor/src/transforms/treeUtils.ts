@@ -103,6 +103,52 @@ export function findTieChild(parent: CSNode): { node: CSNode; prev: CSNode | nul
   return null;
 }
 
+/**
+ * Replaces a single node with a sequence of nodes.
+ * This is useful when one node needs to be expanded into multiple nodes
+ * (e.g., expanding a multi-measure rest into multiple bars of slashes).
+ */
+export function replaceNodeWithSequence(
+  parent: CSNode,
+  prev: CSNode | null,
+  oldNode: CSNode,
+  newNodes: CSNode[]
+): void {
+  if (newNodes.length === 0) {
+    removeChild(parent, prev, oldNode);
+    return;
+  }
+
+  // Link new nodes together
+  for (let i = 0; i < newNodes.length - 1; i++) {
+    newNodes[i].nextSibling = newNodes[i + 1];
+  }
+  newNodes[newNodes.length - 1].nextSibling = oldNode.nextSibling;
+
+  // Insert first new node where old node was
+  if (prev === null) {
+    parent.firstChild = newNodes[0];
+  } else {
+    prev.nextSibling = newNodes[0];
+  }
+
+  oldNode.nextSibling = null;
+}
+
+/**
+ * Inserts a node after another node in the sibling list.
+ * If afterNode is null, the new node is prepended to the child list.
+ */
+export function insertAfter(parent: CSNode, afterNode: CSNode | null, newChild: CSNode): void {
+  if (afterNode === null) {
+    newChild.nextSibling = parent.firstChild;
+    parent.firstChild = newChild;
+    return;
+  }
+  newChild.nextSibling = afterNode.nextSibling;
+  afterNode.nextSibling = newChild;
+}
+
 export function replaceRhythm(parent: CSNode, newRhythm: CSNode | null): void {
   const existing = findRhythmChild(parent);
   if (existing) {

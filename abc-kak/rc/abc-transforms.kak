@@ -206,6 +206,11 @@ define-command abc-legato \
     abc-transform-impl legato
 }
 
+define-command abc-to-slash-notation \
+    -docstring "Convert selected measures to slash notation (rhythm slashes)" %{
+    abc-transform-impl toSlashNotation
+}
+
 # ============================================================================
 # Structural Transform Commands
 # ============================================================================
