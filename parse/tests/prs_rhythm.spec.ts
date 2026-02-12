@@ -140,5 +140,48 @@ describe("parseRhythm", () => {
     assert.isUndefined(result);
     assert.equal(ctx.current, 0); // Should not advance the current position
   });
+
+  // Zero-numerator rhythm tests (for zero-duration / nostem notes)
+  it("should parse zero numerator only (0)", () => {
+    const tokens = [createToken(TT.RHY_NUMER, "0")];
+    const ctx = createParseCtx(tokens);
+
+    const result = parseRhythm(ctx);
+
+    assert.isDefined(result);
+    assert.instanceOf(result, Rhythm);
+    assert.equal(result?.numerator?.lexeme, "0");
+    assert.isUndefined(result?.separator);
+    assert.isNull(result?.denominator);
+    assert.isNull(result?.broken);
+  });
+
+  it("should parse zero with denominator (0/2)", () => {
+    const tokens = [createToken(TT.RHY_NUMER, "0"), createToken(TT.RHY_SEP, "/"), createToken(TT.RHY_DENOM, "2")];
+    const ctx = createParseCtx(tokens);
+
+    const result = parseRhythm(ctx);
+
+    assert.isDefined(result);
+    assert.instanceOf(result, Rhythm);
+    assert.equal(result?.numerator?.lexeme, "0");
+    assert.equal(result?.separator?.lexeme, "/");
+    assert.equal(result?.denominator?.lexeme, "2");
+    assert.isNull(result?.broken);
+  });
+
+  it("should parse leading zero numerator (02)", () => {
+    const tokens = [createToken(TT.RHY_NUMER, "02")];
+    const ctx = createParseCtx(tokens);
+
+    const result = parseRhythm(ctx);
+
+    assert.isDefined(result);
+    assert.instanceOf(result, Rhythm);
+    assert.equal(result?.numerator?.lexeme, "02");
+    assert.isUndefined(result?.separator);
+    assert.isNull(result?.denominator);
+    assert.isNull(result?.broken);
+  });
 });
 

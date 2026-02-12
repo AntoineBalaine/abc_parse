@@ -102,6 +102,26 @@ describe("AbcFormatter", () => {
       it("handles broken rhythms", () => {
         assert.equal(format("X:1\nC>D E<F|", ctx, formatter), "X:1\nC>D E<F |");
       });
+
+      it("handles zero-duration notes (B0)", () => {
+        assert.equal(format("X:1\nB0 C D|", ctx, formatter), "X:1\nB0 C D |");
+      });
+
+      it("handles leading zero rhythm (C02)", () => {
+        assert.equal(format("X:1\nC02 D E|", ctx, formatter), "X:1\nC02 D E |");
+      });
+
+      it("handles zero with fractional rhythm (C0/2)", () => {
+        assert.equal(format("X:1\nC0/2 D E|", ctx, formatter), "X:1\nC0/ D E |");
+      });
+
+      it("handles zero-duration chord ([CEG]0)", () => {
+        assert.equal(format("X:1\n[CEG]0 D E|", ctx, formatter), "X:1\n[CEG]0 D E |");
+      });
+
+      it("handles consecutive zero-duration notes (B0 B0 B0)", () => {
+        assert.equal(format("X:1\nB0 B0 B0 B0|", ctx, formatter), "X:1\nB0 B0 B0 B0 |");
+      });
     });
 
     describe("special notations", () => {
