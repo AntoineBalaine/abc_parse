@@ -1731,25 +1731,6 @@ export class TuneInterpreter implements Visitor<void> {
         const label = voiceState.nextSlurLabel++;
         voiceState.pendingStartSlurs.push({ label, style: SlurStyle.Dotted });
       }
-    } else if (token.type === TT.NOSTEM) {
-      // Nostem directive (0 after pitch): the preceding note should have no stem
-      // Because NOSTEM comes after the pitch in the token stream (C0 → NOTE_LETTER(C) + NOSTEM(0)),
-      // we need to retroactively apply noStem to the last emitted note element.
-      if (this.state.currentSystemNum === -1 || this.state.currentStaffNum === -1 || this.state.currentVoiceIndex === -1) {
-        return;
-      }
-
-      const elements = this.getCurrentVoiceElements();
-      if (elements.length > 0) {
-        const lastElement = elements[elements.length - 1];
-
-        // Apply noStem to all pitches in the last note/chord
-        if ("pitches" in lastElement && lastElement.pitches && lastElement.pitches.length > 0) {
-          for (const pitch of lastElement.pitches) {
-            pitch.noStem = true;
-          }
-        }
-      }
     }
   }
   visitAnnotationExpr(expr: Annotation): void {
