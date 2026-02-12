@@ -302,9 +302,11 @@ function calculateRhythm(
  */
 
 /**
- * Checks whether a note can be beamed (duration < 1/4).
+ * Checks whether a note can be beamed (duration < 1/4 and duration > 0).
+ * Zero-duration notes (slash notation) are not beamed.
  */
 function canBeam(duration: IRational): boolean {
+  if (duration.numerator === 0) return false;
   // duration < 1/4
   // duration.num / duration.den < 1/4
   // duration.num * 4 < duration.den
@@ -334,13 +336,17 @@ function processBeaming(noteElement: NoteElement, voiceState: VoiceState, isRest
   // Beam breaks on:
   // 1. Quarter notes or longer (duration >= 1/4)
   // 2. Rests
+  // 3. Zero-duration notes (slash notation)
+
+  // Zero-duration notes break beams
+  const isZeroDuration = duration.numerator === 0;
 
   // Check if duration >= 1/4
   // duration.num / duration.den >= 1/4
   // duration.num * 4 >= duration.den
   const isQuarterOrLonger = duration.numerator * 4 >= duration.denominator;
 
-  if (isQuarterOrLonger || isRest) {
+  if (isQuarterOrLonger || isRest || isZeroDuration) {
     // End beam on previous note (if any)
     endBeamGroup(voiceState);
     return;
@@ -1465,8 +1471,8 @@ export class TuneInterpreter implements Visitor<void> {
         applyStartSlurs(element.pitches, voiceState);
       }
 
-      // Process ties
-      if (element.pitches) {
+      // Process ties (skip for zero-duration notes because ties have no musical meaning for them)
+      if (element.pitches && rhythmResult.duration.numerator !== 0) {
         // First, check if this note should end any pending ties
         processTieEnd(element.pitches, voiceState);
 
@@ -1620,8 +1626,8 @@ export class TuneInterpreter implements Visitor<void> {
         applyStartSlurs(element.pitches, voiceState);
       }
 
-      // Process ties
-      if (element.pitches) {
+      // Process ties (skip for zero-duration chords because ties have no musical meaning for them)
+      if (element.pitches && rhythmResult.duration.numerator !== 0) {
         // First, check if any pitches should end pending ties
         processTieEnd(element.pitches, voiceState);
 

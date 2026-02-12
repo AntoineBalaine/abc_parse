@@ -1935,6 +1935,282 @@ CD|EF|`;
         expect(yourF.endBeam).to.equal(true);
       }
     });
+
+    it("should break beam on zero-duration note (B0)", () => {
+      // Zero-duration notes (slash notation) should break beam groups
+      // Note: abcjs handles B0 differently (converts to nostem), so we only test our parser
+      const input = `X:1
+L:1/8
+K:C
+CDB0EF|`;
+
+      const yourTune = parseWithYourParser(input).tunes[0];
+
+      const yourLine = yourTune.systems[0];
+
+      if (!("staff" in yourLine)) {
+        throw new Error("Expected MusicLine with staff property");
+      }
+
+      const yourVoice = yourLine.staff[0].voices[0];
+
+      // C-D should be beamed together
+      const yourC = yourVoice[0];
+      const yourD = yourVoice[1];
+
+      if ("startBeam" in yourC) {
+        expect(yourC.startBeam).to.equal(true);
+      }
+      if ("endBeam" in yourD) {
+        expect(yourD.endBeam).to.equal(true);
+      }
+
+      // B0 should have duration 0 and no beams
+      const yourB0 = yourVoice[2];
+      if ("duration" in yourB0) {
+        // Duration is converted to float for abcjs compatibility
+        expect(yourB0.duration).to.equal(0);
+      }
+      if (!("startBeam" in yourB0)) {
+        expect(true).to.equal(true); // No startBeam property means not beamed
+      } else {
+        expect(yourB0.startBeam).to.be.undefined;
+      }
+      if (!("endBeam" in yourB0)) {
+        expect(true).to.equal(true); // No endBeam property means not beamed
+      } else {
+        expect(yourB0.endBeam).to.be.undefined;
+      }
+
+      // E-F should be beamed together (separate group after B0)
+      const yourE = yourVoice[3];
+      const yourF = yourVoice[4];
+
+      if ("startBeam" in yourE) {
+        expect(yourE.startBeam).to.equal(true);
+      }
+      if ("endBeam" in yourF) {
+        expect(yourF.endBeam).to.equal(true);
+      }
+    });
+
+    it("should not beam consecutive zero-duration notes (B0 B0 B0)", () => {
+      const input = `X:1
+L:1/8
+K:C
+B0 B0 B0|`;
+
+      const yourTune = parseWithYourParser(input).tunes[0];
+
+      const yourLine = yourTune.systems[0];
+
+      if (!("staff" in yourLine)) {
+        throw new Error("Expected MusicLine with staff property");
+      }
+
+      const yourVoice = yourLine.staff[0].voices[0];
+
+      // All B0 notes should have duration 0 and no beams
+      for (let i = 0; i < 3; i++) {
+        const note = yourVoice[i];
+        if ("duration" in note) {
+          // Duration is converted to float for abcjs compatibility
+          expect(note.duration).to.equal(0);
+        }
+        if ("startBeam" in note) {
+          expect(note.startBeam).to.be.undefined;
+        }
+        if ("endBeam" in note) {
+          expect(note.endBeam).to.be.undefined;
+        }
+      }
+    });
+
+    it("should produce duration 0 for B0 note", () => {
+      const input = `X:1
+L:1/4
+K:C
+B0 C|`;
+
+      const yourTune = parseWithYourParser(input).tunes[0];
+
+      const yourLine = yourTune.systems[0];
+
+      if (!("staff" in yourLine)) {
+        throw new Error("Expected MusicLine with staff property");
+      }
+
+      const yourVoice = yourLine.staff[0].voices[0];
+
+      // B0 should have duration 0
+      const yourB0 = yourVoice[0];
+      if ("duration" in yourB0) {
+        // Duration is converted to float for abcjs compatibility
+        expect(yourB0.duration).to.equal(0);
+      } else {
+        throw new Error("Expected note element with duration property");
+      }
+
+      // C should have duration 1/4 (the default note length)
+      const yourC = yourVoice[1];
+      if ("duration" in yourC) {
+        // Duration is converted to float for abcjs compatibility (1/4 = 0.25)
+        expect(yourC.duration).to.equal(0.25);
+      } else {
+        throw new Error("Expected note element with duration property");
+      }
+    });
+
+    it("should produce duration 0 for zero-duration chord ([CEG]0)", () => {
+      const input = `X:1
+L:1/4
+K:C
+[CEG]0 D|`;
+
+      const yourTune = parseWithYourParser(input).tunes[0];
+
+      const yourLine = yourTune.systems[0];
+
+      if (!("staff" in yourLine)) {
+        throw new Error("Expected MusicLine with staff property");
+      }
+
+      const yourVoice = yourLine.staff[0].voices[0];
+
+      // [CEG]0 should have duration 0
+      const yourChord = yourVoice[0];
+      if ("duration" in yourChord && "pitches" in yourChord) {
+        // Duration is converted to float for abcjs compatibility
+        expect(yourChord.duration).to.equal(0);
+        expect(yourChord.pitches).to.have.length(3);
+      } else {
+        throw new Error("Expected note element with duration and pitches properties");
+      }
+
+      // D should have duration 1/4
+      const yourD = yourVoice[1];
+      if ("duration" in yourD) {
+        // Duration is converted to float for abcjs compatibility (1/4 = 0.25)
+        expect(yourD.duration).to.equal(0.25);
+      } else {
+        throw new Error("Expected note element with duration property");
+      }
+    });
+
+    it("should produce non-zero duration for B02 note (02 parses as 2)", () => {
+      // B02 has rhythm numerator "02" which parseInt parses as 2, not 0
+      const input = `X:1
+L:1/8
+K:C
+B02 C|`;
+
+      const yourTune = parseWithYourParser(input).tunes[0];
+
+      const yourLine = yourTune.systems[0];
+
+      if (!("staff" in yourLine)) {
+        throw new Error("Expected MusicLine with staff property");
+      }
+
+      const yourVoice = yourLine.staff[0].voices[0];
+
+      // B02 should have duration 2 * 1/8 = 0.25
+      const yourB02 = yourVoice[0];
+      if ("duration" in yourB02) {
+        expect(yourB02.duration).to.equal(0.25);
+      } else {
+        throw new Error("Expected note element with duration property");
+      }
+    });
+
+    it("should produce duration 0 for B0/2 note (0/2 = 0)", () => {
+      // B0/2 has rhythm 0/2 which equals 0
+      const input = `X:1
+L:1/4
+K:C
+B0/2 C|`;
+
+      const yourTune = parseWithYourParser(input).tunes[0];
+
+      const yourLine = yourTune.systems[0];
+
+      if (!("staff" in yourLine)) {
+        throw new Error("Expected MusicLine with staff property");
+      }
+
+      const yourVoice = yourLine.staff[0].voices[0];
+
+      // B0/2 should have duration 0
+      const yourB02 = yourVoice[0];
+      if ("duration" in yourB02) {
+        expect(yourB02.duration).to.equal(0);
+      } else {
+        throw new Error("Expected note element with duration property");
+      }
+
+      // C should have duration 1/4 = 0.25
+      const yourC = yourVoice[1];
+      if ("duration" in yourC) {
+        expect(yourC.duration).to.equal(0.25);
+      } else {
+        throw new Error("Expected note element with duration property");
+      }
+    });
+
+    it("should handle zero-duration notes in multi-voice score", () => {
+      // Multi-voice alignment test: zero-duration notes (B0 B0 B0 B0) align with regular notes (C D E F)
+      const input = `X:1
+M:4/4
+L:1/4
+K:C
+V:1
+B0 B0 B0 B0|
+V:2
+C D E F|`;
+
+      const yourTune = parseWithYourParser(input).tunes[0];
+
+      // Collect all notes from all systems to verify durations
+      const voice1Notes: any[] = [];
+      const voice2Notes: any[] = [];
+
+      for (const system of yourTune.systems) {
+        if (!("staff" in system)) continue;
+
+        for (const staff of system.staff) {
+          for (let vIdx = 0; vIdx < staff.voices.length; vIdx++) {
+            const voice = staff.voices[vIdx];
+            for (const element of voice) {
+              if ("duration" in element && "pitches" in element) {
+                // Determine which voice this note belongs to based on pitch
+                // B is pitch 6 (treble), C is pitch 0 (middle C)
+                const pitch = element.pitches?.[0]?.pitch;
+                if (pitch !== undefined) {
+                  // B notes (around pitch 6) go to voice1, C/D/E/F go to voice2
+                  if (pitch >= 5) {
+                    voice1Notes.push(element);
+                  } else {
+                    voice2Notes.push(element);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Check voice 1 (rhythm voice with zero-duration notes)
+      expect(voice1Notes.length).to.be.at.least(4);
+      for (const note of voice1Notes) {
+        expect(note.duration).to.equal(0);
+      }
+
+      // Check voice 2 (regular notes with L:1/4 duration)
+      expect(voice2Notes.length).to.be.at.least(4);
+      for (const note of voice2Notes) {
+        expect(note.duration).to.equal(0.25);
+      }
+    });
   });
 
   describe("Ticket #17: Ties", () => {

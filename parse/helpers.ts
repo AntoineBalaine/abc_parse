@@ -67,12 +67,30 @@ export function isBeamContents(element: Expr | Token): element is Beam_contents 
   );
 }
 
+// Check if a note or chord has zero duration (rhythm numerator is "0")
+// For chords: use chord's rhythm if present, otherwise check first note's rhythm
+export function hasZeroDuration(element: Expr | Token): boolean {
+  if (element instanceof Note) {
+    return element.rhythm?.numerator?.lexeme === "0";
+  }
+  if (element instanceof Chord) {
+    if (element.rhythm) {
+      return element.rhythm.numerator?.lexeme === "0";
+    }
+    const firstNote = element.contents.find((c): c is Note => c instanceof Note);
+    if (firstNote?.rhythm) {
+      return firstNote.rhythm.numerator?.lexeme === "0";
+    }
+  }
+  return false;
+}
+
 // Check if an element breaks a beam
 export function isBeamBreaker(element: Expr | Token): boolean {
   if (element instanceof Token) {
     return isWS(element);
   } else {
-    return !isBeamContents(element) || element instanceof BarLine;
+    return !isBeamContents(element) || element instanceof BarLine || hasZeroDuration(element);
   }
 }
 
