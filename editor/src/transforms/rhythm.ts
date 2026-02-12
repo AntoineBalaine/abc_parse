@@ -43,8 +43,8 @@ export function rationalToRhythm(rational: IRational, ctx: ABCContext, brokenTok
   const normalized = createRational(rational.numerator, rational.denominator);
   let { numerator, denominator } = normalized;
 
-  // Clamp non-positive results to default note length
-  if (numerator <= 0) {
+  // Clamp negative results to default note length, but preserve zero (for zero-duration notes)
+  if (numerator < 0) {
     numerator = 1;
     denominator = 1;
   }

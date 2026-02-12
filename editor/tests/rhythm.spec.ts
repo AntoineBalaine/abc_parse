@@ -127,10 +127,13 @@ describe("rhythm utilities", () => {
       expect(formatted).to.equal("/");
     });
 
-    it("returns null for {0, 1} (clamped to {1, 1})", () => {
+    it("returns a rhythm node with 0 for {0, 1} (zero-duration)", () => {
+      // Zero-duration is valid for slash notation notes
       const ctx = new ABCContext();
       const result = rationalToRhythm(createRational(0, 1), ctx);
-      expect(result).to.be.null;
+      expect(result).to.not.be.null;
+      const formatted = formatRhythmCSNode(result!, ctx);
+      expect(formatted).to.equal("0");
     });
 
     it("returns null for {-1, 2} (clamped to {1, 1})", () => {
@@ -139,7 +142,8 @@ describe("rhythm utilities", () => {
       expect(result).to.be.null;
     });
 
-    it("produces only the broken token for {0, 1} with brokenToken", () => {
+    it("preserves zero numerator with broken token for {0, 1} with brokenToken", () => {
+      // Zero-duration notes are valid (for slash notation), so we preserve the 0
       const ctx = new ABCContext();
       const brokenToken = createCSNode(TAGS.Token, ctx.generateId(), {
         type: "token", lexeme: "<", tokenType: TT.RHY_BRKN, line: 0, position: 0
@@ -147,7 +151,7 @@ describe("rhythm utilities", () => {
       const result = rationalToRhythm(createRational(0, 1), ctx, brokenToken);
       expect(result).to.not.be.null;
       const formatted = formatRhythmCSNode(result!, ctx);
-      expect(formatted).to.equal("<");
+      expect(formatted).to.equal("0<");
     });
   });
 

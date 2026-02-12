@@ -97,5 +97,8 @@ export {
   legato,
 } from "./transforms";
 
+// Context utilities
+export { getContextForNode } from "./context/contextUtils";
+
 // Utils
 export { diffChars, Change } from "./utils/diffToPatches";

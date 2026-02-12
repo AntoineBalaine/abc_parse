@@ -519,6 +519,17 @@ export class ContextInterpreter implements Visitor<void> {
       if (!this.state.snapshotsByVoice.has(voiceId)) {
         this.state.snapshotsByVoice.set(voiceId, []);
       }
+      // Apply voice-specific properties (clef, transpose, octave) to the voice state
+      const voice = this.getCurrentVoice();
+      if (sem.data.properties?.clef) {
+        voice.currentClef = sem.data.properties.clef;
+      }
+      if (sem.data.properties?.transpose !== undefined) {
+        voice.properties.transpose = sem.data.properties.transpose;
+      }
+      if (sem.data.properties?.octave !== undefined) {
+        voice.properties.octave = sem.data.properties.octave;
+      }
       return true;
     }
 

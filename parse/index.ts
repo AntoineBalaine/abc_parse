@@ -1,5 +1,5 @@
 export * from "./helpers";
-export * from "./parsers/ErrorReporter";
+export { AbcErrorReporter, AbcError } from "./parsers/ErrorReporter";
 export * from "./parsers/Context";
 export { Range, Position } from "./types/types";
 export * from "./parsers/parse2";
@@ -14,6 +14,7 @@ export * from "./Visitors/RhythmTransform";
 export * from "./Visitors/Transposer";
 export * from "./Visitors/VoiceFilterVisitor";
 export { IRational, createRational, addRational, subtractRational, multiplyRational, divideRational, rationalToNumber, rationalToString, compareRational, isInfiniteRational, equalRational, greaterRational, rationalFromNumber } from "./Visitors/fmt2/rational";
+export { SemanticAnalyzer } from "./analyzers/semantic-analyzer";
 // ABCx chord sheet notation support (unified exports)
 export * from "./abcx";
 // ABCL linear style support
