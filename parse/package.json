@@ -5,6 +5,32 @@
   "version": "0.0.1",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./interpreter/*": {
+      "types": "./dist/interpreter/*.d.ts",
+      "default": "./dist/interpreter/*.js"
+    },
+    "./analyzers/*": {
+      "types": "./dist/analyzers/*.d.ts",
+      "default": "./dist/analyzers/*.js"
+    },
+    "./parsers/*": {
+      "types": "./dist/parsers/*.d.ts",
+      "default": "./dist/parsers/*.js"
+    },
+    "./types/*": {
+      "types": "./dist/types/*.d.ts",
+      "default": "./dist/types/*.js"
+    },
+    "./Visitors/fmt2/*": {
+      "types": "./dist/Visitors/fmt2/*.d.ts",
+      "default": "./dist/Visitors/fmt2/*.js"
+    }
+  },
   "files": [
     "dist"
   ],
