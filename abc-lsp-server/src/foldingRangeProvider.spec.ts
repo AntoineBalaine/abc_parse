@@ -436,5 +436,30 @@ GABc|
       const tuneFold = ranges.find((r) => r.startLine === 0 && r.endLine === 5);
       expect(tuneFold).to.not.be.undefined;
     });
+
+    it("handles tune with only X: field (no K: or body)", () => {
+      // Tunes without K: are valid. This tests that the RangeVisitor
+      // handles empty body sequences gracefully.
+      const source = `X:1
+`;
+      const { ast, tokens } = parseAbc(source);
+
+      // Should not throw
+      const ranges = computeFoldingRanges(ast, tokens, allEnabled());
+      expect(ranges.length).to.be.greaterThanOrEqual(0);
+    });
+
+    it("handles tune with header fields but no body", () => {
+      // A tune with header fields but no music body is valid
+      const source = `X:1
+T:A Title
+
+`;
+      const { ast, tokens } = parseAbc(source);
+
+      // Should not throw
+      const ranges = computeFoldingRanges(ast, tokens, allEnabled());
+      expect(ranges.length).to.be.greaterThanOrEqual(0);
+    });
   });
 });

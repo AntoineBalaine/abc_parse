@@ -371,6 +371,24 @@ export function getTokenRange(token: Token): Range {
   };
 }
 
+/**
+ * Sentinel value representing an empty or invalid range.
+ * Uses Infinity for start (so any valid start is smaller) and -1 for end
+ * (so any valid end is larger). This allows reduceRanges to naturally
+ * produce correct results without special-case handling.
+ */
+export const EMPTY_RANGE: Range = {
+  start: { line: Infinity, character: Infinity },
+  end: { line: -1, character: -1 },
+};
+
+/**
+ * Check if a range is the empty sentinel value.
+ */
+export const isEmptyRange = (range: Range): boolean => {
+  return range.start.line === Infinity || range.end.line === -1;
+};
+
 export const reduceRanges = (acc: Range, cur: Range, index: number, arr: Range[]): Range => {
   if (index === 0) {
     return cur;

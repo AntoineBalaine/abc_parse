@@ -1,4 +1,4 @@
-import { getTokenRange, isNote, isToken, reduceRanges } from "../helpers";
+import { EMPTY_RANGE, getTokenRange, isNote, isToken, reduceRanges } from "../helpers";
 import { Token } from "../parsers/scan2";
 import {
   AbsolutePitch,
@@ -63,14 +63,14 @@ export class RangeVisitor implements Visitor<Range> {
       .flatMap((e) => e)
       .filter((e): e is Token | Annotation | Rational | Pitch | KV | Measurement => !!e)
       .map((e) => e.accept(this))
-      .reduce(reduceRanges, <Range>{});
+      .reduce(reduceRanges, EMPTY_RANGE);
   }
   visitBarLineExpr(expr: BarLine): Range {
     return [expr.barline, expr.repeatNumbers]
       .filter((e): e is Token[] => !!e)
       .flatMap((e) => e)
       .map((e) => getTokenRange(e))
-      .reduce(reduceRanges, <Range>{});
+      .reduce(reduceRanges, EMPTY_RANGE);
   }
 
   visitChordExpr(expr: Chord): Range {
@@ -82,7 +82,7 @@ export class RangeVisitor implements Visitor<Range> {
           return e.accept(this);
         }
       })
-      .reduce(reduceRanges, <Range>{});
+      .reduce(reduceRanges, EMPTY_RANGE);
   }
   visitCommentExpr(expr: Comment): Range {
     return getTokenRange(expr.token);
@@ -99,14 +99,14 @@ export class RangeVisitor implements Visitor<Range> {
         if (isToken(e)) return getTokenRange(e);
         return e.accept(this);
       })
-      .reduce(reduceRanges, <Range>{});
+      .reduce(reduceRanges, EMPTY_RANGE);
   }
   visitFileStructureExpr(expr: File_structure): Range {
     const { file_header, contents } = expr;
     return contents
       .map((t) => t.accept(this))
       .concat([file_header?.accept(this)].filter((e): e is Range => !!e))
-      .reduce(reduceRanges, <Range>{});
+      .reduce(reduceRanges, EMPTY_RANGE);
   }
   visitGraceGroupExpr(expr: Grace_group): Range {
     const res = expr.notes
@@ -117,7 +117,7 @@ export class RangeVisitor implements Visitor<Range> {
           return getTokenRange(e);
         }
       })
-      .reduce(reduceRanges, <Range>{});
+      .reduce(reduceRanges, EMPTY_RANGE);
     /**
      * Since Grace Group's curlies are not saved in tree, accomodate for them here
      */
@@ -135,22 +135,22 @@ export class RangeVisitor implements Visitor<Range> {
     return expr.value
       .map((t) => getTokenRange(t))
       .concat([getTokenRange(expr.key)].filter((e): e is Range => !!e))
-      .reduce(reduceRanges, <Range>{});
+      .reduce(reduceRanges, EMPTY_RANGE);
   }
   visitInlineFieldExpr(expr: Inline_field): Range {
     return expr.text
       .map((t) => getTokenRange(t))
       .concat([getTokenRange(expr.field)].filter((e): e is Range => !!e))
-      .reduce(reduceRanges, <Range>{});
+      .reduce(reduceRanges, EMPTY_RANGE);
   }
   visitLyricSectionExpr(expr: Lyric_section): Range {
-    return expr.info_lines.map((e) => e.accept(this)).reduce(reduceRanges, <Range>{});
+    return expr.info_lines.map((e) => e.accept(this)).reduce(reduceRanges, EMPTY_RANGE);
   }
   visitMultiMeasureRestExpr(expr: MultiMeasureRest): Range {
     return [expr.rest]
       .concat([expr.length].filter((e): e is Token => !!e))
       .map((t) => getTokenRange(t))
-      .reduce(reduceRanges, <Range>{});
+      .reduce(reduceRanges, EMPTY_RANGE);
   }
   visitMusicCodeExpr(expr: Music_code): Range {
     return expr.contents
@@ -161,7 +161,7 @@ export class RangeVisitor implements Visitor<Range> {
           return e.accept(this);
         }
       })
-      .reduce(reduceRanges, <Range>{});
+      .reduce(reduceRanges, EMPTY_RANGE);
   }
   visitNoteExpr(expr: Note): Range {
     const { pitch, rhythm, tie } = expr;
@@ -175,14 +175,14 @@ export class RangeVisitor implements Visitor<Range> {
           return e.accept(this);
         }
       })
-      .reduce(reduceRanges, <Range>{});
+      .reduce(reduceRanges, EMPTY_RANGE);
   }
   visitPitchExpr(expr: Pitch): Range {
     const { alteration, noteLetter, octave } = expr;
     return [alteration, noteLetter, octave]
       .filter((e): e is Token => !!e)
       .map((e) => getTokenRange(e))
-      .reduce(reduceRanges, <Range>{});
+      .reduce(reduceRanges, EMPTY_RANGE);
   }
   visitRestExpr(expr: Rest): Range {
     return getTokenRange(expr.rest);
@@ -192,7 +192,7 @@ export class RangeVisitor implements Visitor<Range> {
     return [numerator, separator, denominator, broken]
       .filter((e): e is Token => !!e)
       .map((e) => getTokenRange(e))
-      .reduce(reduceRanges, <Range>{});
+      .reduce(reduceRanges, EMPTY_RANGE);
   }
   visitSymbolExpr(expr: Symbol): Range {
     return getTokenRange(expr.symbol);
@@ -208,19 +208,19 @@ export class RangeVisitor implements Visitor<Range> {
               return expr.accept(this);
             }
           })
-          .reduce(reduceRanges, <Range>{});
+          .reduce(reduceRanges, EMPTY_RANGE);
       })
-      .reduce(reduceRanges, <Range>{});
+      .reduce(reduceRanges, EMPTY_RANGE);
   }
   visitTuneExpr(expr: Tune): Range {
     const { tune_header, tune_body } = expr;
-    return [tune_header.accept(this), tune_body?.accept(this)].filter((e): e is Range => !!e).reduce(reduceRanges, <Range>{});
+    return [tune_header.accept(this), tune_body?.accept(this)].filter((e): e is Range => !!e).reduce(reduceRanges, EMPTY_RANGE);
   }
   visitTuneHeaderExpr(expr: Tune_header): Range {
-    return expr.info_lines.map((e) => e.accept(this)).reduce(reduceRanges, <Range>{});
+    return expr.info_lines.map((e) => e.accept(this)).reduce(reduceRanges, EMPTY_RANGE);
   }
   visitVoiceOverlayExpr(expr: Voice_overlay): Range {
-    return expr.contents.map((e) => getTokenRange(e)).reduce(reduceRanges, <Range>{});
+    return expr.contents.map((e) => getTokenRange(e)).reduce(reduceRanges, EMPTY_RANGE);
   }
   visitLineContinuationExpr(expr: Line_continuation): Range {
     return getTokenRange(expr.token);
@@ -229,7 +229,7 @@ export class RangeVisitor implements Visitor<Range> {
     return [expr.ySpacer, expr.rhythm]
       .filter((e): e is Token => !!e)
       .map((e) => getTokenRange(e))
-      .reduce(reduceRanges, <Range>{});
+      .reduce(reduceRanges, EMPTY_RANGE);
   }
   visitBeamExpr(expr: Beam): Range {
     return expr.contents
@@ -240,28 +240,28 @@ export class RangeVisitor implements Visitor<Range> {
           return e.accept(this);
         }
       })
-      .reduce(reduceRanges, <Range>{});
+      .reduce(reduceRanges, EMPTY_RANGE);
   }
   visitTupletExpr(expr: Tuplet) {
     const { p, q, r } = expr;
     return [p, q, r]
       .filter((e): e is Token => !!e)
       .map((e) => getTokenRange(e))
-      .reduce(reduceRanges, <Range>{});
+      .reduce(reduceRanges, EMPTY_RANGE);
   }
 
   visitErrorExpr(expr: ErrorExpr) {
-    return expr.tokens.map((e) => getTokenRange(e)).reduce(reduceRanges, <Range>{});
+    return expr.tokens.map((e) => getTokenRange(e)).reduce(reduceRanges, EMPTY_RANGE);
   }
 
   visitLyricLineExpr(expr: Lyric_line): Range {
     const headerRange = getTokenRange(expr.header);
     const contentsRanges = expr.contents.map((token) => getTokenRange(token));
-    return [headerRange, ...contentsRanges].reduce(reduceRanges, <Range>{});
+    return [headerRange, ...contentsRanges].reduce(reduceRanges, EMPTY_RANGE);
   }
 
   visitMacroDeclExpr(expr: Macro_decl): Range {
-    return [getTokenRange(expr.header), getTokenRange(expr.variable), getTokenRange(expr.content)].reduce(reduceRanges, <Range>{});
+    return [getTokenRange(expr.header), getTokenRange(expr.variable), getTokenRange(expr.content)].reduce(reduceRanges, EMPTY_RANGE);
   }
 
   visitMacroInvocationExpr(expr: Macro_invocation): Range {
@@ -269,7 +269,7 @@ export class RangeVisitor implements Visitor<Range> {
   }
 
   visitUserSymbolDeclExpr(expr: User_symbol_decl): Range {
-    return [getTokenRange(expr.header), getTokenRange(expr.variable), getTokenRange(expr.symbol)].reduce(reduceRanges, <Range>{});
+    return [getTokenRange(expr.header), getTokenRange(expr.variable), getTokenRange(expr.symbol)].reduce(reduceRanges, EMPTY_RANGE);
   }
 
   visitUserSymbolInvocationExpr(expr: User_symbol_invocation): Range {
@@ -292,13 +292,13 @@ export class RangeVisitor implements Visitor<Range> {
     if (expr.equals) {
       ranges.push(getTokenRange(expr.equals));
     }
-    return ranges.reduce(reduceRanges, <Range>{});
+    return ranges.reduce(reduceRanges, EMPTY_RANGE);
   }
 
   visitBinary(expr: Binary): Range {
     const leftRange = expr.left instanceof Token ? getTokenRange(expr.left) : expr.left.accept(this);
     const rightRange = expr.right instanceof Token ? getTokenRange(expr.right) : expr.right.accept(this);
-    return [leftRange, getTokenRange(expr.operator), rightRange].reduce(reduceRanges, <Range>{});
+    return [leftRange, getTokenRange(expr.operator), rightRange].reduce(reduceRanges, EMPTY_RANGE);
   }
 
   visitGrouping(expr: Grouping): Range {
@@ -313,21 +313,21 @@ export class RangeVisitor implements Visitor<Range> {
     if (expr.octave) {
       ranges.push(getTokenRange(expr.octave));
     }
-    return ranges.reduce(reduceRanges, <Range>{});
+    return ranges.reduce(reduceRanges, EMPTY_RANGE);
   }
 
   visitRationalExpr(expr: Rational): Range {
-    return [getTokenRange(expr.numerator), getTokenRange(expr.separator), getTokenRange(expr.denominator)].reduce(reduceRanges, <Range>{});
+    return [getTokenRange(expr.numerator), getTokenRange(expr.separator), getTokenRange(expr.denominator)].reduce(reduceRanges, EMPTY_RANGE);
   }
 
   visitMeasurementExpr(expr: Measurement): Range {
-    return [getTokenRange(expr.value), getTokenRange(expr.scale)].reduce(reduceRanges, <Range>{});
+    return [getTokenRange(expr.value), getTokenRange(expr.scale)].reduce(reduceRanges, EMPTY_RANGE);
   }
 
   visitUnary(expr: import("../types/Expr2").Unary): Range {
     const operatorRange = getTokenRange(expr.operator);
     const operandRange = expr.operand instanceof Token ? getTokenRange(expr.operand) : expr.operand.accept(this);
-    return [operatorRange, operandRange].reduce(reduceRanges, <Range>{});
+    return [operatorRange, operandRange].reduce(reduceRanges, EMPTY_RANGE);
   }
 
   visitChordSymbolExpr(expr: ChordSymbol): Range {
