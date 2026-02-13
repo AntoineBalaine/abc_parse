@@ -320,10 +320,10 @@ export class ContextInterpreter implements Visitor<void> {
   result!: InterpreterResult;
 
   /**
-   * Entry point for interpreting an ABC file structure.
+   * Entry point for interpreting an ABC structure (File_structure or Tune).
    * Returns a map from Tune.id to that tune's per-voice snapshots.
    */
-  interpret(ast: File_structure, semanticData: Map<number, SemanticData>, ctx: ABCContext): InterpreterResult {
+  interpret(ast: Expr | Token, semanticData: Map<number, SemanticData>, ctx: ABCContext): InterpreterResult {
     this.ctx = ctx;
     this.semanticData = semanticData;
     this.rangeVisitor = new RangeVisitor();

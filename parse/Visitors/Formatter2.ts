@@ -47,7 +47,7 @@ import {
   Voice_overlay,
   YSPACER,
 } from "../types/Expr2";
-import { alignTune, discoverVoicesInTuneBody } from "./fmt2/fmt_aligner";
+import { alignTune, discoverVoicesInTuneBody, getSnapshotsIfZeroLength } from "./fmt2/fmt_aligner";
 import { resolveRules } from "./fmt2/fmt_rules_assignment";
 import { VoiceMarkerStyleVisitor } from "./VoiceMarkerStyleVisitor";
 
@@ -187,13 +187,7 @@ export class AbcFormatter implements Visitor<string> {
     if (ast.formatterConfig.voiceMarkerStyle !== null && ast.tune_body) {
       const visitor = new VoiceMarkerStyleVisitor(this.ctx, ast.formatterConfig.voiceMarkerStyle);
       const transformedBody = visitor.transformTuneBody(ast.tune_body);
-      tuneToFormat = new Tune(
-        ast.id,
-        ast.tune_header,
-        transformedBody,
-        ast.linear,
-        ast.formatterConfig
-      );
+      tuneToFormat = new Tune(ast.id, ast.tune_header, transformedBody, ast.linear, ast.formatterConfig);
     }
 
     // 2. Discover voices declared in tune body and update the voices list
@@ -201,11 +195,17 @@ export class AbcFormatter implements Visitor<string> {
       discoverVoicesInTuneBody(tuneToFormat.tune_header.voices, tuneToFormat.tune_body);
     }
 
+    // 2b. Check for zero-length notes and get snapshots if needed
+    let tuneSnapshots = null;
+    if (tuneToFormat.tune_body && tuneToFormat.tune_header.voices.length > 1) {
+      tuneSnapshots = getSnapshotsIfZeroLength(tuneToFormat, this.ctx);
+    }
+
     // 3. Rules resolution phase
     const withRules = resolveRules(tuneToFormat, this.ctx);
 
     // 4. Align multi-voices tunes
-    const alignedTune = alignTune(withRules, this.ctx, this);
+    const alignedTune = alignTune(withRules, this, tuneSnapshots ?? undefined);
 
     // 5. Print using visitor
     return this.stringify(alignedTune, false);
@@ -538,10 +538,7 @@ export class AbcFormatter implements Visitor<string> {
     const systems = expr.sequence;
 
     // Check if we need to insert system separator comments
-    const shouldInsertComments =
-      this.currentTune &&
-      systems.length > 1 &&
-      this.currentTune.formatterConfig.systemComments;
+    const shouldInsertComments = this.currentTune && systems.length > 1 && this.currentTune.formatterConfig.systemComments;
 
     const formattedSystems = systems.map((system) => {
       return system

@@ -536,6 +536,67 @@ CDEF | GABC | CDEF | GABC |`
     });
 
     describe("edge cases", () => {
+      it("aligns chord symbol annotation with inline voice fields", () => {
+        const result = format(
+          `X:1
+[V:1] [K:style=rhythm] "Cm" B0 B0 B0 B0 |
+[V:2] [K:style=normal]      a2b2c2d2    |`,
+          ctx,
+          formatter
+        );
+
+        // The chord symbol "Cm" should stay attached to the note B0
+        // Zero-length notes (B0) are treated as quarter notes for alignment purposes
+        assert.equal(
+          result,
+          `X:1
+[V:1] [K:style=rhythm] "Cm" B0 B0 B0 B0 |
+[V:2] [K:style=normal]      a2b2c2d2    |`
+        );
+      });
+
+      it("aligns zero-length notes with L:1/4 (quarter note default)", () => {
+        const result = format(
+          `X:1
+L:1/4
+[V:1] B0 B0 B0 B0 |
+[V:2] a  b  c  d  |`,
+          ctx,
+          formatter
+        );
+
+        // With L:1/4, zero-length notes advance by 1/4 / (1/4) = 1 unit
+        // Each B0 should align with each note a, b, c, d
+        assert.equal(
+          result,
+          `X:1
+L:1/4
+[V:1] B0 B0 B0 B0 |
+[V:2] a  b  c  d  |`
+        );
+      });
+
+      it("aligns zero-length notes with L:1/16 (sixteenth note default)", () => {
+        const result = format(
+          `X:1
+L:1/16
+[V:1] B0 B0 B0 B0 |
+[V:2] a4 b4 c4 d4 |`,
+          ctx,
+          formatter
+        );
+
+        // With L:1/16, zero-length notes advance by 1/4 / (1/16) = 4 units
+        // Each B0 should align with quarter note durations (a4, b4, c4, d4)
+        assert.equal(
+          result,
+          `X:1
+L:1/16
+[V:1] B0 B0 B0 B0 |
+[V:2] a4 b4 c4 d4 |`
+        );
+      });
+
       it("handles empty bars", () => {
         const result = format(
           `X:1

@@ -1,10 +1,22 @@
 import { isChord, isNote, isToken } from "../../helpers";
+import { encode, getSnapshotAtPosition, TuneSnapshots } from "../../interpreter/ContextInterpreter";
 import { Token, TT } from "../../parsers/scan2";
 import { Expr, Rest } from "../../types/Expr2";
 import { AbcFormatter } from "../Formatter2";
+import { RangeVisitor } from "../RangeVisitor";
 import { calculateDuration, DurationContext, isTimeEvent } from "./fmt_timeMap";
 import { getNodeId, isBarLine, isBeam, Location, VoiceSplit } from "./fmt_timeMapHelpers";
-import { addRational, equalRational, greaterRational, isInfiniteRational, isRational, IRational, rationalToString } from "./rational";
+import {
+  addRational,
+  createRational,
+  divideRational,
+  equalRational,
+  greaterRational,
+  isInfiniteRational,
+  isRational,
+  IRational,
+  rationalToString,
+} from "./rational";
 
 class SymbolLnCtx {
   nodes: Array<Expr | Token>;
@@ -41,6 +53,12 @@ type AlignPt = [IRational | BarNumber, Array<Location>];
 class GCtx {
   list: Array<AlignPt> = [[0, []]];
   barIndexes: Array<number> = [0];
+  tuneSnapshots?: TuneSnapshots;
+
+  constructor(tuneSnapshots?: TuneSnapshots) {
+    this.tuneSnapshots = tuneSnapshots;
+  }
+
   push(pt: [IRational | BarNumber, Location], vxCtx: VxCtx | SymbolLnCtx) {
     const key = pt[0];
     const value = pt[1];
@@ -167,8 +185,8 @@ class GCtx {
   }
 }
 
-export function scanAlignPoints(voiceSplits: Array<VoiceSplit>) {
-  const gCtx = new GCtx();
+export function scanAlignPoints(voiceSplits: Array<VoiceSplit>, tuneSnapshots?: TuneSnapshots) {
+  const gCtx = new GCtx(tuneSnapshots);
   for (let i = 0; i < voiceSplits.length; i++) {
     if (voiceSplits[i].type === "formatted") {
       const vxCtx = new VxCtx(voiceSplits[i].content, i);
@@ -221,7 +239,21 @@ function timeEventPts(gCtx: GCtx, vxCtx: VxCtx): boolean {
   const timeKey = vxCtx.time;
   gCtx.push([timeKey, { voiceIdx: vxCtx.voiceIdx, nodeID: getNodeId(cur) }], vxCtx);
 
-  const duration = calculateDuration(cur, vxCtx.durationCtx);
+  let duration = calculateDuration(cur, vxCtx.durationCtx);
+
+  // Substitute zero duration with quarter note relative duration
+  if (duration.numerator === 0 && gCtx.tuneSnapshots) {
+    const rangeVisitor = new RangeVisitor();
+    const range = cur.accept(rangeVisitor);
+    if (range?.start) {
+      const pos = encode(range.start.line, range.start.character);
+      const snapshot = getSnapshotAtPosition(gCtx.tuneSnapshots, pos);
+      if (snapshot) {
+        const quarterNote = createRational(1, 4);
+        duration = divideRational(quarterNote, snapshot.noteLength);
+      }
+    }
+  }
 
   // If duration is infinite (multi-measure rest), don't update time
   if (!isInfiniteRational(duration)) {
