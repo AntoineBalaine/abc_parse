@@ -44,3 +44,26 @@ export {
 
 // Re-export shared key utilities for external consumers
 export { parseKeyRoot, parseKeyAccidental } from "../utils/keyUtils";
+
+// Re-export pitch utilities
+export {
+  PitchContext,
+  resolveMelodyPitch,
+  pitchToNoteName,
+  noteLetterToMidi,
+  accidentalToSemitones,
+  accidentalTypeToSemitones,
+  semitonesToAccidentalString,
+  getKeyAccidentalForPitch,
+  midiToNaturalNote,
+} from "./pitchUtils";
+
+// Re-export theory functions
+export {
+  getGuideTones,
+  getTensionNoteName,
+  getTensionPitch,
+  isAvoidNote,
+  getAvailableTensions,
+  analyzeChordFunction,
+} from "./theory";

@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { describe, it } from "mocha";
 import { TAGS, isTokenNode, getTokenData, CSNode } from "../src/csTree/types";
 import { selectPreviousChordSymbol } from "../src/selectors/backtrackSelector";
-import { ChordQuality } from "abc-parser/dist/music-theory/types";
+import { ChordQuality } from "abc-parser/music-theory/types";
 import { toSelection, findByTag, collectAll } from "./helpers";
 import { Selection } from "../src/selection";
 

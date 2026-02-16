@@ -1,9 +1,9 @@
 import { Selection } from "../selection";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { TT } from "abc-parser";
-import { scanChordSymbol } from "abc-parser/dist/music-theory/scanChordSymbol";
-import { parseChordSymbol } from "abc-parser/dist/music-theory/parseChordSymbol";
-import { ParsedChord } from "abc-parser/dist/music-theory/types";
+import { scanChordSymbol } from "abc-parser/music-theory/scanChordSymbol";
+import { parseChordSymbol } from "abc-parser/music-theory/parseChordSymbol";
+import { ParsedChord } from "abc-parser/music-theory/types";
 import { buildIdMap } from "./treeWalk";
 
 export interface ChordSymbolMatch {

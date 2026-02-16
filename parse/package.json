@@ -29,6 +29,10 @@
     "./Visitors/fmt2/*": {
       "types": "./dist/Visitors/fmt2/*.d.ts",
       "default": "./dist/Visitors/fmt2/*.js"
+    },
+    "./music-theory/*": {
+      "types": "./dist/music-theory/*.d.ts",
+      "default": "./dist/music-theory/*.js"
     }
   },
   "files": [
