@@ -15,6 +15,7 @@
 
 import { TuneDefaults, VoiceState, newVxState, createTuneDefaults, createFileDefaults } from "./InterpreterState";
 import { Meter, KeySignature, ClefProperties, TempoProperties, MeterType, AccidentalType } from "../types/abcjs-ast";
+import { ParsedChord, scanChordSymbol, parseChordSymbol } from "../music-theory";
 import { SemanticData } from "../analyzers/semantic-analyzer";
 import { IRational } from "../Visitors/fmt2/rational";
 import { ABCContext } from "../parsers/Context";
@@ -156,6 +157,8 @@ export interface ContextSnapshot {
   octave: number;
   /** Measure accidentals active at this position (only present when snapshotAccidentals is enabled) */
   measureAccidentals?: Map<string, AccidentalType>;
+  /** Current chord symbol in effect at this position */
+  currentChord?: ParsedChord;
 }
 
 /**
@@ -179,6 +182,8 @@ export interface ContextInterpreterState {
   measureNumber: number;
   /** True when we've entered the tune body (past the header). Info lines in header don't create snapshots. */
   inBody: boolean;
+  /** Current chord symbol in effect (system-wide, not per-voice) */
+  currentChord: ParsedChord | null;
 }
 
 // ============================================================================
@@ -317,6 +322,7 @@ export class ContextInterpreter implements Visitor<void> {
       currentVoiceId: "", // Default voice is empty string
       measureNumber: 1,
       inBody: false,
+      currentChord: null,
     };
   }
 
@@ -409,6 +415,7 @@ export class ContextInterpreter implements Visitor<void> {
       transpose: voice.properties.transpose ?? 0,
       octave: voice.properties.octave ?? 0,
       measureAccidentals: this.config.snapshotAccidentals ? new Map(voice.measureAccidentals) : undefined,
+      currentChord: this.state.currentChord ?? undefined,
     };
 
     this.result.push({ pos, snapshot });
@@ -608,7 +615,28 @@ export class ContextInterpreter implements Visitor<void> {
   visitTupletExpr(expr: Tuplet): void {}
   visitGraceGroupExpr(expr: Grace_group): void {}
   visitDecorationExpr(expr: Decoration): void {}
-  visitAnnotationExpr(expr: Annotation): void {}
+  visitAnnotationExpr(expr: Annotation): void {
+    let text = expr.text.lexeme;
+
+    // Strip surrounding quotes if present
+    if (text.length >= 2 && text.startsWith('"') && text.endsWith('"')) {
+      text = text.slice(1, -1);
+    }
+
+    // Strip position prefix if present (^, _, <, >, @)
+    if (text.length > 0 && "^_<>@".includes(text[0])) {
+      text = text.slice(1);
+    }
+
+    const scanResult = scanChordSymbol(text);
+    if (scanResult === null) return;
+
+    const parsed = parseChordSymbol(scanResult.tokens);
+    if (parsed === null) return;
+
+    this.state.currentChord = parsed;
+    this.pushSnapshot(expr);
+  }
   visitCommentExpr(expr: Comment): void {}
   visitSystemBreakExpr(expr: SystemBreak): void {
     this.clearAllVoicesAccidentals();
