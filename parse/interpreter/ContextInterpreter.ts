@@ -14,13 +14,13 @@
  */
 
 import { TuneDefaults, VoiceState, newVxState, createTuneDefaults, createFileDefaults } from "./InterpreterState";
-import { Meter, KeySignature, ClefProperties, TempoProperties, MeterType } from "../types/abcjs-ast";
+import { Meter, KeySignature, ClefProperties, TempoProperties, MeterType, AccidentalType } from "../types/abcjs-ast";
 import { SemanticData } from "../analyzers/semantic-analyzer";
 import { IRational } from "../Visitors/fmt2/rational";
 import { ABCContext } from "../parsers/Context";
 import { RangeVisitor } from "../Visitors/RangeVisitor";
 import { Range } from "../types/types";
-import { Token } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan2";
 import { InfoLineUnion } from "../types/Expr2";
 import {
   Visitor,
@@ -98,6 +98,18 @@ const DEFAULT_METER: Meter = { type: MeterType.CommonTime };
  */
 const DEFAULT_TEMPO: TempoProperties = { bpm: 120 };
 
+/**
+ * Configuration options for the ContextInterpreter.
+ */
+export interface ContextInterpreterConfig {
+  /** When true, snapshots include measureAccidentals map. Default: false */
+  snapshotAccidentals: boolean;
+}
+
+const DEFAULT_CONFIG: ContextInterpreterConfig = {
+  snapshotAccidentals: false,
+};
+
 // ============================================================================
 // Data Structures
 // ============================================================================
@@ -142,6 +154,8 @@ export interface ContextSnapshot {
   transpose: number;
   /** The octave shift in effect at this position */
   octave: number;
+  /** Measure accidentals active at this position (only present when snapshotAccidentals is enabled) */
+  measureAccidentals?: Map<string, AccidentalType>;
 }
 
 /**
@@ -273,16 +287,18 @@ export class ContextInterpreter implements Visitor<void> {
   semanticData!: Map<number, SemanticData>;
   rangeVisitor!: RangeVisitor;
   result!: DocumentSnapshots;
+  config!: ContextInterpreterConfig;
 
   /**
    * Entry point for interpreting an ABC structure (File_structure or Tune).
    * Returns a flat array of all snapshots across all tunes in document order.
    */
-  interpret(ast: Expr | Token, semanticData: Map<number, SemanticData>, ctx: ABCContext): DocumentSnapshots {
+  interpret(ast: Expr | Token, semanticData: Map<number, SemanticData>, ctx: ABCContext, config: ContextInterpreterConfig = DEFAULT_CONFIG): DocumentSnapshots {
     this.ctx = ctx;
     this.semanticData = semanticData;
     this.rangeVisitor = new RangeVisitor();
     this.result = [];
+    this.config = config;
 
     ast.accept(this);
     return this.result;
@@ -315,6 +331,47 @@ export class ContextInterpreter implements Visitor<void> {
       this.state.voices.set(voiceId, voice);
     }
     return voice;
+  }
+
+  /**
+   * Clears measure accidentals for the current voice.
+   * Only performs work when snapshotAccidentals is enabled.
+   */
+  clearCurrentVoiceAccidentals(): void {
+    if (!this.config.snapshotAccidentals) return;
+    const voice = this.getCurrentVoice();
+    voice.measureAccidentals.clear();
+  }
+
+  /**
+   * Clears measure accidentals for all voices.
+   * Only performs work when snapshotAccidentals is enabled.
+   */
+  clearAllVoicesAccidentals(): void {
+    if (!this.config.snapshotAccidentals) return;
+    for (const voice of this.state.voices.values()) {
+      voice.measureAccidentals.clear();
+    }
+  }
+
+  /**
+   * Converts an accidental string to AccidentalType.
+   */
+  convertAccidental(accidental: string): AccidentalType {
+    switch (accidental) {
+      case "^":
+        return AccidentalType.Sharp;
+      case "_":
+        return AccidentalType.Flat;
+      case "=":
+        return AccidentalType.Natural;
+      case "^^":
+        return AccidentalType.DblSharp;
+      case "__":
+        return AccidentalType.DblFlat;
+      default:
+        return AccidentalType.Natural;
+    }
   }
 
   /**
@@ -351,6 +408,7 @@ export class ContextInterpreter implements Visitor<void> {
       measureNumber: this.state.measureNumber,
       transpose: voice.properties.transpose ?? 0,
       octave: voice.properties.octave ?? 0,
+      measureAccidentals: this.config.snapshotAccidentals ? new Map(voice.measureAccidentals) : undefined,
     };
 
     this.result.push({ pos, snapshot });
@@ -397,6 +455,9 @@ export class ContextInterpreter implements Visitor<void> {
     for (const system of expr.sequence) {
       for (const element of system) {
         if (element instanceof Token) {
+          if (element.type === TT.EOL) {
+            this.clearAllVoicesAccidentals();
+          }
           continue;
         }
         element.accept(this);
@@ -495,6 +556,7 @@ export class ContextInterpreter implements Visitor<void> {
 
   visitBarLineExpr(expr: BarLine): void {
     this.state.measureNumber++;
+    this.clearCurrentVoiceAccidentals();
   }
 
   // ============================================================================
@@ -502,16 +564,55 @@ export class ContextInterpreter implements Visitor<void> {
   // ============================================================================
 
   visitToken(token: Token): void {}
-  visitNoteExpr(expr: Note): void {}
+
+  visitNoteExpr(expr: Note): void {
+    if (!this.config.snapshotAccidentals) return;
+
+    const alteration = expr.pitch.alteration?.lexeme;
+    if (!alteration) return;
+
+    const pitchClass = expr.pitch.noteLetter.lexeme.toUpperCase();
+    const accidentalType = this.convertAccidental(alteration);
+
+    const voice = this.getCurrentVoice();
+    voice.measureAccidentals.set(pitchClass, accidentalType);
+
+    this.pushSnapshot(expr);
+  }
+
   visitRestExpr(expr: Rest): void {}
-  visitChordExpr(expr: Chord): void {}
+
+  visitChordExpr(expr: Chord): void {
+    if (!this.config.snapshotAccidentals) return;
+
+    let hasAccidental = false;
+    const voice = this.getCurrentVoice();
+
+    for (const content of expr.contents) {
+      if (content instanceof Note) {
+        const alteration = content.pitch.alteration?.lexeme;
+        if (alteration) {
+          const pitchClass = content.pitch.noteLetter.lexeme.toUpperCase();
+          const accidentalType = this.convertAccidental(alteration);
+          voice.measureAccidentals.set(pitchClass, accidentalType);
+          hasAccidental = true;
+        }
+      }
+    }
+
+    if (hasAccidental) {
+      this.pushSnapshot(expr);
+    }
+  }
   visitBeamExpr(expr: Beam): void {}
   visitTupletExpr(expr: Tuplet): void {}
   visitGraceGroupExpr(expr: Grace_group): void {}
   visitDecorationExpr(expr: Decoration): void {}
   visitAnnotationExpr(expr: Annotation): void {}
   visitCommentExpr(expr: Comment): void {}
-  visitSystemBreakExpr(expr: SystemBreak): void {}
+  visitSystemBreakExpr(expr: SystemBreak): void {
+    this.clearAllVoicesAccidentals();
+  }
   visitSymbolExpr(expr: Symbol): void {}
   visitVoiceOverlayExpr(expr: Voice_overlay): void {}
   visitLineContinuationExpr(expr: Line_continuation): void {}
