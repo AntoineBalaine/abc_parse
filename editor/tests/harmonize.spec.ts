@@ -5,7 +5,21 @@ import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune, genAbcWith
 import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import { ABCContext } from "../../parse/parsers/Context";
 import { Selection } from "../src/selection";
-import { harmonize, pitchToDiatonic, diatonicToPitch, stepDiatonic } from "../src/transforms/harmonize";
+import {
+  harmonize,
+  harmonizeVoicing,
+  VoicingType,
+  pitchToDiatonic,
+  diatonicToPitch,
+  stepDiatonic,
+  extractLead,
+  formatNote,
+  HarmonizeSnapshot,
+} from "../src/transforms/harmonize";
+import { SemanticAnalyzer } from "abc-parser";
+import { ContextInterpreter } from "abc-parser/interpreter/ContextInterpreter";
+import { Scanner, parse } from "abc-parser";
+import { KeyRoot, KeyAccidental, Mode, AccidentalType, NoteLetter } from "abc-parser/types/abcjs-ast";
 import { toAst } from "../src/csTree/toAst";
 import { Pitch } from "../../parse/types/Expr2";
 import { TT, Token } from "../../parse/parsers/scan2";
@@ -377,19 +391,16 @@ describe("harmonize", () => {
   describe("property-based tests", () => {
     it("stepping up then down by the same amount returns equivalent pitch", () => {
       fc.assert(
-        fc.property(
-          fc.integer({ min: 1, max: 7 }),
-          (steps) => {
-            const ctx = new ABCContext();
-            const pitch = createPitch(ctx, "C");
-            const steppedUp = stepDiatonic(pitch, steps, ctx);
-            const steppedBack = stepDiatonic(steppedUp, -steps, ctx);
-            const original = pitchToDiatonic(pitch);
-            const result = pitchToDiatonic(steppedBack);
-            expect(result.index).to.equal(original.index);
-            expect(result.octave).to.equal(original.octave);
-          }
-        ),
+        fc.property(fc.integer({ min: 1, max: 7 }), (steps) => {
+          const ctx = new ABCContext();
+          const pitch = createPitch(ctx, "C");
+          const steppedUp = stepDiatonic(pitch, steps, ctx);
+          const steppedBack = stepDiatonic(steppedUp, -steps, ctx);
+          const original = pitchToDiatonic(pitch);
+          const result = pitchToDiatonic(steppedBack);
+          expect(result.index).to.equal(original.index);
+          expect(result.octave).to.equal(original.octave);
+        }),
         { numRuns: 100 }
       );
     });
@@ -511,6 +522,216 @@ describe("harmonize", () => {
         }),
         { numRuns: 200 }
       );
+    });
+  });
+
+  describe("Automatic harmonization helpers", () => {
+    function makeSnapshot(
+      keyRoot: KeyRoot = KeyRoot.C,
+      keyAcc: KeyAccidental = KeyAccidental.None,
+      measureAccidentals: Map<string, number> = new Map()
+    ): HarmonizeSnapshot {
+      return {
+        key: {
+          root: keyRoot,
+          acc: keyAcc,
+          mode: Mode.Major,
+          accidentals: [],
+        },
+        currentChord: null,
+        measureAccidentals,
+      };
+    }
+
+    describe("extractLead", () => {
+      it("extracts 'E' in key of C as { letter: 'E', midi: 64 }", () => {
+        const { root } = toCSTreeWithContext("X:1\nK:C\nE|\n");
+        const notes = findByTag(root, TAGS.Note);
+        const snapshot = makeSnapshot();
+        const result = extractLead(notes[0], snapshot);
+        expect(result).to.deep.equal({ letter: "E", midi: 64 });
+      });
+
+      it("extracts 'c' (lowercase) in key of C as { letter: 'C', midi: 72 }", () => {
+        const { root } = toCSTreeWithContext("X:1\nK:C\nc|\n");
+        const notes = findByTag(root, TAGS.Note);
+        const snapshot = makeSnapshot();
+        const result = extractLead(notes[0], snapshot);
+        expect(result).to.deep.equal({ letter: "C", midi: 72 });
+      });
+
+      it("extracts note with explicit accidental: ^F in C gives F# (midi 66)", () => {
+        const { root } = toCSTreeWithContext("X:1\nK:C\n^F|\n");
+        const notes = findByTag(root, TAGS.Note);
+        const snapshot = makeSnapshot();
+        const result = extractLead(notes[0], snapshot);
+        expect(result).to.deep.equal({ letter: "F", midi: 66 });
+      });
+
+      it("applies key signature: F in G major gives F# (midi 66)", () => {
+        const { root } = toCSTreeWithContext("X:1\nK:G\nF|\n");
+        const notes = findByTag(root, TAGS.Note);
+        const snapshot = makeSnapshot(KeyRoot.G, KeyAccidental.None);
+        // In G major, F is sharp
+        snapshot.key.accidentals = [{ note: NoteLetter.F, acc: AccidentalType.Sharp, verticalPos: 0 }];
+        const result = extractLead(notes[0], snapshot);
+        expect(result).to.deep.equal({ letter: "F", midi: 66 });
+      });
+
+      it("applies measure accidentals over key signature", () => {
+        const { root } = toCSTreeWithContext("X:1\nK:C\nF|\n");
+        const notes = findByTag(root, TAGS.Note);
+        const snapshot = makeSnapshot();
+        snapshot.measureAccidentals.set("F", 1); // F# in measure
+        const result = extractLead(notes[0], snapshot);
+        expect(result).to.deep.equal({ letter: "F", midi: 66 });
+      });
+
+      it("handles octave markers: C, (comma) gives midi 48", () => {
+        const { root } = toCSTreeWithContext("X:1\nK:C\nC,|\n");
+        const notes = findByTag(root, TAGS.Note);
+        const snapshot = makeSnapshot();
+        const result = extractLead(notes[0], snapshot);
+        expect(result).to.deep.equal({ letter: "C", midi: 48 });
+      });
+
+      it("handles octave markers: c' (apostrophe) gives midi 84", () => {
+        const { root } = toCSTreeWithContext("X:1\nK:C\nc'|\n");
+        const notes = findByTag(root, TAGS.Note);
+        const snapshot = makeSnapshot();
+        const result = extractLead(notes[0], snapshot);
+        expect(result).to.deep.equal({ letter: "C", midi: 84 });
+      });
+    });
+
+    describe("formatNote", () => {
+      it('formatNote("^", "F", 4) returns "^F"', () => {
+        expect(formatNote("^", "F", 4)).to.equal("^F");
+      });
+
+      it('formatNote("", "c", 5) returns "c"', () => {
+        expect(formatNote("", "C", 5)).to.equal("c");
+      });
+
+      it('formatNote("", "C", 3) returns "C,"', () => {
+        expect(formatNote("", "C", 3)).to.equal("C,");
+      });
+
+      it('formatNote("", "C", 2) returns "C,,"', () => {
+        expect(formatNote("", "C", 2)).to.equal("C,,");
+      });
+
+      it('formatNote("", "C", 6) returns "c\'"', () => {
+        expect(formatNote("", "C", 6)).to.equal("c'");
+      });
+
+      it('formatNote("_", "B", 4) returns "_B"', () => {
+        expect(formatNote("_", "B", 4)).to.equal("_B");
+      });
+
+      it('formatNote("=", "F", 5) returns "=f"', () => {
+        expect(formatNote("=", "F", 5)).to.equal("=f");
+      });
+    });
+
+    describe("formatNote property tests", () => {
+      it("output always starts with accidental (if any), then letter, then octave markers", () => {
+        fc.assert(
+          fc.property(
+            fc.constantFrom("", "^", "_", "=", "^^", "__"),
+            fc.constantFrom("C", "D", "E", "F", "G", "A", "B"),
+            fc.integer({ min: 1, max: 7 }),
+            (accidental, letter, octave) => {
+              const result = formatNote(accidental, letter, octave);
+              // Should start with accidental
+              if (accidental !== "") {
+                expect(result.startsWith(accidental)).to.be.true;
+              }
+              // Should contain the letter (uppercase or lowercase depending on octave)
+              const letterPart = octave <= 4 ? letter.toUpperCase() : letter.toLowerCase();
+              expect(result).to.include(letterPart);
+            }
+          ),
+          { numRuns: 100 }
+        );
+      });
+    });
+
+    describe("extractLead property tests", () => {
+      it("extracted midi is always in valid MIDI range 0-127", () => {
+        fc.assert(
+          fc.property(genAbcTune, (source) => {
+            const { root } = toCSTreeWithContext(source);
+            const notes = findByTag(root, TAGS.Note);
+            if (notes.length === 0) return;
+            const snapshot = makeSnapshot();
+            const result = extractLead(notes[0], snapshot);
+            if (result) {
+              expect(result.midi).to.be.at.least(0);
+              expect(result.midi).to.be.at.most(127);
+            }
+          }),
+          { numRuns: 100 }
+        );
+      });
+    });
+  });
+
+  describe("harmonizeVoicing end-to-end", () => {
+    // This helper mirrors production: harmonizeVoicing needs snapshotAccidentals: true
+    function harmonizeClose(input: string, noteIndex: number = -1): string {
+      const ctx = new ABCContext();
+      const tokens = Scanner(input, ctx);
+      const ast = parse(tokens, ctx);
+
+      const analyzer = new SemanticAnalyzer(ctx);
+      ast.accept(analyzer);
+
+      // harmonizeVoicing needs measure accidentals to spell chord notes correctly
+      const interpreter = new ContextInterpreter();
+      const snapshots = interpreter.interpret(ast, analyzer.data, ctx, { snapshotAccidentals: true });
+
+      const { root } = toCSTreeWithContext(input);
+      const notes = findByTag(root, TAGS.Note);
+
+      if (notes.length === 0) return formatSelection({ root, cursors: [] });
+
+      // Select specific note by index, or last note if -1
+      const targetIndex = noteIndex === -1 ? notes.length - 1 : noteIndex;
+      const sel: Selection = { root, cursors: [new Set([notes[targetIndex].id])] };
+      harmonizeVoicing(sel, "close", 4, null, ctx, snapshots);
+
+      return formatSelection(sel);
+    }
+
+    it('"Cm7"_B -> "Cm7"[C_EG_B]', () => {
+      const result = harmonizeClose('X:1\nK:C\n"Cm7"_B|\n');
+      expect(result).to.equal('X:1\nK:C\n"Cm7"[C_EG_B]|\n');
+    });
+
+    it('"G7"=B -> "G7"[DFGB]', () => {
+      const result = harmonizeClose('X:1\nK:C\n"G7"=B|\n');
+      expect(result).to.equal('X:1\nK:C\n"G7"[DFGB]|\n');
+    });
+
+    it('"Cm7"_B "G7"=B -> "Cm7"_B "G7"[DFG=B] (only harmonize last note)', () => {
+      // After _B in the measure, B is flat by default. The G7 chord needs =B to indicate natural.
+      const result = harmonizeClose('X:1\nK:C\n"Cm7"_B "G7"=B|\n');
+      expect(result).to.equal('X:1\nK:C\n"Cm7"_B "G7"[DFG=B]|\n');
+    });
+
+    it('"Fm7b5"_c -> "Fm7b5"[_EF_A_c] (lead note Cb5 on top, others below)', () => {
+      // Lead note _c (Cb5, MIDI 71) on top, close voicing places other notes below:
+      // Eb4 (63), F4 (65), Ab4 (68), Cb5 (71)
+      const result = harmonizeClose('X:1\nK:C\n"Fm7b5"_c|\n');
+      expect(result).to.equal('X:1\nK:C\n"Fm7b5"[_EF_A_c]|\n');
+    });
+
+    it('"Fm7b5"_C -> "Fm7b5"[_E,F,_A,_C] (lead note Cb4 on top, others in octave 3)', () => {
+      // Lead note _C (Cb4, MIDI 59) on top, close voicing places other notes below:
+      // Eb3 (51), F3 (53), Ab3 (56), Cb4 (59)
+      const result = harmonizeClose('X:1\nK:C\n"Fm7b5"_C|\n');
+      expect(result).to.equal('X:1\nK:C\n"Fm7b5"[_E,F,_A,_C]|\n');
     });
   });
 });

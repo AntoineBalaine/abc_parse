@@ -354,3 +354,46 @@ define-command abc-harmonize-octave-down \
     -docstring "Harmonize selection an octave down" %{
     abc-harmonize -7
 }
+
+# ============================================================================
+# Chord-Symbol-Based Voicing Commands
+# ============================================================================
+
+define-command abc-harmonize-voicing -params 1..3 \
+    -docstring "abc-harmonize-voicing <voicing> [voiceCount] [degree]
+Harmonize selection with chord voicing.
+Voicings: close, drop2, drop24, drop3, cluster
+Voice count: 4, 5, or 6 (default 4)
+Degree: 1-8 for diatonic chord, omit to use current chord symbol" %{
+    evaluate-commands %sh{
+        voicing="$1"
+        voice_count="${2:-4}"
+        degree="${3:-null}"
+        printf 'abc-transform-impl harmonizeVoicing '\''["%s",%s,%s]'\''\n' "$voicing" "$voice_count" "$degree"
+    }
+}
+
+define-command abc-harmonize-close -params 0..2 \
+    -docstring "abc-harmonize-close [voiceCount] [degree]: Close voicing harmonization" %{
+    abc-harmonize-voicing close %arg{@}
+}
+
+define-command abc-harmonize-drop2 -params 0..2 \
+    -docstring "abc-harmonize-drop2 [voiceCount] [degree]: Drop2 voicing harmonization" %{
+    abc-harmonize-voicing drop2 %arg{@}
+}
+
+define-command abc-harmonize-drop24 -params 0..2 \
+    -docstring "abc-harmonize-drop24 [voiceCount] [degree]: Drop24 voicing harmonization" %{
+    abc-harmonize-voicing drop24 %arg{@}
+}
+
+define-command abc-harmonize-drop3 -params 0..2 \
+    -docstring "abc-harmonize-drop3 [voiceCount] [degree]: Drop3 voicing harmonization" %{
+    abc-harmonize-voicing drop3 %arg{@}
+}
+
+define-command abc-harmonize-cluster -params 0..2 \
+    -docstring "abc-harmonize-cluster [voiceCount] [degree]: Cluster voicing harmonization" %{
+    abc-harmonize-voicing cluster %arg{@}
+}

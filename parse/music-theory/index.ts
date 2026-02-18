@@ -2,10 +2,11 @@ import { scanChordSymbol } from "./scanChordSymbol";
 import { parseChordSymbol } from "./parseChordSymbol";
 import { chordToPitches } from "./chordPitches";
 import { ParsedChord } from "./types";
+import { VoicedNote } from "./harmonization";
 
 export interface ChordInfo {
   parsed: ParsedChord;
-  pitches: number[] | null;
+  pitches: VoicedNote[] | null;
 }
 
 /**
@@ -15,10 +16,7 @@ export interface ChordInfo {
  * @param baseOctave The base octave for pitch generation (default 4)
  * @returns ChordInfo with parsed chord and MIDI pitches, or null if invalid
  */
-export function analyzeChordSymbol(
-  text: string,
-  baseOctave: number = 4
-): ChordInfo | null {
+export function analyzeChordSymbol(text: string, baseOctave: number = 4): ChordInfo | null {
   const scanResult = scanChordSymbol(text);
   if (!scanResult) return null;
 
@@ -34,13 +32,7 @@ export function analyzeChordSymbol(
 export { scanChordSymbol, ScanResult } from "./scanChordSymbol";
 export { parseChordSymbol } from "./parseChordSymbol";
 export { chordToPitches } from "./chordPitches";
-export {
-  ParsedChord,
-  ChordQuality,
-  ChordAlteration,
-  ChordTT,
-  ChordToken,
-} from "./types";
+export { ParsedChord, ChordQuality, ChordAlteration, ChordTT, ChordToken } from "./types";
 
 // Re-export shared key utilities for external consumers
 export { parseKeyRoot, parseKeyAccidental } from "../utils/keyUtils";
@@ -58,12 +50,47 @@ export {
   midiToNaturalNote,
 } from "./pitchUtils";
 
-// Re-export theory functions
+// Re-export harmonization types and functions
 export {
-  getGuideTones,
-  getTensionNoteName,
-  getTensionPitch,
-  isAvoidNote,
+  Spelling,
+  VoicedNote,
+  ChordFunction,
+  IntervalSpec,
+  NATURAL_SEMITONES,
+  LETTERS,
+  QUALITY_INTERVALS,
+  SEVENTH_CHORD_SPECS,
+  DEGREE_TO_INTERVAL,
+  DEFAULT_TENSION_INTERVALS,
+  TENSION_SCALE_STEPS,
+  TENSION_FOR,
+  FUNC_FOR_TENSION,
+  INTERVAL_TO_SCALE_STEP,
+  INTERVAL_TO_FUNC,
+  keyRootToLetter,
+  keyAccidentalToSemitones,
+  getIntervals,
+  spellFromRoot,
+  buildChord,
+  // Phase 2: Chord Tone Validation
+  isChordTone,
   getAvailableTensions,
-  analyzeChordFunction,
-} from "./theory";
+  isChordScaleTone,
+  // Phase 3: Voicing Algorithms
+  invert,
+  drop2,
+  drop24,
+  drop3,
+  matchOctave,
+  substituteTensions,
+  buildChordScale,
+  buildClusterVoicing,
+  // Phase 4: Diatonic Chord Derivation
+  DIATONIC_QUALITIES,
+  descendScale,
+  letterToKeyRoot,
+  semitonesToKeyAccidental,
+  getKeyAccidentalFor,
+  MODE_TO_OFFSET,
+  deriveDiatonicChord,
+} from "./harmonization";

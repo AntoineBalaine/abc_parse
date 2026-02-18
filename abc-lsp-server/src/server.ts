@@ -399,7 +399,8 @@ connection.onRequest("abc.applyTransform", (params: ApplyTransformParams): Apply
   // Apply transform (mutates tree in place, returns updated Selection)
   let transformArgs = params.args;
   if (CONTEXT_AWARE_TRANSFORMS.has(params.transform)) {
-    const snapshots = doc.getSnapshots();
+    const needsAccidentals = params.transform === "harmonizeVoicing";
+    const snapshots = doc.getSnapshots(needsAccidentals);
     if (!snapshots) {
       return { textEdits: [], cursorRanges: [] };
     }

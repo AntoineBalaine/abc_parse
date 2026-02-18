@@ -213,6 +213,197 @@ K:C
     });
   });
 
+  describe("diatonic harmonization", () => {
+    it("abc-harmonize adds harmony note a third up", () => {
+      writeFileSync(testFile, "X:1\nT:Test\nK:C\nCDEF|\n");
+      kak.start(`edit ${testFile}`);
+      kak.verifyHookFlow();
+
+      // Select the first note C
+      kak.executeKeys("gg3j");
+      expect(kak.getSelection()).to.equal("C");
+
+      // Harmonize up a third (2 diatonic steps)
+      kak.sendKeys(": abc-harmonize 2");
+      kak.sendKeys("");
+
+      // Check the result - C should become [CE]
+      kak.executeKeys("gg3j");
+      // Select the chord
+      kak.executeKeys("f]");
+      const after = kak.getSelection();
+      expect(after).to.equal("[CE]");
+    });
+
+    it("abc-harmonize adds harmony note a third down", () => {
+      writeFileSync(testFile, "X:1\nT:Test\nK:C\nEFGA|\n");
+      kak.start(`edit ${testFile}`);
+      kak.verifyHookFlow();
+
+      // Select the first note E
+      kak.executeKeys("gg3j");
+      expect(kak.getSelection()).to.equal("E");
+
+      // Harmonize down a third (-2 diatonic steps)
+      kak.sendKeys(": abc-harmonize -2");
+      kak.sendKeys("");
+
+      // Check the result - E should become [EC] (C below E)
+      kak.executeKeys("gg3j");
+      kak.executeKeys("f]");
+      const after = kak.getSelection();
+      expect(after).to.equal("[EC]");
+    });
+
+    it("abc-harmonize-3rd-up is a convenience alias", () => {
+      writeFileSync(testFile, "X:1\nT:Test\nK:C\nCDEF|\n");
+      kak.start(`edit ${testFile}`);
+      kak.verifyHookFlow();
+
+      kak.executeKeys("gg3j");
+      kak.sendKeys(": abc-harmonize-3rd-up");
+      kak.sendKeys("");
+
+      kak.executeKeys("gg3j");
+      kak.executeKeys("f]");
+      const after = kak.getSelection();
+      expect(after).to.equal("[CE]");
+    });
+  });
+
+  describe("chord-symbol voicing", () => {
+    it("abc-harmonize-close produces 4-note chord with lead on top", () => {
+      // E is the 3rd of Cmaj7, a valid chord tone for 4-voice harmonization
+      writeFileSync(testFile, 'X:1\nT:Test\nK:C\n"Cmaj7"E|\n');
+      kak.start(`edit ${testFile}`);
+      kak.verifyHookFlow();
+
+      // Select the note E (after the chord symbol)
+      kak.executeKeys("gg3j");
+      // Move past the chord symbol to the note
+      kak.executeKeys('f";;l');
+      expect(kak.getSelection()).to.equal("E");
+
+      // Run close voicing harmonization (context-aware, needs extra delay)
+      kak.sendKeys(": abc-harmonize-close");
+      kak.sendKeys("");
+      kak.sendKeys("");
+      kak.sendKeys("");
+
+      // Select all and check the buffer content
+      kak.executeKeys("%");
+      const content = kak.getSelection();
+      // Should contain a chord with E
+      expect(content).to.match(/\[.*E.*\]/);
+    });
+
+    it("skips non-chord tones in 4-voice mode", () => {
+      // D is the 9th of Cmaj7, not a chord tone - should be skipped in 4-voice
+      writeFileSync(testFile, 'X:1\nT:Test\nK:C\n"Cmaj7"D|\n');
+      kak.start(`edit ${testFile}`);
+      kak.verifyHookFlow();
+
+      kak.executeKeys("gg3j");
+      kak.executeKeys('f";;l');
+      expect(kak.getSelection()).to.equal("D");
+
+      kak.sendKeys(": abc-harmonize-close");
+      kak.sendKeys("");
+      kak.sendKeys("");
+      kak.sendKeys("");
+
+      // D should remain unchanged (not wrapped in chord)
+      kak.executeKeys("gg3j");
+      kak.executeKeys('f";;l');
+      const after = kak.getSelection();
+      expect(after).to.equal("D");
+    });
+
+    it("includes tensions in 5-voice mode", () => {
+      // D is the 9th of Cmaj7, valid for 5-voice harmonization
+      writeFileSync(testFile, 'X:1\nT:Test\nK:C\n"Cmaj7"D|\n');
+      kak.start(`edit ${testFile}`);
+      kak.verifyHookFlow();
+
+      kak.executeKeys("gg3j");
+      kak.executeKeys('f";;l');
+      expect(kak.getSelection()).to.equal("D");
+
+      // Use 5 voices to include tensions
+      kak.sendKeys(": abc-harmonize-close 5");
+      kak.sendKeys("");
+      kak.sendKeys("");
+      kak.sendKeys("");
+
+      // Select all and check for chord
+      kak.executeKeys("%");
+      const content = kak.getSelection();
+      expect(content).to.match(/\[.*\]/);
+    });
+
+    it("drop2 voicing works", () => {
+      writeFileSync(testFile, 'X:1\nT:Test\nK:C\n"Cmaj7"E|\n');
+      kak.start(`edit ${testFile}`);
+      kak.verifyHookFlow();
+
+      kak.executeKeys("gg3j");
+      kak.executeKeys('f";;l');
+      expect(kak.getSelection()).to.equal("E");
+
+      kak.sendKeys(": abc-harmonize-drop2");
+      kak.sendKeys("");
+      kak.sendKeys("");
+      kak.sendKeys("");
+
+      // Select all and check for chord
+      kak.executeKeys("%");
+      const content = kak.getSelection();
+      expect(content).to.match(/\[.*\]/);
+    });
+
+    it("skips notes without current chord symbol", () => {
+      // No chord symbol before the note
+      writeFileSync(testFile, "X:1\nT:Test\nK:C\nEFGA|\n");
+      kak.start(`edit ${testFile}`);
+      kak.verifyHookFlow();
+
+      kak.executeKeys("gg3j");
+      expect(kak.getSelection()).to.equal("E");
+
+      kak.sendKeys(": abc-harmonize-close");
+      kak.sendKeys("");
+      kak.sendKeys("");
+      kak.sendKeys("");
+
+      // E should remain unchanged (no chord symbol context)
+      kak.executeKeys("gg3j");
+      const after = kak.getSelection();
+      expect(after).to.equal("E");
+    });
+
+    it("diatonic degree parameter derives chord from key", () => {
+      // With degree=1, it builds the I chord (Cmaj7 in key of C) regardless of chord symbol
+      writeFileSync(testFile, "X:1\nT:Test\nK:C\nE|\n");
+      kak.start(`edit ${testFile}`);
+      kak.verifyHookFlow();
+
+      kak.executeKeys("gg3j");
+      expect(kak.getSelection()).to.equal("E");
+
+      // Use degree 1 (I chord = Cmaj7 in C major)
+      kak.sendKeys(": abc-harmonize-voicing close 4 1");
+      kak.sendKeys("");
+      kak.sendKeys("");
+      kak.sendKeys("");
+
+      // Select all and check for chord with E
+      kak.executeKeys("%");
+      const content = kak.getSelection();
+      // Should be harmonized even without chord symbol because we specified degree
+      expect(content).to.match(/\[.*E.*\]/);
+    });
+  });
+
   describe("cleanup behavior", () => {
     it("cleanup is idempotent", () => {
       writeFileSync(testFile, "X:1\nK:C\nCDEF\n");

@@ -436,7 +436,8 @@ function handleApplyTransform(
   // For context-aware transforms, we get DocumentSnapshots from the document and prepend to args
   let transformArgs = params.args ?? [];
   if (CONTEXT_AWARE_TRANSFORMS.has(params.transform)) {
-    const snapshots = doc.getSnapshots();
+    const needsAccidentals = params.transform === "harmonizeVoicing";
+    const snapshots = doc.getSnapshots(needsAccidentals);
     if (!snapshots) {
       return { edits: [], cursorRanges: [] };
     }

@@ -23,6 +23,7 @@ declare-user-mode abc-select
 declare-user-mode abc-transform
 declare-user-mode abc-select-inside
 declare-user-mode abc-select-around
+declare-user-mode abc-voicing
 
 # Count is captured when entering a mode (since entering user-mode resets kak_count)
 declare-option -hidden int abc_mode_count 0
@@ -254,3 +255,23 @@ map global abc-select-around c ':abc-select-around-chord<ret>'        -docstring
 map global abc-select-around g ':abc-select-around-grace-group<ret>'  -docstring 'around grace group'
 map global abc-select-around f ':abc-select-around-inline-field<ret>' -docstring 'around inline field'
 map global abc-select-around p ':abc-select-around-grouping<ret>'     -docstring 'around grouping'
+
+# ============================================================================
+# Chord-Symbol-Based Voicing Mode
+# ============================================================================
+
+# Voicing type selection submode for chord-symbol-based harmonization.
+# Enter via 'gh' from abc-transform mode.
+
+map global abc-voicing c ':abc-harmonize-close<ret>'     -docstring 'close voicing'
+map global abc-voicing 2 ':abc-harmonize-drop2<ret>'     -docstring 'drop2 voicing'
+map global abc-voicing 4 ':abc-harmonize-drop24<ret>'    -docstring 'drop24 voicing'
+map global abc-voicing 3 ':abc-harmonize-drop3<ret>'     -docstring 'drop3 voicing'
+map global abc-voicing k ':abc-harmonize-cluster<ret>'   -docstring 'cluster voicing'
+
+# --- Quick Voicing Commands in Transform Mode ---
+# h/H/<a-h> provide quick access to close voicing with 4/5/6 voices
+map global abc-transform h ':abc-harmonize-close 4<ret>'     -docstring '4-voice close voicing'
+map global abc-transform H ':abc-harmonize-close 5<ret>'     -docstring '5-voice close voicing'
+map global abc-transform <a-h> ':abc-harmonize-close 6<ret>' -docstring '6-voice close voicing'
+map global abc-transform g ':enter-user-mode abc-voicing<ret>' -docstring 'voicing menu...'

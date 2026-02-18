@@ -1,0 +1,756 @@
+import { KeyRoot, KeyAccidental, KeySignature, AccidentalType, Mode } from "../types/abcjs-ast";
+import { ChordQuality, ParsedChord } from "./types";
+import { accidentalTypeToSemitones } from "./pitchUtils";
+
+/**
+ * Spelling represents how a note is written, independent of its MIDI pitch.
+ * For example, F# and Gb have the same pitch but different spellings.
+ */
+export interface Spelling {
+  letter: string; // "C", "D", "E", "F", "G", "A", "B"
+  alteration: number; // semitones: -2 (double flat) to +2 (double sharp)
+}
+
+/**
+ * VoicedNote combines a spelling with its MIDI pitch and chord function.
+ * This allows tracking both the sounding pitch and how it should be written.
+ */
+export interface VoicedNote {
+  spelling: Spelling;
+  midi: number;
+  func: ChordFunction;
+}
+
+/**
+ * ChordFunction identifies the role of a note within a chord.
+ * 8 = root, 3 = third, 5 = fifth, 7 = seventh, 9/11/13 = tensions.
+ */
+export type ChordFunction = 8 | 3 | 5 | 7 | 9 | 11 | 13;
+
+/**
+ * IntervalSpec combines an interval with its chord function and scale step.
+ * This allows building chords with correct function assignments directly.
+ */
+export interface IntervalSpec {
+  func: ChordFunction;
+  interval: number;
+  scaleStep: number;
+}
+
+/**
+ * Maps note letters to their natural semitone offset from C.
+ */
+export const NATURAL_SEMITONES: Record<string, number> = {
+  C: 0,
+  D: 2,
+  E: 4,
+  F: 5,
+  G: 7,
+  A: 9,
+  B: 11,
+};
+
+/**
+ * Note letters in scale order starting from C.
+ */
+export const LETTERS: string[] = ["C", "D", "E", "F", "G", "A", "B"];
+
+/**
+ * Basic interval patterns for chord qualities (triads only, without 7th).
+ * Used by chordPitches.ts for flexible chord building.
+ */
+export const QUALITY_INTERVALS: Record<ChordQuality, number[]> = {
+  [ChordQuality.Major]: [0, 4, 7],
+  [ChordQuality.Minor]: [0, 3, 7],
+  [ChordQuality.Dominant]: [0, 4, 7],
+  [ChordQuality.Diminished]: [0, 3, 6],
+  [ChordQuality.Augmented]: [0, 4, 8],
+  [ChordQuality.HalfDiminished]: [0, 3, 6],
+  [ChordQuality.Suspended2]: [0, 2, 7],
+  [ChordQuality.Suspended4]: [0, 5, 7],
+  [ChordQuality.Power]: [0, 7],
+  [ChordQuality.Add]: [0, 4, 7],
+};
+
+/**
+ * Interval patterns for chord qualities as 4-note 7th chords.
+ * Each entry includes the chord function, interval in semitones, and scale step.
+ * This is used by the harmonization module, which is designed for 7th-based harmonies.
+ */
+export const SEVENTH_CHORD_SPECS: Record<ChordQuality, IntervalSpec[]> = {
+  [ChordQuality.Major]: [
+    { func: 8, interval: 0, scaleStep: 0 },
+    { func: 3, interval: 4, scaleStep: 2 },
+    { func: 5, interval: 7, scaleStep: 4 },
+    { func: 7, interval: 11, scaleStep: 6 },
+  ],
+  [ChordQuality.Minor]: [
+    { func: 8, interval: 0, scaleStep: 0 },
+    { func: 3, interval: 3, scaleStep: 2 },
+    { func: 5, interval: 7, scaleStep: 4 },
+    { func: 7, interval: 10, scaleStep: 6 },
+  ],
+  [ChordQuality.Dominant]: [
+    { func: 8, interval: 0, scaleStep: 0 },
+    { func: 3, interval: 4, scaleStep: 2 },
+    { func: 5, interval: 7, scaleStep: 4 },
+    { func: 7, interval: 10, scaleStep: 6 },
+  ],
+  [ChordQuality.Diminished]: [
+    { func: 8, interval: 0, scaleStep: 0 },
+    { func: 3, interval: 3, scaleStep: 2 },
+    { func: 5, interval: 6, scaleStep: 4 },
+    { func: 7, interval: 9, scaleStep: 6 },
+  ],
+  [ChordQuality.Augmented]: [
+    { func: 8, interval: 0, scaleStep: 0 },
+    { func: 3, interval: 4, scaleStep: 2 },
+    { func: 5, interval: 8, scaleStep: 4 },
+    { func: 7, interval: 11, scaleStep: 6 },
+  ],
+  [ChordQuality.HalfDiminished]: [
+    { func: 8, interval: 0, scaleStep: 0 },
+    { func: 3, interval: 3, scaleStep: 2 },
+    { func: 5, interval: 6, scaleStep: 4 },
+    { func: 7, interval: 10, scaleStep: 6 },
+  ],
+  [ChordQuality.Suspended2]: [
+    { func: 8, interval: 0, scaleStep: 0 },
+    { func: 3, interval: 2, scaleStep: 1 },
+    { func: 5, interval: 7, scaleStep: 4 },
+    { func: 7, interval: 10, scaleStep: 6 },
+  ],
+  [ChordQuality.Suspended4]: [
+    { func: 8, interval: 0, scaleStep: 0 },
+    { func: 3, interval: 5, scaleStep: 3 },
+    { func: 5, interval: 7, scaleStep: 4 },
+    { func: 7, interval: 10, scaleStep: 6 },
+  ],
+  [ChordQuality.Power]: [
+    { func: 8, interval: 0, scaleStep: 0 },
+    { func: 5, interval: 7, scaleStep: 4 },
+    { func: 8, interval: 12, scaleStep: 0 },
+    { func: 5, interval: 19, scaleStep: 4 },
+  ],
+  [ChordQuality.Add]: [
+    { func: 8, interval: 0, scaleStep: 0 },
+    { func: 3, interval: 4, scaleStep: 2 },
+    { func: 5, interval: 7, scaleStep: 4 },
+    { func: 7, interval: 11, scaleStep: 6 },
+  ],
+};
+
+/**
+ * Maps chord degree to its natural interval in semitones from the root.
+ */
+export const DEGREE_TO_INTERVAL: Record<number, number> = { 3: 4, 5: 7, 7: 11 };
+
+/**
+ * Default intervals for tension notes (9, 11, 13) in semitones from root.
+ */
+export const DEFAULT_TENSION_INTERVALS: Record<number, number> = {
+  9: 14,
+  11: 17,
+  13: 21,
+};
+
+/**
+ * Maps tension degrees to their scale step relative to root (0-indexed from root).
+ * 9th is scale step 1 (D in C), 11th is scale step 3 (F in C), 13th is scale step 5 (A in C).
+ * This is used for spelling tensions correctly (determining the letter name).
+ * Note: This is distinct from FUNC_FOR_TENSION which maps tensions to the chord
+ * function they substitute. The values 11->3 and 13->5 appear in both but for
+ * different reasons: here they indicate scale position, there they indicate
+ * substitution targets.
+ */
+export const TENSION_SCALE_STEPS: Record<number, number> = { 9: 1, 11: 3, 13: 5 };
+
+/**
+ * Maps chord tones to their corresponding tension substitution.
+ * Root (8) can be substituted by 9th, third (3) by 11th, fifth (5) by 13th.
+ */
+export const TENSION_FOR: Record<number, number> = { 8: 9, 3: 11, 5: 13 };
+
+/**
+ * Maps tensions back to the chord function they can substitute.
+ * 9th substitutes root (8), 11th substitutes 3rd (3), 13th substitutes 5th (5).
+ */
+export const FUNC_FOR_TENSION: Record<number, number> = { 9: 8, 11: 3, 13: 5 };
+
+/**
+ * Maps intervals (in semitones) to their scale steps (for spelling purposes).
+ * Scale steps are 0-indexed from the root: 0=root, 1=2nd, 2=3rd, etc.
+ */
+export const INTERVAL_TO_SCALE_STEP: Record<number, number> = {
+  0: 0, // root
+  2: 1, // sus2
+  3: 2, // minor 3rd
+  4: 2, // major 3rd
+  5: 3, // sus4
+  6: 4, // diminished 5th
+  7: 4, // perfect 5th
+  8: 4, // augmented 5th
+  9: 5, // 6th or diminished 7th
+  10: 6, // minor 7th
+  11: 6, // major 7th
+  14: 1, // 9th (octave + 2nd)
+  17: 3, // 11th (octave + 4th)
+  21: 5, // 13th (octave + 6th)
+};
+
+/**
+ * Maps intervals (in semitones) to their chord function.
+ * Chord functions: 8=root, 3=third, 5=fifth, 7=seventh, 9/11/13=tensions.
+ */
+export const INTERVAL_TO_FUNC: Record<number, ChordFunction> = {
+  0: 8, // root
+  2: 3, // sus2 acts as 3
+  3: 3, // minor 3rd
+  4: 3, // major 3rd
+  5: 3, // sus4 acts as 3
+  6: 5, // dim 5th
+  7: 5, // perfect 5th
+  8: 5, // aug 5th
+  9: 7, // 6th/dim 7th
+  10: 7, // minor 7th
+  11: 7, // major 7th
+  14: 9, // 9th
+  17: 11, // 11th
+  21: 13, // 13th
+};
+
+/**
+ * Converts a KeyRoot enum to its letter name.
+ */
+export function keyRootToLetter(root: KeyRoot): string {
+  const mapping: Record<KeyRoot, string> = {
+    [KeyRoot.C]: "C",
+    [KeyRoot.D]: "D",
+    [KeyRoot.E]: "E",
+    [KeyRoot.F]: "F",
+    [KeyRoot.G]: "G",
+    [KeyRoot.A]: "A",
+    [KeyRoot.B]: "B",
+    [KeyRoot.HP]: "A", // Highland Pipes default to A
+    [KeyRoot.Hp]: "A",
+  };
+  return mapping[root] ?? "C";
+}
+
+/**
+ * Converts a KeyAccidental enum to semitone adjustment.
+ */
+export function keyAccidentalToSemitones(acc: KeyAccidental | null): number {
+  if (acc === null) return 0;
+  switch (acc) {
+    case KeyAccidental.Sharp:
+      return 1;
+    case KeyAccidental.Flat:
+      return -1;
+    case KeyAccidental.None:
+      return 0;
+    default:
+      return 0;
+  }
+}
+
+/**
+ * Computes the interval specs for a parsed chord, including all 4 voices and alterations.
+ * Each spec includes the chord function, interval, and scale step.
+ * This harmonization module always produces 4-note 7th chords.
+ */
+export function getIntervals(chord: ParsedChord): IntervalSpec[] {
+  const specs = structuredClone(SEVENTH_CHORD_SPECS[chord.quality]);
+
+  // Apply alterations by finding the entry with matching function and adjusting interval
+  for (const alt of chord.alterations) {
+    // Map alteration degrees to chord functions
+    // Degrees 3, 5, 7 map to functions 3, 5, 7
+    // Tensions would be handled differently but we're building 4-note chords here
+    const targetFunc = alt.degree as ChordFunction;
+    const offset = alt.type === "sharp" ? 1 : -1;
+
+    const entry = specs.find((s) => s.func === targetFunc);
+    if (entry !== undefined) {
+      entry.interval += offset;
+    }
+  }
+
+  return specs;
+}
+
+/**
+ * Spells a note given a root letter index, root semitone, target scale step, and interval.
+ * The scale step determines the target letter (rootIndex + scaleStep in LETTERS),
+ * and the alteration is computed by comparing the interval to the natural distance.
+ *
+ * @param rootIndex Index of the root letter in LETTERS (0=C, 1=D, etc.)
+ * @param rootSemitone The semitone value of the root (accounting for its own alteration)
+ * @param scaleStep Number of scale steps from root to target (0=root, 1=second, 2=third, etc.)
+ * @param interval The interval in semitones from root to target note
+ * @returns The spelling of the target note
+ */
+export function spellFromRoot(rootIndex: number, rootSemitone: number, scaleStep: number, interval: number): Spelling {
+  const targetIndex = (rootIndex + scaleStep) % 7;
+  const targetLetter = LETTERS[targetIndex];
+  const naturalTargetSemitone = NATURAL_SEMITONES[targetLetter];
+
+  // The actual semitone we need
+  const targetSemitone = (rootSemitone + interval) % 12;
+
+  // Compute the alteration needed
+  let alteration = targetSemitone - naturalTargetSemitone;
+
+  // Normalize to range [-6, 5] to handle wrap-around (e.g., B to C)
+  if (alteration > 6) alteration -= 12;
+  if (alteration < -6) alteration += 12;
+
+  return { letter: targetLetter, alteration };
+}
+
+/**
+ * Builds a root-position 7th chord (4 notes) with correct spellings for each voice.
+ * The leadMidi parameter is used to determine the octave placement.
+ *
+ * @param chord The parsed chord structure
+ * @param leadMidi The MIDI pitch of the melody note (used for octave reference)
+ * @returns Array of 4 VoicedNotes: root, 3rd, 5th, 7th
+ */
+export function buildChord(chord: ParsedChord, leadMidi: number): VoicedNote[] {
+  const rootLetter = keyRootToLetter(chord.root);
+  const rootAccSemitones = keyAccidentalToSemitones(chord.rootAccidental);
+  const rootIndex = LETTERS.indexOf(rootLetter);
+  const rootNaturalSemitone = NATURAL_SEMITONES[rootLetter];
+  const rootSemitone = (rootNaturalSemitone + rootAccSemitones + 12) % 12;
+
+  // Compute base octave from leadMidi. We use (leadMidi - 1) to handle the octave
+  // boundary correctly: C notes should be grouped with the notes below them (B, Bb, etc.)
+  // so that a lead of C5 (72) builds the chord in the same octave as B4 (71).
+  const baseOctave = Math.floor((leadMidi - 1) / 12);
+  const rootMidi = baseOctave * 12 + rootSemitone;
+
+  // getIntervals now returns IntervalSpec[] with func, interval, and scaleStep
+  const specs = getIntervals(chord);
+
+  const result: VoicedNote[] = [];
+
+  for (const spec of specs) {
+    const spelling = spellFromRoot(rootIndex, rootSemitone, spec.scaleStep, spec.interval);
+    const midi = rootMidi + spec.interval;
+    result.push({ spelling, midi, func: spec.func });
+  }
+
+  return result;
+}
+
+// ============================================================================
+// Phase 2: Chord Tone Validation
+// ============================================================================
+
+/**
+ * Checks whether a MIDI pitch matches any chord tone by pitch class.
+ * The comparison ignores octave, so C4 (60) matches C5 (72).
+ *
+ * @param midi The MIDI pitch to check
+ * @param rootPosChord The root-position chord (array of VoicedNotes)
+ * @returns true if the pitch class matches any chord tone
+ */
+export function isChordTone(midi: number, rootPosChord: VoicedNote[]): boolean {
+  const leadPitchClass = midi % 12;
+  return rootPosChord.some((n) => n.midi % 12 === leadPitchClass);
+}
+
+/**
+ * Calculates which tensions (9, 11, 13) are available for a chord.
+ * A tension is unavailable (an "avoid note") if it forms a minor 2nd (1 semitone)
+ * above a guide tone (3rd or 7th).
+ *
+ * Tensions are derived from the chord scale based on the key signature.
+ *
+ * The function assumes rootPosChord has at least 4 notes: root, 3rd, 5th, 7th.
+ *
+ * @param rootPosChord The root-position 7th chord (array of 4 VoicedNotes)
+ * @param chord The parsed chord structure (used for alterations)
+ * @param key Key signature for deriving tensions from the chord scale
+ * @returns Map from tension degree (9, 11, or 13) to VoicedNote
+ */
+export function getAvailableTensions(rootPosChord: VoicedNote[], chord: ParsedChord, key: KeySignature): Map<9 | 11 | 13, VoicedNote> {
+  const thirdMidi = rootPosChord[1].midi;
+  const seventhMidi = rootPosChord[3].midi;
+  const root = rootPosChord[0];
+  const rootMidi = root.midi;
+  const rootIndex = LETTERS.indexOf(root.spelling.letter);
+  const rootSemitone = (NATURAL_SEMITONES[root.spelling.letter] + root.spelling.alteration + 12) % 12;
+
+  // Build tension intervals from the key's chord scale
+  const tensionIntervals: Record<number, number> = {};
+  for (const degree of [9, 11, 13] as const) {
+    const scaleStep = TENSION_SCALE_STEPS[degree];
+    const tensionLetter = LETTERS[(rootIndex + scaleStep) % 7];
+    const keyAccidental = getKeyAccidentalFor(tensionLetter, key);
+    const naturalTensionSemitone = NATURAL_SEMITONES[tensionLetter];
+    const adjustedTensionSemitone = (naturalTensionSemitone + keyAccidental + 12) % 12;
+    const intervalFromRoot = (adjustedTensionSemitone - rootSemitone + 12) % 12;
+    // Tensions are in the second octave, so we add 12
+    tensionIntervals[degree] = intervalFromRoot + 12;
+  }
+
+  // Apply explicit chord alterations (these override key-derived intervals)
+  for (const alt of chord.alterations) {
+    if (alt.degree === 9 || alt.degree === 11 || alt.degree === 13) {
+      const offset = alt.type === "sharp" ? 1 : -1;
+      tensionIntervals[alt.degree] += offset;
+    }
+  }
+
+  const available = new Map<9 | 11 | 13, VoicedNote>();
+
+  for (const degree of [9, 11, 13] as const) {
+    const interval = tensionIntervals[degree];
+    const tensionMidi = rootMidi + interval;
+
+    // Avoid note check: minor 2nd above 3rd or 7th
+    // We compute (tensionPitchClass - guideTonePitchClass + 12) % 12 === 1
+    const tensionPitchClass = tensionMidi % 12;
+    const thirdPitchClass = thirdMidi % 12;
+    const seventhPitchClass = seventhMidi % 12;
+    const rootPitchClass = rootMidi % 12;
+
+    const isMinor2ndAboveThird = (tensionPitchClass - thirdPitchClass + 12) % 12 === 1;
+    const isMinor2ndAboveSeventh = (tensionPitchClass - seventhPitchClass + 12) % 12 === 1;
+    // Minor 9th (minor 2nd above root) is an avoid note, except on dominant chords
+    const isMinor9th = degree === 9 && (tensionPitchClass - rootPitchClass + 12) % 12 === 1;
+    const isMinor9thAvoid = isMinor9th && chord.quality !== ChordQuality.Dominant;
+
+    const isAvoidNote = isMinor2ndAboveThird || isMinor2ndAboveSeventh || isMinor9thAvoid;
+
+    if (!isAvoidNote) {
+      const spelling = spellFromRoot(rootIndex, rootSemitone, TENSION_SCALE_STEPS[degree], interval % 12);
+      available.set(degree, { spelling, midi: tensionMidi, func: degree });
+    }
+  }
+
+  return available;
+}
+
+/**
+ * Checks whether a MIDI pitch is either a chord tone or an available tension.
+ * This determines if a melody note can be harmonized with the given chord.
+ *
+ * @param midi The MIDI pitch to check
+ * @param rootPosChord The root-position 7th chord
+ * @param chord The parsed chord structure
+ * @param key Key signature for deriving tensions from the chord scale
+ * @returns true if the pitch is a chord tone or available tension
+ */
+export function isChordScaleTone(midi: number, rootPosChord: VoicedNote[], chord: ParsedChord, key: KeySignature): boolean {
+  if (isChordTone(midi, rootPosChord)) {
+    return true;
+  }
+
+  const availableTensions = getAvailableTensions(rootPosChord, chord, key);
+  const leadPitchClass = midi % 12;
+
+  for (const tension of availableTensions.values()) {
+    if (tension.midi % 12 === leadPitchClass) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// ============================================================================
+// Phase 3: Voicing Algorithms
+// ============================================================================
+
+/**
+ * Inverts a chord so that the target MIDI pitch is on top.
+ * All other voices are placed below by dropping them by octaves as needed.
+ *
+ * @param rootPositionChord The root-position chord to invert
+ * @param targetMidi The MIDI pitch that should be the highest note
+ * @returns A new array of VoicedNotes with the target on top
+ */
+export function invert(rootPositionChord: VoicedNote[], targetMidi: number): VoicedNote[] {
+  const result = rootPositionChord.map((n) => ({ ...n }));
+
+  for (let i = 0; i < result.length; i++) {
+    while (result[i].midi > targetMidi) {
+      result[i].midi -= 12;
+    }
+  }
+
+  return result.sort((a, b) => a.midi - b.midi);
+}
+
+/**
+ * Drops the second-highest voice by one octave.
+ * This creates a more open voicing with wider spacing at the top.
+ * Mutates the input array. If the chord has fewer than 2 notes, returns it unchanged.
+ *
+ * @param voicedChord The chord to transform (mutated in place)
+ * @returns The same array, sorted by pitch
+ */
+export function drop2(voicedChord: VoicedNote[]): VoicedNote[] {
+  if (voicedChord.length < 2) {
+    return voicedChord;
+  }
+  voicedChord[voicedChord.length - 2].midi -= 12;
+  return voicedChord.sort((a, b) => a.midi - b.midi);
+}
+
+/**
+ * Drops the second and fourth-highest voices by one octave.
+ * This creates an even more open voicing, common in big band arrangements.
+ * Mutates the input array. If the chord has fewer than 4 notes, returns it unchanged.
+ *
+ * @param voicedChord The chord to transform (mutated in place)
+ * @returns The same array, sorted by pitch
+ */
+export function drop24(voicedChord: VoicedNote[]): VoicedNote[] {
+  if (voicedChord.length < 4) {
+    return voicedChord;
+  }
+  voicedChord[voicedChord.length - 2].midi -= 12;
+  voicedChord[voicedChord.length - 4].midi -= 12;
+  return voicedChord.sort((a, b) => a.midi - b.midi);
+}
+
+/**
+ * Drops the third-highest voice by one octave.
+ * This creates an alternative open voicing.
+ * Mutates the input array. If the chord has fewer than 3 notes, returns it unchanged.
+ *
+ * @param voicedChord The chord to transform (mutated in place)
+ * @returns The same array, sorted by pitch
+ */
+export function drop3(voicedChord: VoicedNote[]): VoicedNote[] {
+  if (voicedChord.length < 3) {
+    return voicedChord;
+  }
+  voicedChord[voicedChord.length - 3].midi -= 12;
+  return voicedChord.sort((a, b) => a.midi - b.midi);
+}
+
+/**
+ * Adjusts a tension MIDI pitch to be within half an octave of a target pitch.
+ * This keeps tension notes close to the chord tones they are substituting.
+ *
+ * @param tensionMidi The original MIDI pitch of the tension
+ * @param targetMidi The target pitch to stay close to
+ * @returns The adjusted MIDI pitch
+ */
+export function matchOctave(tensionMidi: number, targetMidi: number): number {
+  let result = tensionMidi;
+  while (result > targetMidi + 6) {
+    result -= 12;
+  }
+  while (result < targetMidi - 6) {
+    result += 12;
+  }
+  return result;
+}
+
+/**
+ * Replaces chord tone doublings with available tensions.
+ * Works from second-to-top downward, using the substitution rules:
+ * root -> 9th, 3rd -> 11th, 5th -> 13th.
+ *
+ * @param voicedChord The chord with possible doublings
+ * @param tensions Available tensions from getAvailableTensions
+ * @returns A new array of VoicedNotes with tensions substituted
+ */
+export function substituteTensions(voicedChord: VoicedNote[], tensions: Map<9 | 11 | 13, VoicedNote>): VoicedNote[] {
+  const result = voicedChord.map((n) => ({ ...n }));
+  const availableTensions = new Map(tensions);
+
+  for (let i = result.length - 2; i >= 0; i--) {
+    const note = result[i];
+
+    if (!(note.func in TENSION_FOR)) continue;
+
+    const tensionDegree = TENSION_FOR[note.func] as 9 | 11 | 13;
+    const tension = availableTensions.get(tensionDegree);
+    if (tension === undefined) continue;
+
+    result[i] = {
+      spelling: tension.spelling,
+      midi: matchOctave(tension.midi, note.midi),
+      func: tension.func,
+    };
+    availableTensions.delete(tensionDegree);
+  }
+
+  return result;
+}
+
+/**
+ * Builds a chord scale by combining chord tones and available tensions.
+ * The result is sorted by pitch class (not absolute pitch).
+ *
+ * @param rootPosChord The root-position chord
+ * @param tensions Available tensions from getAvailableTensions
+ * @returns Array of VoicedNotes sorted by pitch class
+ */
+export function buildChordScale(rootPosChord: VoicedNote[], tensions: Map<9 | 11 | 13, VoicedNote>): VoicedNote[] {
+  const scale = [...rootPosChord];
+  for (const tension of tensions.values()) {
+    scale.push(tension);
+  }
+  return scale.sort((a, b) => (a.midi % 12) - (b.midi % 12));
+}
+
+/**
+ * Builds a cluster voicing by inverting the chord scale to put the lead on top,
+ * then taking the top N voices. If the second-highest note is only 1 semitone
+ * below the lead, it is dropped an octave to avoid excessive density at the top.
+ *
+ * @param chordScale The chord scale from buildChordScale
+ * @param leadMidi The MIDI pitch to place on top
+ * @param voiceCount How many voices to include in the final voicing
+ * @returns Array of VoicedNotes representing the cluster voicing
+ */
+export function buildClusterVoicing(chordScale: VoicedNote[], leadMidi: number, voiceCount: number): VoicedNote[] {
+  let inverted = invert(chordScale, leadMidi);
+
+  // Drop note by octave if only 1 semitone below lead
+  if (inverted.length > 1) {
+    const top = inverted[inverted.length - 1].midi;
+    const secondTop = inverted[inverted.length - 2].midi;
+    if (top - secondTop === 1) {
+      inverted[inverted.length - 2].midi -= 12;
+      inverted = inverted.sort((a, b) => a.midi - b.midi);
+    }
+  }
+
+  // Take top voiceCount notes
+  return inverted.slice(-voiceCount);
+}
+
+// ============================================================================
+// Phase 4: Diatonic Chord Derivation
+// ============================================================================
+
+/**
+ * Diatonic seventh chord qualities for each scale degree in major scale.
+ * I=maj7, ii=m7, iii=m7, IV=maj7, V=7, vi=m7, vii°=m7b5
+ * Other modes rotate this array by their MODE_TO_OFFSET value.
+ */
+export const DIATONIC_QUALITIES: Array<{ quality: ChordQuality; extension: 7 }> = [
+  { quality: ChordQuality.Major, extension: 7 },
+  { quality: ChordQuality.Minor, extension: 7 },
+  { quality: ChordQuality.Minor, extension: 7 },
+  { quality: ChordQuality.Major, extension: 7 },
+  { quality: ChordQuality.Dominant, extension: 7 },
+  { quality: ChordQuality.Minor, extension: 7 },
+  { quality: ChordQuality.HalfDiminished, extension: 7 },
+];
+
+/**
+ * Finds the letter name that is a given interval below the input letter.
+ * The interval is measured in scale degrees: 1 = unison, 3 = third, 5 = fifth, 8 = octave/unison.
+ *
+ * @param letter The starting letter (must be A-G)
+ * @param interval The scale degree interval to descend (1-8)
+ * @returns The letter that is `interval` scale degrees below `letter`
+ */
+export function descendScale(letter: string, interval: number): string {
+  if (interval === 8) return letter;
+  const index = LETTERS.indexOf(letter);
+  return LETTERS[(index - (interval - 1) + 7) % 7];
+}
+
+/**
+ * Converts a letter string to its corresponding KeyRoot enum value.
+ * If the letter is invalid, returns KeyRoot.C as a fallback.
+ *
+ * @param letter A letter from A-G (uppercase only)
+ * @returns The corresponding KeyRoot enum value
+ */
+export function letterToKeyRoot(letter: string): KeyRoot {
+  const mapping: Record<string, KeyRoot> = {
+    C: KeyRoot.C,
+    D: KeyRoot.D,
+    E: KeyRoot.E,
+    F: KeyRoot.F,
+    G: KeyRoot.G,
+    A: KeyRoot.A,
+    B: KeyRoot.B,
+  };
+  const result = mapping[letter];
+  return result ?? KeyRoot.C;
+}
+
+// Re-export from pitchUtils for convenience
+export { accidentalTypeToSemitones };
+
+/**
+ * Converts a semitone adjustment to its corresponding KeyAccidental enum value.
+ * Because KeyAccidental has only Sharp, Flat, and None, double sharps/flats are clamped.
+ *
+ * @param semitones The semitone adjustment (-2 to +2)
+ * @returns The corresponding KeyAccidental
+ */
+export function semitonesToKeyAccidental(semitones: number): KeyAccidental {
+  if (semitones >= 1) return KeyAccidental.Sharp;
+  if (semitones <= -1) return KeyAccidental.Flat;
+  return KeyAccidental.None;
+}
+
+/**
+ * Returns the accidental (in semitones) that applies to a given letter in a key signature.
+ *
+ * @param letter The note letter (A-G)
+ * @param key The key signature
+ * @returns The semitone adjustment for this letter in the key (0 if natural)
+ */
+export function getKeyAccidentalFor(letter: string, key: KeySignature): number {
+  const acc = key.accidentals.find((a) => a.note === letter);
+  if (acc) return accidentalTypeToSemitones(acc.acc);
+  return 0;
+}
+
+/**
+ * Maps Mode enum values to their offset in the DIATONIC_QUALITIES array.
+ * Because Mode uses string values like "" for Major and "m" for Minor,
+ * we need to map these to the correct rotation offsets.
+ */
+export const MODE_TO_OFFSET: Record<Mode, number> = {
+  [Mode.Major]: 0,
+  [Mode.Dorian]: 1,
+  [Mode.Phrygian]: 2,
+  [Mode.Lydian]: 3,
+  [Mode.Mixolydian]: 4,
+  [Mode.Minor]: 5,
+  [Mode.Locrian]: 6,
+};
+
+/**
+ * Derives the diatonic seventh chord for a given root letter in a key signature.
+ * The chord quality is determined by the scale degree in the current mode.
+ *
+ * @param rootLetter The root letter of the chord (A-G)
+ * @param key The key signature (determines mode and accidentals)
+ * @returns A ParsedChord representing the diatonic 7th chord on that degree
+ */
+export function deriveDiatonicChord(rootLetter: string, key: KeySignature): ParsedChord {
+  const tonicLetter = keyRootToLetter(key.root);
+  const tonicIndex = LETTERS.indexOf(tonicLetter);
+  const rootIndex = LETTERS.indexOf(rootLetter);
+  const scaleDegree = (rootIndex - tonicIndex + 7) % 7;
+
+  const modeOffset = MODE_TO_OFFSET[key.mode] ?? 0;
+  const chordType = DIATONIC_QUALITIES[(scaleDegree + modeOffset) % 7];
+  const rootAccidentalSemitones = getKeyAccidentalFor(rootLetter, key);
+
+  return {
+    root: letterToKeyRoot(rootLetter),
+    rootAccidental: semitonesToKeyAccidental(rootAccidentalSemitones),
+    quality: chordType.quality,
+    qualityExplicit: true,
+    extension: chordType.extension,
+    alterations: [],
+    bass: null,
+  };
+}

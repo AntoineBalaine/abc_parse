@@ -1,21 +1,16 @@
 import { KeyRoot, KeyAccidental } from "../types/abcjs-ast";
 import { ChordQuality, ParsedChord, ChordAlteration } from "./types";
-
-/**
- * Interval patterns for each chord quality in semitones from the root.
- */
-const QUALITY_INTERVALS: Record<ChordQuality, number[]> = {
-  [ChordQuality.Major]: [0, 4, 7],
-  [ChordQuality.Minor]: [0, 3, 7],
-  [ChordQuality.Dominant]: [0, 4, 7, 10],
-  [ChordQuality.Diminished]: [0, 3, 6],
-  [ChordQuality.Augmented]: [0, 4, 8],
-  [ChordQuality.HalfDiminished]: [0, 3, 6, 10],
-  [ChordQuality.Suspended2]: [0, 2, 7],
-  [ChordQuality.Suspended4]: [0, 5, 7],
-  [ChordQuality.Power]: [0, 7],
-  [ChordQuality.Add]: [0, 4, 7],
-};
+import {
+  VoicedNote,
+  ChordFunction,
+  LETTERS,
+  QUALITY_INTERVALS,
+  INTERVAL_TO_SCALE_STEP,
+  INTERVAL_TO_FUNC,
+  keyRootToLetter,
+  keyAccidentalToSemitones,
+  spellFromRoot,
+} from "./harmonization";
 
 /**
  * Root note to semitone offset.
@@ -43,10 +38,7 @@ const DEGREE_TO_INTERVAL: Record<number, number> = {
   13: 21,
 };
 
-function addExtensionIntervals(
-  intervals: number[],
-  chord: ParsedChord
-): number[] {
+function addExtensionIntervals(intervals: number[], chord: ParsedChord): number[] {
   const ext = chord.extension;
   const quality = chord.quality;
 
@@ -119,10 +111,7 @@ function addExtensionIntervals(
   return intervals;
 }
 
-function applyAlteration(
-  intervals: number[],
-  alt: ChordAlteration
-): number[] {
+function applyAlteration(intervals: number[], alt: ChordAlteration): number[] {
   const degree = alt.degree;
 
   // Get the natural interval for this degree
@@ -131,8 +120,7 @@ function applyAlteration(
   }
 
   const naturalInterval = DEGREE_TO_INTERVAL[degree];
-  const alteredInterval =
-    alt.type === "sharp" ? naturalInterval + 1 : naturalInterval - 1;
+  const alteredInterval = alt.type === "sharp" ? naturalInterval + 1 : naturalInterval - 1;
 
   // Replace natural with altered if present, otherwise add altered
   const newIntervals: number[] = [];
@@ -155,18 +143,15 @@ function applyAlteration(
 }
 
 /**
- * Converts a ParsedChord to MIDI pitch numbers.
+ * Converts a ParsedChord to VoicedNotes with proper spellings.
  * Returns null if the chord root is not a standard note (A-G).
  * Highland Pipes roots are rejected.
  *
  * @param chord The parsed chord structure
  * @param baseOctave The base octave (default 4, where C4 = MIDI 60)
- * @returns Array of MIDI pitch numbers sorted ascending, or null for invalid roots
+ * @returns Array of VoicedNotes sorted ascending by MIDI, or null for invalid roots
  */
-export function chordToPitches(
-  chord: ParsedChord,
-  baseOctave: number = 4
-): number[] | null {
+export function chordToPitches(chord: ParsedChord, baseOctave: number = 4): VoicedNote[] | null {
   // Validate root is a standard note (reject Highland Pipes)
   const rootSemitoneBase = ROOT_TO_SEMITONE[chord.root];
   if (rootSemitoneBase === undefined) {
@@ -174,9 +159,10 @@ export function chordToPitches(
   }
 
   // Calculate root MIDI pitch
-  let rootSemitone = rootSemitoneBase;
-  if (chord.rootAccidental === KeyAccidental.Sharp) rootSemitone += 1;
-  if (chord.rootAccidental === KeyAccidental.Flat) rootSemitone -= 1;
+  const rootLetter = keyRootToLetter(chord.root);
+  const rootAccSemitones = keyAccidentalToSemitones(chord.rootAccidental);
+  const rootIndex = LETTERS.indexOf(rootLetter);
+  const rootSemitone = (rootSemitoneBase + rootAccSemitones + 12) % 12;
 
   // MIDI pitch formula: (octave + 1) * 12 + semitone
   const rootMidi = (baseOctave + 1) * 12 + rootSemitone;
@@ -192,8 +178,18 @@ export function chordToPitches(
     intervals = applyAlteration(intervals, alt);
   }
 
-  // Convert intervals to MIDI pitches
-  const pitches = intervals.map((interval) => rootMidi + interval);
+  // Sort intervals
+  intervals = intervals.sort((a, b) => a - b);
 
-  return pitches.sort((a, b) => a - b);
+  // Convert intervals to VoicedNotes with proper spellings
+  const result: VoicedNote[] = intervals.map((interval) => {
+    const scaleStep = INTERVAL_TO_SCALE_STEP[interval] ?? Math.floor(interval / 2) % 7;
+    const spelling = spellFromRoot(rootIndex, rootSemitone, scaleStep, interval % 12);
+    const midi = rootMidi + interval;
+    const func = INTERVAL_TO_FUNC[interval] ?? 8;
+
+    return { spelling, midi, func };
+  });
+
+  return result;
 }

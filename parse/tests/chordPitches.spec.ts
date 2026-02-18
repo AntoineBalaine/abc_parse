@@ -10,126 +10,128 @@ function getPitches(input: string, baseOctave: number = 4): number[] | null {
   if (!scanResult) return null;
   const parsed = parseChordSymbol(scanResult.tokens);
   if (!parsed) return null;
-  return chordToPitches(parsed, baseOctave);
+  const voiced = chordToPitches(parsed, baseOctave);
+  if (!voiced) return null;
+  return voiced.map((v) => v.midi);
 }
 
 describe("chordToPitches", () => {
   // Reference: C4 = MIDI 60
 
   describe("basic triads", () => {
-    it('C (C major) -> [60, 64, 67] (C, E, G)', () => {
+    it("C (C major) -> [60, 64, 67] (C, E, G)", () => {
       expect(getPitches("C")).to.deep.equal([60, 64, 67]);
     });
 
-    it('Cm (C minor) -> [60, 63, 67] (C, Eb, G)', () => {
+    it("Cm (C minor) -> [60, 63, 67] (C, Eb, G)", () => {
       expect(getPitches("Cm")).to.deep.equal([60, 63, 67]);
     });
 
-    it('Cdim (C diminished triad) -> [60, 63, 66] (C, Eb, Gb)', () => {
+    it("Cdim (C diminished triad) -> [60, 63, 66] (C, Eb, Gb)", () => {
       expect(getPitches("Cdim")).to.deep.equal([60, 63, 66]);
     });
 
-    it('Caug or C+ -> [60, 64, 68] (C, E, G#)', () => {
+    it("Caug or C+ -> [60, 64, 68] (C, E, G#)", () => {
       expect(getPitches("Caug")).to.deep.equal([60, 64, 68]);
       expect(getPitches("C+")).to.deep.equal([60, 64, 68]);
     });
   });
 
   describe("7th chords", () => {
-    it('C7 (C dominant 7) -> [60, 64, 67, 70] (C, E, G, Bb)', () => {
+    it("C7 (C dominant 7) -> [60, 64, 67, 70] (C, E, G, Bb)", () => {
       expect(getPitches("C7")).to.deep.equal([60, 64, 67, 70]);
     });
 
-    it('Cmaj7 (C major 7) -> [60, 64, 67, 71] (C, E, G, B)', () => {
+    it("Cmaj7 (C major 7) -> [60, 64, 67, 71] (C, E, G, B)", () => {
       expect(getPitches("Cmaj7")).to.deep.equal([60, 64, 67, 71]);
     });
 
-    it('Cm7 (C minor 7) -> [60, 63, 67, 70] (C, Eb, G, Bb)', () => {
+    it("Cm7 (C minor 7) -> [60, 63, 67, 70] (C, Eb, G, Bb)", () => {
       expect(getPitches("Cm7")).to.deep.equal([60, 63, 67, 70]);
     });
 
-    it('Cdim7 (C diminished 7) -> [60, 63, 66, 69] (C, Eb, Gb, Bbb/A)', () => {
+    it("Cdim7 (C diminished 7) -> [60, 63, 66, 69] (C, Eb, Gb, Bbb/A)", () => {
       // Uses diminished 7th (9 semitones)
       expect(getPitches("Cdim7")).to.deep.equal([60, 63, 66, 69]);
     });
 
-    it('Cø7 (C half-diminished) -> [60, 63, 66, 70] (C, Eb, Gb, Bb)', () => {
+    it("Cø7 (C half-diminished) -> [60, 63, 66, 70] (C, Eb, Gb, Bb)", () => {
       // Uses minor 7th (10 semitones)
       expect(getPitches("Cø7")).to.deep.equal([60, 63, 66, 70]);
     });
   });
 
   describe("alterations", () => {
-    it('Cm7b5 -> [60, 63, 66, 70] (same as half-diminished via alteration)', () => {
+    it("Cm7b5 -> [60, 63, 66, 70] (same as half-diminished via alteration)", () => {
       expect(getPitches("Cm7b5")).to.deep.equal([60, 63, 66, 70]);
     });
 
-    it('C7b9 -> [60, 64, 67, 70, 73] (C, E, G, Bb, Db)', () => {
+    it("C7b9 -> [60, 64, 67, 70, 73] (C, E, G, Bb, Db)", () => {
       expect(getPitches("C7b9")).to.deep.equal([60, 64, 67, 70, 73]);
     });
 
-    it('C7#9#11 -> [60, 64, 67, 70, 75, 78] (C, E, G, Bb, D#, F#)', () => {
+    it("C7#9#11 -> [60, 64, 67, 70, 75, 78] (C, E, G, Bb, D#, F#)", () => {
       expect(getPitches("C7#9#11")).to.deep.equal([60, 64, 67, 70, 75, 78]);
     });
 
-    it('Cmaj7#11 -> [60, 64, 67, 71, 78] (C, E, G, B, F#)', () => {
+    it("Cmaj7#11 -> [60, 64, 67, 71, 78] (C, E, G, B, F#)", () => {
       expect(getPitches("Cmaj7#11")).to.deep.equal([60, 64, 67, 71, 78]);
     });
   });
 
   describe("suspended chords", () => {
-    it('Csus2 -> [60, 62, 67] (C, D, G)', () => {
+    it("Csus2 -> [60, 62, 67] (C, D, G)", () => {
       expect(getPitches("Csus2")).to.deep.equal([60, 62, 67]);
     });
 
-    it('Csus4 -> [60, 65, 67] (C, F, G)', () => {
+    it("Csus4 -> [60, 65, 67] (C, F, G)", () => {
       expect(getPitches("Csus4")).to.deep.equal([60, 65, 67]);
     });
   });
 
   describe("power chords", () => {
-    it('C5 (power chord) -> [60, 67] (C, G)', () => {
+    it("C5 (power chord) -> [60, 67] (C, G)", () => {
       expect(getPitches("C5")).to.deep.equal([60, 67]);
     });
   });
 
   describe("6th chords", () => {
-    it('C6 -> [60, 64, 67, 69] (C, E, G, A)', () => {
+    it("C6 -> [60, 64, 67, 69] (C, E, G, A)", () => {
       expect(getPitches("C6")).to.deep.equal([60, 64, 67, 69]);
     });
 
-    it('C69 -> [60, 64, 67, 69, 74] (C, E, G, A, D)', () => {
+    it("C69 -> [60, 64, 67, 69, 74] (C, E, G, A, D)", () => {
       expect(getPitches("C69")).to.deep.equal([60, 64, 67, 69, 74]);
     });
   });
 
   describe("add chords", () => {
-    it('Cadd9 -> [60, 64, 67, 74] (C, E, G, D - no 7th)', () => {
+    it("Cadd9 -> [60, 64, 67, 74] (C, E, G, D - no 7th)", () => {
       expect(getPitches("Cadd9")).to.deep.equal([60, 64, 67, 74]);
     });
 
-    it('Cadd6 -> [60, 64, 67, 69] (C, E, G, A - same as C6)', () => {
+    it("Cadd6 -> [60, 64, 67, 69] (C, E, G, A - same as C6)", () => {
       expect(getPitches("Cadd6")).to.deep.equal([60, 64, 67, 69]);
     });
 
-    it('Cadd7 -> [60, 64, 67, 71] (C, E, G, B - triad plus major 7th)', () => {
+    it("Cadd7 -> [60, 64, 67, 71] (C, E, G, B - triad plus major 7th)", () => {
       // Note: produces same pitches as Cmaj7
       expect(getPitches("Cadd7")).to.deep.equal([60, 64, 67, 71]);
     });
   });
 
   describe("different roots", () => {
-    it('Am at octave 4 -> [69, 72, 76] (A4, C5, E5)', () => {
+    it("Am at octave 4 -> [69, 72, 76] (A4, C5, E5)", () => {
       expect(getPitches("Am", 4)).to.deep.equal([69, 72, 76]);
     });
 
-    it('Am at octave 3 -> [57, 60, 64] (A3, C4, E4)', () => {
+    it("Am at octave 3 -> [57, 60, 64] (A3, C4, E4)", () => {
       expect(getPitches("Am", 3)).to.deep.equal([57, 60, 64]);
     });
   });
 
   describe("Highland Pipes roots rejected", () => {
-    it('returns null for chord with KeyRoot.HP', () => {
+    it("returns null for chord with KeyRoot.HP", () => {
       const chord: ParsedChord = {
         root: KeyRoot.HP,
         rootAccidental: KeyAccidental.None,
@@ -142,7 +144,7 @@ describe("chordToPitches", () => {
       expect(chordToPitches(chord)).to.be.null;
     });
 
-    it('returns null for chord with KeyRoot.Hp', () => {
+    it("returns null for chord with KeyRoot.Hp", () => {
       const chord: ParsedChord = {
         root: KeyRoot.Hp,
         rootAccidental: KeyAccidental.None,
@@ -157,10 +159,7 @@ describe("chordToPitches", () => {
   });
 
   describe("properties", () => {
-    const testCases = [
-      "C", "Cm", "C7", "Cmaj7", "Cm7", "Cdim7", "Caug",
-      "Csus2", "Csus4", "C5", "C6", "Cadd9", "F#m7", "Bb",
-    ];
+    const testCases = ["C", "Cm", "C7", "Cmaj7", "Cm7", "Cdim7", "Caug", "Csus2", "Csus4", "C5", "C6", "Cadd9", "F#m7", "Bb"];
 
     for (const chord of testCases) {
       it(`pitches are in valid MIDI range for "${chord}"`, () => {
@@ -190,8 +189,13 @@ describe("chordToPitches", () => {
         const scanResult = scanChordSymbol(chord);
         const parsed = parseChordSymbol(scanResult!.tokens);
         const rootMap: Partial<Record<KeyRoot, number>> = {
-          [KeyRoot.C]: 0, [KeyRoot.D]: 2, [KeyRoot.E]: 4,
-          [KeyRoot.F]: 5, [KeyRoot.G]: 7, [KeyRoot.A]: 9, [KeyRoot.B]: 11,
+          [KeyRoot.C]: 0,
+          [KeyRoot.D]: 2,
+          [KeyRoot.E]: 4,
+          [KeyRoot.F]: 5,
+          [KeyRoot.G]: 7,
+          [KeyRoot.A]: 9,
+          [KeyRoot.B]: 11,
         };
         let expected = 60 + (rootMap[parsed!.root] ?? 0);
         if (parsed!.rootAccidental === KeyAccidental.Sharp) expected += 1;

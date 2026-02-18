@@ -1,10 +1,38 @@
 import { Selection } from "../selection";
-import { CSNode, TAGS, createCSNode } from "../csTree/types";
-import { ABCContext, Pitch, TT, Token, Note } from "abc-parser";
+import { CSNode, TAGS, createCSNode, isTokenNode, getTokenData } from "../csTree/types";
+import { ABCContext, Pitch, TT, Token, Note, Chord } from "abc-parser";
+import { KeySignature, AccidentalType } from "abc-parser/types/abcjs-ast";
+import { DocumentSnapshots, ContextSnapshot, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
 import { toAst } from "../csTree/toAst";
 import { fromAst } from "../csTree/fromAst";
 import { findNodesById } from "./types";
-import { findChildByTag, findParent, findTieChild, removeChild } from "./treeUtils";
+import { findChildByTag, findParent, findTieChild, removeChild, replaceChild } from "./treeUtils";
+import {
+  VoicedNote,
+  Spelling,
+  ParsedChord,
+  buildChord,
+  invert,
+  drop2,
+  drop24,
+  drop3,
+  isChordTone,
+  isChordScaleTone,
+  getAvailableTensions,
+  buildChordScale,
+  buildClusterVoicing,
+  substituteTensions,
+  descendScale,
+  deriveDiatonicChord,
+  getKeyAccidentalFor,
+  FUNC_FOR_TENSION,
+  NATURAL_SEMITONES,
+  LETTERS,
+  noteLetterToMidi,
+  semitonesToAccidentalString,
+  accidentalToSemitones,
+  accidentalTypeToSemitones,
+} from "abc-parser";
 
 const DIATONIC_LETTERS = "CDEFGAB";
 
@@ -35,12 +63,7 @@ export function pitchToDiatonic(pitch: Pitch): { index: number; octave: number }
 /**
  * Converts a diatonic index and octave back to an ABC Pitch AST node.
  */
-export function diatonicToPitch(
-  index: number,
-  octave: number,
-  alteration: Token | undefined,
-  ctx: ABCContext
-): Pitch {
+export function diatonicToPitch(index: number, octave: number, alteration: Token | undefined, ctx: ABCContext): Pitch {
   const normalizedIndex = ((index % 7) + 7) % 7;
   let letter = DIATONIC_LETTERS[normalizedIndex];
 
@@ -240,6 +263,420 @@ export function harmonize(selection: Selection, steps: number, ctx: ABCContext):
         wrapNoteInChord(selection.root, csNode, steps, ctx);
       } else if (csNode.tag === TAGS.Chord) {
         harmonizeChord(csNode, steps, ctx);
+      }
+    }
+  }
+
+  return selection;
+}
+
+// ============================================================================
+// Phase 5: Chord-Symbol-Based Harmonization
+// ============================================================================
+
+/**
+ * Voicing types supported by harmonizeVoicing.
+ * - close: Notes placed as close together as possible
+ * - drop2: Second-highest note dropped an octave
+ * - drop24: Second and fourth notes dropped an octave
+ * - drop3: Third-highest note dropped an octave
+ * - cluster: Notes placed in a cluster voicing from the chord scale
+ */
+export type VoicingType = "close" | "drop2" | "drop24" | "drop3" | "cluster";
+
+/**
+ * Snapshot of the harmonic context at a given position.
+ * Used for extractLead and related helper functions that need
+ * a simplified view of the musical context.
+ */
+export interface HarmonizeSnapshot {
+  key: KeySignature;
+  currentChord: ParsedChord | null;
+  measureAccidentals: Map<string, number>; // letter -> semitones
+}
+
+/**
+ * Converts a ContextSnapshot to a HarmonizeSnapshot.
+ * This allows harmonize functions to work with the ContextInterpreter's output.
+ */
+function contextToHarmonizeSnapshot(context: ContextSnapshot, localAccidentals: Map<string, number>): HarmonizeSnapshot {
+  const measureAccidentals = new Map<string, number>();
+
+  // First apply context accidentals (converted from AccidentalType to semitones)
+  if (context.measureAccidentals) {
+    for (const [letter, accType] of context.measureAccidentals) {
+      measureAccidentals.set(letter, accidentalTypeToSemitones(accType));
+    }
+  }
+
+  // Then overlay local accidentals (which are already in semitones)
+  for (const [letter, semitones] of localAccidentals) {
+    measureAccidentals.set(letter, semitones);
+  }
+
+  return {
+    key: context.key,
+    currentChord: context.currentChord ?? null,
+    measureAccidentals,
+  };
+}
+
+/**
+ * Gets the line and character position of a CSNode from its first token.
+ */
+function getNodeLineAndChar(node: CSNode): { line: number; char: number } {
+  let current: CSNode | null = node;
+  while (current !== null) {
+    if (isTokenNode(current)) {
+      const data = getTokenData(current);
+      return { line: data.line, char: data.position };
+    }
+    current = current.firstChild;
+  }
+  return { line: 0, char: 0 };
+}
+
+/**
+ * Finds a child token of the given type within a node.
+ */
+function findChildToken(node: CSNode, tokenType: TT): CSNode | null {
+  let current = node.firstChild;
+  while (current !== null) {
+    if (isTokenNode(current) && getTokenData(current).tokenType === tokenType) {
+      return current;
+    }
+    if (current.firstChild) {
+      const result = findChildToken(current, tokenType);
+      if (result) return result;
+    }
+    current = current.nextSibling;
+  }
+  return null;
+}
+
+/**
+ * Counts the octave markers in a lexeme.
+ * Returns positive for apostrophes (higher octave) and negative for commas (lower octave).
+ */
+function countOctaveMarkers(lexeme: string): number {
+  let count = 0;
+  for (const char of lexeme) {
+    if (char === "'") count++;
+    else if (char === ",") count--;
+  }
+  return count;
+}
+
+/**
+ * Gets the position (character offset) of a CSNode from its first token.
+ */
+function getNodePosition(node: CSNode): number {
+  let current: CSNode | null = node;
+  while (current !== null) {
+    if (isTokenNode(current)) {
+      return getTokenData(current).position;
+    }
+    current = current.firstChild;
+  }
+  return 0;
+}
+
+/**
+ * Extracts the letter name and MIDI pitch from a CSNode representing a note.
+ * The pitch is resolved using the snapshot's key signature and measure accidentals.
+ */
+export function extractLead(node: CSNode, snapshot: HarmonizeSnapshot): { letter: string; midi: number } | null {
+  const letterToken = findChildToken(node, TT.NOTE_LETTER);
+  if (!letterToken) return null;
+
+  const rawLetter = getTokenData(letterToken).lexeme;
+  const letter = rawLetter.toUpperCase();
+  const baseOctave = rawLetter === rawLetter.toLowerCase() ? 5 : 4;
+
+  const octaveToken = findChildToken(node, TT.OCTAVE);
+  const octaveOffset = octaveToken ? countOctaveMarkers(getTokenData(octaveToken).lexeme) : 0;
+  const octave = baseOctave + octaveOffset;
+
+  const baseMidi = noteLetterToMidi(letter, octave);
+
+  // Check for explicit accidental on the note
+  const accToken = findChildToken(node, TT.ACCIDENTAL);
+  let alteration = 0;
+  if (accToken) {
+    const accLexeme = getTokenData(accToken).lexeme;
+    alteration = accidentalToSemitones(accLexeme);
+  } else if (snapshot.measureAccidentals.has(letter)) {
+    alteration = snapshot.measureAccidentals.get(letter)!;
+  } else {
+    alteration = getKeyAccidentalFor(letter, snapshot.key);
+  }
+
+  const midi = baseMidi + alteration;
+  // MIDI pitch must be in valid range 0-127
+  if (midi < 0 || midi > 127) return null;
+  return { letter, midi };
+}
+
+/**
+ * Builds a map from letter to current alteration (combining key signature and measure accidentals).
+ */
+function buildCurrentPitchMap(snapshot: HarmonizeSnapshot): Map<string, number> {
+  const result = new Map<string, number>();
+  for (const letter of LETTERS) {
+    result.set(letter, getKeyAccidentalFor(letter, snapshot.key));
+  }
+  for (const [letter, alt] of snapshot.measureAccidentals) {
+    result.set(letter, alt);
+  }
+  return result;
+}
+
+/**
+ * Formats a note as an ABC string with accidental, letter, and octave markers.
+ */
+export function formatNote(accidental: string, letter: string, octave: number): string {
+  let noteLetter: string;
+  let markers: string;
+
+  if (octave <= 4) {
+    noteLetter = letter.toUpperCase();
+    markers = ",".repeat(4 - octave);
+  } else {
+    noteLetter = letter.toLowerCase();
+    markers = "'".repeat(octave - 5);
+  }
+
+  return accidental + noteLetter + markers;
+}
+
+/**
+ * Finds a tension in the tension map by its pitch class.
+ */
+function findTensionByPitchClass(tensions: Map<9 | 11 | 13, VoicedNote>, midi: number): VoicedNote | null {
+  const pitchClass = midi % 12;
+  for (const t of tensions.values()) {
+    if (t.midi % 12 === pitchClass) return t;
+  }
+  return null;
+}
+
+/**
+ * Converts a voiced chord to a Chord AST node.
+ * Returns the Chord AST and a list of spellings that need explicit accidentals.
+ */
+export function toChordAst(voicedChord: VoicedNote[], snapshot: HarmonizeSnapshot, ctx: ABCContext): { chordAst: Chord; newAccidentals: Spelling[] } {
+  const currentPitchMap = buildCurrentPitchMap(snapshot);
+  const notes: Note[] = [];
+  const newAccidentals: Spelling[] = [];
+
+  for (const note of voicedChord) {
+    // Calculate octave based on the letter's natural pitch, not just MIDI.
+    // This handles enharmonic spellings correctly (e.g., Cb5 = MIDI 71 should be lowercase _c).
+    const letterSemitone = NATURAL_SEMITONES[note.spelling.letter];
+    const octave = Math.round((note.midi - letterSemitone - 60) / 12) + 4;
+    const contextAlteration = currentPitchMap.get(note.spelling.letter) ?? 0;
+
+    let accidentalToken: Token | undefined;
+    if (note.spelling.alteration !== contextAlteration) {
+      const accString = semitonesToAccidentalString(note.spelling.alteration);
+      accidentalToken = new Token(TT.ACCIDENTAL, accString, ctx.generateId());
+      newAccidentals.push(note.spelling);
+    }
+
+    // Create note letter token
+    let noteLetter = note.spelling.letter;
+    let octaveToken: Token | undefined;
+
+    if (octave <= 4) {
+      noteLetter = noteLetter.toUpperCase();
+      if (4 - octave > 0) {
+        octaveToken = new Token(TT.OCTAVE, ",".repeat(4 - octave), ctx.generateId());
+      }
+    } else {
+      noteLetter = noteLetter.toLowerCase();
+      if (octave - 5 > 0) {
+        octaveToken = new Token(TT.OCTAVE, "'".repeat(octave - 5), ctx.generateId());
+      }
+    }
+
+    const noteLetterToken = new Token(TT.NOTE_LETTER, noteLetter, ctx.generateId());
+
+    const pitch = new Pitch(ctx.generateId(), {
+      alteration: accidentalToken,
+      noteLetter: noteLetterToken,
+      octave: octaveToken,
+    });
+
+    const noteAst = new Note(ctx.generateId(), pitch, undefined, undefined);
+    notes.push(noteAst);
+  }
+
+  const leftBracket = new Token(TT.CHRD_LEFT_BRKT, "[", ctx.generateId());
+  const rightBracket = new Token(TT.CHRD_RIGHT_BRKT, "]", ctx.generateId());
+
+  const chordAst = new Chord(ctx.generateId(), notes, undefined, undefined, leftBracket, rightBracket);
+
+  return { chordAst, newAccidentals };
+}
+
+/**
+ * Converts a voiced chord to a CSNode.
+ */
+export function toCSChord(voicedChord: VoicedNote[], snapshot: HarmonizeSnapshot, ctx: ABCContext): { csNode: CSNode; newAccidentals: Spelling[] } {
+  const { chordAst, newAccidentals } = toChordAst(voicedChord, snapshot, ctx);
+  const csNode = fromAst(chordAst, ctx);
+  return { csNode, newAccidentals };
+}
+
+/**
+ * Harmonizes selected notes using chord-symbol-based voicing.
+ *
+ * This transform builds full voiced chords from lead notes using:
+ * - The current chord symbol (from snapshots) or a diatonic chord derived from the key
+ * - Various voicing types (close, drop2, drop24, drop3, cluster)
+ * - Voice count (4, 5, or 6 voices)
+ *
+ * @param selection The selection containing note node IDs
+ * @param voicing The voicing type to use
+ * @param voiceCount Number of voices in the output (4, 5, or 6)
+ * @param degree Diatonic degree for chord derivation (null = use current chord symbol)
+ * @param ctx ABCContext for generating node IDs
+ * @param snapshots DocumentSnapshots from ContextInterpreter
+ * @returns The modified selection
+ */
+export function harmonizeVoicing(
+  selection: Selection,
+  voicing: VoicingType,
+  voiceCount: number,
+  degree: number | null,
+  ctx: ABCContext,
+  snapshots: DocumentSnapshots
+): Selection {
+  // Local state for tracking accidentals written during this transform pass.
+  // Because the transform may write multiple chords in sequence, we need to
+  // track the accidentals we've written so that subsequent notes in the same
+  // measure use the correct context.
+  const localAccidentals = new Map<string, number>();
+
+  for (const cursor of selection.cursors) {
+    const nodes = findNodesById(selection.root, cursor);
+    for (const csNode of nodes) {
+      if (csNode.tag !== TAGS.Note) continue;
+
+      const { line, char } = getNodeLineAndChar(csNode);
+      const pos = encode(line, char);
+      // Use pos - 1 to get the snapshot BEFORE this note, not the one created
+      // when this note was visited. This ensures we see the measure accidentals
+      // as they were before this note was processed.
+      const contextSnapshot = getSnapshotAtPosition(snapshots, pos - 1);
+      if (!contextSnapshot) continue;
+
+      const snapshot = contextToHarmonizeSnapshot(contextSnapshot, localAccidentals);
+
+      const lead = extractLead(csNode, snapshot);
+      if (!lead) continue;
+
+      // Resolve chord: either from current chord symbol or derive diatonically
+      let chord: ParsedChord | null;
+      if (degree === null) {
+        chord = snapshot.currentChord;
+        if (!chord) continue;
+      } else {
+        const rootLetter = descendScale(lead.letter, degree);
+        chord = deriveDiatonicChord(rootLetter, snapshot.key);
+      }
+
+      // Build root position chord with lead on top
+      const rootPosChord = buildChord(chord, lead.midi);
+      let tensions: Map<9 | 11 | 13, VoicedNote> | null = null;
+      let leadTension: VoicedNote | null = null;
+      let voicedChord: VoicedNote[];
+
+      if (voicing === "cluster") {
+        // Cluster voicing: build from chord scale
+        if (!isChordScaleTone(lead.midi, rootPosChord, chord, snapshot.key)) continue;
+        tensions = getAvailableTensions(rootPosChord, chord, snapshot.key);
+        const chordScale = buildChordScale(rootPosChord, tensions);
+        voicedChord = buildClusterVoicing(chordScale, lead.midi, voiceCount);
+      } else {
+        // Mechanical voicings (close, drop2, drop24, drop3)
+        if (voiceCount === 6) {
+          if (!isChordScaleTone(lead.midi, rootPosChord, chord, snapshot.key)) continue;
+          tensions = getAvailableTensions(rootPosChord, chord, snapshot.key);
+          leadTension = findTensionByPitchClass(tensions, lead.midi);
+          voicedChord = invert(rootPosChord, lead.midi);
+          if (leadTension) {
+            voicedChord.push({ ...leadTension, midi: lead.midi });
+          }
+        } else if (voiceCount === 5) {
+          if (!isChordScaleTone(lead.midi, rootPosChord, chord, snapshot.key)) continue;
+          tensions = getAvailableTensions(rootPosChord, chord, snapshot.key);
+          leadTension = findTensionByPitchClass(tensions, lead.midi);
+
+          if (leadTension) {
+            const substitutedFunc = FUNC_FOR_TENSION[leadTension.func as 9 | 11 | 13];
+            const filteredChord = rootPosChord.filter((n) => n.func !== substitutedFunc);
+            voicedChord = invert(filteredChord, lead.midi);
+            voicedChord.push({ ...leadTension, midi: lead.midi });
+          } else {
+            voicedChord = invert(rootPosChord, lead.midi);
+          }
+        } else {
+          // voiceCount === 4
+          if (!isChordTone(lead.midi, rootPosChord)) continue;
+          voicedChord = invert(rootPosChord, lead.midi);
+        }
+
+        // Apply drop voicing
+        switch (voicing) {
+          case "drop2":
+            voicedChord = drop2(voicedChord);
+            break;
+          case "drop24":
+            voicedChord = drop24(voicedChord);
+            break;
+          case "drop3":
+            voicedChord = drop3(voicedChord);
+            break;
+        }
+
+        // Handle 5-voice doubling: double the lead an octave below
+        if (voiceCount === 5) {
+          const leadNote = voicedChord[voicedChord.length - 1];
+          voicedChord = [{ ...leadNote, midi: leadNote.midi - 12 }, ...voicedChord];
+        }
+
+        // Handle 6-voice doubling and tension substitution
+        if (voiceCount === 6) {
+          if (voicedChord.length === 5) {
+            // Lead was a tension
+            const leadNote = voicedChord[voicedChord.length - 1];
+            voicedChord = [{ ...leadNote, midi: leadNote.midi - 12 }, ...voicedChord];
+            voicedChord.sort((a, b) => a.midi - b.midi);
+            tensions!.delete(leadTension!.func as 9 | 11 | 13);
+            voicedChord = substituteTensions(voicedChord, tensions!);
+          } else {
+            // Lead was a chord tone
+            const leadNote = voicedChord[voicedChord.length - 1];
+            const v2 = voicedChord[voicedChord.length - 2];
+            voicedChord = [{ ...v2, midi: v2.midi - 12 }, { ...leadNote, midi: leadNote.midi - 12 }, ...voicedChord];
+            voicedChord.sort((a, b) => a.midi - b.midi);
+            voicedChord = substituteTensions(voicedChord, tensions!);
+          }
+        }
+      }
+
+      // Convert to CSNode and replace the original note
+      const { csNode: chordCsNode, newAccidentals } = toCSChord(voicedChord, snapshot, ctx);
+
+      const parentResult = findParent(selection.root, csNode);
+      if (parentResult) {
+        replaceChild(parentResult.parent, parentResult.prev, csNode, chordCsNode);
+      }
+
+      // Update local accidentals for subsequent notes in the same transform pass
+      for (const spelling of newAccidentals) {
+        localAccidentals.set(spelling.letter, spelling.alteration);
       }
     }
   }

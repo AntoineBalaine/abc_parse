@@ -26,7 +26,20 @@ export { filter } from "./filter";
 export { pitch } from "./pitch";
 export { length } from "./length";
 export { addVoice, VoiceParams } from "./addVoice";
-export { harmonize, pitchToDiatonic, diatonicToPitch, stepDiatonic } from "./harmonize";
+export {
+  harmonize,
+  pitchToDiatonic,
+  diatonicToPitch,
+  stepDiatonic,
+  // Phase 5: Chord-symbol-based harmonization
+  VoicingType,
+  HarmonizeSnapshot,
+  extractLead,
+  formatNote,
+  toChordAst,
+  toCSChord,
+  harmonizeVoicing,
+} from "./harmonize";
 export { consolidateRests } from "./consolidateRests";
 export { consolidateTiedNotes } from "./consolidateTiedNotes";
 export { isPowerOfTwo, isPowerOfTwoRational, nextMeaningfulSibling } from "./consolidationUtils";

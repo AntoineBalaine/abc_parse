@@ -2,10 +2,23 @@ import { expect } from "chai";
 import { describe, it } from "mocha";
 import { toCSTreeWithContext, findByTag, formatSelection } from "../../editor/tests/helpers";
 import { TAGS, Selection, fromAst } from "editor";
-import { lookupTransform, CONTEXT_AWARE_TRANSFORMS, interpretContext } from "./transformLookup";
+import { lookupTransform, CONTEXT_AWARE_TRANSFORMS } from "./transformLookup";
 import { collectSurvivingCursorIds } from "./cursorPreservation";
 import { serializeCSTree } from "./csTreeSerializer";
-import { Scanner, parse, ABCContext, createRational } from "abc-parser";
+import { Scanner, parse, ABCContext, createRational, SemanticAnalyzer } from "abc-parser";
+import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
+import { File_structure } from "abc-parser/types/Expr2";
+
+/**
+ * Test helper that mirrors production behavior (AbcDocument.getSnapshots).
+ * Runs the semantic analyzer and context interpreter to get DocumentSnapshots.
+ */
+function interpretContext(ast: File_structure, ctx: ABCContext, snapshotAccidentals: boolean = false): DocumentSnapshots {
+  const analyzer = new SemanticAnalyzer(ctx);
+  ast.accept(analyzer);
+  const interpreter = new ContextInterpreter();
+  return interpreter.interpret(ast, analyzer.data, ctx, { snapshotAccidentals });
+}
 
 /**
  * Simulates the full applyTransform flow without the LSP layer.

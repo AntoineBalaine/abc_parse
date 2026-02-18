@@ -215,6 +215,42 @@ export function registerTransformCommands(context: vscode.ExtensionContext, clie
   for (const [commandId, steps] of harmonizePresets) {
     context.subscriptions.push(vscode.commands.registerCommand(commandId, () => applyTransform(client, "harmonize", [steps], statusBarItem)));
   }
+
+  // Chord-symbol-based voicing commands
+  const voicingPresets: Array<[string, string]> = [
+    ["abc.harmonizeClose", "close"],
+    ["abc.harmonizeDrop2", "drop2"],
+    ["abc.harmonizeDrop24", "drop24"],
+    ["abc.harmonizeDrop3", "drop3"],
+    ["abc.harmonizeCluster", "cluster"],
+  ];
+
+  for (const [commandId, voicing] of voicingPresets) {
+    context.subscriptions.push(vscode.commands.registerCommand(commandId, () => applyTransform(client, "harmonizeVoicing", [voicing, 4, null], statusBarItem)));
+  }
+
+  // Chord-symbol voicing with voice count prompt
+  context.subscriptions.push(
+    vscode.commands.registerCommand("abc.harmonizeVoicing", async () => {
+      const voicing = await vscode.window.showQuickPick(["close", "drop2", "drop24", "drop3", "cluster"], {
+        placeHolder: "Select voicing type",
+      });
+      if (!voicing) return;
+
+      const voiceCountInput = await vscode.window.showInputBox({
+        prompt: "Number of voices (4, 5, or 6)",
+        value: "4",
+        validateInput: (v) => {
+          const n = Number(v);
+          if (isNaN(n) || ![4, 5, 6].includes(n)) return "Must be 4, 5, or 6";
+          return null;
+        },
+      });
+      if (voiceCountInput === undefined) return;
+
+      await applyTransform(client, "harmonizeVoicing", [voicing, Number(voiceCountInput), null], statusBarItem);
+    })
+  );
 }
 
 async function applyTransform(client: LanguageClient, transform: string, args: unknown[], statusBarItem: vscode.StatusBarItem): Promise<void> {

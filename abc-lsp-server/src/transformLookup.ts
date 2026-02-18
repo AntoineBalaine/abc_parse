@@ -5,8 +5,7 @@
  * Each transform operates on a Selection and returns a modified Selection.
  *
  * Context-aware transforms (like toSlashNotation) require additional context
- * from the ContextInterpreter. These are identified by CONTEXT_AWARE_TRANSFORMS
- * and their context is computed via interpretContext.
+ * from the ContextInterpreter. These are identified by CONTEXT_AWARE_TRANSFORMS.
  */
 
 import {
@@ -22,6 +21,8 @@ import {
   VoiceParams,
   insertVoiceLine,
   harmonize,
+  harmonizeVoicing,
+  VoicingType,
   consolidateRests,
   voiceInfoLineToInline,
   voiceInlineToInfoLine,
@@ -36,8 +37,8 @@ import {
   legato,
   toSlashNotation,
 } from "editor";
-import { ABCContext, IRational, SemanticAnalyzer, File_structure } from "abc-parser";
-import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
+import { ABCContext, IRational } from "abc-parser";
+import { DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
 
 export type TransformFn = (selection: Selection, ctx: ABCContext, ...args: unknown[]) => Selection;
 
@@ -65,6 +66,9 @@ const TRANSFORM_MAP: Record<string, TransformFn> = {
   divideRhythm: (sel, ctx, ...args) => divideRhythm(sel, args[0] !== undefined ? Number(args[0]) : 2, ctx),
   legato: (sel, ctx) => legato(sel, ctx),
   toSlashNotation: (sel, ctx, ...args) => toSlashNotation(sel, ctx, args[0] as DocumentSnapshots),
+  // For context-aware transforms, socketHandler prepends snapshots at args[0]
+  harmonizeVoicing: (sel, ctx, ...args) =>
+    harmonizeVoicing(sel, args[1] as VoicingType, args[2] as number, args[3] as number | null, ctx, args[0] as DocumentSnapshots),
 };
 
 export function lookupTransform(name: string): TransformFn | null {
@@ -79,15 +83,4 @@ export function lookupTransform(name: string): TransformFn | null {
  * Transforms that require DocumentSnapshots from ContextInterpreter.
  * These transforms need musical context like meter, note length, and clef.
  */
-export const CONTEXT_AWARE_TRANSFORMS = new Set(["toSlashNotation"]);
-
-/**
- * Runs the semantic analyzer and context interpreter to get DocumentSnapshots.
- */
-export function interpretContext(ast: File_structure, ctx: ABCContext): DocumentSnapshots {
-  const analyzer = new SemanticAnalyzer(ctx);
-  ast.accept(analyzer);
-
-  const interpreter = new ContextInterpreter();
-  return interpreter.interpret(ast, analyzer.data, ctx);
-}
+export const CONTEXT_AWARE_TRANSFORMS = new Set(["toSlashNotation", "harmonizeVoicing"]);

@@ -16,14 +16,22 @@ export class AbcDocument {
   public ctx = new ABCContext();
   public rangeVisitor = new RangeVisitor();
   public snapshots: DocumentSnapshots | null = null;
+  public snapshotsHaveAccidentals: boolean = false;
   constructor(public document: TextDocument) {}
 
   /**
    * Gets the document snapshots, computing them lazily on first access.
    * Returns null if the AST is not available (parse failure).
+   *
+   * @param snapshotAccidentals When true, snapshots include measure accidentals.
+   *   This is expensive and should only be enabled for transforms that need it
+   *   (e.g., harmonizeVoicing). Default: false.
    */
-  getSnapshots(): DocumentSnapshots | null {
-    if (this.snapshots !== null) {
+  getSnapshots(snapshotAccidentals: boolean = false): DocumentSnapshots | null {
+    // Snapshots with accidentals are a superset, so they serve both cases.
+    // If we need accidentals but don't have them, we upgrade the cache.
+    const needsRecompute = this.snapshots === null || (snapshotAccidentals && !this.snapshotsHaveAccidentals);
+    if (!needsRecompute) {
       return this.snapshots;
     }
     if (!this.AST) {
@@ -32,7 +40,8 @@ export class AbcDocument {
     const analyzer = new SemanticAnalyzer(this.ctx);
     this.AST.accept(analyzer);
     const interpreter = new ContextInterpreter();
-    this.snapshots = interpreter.interpret(this.AST, analyzer.data, this.ctx);
+    this.snapshots = interpreter.interpret(this.AST, analyzer.data, this.ctx, { snapshotAccidentals });
+    this.snapshotsHaveAccidentals = snapshotAccidentals;
     return this.snapshots;
   }
 
@@ -52,6 +61,7 @@ export class AbcDocument {
     this.diagnostics = [];
     this.tokens = [];
     this.snapshots = null;
+    this.snapshotsHaveAccidentals = false;
 
     this.tokens = Scanner(source, this.ctx);
     this.AST = parse(this.tokens, this.ctx);
