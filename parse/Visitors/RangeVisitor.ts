@@ -227,8 +227,14 @@ export class RangeVisitor implements Visitor<Range> {
   }
   visitYSpacerExpr(expr: YSPACER): Range {
     return [expr.ySpacer, expr.rhythm]
-      .filter((e): e is Token => !!e)
-      .map((e) => getTokenRange(e))
+      .filter((e): e is Token | Rhythm => !!e)
+      .map((e) => {
+        if (isToken(e)) {
+          return getTokenRange(e);
+        } else {
+          return e.accept(this);
+        }
+      })
       .reduce(reduceRanges, EMPTY_RANGE);
   }
   visitBeamExpr(expr: Beam): Range {
