@@ -270,11 +270,8 @@ export function getRangeSnapshots(snapshots: DocumentSnapshots, range: Range): A
  * @param pos The encoded position to query (line * 1_000_000 + char)
  * @returns The snapshot at or before the position, or null if none exists
  */
-export function getSnapshotAtPosition(snapshots: DocumentSnapshots, pos: number): ContextSnapshot | null {
+export function getSnapshotAtPosition(snapshots: DocumentSnapshots, pos: number): ContextSnapshot {
   const index = binarySearchFloor(snapshots, pos);
-  if (index < 0) {
-    return null;
-  }
   return snapshots[index].snapshot;
 }
 

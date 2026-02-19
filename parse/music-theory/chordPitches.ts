@@ -1,9 +1,8 @@
 import { KeyRoot, KeyAccidental } from "../types/abcjs-ast";
 import { ChordQuality, ParsedChord, ChordAlteration } from "./types";
+import { LETTERS } from "./constants";
 import {
   VoicedNote,
-  ChordFunction,
-  LETTERS,
   QUALITY_INTERVALS,
   INTERVAL_TO_SCALE_STEP,
   INTERVAL_TO_FUNC,

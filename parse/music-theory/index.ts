@@ -32,7 +32,7 @@ export function analyzeChordSymbol(text: string, baseOctave: number = 4): ChordI
 export { scanChordSymbol, ScanResult } from "./scanChordSymbol";
 export { parseChordSymbol } from "./parseChordSymbol";
 export { chordToPitches } from "./chordPitches";
-export { ParsedChord, ChordQuality, ChordAlteration, ChordTT, ChordToken } from "./types";
+export { ParsedChord, ChordQuality, ChordAlteration, ChordTT, ChordToken, NoteSpellings } from "./types";
 
 // Re-export shared key utilities for external consumers
 export { parseKeyRoot, parseKeyAccidental } from "../utils/keyUtils";
@@ -46,18 +46,22 @@ export {
   accidentalToSemitones,
   accidentalTypeToSemitones,
   semitonesToAccidentalString,
+  semitonesToAccidentalType,
   getKeyAccidentalForPitch,
   midiToNaturalNote,
+  spellPitch,
+  chromaticSpelling,
+  computeOctaveFromPitch,
 } from "./pitchUtils";
+
+// Re-export constants
+export { Spelling, LETTERS, NATURAL_SEMITONES } from "./constants";
 
 // Re-export harmonization types and functions
 export {
-  Spelling,
   VoicedNote,
   ChordFunction,
   IntervalSpec,
-  NATURAL_SEMITONES,
-  LETTERS,
   QUALITY_INTERVALS,
   SEVENTH_CHORD_SPECS,
   DEGREE_TO_INTERVAL,
@@ -91,6 +95,7 @@ export {
   letterToKeyRoot,
   semitonesToKeyAccidental,
   getKeyAccidentalFor,
+  mergeAccidentals,
   MODE_TO_OFFSET,
   deriveDiatonicChord,
 } from "./harmonization";

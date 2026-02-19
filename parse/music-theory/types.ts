@@ -65,3 +65,9 @@ export interface ChordToken {
   type: ChordTT;
   lexeme: string;
 }
+
+/**
+ * Note spellings map: for each letter (C-B), the current semitone alteration.
+ * Used to represent key signature + measure accidentals combined.
+ */
+export type NoteSpellings = Record<string, number>;

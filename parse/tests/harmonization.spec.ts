@@ -2,12 +2,10 @@ import { expect } from "chai";
 import fc from "fast-check";
 import { KeyRoot, KeyAccidental } from "../types/abcjs-ast";
 import { ChordQuality, ParsedChord } from "../music-theory/types";
+import { Spelling, NATURAL_SEMITONES, LETTERS } from "../music-theory/constants";
 import {
-  Spelling,
   VoicedNote,
   ChordFunction,
-  NATURAL_SEMITONES,
-  LETTERS,
   spellFromRoot,
   getIntervals,
   buildChord,

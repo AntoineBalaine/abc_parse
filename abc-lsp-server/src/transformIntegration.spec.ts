@@ -48,14 +48,24 @@ describe("Transform integration (simulated LSP flow)", () => {
   describe("transpose", () => {
     it("transposes all notes and preserves cursor state", () => {
       const source = "X:1\nK:C\nCDE|\n";
-      const { root } = toCSTreeWithContext(source);
+      const ctx = new ABCContext();
+      const tokens = Scanner(source, ctx);
+      const ast = parse(tokens, ctx);
+      const root = fromAst(ast, ctx);
+
       const notes = findByTag(root, TAGS.Note);
-      const cursorIds = notes.map((n) => n.id);
+      const noteIds = new Set(notes.map((n) => n.id));
+      const selection: Selection = { root, cursors: [noteIds] };
 
-      const result = simulateApplyTransform(source, cursorIds, "transpose", [2]);
+      // transpose is context-aware, so we need to pass snapshots
+      const snapshots = interpretContext(ast, ctx, true);
+      const transformFn = lookupTransform("transpose");
+      // args[0] = snapshots, args[1] = semitones (server prepends snapshots)
+      const newSelection = transformFn!(selection, ctx, snapshots, 2);
 
-      expect(result.newText).to.equal("X:1\nK:C\nDE^F|\n");
-      expect(result.survivingIds.length).to.equal(3);
+      const newText = serializeCSTree(newSelection.root, ctx);
+      expect(newText).to.equal("X:1\nK:C\nDE^F|\n");
+      expect(collectSurvivingCursorIds(newSelection).length).to.equal(3);
     });
   });
 
@@ -255,7 +265,7 @@ describe("Transform integration (simulated LSP flow)", () => {
   describe("toSlashNotation", () => {
     it("is recognized as a context-aware transform", () => {
       expect(CONTEXT_AWARE_TRANSFORMS.has("toSlashNotation")).to.be.true;
-      expect(CONTEXT_AWARE_TRANSFORMS.has("transpose")).to.be.false;
+      expect(CONTEXT_AWARE_TRANSFORMS.has("transpose")).to.be.true;
     });
 
     it("converts quarter notes to slash notation in 4/4 (treble clef uses B)", () => {

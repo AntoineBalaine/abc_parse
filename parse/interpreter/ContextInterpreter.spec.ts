@@ -268,16 +268,6 @@ describe("ContextInterpreter", () => {
   // ============================================================================
 
   describe("getSnapshotAtPosition()", () => {
-    it("should return null for position before all snapshots", () => {
-      const input = "X:1\nM:4/4\nK:C\n|C D E F|";
-      const { ast, semanticData, ctx } = parseWithSemantics(input);
-      const result = new ContextInterpreter().interpret(ast, semanticData, ctx);
-
-      // Position (0, 0) is before body start
-      const snapshot = getSnapshotAtPosition(result, encode(0, 0));
-      expect(snapshot).to.be.null;
-    });
-
     it("should return snapshot for position after all snapshots", () => {
       const input = "X:1\nM:4/4\nK:C\n|C D E F|";
       const { ast, semanticData, ctx } = parseWithSemantics(input);

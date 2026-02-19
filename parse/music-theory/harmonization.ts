@@ -1,15 +1,7 @@
 import { KeyRoot, KeyAccidental, KeySignature, AccidentalType, Mode } from "../types/abcjs-ast";
-import { ChordQuality, ParsedChord } from "./types";
+import { ChordQuality, ParsedChord, NoteSpellings } from "./types";
 import { accidentalTypeToSemitones } from "./pitchUtils";
-
-/**
- * Spelling represents how a note is written, independent of its MIDI pitch.
- * For example, F# and Gb have the same pitch but different spellings.
- */
-export interface Spelling {
-  letter: string; // "C", "D", "E", "F", "G", "A", "B"
-  alteration: number; // semitones: -2 (double flat) to +2 (double sharp)
-}
+import { Spelling, LETTERS, NATURAL_SEMITONES, SHARP_ORDER, FLAT_ORDER, MAJOR_KEY_SHARPS, MODE_FIFTH_OFFSET } from "./constants";
 
 /**
  * VoicedNote combines a spelling with its MIDI pitch and chord function.
@@ -37,23 +29,6 @@ export interface IntervalSpec {
   scaleStep: number;
 }
 
-/**
- * Maps note letters to their natural semitone offset from C.
- */
-export const NATURAL_SEMITONES: Record<string, number> = {
-  C: 0,
-  D: 2,
-  E: 4,
-  F: 5,
-  G: 7,
-  A: 9,
-  B: 11,
-};
-
-/**
- * Note letters in scale order starting from C.
- */
-export const LETTERS: string[] = ["C", "D", "E", "F", "G", "A", "B"];
 
 /**
  * Basic interval patterns for chord qualities (triads only, without 7th).
@@ -700,15 +675,67 @@ export function semitonesToKeyAccidental(semitones: number): KeyAccidental {
 
 /**
  * Returns the accidental (in semitones) that applies to a given letter in a key signature.
+ * Derives the accidentals from the key root, accidental, and mode if the accidentals array is empty.
  *
  * @param letter The note letter (A-G)
  * @param key The key signature
  * @returns The semitone adjustment for this letter in the key (0 if natural)
  */
 export function getKeyAccidentalFor(letter: string, key: KeySignature): number {
-  const acc = key.accidentals.find((a) => a.note === letter);
-  if (acc) return accidentalTypeToSemitones(acc.acc);
+  // First check if accidentals array is populated (explicit accidentals)
+  if (key.accidentals.length > 0) {
+    const acc = key.accidentals.find((a) => a.note.toUpperCase() === letter.toUpperCase());
+    if (acc) return accidentalTypeToSemitones(acc.acc);
+    return 0;
+  }
+
+  // Derive accidentals from key root, accidental, and mode
+  const rootKey = key.root + (key.acc === KeyAccidental.Sharp ? "#" : key.acc === KeyAccidental.Flat ? "b" : "");
+  const baseSharps = MAJOR_KEY_SHARPS[rootKey];
+  if (baseSharps === undefined) return 0; // Unknown key (e.g., HP)
+
+  const modeOffset = MODE_FIFTH_OFFSET[key.mode] ?? 0;
+  const sharps = baseSharps + modeOffset;
+
+  const upperLetter = letter.toUpperCase();
+
+  if (sharps > 0) {
+    for (let i = 0; i < Math.min(sharps, 7); i++) {
+      if (SHARP_ORDER[i] === upperLetter) return 1;
+    }
+  } else if (sharps < 0) {
+    for (let i = 0; i < Math.min(-sharps, 7); i++) {
+      if (FLAT_ORDER[i] === upperLetter) return -1;
+    }
+  }
+
   return 0;
+}
+
+/**
+ * Merges key signature accidentals with measure accidentals.
+ * Measure accidentals take precedence over key signature.
+ *
+ * @param key The key signature
+ * @param measureAccidentals Map of letter to semitone alteration (already converted from AccidentalType)
+ * @returns Object with { letter: semitoneAlteration } for all seven letters
+ */
+export function mergeAccidentals(key: KeySignature, measureAccidentals: Map<string, number> | null): NoteSpellings {
+  const result: NoteSpellings = { C: 0, D: 0, E: 0, F: 0, G: 0, A: 0, B: 0 };
+
+  // Apply key signature
+  for (const letter of LETTERS) {
+    result[letter] = getKeyAccidentalFor(letter, key);
+  }
+
+  // Overlay measure accidentals (already in semitones)
+  if (measureAccidentals) {
+    for (const [letter, semitones] of measureAccidentals) {
+      result[letter] = semitones;
+    }
+  }
+
+  return result;
 }
 
 /**

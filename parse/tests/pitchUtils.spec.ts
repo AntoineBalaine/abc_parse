@@ -8,9 +8,17 @@ import {
   accidentalToSemitones,
   accidentalTypeToSemitones,
   semitonesToAccidentalString,
+  semitonesToAccidentalType,
   getKeyAccidentalForPitch,
   midiToNaturalNote,
+  spellPitch,
+  chromaticSpelling,
+  computeOctaveFromPitch,
 } from "../music-theory/pitchUtils";
+import { NoteSpellings } from "../music-theory/types";
+import { mergeAccidentals } from "../music-theory/harmonization";
+import { NATURAL_SEMITONES } from "../music-theory/constants";
+import { Pitch, Token, TT } from "abc-parser";
 import { KeySignature, AccidentalType, KeyRoot, KeyAccidental, Mode } from "../types/abcjs-ast";
 
 // Helper to create a basic key signature
@@ -362,6 +370,275 @@ describe("pitchUtils", () => {
           return withTranspose === withoutTranspose + transpose;
         })
       );
+    });
+  });
+
+  describe("semitonesToAccidentalType", () => {
+    it("returns DblSharp for 2", () => {
+      expect(semitonesToAccidentalType(2)).to.equal(AccidentalType.DblSharp);
+    });
+
+    it("returns Sharp for 1", () => {
+      expect(semitonesToAccidentalType(1)).to.equal(AccidentalType.Sharp);
+    });
+
+    it("returns Natural for 0", () => {
+      expect(semitonesToAccidentalType(0)).to.equal(AccidentalType.Natural);
+    });
+
+    it("returns Flat for -1", () => {
+      expect(semitonesToAccidentalType(-1)).to.equal(AccidentalType.Flat);
+    });
+
+    it("returns DblFlat for -2", () => {
+      expect(semitonesToAccidentalType(-2)).to.equal(AccidentalType.DblFlat);
+    });
+
+    it("returns Natural for unsupported values", () => {
+      expect(semitonesToAccidentalType(3)).to.equal(AccidentalType.Natural);
+      expect(semitonesToAccidentalType(-3)).to.equal(AccidentalType.Natural);
+    });
+  });
+
+  describe("spellPitch", () => {
+    // C major note spellings (all naturals)
+    const C_MAJOR_SPELLINGS: NoteSpellings = { C: 0, D: 0, E: 0, F: 0, G: 0, A: 0, B: 0 };
+
+    // G major note spellings (F#)
+    const G_MAJOR_SPELLINGS: NoteSpellings = { C: 0, D: 0, E: 0, F: 1, G: 0, A: 0, B: 0 };
+
+    // F major note spellings (Bb)
+    const F_MAJOR_SPELLINGS: NoteSpellings = { C: 0, D: 0, E: 0, F: 0, G: 0, A: 0, B: -1 };
+
+    describe("example-based", () => {
+      it("spells C (MIDI 60) in C major as C natural", () => {
+        const result = spellPitch(60, C_MAJOR_SPELLINGS, 0);
+        expect(result.letter).to.equal("C");
+        expect(result.alteration).to.equal(0);
+      });
+
+      it("spells D (MIDI 62) in C major as D natural", () => {
+        const result = spellPitch(62, C_MAJOR_SPELLINGS, 2);
+        expect(result.letter).to.equal("D");
+        expect(result.alteration).to.equal(0);
+      });
+
+      it("spells F# (MIDI 66) in G major as F sharp (from context)", () => {
+        const result = spellPitch(66, G_MAJOR_SPELLINGS, 0);
+        expect(result.letter).to.equal("F");
+        expect(result.alteration).to.equal(1);
+      });
+
+      it("spells Bb (MIDI 70) in F major as B flat (from context)", () => {
+        const result = spellPitch(70, F_MAJOR_SPELLINGS, 0);
+        expect(result.letter).to.equal("B");
+        expect(result.alteration).to.equal(-1);
+      });
+
+      it("spells C# (MIDI 61) in C major as C sharp when transposing up", () => {
+        const result = spellPitch(61, C_MAJOR_SPELLINGS, 1);
+        expect(result.letter).to.equal("C");
+        expect(result.alteration).to.equal(1);
+      });
+
+      it("spells Db (MIDI 61) in C major as D flat when transposing down", () => {
+        const result = spellPitch(61, C_MAJOR_SPELLINGS, -1);
+        expect(result.letter).to.equal("D");
+        expect(result.alteration).to.equal(-1);
+      });
+
+      it("spells B natural (MIDI 71) in F major as B natural (tier 2: natural not in scale)", () => {
+        // In F major, B is flat. B natural is not in scale but is a natural pitch class.
+        const result = spellPitch(71, F_MAJOR_SPELLINGS, 2);
+        expect(result.letter).to.equal("B");
+        expect(result.alteration).to.equal(0);
+      });
+
+      it("spells F natural (MIDI 65) in G major as F natural (tier 2: natural not in scale)", () => {
+        // In G major, F is sharp. F natural is not in scale but is a natural pitch class.
+        const result = spellPitch(65, G_MAJOR_SPELLINGS, -1);
+        expect(result.letter).to.equal("F");
+        expect(result.alteration).to.equal(0);
+      });
+    });
+
+    describe("property-based", () => {
+      const genKeySpellings = fc.constantFrom(
+        C_MAJOR_SPELLINGS,
+        G_MAJOR_SPELLINGS,
+        F_MAJOR_SPELLINGS,
+        { C: 0, D: 0, E: 0, F: 1, G: 0, A: 0, B: 0 }, // G major
+        { C: 0, D: 0, E: -1, F: 0, G: 0, A: -1, B: -1 } // Eb major
+      );
+
+      const genMidi = fc.integer({ min: 24, max: 103 });
+      const genNonZeroOffset = fc.integer({ min: -11, max: 11 }).filter((n) => n !== 0);
+
+      it("property: spellPitch produces correct pitch class", () => {
+        fc.assert(
+          fc.property(genKeySpellings, genMidi, genNonZeroOffset, (spellings, midi, offset) => {
+            const targetDegree = midi % 12;
+            const spelling = spellPitch(midi, spellings, offset);
+            // Use safe modulo because spelling.alteration can be negative
+            const resultDegree = ((NATURAL_SEMITONES[spelling.letter] + spelling.alteration) % 12 + 12) % 12;
+            return resultDegree === targetDegree;
+          }),
+          { numRuns: 500 }
+        );
+      });
+
+      it("property: in-scale pitch uses context spelling", () => {
+        fc.assert(
+          fc.property(genKeySpellings, genMidi, genNonZeroOffset, (spellings, midi, offset) => {
+            const targetDegree = midi % 12;
+
+            // Find if target is in scale
+            let inScaleLetter: string | null = null;
+            let inScaleAlt: number | null = null;
+            for (const letter of ["C", "D", "E", "F", "G", "A", "B"]) {
+              const alt = spellings[letter] ?? 0;
+              const noteDegree = ((NATURAL_SEMITONES[letter] + alt) % 12 + 12) % 12;
+              if (noteDegree === targetDegree) {
+                inScaleLetter = letter;
+                inScaleAlt = alt;
+                break;
+              }
+            }
+
+            if (inScaleLetter === null) {
+              return true; // Not in scale, property doesn't apply
+            }
+
+            const spelling = spellPitch(midi, spellings, offset);
+            return spelling.letter === inScaleLetter && spelling.alteration === inScaleAlt;
+          }),
+          { numRuns: 500 }
+        );
+      });
+
+      it("property: chromatic notes use sharp when transposing up, flat when down", () => {
+        fc.assert(
+          fc.property(genKeySpellings, genMidi, genNonZeroOffset, (spellings, midi, offset) => {
+            const targetDegree = midi % 12;
+
+            // Check if target is in scale
+            let inScale = false;
+            for (const letter of ["C", "D", "E", "F", "G", "A", "B"]) {
+              const alt = spellings[letter] ?? 0;
+              const noteDegree = ((NATURAL_SEMITONES[letter] + alt) % 12 + 12) % 12;
+              if (noteDegree === targetDegree) {
+                inScale = true;
+                break;
+              }
+            }
+
+            if (inScale) {
+              return true; // Not a chromatic, property doesn't apply
+            }
+
+            // Check if target is a natural pitch class
+            let isNatural = false;
+            for (const letter of ["C", "D", "E", "F", "G", "A", "B"]) {
+              if (NATURAL_SEMITONES[letter] === targetDegree) {
+                isNatural = true;
+                break;
+              }
+            }
+
+            if (isNatural) {
+              return true; // Natural not in scale, property doesn't apply
+            }
+
+            // True chromatic: verify direction
+            const spelling = spellPitch(midi, spellings, offset);
+            if (offset > 0) {
+              return spelling.alteration === 1; // sharp
+            } else {
+              return spelling.alteration === -1; // flat
+            }
+          }),
+          { numRuns: 500 }
+        );
+      });
+    });
+  });
+
+  describe("chromaticSpelling", () => {
+    it("returns C# for pitch class 1 when preferring sharp", () => {
+      const result = chromaticSpelling(1, true);
+      expect(result.letter).to.equal("C");
+      expect(result.alteration).to.equal(1);
+    });
+
+    it("returns Db for pitch class 1 when preferring flat", () => {
+      const result = chromaticSpelling(1, false);
+      expect(result.letter).to.equal("D");
+      expect(result.alteration).to.equal(-1);
+    });
+
+    it("returns F# for pitch class 6 when preferring sharp", () => {
+      const result = chromaticSpelling(6, true);
+      expect(result.letter).to.equal("F");
+      expect(result.alteration).to.equal(1);
+    });
+
+    it("returns Gb for pitch class 6 when preferring flat", () => {
+      const result = chromaticSpelling(6, false);
+      expect(result.letter).to.equal("G");
+      expect(result.alteration).to.equal(-1);
+    });
+
+    it("returns A# for pitch class 10 when preferring sharp", () => {
+      const result = chromaticSpelling(10, true);
+      expect(result.letter).to.equal("A");
+      expect(result.alteration).to.equal(1);
+    });
+
+    it("returns Bb for pitch class 10 when preferring flat", () => {
+      const result = chromaticSpelling(10, false);
+      expect(result.letter).to.equal("B");
+      expect(result.alteration).to.equal(-1);
+    });
+  });
+
+  describe("computeOctaveFromPitch", () => {
+    // Helper to create a Pitch AST node for testing
+    function makePitch(letterStr: string, octaveStr?: string): Pitch {
+      const noteLetter = new Token(TT.NOTE_LETTER, letterStr, 0);
+      const octave = octaveStr ? new Token(TT.OCTAVE, octaveStr, 0) : undefined;
+      return new Pitch(0, { noteLetter, octave });
+    }
+
+    it("returns 4 for uppercase C", () => {
+      expect(computeOctaveFromPitch(makePitch("C"))).to.equal(4);
+    });
+
+    it("returns 5 for lowercase c", () => {
+      expect(computeOctaveFromPitch(makePitch("c"))).to.equal(5);
+    });
+
+    it("returns 3 for uppercase C,", () => {
+      expect(computeOctaveFromPitch(makePitch("C", ","))).to.equal(3);
+    });
+
+    it("returns 2 for uppercase C,,", () => {
+      expect(computeOctaveFromPitch(makePitch("C", ",,"))).to.equal(2);
+    });
+
+    it("returns 6 for lowercase c'", () => {
+      expect(computeOctaveFromPitch(makePitch("c", "'"))).to.equal(6);
+    });
+
+    it("returns 7 for lowercase c''", () => {
+      expect(computeOctaveFromPitch(makePitch("c", "''"))).to.equal(7);
+    });
+
+    it("returns 4 for uppercase B", () => {
+      expect(computeOctaveFromPitch(makePitch("B"))).to.equal(4);
+    });
+
+    it("returns 5 for lowercase b", () => {
+      expect(computeOctaveFromPitch(makePitch("b"))).to.equal(5);
     });
   });
 });

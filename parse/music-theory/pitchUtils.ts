@@ -1,4 +1,7 @@
-import { KeySignature, AccidentalType } from "../types/abcjs-ast";
+import { KeySignature, AccidentalType, KeyAccidental } from "../types/abcjs-ast";
+import { Pitch } from "../types/Expr2";
+import { Spelling, LETTERS, NATURAL_SEMITONES, SHARP_ORDER, FLAT_ORDER, MAJOR_KEY_SHARPS, MODE_FIFTH_OFFSET } from "./constants";
+import { NoteSpellings } from "./types";
 
 /**
  * Context for pitch resolution operations.
@@ -10,19 +13,6 @@ export interface PitchContext {
   measureAccidentals?: Map<string, AccidentalType>;
   transpose: number;
 }
-
-/**
- * Maps note letter names to their semitone offset from C within an octave.
- */
-const NOTE_TO_SEMITONE: Record<string, number> = {
-  C: 0,
-  D: 2,
-  E: 4,
-  F: 5,
-  G: 7,
-  A: 9,
-  B: 11,
-};
 
 /**
  * Maps semitone offsets to possible enharmonic spellings.
@@ -64,7 +54,7 @@ const SEMITONE_TO_ENHARMONICS: Record<number, Array<[string, number]>> = {
  * C4 (middle C) = 60.
  */
 export function noteLetterToMidi(pitchClass: string, octave: number): number {
-  const semitone = NOTE_TO_SEMITONE[pitchClass.toUpperCase()] ?? 0;
+  const semitone = NATURAL_SEMITONES[pitchClass.toUpperCase()] ?? 0;
   return (octave + 1) * 12 + semitone;
 }
 
@@ -134,18 +124,62 @@ export function semitonesToAccidentalString(semitones: number): string {
 }
 
 /**
+ * Converts a semitone adjustment to an AccidentalType enum.
+ * This is the inverse of accidentalTypeToSemitones.
+ */
+export function semitonesToAccidentalType(semitones: number): AccidentalType {
+  switch (semitones) {
+    case 2:
+      return AccidentalType.DblSharp;
+    case 1:
+      return AccidentalType.Sharp;
+    case 0:
+      return AccidentalType.Natural;
+    case -1:
+      return AccidentalType.Flat;
+    case -2:
+      return AccidentalType.DblFlat;
+    default:
+      return AccidentalType.Natural;
+  }
+}
+
+/**
  * Gets the accidental for a pitch class from the key signature.
+ * Derives the accidentals from the key root and mode if the accidentals array is empty.
  * Returns the AccidentalType if the note is altered in the key, null otherwise.
  */
 export function getKeyAccidentalForPitch(pitchClass: string, key: KeySignature): AccidentalType | null {
   const upperPitch = pitchClass.toUpperCase();
-  for (const acc of key.accidentals) {
-    // Because the NoteLetter enum includes both upper and lower case versions,
-    // we need to match against the uppercase version of the note.
-    if (acc.note.toUpperCase() === upperPitch) {
-      return acc.acc;
+
+  // First check if accidentals array is populated (explicit accidentals)
+  if (key.accidentals.length > 0) {
+    for (const acc of key.accidentals) {
+      if (acc.note.toUpperCase() === upperPitch) {
+        return acc.acc;
+      }
+    }
+    return null;
+  }
+
+  // Derive accidentals from key root, accidental, and mode
+  const rootKey = key.root + (key.acc === KeyAccidental.Sharp ? "#" : key.acc === KeyAccidental.Flat ? "b" : "");
+  const baseSharps = MAJOR_KEY_SHARPS[rootKey];
+  if (baseSharps === undefined) return null; // Unknown key (e.g., HP)
+
+  const modeOffset = MODE_FIFTH_OFFSET[key.mode] ?? 0;
+  const sharps = baseSharps + modeOffset;
+
+  if (sharps > 0) {
+    for (let i = 0; i < Math.min(sharps, 7); i++) {
+      if (SHARP_ORDER[i] === upperPitch) return AccidentalType.Sharp;
+    }
+  } else if (sharps < 0) {
+    for (let i = 0; i < Math.min(-sharps, 7); i++) {
+      if (FLAT_ORDER[i] === upperPitch) return AccidentalType.Flat;
     }
   }
+
   return null;
 }
 
@@ -306,4 +340,102 @@ export function pitchToNoteName(midiPitch: number, ctx: PitchContext): { noteLet
     octave: best.octave,
     accidental: best.neededAccidental,
   };
+}
+
+/**
+ * Determines the correct spelling for a target MIDI pitch given the current context.
+ *
+ * The algorithm follows three tiers:
+ * 1. If the target pitch class matches a note in noteSpellings, use that spelling
+ * 2. If the target is a natural pitch class not in noteSpellings, use the natural
+ * 3. For true chromatic pitches, use sharp if transposing up, flat if down
+ *
+ * @param targetMidi The target MIDI pitch (0-127)
+ * @param noteSpellings Map of letter to current alteration (from key + measure accidentals)
+ * @param semitoneOffset The transposition offset (used for chromatic direction)
+ * @returns The spelling (letter and alteration) for the target pitch
+ */
+export function spellPitch(targetMidi: number, noteSpellings: NoteSpellings, semitoneOffset: number): Spelling {
+  const targetDegree = targetMidi % 12;
+
+  // Tier 1: Search note spellings (notes in current context)
+  for (const letter of LETTERS) {
+    const alteration = noteSpellings[letter] ?? 0;
+    // Use safe modulo because alteration can be negative
+    const noteDegree = (((NATURAL_SEMITONES[letter] + alteration) % 12) + 12) % 12;
+    if (noteDegree === targetDegree) {
+      return { letter, alteration };
+    }
+  }
+
+  // Tier 2: Check if a natural note matches (e.g., B natural in F major where B is flatted)
+  for (const letter of LETTERS) {
+    if (NATURAL_SEMITONES[letter] === targetDegree) {
+      return { letter, alteration: 0 };
+    }
+  }
+
+  // Tier 3: True chromatic fallback - sharp if transposing up, flat if down
+  return chromaticSpelling(targetDegree, semitoneOffset > 0);
+}
+
+/**
+ * Determines the spelling for a true chromatic pitch class.
+ *
+ * For the 5 chromatic pitch classes (1, 3, 6, 8, 10), each has exactly one
+ * natural note at degree-1 (for sharp spelling) and one at degree+1 (for flat spelling).
+ *
+ * @param targetDegree The target pitch class (0-11)
+ * @param preferSharp Whether to prefer sharp spelling (true) or flat spelling (false)
+ * @returns The chromatic spelling
+ */
+export function chromaticSpelling(targetDegree: number, preferSharp: boolean): Spelling {
+  if (preferSharp) {
+    // Find letter whose natural semitone + 1 = targetDegree
+    const sharpBase = (targetDegree - 1 + 12) % 12;
+    for (const letter of LETTERS) {
+      if (NATURAL_SEMITONES[letter] === sharpBase) {
+        return { letter, alteration: 1 };
+      }
+    }
+  } else {
+    // Find letter whose natural semitone - 1 = targetDegree
+    const flatBase = (targetDegree + 1) % 12;
+    for (const letter of LETTERS) {
+      if (NATURAL_SEMITONES[letter] === flatBase) {
+        return { letter, alteration: -1 };
+      }
+    }
+  }
+
+  // Fallback (should never reach here for valid chromatic degrees)
+  return { letter: "C", alteration: 0 };
+}
+
+/**
+ * Derives the octave number from a Pitch AST node.
+ *
+ * ABC notation uses letter case and octave markers to indicate pitch:
+ * - Uppercase letters (C-B) are octave 4
+ * - Lowercase letters (c-b) are octave 5
+ * - Each comma lowers the octave by 1
+ * - Each apostrophe raises the octave by 1
+ *
+ * @param pitchExpr The Pitch AST node
+ * @returns The octave number (e.g., 4 for middle C)
+ */
+export function computeOctaveFromPitch(pitchExpr: Pitch): number {
+  const letter = pitchExpr.noteLetter.lexeme;
+  const isLowercase = letter === letter.toLowerCase();
+  let octave = isLowercase ? 5 : 4;
+
+  if (pitchExpr.octave) {
+    const octaveStr = pitchExpr.octave.lexeme;
+    for (const char of octaveStr) {
+      if (char === ",") octave--;
+      else if (char === "'") octave++;
+    }
+  }
+
+  return octave;
 }

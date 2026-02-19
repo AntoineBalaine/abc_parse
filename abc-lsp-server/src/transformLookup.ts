@@ -43,7 +43,7 @@ import { DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
 export type TransformFn = (selection: Selection, ctx: ABCContext, ...args: unknown[]) => Selection;
 
 const TRANSFORM_MAP: Record<string, TransformFn> = {
-  transpose: (sel, ctx, ...args) => transpose(sel, args[0] as number, ctx),
+  transpose: (sel, ctx, ...args) => transpose(sel, args[1] as number, ctx, args[0] as DocumentSnapshots),
   enharmonize: (sel, ctx) => enharmonize(sel, ctx),
   setRhythm: (sel, ctx, ...args) => setRhythm(sel, args[0] as IRational, ctx),
   addToRhythm: (sel, ctx, ...args) => addToRhythm(sel, args[0] as IRational, ctx),
@@ -83,4 +83,4 @@ export function lookupTransform(name: string): TransformFn | null {
  * Transforms that require DocumentSnapshots from ContextInterpreter.
  * These transforms need musical context like meter, note length, and clef.
  */
-export const CONTEXT_AWARE_TRANSFORMS = new Set(["toSlashNotation", "harmonizeVoicing"]);
+export const CONTEXT_AWARE_TRANSFORMS = new Set(["transpose", "toSlashNotation", "harmonizeVoicing"]);
