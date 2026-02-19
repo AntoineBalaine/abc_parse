@@ -22,15 +22,15 @@ export type AbcError = { message: string; token: Token | Expr; origin: ParserErr
  * This is meant to be used by diagnostics in the context of an LSP.
  */
 export class AbcErrorReporter {
-  private errors: AbcError[];
-  private warnings: AbcError[];
+  errors: AbcError[];
+  warnings: AbcError[];
 
   constructor() {
     this.errors = [];
     this.warnings = [];
   }
 
-  private report = (message: string, token: Token | Expr, origin: ParserErrorType) => {
+  report = (message: string, token: Token | Expr, origin: ParserErrorType) => {
     const err: AbcError = { message, token, origin };
     this.errors.push(err);
     return this.stringifyError(err);
@@ -76,7 +76,7 @@ export class AbcErrorReporter {
     this.warnings.push(warning);
   };
 
-  private stringifyError({ message, token, origin }: AbcError) {
+  stringifyError({ message, token, origin }: AbcError) {
     let where = "";
     let line: number | string = "?";
 

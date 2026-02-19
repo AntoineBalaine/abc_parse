@@ -2,8 +2,8 @@ import { AbcErrorReporter } from "./ErrorReporter";
 import { FormatterConfig, DEFAULT_FORMATTER_CONFIG } from "../types/Expr2";
 
 class IdGenerator {
-  private static instance: IdGenerator;
-  private nextId = 0;
+  static instance: IdGenerator;
+  nextId = 0;
 
   static getInstance() {
     if (!IdGenerator.instance) {
@@ -56,7 +56,7 @@ export class ABCContext {
     this.idGenerator = new IdGenerator();
   }
 
-  private idGenerator: IdGenerator;
+  idGenerator: IdGenerator;
   generateId() {
     return this.idGenerator.generate();
   }
