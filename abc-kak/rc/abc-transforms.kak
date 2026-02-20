@@ -397,3 +397,22 @@ define-command abc-harmonize-cluster -params 0..2 \
     -docstring "abc-harmonize-cluster [voiceCount] [degree]: Cluster voicing harmonization" %{
     abc-harmonize-voicing cluster %arg{@}
 }
+
+# ============================================================================
+# Spread Voicing Commands
+# ============================================================================
+
+define-command abc-spread-4 \
+    -docstring "Apply 4-voice spread voicing to selected notes" %{
+    abc-transform-impl harmonizeVoicing '["spread", 4, null]'
+}
+
+define-command abc-spread-5 \
+    -docstring "Apply 5-voice spread voicing to selected notes" %{
+    abc-transform-impl harmonizeVoicing '["spread", 5, null]'
+}
+
+define-command abc-spread-6 \
+    -docstring "Apply 6-voice spread voicing to selected notes" %{
+    abc-transform-impl harmonizeVoicing '["spread", 6, null]'
+}

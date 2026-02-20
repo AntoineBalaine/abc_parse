@@ -76,6 +76,16 @@ export {
   getIntervals,
   spellFromRoot,
   buildChord,
+  LOW_INTERVAL_LIMITS,
+  placeBassWithLIL,
+  placeAboveFloor,
+  getArrangements4,
+  getArrangements5,
+  getArrangements6,
+  scoreVoiceLeading,
+  scoreSpreadQuality,
+  placeArrangements,
+  buildSpreadVoicing,
   // Phase 2: Chord Tone Validation
   isChordTone,
   getAvailableTensions,
@@ -99,3 +109,6 @@ export {
   MODE_TO_OFFSET,
   deriveDiatonicChord,
 } from "./harmonization";
+
+// Re-export voice leading utilities
+export { findPreviousChordInVoice } from "./voiceLeading";

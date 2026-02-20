@@ -11,7 +11,16 @@ import {
   buildChord,
   keyRootToLetter,
   keyAccidentalToSemitones,
-  // Phase 2
+  placeBassWithLIL,
+  placeAboveFloor,
+  getArrangements4,
+  getArrangements5,
+  getArrangements6,
+  scoreVoiceLeading,
+  scoreSpreadQuality,
+  placeArrangements,
+  buildSpreadVoicing,
+  // Phase 2: Chord Tone Validation
   isChordTone,
   getAvailableTensions,
   isChordScaleTone,
@@ -373,6 +382,582 @@ describe("harmonization", () => {
 
     it("null returns 0", () => {
       expect(keyAccidentalToSemitones(null)).to.equal(0);
+    });
+  });
+
+  // ============================================================================
+  // Phase 1: Low Interval Limits and Placement Functions
+  // ============================================================================
+
+  describe("placeBassWithLIL", () => {
+    describe("example-based tests", () => {
+      it("pushes bass down to lowest valid octave", () => {
+        expect(placeBassWithLIL(60, 34)).to.equal(36); // C4 -> C2
+        expect(placeBassWithLIL(72, 34)).to.equal(36); // C5 -> C2
+        expect(placeBassWithLIL(48, 34)).to.equal(36); // C3 -> C2
+      });
+
+      it("stops at the limit when bass would go below", () => {
+        expect(placeBassWithLIL(60, 48)).to.equal(48); // C4 -> C3
+        expect(placeBassWithLIL(62, 50)).to.equal(50); // D4 -> D3
+      });
+
+      it("keeps bass in place when already above limit", () => {
+        expect(placeBassWithLIL(60, 55)).to.equal(60); // C4 stays
+        expect(placeBassWithLIL(48, 40)).to.equal(48); // C3 stays
+      });
+
+      it("pushes bass up when below limit", () => {
+        expect(placeBassWithLIL(36, 40)).to.equal(48); // C2 -> C3
+        expect(placeBassWithLIL(34, 40)).to.equal(46); // Bb1 -> Bb2
+      });
+    });
+
+    describe("property-based tests", () => {
+      it("result is always >= minBass", () => {
+        fc.assert(
+          fc.property(
+            fc.integer({ min: 24, max: 96 }), // noteMidi
+            fc.integer({ min: 24, max: 60 }), // minBass
+            (noteMidi, minBass) => {
+              const result = placeBassWithLIL(noteMidi, minBass);
+              expect(result).to.be.at.least(minBass);
+            }
+          )
+        );
+      });
+
+      it("result has same pitch class as input", () => {
+        fc.assert(
+          fc.property(fc.integer({ min: 24, max: 96 }), fc.integer({ min: 24, max: 60 }), (noteMidi, minBass) => {
+            const result = placeBassWithLIL(noteMidi, minBass);
+            expect(result % 12).to.equal(noteMidi % 12);
+          })
+        );
+      });
+
+      it("result is always < minBass + 12 (lowest valid octave)", () => {
+        fc.assert(
+          fc.property(fc.integer({ min: 24, max: 96 }), fc.integer({ min: 24, max: 60 }), (noteMidi, minBass) => {
+            const result = placeBassWithLIL(noteMidi, minBass);
+            expect(result).to.be.lessThan(minBass + 12);
+          })
+        );
+      });
+    });
+  });
+
+  describe("placeAboveFloor", () => {
+    describe("example-based tests", () => {
+      it("places note in octave just above floor when it fits", () => {
+        // Floor=52, octave just above is (52, 64]. G=55 is in that range, ceiling=74 allows it
+        expect(placeAboveFloor(67, 52, 74)).to.equal(55); // G4 -> G3 (in octave above floor)
+        expect(placeAboveFloor(64, 52, 74)).to.equal(64); // E4 is exactly at floor+12, adjust to E3=52+12=64
+        expect(placeAboveFloor(57, 52, 74)).to.equal(57); // A3 already in (52, 64], stays
+      });
+
+      it("adjusts octave down when note is above floor+12", () => {
+        // G5 (79) with floor=52 -> octave above floor is (52,64], G3=55
+        expect(placeAboveFloor(79, 52, 74)).to.equal(55); // G5 -> G3
+        expect(placeAboveFloor(81, 59, 74)).to.equal(69); // A5 -> A4 (in octave above 59)
+      });
+
+      it("adjusts octave up when note is at or below floor", () => {
+        expect(placeAboveFloor(52, 52, 74)).to.equal(64); // E3 at floor -> E4
+        expect(placeAboveFloor(50, 52, 74)).to.equal(62); // D3 below floor -> D4
+      });
+
+      it("returns null when note cannot fit", () => {
+        // Floor=69, ceiling=74: octave above floor is (69, 81]. G would be 79, which is > ceiling
+        expect(placeAboveFloor(67, 69, 74)).to.be.null; // G in (69,81] is 79, 79 >= 74
+        expect(placeAboveFloor(65, 65, 77)).to.be.null; // F in (65,77] is 77, 77 >= 77
+      });
+    });
+
+    describe("property-based tests", () => {
+      it("result is strictly above floor when not null", () => {
+        fc.assert(
+          fc.property(
+            fc.integer({ min: 36, max: 84 }), // noteMidi
+            fc.integer({ min: 36, max: 72 }), // floorMidi
+            fc.integer({ min: 48, max: 96 }), // ceilingMidi
+            (noteMidi, floorMidi, ceilingMidi) => {
+              if (ceilingMidi <= floorMidi) return; // skip invalid inputs
+              const result = placeAboveFloor(noteMidi, floorMidi, ceilingMidi);
+              if (result !== null) {
+                expect(result).to.be.greaterThan(floorMidi);
+              }
+            }
+          )
+        );
+      });
+
+      it("result is strictly below ceiling when not null", () => {
+        fc.assert(
+          fc.property(
+            fc.integer({ min: 36, max: 84 }),
+            fc.integer({ min: 36, max: 72 }),
+            fc.integer({ min: 48, max: 96 }),
+            (noteMidi, floorMidi, ceilingMidi) => {
+              if (ceilingMidi <= floorMidi) return;
+              const result = placeAboveFloor(noteMidi, floorMidi, ceilingMidi);
+              if (result !== null) {
+                expect(result).to.be.lessThan(ceilingMidi);
+              }
+            }
+          )
+        );
+      });
+
+      it("result has same pitch class as input when not null", () => {
+        fc.assert(
+          fc.property(
+            fc.integer({ min: 36, max: 84 }),
+            fc.integer({ min: 36, max: 72 }),
+            fc.integer({ min: 48, max: 96 }),
+            (noteMidi, floorMidi, ceilingMidi) => {
+              if (ceilingMidi <= floorMidi) return;
+              const result = placeAboveFloor(noteMidi, floorMidi, ceilingMidi);
+              if (result !== null) {
+                expect(result % 12).to.equal(noteMidi % 12);
+              }
+            }
+          )
+        );
+      });
+
+      it("result is at most 12 above floor when not null", () => {
+        fc.assert(
+          fc.property(
+            fc.integer({ min: 36, max: 84 }),
+            fc.integer({ min: 36, max: 72 }),
+            fc.integer({ min: 48, max: 96 }),
+            (noteMidi, floorMidi, ceilingMidi) => {
+              if (ceilingMidi <= floorMidi) return;
+              const result = placeAboveFloor(noteMidi, floorMidi, ceilingMidi);
+              if (result !== null) {
+                expect(result).to.be.at.most(floorMidi + 12);
+              }
+            }
+          )
+        );
+      });
+    });
+  });
+
+  // ============================================================================
+  // Phase 2: Decision Tree Arrangement Functions
+  // ============================================================================
+
+  // Helper to create mock VoicedNote
+  function mockVoicedNote(func: ChordFunction, midi: number = 60): VoicedNote {
+    return { spelling: { letter: "C", alteration: 0 }, midi, func };
+  }
+
+  describe("getArrangements6", () => {
+    const root = mockVoicedNote(8, 60);
+    const fifth = mockVoicedNote(5, 67);
+    const seventh = mockVoicedNote(7, 71);
+    const ninth = mockVoicedNote(9, 74);
+    const eleventh = mockVoicedNote(11, 77);
+    const thirteenth = mockVoicedNote(13, 81);
+
+    describe("example-based tests", () => {
+      it("returns arrangement for tension lead with 3 tensions", () => {
+        const lead = mockVoicedNote(9, 74);
+        const tensions = [ninth, eleventh, thirteenth];
+        const result = getArrangements6(lead, tensions, seventh, fifth, root);
+
+        expect(result).to.not.be.null;
+        expect(result!.length).to.equal(1);
+        // [GT2=seventh, T3=thirteenth, T2=eleventh]
+        expect(result![0][0].func).to.equal(7);
+        expect(result![0][1].func).to.equal(13);
+        expect(result![0][2].func).to.equal(11);
+      });
+
+      it("returns arrangement for tension lead with 2 tensions", () => {
+        const lead = mockVoicedNote(9, 74);
+        const tensions = [ninth, thirteenth];
+        const result = getArrangements6(lead, tensions, seventh, fifth, root);
+
+        expect(result).to.not.be.null;
+        expect(result!.length).to.equal(1);
+        // [GT2=seventh, T1-8vb=ninth, T2=thirteenth]
+        expect(result![0][0].func).to.equal(7);
+        expect(result![0][1].func).to.equal(9);
+        expect(result![0][2].func).to.equal(13);
+      });
+
+      it("returns branching arrangements for tension lead with 1 tension", () => {
+        const lead = mockVoicedNote(9, 74);
+        const tensions = [ninth];
+        const result = getArrangements6(lead, tensions, seventh, fifth, root);
+
+        expect(result).to.not.be.null;
+        expect(result!.length).to.equal(4);
+      });
+
+      it("returns null for tension lead with 0 tensions", () => {
+        const lead = mockVoicedNote(9, 74);
+        const result = getArrangements6(lead, [], seventh, fifth, root);
+
+        expect(result).to.be.null;
+      });
+
+      it("returns arrangement for guide tone lead with 3 tensions", () => {
+        const lead = mockVoicedNote(7, 71);
+        const tensions = [ninth, eleventh, thirteenth];
+        const result = getArrangements6(lead, tensions, null, fifth, root);
+
+        expect(result).to.not.be.null;
+        expect(result!.length).to.equal(1);
+        // [T1=ninth, T2=eleventh, T3=thirteenth]
+        expect(result![0][0].func).to.equal(9);
+        expect(result![0][1].func).to.equal(11);
+        expect(result![0][2].func).to.equal(13);
+      });
+
+      it("returns branching for guide tone lead with 2 tensions", () => {
+        const lead = mockVoicedNote(7, 71);
+        const tensions = [ninth, thirteenth];
+        const result = getArrangements6(lead, tensions, null, fifth, root);
+
+        expect(result).to.not.be.null;
+        expect(result!.length).to.equal(2);
+        // [root, T1, T2] or [fifth, T1, T2]
+        expect(result![0][0].func).to.equal(8);
+        expect(result![1][0].func).to.equal(5);
+      });
+
+      it("returns null when GT2 is null and lead is tension", () => {
+        const lead = mockVoicedNote(9, 74);
+        const tensions = [ninth, thirteenth];
+        const result = getArrangements6(lead, tensions, null, fifth, root);
+
+        expect(result).to.be.null;
+      });
+
+      it("returns arrangement for root lead with 2 tensions", () => {
+        const lead = mockVoicedNote(8, 72);
+        const tensions = [ninth, thirteenth];
+        const result = getArrangements6(lead, tensions, seventh, fifth, root);
+
+        expect(result).to.not.be.null;
+        expect(result!.length).to.equal(1);
+        // [GT2=seventh, T1=ninth, T2=thirteenth]
+        expect(result![0][0].func).to.equal(7);
+        expect(result![0][1].func).to.equal(9);
+        expect(result![0][2].func).to.equal(13);
+      });
+
+      it("returns arrangement for root lead with 1 tension", () => {
+        const lead = mockVoicedNote(8, 72);
+        const tensions = [ninth];
+        const result = getArrangements6(lead, tensions, seventh, fifth, root);
+
+        expect(result).to.not.be.null;
+        expect(result!.length).to.equal(1);
+        // [GT2=seventh, fifth, T1=ninth]
+        expect(result![0][0].func).to.equal(7);
+        expect(result![0][1].func).to.equal(5);
+        expect(result![0][2].func).to.equal(9);
+      });
+
+      it("returns branching for fifth lead with 1 tension", () => {
+        const lead = mockVoicedNote(5, 79);
+        const tensions = [ninth];
+        const result = getArrangements6(lead, tensions, seventh, fifth, root);
+
+        expect(result).to.not.be.null;
+        expect(result!.length).to.equal(2);
+      });
+    });
+
+    describe("property-based tests", () => {
+      it("returns arrays of length 3 for all arrangements", () => {
+        const lead = mockVoicedNote(9, 74);
+        const tensions = [ninth, thirteenth];
+        const result = getArrangements6(lead, tensions, seventh, fifth, root);
+
+        expect(result).to.not.be.null;
+        for (const arr of result!) {
+          expect(arr.length).to.equal(3);
+        }
+      });
+    });
+  });
+
+  describe("getArrangements5", () => {
+    const root = mockVoicedNote(8, 60);
+    const fifth = mockVoicedNote(5, 67);
+    const seventh = mockVoicedNote(7, 71);
+    const ninth = mockVoicedNote(9, 74);
+    const thirteenth = mockVoicedNote(13, 81);
+
+    describe("example-based tests", () => {
+      it("returns arrangement for tension lead with 2 tensions", () => {
+        const lead = mockVoicedNote(9, 74);
+        const tensions = [ninth, thirteenth];
+        const result = getArrangements5(lead, tensions, seventh, fifth, root);
+
+        expect(result).to.not.be.null;
+        expect(result!.length).to.equal(1);
+        // [GT2=seventh, T2=thirteenth]
+        expect(result![0][0].func).to.equal(7);
+        expect(result![0][1].func).to.equal(13);
+      });
+
+      it("returns arrangement for guide tone lead with 2 tensions", () => {
+        const lead = mockVoicedNote(7, 71);
+        const tensions = [ninth, thirteenth];
+        const result = getArrangements5(lead, tensions, null, fifth, root);
+
+        expect(result).to.not.be.null;
+        expect(result!.length).to.equal(1);
+        // [T1=ninth, T2=thirteenth]
+        expect(result![0][0].func).to.equal(9);
+        expect(result![0][1].func).to.equal(13);
+      });
+
+      it("returns null when GT2 is null and lead is tension", () => {
+        const lead = mockVoicedNote(9, 74);
+        const tensions = [ninth, thirteenth];
+        const result = getArrangements5(lead, tensions, null, fifth, root);
+
+        expect(result).to.be.null;
+      });
+    });
+
+    describe("property-based tests", () => {
+      it("returns arrays of length 2 for all arrangements", () => {
+        const lead = mockVoicedNote(9, 74);
+        const tensions = [ninth, thirteenth];
+        const result = getArrangements5(lead, tensions, seventh, fifth, root);
+
+        expect(result).to.not.be.null;
+        for (const arr of result!) {
+          expect(arr.length).to.equal(2);
+        }
+      });
+    });
+  });
+
+  describe("getArrangements4", () => {
+    const root = mockVoicedNote(8, 60);
+    const fifth = mockVoicedNote(5, 67);
+    const seventh = mockVoicedNote(7, 71);
+
+    describe("example-based tests", () => {
+      it("returns GT2 for tension lead", () => {
+        const lead = mockVoicedNote(9, 74);
+        const result = getArrangements4(lead, [], seventh, fifth, root);
+
+        expect(result).to.not.be.null;
+        expect(result![0][0].func).to.equal(7);
+      });
+
+      it("returns fifth for guide tone lead", () => {
+        const lead = mockVoicedNote(7, 71);
+        const result = getArrangements4(lead, [], null, fifth, root);
+
+        expect(result).to.not.be.null;
+        expect(result![0][0].func).to.equal(5);
+      });
+
+      it("returns GT2 for root lead", () => {
+        const lead = mockVoicedNote(8, 72);
+        const result = getArrangements4(lead, [], seventh, fifth, root);
+
+        expect(result).to.not.be.null;
+        expect(result![0][0].func).to.equal(7);
+      });
+
+      it("returns null when GT2 is null and lead is tension", () => {
+        const lead = mockVoicedNote(9, 74);
+        const result = getArrangements4(lead, [], null, fifth, root);
+
+        expect(result).to.be.null;
+      });
+    });
+
+    describe("property-based tests", () => {
+      it("returns arrays of length 1 for all arrangements", () => {
+        const lead = mockVoicedNote(7, 71);
+        const result = getArrangements4(lead, [], null, fifth, root);
+
+        expect(result).to.not.be.null;
+        for (const arr of result!) {
+          expect(arr.length).to.equal(1);
+        }
+      });
+    });
+  });
+
+  describe("scoreVoiceLeading", () => {
+    describe("example-based tests", () => {
+      it("returns 0 when no movement", () => {
+        const voicing = [mockVoicedNote(8, 36), mockVoicedNote(3, 52), mockVoicedNote(5, 55), mockVoicedNote(7, 59)];
+        const prevMidi = [36, 52, 55, 59];
+        expect(scoreVoiceLeading(voicing, prevMidi)).to.equal(0);
+      });
+
+      it("returns negative penalty for voice movement", () => {
+        const voicing = [mockVoicedNote(8, 36), mockVoicedNote(3, 52), mockVoicedNote(5, 55), mockVoicedNote(7, 59)];
+        const prevMidi = [38, 54, 57, 61]; // Each voice moved by 2
+        expect(scoreVoiceLeading(voicing, prevMidi)).to.equal(-8);
+      });
+
+      it("penalizes voice count differences", () => {
+        const voicing = [mockVoicedNote(8, 36), mockVoicedNote(3, 52), mockVoicedNote(5, 55)];
+        const prevMidi = [36, 52, 55, 59]; // Previous had 4 voices, now 3
+        expect(scoreVoiceLeading(voicing, prevMidi)).to.equal(-12); // 12 * 1 voice diff
+      });
+    });
+  });
+
+  describe("scoreSpreadQuality", () => {
+    describe("example-based tests", () => {
+      it("rewards narrowing intervals", () => {
+        // Intervals: 10, 8, 5 (narrowing)
+        const voicing = [mockVoicedNote(8, 36), mockVoicedNote(3, 46), mockVoicedNote(5, 54), mockVoicedNote(7, 59)];
+        const score = scoreSpreadQuality(voicing);
+        expect(score).to.be.greaterThan(0);
+      });
+
+      it("penalizes widening intervals", () => {
+        // Intervals: 4, 6, 8 (widening)
+        const voicing = [mockVoicedNote(8, 36), mockVoicedNote(3, 40), mockVoicedNote(5, 46), mockVoicedNote(7, 54)];
+        const score = scoreSpreadQuality(voicing);
+        expect(score).to.be.lessThan(0);
+      });
+
+      it("handles equal intervals", () => {
+        // Intervals: 6, 6, 6 (equal)
+        const voicing = [mockVoicedNote(8, 36), mockVoicedNote(3, 42), mockVoicedNote(5, 48), mockVoicedNote(7, 54)];
+        const score = scoreSpreadQuality(voicing);
+        expect(score).to.be.greaterThan(0); // Equal counts as narrowing
+      });
+    });
+  });
+
+  describe("buildSpreadVoicing", () => {
+    // Helper to build a Cmaj7 chord
+    function buildCmaj7(): VoicedNote[] {
+      return [
+        { spelling: { letter: "C", alteration: 0 }, midi: 60, func: 8 },
+        { spelling: { letter: "E", alteration: 0 }, midi: 64, func: 3 },
+        { spelling: { letter: "G", alteration: 0 }, midi: 67, func: 5 },
+        { spelling: { letter: "B", alteration: 0 }, midi: 71, func: 7 },
+      ];
+    }
+
+    // Helper to build tensions for Cmaj7 (9th=D, 13th=A; 11th avoided)
+    function buildCmaj7Tensions(): Map<9 | 11 | 13, VoicedNote> {
+      const tensions = new Map<9 | 11 | 13, VoicedNote>();
+      tensions.set(9, { spelling: { letter: "D", alteration: 0 }, midi: 62, func: 9 });
+      tensions.set(13, { spelling: { letter: "A", alteration: 0 }, midi: 69, func: 13 });
+      return tensions;
+    }
+
+    describe("example-based tests", () => {
+      it("builds 6-voice spread for tension lead", () => {
+        const rootPosChord = buildCmaj7();
+        const tensions = buildCmaj7Tensions();
+        const lead: VoicedNote = { spelling: { letter: "D", alteration: 0 }, midi: 74, func: 9 };
+
+        const result = buildSpreadVoicing(rootPosChord, tensions, lead, 6, null);
+
+        expect(result).to.not.be.null;
+        expect(result!.length).to.equal(6);
+        expect(result![0].func).to.equal(8); // bass is root
+        expect(result![5].midi).to.equal(74); // lead on top
+      });
+
+      it("builds 5-voice spread for guide tone lead", () => {
+        const rootPosChord = buildCmaj7();
+        const tensions = buildCmaj7Tensions();
+        const lead: VoicedNote = { spelling: { letter: "B", alteration: 0 }, midi: 71, func: 7 };
+
+        const result = buildSpreadVoicing(rootPosChord, tensions, lead, 5, null);
+
+        expect(result).to.not.be.null;
+        expect(result!.length).to.equal(5);
+        expect(result![0].func).to.equal(8); // bass is root
+        expect(result![4].midi).to.equal(71); // lead on top
+      });
+
+      it("builds 4-voice spread for tension lead", () => {
+        const rootPosChord = buildCmaj7();
+        const tensions = buildCmaj7Tensions();
+        const lead: VoicedNote = { spelling: { letter: "D", alteration: 0 }, midi: 74, func: 9 };
+
+        const result = buildSpreadVoicing(rootPosChord, tensions, lead, 4, null);
+
+        expect(result).to.not.be.null;
+        expect(result!.length).to.equal(4);
+        expect(result![0].func).to.equal(8); // bass is root
+        expect(result![3].midi).to.equal(74); // lead on top
+      });
+
+      it("returns null when lead is too low", () => {
+        const rootPosChord = buildCmaj7();
+        const tensions = buildCmaj7Tensions();
+        const lead: VoicedNote = { spelling: { letter: "E", alteration: 0 }, midi: 52, func: 3 };
+
+        const result = buildSpreadVoicing(rootPosChord, tensions, lead, 6, null);
+
+        expect(result).to.be.null;
+      });
+
+      it("uses voice leading when prevMidi is provided", () => {
+        const rootPosChord = buildCmaj7();
+        const tensions = buildCmaj7Tensions();
+        const lead: VoicedNote = { spelling: { letter: "D", alteration: 0 }, midi: 74, func: 9 };
+        const prevMidi = [36, 52, 55, 59, 64, 72];
+
+        const result = buildSpreadVoicing(rootPosChord, tensions, lead, 6, prevMidi);
+
+        expect(result).to.not.be.null;
+        expect(result!.length).to.equal(6);
+      });
+    });
+
+    describe("property-based tests", () => {
+      it("result is always sorted by MIDI", () => {
+        const rootPosChord = buildCmaj7();
+        const tensions = buildCmaj7Tensions();
+        const lead: VoicedNote = { spelling: { letter: "D", alteration: 0 }, midi: 74, func: 9 };
+
+        const result = buildSpreadVoicing(rootPosChord, tensions, lead, 6, null);
+
+        expect(result).to.not.be.null;
+        for (let i = 1; i < result!.length; i++) {
+          expect(result![i].midi).to.be.at.least(result![i - 1].midi);
+        }
+      });
+
+      it("bass is always lowest voice", () => {
+        const rootPosChord = buildCmaj7();
+        const tensions = buildCmaj7Tensions();
+        const lead: VoicedNote = { spelling: { letter: "D", alteration: 0 }, midi: 74, func: 9 };
+
+        const result = buildSpreadVoicing(rootPosChord, tensions, lead, 6, null);
+
+        expect(result).to.not.be.null;
+        expect(result![0].func).to.equal(8);
+      });
+
+      it("lead is always highest voice", () => {
+        const rootPosChord = buildCmaj7();
+        const tensions = buildCmaj7Tensions();
+        const lead: VoicedNote = { spelling: { letter: "D", alteration: 0 }, midi: 74, func: 9 };
+
+        const result = buildSpreadVoicing(rootPosChord, tensions, lead, 6, null);
+
+        expect(result).to.not.be.null;
+        expect(result![result!.length - 1].midi).to.equal(lead.midi);
+      });
     });
   });
 

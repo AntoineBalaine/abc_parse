@@ -39,6 +39,7 @@ import {
 } from "editor";
 import { ABCContext, IRational } from "abc-parser";
 import { DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
+import { ChordPosition } from "abc-parser/interpreter/ChordPositionCollector";
 
 export type TransformFn = (selection: Selection, ctx: ABCContext, ...args: unknown[]) => Selection;
 
@@ -67,8 +68,17 @@ const TRANSFORM_MAP: Record<string, TransformFn> = {
   legato: (sel, ctx) => legato(sel, ctx),
   toSlashNotation: (sel, ctx, ...args) => toSlashNotation(sel, ctx, args[0] as DocumentSnapshots),
   // For context-aware transforms, socketHandler prepends snapshots at args[0]
+  // For harmonizeVoicing, args are: [snapshots, voicing, voiceCount, degree, chordPositions]
   harmonizeVoicing: (sel, ctx, ...args) =>
-    harmonizeVoicing(sel, args[1] as VoicingType, args[2] as number, args[3] as number | null, ctx, args[0] as DocumentSnapshots),
+    harmonizeVoicing(
+      sel,
+      args[1] as VoicingType,
+      args[2] as number,
+      args[3] as number | null,
+      ctx,
+      args[0] as DocumentSnapshots,
+      args[4] as ChordPosition[] | null
+    ),
 };
 
 export function lookupTransform(name: string): TransformFn | null {

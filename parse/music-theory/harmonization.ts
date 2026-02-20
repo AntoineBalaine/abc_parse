@@ -29,7 +29,6 @@ export interface IntervalSpec {
   scaleStep: number;
 }
 
-
 /**
  * Basic interval patterns for chord qualities (triads only, without 7th).
  * Used by chordPitches.ts for flexible chord building.
@@ -193,6 +192,517 @@ export const INTERVAL_TO_FUNC: Record<number, ChordFunction> = {
   17: 11, // 11th
   21: 13, // 13th
 };
+
+/**
+ * Low Interval Limits map interval sizes (in semitones) to minimum bass MIDI pitches.
+ * Because small intervals in the bass register create acoustic muddiness, we require
+ * the bass to be placed at or above these thresholds.
+ */
+export const LOW_INTERVAL_LIMITS: Record<number, number> = {
+  1: 52, // m2: E3
+  2: 51, // M2: Eb3
+  3: 48, // m3: C3
+  4: 46, // M3: Bb2
+  5: 46, // P4: Bb2
+  6: 46, // tritone: Bb2
+  7: 34, // P5: Bb1
+  8: 43, // m6: G2
+  9: 41, // M6: F2
+  10: 41, // m7: F2
+  11: 41, // M7: F2
+  12: 0, // octave: no limit
+  13: 40, // m9: E2
+  14: 39, // M9: Eb2
+  15: 36, // m10: C2
+  16: 34, // M10: Bb1
+};
+
+/**
+ * Places a bass note at the lowest octave that respects the low interval limit.
+ * The bass is pushed down by octaves until it would go below minBass, then
+ * pushed up if needed.
+ *
+ * @param noteMidi The MIDI pitch of the bass note (any octave)
+ * @param minBass The minimum allowed MIDI pitch for the bass
+ * @returns The placed MIDI pitch
+ */
+export function placeBassWithLIL(noteMidi: number, minBass: number): number {
+  let result = noteMidi;
+  while (result >= minBass + 12) {
+    result -= 12;
+  }
+  while (result < minBass) {
+    result += 12;
+  }
+  return result;
+}
+
+/**
+ * Places a note in the octave just above the floor, below the ceiling.
+ * Returns null if no valid placement exists.
+ *
+ * @param noteMidi The MIDI pitch of the note (any octave)
+ * @param floorMidi The floor pitch (note must be strictly above this)
+ * @param ceilingMidi The ceiling pitch (note must be strictly below this)
+ * @returns The placed MIDI pitch, or null if it cannot fit
+ */
+export function placeAboveFloor(noteMidi: number, floorMidi: number, ceilingMidi: number): number | null {
+  let result = noteMidi;
+  while (result <= floorMidi) {
+    result += 12;
+  }
+  while (result > floorMidi + 12) {
+    result -= 12;
+  }
+  if (result <= floorMidi || result >= ceilingMidi) {
+    return null;
+  }
+  return result;
+}
+
+/**
+ * Returns possible middle voice arrangements for 6-voice spread voicings.
+ * The arrangement is the list of VoicedNotes to place between GT1 and lead.
+ * Multiple arrangements are returned when there is branching (interchangeable pairs).
+ *
+ * @param lead The lead note (top voice)
+ * @param tensions Available tensions (filtered from getAvailableTensions)
+ * @param GT2 The second guide tone (null if lead is a guide tone)
+ * @param fifth The fifth of the chord
+ * @param root The root of the chord
+ * @returns Array of possible arrangements, or null if no valid arrangement exists
+ */
+export function getArrangements6(lead: VoicedNote, tensions: VoicedNote[], GT2: VoicedNote | null, fifth: VoicedNote, root: VoicedNote): VoicedNote[][] | null {
+  const leadFunc = lead.func;
+  const tensionCount = tensions.length;
+
+  // CASE: lead is tension (9, 11, 13)
+  if (leadFunc === 9 || leadFunc === 11 || leadFunc === 13) {
+    const leadTension = tensions.find((t) => t.func === leadFunc);
+    const otherTensions = tensions.filter((t) => t.func !== leadFunc);
+
+    if (leadTension === undefined) return null;
+    if (GT2 === null) return null;
+
+    if (tensionCount >= 3) {
+      // [GT2, T3, T2]
+      return [[GT2, otherTensions[1], otherTensions[0]]];
+    }
+    if (tensionCount === 2) {
+      // [GT2, T1-8vb, T2]
+      return [[GT2, leadTension, otherTensions[0]]];
+    }
+    if (tensionCount === 1) {
+      // [(GT2, root_or_fifth), T1-8vb] - branching
+      return [
+        [GT2, fifth, leadTension],
+        [fifth, GT2, leadTension],
+        [GT2, root, leadTension],
+        [root, GT2, leadTension],
+      ];
+    }
+    return null;
+  }
+
+  // CASE: lead is guide tone (3 or 7)
+  if (leadFunc === 3 || leadFunc === 7) {
+    if (tensionCount >= 3) {
+      // [T1, T2, T3]
+      return [[tensions[0], tensions[1], tensions[2]]];
+    }
+    if (tensionCount === 2) {
+      // [root_or_fifth, T1, T2] - branching
+      return [
+        [root, tensions[0], tensions[1]],
+        [fifth, tensions[0], tensions[1]],
+      ];
+    }
+    if (tensionCount === 1) {
+      // [(root, fifth), T1] - branching
+      return [
+        [root, fifth, tensions[0]],
+        [fifth, root, tensions[0]],
+      ];
+    }
+    return null;
+  }
+
+  // CASE: lead is root (8)
+  if (leadFunc === 8) {
+    if (GT2 === null) return null;
+    if (tensionCount >= 2) {
+      // [GT2, T1, T2]
+      return [[GT2, tensions[0], tensions[1]]];
+    }
+    if (tensionCount === 1) {
+      // [GT2, fifth, T1]
+      return [[GT2, fifth, tensions[0]]];
+    }
+    return null;
+  }
+
+  // CASE: lead is fifth (5)
+  if (leadFunc === 5) {
+    if (GT2 === null) return null;
+    if (tensionCount >= 2) {
+      // [GT2, T1, T2]
+      return [[GT2, tensions[0], tensions[1]]];
+    }
+    if (tensionCount === 1) {
+      // [(GT2, fifth_double), T1] - branching
+      return [
+        [GT2, fifth, tensions[0]],
+        [fifth, GT2, tensions[0]],
+      ];
+    }
+    return null;
+  }
+
+  return null;
+}
+
+/**
+ * Returns possible middle voice arrangements for 5-voice spread voicings.
+ *
+ * @param lead The lead note (top voice)
+ * @param tensions Available tensions
+ * @param GT2 The second guide tone (null if lead is a guide tone)
+ * @param fifth The fifth of the chord
+ * @param root The root of the chord
+ * @returns Array of possible arrangements, or null if no valid arrangement exists
+ */
+export function getArrangements5(lead: VoicedNote, tensions: VoicedNote[], GT2: VoicedNote | null, fifth: VoicedNote, root: VoicedNote): VoicedNote[][] | null {
+  const leadFunc = lead.func;
+  const tensionCount = tensions.length;
+
+  // CASE: lead is tension
+  if (leadFunc === 9 || leadFunc === 11 || leadFunc === 13) {
+    const otherTensions = tensions.filter((t) => t.func !== leadFunc);
+
+    if (GT2 === null) return null;
+
+    if (tensionCount >= 3) {
+      // [GT2, T2/T3] - pick 1 of 2 others
+      return [
+        [GT2, otherTensions[0]],
+        [GT2, otherTensions[1]],
+      ];
+    }
+    if (tensionCount === 2) {
+      // [GT2, T2]
+      return [[GT2, otherTensions[0]]];
+    }
+    if (tensionCount === 1) {
+      // [(GT2, root_or_fifth)]
+      return [
+        [GT2, fifth],
+        [fifth, GT2],
+        [GT2, root],
+        [root, GT2],
+      ];
+    }
+    return null;
+  }
+
+  // CASE: lead is guide tone
+  if (leadFunc === 3 || leadFunc === 7) {
+    if (tensionCount >= 3) {
+      // Pick 2 of 3 tensions
+      return [
+        [tensions[0], tensions[1]],
+        [tensions[0], tensions[2]],
+        [tensions[1], tensions[2]],
+      ];
+    }
+    if (tensionCount === 2) {
+      // [T1, T2]
+      return [[tensions[0], tensions[1]]];
+    }
+    if (tensionCount === 1) {
+      // [(root, fifth), T1]
+      return [
+        [root, tensions[0]],
+        [fifth, tensions[0]],
+      ];
+    }
+    return null;
+  }
+
+  // CASE: lead is root
+  if (leadFunc === 8) {
+    if (GT2 === null) return null;
+    if (tensionCount >= 2) {
+      // [GT2, T1/T2]
+      return [
+        [GT2, tensions[0]],
+        [GT2, tensions[1]],
+      ];
+    }
+    if (tensionCount === 1) {
+      // [GT2, T1]
+      return [[GT2, tensions[0]]];
+    }
+    return null;
+  }
+
+  // CASE: lead is fifth
+  if (leadFunc === 5) {
+    if (GT2 === null) return null;
+    if (tensionCount >= 2) {
+      // [GT2, T1/T2]
+      return [
+        [GT2, tensions[0]],
+        [GT2, tensions[1]],
+      ];
+    }
+    if (tensionCount === 1) {
+      // [GT2, T1]
+      return [[GT2, tensions[0]]];
+    }
+    return null;
+  }
+
+  return null;
+}
+
+/**
+ * Returns possible middle voice arrangements for 4-voice spread voicings.
+ *
+ * @param lead The lead note (top voice)
+ * @param tensions Available tensions (not used for 4-voice, but kept for consistency)
+ * @param GT2 The second guide tone (null if lead is a guide tone)
+ * @param fifth The fifth of the chord
+ * @param root The root of the chord (not used for 4-voice, but kept for consistency)
+ * @returns Array of possible arrangements, or null if no valid arrangement exists
+ */
+export function getArrangements4(lead: VoicedNote, tensions: VoicedNote[], GT2: VoicedNote | null, fifth: VoicedNote, root: VoicedNote): VoicedNote[][] | null {
+  const leadFunc = lead.func;
+
+  // CASE: lead is tension
+  if (leadFunc === 9 || leadFunc === 11 || leadFunc === 13) {
+    if (GT2 === null) return null;
+    return [[GT2]];
+  }
+
+  // CASE: lead is guide tone
+  if (leadFunc === 3 || leadFunc === 7) {
+    return [[fifth]];
+  }
+
+  // CASE: lead is root or fifth
+  if (leadFunc === 8 || leadFunc === 5) {
+    if (GT2 === null) return null;
+    return [[GT2]];
+  }
+
+  return null;
+}
+
+/**
+ * Scores a voicing based on voice leading from the previous chord.
+ * Returns a negative penalty proportional to total voice movement.
+ * Both arrays are assumed to be sorted low to high by MIDI pitch.
+ *
+ * @param voicing The candidate voicing
+ * @param prevMidi MIDI pitches of the previous chord (sorted low to high)
+ * @returns Negative penalty (higher is better, 0 is no movement)
+ */
+export function scoreVoiceLeading(voicing: VoicedNote[], prevMidi: number[]): number {
+  let penalty = 0;
+  const minLen = Math.min(voicing.length, prevMidi.length);
+
+  for (let i = 0; i < minLen; i++) {
+    penalty += Math.abs(voicing[i].midi - prevMidi[i]);
+  }
+
+  // Penalize voice count differences
+  penalty += Math.abs(voicing.length - prevMidi.length) * 12;
+
+  return -penalty;
+}
+
+/**
+ * Scores a voicing based on spread quality.
+ * Rewards narrowing intervals from bottom to top.
+ *
+ * @param voicing The candidate voicing (sorted low to high by MIDI)
+ * @returns Score (positive is better)
+ */
+export function scoreSpreadQuality(voicing: VoicedNote[]): number {
+  let score = 0;
+
+  for (let i = 2; i < voicing.length; i++) {
+    const interval = voicing[i].midi - voicing[i - 1].midi;
+    const prevInterval = voicing[i - 1].midi - voicing[i - 2].midi;
+
+    if (interval <= prevInterval) {
+      score += 10;
+    } else {
+      score -= 5;
+    }
+  }
+
+  return score;
+}
+
+/**
+ * Places each arrangement from the decision tree and returns all valid voicings.
+ * Invalid arrangements (where a voice cannot fit) are filtered out.
+ *
+ * @param arrangements Array of middle voice arrangements from getArrangements
+ * @param bassMidi Placed bass MIDI pitch
+ * @param gtMidi Placed GT1 MIDI pitch
+ * @param leadMidi Lead MIDI pitch (ceiling for middle voices)
+ * @param bassNote The bass VoicedNote (for spelling)
+ * @param gtNote The GT1 VoicedNote (for spelling)
+ * @param lead The lead VoicedNote
+ * @returns Array of valid complete voicings (sorted low to high)
+ */
+export function placeArrangements(
+  arrangements: VoicedNote[][],
+  bassMidi: number,
+  gtMidi: number,
+  leadMidi: number,
+  bassNote: VoicedNote,
+  gtNote: VoicedNote,
+  lead: VoicedNote
+): VoicedNote[][] {
+  const results: VoicedNote[][] = [];
+
+  for (const arrangement of arrangements) {
+    const voices: VoicedNote[] = [];
+
+    // Bass and GT1 already placed
+    voices.push({ spelling: bassNote.spelling, midi: bassMidi, func: bassNote.func });
+    voices.push({ spelling: gtNote.spelling, midi: gtMidi, func: gtNote.func });
+
+    // Place middle voices
+    let floor = gtMidi;
+    let valid = true;
+
+    for (const note of arrangement) {
+      const placed = placeAboveFloor(note.midi, floor, leadMidi);
+      if (placed === null) {
+        valid = false;
+        break;
+      }
+
+      voices.push({ spelling: note.spelling, midi: placed, func: note.func });
+      floor = placed;
+    }
+
+    if (!valid) continue;
+
+    // Add lead
+    voices.push({ spelling: lead.spelling, midi: leadMidi, func: lead.func });
+
+    // Sort by MIDI pitch
+    voices.sort((a, b) => a.midi - b.midi);
+    results.push(voices);
+  }
+
+  return results;
+}
+
+/**
+ * Builds a spread voicing for the given chord and lead note.
+ * Returns the best voicing based on voice leading and spread quality scoring,
+ * or null if no valid voicing exists.
+ *
+ * @param rootPosChord Root-position 7th chord (from buildChord)
+ * @param tensions Available tensions (from getAvailableTensions)
+ * @param lead The lead note with its chord function
+ * @param voiceCount Number of voices (4, 5, or 6)
+ * @param prevMidi MIDI pitches of previous chord for voice leading (null if none)
+ * @returns The best voicing, or null if no valid voicing exists
+ */
+export function buildSpreadVoicing(
+  rootPosChord: VoicedNote[],
+  tensions: Map<9 | 11 | 13, VoicedNote>,
+  lead: VoicedNote,
+  voiceCount: 4 | 5 | 6,
+  prevMidi: number[] | null
+): VoicedNote[] | null {
+  // Get notes by function
+  const root = rootPosChord.find((n) => n.func === 8);
+  const third = rootPosChord.find((n) => n.func === 3);
+  const fifth = rootPosChord.find((n) => n.func === 5);
+  const seventh = rootPosChord.find((n) => n.func === 7);
+
+  if (root === undefined || fifth === undefined) return null;
+
+  // Build tension list from the Map values
+  const tensionList = Array.from(tensions.values());
+
+  // Determine guide tones
+  // GT1 is placed after bass; GT2 is available for middle voices
+  let GT1: VoicedNote | undefined;
+  let GT2: VoicedNote | null;
+
+  if (lead.func === 3) {
+    GT1 = seventh;
+    GT2 = null; // lead is the other guide tone
+  } else if (lead.func === 7) {
+    GT1 = third;
+    GT2 = null;
+  } else {
+    GT1 = third;
+    GT2 = seventh ?? null;
+  }
+
+  if (GT1 === undefined) return null;
+
+  const bassNote = root;
+  const gtNote = GT1;
+
+  // Calculate bass-GT interval, prefer 10th over 3rd
+  let interval = (gtNote.midi - bassNote.midi) % 12;
+  if (interval <= 4) {
+    interval += 12;
+  }
+
+  // Place bass respecting low interval limits
+  const minBass = LOW_INTERVAL_LIMITS[interval] ?? 34;
+  const bassMidi = placeBassWithLIL(bassNote.midi, minBass);
+  const gtMidi = bassMidi + interval;
+
+  // GT must be below lead
+  if (gtMidi >= lead.midi) return null;
+
+  // Get arrangements based on voice count
+  let arrangements: VoicedNote[][] | null;
+  if (voiceCount === 6) {
+    arrangements = getArrangements6(lead, tensionList, GT2, fifth, root);
+  } else if (voiceCount === 5) {
+    arrangements = getArrangements5(lead, tensionList, GT2, fifth, root);
+  } else {
+    arrangements = getArrangements4(lead, tensionList, GT2, fifth, root);
+  }
+
+  if (arrangements === null || arrangements.length === 0) return null;
+
+  // Place each arrangement and collect valid voicings
+  const voicings = placeArrangements(arrangements, bassMidi, gtMidi, lead.midi, bassNote, gtNote, lead);
+
+  if (voicings.length === 0) return null;
+
+  // Score and pick best
+  let bestVoicing: VoicedNote[] | null = null;
+  let bestScore = -Infinity;
+
+  for (const voicing of voicings) {
+    let score = scoreSpreadQuality(voicing);
+    if (prevMidi !== null) {
+      score += scoreVoiceLeading(voicing, prevMidi);
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestVoicing = voicing;
+    }
+  }
+
+  return bestVoicing;
+}
 
 /**
  * Converts a KeyRoot enum to its letter name.

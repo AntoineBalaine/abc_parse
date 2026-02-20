@@ -1,5 +1,6 @@
 import { ABCContext, File_structure, parse, RangeVisitor, Scanner, Token, SemanticAnalyzer } from "abc-parser";
 import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
+import { ChordPosition, ChordPositionCollector } from "abc-parser/interpreter/ChordPositionCollector";
 import { Diagnostic } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { mapAbcErrorsToDiagnostics, mapAbcWarningsToDiagnostics } from "./server_helpers";
@@ -17,6 +18,7 @@ export class AbcDocument {
   public rangeVisitor = new RangeVisitor();
   public snapshots: DocumentSnapshots | null = null;
   public snapshotsHaveAccidentals: boolean = false;
+  public chordPositions: ChordPosition[] | null = null;
   constructor(public document: TextDocument) {}
 
   /**
@@ -46,6 +48,28 @@ export class AbcDocument {
   }
 
   /**
+   * Gets chord positions for voice leading analysis, computing lazily on first access.
+   * Returns null if the AST is not available (parse failure).
+   */
+  getChordPositions(): ChordPosition[] | null {
+    if (this.chordPositions !== null) {
+      return this.chordPositions;
+    }
+    if (!this.AST) {
+      return null;
+    }
+
+    // Run SemanticAnalyzer (required for voice properties)
+    const analyzer = new SemanticAnalyzer(this.ctx);
+    this.AST.accept(analyzer);
+
+    // Collect chord positions
+    const collector = new ChordPositionCollector(analyzer.data);
+    this.chordPositions = collector.collect(this.AST);
+    return this.chordPositions;
+  }
+
+  /**
    * Return an array of tokens, or void in case of failure.
    * `analyze()` parses the document,
    * stores the AST,
@@ -62,6 +86,7 @@ export class AbcDocument {
     this.tokens = [];
     this.snapshots = null;
     this.snapshotsHaveAccidentals = false;
+    this.chordPositions = null;
 
     this.tokens = Scanner(source, this.ctx);
     this.AST = parse(this.tokens, this.ctx);

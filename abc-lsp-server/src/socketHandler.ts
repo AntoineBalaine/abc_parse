@@ -442,6 +442,12 @@ function handleApplyTransform(
       return { edits: [], cursorRanges: [] };
     }
     transformArgs = [snapshots, ...transformArgs];
+
+    // Append chord positions for harmonizeVoicing (for voice leading)
+    if (params.transform === "harmonizeVoicing") {
+      const chordPositions = doc.getChordPositions();
+      transformArgs = [...transformArgs, chordPositions];
+    }
   }
   const newSelection = transformFn(selection, doc.ctx, ...transformArgs);
 

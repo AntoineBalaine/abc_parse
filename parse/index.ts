@@ -30,6 +30,7 @@ export {
 } from "./Visitors/fmt2/rational";
 export { SemanticAnalyzer } from "./analyzers/semantic-analyzer";
 export { ContextInterpreter, DocumentSnapshots, ContextSnapshot, getRangeSnapshots, getSnapshotAtPosition, encode } from "./interpreter/ContextInterpreter";
+export { ChordPosition, ChordPositionCollector } from "./interpreter/ChordPositionCollector";
 // ABCx chord sheet notation support (unified exports)
 export * from "./abcx";
 // ABCL linear style support

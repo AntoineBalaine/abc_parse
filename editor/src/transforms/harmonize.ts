@@ -32,6 +32,10 @@ import {
   semitonesToAccidentalString,
   accidentalToSemitones,
   accidentalTypeToSemitones,
+  buildSpreadVoicing,
+  ChordFunction,
+  ChordPosition,
+  findPreviousChordInVoice,
 } from "abc-parser";
 
 const DIATONIC_LETTERS = "CDEFGAB";
@@ -281,8 +285,9 @@ export function harmonize(selection: Selection, steps: number, ctx: ABCContext):
  * - drop24: Second and fourth notes dropped an octave
  * - drop3: Third-highest note dropped an octave
  * - cluster: Notes placed in a cluster voicing from the chord scale
+ * - spread: Jazz spread voicing using decision tree placement
  */
-export type VoicingType = "close" | "drop2" | "drop24" | "drop3" | "cluster";
+export type VoicingType = "close" | "drop2" | "drop24" | "drop3" | "cluster" | "spread";
 
 /**
  * Snapshot of the harmonic context at a given position.
@@ -382,10 +387,10 @@ function getNodePosition(node: CSNode): number {
 }
 
 /**
- * Extracts the letter name and MIDI pitch from a CSNode representing a note.
+ * Extracts the letter name, MIDI pitch, and alteration from a CSNode representing a note.
  * The pitch is resolved using the snapshot's key signature and measure accidentals.
  */
-export function extractLead(node: CSNode, snapshot: HarmonizeSnapshot): { letter: string; midi: number } | null {
+export function extractLead(node: CSNode, snapshot: HarmonizeSnapshot): { letter: string; midi: number; alteration: number } | null {
   const letterToken = findChildToken(node, TT.NOTE_LETTER);
   if (!letterToken) return null;
 
@@ -414,7 +419,43 @@ export function extractLead(node: CSNode, snapshot: HarmonizeSnapshot): { letter
   const midi = baseMidi + alteration;
   // MIDI pitch must be in valid range 0-127
   if (midi < 0 || midi > 127) return null;
-  return { letter, midi };
+  return { letter, midi, alteration };
+}
+
+/**
+ * Converts a lead note (with func) into a VoicedNote for spread voicing.
+ * The func is determined by checking if the lead is a chord tone or tension.
+ */
+export function extractLeadAsVoicedNote(
+  lead: { letter: string; midi: number; alteration: number },
+  rootPosChord: VoicedNote[],
+  tensions: Map<9 | 11 | 13, VoicedNote>
+): VoicedNote | null {
+  const pitchClass = lead.midi % 12;
+
+  // Check if lead is a chord tone
+  for (const note of rootPosChord) {
+    if (note.midi % 12 === pitchClass) {
+      return {
+        spelling: { letter: lead.letter, alteration: lead.alteration },
+        midi: lead.midi,
+        func: note.func,
+      };
+    }
+  }
+
+  // Check if lead is a tension
+  for (const [func, tension] of tensions) {
+    if (tension.midi % 12 === pitchClass) {
+      return {
+        spelling: { letter: lead.letter, alteration: lead.alteration },
+        midi: lead.midi,
+        func: func as ChordFunction,
+      };
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -550,7 +591,8 @@ export function harmonizeVoicing(
   voiceCount: number,
   degree: number | null,
   ctx: ABCContext,
-  snapshots: DocumentSnapshots
+  snapshots: DocumentSnapshots,
+  chordPositions: ChordPosition[] | null
 ): Selection {
   // Local state for tracking accidentals written during this transform pass.
   // Because the transform may write multiple chords in sequence, we need to
@@ -598,6 +640,23 @@ export function harmonizeVoicing(
         tensions = getAvailableTensions(rootPosChord, chord, snapshot.key);
         const chordScale = buildChordScale(rootPosChord, tensions);
         voicedChord = buildClusterVoicing(chordScale, lead.midi, voiceCount);
+      } else if (voicing === "spread") {
+        // Spread voicing: uses decision tree placement algorithm
+        if (!isChordScaleTone(lead.midi, rootPosChord, chord, snapshot.key)) continue;
+        tensions = getAvailableTensions(rootPosChord, chord, snapshot.key);
+
+        const leadNote = extractLeadAsVoicedNote(lead, rootPosChord, tensions);
+        if (!leadNote) continue;
+
+        // Find previous chord for voice leading
+        let prevMidi: number[] | null = null;
+        if (chordPositions !== null) {
+          prevMidi = findPreviousChordInVoice(chordPositions, contextSnapshot.voiceId, pos);
+        }
+
+        const spreadResult = buildSpreadVoicing(rootPosChord, tensions, leadNote, voiceCount as 4 | 5 | 6, prevMidi);
+        if (!spreadResult) continue;
+        voicedChord = spreadResult;
       } else {
         // Mechanical voicings (close, drop2, drop24, drop3)
         if (voiceCount === 6) {

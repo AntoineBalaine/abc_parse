@@ -544,38 +544,38 @@ describe("harmonize", () => {
     }
 
     describe("extractLead", () => {
-      it("extracts 'E' in key of C as { letter: 'E', midi: 64 }", () => {
+      it("extracts 'E' in key of C as { letter: 'E', midi: 64, alteration: 0 }", () => {
         const { root } = toCSTreeWithContext("X:1\nK:C\nE|\n");
         const notes = findByTag(root, TAGS.Note);
         const snapshot = makeSnapshot();
         const result = extractLead(notes[0], snapshot);
-        expect(result).to.deep.equal({ letter: "E", midi: 64 });
+        expect(result).to.deep.equal({ letter: "E", midi: 64, alteration: 0 });
       });
 
-      it("extracts 'c' (lowercase) in key of C as { letter: 'C', midi: 72 }", () => {
+      it("extracts 'c' (lowercase) in key of C as { letter: 'C', midi: 72, alteration: 0 }", () => {
         const { root } = toCSTreeWithContext("X:1\nK:C\nc|\n");
         const notes = findByTag(root, TAGS.Note);
         const snapshot = makeSnapshot();
         const result = extractLead(notes[0], snapshot);
-        expect(result).to.deep.equal({ letter: "C", midi: 72 });
+        expect(result).to.deep.equal({ letter: "C", midi: 72, alteration: 0 });
       });
 
-      it("extracts note with explicit accidental: ^F in C gives F# (midi 66)", () => {
+      it("extracts note with explicit accidental: ^F in C gives F# (midi 66, alteration: 1)", () => {
         const { root } = toCSTreeWithContext("X:1\nK:C\n^F|\n");
         const notes = findByTag(root, TAGS.Note);
         const snapshot = makeSnapshot();
         const result = extractLead(notes[0], snapshot);
-        expect(result).to.deep.equal({ letter: "F", midi: 66 });
+        expect(result).to.deep.equal({ letter: "F", midi: 66, alteration: 1 });
       });
 
-      it("applies key signature: F in G major gives F# (midi 66)", () => {
+      it("applies key signature: F in G major gives F# (midi 66, alteration: 1)", () => {
         const { root } = toCSTreeWithContext("X:1\nK:G\nF|\n");
         const notes = findByTag(root, TAGS.Note);
         const snapshot = makeSnapshot(KeyRoot.G, KeyAccidental.None);
         // In G major, F is sharp
         snapshot.key.accidentals = [{ note: NoteLetter.F, acc: AccidentalType.Sharp, verticalPos: 0 }];
         const result = extractLead(notes[0], snapshot);
-        expect(result).to.deep.equal({ letter: "F", midi: 66 });
+        expect(result).to.deep.equal({ letter: "F", midi: 66, alteration: 1 });
       });
 
       it("applies measure accidentals over key signature", () => {
@@ -584,7 +584,7 @@ describe("harmonize", () => {
         const snapshot = makeSnapshot();
         snapshot.measureAccidentals.set("F", 1); // F# in measure
         const result = extractLead(notes[0], snapshot);
-        expect(result).to.deep.equal({ letter: "F", midi: 66 });
+        expect(result).to.deep.equal({ letter: "F", midi: 66, alteration: 1 });
       });
 
       it("handles octave markers: C, (comma) gives midi 48", () => {
@@ -592,7 +592,7 @@ describe("harmonize", () => {
         const notes = findByTag(root, TAGS.Note);
         const snapshot = makeSnapshot();
         const result = extractLead(notes[0], snapshot);
-        expect(result).to.deep.equal({ letter: "C", midi: 48 });
+        expect(result).to.deep.equal({ letter: "C", midi: 48, alteration: 0 });
       });
 
       it("handles octave markers: c' (apostrophe) gives midi 84", () => {
@@ -600,7 +600,7 @@ describe("harmonize", () => {
         const notes = findByTag(root, TAGS.Note);
         const snapshot = makeSnapshot();
         const result = extractLead(notes[0], snapshot);
-        expect(result).to.deep.equal({ letter: "C", midi: 84 });
+        expect(result).to.deep.equal({ letter: "C", midi: 84, alteration: 0 });
       });
     });
 
