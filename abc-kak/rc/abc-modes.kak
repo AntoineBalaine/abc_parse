@@ -275,3 +275,11 @@ map global abc-transform h ':abc-harmonize-close 4<ret>'     -docstring '4-voice
 map global abc-transform H ':abc-harmonize-close 5<ret>'     -docstring '5-voice close voicing'
 map global abc-transform <a-h> ':abc-harmonize-close 6<ret>' -docstring '6-voice close voicing'
 map global abc-transform g ':enter-user-mode abc-voicing<ret>' -docstring 'voicing menu...'
+
+# --- Parallel Voicing Transforms ---
+# y/Y for diatonic (mnemonic: "yoke" notes together)
+# alt-y/alt-Y for chromatic
+map global abc-transform y     ':abc-parallel-diatonic-prev<ret>'  -docstring 'parallel diatonic from prev'
+map global abc-transform Y     ':abc-parallel-diatonic-next<ret>'  -docstring 'parallel diatonic from next'
+map global abc-transform <a-y> ':abc-parallel-chromatic-prev<ret>' -docstring 'parallel chromatic from prev'
+map global abc-transform <a-Y> ':abc-parallel-chromatic-next<ret>' -docstring 'parallel chromatic from next'

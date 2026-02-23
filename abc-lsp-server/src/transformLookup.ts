@@ -36,6 +36,9 @@ import {
   divideRhythm,
   legato,
   toSlashNotation,
+  parallelVoicing,
+  ParallelDirection,
+  ParallelMode,
 } from "editor";
 import { ABCContext, IRational } from "abc-parser";
 import { DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
@@ -79,6 +82,9 @@ const TRANSFORM_MAP: Record<string, TransformFn> = {
       args[0] as DocumentSnapshots,
       args[4] as ChordPosition[] | null
     ),
+  // For parallelVoicing, args are: [snapshots, direction, mode, chordPositions]
+  parallelVoicing: (sel, ctx, ...args) =>
+    parallelVoicing(sel, args[1] as ParallelDirection, args[2] as ParallelMode, ctx, args[0] as DocumentSnapshots, args[3] as ChordPosition[]),
 };
 
 export function lookupTransform(name: string): TransformFn | null {
@@ -93,4 +99,4 @@ export function lookupTransform(name: string): TransformFn | null {
  * Transforms that require DocumentSnapshots from ContextInterpreter.
  * These transforms need musical context like meter, note length, and clef.
  */
-export const CONTEXT_AWARE_TRANSFORMS = new Set(["transpose", "toSlashNotation", "harmonizeVoicing"]);
+export const CONTEXT_AWARE_TRANSFORMS = new Set(["transpose", "toSlashNotation", "harmonizeVoicing", "parallelVoicing"]);

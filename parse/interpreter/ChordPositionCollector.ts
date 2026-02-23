@@ -71,6 +71,21 @@ import { encode } from "./ContextInterpreter";
 // ============================================================================
 
 /**
+ * Configuration for the ChordPositionCollector.
+ */
+export interface ChordCollectorConfig {
+  /** Minimum number of notes for a chord to be collected */
+  minVoices: number;
+  /** Whether to include the AST Chord reference (needed for diatonic parallel transform) */
+  includeAstChord: boolean;
+}
+
+const DEFAULT_CONFIG: ChordCollectorConfig = {
+  minVoices: 4,
+  includeAstChord: false,
+};
+
+/**
  * Represents a chord position with its MIDI pitches for voice leading analysis.
  */
 export interface ChordPosition {
@@ -80,6 +95,8 @@ export interface ChordPosition {
   voiceId: string;
   /** MIDI pitches of all notes in the chord, sorted low to high */
   midiPitches: number[];
+  /** Original AST chord reference, only populated when config.includeAstChord is true */
+  astChord?: Chord;
 }
 
 // ============================================================================
@@ -101,8 +118,8 @@ interface CollectorState {
   inBody: boolean;
   /** Collected positions */
   positions: ChordPosition[];
-  /** Minimum voices to qualify as a chord */
-  minVoices: number;
+  /** Collector configuration */
+  config: ChordCollectorConfig;
 }
 
 // ============================================================================
@@ -112,7 +129,8 @@ interface CollectorState {
 export class ChordPositionCollector implements Visitor<void> {
   state: CollectorState;
 
-  constructor(semanticData: Map<number, SemanticData>, minVoices: number = 4) {
+  constructor(semanticData: Map<number, SemanticData>, config: Partial<ChordCollectorConfig> = {}) {
+    const fullConfig = { ...DEFAULT_CONFIG, ...config };
     this.state = {
       semanticData,
       fileDefaults: createFileDefaults(),
@@ -121,7 +139,7 @@ export class ChordPositionCollector implements Visitor<void> {
       currentVoiceId: "",
       inBody: false,
       positions: [],
-      minVoices,
+      config: fullConfig,
     };
   }
 
@@ -396,7 +414,7 @@ export class ChordPositionCollector implements Visitor<void> {
     }
 
     // Check if chord meets minimum voice count
-    if (midiPitches.length < this.state.minVoices) return;
+    if (midiPitches.length < this.state.config.minVoices) return;
 
     // Sort pitches low to high
     midiPitches.sort((a, b) => a - b);
@@ -409,11 +427,18 @@ export class ChordPositionCollector implements Visitor<void> {
     const char = firstNote.pitch.noteLetter.position;
     const pos = encode(line, char);
 
-    this.state.positions.push({
+    const position: ChordPosition = {
       pos,
       voiceId: this.state.currentVoiceId,
       midiPitches,
-    });
+    };
+
+    // Conditionally include AST reference
+    if (this.state.config.includeAstChord) {
+      position.astChord = expr;
+    }
+
+    this.state.positions.push(position);
   }
 
   visitMusicCodeExpr(expr: Music_code): void {

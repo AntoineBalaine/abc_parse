@@ -6,7 +6,7 @@ import { DocumentSnapshots, ContextSnapshot, getSnapshotAtPosition, encode } fro
 import { toAst } from "../csTree/toAst";
 import { fromAst } from "../csTree/fromAst";
 import { findNodesById } from "./types";
-import { findChildByTag, findParent, findTieChild, removeChild, replaceChild } from "./treeUtils";
+import { findChildByTag, findParent, findTieChild, removeChild, replaceChild, getNodeLineAndChar } from "./treeUtils";
 import {
   VoicedNote,
   Spelling,
@@ -36,6 +36,7 @@ import {
   ChordFunction,
   ChordPosition,
   findPreviousChordInVoice,
+  voicedNoteOctave,
 } from "abc-parser";
 
 const DIATONIC_LETTERS = "CDEFGAB";
@@ -327,21 +328,6 @@ function contextToHarmonizeSnapshot(context: ContextSnapshot, localAccidentals: 
 }
 
 /**
- * Gets the line and character position of a CSNode from its first token.
- */
-function getNodeLineAndChar(node: CSNode): { line: number; char: number } {
-  let current: CSNode | null = node;
-  while (current !== null) {
-    if (isTokenNode(current)) {
-      const data = getTokenData(current);
-      return { line: data.line, char: data.position };
-    }
-    current = current.firstChild;
-  }
-  return { line: 0, char: 0 };
-}
-
-/**
  * Finds a child token of the given type within a node.
  */
 function findChildToken(node: CSNode, tokenType: TT): CSNode | null {
@@ -513,8 +499,7 @@ export function toChordAst(voicedChord: VoicedNote[], snapshot: HarmonizeSnapsho
   for (const note of voicedChord) {
     // Calculate octave based on the letter's natural pitch, not just MIDI.
     // This handles enharmonic spellings correctly (e.g., Cb5 = MIDI 71 should be lowercase _c).
-    const letterSemitone = NATURAL_SEMITONES[note.spelling.letter];
-    const octave = Math.round((note.midi - letterSemitone - 60) / 12) + 4;
+    const octave = voicedNoteOctave(note);
     const contextAlteration = currentPitchMap.get(note.spelling.letter) ?? 0;
 
     let accidentalToken: Token | undefined;
@@ -651,7 +636,8 @@ export function harmonizeVoicing(
         // Find previous chord for voice leading
         let prevMidi: number[] | null = null;
         if (chordPositions !== null) {
-          prevMidi = findPreviousChordInVoice(chordPositions, contextSnapshot.voiceId, pos);
+          const prevChord = findPreviousChordInVoice(chordPositions, contextSnapshot.voiceId, pos);
+          prevMidi = prevChord?.midiPitches ?? null;
         }
 
         const spreadResult = buildSpreadVoicing(rootPosChord, tensions, leadNote, voiceCount as 4 | 5 | 6, prevMidi);

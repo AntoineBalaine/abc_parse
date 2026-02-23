@@ -51,3 +51,4 @@ export { multiplyRhythm } from "./multiplyRhythm";
 export { divideRhythm } from "./divideRhythm";
 export { legato } from "./legato";
 export { toSlashNotation } from "./toSlashNotation";
+export { parallelVoicing, parallelDiatonic, parallelChromatic, ParallelDirection, ParallelMode } from "./parallel";

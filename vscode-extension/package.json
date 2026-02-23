@@ -409,6 +409,31 @@
         "command": "abc.harmonizeCluster",
         "title": "ABC: Harmonize Cluster Voicing",
         "category": "ABC"
+      },
+      {
+        "command": "abc.parallelVoicing",
+        "title": "ABC: Parallel Voicing",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.parallelDiatonicPrev",
+        "title": "ABC: Parallel Diatonic (Previous Chord)",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.parallelDiatonicNext",
+        "title": "ABC: Parallel Diatonic (Next Chord)",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.parallelChromaticPrev",
+        "title": "ABC: Parallel Chromatic (Previous Chord)",
+        "category": "ABC"
+      },
+      {
+        "command": "abc.parallelChromaticNext",
+        "title": "ABC: Parallel Chromatic (Next Chord)",
+        "category": "ABC"
       }
     ],
     "menus": {
@@ -651,6 +676,26 @@
         },
         {
           "command": "abc.harmonizeCluster",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.parallelVoicing",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.parallelDiatonicPrev",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.parallelDiatonicNext",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.parallelChromaticPrev",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.parallelChromaticNext",
           "when": "editorLangId == abc"
         }
       ]

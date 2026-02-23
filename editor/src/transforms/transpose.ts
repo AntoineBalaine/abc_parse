@@ -19,7 +19,7 @@ import { DocumentSnapshots, ContextSnapshot, getSnapshotAtPosition, encode } fro
 import { toAst } from "../csTree/toAst";
 import { fromAst } from "../csTree/fromAst";
 import { findNodesById } from "./types";
-import { findChildByTag, replaceChild } from "./treeUtils";
+import { findChildByTag, replaceChild, getNodeLineAndChar } from "./treeUtils";
 
 /**
  * Transposes selected notes by the specified number of semitones.
@@ -58,21 +58,6 @@ export function transpose(selection: Selection, semitones: number, ctx: ABCConte
     }
   }
   return selection;
-}
-
-/**
- * Gets the line and character position of a CSNode from its first token.
- */
-function getNodeLineAndChar(node: CSNode): { line: number; char: number } {
-  let current: CSNode | null = node;
-  while (current !== null) {
-    if (isTokenNode(current)) {
-      const data = getTokenData(current);
-      return { line: data.line, char: data.position };
-    }
-    current = current.firstChild;
-  }
-  return { line: 0, char: 0 };
 }
 
 /**

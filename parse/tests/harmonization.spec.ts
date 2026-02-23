@@ -42,7 +42,12 @@ import {
   getKeyAccidentalFor,
   MODE_TO_OFFSET,
   deriveDiatonicChord,
+  // Parallel transform helpers
+  voicedNoteOctave,
+  shiftChordDiatonic,
+  shiftChordChromatic,
 } from "../music-theory/harmonization";
+import { NoteSpellings } from "../music-theory/types";
 import { KeySignature, AccidentalType, Mode, NoteLetter } from "../types/abcjs-ast";
 
 function makeChord(
@@ -2037,6 +2042,79 @@ describe("harmonization", () => {
             }
           )
         );
+      });
+    });
+  });
+
+  describe("parallel transform helpers", () => {
+    describe("voicedNoteOctave", () => {
+      it("derives octave 4 for middle C", () => {
+        const note: VoicedNote = { spelling: { letter: "C", alteration: 0 }, midi: 60, func: 8 };
+        expect(voicedNoteOctave(note)).to.equal(4);
+      });
+
+      it("derives octave 5 for C above middle C", () => {
+        const note: VoicedNote = { spelling: { letter: "C", alteration: 0 }, midi: 72, func: 8 };
+        expect(voicedNoteOctave(note)).to.equal(5);
+      });
+
+      it("handles sharped notes correctly", () => {
+        // F#4 = MIDI 66
+        const note: VoicedNote = { spelling: { letter: "F", alteration: 1 }, midi: 66, func: 8 };
+        expect(voicedNoteOctave(note)).to.equal(4);
+      });
+
+      it("handles enharmonic Cb correctly", () => {
+        // Cb5 = MIDI 71 (same as B4)
+        const note: VoicedNote = { spelling: { letter: "C", alteration: -1 }, midi: 71, func: 8 };
+        expect(voicedNoteOctave(note)).to.equal(5);
+      });
+    });
+
+    describe("shiftChordDiatonic", () => {
+      it("shifts a triad up by one diatonic step in C major", () => {
+        const cMajorKey = makeKeySignature(KeyRoot.C, KeyAccidental.None, Mode.Major, []);
+        const cTriad: VoicedNote[] = [
+          { spelling: { letter: "C", alteration: 0 }, midi: 60, func: 8 },
+          { spelling: { letter: "E", alteration: 0 }, midi: 64, func: 3 },
+          { spelling: { letter: "G", alteration: 0 }, midi: 67, func: 5 },
+        ];
+        const result = shiftChordDiatonic(cTriad, 1, cMajorKey);
+        expect(result[0].spelling.letter).to.equal("D");
+        expect(result[1].spelling.letter).to.equal("F");
+        expect(result[2].spelling.letter).to.equal("A");
+      });
+
+      it("handles negative offsets", () => {
+        const cMajorKey = makeKeySignature(KeyRoot.C, KeyAccidental.None, Mode.Major, []);
+        const dNote: VoicedNote[] = [{ spelling: { letter: "D", alteration: 0 }, midi: 62, func: 8 }];
+        const result = shiftChordDiatonic(dNote, -1, cMajorKey);
+        expect(result[0].spelling.letter).to.equal("C");
+      });
+
+      it("applies key signature accidentals", () => {
+        const gMajorKey = makeKeySignature(KeyRoot.G, KeyAccidental.None, Mode.Major, []); // F#
+        const gNote: VoicedNote[] = [{ spelling: { letter: "G", alteration: 0 }, midi: 67, func: 8 }];
+        const result = shiftChordDiatonic(gNote, -1, gMajorKey);
+        expect(result[0].spelling.letter).to.equal("F");
+        expect(result[0].spelling.alteration).to.equal(1); // F#
+      });
+    });
+
+    describe("shiftChordChromatic", () => {
+      it("shifts MIDI pitches and spells according to context", () => {
+        const noteSpellings: NoteSpellings = { C: 0, D: 0, E: 0, F: 0, G: 0, A: 0, B: 0 };
+        const { notes } = shiftChordChromatic([60, 64, 67], 2, noteSpellings);
+        expect(notes[0].midi).to.equal(62); // D
+        expect(notes[1].midi).to.equal(66); // F#
+        expect(notes[2].midi).to.equal(69); // A
+      });
+
+      it("returns accidentals that differ from context", () => {
+        const noteSpellings: NoteSpellings = { C: 0, D: 0, E: 0, F: 0, G: 0, A: 0, B: 0 };
+        const { notes, newAccidentals } = shiftChordChromatic([60], 1, noteSpellings);
+        expect(notes[0].midi).to.equal(61); // Db or C#
+        expect(newAccidentals.length).to.be.greaterThan(0);
       });
     });
   });

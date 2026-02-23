@@ -33,6 +33,10 @@
     "./music-theory/*": {
       "types": "./dist/music-theory/*.d.ts",
       "default": "./dist/music-theory/*.js"
+    },
+    "./Visitors/*": {
+      "types": "./dist/Visitors/*.d.ts",
+      "default": "./dist/Visitors/*.js"
     }
   },
   "files": [

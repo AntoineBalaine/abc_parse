@@ -108,7 +108,15 @@ export {
   mergeAccidentals,
   MODE_TO_OFFSET,
   deriveDiatonicChord,
+  // Parallel transform helpers
+  voicedNoteOctave,
+  chordToVoicedNotes,
+  shiftChordDiatonic,
+  shiftChordChromatic,
 } from "./harmonization";
 
 // Re-export voice leading utilities
-export { findPreviousChordInVoice } from "./voiceLeading";
+export { findPreviousChordInVoice, findNextChordInVoice } from "./voiceLeading";
+
+// Re-export chord position collector types
+export { ChordPositionCollector, ChordPosition, ChordCollectorConfig } from "../interpreter/ChordPositionCollector";

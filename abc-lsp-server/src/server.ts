@@ -38,7 +38,8 @@ import { collectSurvivingCursorIds, computeCursorRangesFromFreshTree } from "./c
 import { serializeCSTree } from "./csTreeSerializer";
 import { computeTextEditsFromDiff } from "./textEditFromDiff";
 import { fromAst, createSelection, Selection, CSNode, TAGS, selectRange } from "editor";
-import { File_structure, Scanner, parse, ABCContext } from "abc-parser";
+import { File_structure, Scanner, parse, ABCContext, SemanticAnalyzer } from "abc-parser";
+import { ChordPositionCollector } from "abc-parser/interpreter/ChordPositionCollector";
 import { computeFoldingRanges, DEFAULT_FOLDING_CONFIG } from "./foldingRangeProvider";
 import { SocketHandler, computeSocketPath } from "./socketHandler";
 import { PreviewManager } from "./PreviewManager";
@@ -399,7 +400,7 @@ connection.onRequest("abc.applyTransform", (params: ApplyTransformParams): Apply
   // Apply transform (mutates tree in place, returns updated Selection)
   let transformArgs = params.args;
   if (CONTEXT_AWARE_TRANSFORMS.has(params.transform)) {
-    const needsAccidentals = params.transform === "harmonizeVoicing" || params.transform === "transpose";
+    const needsAccidentals = params.transform === "harmonizeVoicing" || params.transform === "transpose" || params.transform === "parallelVoicing";
     const snapshots = doc.getSnapshots(needsAccidentals);
     if (!snapshots) {
       return { textEdits: [], cursorRanges: [] };
@@ -409,6 +410,21 @@ connection.onRequest("abc.applyTransform", (params: ApplyTransformParams): Apply
     // Append chord positions for harmonizeVoicing (for voice leading)
     if (params.transform === "harmonizeVoicing") {
       const chordPositions = doc.getChordPositions();
+      transformArgs = [...transformArgs, chordPositions];
+    }
+
+    // Append chord positions for parallelVoicing (needs AST chord for diatonic mode)
+    if (params.transform === "parallelVoicing") {
+      if (!doc.AST) {
+        return { textEdits: [], cursorRanges: [] };
+      }
+      const analyzer = new SemanticAnalyzer(doc.ctx);
+      doc.AST.accept(analyzer);
+      const collector = new ChordPositionCollector(analyzer.data, {
+        minVoices: 1,
+        includeAstChord: true,
+      });
+      const chordPositions = collector.collect(doc.AST);
       transformArgs = [...transformArgs, chordPositions];
     }
   }

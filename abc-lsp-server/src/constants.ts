@@ -28,6 +28,7 @@ export const GROUPED_CURSOR_TRANSFORMS = new Set(["legato", "consolidateRests", 
 export const TRANSFORM_NODE_TAGS: Record<string, string[]> = {
   harmonize: [TAGS.Note, TAGS.Chord],
   harmonizeVoicing: [TAGS.Note],
+  parallelVoicing: [TAGS.Note],
   consolidateRests: [TAGS.Rest],
   insertVoiceLine: [TAGS.Note, TAGS.Chord],
   voiceInfoLineToInline: [TAGS.Info_line],

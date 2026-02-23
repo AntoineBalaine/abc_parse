@@ -105,6 +105,11 @@ export {
   consolidateTiedNotes,
   legato,
   toSlashNotation,
+  parallelVoicing,
+  parallelDiatonic,
+  parallelChromatic,
+  ParallelDirection,
+  ParallelMode,
 } from "./transforms";
 
 // Context utilities

@@ -251,6 +251,35 @@ export function registerTransformCommands(context: vscode.ExtensionContext, clie
       await applyTransform(client, "harmonizeVoicing", [voicing, Number(voiceCountInput), null], statusBarItem);
     })
   );
+
+  // Parallel voicing commands with preset direction/mode
+  const parallelPresets: Array<[string, string, string]> = [
+    ["abc.parallelDiatonicPrev", "prev", "diatonic"],
+    ["abc.parallelDiatonicNext", "next", "diatonic"],
+    ["abc.parallelChromaticPrev", "prev", "chromatic"],
+    ["abc.parallelChromaticNext", "next", "chromatic"],
+  ];
+
+  for (const [commandId, direction, mode] of parallelPresets) {
+    context.subscriptions.push(vscode.commands.registerCommand(commandId, () => applyTransform(client, "parallelVoicing", [direction, mode], statusBarItem)));
+  }
+
+  // Parallel voicing with prompts
+  context.subscriptions.push(
+    vscode.commands.registerCommand("abc.parallelVoicing", async () => {
+      const direction = await vscode.window.showQuickPick(["prev", "next"], {
+        placeHolder: "Reference chord direction",
+      });
+      if (!direction) return;
+
+      const mode = await vscode.window.showQuickPick(["diatonic", "chromatic"], {
+        placeHolder: "Shift mode",
+      });
+      if (!mode) return;
+
+      await applyTransform(client, "parallelVoicing", [direction, mode], statusBarItem);
+    })
+  );
 }
 
 async function applyTransform(client: LanguageClient, transform: string, args: unknown[], statusBarItem: vscode.StatusBarItem): Promise<void> {

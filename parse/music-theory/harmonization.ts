@@ -1,7 +1,8 @@
 import { KeyRoot, KeyAccidental, KeySignature, AccidentalType, Mode } from "../types/abcjs-ast";
 import { ChordQuality, ParsedChord, NoteSpellings } from "./types";
-import { accidentalTypeToSemitones } from "./pitchUtils";
+import { accidentalTypeToSemitones, computeOctaveFromPitch, noteLetterToMidi, accidentalToSemitones, spellPitch } from "./pitchUtils";
 import { Spelling, LETTERS, NATURAL_SEMITONES, SHARP_ORDER, FLAT_ORDER, MAJOR_KEY_SHARPS, MODE_FIFTH_OFFSET } from "./constants";
+import { Chord, Note } from "../types/Expr2";
 
 /**
  * VoicedNote combines a spelling with its MIDI pitch and chord function.
@@ -11,6 +12,110 @@ export interface VoicedNote {
   spelling: Spelling;
   midi: number;
   func: ChordFunction;
+}
+
+/**
+ * Derives the octave number from a VoicedNote's MIDI pitch and spelling.
+ * This centralizes the octave calculation used by toChordAst and shiftChordDiatonic.
+ */
+export function voicedNoteOctave(note: VoicedNote): number {
+  const letterSemitone = NATURAL_SEMITONES[note.spelling.letter];
+  return Math.round((note.midi - letterSemitone - 60) / 12) + 4;
+}
+
+/**
+ * Converts a Chord AST to VoicedNote[] for harmonization processing.
+ * This bridges the AST representation with the VoicedNote representation
+ * used by the harmonization module.
+ */
+export function chordToVoicedNotes(chord: Chord, key: KeySignature, measureAccidentals: Map<string, AccidentalType>): VoicedNote[] {
+  const result: VoicedNote[] = [];
+  for (const content of chord.contents) {
+    if (!(content instanceof Note)) continue;
+
+    const pitch = content.pitch;
+    const letter = pitch.noteLetter.lexeme.toUpperCase();
+    const octave = computeOctaveFromPitch(pitch);
+
+    let alteration: number;
+    if (pitch.alteration) {
+      alteration = accidentalToSemitones(pitch.alteration.lexeme);
+    } else if (measureAccidentals.has(letter)) {
+      alteration = accidentalTypeToSemitones(measureAccidentals.get(letter)!);
+    } else {
+      alteration = getKeyAccidentalFor(letter, key);
+    }
+
+    const midi = noteLetterToMidi(letter, octave) + alteration;
+
+    result.push({
+      spelling: { letter, alteration },
+      midi,
+      func: 8, // func is not meaningful for parallel transforms
+    });
+  }
+  return result;
+}
+
+/**
+ * Shifts all notes in a VoicedNote array diatonically by the given offset.
+ * Because the new notes should stay diatonic to the current key, we use the
+ * key signature for their alteration.
+ */
+export function shiftChordDiatonic(refNotes: VoicedNote[], diatonicOffset: number, key: KeySignature): VoicedNote[] {
+  const result: VoicedNote[] = [];
+  for (const note of refNotes) {
+    const letterIndex = LETTERS.indexOf(note.spelling.letter);
+    const octave = voicedNoteOctave(note);
+
+    const newIndex = letterIndex + diatonicOffset;
+    const octaveShift = Math.floor(newIndex / 7);
+    const normalizedIndex = ((newIndex % 7) + 7) % 7;
+    const newLetter = LETTERS[normalizedIndex];
+    const newOctave = octave + octaveShift;
+
+    const newAlteration = getKeyAccidentalFor(newLetter, key);
+    const newMidi = noteLetterToMidi(newLetter, newOctave) + newAlteration;
+
+    result.push({
+      spelling: { letter: newLetter, alteration: newAlteration },
+      midi: newMidi,
+      func: 8,
+    });
+  }
+  return result;
+}
+
+/**
+ * Shifts MIDI pitches chromatically and spells them according to context.
+ * Because the chromatic shift might result in pitches outside the key, we return
+ * a list of spellings that need explicit accidentals.
+ */
+export function shiftChordChromatic(
+  refMidis: number[],
+  chromaticOffset: number,
+  noteSpellings: NoteSpellings
+): { notes: VoicedNote[]; newAccidentals: Spelling[] } {
+  const notes: VoicedNote[] = [];
+  const newAccidentals: Spelling[] = [];
+
+  for (const refMidi of refMidis) {
+    const newMidi = refMidi + chromaticOffset;
+    const spelling = spellPitch(newMidi, noteSpellings, chromaticOffset);
+
+    const contextAlt = noteSpellings[spelling.letter] ?? 0;
+    if (spelling.alteration !== contextAlt) {
+      newAccidentals.push(spelling);
+    }
+
+    notes.push({
+      spelling,
+      midi: newMidi,
+      func: 8,
+    });
+  }
+
+  return { notes, newAccidentals };
 }
 
 /**

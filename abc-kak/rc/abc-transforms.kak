@@ -416,3 +416,30 @@ define-command abc-spread-6 \
     -docstring "Apply 6-voice spread voicing to selected notes" %{
     abc-transform-impl harmonizeVoicing '["spread", 6, null]'
 }
+
+# ============================================================================
+# Parallel Voicing Commands
+# ============================================================================
+
+define-command abc-parallel-voicing -params 2 -docstring "Create parallel chords from notes
+Parameters:
+  direction: prev or next
+  mode: diatonic or chromatic" %{
+    abc-transform-impl parallelVoicing %sh{printf '["%s", "%s"]' "$1" "$2"}
+}
+
+define-command abc-parallel-diatonic-prev -docstring "Create parallel chords using diatonic shift from previous chord" %{
+    abc-parallel-voicing "prev" "diatonic"
+}
+
+define-command abc-parallel-diatonic-next -docstring "Create parallel chords using diatonic shift from next chord" %{
+    abc-parallel-voicing "next" "diatonic"
+}
+
+define-command abc-parallel-chromatic-prev -docstring "Create parallel chords using chromatic shift from previous chord" %{
+    abc-parallel-voicing "prev" "chromatic"
+}
+
+define-command abc-parallel-chromatic-next -docstring "Create parallel chords using chromatic shift from next chord" %{
+    abc-parallel-voicing "next" "chromatic"
+}

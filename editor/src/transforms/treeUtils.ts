@@ -108,12 +108,7 @@ export function findTieChild(parent: CSNode): { node: CSNode; prev: CSNode | nul
  * This is useful when one node needs to be expanded into multiple nodes
  * (e.g., expanding a multi-measure rest into multiple bars of slashes).
  */
-export function replaceNodeWithSequence(
-  parent: CSNode,
-  prev: CSNode | null,
-  oldNode: CSNode,
-  newNodes: CSNode[]
-): void {
+export function replaceNodeWithSequence(parent: CSNode, prev: CSNode | null, oldNode: CSNode, newNodes: CSNode[]): void {
   if (newNodes.length === 0) {
     removeChild(parent, prev, oldNode);
     return;
@@ -177,4 +172,19 @@ export function replaceRhythm(parent: CSNode, newRhythm: CSNode | null): void {
 
   // No Tie found: append at end.
   appendChild(parent, newRhythm);
+}
+
+/**
+ * Gets the line and character position of a CSNode from its first token descendant.
+ */
+export function getNodeLineAndChar(node: CSNode): { line: number; char: number } {
+  let current: CSNode | null = node;
+  while (current !== null) {
+    if (isTokenNode(current)) {
+      const data = getTokenData(current);
+      return { line: data.line, char: data.position };
+    }
+    current = current.firstChild;
+  }
+  return { line: 0, char: 0 };
 }
