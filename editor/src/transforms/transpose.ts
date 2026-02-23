@@ -20,6 +20,7 @@ import { toAst } from "../csTree/toAst";
 import { fromAst } from "../csTree/fromAst";
 import { findNodesById } from "./types";
 import { findChildByTag, replaceChild, getNodeLineAndChar } from "./treeUtils";
+import { insertSnapshotSorted } from "./parallel";
 
 /**
  * Transposes selected notes by the specified number of semitones.
@@ -131,14 +132,15 @@ function transposePitchWithContext(
   const newPitchCSNode = fromAst(newPitchExpr, ctx);
   replaceChild(noteNode, pitchResult.prev, pitchResult.node, newPitchCSNode);
 
-  // If we wrote an explicit accidental, push a snapshot so subsequent notes see it
+  // If we wrote an explicit accidental, insert a snapshot at the correct sorted position
+  // so subsequent notes see the updated measure accidentals
   if (needsExplicitAccidental) {
     const originalPos = encode(getNodeLineAndChar(noteNode).line, getNodeLineAndChar(noteNode).char);
     const newMeasureAccidentals = new Map(snapshot.measureAccidentals ?? []);
     newMeasureAccidentals.set(spelling.letter, semitonesToAccidentalType(spelling.alteration));
-    snapshots.push({
-      pos: originalPos,
-      snapshot: { ...snapshot, measureAccidentals: newMeasureAccidentals },
+    insertSnapshotSorted(snapshots, originalPos, {
+      ...snapshot,
+      measureAccidentals: newMeasureAccidentals,
     });
   }
 }
