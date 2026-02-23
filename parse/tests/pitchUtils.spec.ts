@@ -18,7 +18,8 @@ import {
 import { NoteSpellings } from "../music-theory/types";
 import { mergeAccidentals } from "../music-theory/harmonization";
 import { NATURAL_SEMITONES } from "../music-theory/constants";
-import { Pitch, Token, TT } from "abc-parser";
+import { Pitch } from "../types/Expr2";
+import { Token, TT } from "../parsers/scan2";
 import { KeySignature, AccidentalType, KeyRoot, KeyAccidental, Mode } from "../types/abcjs-ast";
 
 // Helper to create a basic key signature
