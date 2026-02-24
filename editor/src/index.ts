@@ -43,7 +43,17 @@ export { selectRange } from "./selectors/rangeSelector";
 export { selectVoices, isVoiceMarker } from "./selectors/voiceSelector";
 export { selectSystem } from "./selectors/systemSelector";
 export { fanOutByPredicate, WalkStrategy } from "./selectors/fanOut";
-export { firstTokenData, lastTokenData, comparePositions, buildIdMap, findNodeById, findByTag, findFirstByTag } from "./selectors/treeWalk";
+export {
+  firstTokenData,
+  lastTokenData,
+  comparePositions,
+  buildIdMap,
+  findNodeById,
+  findByTag,
+  findFirstByTag,
+  findByPos,
+  FindByPosResult,
+} from "./selectors/treeWalk";
 
 // Transforms
 export {

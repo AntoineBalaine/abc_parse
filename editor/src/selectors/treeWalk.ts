@@ -1,4 +1,11 @@
+import { Position } from "abc-parser/types/types";
 import { CSNode, isTokenNode, TokenData, getTokenData, TAGS } from "../csTree/types";
+
+export interface FindByPosResult {
+  node: CSNode;
+  parent: CSNode | null;
+  prevSibling: CSNode | null;
+}
 
 /**
  * Returns the TokenData of the leftmost Token descendant, or null if the node
@@ -41,10 +48,7 @@ export function lastTokenData(node: CSNode): TokenData | null {
  * Compares two (line, col) positions.
  * Returns negative if a is before b, 0 if equal, positive if a is after b.
  */
-export function comparePositions(
-  aLine: number, aCol: number,
-  bLine: number, bCol: number
-): number {
+export function comparePositions(aLine: number, aCol: number, bLine: number, bCol: number): number {
   if (aLine !== bLine) return aLine - bLine;
   return aCol - bCol;
 }
@@ -200,4 +204,51 @@ export function findAncestorByTag(root: CSNode, targetId: number, tag: string): 
   const ctx: FindAncestorCtx = { targetId, ancestorTag: tag, result: null };
   walkForAncestor(ctx, root, []);
   return ctx.result;
+}
+
+/**
+ * Finds a node by tag whose range contains the given position, returning
+ * the node along with its parent and previous sibling for tree manipulation.
+ * Returns null if no matching node contains the position.
+ */
+export function findByPos(node: CSNode, tag: string, position: Position, parent: CSNode | null, prevSibling: CSNode | null): FindByPosResult | null {
+  // Check if this node matches the tag and contains the position
+  if (node.tag === tag) {
+    const first = firstTokenData(node);
+    const last = lastTokenData(node);
+    if (first && first.position >= 0) {
+      // Check if position is at or after the start
+      const afterStart = comparePositions(position.line, position.character, first.line, first.position) >= 0;
+      if (afterStart && last) {
+        // If the last token has a valid position, check if position is before the end
+        // If the last token is synthetic (position < 0), we accept any position after start on the same or later line
+        if (last.position >= 0) {
+          const endCol = last.position + last.lexeme.length;
+          if (comparePositions(position.line, position.character, last.line, endCol) < 0) {
+            return { node, parent, prevSibling };
+          }
+        } else {
+          // Last token is synthetic - accept if position is on the same line as first token
+          // or we're on a line before or equal to last token's line
+          if (position.line <= last.line) {
+            return { node, parent, prevSibling };
+          }
+        }
+      }
+    }
+  }
+
+  // Recurse into children
+  let prev: CSNode | null = null;
+  let child = node.firstChild;
+  while (child) {
+    const result = findByPos(child, tag, position, node, prev);
+    if (result) {
+      return result;
+    }
+    prev = child;
+    child = child.nextSibling;
+  }
+
+  return null;
 }

@@ -11,6 +11,7 @@ import {
   findByTag as productionFindByTag,
   findFirstByTag,
   findAncestorByTag,
+  findByPos,
 } from "../src/selectors/treeWalk";
 import { toCSTree, collectAll, findByTag, genAbcTune, genAbcWithChords } from "./helpers";
 
@@ -182,9 +183,7 @@ describe("treeWalk", () => {
       const helperResults = findByTag(root, TAGS.Chord);
       const productionResults = productionFindByTag(root, TAGS.Chord);
       expect(productionResults.length).to.equal(helperResults.length);
-      expect(productionResults.map((n) => n.id).sort()).to.deep.equal(
-        helperResults.map((n) => n.id).sort()
-      );
+      expect(productionResults.map((n) => n.id).sort()).to.deep.equal(helperResults.map((n) => n.id).sort());
     });
   });
 
@@ -273,6 +272,69 @@ describe("treeWalk", () => {
       expect(tune1).to.not.be.null;
       expect(tune2).to.not.be.null;
       expect(tune1!.id).to.not.equal(tune2!.id);
+    });
+  });
+
+  describe("findByPos", () => {
+    it("finds a System node containing a given position", () => {
+      const root = toCSTree("X:1\nK:C\nCDE|\n");
+      const result = findByPos(root, TAGS.System, { line: 2, character: 1 }, null, null);
+      expect(result).to.not.be.null;
+      expect(result!.node.tag).to.equal(TAGS.System);
+    });
+
+    it("returns correct parent and prevSibling", () => {
+      // A multi-tune file where we can find a System and check its parent
+      const root = toCSTree("X:1\nK:C\nCDE|\n");
+      const result = findByPos(root, TAGS.System, { line: 2, character: 1 }, null, null);
+      expect(result).to.not.be.null;
+      // The parent of System should be Tune_Body
+      expect(result!.parent).to.not.be.null;
+      expect(result!.parent!.tag).to.equal(TAGS.Tune_Body);
+    });
+
+    it("returns null when position is outside all nodes of the given tag", () => {
+      const root = toCSTree("X:1\nK:C\nCDE|\n");
+      // Position at line 100 is outside the document
+      const result = findByPos(root, TAGS.System, { line: 100, character: 0 }, null, null);
+      expect(result).to.be.null;
+    });
+
+    it("finds a Note node at its exact position", () => {
+      const root = toCSTree("X:1\nK:C\nCDE|\n");
+      // Note D is at position 1 on line 2
+      const result = findByPos(root, TAGS.Note, { line: 2, character: 1 }, null, null);
+      expect(result).to.not.be.null;
+      expect(result!.node.tag).to.equal(TAGS.Note);
+      // Verify it's the D note by checking the first token
+      const td = firstTokenData(result!.node);
+      expect(td).to.not.be.null;
+      expect(td!.lexeme).to.equal("D");
+    });
+
+    it("finds nested nodes correctly", () => {
+      // Find Tune_Body first, then search for System within it
+      const root = toCSTree("X:1\nK:C\nCDE|\n");
+      const tuneBodyResult = findByPos(root, TAGS.Tune_Body, { line: 2, character: 1 }, null, null);
+      expect(tuneBodyResult).to.not.be.null;
+
+      // Now find System within the Tune_Body's subtree
+      const systemResult = findByPos(tuneBodyResult!.node, TAGS.System, { line: 2, character: 1 }, tuneBodyResult!.node, null);
+      expect(systemResult).to.not.be.null;
+      expect(systemResult!.node.tag).to.equal(TAGS.System);
+      expect(systemResult!.parent!.tag).to.equal(TAGS.Tune_Body);
+    });
+
+    it("finds the correct System in a multi-system document", () => {
+      const root = toCSTree("X:1\nK:C\nCDE|\nFGA|\n");
+      // Position in the second line of music (line 3, char 1 is in the second system)
+      const result = findByPos(root, TAGS.System, { line: 3, character: 1 }, null, null);
+      expect(result).to.not.be.null;
+      expect(result!.node.tag).to.equal(TAGS.System);
+      // Verify the found system contains the second music line by checking the first token
+      const ft = firstTokenData(result!.node);
+      expect(ft).to.not.be.null;
+      expect(ft!.lexeme).to.equal("F");
     });
   });
 
