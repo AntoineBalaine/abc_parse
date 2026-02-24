@@ -39,8 +39,9 @@ import {
   parallelVoicing,
   ParallelDirection,
   ParallelMode,
+  splitSystems,
 } from "editor";
-import { ABCContext, IRational } from "abc-parser";
+import { ABCContext, IRational, Position } from "abc-parser";
 import { DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
 import { ChordPosition } from "abc-parser/interpreter/ChordPositionCollector";
 
@@ -85,6 +86,13 @@ const TRANSFORM_MAP: Record<string, TransformFn> = {
   // For parallelVoicing, args are: [snapshots, direction, mode, chordPositions]
   parallelVoicing: (sel, ctx, ...args) =>
     parallelVoicing(sel, args[1] as ParallelDirection, args[2] as ParallelMode, ctx, args[0] as DocumentSnapshots, args[3] as ChordPosition[]),
+  // For splitSystems, args are: [snapshots, positions]
+  // This is a position-based transform, so we receive the positions directly rather than selecting nodes
+  splitSystems: (sel, ctx, ...args) => {
+    const snapshots = args[0] as DocumentSnapshots;
+    const positions = args[1] as Position[];
+    return splitSystems(sel, positions, ctx, snapshots);
+  },
 };
 
 export function lookupTransform(name: string): TransformFn | null {
@@ -99,4 +107,4 @@ export function lookupTransform(name: string): TransformFn | null {
  * Transforms that require DocumentSnapshots from ContextInterpreter.
  * These transforms need musical context like meter, note length, and clef.
  */
-export const CONTEXT_AWARE_TRANSFORMS = new Set(["transpose", "toSlashNotation", "harmonizeVoicing", "parallelVoicing"]);
+export const CONTEXT_AWARE_TRANSFORMS = new Set(["transpose", "toSlashNotation", "harmonizeVoicing", "parallelVoicing", "splitSystems"]);

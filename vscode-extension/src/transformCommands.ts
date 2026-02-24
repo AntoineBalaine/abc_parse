@@ -280,6 +280,61 @@ export function registerTransformCommands(context: vscode.ExtensionContext, clie
       await applyTransform(client, "parallelVoicing", [direction, mode], statusBarItem);
     })
   );
+
+  // Split system at cursor position(s)
+  // This is a position-based transform: it uses cursor positions directly
+  // rather than requiring a selection of notes/chords
+  context.subscriptions.push(
+    vscode.commands.registerCommand("abc.splitSystem", async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor || editor.document.languageId !== "abc") return;
+
+      const uri = editor.document.uri.toString();
+
+      // Convert VSCode selections to LSP ranges (using cursor positions)
+      // For position-based transforms, we use the cursor position (active) rather than the full selection
+      const ranges = editor.selections.map((sel) => ({
+        start: { line: sel.active.line, character: sel.active.character },
+        end: { line: sel.active.line, character: sel.active.character },
+      }));
+
+      try {
+        const result = await client.sendRequest<ApplyTransformResult>("abc.applyTransform", {
+          uri,
+          transform: "splitSystems",
+          args: [],
+          selections: ranges,
+        });
+
+        // Apply text edits
+        if (result.textEdits.length > 0) {
+          const workspaceEdit = new vscode.WorkspaceEdit();
+          for (const edit of result.textEdits) {
+            const range = new vscode.Range(edit.range.start.line, edit.range.start.character, edit.range.end.line, edit.range.end.character);
+            workspaceEdit.replace(editor.document.uri, range, edit.newText);
+          }
+
+          const editSuccess = await vscode.workspace.applyEdit(workspaceEdit);
+          if (!editSuccess) {
+            vscode.window.showErrorMessage("Failed to apply split system edits");
+            return;
+          }
+        }
+
+        // Update cursor positions to new system starts
+        if (result.cursorRanges.length > 0) {
+          editor.selections = result.cursorRanges.map((r) => {
+            const pos = new vscode.Position(r.start.line, r.start.character);
+            return new vscode.Selection(pos, pos);
+          });
+          statusBarItem.text = `$(split-horizontal) Split complete`;
+          statusBarItem.show();
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(`Split system failed: ${error}`);
+      }
+    })
+  );
 }
 
 async function applyTransform(client: LanguageClient, transform: string, args: unknown[], statusBarItem: vscode.StatusBarItem): Promise<void> {

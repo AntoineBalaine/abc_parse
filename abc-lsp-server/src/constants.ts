@@ -18,6 +18,19 @@ export const ERROR_CODES = {
  */
 export const GROUPED_CURSOR_TRANSFORMS = new Set(["legato", "consolidateRests", "toSlashNotation"]);
 
+/**
+ * Transforms that operate on cursor positions rather than selected nodes.
+ *
+ * Input contract: These transforms receive raw Position[] as input instead of
+ * operating on nodes identified by selection.cursors.
+ *
+ * Output contract: These transforms MUST populate selection.cursors with the
+ * node IDs of result nodes. The cursor nodes will have valid token positions
+ * from the original source, allowing direct range computation via
+ * resolveSelectionRanges() without ordinal mapping.
+ */
+export const POSITION_BASED_TRANSFORMS = new Set(["splitSystems"]);
+
 // ============================================================================
 // Transform Node Tags Mapping
 // ============================================================================

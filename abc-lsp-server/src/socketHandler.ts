@@ -2,7 +2,7 @@ import * as net from "net";
 import * as fs from "fs";
 import * as path from "path";
 import * as readline from "readline";
-import { findNodesInRange, resolveRanges } from "./selectionRangeResolver";
+import { findNodesInRange, resolveRanges, resolveSelectionRanges } from "./selectionRangeResolver";
 import { lookupSelector, getAvailableSelectors } from "./selectorLookup";
 import { lookupTransform, CONTEXT_AWARE_TRANSFORMS } from "./transformLookup";
 import { fromAst, createSelection, Selection, selectRange, CSNode, TAGS } from "editor";
@@ -14,7 +14,7 @@ import { serializeCSTree } from "./csTreeSerializer";
 import { computeTextEditsFromDiff } from "./textEditFromDiff";
 import { PreviewManager } from "./PreviewManager";
 import { collectSurvivingCursorIds, computeCursorRangesFromFreshTree } from "./cursorPreservation";
-import { ERROR_CODES, GROUPED_CURSOR_TRANSFORMS, TRANSFORM_NODE_TAGS } from "./constants";
+import { ERROR_CODES, GROUPED_CURSOR_TRANSFORMS, TRANSFORM_NODE_TAGS, POSITION_BASED_TRANSFORMS } from "./constants";
 
 // ============================================================================
 // Types
@@ -495,6 +495,94 @@ function handleApplyTransform(
   return { edits, cursorRanges };
 }
 
+/**
+ * Handles position-based transforms that operate on cursor positions rather than selected nodes.
+ * These transforms (like splitSystems) take raw cursor positions as input.
+ *
+ * Position-based transforms MUST populate selection.cursors with the node IDs of result nodes.
+ * The cursor nodes will have valid token positions from the original source, allowing direct
+ * range computation via resolveSelectionRanges() without ordinal mapping.
+ */
+function handlePositionBasedTransform(
+  params: {
+    uri: string;
+    transform: string;
+    args: unknown[];
+    ranges: LSPRange[];
+  },
+  getDocument: DocumentGetter
+): TransformResult {
+  const doc = getDocument(params.uri);
+
+  if (!doc) {
+    throw { code: ERROR_CODES.DOCUMENT_NOT_FOUND, message: "Document not yet opened" };
+  }
+
+  if (doc instanceof AbcxDocument) {
+    throw { code: ERROR_CODES.FILE_TYPE_NOT_SUPPORTED, message: "Transforms are not supported for ABCx files" };
+  }
+
+  if (!(doc instanceof AbcDocument) || !doc.AST) {
+    throw { code: ERROR_CODES.DOCUMENT_NOT_FOUND, message: "Document has no parsed AST" };
+  }
+
+  // Position-based transforms require at least one range to determine the position
+  if (params.ranges.length === 0) {
+    return { edits: [], cursorRanges: [] };
+  }
+
+  // Build a fresh CSTree from the AST (transforms mutate in place)
+  const root = fromAst(doc.AST, doc.ctx);
+
+  // Create a selection from the root (no specific nodes selected for position-based transforms)
+  const selection: Selection = createSelection(root);
+
+  // Extract all cursor positions from ranges
+  const positions = params.ranges.map((r) => ({
+    line: r.start.line,
+    character: r.start.character,
+  }));
+
+  const transformFn = lookupTransform(params.transform);
+  if (!transformFn) {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: `Unknown transform: "${params.transform}"` };
+  }
+
+  // Build transform arguments: [snapshots, positions, ...additionalArgs]
+  // Position-based transforms that are context-aware need snapshots
+  let transformArgs: unknown[] = [];
+  if (CONTEXT_AWARE_TRANSFORMS.has(params.transform)) {
+    const snapshots = doc.getSnapshots(false);
+    if (!snapshots) {
+      return { edits: [], cursorRanges: [] };
+    }
+    transformArgs = [snapshots, positions, ...(params.args ?? [])];
+  } else {
+    transformArgs = [positions, ...(params.args ?? [])];
+  }
+
+  const newSelection = transformFn(selection, doc.ctx, ...transformArgs);
+
+  // Serialize modified tree to text
+  const newText = serializeCSTree(newSelection.root, doc.ctx);
+  const oldText = doc.document.getText();
+
+  // Compute minimal TextEdits using LCS-based diff
+  const textEdits = computeTextEditsFromDiff(oldText, newText);
+
+  // Convert TextEdit[] to the simpler format for socket response
+  const edits = textEdits.map((edit) => ({
+    range: edit.range,
+    newText: edit.newText,
+  }));
+
+  // Position-based transforms populate selection.cursors with result node IDs
+  // Use resolveSelectionRanges for direct range computation
+  const cursorRanges = resolveSelectionRanges(newSelection);
+
+  return { edits, cursorRanges };
+}
+
 // ============================================================================
 // Socket Handler Class
 // ============================================================================
@@ -607,7 +695,13 @@ export class SocketHandler {
         result = handleApplySelector(validatedParams, this.getDocument, this.getCsTree);
       } else if (request.method === "abc.applyTransform") {
         const validatedParams = validateApplyTransformParams(request.params);
-        result = handleApplyTransform(validatedParams, this.getDocument);
+        // Position-based transforms (like splitSystem) receive cursor positions directly
+        // rather than selecting nodes within ranges
+        if (POSITION_BASED_TRANSFORMS.has(validatedParams.transform)) {
+          result = handlePositionBasedTransform(validatedParams, this.getDocument);
+        } else {
+          result = handleApplyTransform(validatedParams, this.getDocument);
+        }
       } else if (request.method === "abc.startPreview") {
         if (!this.previewManager) {
           throw { code: ERROR_CODES.INVALID_REQUEST, message: "Preview manager not initialized" };

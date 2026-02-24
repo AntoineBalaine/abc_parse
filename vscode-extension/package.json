@@ -434,6 +434,11 @@
         "command": "abc.parallelChromaticNext",
         "title": "ABC: Parallel Chromatic (Next Chord)",
         "category": "ABC"
+      },
+      {
+        "command": "abc.splitSystem",
+        "title": "ABC: Split System at Cursor",
+        "category": "ABC"
       }
     ],
     "menus": {
@@ -696,6 +701,10 @@
         },
         {
           "command": "abc.parallelChromaticNext",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.splitSystem",
           "when": "editorLangId == abc"
         }
       ]

@@ -45,6 +45,7 @@ export { selectSystem } from "./selectors/systemSelector";
 export { fanOutByPredicate, WalkStrategy } from "./selectors/fanOut";
 export {
   firstTokenData,
+  firstTokenNode,
   lastTokenData,
   comparePositions,
   buildIdMap,
@@ -120,6 +121,9 @@ export {
   parallelChromatic,
   ParallelDirection,
   ParallelMode,
+  splitSystem,
+  splitSystems,
+  SplitMetadata,
 } from "./transforms";
 
 // Context utilities

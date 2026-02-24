@@ -31,7 +31,7 @@ import {
   ABCLS_VOICES_OPTIONS,
 } from "./completions";
 import { standardTokenScopes } from "./server_helpers";
-import { findNodesInRange, resolveRanges } from "./selectionRangeResolver";
+import { findNodesInRange, resolveRanges, resolveSelectionRanges } from "./selectionRangeResolver";
 import { lookupSelector } from "./selectorLookup";
 import { lookupTransform, CONTEXT_AWARE_TRANSFORMS } from "./transformLookup";
 import { collectSurvivingCursorIds, computeCursorRangesFromFreshTree } from "./cursorPreservation";
@@ -43,7 +43,7 @@ import { ChordPositionCollector } from "abc-parser/interpreter/ChordPositionColl
 import { computeFoldingRanges, DEFAULT_FOLDING_CONFIG } from "./foldingRangeProvider";
 import { SocketHandler, computeSocketPath } from "./socketHandler";
 import { PreviewManager } from "./PreviewManager";
-import { GROUPED_CURSOR_TRANSFORMS, TRANSFORM_NODE_TAGS } from "./constants";
+import { GROUPED_CURSOR_TRANSFORMS, POSITION_BASED_TRANSFORMS, TRANSFORM_NODE_TAGS } from "./constants";
 
 // ============================================================================
 // CLI Argument Parsing
@@ -336,9 +336,52 @@ connection.onRequest("abc.wrapDynamic", (params: WrapDynamicParams): WrapDynamic
   return { text: result };
 });
 
-// ============================================================================
-// Transform Command Request Handler
-// ============================================================================
+function handlePositionBasedTransform(
+  params: ApplyTransformParams,
+  doc: AbcDocument,
+  transformFn: (selection: Selection, ctx: ABCContext, ...args: unknown[]) => Selection
+): ApplyTransformResult {
+  if (!doc.AST || !doc.ctx) {
+    return { textEdits: [], cursorRanges: [] };
+  }
+
+  if (!params.selections || params.selections.length === 0) {
+    return { textEdits: [], cursorRanges: [] };
+  }
+
+  const root = fromAst(doc.AST, doc.ctx);
+  const selection: Selection = { root, cursors: [] };
+
+  // Extract positions from selection ranges
+  const positions = params.selections.map((r) => ({
+    line: r.start.line,
+    character: r.start.character,
+  }));
+
+  // Build transform arguments
+  let transformArgs: unknown[];
+  if (CONTEXT_AWARE_TRANSFORMS.has(params.transform)) {
+    const snapshots = doc.getSnapshots(false);
+    if (!snapshots) {
+      return { textEdits: [], cursorRanges: [] };
+    }
+    transformArgs = [snapshots, positions, ...params.args];
+  } else {
+    transformArgs = [positions, ...params.args];
+  }
+
+  const newSelection = transformFn(selection, doc.ctx, ...transformArgs);
+
+  // Serialize and diff
+  const newText = serializeCSTree(newSelection.root, doc.ctx);
+  const oldText = doc.document.getText();
+  const textEdits = computeTextEditsFromDiff(oldText, newText);
+
+  // Position-based transforms populate cursors correctly
+  const cursorRanges = resolveSelectionRanges(newSelection);
+
+  return { textEdits, cursorRanges };
+}
 
 connection.onRequest("abc.applyTransform", (params: ApplyTransformParams): ApplyTransformResult => {
   const doc = abcServer.abcDocuments.get(params.uri);
@@ -349,6 +392,11 @@ connection.onRequest("abc.applyTransform", (params: ApplyTransformParams): Apply
   const transformFn = lookupTransform(params.transform);
   if (!transformFn) {
     throw new ResponseError(-1, `Unknown transform: "${params.transform}"`);
+  }
+
+  // Position-based transforms need special handling
+  if (POSITION_BASED_TRANSFORMS.has(params.transform)) {
+    return handlePositionBasedTransform(params, doc, transformFn);
   }
 
   // Build a fresh CSTree from the AST (we do not cache because transforms mutate in place)

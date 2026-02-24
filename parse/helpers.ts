@@ -423,3 +423,12 @@ export function isVoiceMarker(node: Expr | Token): node is Info_line | Inline_fi
 export function isMusicExpr(expr: Expr | Token): boolean {
   return isBeam(expr) || isNote(expr) || isRest(expr) || isChord(expr) || isYSPACER(expr) || isMultiMeasureRest(expr);
 }
+
+// Helper: check if node is an EOL token
+export function isEOL(node: Expr | Token): node is Token {
+  return node instanceof Token && node.type === TT.EOL;
+}
+// Helper: check if node is an inline field
+export function isInlineField(node: Expr | Token): node is Inline_field {
+  return node instanceof Inline_field;
+}

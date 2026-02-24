@@ -225,6 +225,11 @@ define-command abc-remove \
     abc-transform-impl remove
 }
 
+define-command abc-split-system \
+    -docstring "Split system at cursor position(s). For multi-voice systems, all voices split at equivalent musical time." %{
+    abc-transform-impl splitSystems
+}
+
 # ============================================================================
 # Explode Transform Commands
 # ============================================================================

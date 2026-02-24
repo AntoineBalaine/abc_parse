@@ -37,6 +37,10 @@
     "./Visitors/*": {
       "types": "./dist/Visitors/*.d.ts",
       "default": "./dist/Visitors/*.js"
+    },
+    "./helpers": {
+      "types": "./dist/helpers.d.ts",
+      "default": "./dist/helpers.js"
     }
   },
   "files": [

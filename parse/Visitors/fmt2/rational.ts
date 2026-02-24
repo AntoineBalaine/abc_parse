@@ -186,3 +186,14 @@ export function rationalFromNumber(num: number, maxDenominator: number = 10000):
 
   return createRational(sign * n, d);
 }
+
+/** Helper: parse rational string "n/d" to IRational
+ * Used for timeMap’s time keys
+ */
+export function parseRational(str: string): IRational {
+  const parts = str.split("/");
+  if (parts.length === 2) {
+    return createRational(parseInt(parts[0], 10), parseInt(parts[1], 10));
+  }
+  return createRational(parseInt(str, 10), 1);
+}

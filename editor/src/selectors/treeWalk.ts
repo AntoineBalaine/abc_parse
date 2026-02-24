@@ -8,18 +8,27 @@ export interface FindByPosResult {
 }
 
 /**
- * Returns the TokenData of the leftmost Token descendant, or null if the node
+ * Returns the leftmost Token CSNode descendant, or null if the node
  * has no Token descendants. Walks depth-first, always preferring firstChild.
  */
-export function firstTokenData(node: CSNode): TokenData | null {
+export function firstTokenNode(node: CSNode): CSNode | null {
   let current: CSNode | null = node;
   while (current !== null) {
     if (isTokenNode(current)) {
-      return getTokenData(current);
+      return current;
     }
     current = current.firstChild;
   }
   return null;
+}
+
+/**
+ * Returns the TokenData of the leftmost Token descendant, or null if the node
+ * has no Token descendants. Walks depth-first, always preferring firstChild.
+ */
+export function firstTokenData(node: CSNode): TokenData | null {
+  const tokenNode = firstTokenNode(node);
+  return tokenNode ? getTokenData(tokenNode) : null;
 }
 
 /**
