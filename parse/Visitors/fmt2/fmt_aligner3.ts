@@ -5,7 +5,7 @@ import { Expr, Rest } from "../../types/Expr2";
 import { AbcFormatter } from "../Formatter2";
 import { RangeVisitor } from "../RangeVisitor";
 import { calculateDuration, DurationContext, isTimeEvent } from "./fmt_timeMap";
-import { getNodeId, isBarLine, isBeam, Location, VoiceSplit } from "./fmt_timeMapHelpers";
+import { getNodeId, getPosition, isBarLine, isBeam, Location, VoiceSplit } from "./fmt_timeMapHelpers";
 import {
   addRational,
   createRational,
@@ -219,7 +219,20 @@ export function scanVxAlignPts(gCtx: GCtx, vxCtx: VxCtx): boolean {
 function barlinePts(gCtx: GCtx, vxCtx: VxCtx | SymbolLnCtx): boolean {
   const cur = peek(vxCtx);
   if (!isBarLine(cur)) return false;
-  gCtx.push([++vxCtx.bar, { voiceIdx: vxCtx.voiceIdx, nodeID: cur.id }], vxCtx);
+  const range = cur.accept(new RangeVisitor());
+  const pos = getPosition(range);
+  gCtx.push(
+    [
+      ++vxCtx.bar,
+      {
+        voiceIdx: vxCtx.voiceIdx,
+        nodeID: cur.id,
+        line: pos.line,
+        character: pos.character,
+      },
+    ],
+    vxCtx
+  );
   if (vxCtx instanceof VxCtx) {
     vxCtx.time = {
       numerator: 0,
@@ -237,14 +250,25 @@ function timeEventPts(gCtx: GCtx, vxCtx: VxCtx): boolean {
   const cur = peek(vxCtx);
   if (!isTimeEvent(cur)) return false;
   const timeKey = vxCtx.time;
-  gCtx.push([timeKey, { voiceIdx: vxCtx.voiceIdx, nodeID: getNodeId(cur) }], vxCtx);
+  const range = cur.accept(new RangeVisitor());
+  const pos = getPosition(range);
+  gCtx.push(
+    [
+      timeKey,
+      {
+        voiceIdx: vxCtx.voiceIdx,
+        nodeID: getNodeId(cur),
+        line: pos.line,
+        character: pos.character,
+      },
+    ],
+    vxCtx
+  );
 
   let duration = calculateDuration(cur, vxCtx.durationCtx);
 
   // Substitute zero duration with quarter note relative duration
   if (duration.numerator === 0 && gCtx.tuneSnapshots) {
-    const rangeVisitor = new RangeVisitor();
-    const range = cur.accept(rangeVisitor);
     if (range?.start) {
       const pos = encode(range.start.line, range.start.character);
       const snapshot = getSnapshotAtPosition(gCtx.tuneSnapshots, pos);
@@ -375,7 +399,18 @@ function symbolLnTimeEvent(gCtx: GCtx, symCtx: SymbolLnCtx): boolean {
     const locations = entry[1];
     const mtchIdx = locations.findIndex((loc) => loc.voiceIdx === symCtx.parentVxIdx);
     if (mtchIdx === -1) continue;
-    gCtx.push([timeKey, { voiceIdx: symCtx.voiceIdx, nodeID: node.id }], symCtx);
+    gCtx.push(
+      [
+        timeKey,
+        {
+          voiceIdx: symCtx.voiceIdx,
+          nodeID: node.id,
+          line: node.line,
+          character: node.position,
+        },
+      ],
+      symCtx
+    );
     symCtx.parentPos = i - gCtx.barIndexes[symCtx.bar];
     const parentNodeId = locations[mtchIdx].nodeID;
     const parentNode = symCtx.parentVoice.find((e) => e.id === parentNodeId);

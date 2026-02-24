@@ -48,6 +48,8 @@ describe("alignBars function - Property-Based Tests", () => {
         timePointMap.get(timeKey)!.push({
           voiceIdx,
           nodeID: nodeId,
+          line: 0,
+          character: 0,
         });
       });
     });
@@ -162,30 +164,14 @@ describe("alignBars function - Property-Based Tests", () => {
       const ctx = new ABCContext();
 
       // Create first voice with two notes
-      const noteA1 = new Note(
-        ctx.generateId(),
-        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "C", ctx.generateId()) }),
-        undefined
-      );
+      const noteA1 = new Note(ctx.generateId(), new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "C", ctx.generateId()) }), undefined);
 
-      const noteA2 = new Note(
-        ctx.generateId(),
-        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "D", ctx.generateId()) }),
-        undefined
-      );
+      const noteA2 = new Note(ctx.generateId(), new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "D", ctx.generateId()) }), undefined);
 
       // Create second voice with two notes
-      const noteB1 = new Note(
-        ctx.generateId(),
-        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "E", ctx.generateId()) }),
-        undefined
-      );
+      const noteB1 = new Note(ctx.generateId(), new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "E", ctx.generateId()) }), undefined);
 
-      const noteB2 = new Note(
-        ctx.generateId(),
-        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "F", ctx.generateId()) }),
-        undefined
-      );
+      const noteB2 = new Note(ctx.generateId(), new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "F", ctx.generateId()) }), undefined);
 
       const voice1 = [noteA1, noteA2];
       const voice2 = [noteB1, noteB2];
@@ -377,11 +363,7 @@ describe("alignBars function - Property-Based Tests", () => {
       // Voice 2: zA (rest, note)
       const restV2_1 = new Rest(ctx.generateId(), new Token(TT.REST, "z", ctx.generateId()), undefined);
 
-      const noteV2_2 = new Note(
-        ctx.generateId(),
-        new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "A", ctx.generateId()) }),
-        undefined
-      );
+      const noteV2_2 = new Note(ctx.generateId(), new Pitch(ctx.generateId(), { noteLetter: new Token(TT.NOTE_LETTER, "A", ctx.generateId()) }), undefined);
 
       // Voice 3: a>zz (note with broken rhythm, two rests)
       const noteV3_1 = new Note(
@@ -460,9 +442,7 @@ describe("alignBars function - Property-Based Tests", () => {
             const voices = voiceArrays.map((voice) => {
               // Filter out non-time events at the beginning of each voice
               // to ensure we have a valid start node for time mapping
-              const firstTimeEventIndex = voice.findIndex(
-                (item) => isNote(item.expr) || isChord(item.expr) || item.expr instanceof Rest || isBeam(item.expr)
-              );
+              const firstTimeEventIndex = voice.findIndex((item) => isNote(item.expr) || isChord(item.expr) || item.expr instanceof Rest || isBeam(item.expr));
 
               if (firstTimeEventIndex === -1) {
                 // If no time events, generate a simple note to ensure we have a time event

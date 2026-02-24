@@ -1,7 +1,8 @@
 import { isChord, isNote } from "../../helpers";
 import { Token } from "../../parsers/scan2";
 import { Beam, Chord, Expr, MultiMeasureRest, Note, Rest, Rhythm, System, Tuplet } from "../../types/Expr2";
-import { BarAlignment, BarTimeMap, Location, NodeID, VoiceSplit, getNodeId, isBarLine, isBeam, isMultiMeasureRest } from "./fmt_timeMapHelpers";
+import { RangeVisitor } from "../RangeVisitor";
+import { BarAlignment, BarTimeMap, Location, NodeID, VoiceSplit, getNodeId, getPosition, isBarLine, isBeam, isMultiMeasureRest } from "./fmt_timeMapHelpers";
 import { IRational, addRational, createRational, divideRational, isInfiniteRational, multiplyRational, rationalToString } from "./rational";
 
 export function mapTimePoints(voiceSplits: VoiceSplit[]): BarAlignment[] {
@@ -36,9 +37,14 @@ export function mapTimePoints(voiceSplits: VoiceSplit[]): BarAlignment[] {
           locations = [];
           barTimePoints.set(timeKey, locations);
         }
+        const node = split.content.find((n) => getNodeId(n) === nodeID)!;
+        const range = node.accept(new RangeVisitor());
+        const pos = getPosition(range);
         locations.push({
           voiceIdx,
           nodeID,
+          line: pos.line,
+          character: pos.character,
         });
       });
     });

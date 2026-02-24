@@ -1,7 +1,16 @@
-import { isChord, isNote } from "../../helpers";
+import { isChord, isNote, isEmptyRange } from "../../helpers";
 import { Token, TT } from "../../parsers/scan2";
 import { BarLine, Beam, Expr, MultiMeasureRest, System } from "../../types/Expr2";
+import { Range } from "../../types/types";
 import { IRational } from "./rational";
+
+// Helper to extract safe position values from a range, handling null/undefined and EMPTY_RANGE
+export function getPosition(range: Range): { line: number; character: number } {
+  if (!range || isEmptyRange(range)) {
+    return { line: 0, character: 0 };
+  }
+  return { line: range.start.line, character: range.start.character };
+}
 
 export type NodeID = number;
 export type TimeStamp = IRational;
@@ -14,6 +23,8 @@ export interface VoiceSplit {
 export interface Location {
   voiceIdx: number;
   nodeID: number;
+  line: number;
+  character: number;
 }
 
 export interface BarTimeMap {
