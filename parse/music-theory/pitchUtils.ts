@@ -4,6 +4,12 @@ import { Spelling, LETTERS, NATURAL_SEMITONES, SHARP_ORDER, FLAT_ORDER, MAJOR_KE
 import { NoteSpellings } from "./types";
 
 /**
+ * The direction of a key signature for chromatic note spelling preference.
+ * Sharp keys prefer sharp spellings for chromatic notes, flat keys prefer flat spellings.
+ */
+export type KeyDirection = "sharp" | "flat" | "neutral";
+
+/**
  * Context for pitch resolution operations.
  * Contains the information needed to convert between written ABC notation
  * and sounding MIDI pitches.
@@ -56,6 +62,19 @@ const SEMITONE_TO_ENHARMONICS: Record<number, Array<[string, number]>> = {
 export function noteLetterToMidi(pitchClass: string, octave: number): number {
   const semitone = NATURAL_SEMITONES[pitchClass.toUpperCase()] ?? 0;
   return (octave + 1) * 12 + semitone;
+}
+
+/**
+ * Counts octave markers in an ABC octave lexeme.
+ * Returns positive for apostrophes (higher octave) and negative for commas (lower octave).
+ */
+export function countOctaveMarkers(lexeme: string): number {
+  let count = 0;
+  for (const char of lexeme) {
+    if (char === "'") count++;
+    else if (char === ",") count--;
+  }
+  return count;
 }
 
 /**
@@ -438,4 +457,132 @@ export function computeOctaveFromPitch(pitchExpr: Pitch): number {
   }
 
   return octave;
+}
+
+/**
+ * Finds the reference spelling for a pitch class in the merged context.
+ * Returns the Spelling if the pitch class is diatonic (in the scale), null if chromatic.
+ *
+ * For example, in G major (F is sharped):
+ * - pitchClass 6 (F#) returns { letter: "F", alteration: 1 }
+ * - pitchClass 5 (F natural) returns null (chromatic in G major)
+ *
+ * @param merged The merged accidentals from key signature and measure (NoteSpellings)
+ * @param pitchClass The pitch class to look up (0-11)
+ * @returns The diatonic Spelling, or null if the pitch class is chromatic
+ */
+export function findDiatonicSpelling(merged: NoteSpellings, pitchClass: number): Spelling | null {
+  for (const letter of LETTERS) {
+    const alteration = merged[letter] ?? 0;
+    const pc = (((NATURAL_SEMITONES[letter] + alteration) % 12) + 12) % 12;
+    if (pc === pitchClass) {
+      return { letter, alteration };
+    }
+  }
+  return null;
+}
+
+/**
+ * Determines the direction (sharp/flat preference) of a key signature.
+ *
+ * Sharp keys (G, D, A, E, B, F#, C#) prefer sharp spellings for chromatic notes.
+ * Flat keys (F, Bb, Eb, Ab, Db, Gb, Cb) prefer flat spellings.
+ * C major/A minor and their modes are neutral.
+ *
+ * @param key The key signature
+ * @returns "sharp", "flat", or "neutral"
+ */
+export function getKeyDirection(key: KeySignature): KeyDirection {
+  const rootKey = key.root + (key.acc === KeyAccidental.Sharp ? "#" : key.acc === KeyAccidental.Flat ? "b" : "");
+  const baseSharps = MAJOR_KEY_SHARPS[rootKey];
+
+  if (baseSharps === undefined) {
+    return "neutral";
+  }
+
+  const modeOffset = MODE_FIFTH_OFFSET[key.mode] ?? 0;
+  const sharps = baseSharps + modeOffset;
+
+  if (sharps > 0) return "sharp";
+  if (sharps < 0) return "flat";
+  return "neutral";
+}
+
+/**
+ * Gets all possible enharmonic spellings for a pitch class (0-11).
+ * Returns spellings without octave information.
+ *
+ * For example, pitch class 1 returns:
+ * - { letter: "C", alteration: 1 }  (C#)
+ * - { letter: "D", alteration: -1 } (Db)
+ * - { letter: "B", alteration: 2 }  (B##)
+ *
+ * @param pitchClass The pitch class (0-11)
+ * @returns Array of possible spellings
+ */
+export function getEnharmonicSpellings(pitchClass: number): Spelling[] {
+  const result: Spelling[] = [];
+  for (const letter of LETTERS) {
+    for (const alteration of [-2, -1, 0, 1, 2]) {
+      const pc = (((NATURAL_SEMITONES[letter] + alteration) % 12) + 12) % 12;
+      if (pc === pitchClass) {
+        result.push({ letter, alteration });
+      }
+    }
+  }
+  return result;
+}
+
+/**
+ * Chooses the best enharmonic spelling for a chromatic pitch.
+ *
+ * Selection algorithm:
+ * 1. Prefer natural spelling if available (rare for true chromatics)
+ * 2. Prefer single accidental over double accidental
+ * 3. Prefer spelling matching key direction (sharps for sharp keys, flats for flat keys)
+ * 4. Prefer spelling where the letter already has that alteration in merged context
+ * 5. Fallback to first available option
+ *
+ * @param options Array of possible spellings from getEnharmonicSpellings
+ * @param key The key signature (for direction preference)
+ * @param merged The merged accidentals (key + measure) for conflict detection
+ * @returns The best spelling choice
+ */
+export function chooseBestChromatic(options: Spelling[], key: KeySignature, merged: NoteSpellings): Spelling {
+  // 1. Prefer natural spelling if available
+  const naturals = options.filter((o) => o.alteration === 0);
+  if (naturals.length === 1) {
+    return naturals[0];
+  }
+
+  // 2. Filter to single accidentals first (prefer over double accidentals)
+  const singleAccidentals = options.filter((o) => o.alteration === 1 || o.alteration === -1);
+
+  // 3. Prefer key direction
+  const keyDirection = getKeyDirection(key);
+  let matching: Spelling[] = [];
+
+  if (keyDirection === "sharp") {
+    matching = singleAccidentals.filter((o) => o.alteration > 0);
+  } else if (keyDirection === "flat") {
+    matching = singleAccidentals.filter((o) => o.alteration < 0);
+  }
+
+  if (matching.length === 1) {
+    return matching[0];
+  }
+
+  // 4. Prefer spelling where letter already has that alteration (no new accidental needed)
+  for (const option of singleAccidentals.length > 0 ? singleAccidentals : options) {
+    if ((merged[option.letter] ?? 0) === option.alteration) {
+      return option;
+    }
+  }
+
+  // 5. Fallback: prefer single accidentals, then first option
+  if (singleAccidentals.length > 0) {
+    return singleAccidentals[0];
+  }
+
+  return options[0];
 }

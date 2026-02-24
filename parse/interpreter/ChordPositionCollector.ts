@@ -244,7 +244,7 @@ export class ChordPositionCollector implements Visitor<void> {
    * measure accidentals, and voice properties (transpose, octave).
    */
   pitchToMidi(pitch: Pitch, voice: VoiceState): number {
-    const letter = pitch.noteLetter.lexeme.toUpperCase();
+    const letter = pitch.noteLetter.lexeme.toUpperCase() as "C" | "D" | "E" | "F" | "G" | "A" | "B";
     const isLower = pitch.noteLetter.lexeme === pitch.noteLetter.lexeme.toLowerCase();
 
     // Base octave in ABC: uppercase = 4 (middle C octave), lowercase = 5 (octave above)
@@ -384,7 +384,7 @@ export class ChordPositionCollector implements Visitor<void> {
     const pitch = expr.pitch;
 
     if (pitch.alteration) {
-      const letter = pitch.noteLetter.lexeme.toUpperCase();
+      const letter = pitch.noteLetter.lexeme.toUpperCase() as "C" | "D" | "E" | "F" | "G" | "A" | "B";
       const accType = this.convertAccidental(pitch.alteration.lexeme);
       voice.measureAccidentals.set(letter, accType);
     }
@@ -403,7 +403,7 @@ export class ChordPositionCollector implements Visitor<void> {
 
       // Track measure accidentals
       if (pitch.alteration) {
-        const letter = pitch.noteLetter.lexeme.toUpperCase();
+        const letter = pitch.noteLetter.lexeme.toUpperCase() as "C" | "D" | "E" | "F" | "G" | "A" | "B";
         const accType = this.convertAccidental(pitch.alteration.lexeme);
         voice.measureAccidentals.set(letter, accType);
       }

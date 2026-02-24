@@ -29,3 +29,7 @@ export function selectRhythm(input: Selection): Selection {
 export function selectRhythmParent(input: Selection): Selection {
   return fanOutByPredicate(input, isRhythmParent, "all");
 }
+
+export function selectNotesOrChords(input: Selection): Selection {
+  return fanOutByPredicate(input, (node) => isNote(node) || isChord(node), "skipChordChildren");
+}

@@ -156,7 +156,7 @@ export interface ContextSnapshot {
   /** The octave shift in effect at this position */
   octave: number;
   /** Measure accidentals active at this position (only present when snapshotAccidentals is enabled) */
-  measureAccidentals?: Map<string, AccidentalType>;
+  measureAccidentals?: Map<"C" | "D" | "E" | "F" | "G" | "A" | "B", AccidentalType>;
   /** Current chord symbol in effect at this position */
   currentChord?: ParsedChord;
 }
@@ -272,6 +272,9 @@ export function getRangeSnapshots(snapshots: DocumentSnapshots, range: Range): A
  */
 export function getSnapshotAtPosition(snapshots: DocumentSnapshots, pos: number): ContextSnapshot {
   const index = binarySearchFloor(snapshots, pos);
+  if (index < 0) {
+    return snapshots[0].snapshot;
+  }
   return snapshots[index].snapshot;
 }
 
@@ -575,7 +578,7 @@ export class ContextInterpreter implements Visitor<void> {
     const alteration = expr.pitch.alteration?.lexeme;
     if (!alteration) return;
 
-    const pitchClass = expr.pitch.noteLetter.lexeme.toUpperCase();
+    const pitchClass = expr.pitch.noteLetter.lexeme.toUpperCase() as "C" | "D" | "E" | "F" | "G" | "A" | "B";
     const accidentalType = this.convertAccidental(alteration);
 
     const voice = this.getCurrentVoice();
@@ -596,7 +599,7 @@ export class ContextInterpreter implements Visitor<void> {
       if (content instanceof Note) {
         const alteration = content.pitch.alteration?.lexeme;
         if (alteration) {
-          const pitchClass = content.pitch.noteLetter.lexeme.toUpperCase();
+          const pitchClass = content.pitch.noteLetter.lexeme.toUpperCase() as "C" | "D" | "E" | "F" | "G" | "A" | "B";
           const accidentalType = this.convertAccidental(alteration);
           voice.measureAccidentals.set(pitchClass, accidentalType);
           hasAccidental = true;

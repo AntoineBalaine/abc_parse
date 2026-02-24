@@ -67,8 +67,10 @@ export function calcDiatonicOffset(targetPitch: Pitch, refPitch: Pitch): number 
  * Converts ContextSnapshot's measureAccidentals (Map<string, AccidentalType>)
  * to the semitone-based Map<string, number> that HarmonizeSnapshot expects.
  */
-export function convertMeasureAccidentals(measureAccidentals: Map<string, AccidentalType>): Map<string, number> {
-  const result = new Map<string, number>();
+export function convertMeasureAccidentals(
+  measureAccidentals: Map<"C" | "D" | "E" | "F" | "G" | "A" | "B", AccidentalType>
+): Map<"C" | "D" | "E" | "F" | "G" | "A" | "B", number> {
+  const result = new Map<"C" | "D" | "E" | "F" | "G" | "A" | "B", number>();
   for (const [letter, accType] of measureAccidentals) {
     result.set(letter, accidentalTypeToSemitones(accType));
   }

@@ -38,6 +38,7 @@ import {
   findPreviousChordInVoice,
   voicedNoteOctave,
 } from "abc-parser";
+import { toPitchComponents, NoteLetter } from "./pitchHelpers";
 
 const DIATONIC_LETTERS = "CDEFGAB";
 
@@ -305,7 +306,7 @@ export interface HarmonizeSnapshot {
  * Converts a ContextSnapshot to a HarmonizeSnapshot.
  * This allows harmonize functions to work with the ContextInterpreter's output.
  */
-function contextToHarmonizeSnapshot(context: ContextSnapshot, localAccidentals: Map<string, number>): HarmonizeSnapshot {
+export function contextToHarmonizeSnapshot(context: ContextSnapshot, localAccidentals: Map<string, number>): HarmonizeSnapshot {
   const measureAccidentals = new Map<string, number>();
 
   // First apply context accidentals (converted from AccidentalType to semitones)
@@ -328,37 +329,6 @@ function contextToHarmonizeSnapshot(context: ContextSnapshot, localAccidentals: 
 }
 
 /**
- * Finds a child token of the given type within a node.
- */
-function findChildToken(node: CSNode, tokenType: TT): CSNode | null {
-  let current = node.firstChild;
-  while (current !== null) {
-    if (isTokenNode(current) && getTokenData(current).tokenType === tokenType) {
-      return current;
-    }
-    if (current.firstChild) {
-      const result = findChildToken(current, tokenType);
-      if (result) return result;
-    }
-    current = current.nextSibling;
-  }
-  return null;
-}
-
-/**
- * Counts the octave markers in a lexeme.
- * Returns positive for apostrophes (higher octave) and negative for commas (lower octave).
- */
-function countOctaveMarkers(lexeme: string): number {
-  let count = 0;
-  for (const char of lexeme) {
-    if (char === "'") count++;
-    else if (char === ",") count--;
-  }
-  return count;
-}
-
-/**
  * Gets the position (character offset) of a CSNode from its first token.
  */
 function getNodePosition(node: CSNode): number {
@@ -376,26 +346,17 @@ function getNodePosition(node: CSNode): number {
  * Extracts the letter name, MIDI pitch, and alteration from a CSNode representing a note.
  * The pitch is resolved using the snapshot's key signature and measure accidentals.
  */
-export function extractLead(node: CSNode, snapshot: HarmonizeSnapshot): { letter: string; midi: number; alteration: number } | null {
-  const letterToken = findChildToken(node, TT.NOTE_LETTER);
-  if (!letterToken) return null;
+export function extractLead(node: CSNode, snapshot: HarmonizeSnapshot): { letter: NoteLetter; midi: number; alteration: number } | null {
+  const pitchComponents = toPitchComponents(node);
+  if (!pitchComponents) return null;
 
-  const rawLetter = getTokenData(letterToken).lexeme;
-  const letter = rawLetter.toUpperCase();
-  const baseOctave = rawLetter === rawLetter.toLowerCase() ? 5 : 4;
-
-  const octaveToken = findChildToken(node, TT.OCTAVE);
-  const octaveOffset = octaveToken ? countOctaveMarkers(getTokenData(octaveToken).lexeme) : 0;
-  const octave = baseOctave + octaveOffset;
-
+  const { letter, octave, explicitAccidental } = pitchComponents;
   const baseMidi = noteLetterToMidi(letter, octave);
 
-  // Check for explicit accidental on the note
-  const accToken = findChildToken(node, TT.ACCIDENTAL);
+  // Determine alteration from explicit accidental, measure accidentals, or key signature
   let alteration = 0;
-  if (accToken) {
-    const accLexeme = getTokenData(accToken).lexeme;
-    alteration = accidentalToSemitones(accLexeme);
+  if (explicitAccidental) {
+    alteration = accidentalToSemitones(explicitAccidental);
   } else if (snapshot.measureAccidentals.has(letter)) {
     alteration = snapshot.measureAccidentals.get(letter)!;
   } else {
@@ -413,7 +374,7 @@ export function extractLead(node: CSNode, snapshot: HarmonizeSnapshot): { letter
  * The func is determined by checking if the lead is a chord tone or tension.
  */
 export function extractLeadAsVoicedNote(
-  lead: { letter: string; midi: number; alteration: number },
+  lead: { letter: "C" | "D" | "E" | "F" | "G" | "A" | "B"; midi: number; alteration: number },
   rootPosChord: VoicedNote[],
   tensions: Map<9 | 11 | 13, VoicedNote>
 ): VoicedNote | null {
@@ -514,12 +475,12 @@ export function toChordAst(voicedChord: VoicedNote[], snapshot: HarmonizeSnapsho
     let octaveToken: Token | undefined;
 
     if (octave <= 4) {
-      noteLetter = noteLetter.toUpperCase();
+      noteLetter = noteLetter.toUpperCase() as "C" | "D" | "E" | "F" | "G" | "A" | "B";
       if (4 - octave > 0) {
         octaveToken = new Token(TT.OCTAVE, ",".repeat(4 - octave), ctx.generateId());
       }
     } else {
-      noteLetter = noteLetter.toLowerCase();
+      noteLetter = noteLetter.toLowerCase() as "C" | "D" | "E" | "F" | "G" | "A" | "B";
       if (octave - 5 > 0) {
         octaveToken = new Token(TT.OCTAVE, "'".repeat(octave - 5), ctx.generateId());
       }

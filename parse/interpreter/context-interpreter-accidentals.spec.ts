@@ -179,8 +179,8 @@ describe("ContextInterpreter measure accidentals", () => {
       const second = snapshotsWithAccidentals[1].snapshot.measureAccidentals!;
 
       // Mutating one should not affect the other
-      first.set("X", AccidentalType.Sharp);
-      expect(second.has("X")).to.be.false;
+      first.set("D", AccidentalType.Sharp);
+      expect(second.has("D")).to.be.false;
     }
   });
 });
@@ -223,7 +223,7 @@ describe("ContextInterpreter measure accidentals properties", () => {
         const { snapshots } = parseAndInterpret(input);
 
         // Get the pitch class from the note
-        const pc = note.slice(-1).toUpperCase();
+        const pc = note.slice(-1).toUpperCase() as "C" | "D" | "E" | "F" | "G" | "A" | "B";
 
         // Find snapshots in measure 2
         const measure2Snapshots = snapshots.filter((s) => s.snapshot.measureNumber === 2);

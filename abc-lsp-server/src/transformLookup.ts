@@ -12,6 +12,7 @@ import {
   Selection,
   transpose,
   enharmonize,
+  enharmonizeToKey,
   setRhythm,
   addToRhythm,
   toRest,
@@ -50,6 +51,8 @@ export type TransformFn = (selection: Selection, ctx: ABCContext, ...args: unkno
 const TRANSFORM_MAP: Record<string, TransformFn> = {
   transpose: (sel, ctx, ...args) => transpose(sel, args[1] as number, ctx, args[0] as DocumentSnapshots),
   enharmonize: (sel, ctx) => enharmonize(sel, ctx),
+  // For enharmonizeToKey, args are: [snapshots] (context-aware transform)
+  enharmonizeToKey: (sel, ctx, ...args) => enharmonizeToKey(sel, args[0] as DocumentSnapshots, ctx),
   setRhythm: (sel, ctx, ...args) => setRhythm(sel, args[0] as IRational, ctx),
   addToRhythm: (sel, ctx, ...args) => addToRhythm(sel, args[0] as IRational, ctx),
   toRest: (sel, ctx) => toRest(sel, ctx),
@@ -107,4 +110,4 @@ export function lookupTransform(name: string): TransformFn | null {
  * Transforms that require DocumentSnapshots from ContextInterpreter.
  * These transforms need musical context like meter, note length, and clef.
  */
-export const CONTEXT_AWARE_TRANSFORMS = new Set(["transpose", "toSlashNotation", "harmonizeVoicing", "parallelVoicing", "splitSystems"]);
+export const CONTEXT_AWARE_TRANSFORMS = new Set(["transpose", "toSlashNotation", "harmonizeVoicing", "parallelVoicing", "splitSystems", "enharmonizeToKey"]);

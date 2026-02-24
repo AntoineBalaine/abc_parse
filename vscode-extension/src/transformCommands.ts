@@ -75,6 +75,7 @@ export function registerTransformCommands(context: vscode.ExtensionContext, clie
   // Transforms without arguments
   const simpleTransforms: Array<[string, string]> = [
     ["abc.enharmonize", "enharmonize"],
+    ["abc.enharmonizeToKey", "enharmonizeToKey"],
     ["abc.toRest", "toRest"],
     ["abc.unwrapSingle", "unwrapSingle"],
     ["abc.remove", "remove"],

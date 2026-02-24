@@ -138,6 +138,11 @@ define-command abc-enharmonize \
     abc-transform-impl enharmonize
 }
 
+define-command abc-enharmonize-to-key \
+    -docstring "Re-spell notes according to key signature (remove redundant accidentals, fix misspellings)" %{
+    abc-transform-impl enharmonizeToKey
+}
+
 define-command abc-harmonize -params 1 \
     -docstring "abc-harmonize <interval>: Harmonize selected notes at the given interval" %{
     abc-transform-impl harmonize "[%arg{1}]"

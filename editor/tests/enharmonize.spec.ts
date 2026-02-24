@@ -4,10 +4,17 @@ import * as fc from "fast-check";
 import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune } from "./helpers";
 import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import { ABCContext, Pitch, toMidiPitch, TT } from "abc-parser";
-import { Selection } from "../src/selection";
-import { enharmonize } from "../src/transforms/enharmonize";
+import { createSelection, Selection } from "../src/selection";
+import { enharmonize, enharmonizeToKey } from "../src/transforms/enharmonize";
+import { ContextInterpreter, ContextInterpreterConfig, DocumentSnapshots, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
+import { SemanticAnalyzer } from "abc-parser/analyzers/semantic-analyzer";
+import { Scanner, parse } from "abc-parser";
 import { toAst } from "../src/csTree/toAst";
-import { findChildByTag } from "../src/transforms/treeUtils";
+import { fromAst } from "../src/csTree/fromAst";
+import { findChildByTag, getNodeLineAndChar } from "../src/transforms/treeUtils";
+import { CSNode } from "../src/csTree/types";
+import { resolveMelodyPitch, PitchContext } from "abc-parser/music-theory/pitchUtils";
+import { toPitchComponents } from "../src/transforms/pitchHelpers";
 
 function getNoteMidi(noteNode: any): number {
   const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
@@ -356,13 +363,13 @@ describe("enharmonize", () => {
           const { root, ctx } = toCSTreeWithContext(source);
           const notes = findByTag(root, TAGS.Note);
           if (notes.length === 0) return;
-          const midiBefore = notes.map(n => getNoteMidi(n));
+          const midiBefore = notes.map((n) => getNoteMidi(n));
           // Skip if any note is out of valid MIDI range
-          if (midiBefore.some(m => m < 0 || m > 127)) return;
-          const ids = new Set(notes.map(n => n.id));
+          if (midiBefore.some((m) => m < 0 || m > 127)) return;
+          const ids = new Set(notes.map((n) => n.id));
           const sel: Selection = { root, cursors: [ids] };
           enharmonize(sel, ctx);
-          const midiAfter = notes.map(n => getNoteMidi(n));
+          const midiAfter = notes.map((n) => getNoteMidi(n));
           expect(midiAfter).to.deep.equal(midiBefore);
         }),
         { numRuns: 1000 }
@@ -382,7 +389,7 @@ describe("enharmonize", () => {
           // holds when the result still carries an accidental; white-key
           // results like ^E->F or _C->B break the involution).
           const BLACK_KEYS = new Set([1, 3, 6, 8, 10]);
-          const singleAccNotes = notes.filter(n => {
+          const singleAccNotes = notes.filter((n) => {
             const acc = getAccidentalLexeme(n);
             if (acc !== "^" && acc !== "_") return false;
             const midi = getNoteMidi(n);
@@ -411,7 +418,7 @@ describe("enharmonize", () => {
           });
           if (singleAccNotes.length === 0) return;
 
-          const ids = new Set(singleAccNotes.map(n => n.id));
+          const ids = new Set(singleAccNotes.map((n) => n.id));
           const sel: Selection = { root, cursors: [ids] };
           const beforeFormat = formatSelection(sel);
           enharmonize(sel, ctx);
@@ -431,13 +438,13 @@ describe("enharmonize", () => {
           if (notes.length === 0) return;
 
           // Filter to notes without accidentals
-          const noAccNotes = notes.filter(n => {
+          const noAccNotes = notes.filter((n) => {
             const acc = getAccidentalLexeme(n);
             return acc === null;
           });
           if (noAccNotes.length === 0) return;
 
-          const ids = new Set(noAccNotes.map(n => n.id));
+          const ids = new Set(noAccNotes.map((n) => n.id));
           const sel: Selection = { root, cursors: [ids] };
           const beforeFormat = formatSelection(sel);
           enharmonize(sel, ctx);
@@ -455,21 +462,27 @@ describe("enharmonize", () => {
           const notes = findByTag(root, TAGS.Note);
           if (notes.length === 0) return;
           // Skip if any note is out of valid MIDI range
-          if (notes.some(n => { const m = getNoteMidi(n); return m < 0 || m > 127; })) return;
+          if (
+            notes.some((n) => {
+              const m = getNoteMidi(n);
+              return m < 0 || m > 127;
+            })
+          )
+            return;
 
           // Check rhythm children before and after
-          const rhythmBefore = notes.map(n => {
+          const rhythmBefore = notes.map((n) => {
             const r = findChildByTag(n, TAGS.Rhythm);
             if (!r) return null;
             const ast = toAst(r.node);
             return JSON.stringify(ast);
           });
 
-          const ids = new Set(notes.map(n => n.id));
+          const ids = new Set(notes.map((n) => n.id));
           const sel: Selection = { root, cursors: [ids] };
           enharmonize(sel, ctx);
 
-          const rhythmAfter = notes.map(n => {
+          const rhythmAfter = notes.map((n) => {
             const r = findChildByTag(n, TAGS.Rhythm);
             if (!r) return null;
             const ast = toAst(r.node);
@@ -488,10 +501,16 @@ describe("enharmonize", () => {
           const notes = findByTag(root, TAGS.Note);
           if (notes.length === 0) return;
           // Skip if any note is out of valid MIDI range
-          if (notes.some(n => { const m = getNoteMidi(n); return m < 0 || m > 127; })) return;
+          if (
+            notes.some((n) => {
+              const m = getNoteMidi(n);
+              return m < 0 || m > 127;
+            })
+          )
+            return;
 
           // Check tie presence before and after
-          const hasTieBefore = notes.map(n => {
+          const hasTieBefore = notes.map((n) => {
             let current = n.firstChild;
             while (current !== null) {
               if (isTokenNode(current) && getTokenData(current).tokenType === TT.TIE) {
@@ -502,11 +521,11 @@ describe("enharmonize", () => {
             return false;
           });
 
-          const ids = new Set(notes.map(n => n.id));
+          const ids = new Set(notes.map((n) => n.id));
           const sel: Selection = { root, cursors: [ids] };
           enharmonize(sel, ctx);
 
-          const hasTieAfter = notes.map(n => {
+          const hasTieAfter = notes.map((n) => {
             let current = n.firstChild;
             while (current !== null) {
               if (isTokenNode(current) && getTokenData(current).tokenType === TT.TIE) {
@@ -519,6 +538,444 @@ describe("enharmonize", () => {
           expect(hasTieAfter).to.deep.equal(hasTieBefore);
         }),
         { numRuns: 1000 }
+      );
+    });
+  });
+});
+
+// ============================================================================
+// Helper for enharmonizeToKey tests
+// ============================================================================
+
+/**
+ * Creates a CSTree with context and DocumentSnapshots for context-aware testing.
+ * Enables snapshotAccidentals to track measure accidentals.
+ */
+function toCSTreeWithSnapshots(source: string): { root: CSNode; ctx: ABCContext; snapshots: DocumentSnapshots } {
+  const ctx = new ABCContext();
+  const tokens = Scanner(source, ctx);
+  const ast = parse(tokens, ctx);
+
+  // Run semantic analyzer to get semantic data
+  const analyzer = new SemanticAnalyzer(ctx);
+  ast.accept(analyzer);
+
+  // Run context interpreter with snapshotAccidentals enabled
+  const interpreter = new ContextInterpreter();
+  const config: ContextInterpreterConfig = { snapshotAccidentals: true };
+  const snapshots = interpreter.interpret(ast, analyzer.data, ctx, config);
+
+  return { root: fromAst(ast, ctx), ctx, snapshots };
+}
+
+/**
+ * Runs enharmonizeToKey on all notes in the input and returns the formatted result.
+ */
+function runEnharmonizeToKey(input: string): string {
+  const { root, ctx, snapshots } = toCSTreeWithSnapshots(input);
+
+  const selection = createSelection(root);
+
+  // Run transform
+  enharmonizeToKey(selection, snapshots, ctx);
+
+  // Format and return
+  return formatSelection(selection);
+}
+
+/**
+ * Gets the MIDI pitch from the first note in an ABC string, considering key signature.
+ */
+function getFirstNoteMidi(source: string): number {
+  const { root, snapshots } = toCSTreeWithSnapshots(source);
+  const noteNodes = findByTag(root, TAGS.Note);
+  if (noteNodes.length === 0) return -1;
+
+  const pitch = toPitchComponents(noteNodes[0]);
+  if (!pitch) return -1;
+
+  // Get the first note's position and snapshot
+  const { line, char } = getNodeLineAndChar(noteNodes[0]);
+  const pos = encode(line, char);
+  const snapshot = getSnapshotAtPosition(snapshots, pos - 1);
+
+  const pitchContext: PitchContext = {
+    key: snapshot.key,
+    measureAccidentals: snapshot.measureAccidentals,
+    transpose: snapshot.transpose ?? 0,
+  };
+
+  return resolveMelodyPitch(pitch.letter, pitch.octave, pitch.explicitAccidental, pitchContext);
+}
+
+// ============================================================================
+// enharmonizeToKey tests
+// ============================================================================
+
+describe("enharmonizeToKey", () => {
+  describe("diatonic - redundant accidental removal", () => {
+    it("^F -> F in G major", () => {
+      const result = runEnharmonizeToKey("X:1\nK:G\n^F|");
+      expect(result).to.equal("X:1\nK:G\nF|");
+    });
+
+    it("_B -> B in F major", () => {
+      const result = runEnharmonizeToKey("X:1\nK:F\n_B|");
+      expect(result).to.equal("X:1\nK:F\nB|");
+    });
+
+    it("^f -> f in G major (lowercase)", () => {
+      const result = runEnharmonizeToKey("X:1\nK:G\n^f|");
+      expect(result).to.equal("X:1\nK:G\nf|");
+    });
+
+    it("=C -> C in C major", () => {
+      const result = runEnharmonizeToKey("X:1\nK:C\n=C|");
+      expect(result).to.equal("X:1\nK:C\nC|");
+    });
+
+    it("=F in G major with =F context stays =F then F (second redundant)", () => {
+      // When there's a =F earlier in the measure, the second =F should become F
+      const result = runEnharmonizeToKey("X:1\nK:G\n=F =F|");
+      expect(result).to.equal("X:1\nK:G\n=F F|");
+    });
+  });
+
+  describe("diatonic - misspelled note correction", () => {
+    it("_G -> F in G major (enharmonic)", () => {
+      const result = runEnharmonizeToKey("X:1\nK:G\n_G|");
+      expect(result).to.equal("X:1\nK:G\nF|");
+    });
+
+    it("^A -> B in F major (enharmonic)", () => {
+      const result = runEnharmonizeToKey("X:1\nK:F\n^A|");
+      expect(result).to.equal("X:1\nK:F\nB|");
+    });
+
+    it("^^C -> D in C major", () => {
+      const result = runEnharmonizeToKey("X:1\nK:C\n^^C|");
+      expect(result).to.equal("X:1\nK:C\nD|");
+    });
+
+    it("__D -> C in C major", () => {
+      const result = runEnharmonizeToKey("X:1\nK:C\n__D|");
+      expect(result).to.equal("X:1\nK:C\nC|");
+    });
+  });
+
+  describe("diatonic - clean notes unchanged", () => {
+    it("C unchanged in C major", () => {
+      const result = runEnharmonizeToKey("X:1\nK:C\nC|");
+      expect(result).to.equal("X:1\nK:C\nC|");
+    });
+
+    it("F unchanged in G major (no accidental = F#)", () => {
+      const result = runEnharmonizeToKey("X:1\nK:G\nF|");
+      expect(result).to.equal("X:1\nK:G\nF|");
+    });
+
+    it("B unchanged in F major (no accidental = Bb)", () => {
+      const result = runEnharmonizeToKey("X:1\nK:F\nB|");
+      expect(result).to.equal("X:1\nK:F\nB|");
+    });
+  });
+
+  describe("chromatic - overriding accidental preserved", () => {
+    it("=F in G major stays =F (chromatic)", () => {
+      const result = runEnharmonizeToKey("X:1\nK:G\n=F|");
+      expect(result).to.equal("X:1\nK:G\n=F|");
+    });
+
+    it("=B in F major stays =B (chromatic)", () => {
+      const result = runEnharmonizeToKey("X:1\nK:F\n=B|");
+      expect(result).to.equal("X:1\nK:F\n=B|");
+    });
+  });
+
+  describe("chromatic - respelling to key direction", () => {
+    it("_D -> ^C in G major (sharp key)", () => {
+      const result = runEnharmonizeToKey("X:1\nK:G\n_D|");
+      expect(result).to.equal("X:1\nK:G\n^C|");
+    });
+
+    it("^C -> _D in F major (flat key)", () => {
+      const result = runEnharmonizeToKey("X:1\nK:F\n^C|");
+      expect(result).to.equal("X:1\nK:F\n_D|");
+    });
+
+    it("_A -> ^G in D major (sharp key)", () => {
+      const result = runEnharmonizeToKey("X:1\nK:D\n_A|");
+      expect(result).to.equal("X:1\nK:D\n^G|");
+    });
+
+    it("^G -> _A in Bb major (flat key)", () => {
+      const result = runEnharmonizeToKey("X:1\nK:Bb\n^G|");
+      expect(result).to.equal("X:1\nK:Bb\n_A|");
+    });
+  });
+
+  describe("with measure accidentals", () => {
+    it("measure accidental changes context - chromatic note needs explicit accidental", () => {
+      // =F establishes F natural (chromatic, stays =F)
+      // _G (enharmonic to F#) becomes ^F because with measure accidental F=natural,
+      // plain F means F natural, so F# must be written with explicit ^
+      const result = runEnharmonizeToKey("X:1\nK:G\n=F _G|");
+      expect(result).to.equal("X:1\nK:G\n=F ^F|");
+    });
+  });
+
+  describe("octave preservation", () => {
+    it("_g -> f in G major (octave 5)", () => {
+      const result = runEnharmonizeToKey("X:1\nK:G\n_g|");
+      expect(result).to.equal("X:1\nK:G\nf|");
+    });
+
+    it("^B -> c (cross-octave enharmonic)", () => {
+      const result = runEnharmonizeToKey("X:1\nK:C\n^B|");
+      expect(result).to.equal("X:1\nK:C\nc|");
+    });
+
+    it("preserves comma octave markers", () => {
+      const result = runEnharmonizeToKey("X:1\nK:G\n_G,|");
+      expect(result).to.equal("X:1\nK:G\nF,|");
+    });
+
+    it("preserves apostrophe octave markers", () => {
+      const result = runEnharmonizeToKey("X:1\nK:G\n_g'|");
+      expect(result).to.equal("X:1\nK:G\nf'|");
+    });
+  });
+
+  describe("chords", () => {
+    it("respells notes inside chords", () => {
+      const result = runEnharmonizeToKey("X:1\nK:G\n[^F_G]|");
+      expect(result).to.equal("X:1\nK:G\n[FF]|");
+    });
+
+    it("respells multiple notes in a chord", () => {
+      const result = runEnharmonizeToKey("X:1\nK:C\n[^^C__D]|");
+      expect(result).to.equal("X:1\nK:C\n[DC]|");
+    });
+  });
+
+  describe("MIDI preservation invariant", () => {
+    it("^F -> F in G major preserves MIDI", () => {
+      const beforeMidi = getFirstNoteMidi("X:1\nK:G\n^F|");
+      const result = runEnharmonizeToKey("X:1\nK:G\n^F|");
+      const afterMidi = getFirstNoteMidi(result);
+      expect(afterMidi).to.equal(beforeMidi);
+    });
+
+    it("_G -> F in G major preserves MIDI", () => {
+      const beforeMidi = getFirstNoteMidi("X:1\nK:G\n_G|");
+      const result = runEnharmonizeToKey("X:1\nK:G\n_G|");
+      const afterMidi = getFirstNoteMidi(result);
+      expect(afterMidi).to.equal(beforeMidi);
+    });
+
+    it("^B -> c preserves MIDI", () => {
+      const beforeMidi = getFirstNoteMidi("X:1\nK:C\n^B|");
+      const result = runEnharmonizeToKey("X:1\nK:C\n^B|");
+      const afterMidi = getFirstNoteMidi(result);
+      expect(afterMidi).to.equal(beforeMidi);
+    });
+
+    it("_D -> ^C preserves MIDI", () => {
+      const beforeMidi = getFirstNoteMidi("X:1\nK:G\n_D|");
+      const result = runEnharmonizeToKey("X:1\nK:G\n_D|");
+      const afterMidi = getFirstNoteMidi(result);
+      expect(afterMidi).to.equal(beforeMidi);
+    });
+  });
+
+  describe("natural accidental cases", () => {
+    it("=F in C major removes redundant natural", () => {
+      const result = runEnharmonizeToKey("X:1\nK:C\n=F|");
+      expect(result).to.equal("X:1\nK:C\nF|");
+    });
+
+    it("=F in F major keeps F (F is not altered by key)", () => {
+      // In F major, F is NOT altered (only B is), so =F should become just F
+      const result = runEnharmonizeToKey("X:1\nK:F\n=F|");
+      expect(result).to.equal("X:1\nK:F\nF|");
+    });
+  });
+
+  describe("property-based", () => {
+    /**
+     * Helper to get context-aware MIDI pitches from an ABC source.
+     * Because notes like `c` in `[K:Amix]c` sound as C# (not C natural),
+     * we need to interpret the ABC to get the actual sounding pitches.
+     */
+    function getContextAwareMidiPitches(source: string): number[] {
+      const ctx = new ABCContext();
+      const tokens = Scanner(source, ctx);
+      const ast = parse(tokens, ctx);
+
+      const analyzer = new SemanticAnalyzer(ctx);
+      ast.accept(analyzer);
+
+      const interpreter = new ContextInterpreter();
+      const config: ContextInterpreterConfig = { snapshotAccidentals: true };
+      const snapshots = interpreter.interpret(ast, analyzer.data, ctx, config);
+
+      const root = fromAst(ast, ctx);
+      const notes = findByTag(root, TAGS.Note);
+
+      return notes
+        .map((noteNode) => {
+          const pitch = toPitchComponents(noteNode);
+          if (!pitch) return null;
+
+          const { line, char } = getNodeLineAndChar(noteNode);
+          const pos = encode(line, char);
+          const snapshot = getSnapshotAtPosition(snapshots, pos - 1);
+
+          const pitchContext: PitchContext = {
+            key: snapshot.key,
+            measureAccidentals: snapshot.measureAccidentals,
+            transpose: snapshot.transpose ?? 0,
+          };
+
+          return resolveMelodyPitch(pitch.letter, pitch.octave, pitch.explicitAccidental, pitchContext);
+        })
+        .filter((m): m is number => m !== null);
+    }
+
+    it("enharmonizeToKey preserves the MIDI pitch of every note", () => {
+      fc.assert(
+        fc.property(genAbcTune, (source) => {
+          // Get context-aware MIDI pitches before transformation
+          const midiBefore = getContextAwareMidiPitches(source);
+          if (midiBefore.length === 0) return;
+
+          // Skip if any note is out of valid MIDI range
+          if (midiBefore.some((m) => m < 0 || m > 127)) return;
+
+          // Run transform
+          const { root, ctx, snapshots } = toCSTreeWithSnapshots(source);
+          const selection = createSelection(root);
+          enharmonizeToKey(selection, snapshots, ctx);
+
+          // Format result back to text
+          const resultText = formatSelection(selection);
+
+          // Get context-aware MIDI pitches after transformation
+          const midiAfter = getContextAwareMidiPitches(resultText);
+
+          expect(midiAfter).to.deep.equal(midiBefore);
+        }),
+        { numRuns: 500 }
+      );
+    });
+
+    it("enharmonizeToKey preserves the rhythm of every note", () => {
+      fc.assert(
+        fc.property(genAbcTune, (source) => {
+          const { root, ctx, snapshots } = toCSTreeWithSnapshots(source);
+          const notes = findByTag(root, TAGS.Note);
+          if (notes.length === 0) return;
+
+          // Get rhythm before transformation
+          const rhythmBefore = notes.map((n) => {
+            const r = findChildByTag(n, TAGS.Rhythm);
+            if (!r) return null;
+            const ast = toAst(r.node);
+            return JSON.stringify(ast);
+          });
+
+          // Run transform
+          const selection = createSelection(root);
+          enharmonizeToKey(selection, snapshots, ctx);
+
+          // Get rhythm after transformation
+          const rhythmAfter = notes.map((n) => {
+            const r = findChildByTag(n, TAGS.Rhythm);
+            if (!r) return null;
+            const ast = toAst(r.node);
+            return JSON.stringify(ast);
+          });
+
+          expect(rhythmAfter).to.deep.equal(rhythmBefore);
+        }),
+        { numRuns: 500 }
+      );
+    });
+
+    it("enharmonizeToKey preserves the tie of every note", () => {
+      fc.assert(
+        fc.property(genAbcTune, (source) => {
+          const { root, ctx, snapshots } = toCSTreeWithSnapshots(source);
+          const notes = findByTag(root, TAGS.Note);
+          if (notes.length === 0) return;
+
+          // Check tie presence before transformation
+          const hasTieBefore = notes.map((n) => {
+            let current = n.firstChild;
+            while (current !== null) {
+              if (isTokenNode(current) && getTokenData(current).tokenType === TT.TIE) {
+                return true;
+              }
+              current = current.nextSibling;
+            }
+            return false;
+          });
+
+          // Run transform
+          const selection = createSelection(root);
+          enharmonizeToKey(selection, snapshots, ctx);
+
+          // Check tie presence after transformation
+          const hasTieAfter = notes.map((n) => {
+            let current = n.firstChild;
+            while (current !== null) {
+              if (isTokenNode(current) && getTokenData(current).tokenType === TT.TIE) {
+                return true;
+              }
+              current = current.nextSibling;
+            }
+            return false;
+          });
+
+          expect(hasTieAfter).to.deep.equal(hasTieBefore);
+        }),
+        { numRuns: 500 }
+      );
+    });
+
+    it("enharmonizeToKey stabilizes within a few passes", () => {
+      // Because respelling notes can change measure accidentals which affect
+      // subsequent notes, the transform may not be idempotent in one pass.
+      // However, it should stabilize within a few passes (we test up to 5).
+      fc.assert(
+        fc.property(genAbcTune, (source) => {
+          function runPass(input: string): string {
+            const { root, ctx, snapshots } = toCSTreeWithSnapshots(input);
+            const notes = findByTag(root, TAGS.Note);
+            if (notes.length === 0) return input;
+            const selection = createSelection(root);
+            enharmonizeToKey(selection, snapshots, ctx);
+            return formatSelection(selection);
+          }
+
+          // Run multiple passes until stable or max iterations
+          let current = source;
+          const maxPasses = 5;
+
+          for (let i = 0; i < maxPasses; i++) {
+            const next = runPass(current);
+            if (next === current) {
+              // Stabilized
+              return;
+            }
+            current = next;
+          }
+
+          // After max passes, check if the last two were the same
+          const final = runPass(current);
+          expect(final).to.equal(current);
+        }),
+        { numRuns: 500 }
       );
     });
   });

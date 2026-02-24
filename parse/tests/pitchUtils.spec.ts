@@ -14,6 +14,11 @@ import {
   spellPitch,
   chromaticSpelling,
   computeOctaveFromPitch,
+  KeyDirection,
+  findDiatonicSpelling,
+  getKeyDirection,
+  getEnharmonicSpellings,
+  chooseBestChromatic,
 } from "../music-theory/pitchUtils";
 import { NoteSpellings } from "../music-theory/types";
 import { mergeAccidentals } from "../music-theory/harmonization";
@@ -481,7 +486,7 @@ describe("pitchUtils", () => {
             const targetDegree = midi % 12;
             const spelling = spellPitch(midi, spellings, offset);
             // Use safe modulo because spelling.alteration can be negative
-            const resultDegree = ((NATURAL_SEMITONES[spelling.letter] + spelling.alteration) % 12 + 12) % 12;
+            const resultDegree = (((NATURAL_SEMITONES[spelling.letter] + spelling.alteration) % 12) + 12) % 12;
             return resultDegree === targetDegree;
           }),
           { numRuns: 500 }
@@ -496,9 +501,9 @@ describe("pitchUtils", () => {
             // Find if target is in scale
             let inScaleLetter: string | null = null;
             let inScaleAlt: number | null = null;
-            for (const letter of ["C", "D", "E", "F", "G", "A", "B"]) {
+            for (const letter of ["C", "D", "E", "F", "G", "A", "B"] as ("C" | "D" | "E" | "F" | "G" | "A" | "B")[]) {
               const alt = spellings[letter] ?? 0;
-              const noteDegree = ((NATURAL_SEMITONES[letter] + alt) % 12 + 12) % 12;
+              const noteDegree = (((NATURAL_SEMITONES[letter] + alt) % 12) + 12) % 12;
               if (noteDegree === targetDegree) {
                 inScaleLetter = letter;
                 inScaleAlt = alt;
@@ -524,9 +529,9 @@ describe("pitchUtils", () => {
 
             // Check if target is in scale
             let inScale = false;
-            for (const letter of ["C", "D", "E", "F", "G", "A", "B"]) {
+            for (const letter of ["C", "D", "E", "F", "G", "A", "B"] as ("C" | "D" | "E" | "F" | "G" | "A" | "B")[]) {
               const alt = spellings[letter] ?? 0;
-              const noteDegree = ((NATURAL_SEMITONES[letter] + alt) % 12 + 12) % 12;
+              const noteDegree = (((NATURAL_SEMITONES[letter] + alt) % 12) + 12) % 12;
               if (noteDegree === targetDegree) {
                 inScale = true;
                 break;
@@ -640,6 +645,306 @@ describe("pitchUtils", () => {
 
     it("returns 5 for lowercase b", () => {
       expect(computeOctaveFromPitch(makePitch("b"))).to.equal(5);
+    });
+  });
+
+  describe("findDiatonicSpelling", () => {
+    const C_MAJOR_SPELLINGS: NoteSpellings = { C: 0, D: 0, E: 0, F: 0, G: 0, A: 0, B: 0 };
+    const G_MAJOR_SPELLINGS: NoteSpellings = { C: 0, D: 0, E: 0, F: 1, G: 0, A: 0, B: 0 };
+    const F_MAJOR_SPELLINGS: NoteSpellings = { C: 0, D: 0, E: 0, F: 0, G: 0, A: 0, B: -1 };
+
+    describe("C major (all naturals)", () => {
+      it("pitch class 0 (C) returns C natural", () => {
+        const result = findDiatonicSpelling(C_MAJOR_SPELLINGS, 0);
+        expect(result).to.deep.equal({ letter: "C", alteration: 0 });
+      });
+
+      it("pitch class 1 (C#/Db) returns null - chromatic", () => {
+        const result = findDiatonicSpelling(C_MAJOR_SPELLINGS, 1);
+        expect(result).to.be.null;
+      });
+
+      it("pitch class 5 (F) returns F natural", () => {
+        const result = findDiatonicSpelling(C_MAJOR_SPELLINGS, 5);
+        expect(result).to.deep.equal({ letter: "F", alteration: 0 });
+      });
+    });
+
+    describe("G major (F#)", () => {
+      it("pitch class 6 (F#) returns F sharp", () => {
+        const result = findDiatonicSpelling(G_MAJOR_SPELLINGS, 6);
+        expect(result).to.deep.equal({ letter: "F", alteration: 1 });
+      });
+
+      it("pitch class 5 (F natural) returns null - chromatic in G major", () => {
+        const result = findDiatonicSpelling(G_MAJOR_SPELLINGS, 5);
+        expect(result).to.be.null;
+      });
+    });
+
+    describe("F major (Bb)", () => {
+      it("pitch class 10 (Bb) returns B flat", () => {
+        const result = findDiatonicSpelling(F_MAJOR_SPELLINGS, 10);
+        expect(result).to.deep.equal({ letter: "B", alteration: -1 });
+      });
+
+      it("pitch class 11 (B natural) returns null - chromatic in F major", () => {
+        const result = findDiatonicSpelling(F_MAJOR_SPELLINGS, 11);
+        expect(result).to.be.null;
+      });
+    });
+
+    describe("with measure accidentals", () => {
+      it("G major with =F measure accidental: pitch class 5 returns F natural", () => {
+        const merged: NoteSpellings = { C: 0, D: 0, E: 0, F: 0, G: 0, A: 0, B: 0 };
+        const result = findDiatonicSpelling(merged, 5);
+        expect(result).to.deep.equal({ letter: "F", alteration: 0 });
+      });
+
+      it("G major with =F measure accidental: pitch class 6 returns null", () => {
+        const merged: NoteSpellings = { C: 0, D: 0, E: 0, F: 0, G: 0, A: 0, B: 0 };
+        const result = findDiatonicSpelling(merged, 6);
+        expect(result).to.be.null;
+      });
+    });
+
+    describe("property tests", () => {
+      const genNoteSpellings = fc.record({
+        C: fc.integer({ min: -2, max: 2 }),
+        D: fc.integer({ min: -2, max: 2 }),
+        E: fc.integer({ min: -2, max: 2 }),
+        F: fc.integer({ min: -2, max: 2 }),
+        G: fc.integer({ min: -2, max: 2 }),
+        A: fc.integer({ min: -2, max: 2 }),
+        B: fc.integer({ min: -2, max: 2 }),
+      });
+
+      it("returns spelling with matching pitch class when found", () => {
+        fc.assert(
+          fc.property(genNoteSpellings, fc.integer({ min: 0, max: 11 }), (merged, pitchClass) => {
+            const result = findDiatonicSpelling(merged, pitchClass);
+            if (result !== null) {
+              const computedPc = (((NATURAL_SEMITONES[result.letter] + result.alteration) % 12) + 12) % 12;
+              return computedPc === pitchClass;
+            }
+            return true;
+          }),
+          { numRuns: 500 }
+        );
+      });
+
+      it("returns exactly 7 non-null results for standard key spellings", () => {
+        fc.assert(
+          fc.property(fc.constantFrom(C_MAJOR_SPELLINGS, G_MAJOR_SPELLINGS, F_MAJOR_SPELLINGS), (merged) => {
+            let count = 0;
+            for (let pc = 0; pc < 12; pc++) {
+              if (findDiatonicSpelling(merged, pc) !== null) {
+                count++;
+              }
+            }
+            return count === 7;
+          }),
+          { numRuns: 50 }
+        );
+      });
+    });
+  });
+
+  describe("getKeyDirection", () => {
+    it("C major is neutral", () => {
+      const key = makeKey(KeyRoot.C, KeyAccidental.None, Mode.Major);
+      expect(getKeyDirection(key)).to.equal("neutral");
+    });
+
+    it("G major is sharp", () => {
+      expect(getKeyDirection(G_MAJOR)).to.equal("sharp");
+    });
+
+    it("D major is sharp", () => {
+      expect(getKeyDirection(D_MAJOR)).to.equal("sharp");
+    });
+
+    it("F major is flat", () => {
+      expect(getKeyDirection(F_MAJOR)).to.equal("flat");
+    });
+
+    it("Bb major is flat", () => {
+      const key = makeKey(KeyRoot.B, KeyAccidental.Flat, Mode.Major, [
+        { note: "B", acc: AccidentalType.Flat },
+        { note: "E", acc: AccidentalType.Flat },
+      ]);
+      expect(getKeyDirection(key)).to.equal("flat");
+    });
+
+    it("A minor (relative of C) is neutral", () => {
+      const key = makeKey(KeyRoot.A, KeyAccidental.None, Mode.Minor);
+      expect(getKeyDirection(key)).to.equal("neutral");
+    });
+
+    it("E minor (relative of G) is sharp", () => {
+      const key = makeKey(KeyRoot.E, KeyAccidental.None, Mode.Minor, [{ note: "F", acc: AccidentalType.Sharp }]);
+      expect(getKeyDirection(key)).to.equal("sharp");
+    });
+
+    it("D minor (relative of F) is flat", () => {
+      const key = makeKey(KeyRoot.D, KeyAccidental.None, Mode.Minor, [{ note: "B", acc: AccidentalType.Flat }]);
+      expect(getKeyDirection(key)).to.equal("flat");
+    });
+  });
+
+  describe("getEnharmonicSpellings", () => {
+    it("pitch class 0 (C) includes C, B#, Dbb", () => {
+      const result = getEnharmonicSpellings(0);
+      expect(result).to.deep.include({ letter: "C", alteration: 0 });
+      expect(result).to.deep.include({ letter: "B", alteration: 1 });
+      expect(result).to.deep.include({ letter: "D", alteration: -2 });
+    });
+
+    it("pitch class 1 (C#/Db) includes C#, Db, B##", () => {
+      const result = getEnharmonicSpellings(1);
+      expect(result).to.deep.include({ letter: "C", alteration: 1 });
+      expect(result).to.deep.include({ letter: "D", alteration: -1 });
+      expect(result).to.deep.include({ letter: "B", alteration: 2 });
+    });
+
+    it("pitch class 6 (F#/Gb) includes F#, Gb, E##", () => {
+      const result = getEnharmonicSpellings(6);
+      expect(result).to.deep.include({ letter: "F", alteration: 1 });
+      expect(result).to.deep.include({ letter: "G", alteration: -1 });
+      expect(result).to.deep.include({ letter: "E", alteration: 2 });
+    });
+
+    it("pitch class 11 (B) includes B, Cb, A##", () => {
+      const result = getEnharmonicSpellings(11);
+      expect(result).to.deep.include({ letter: "B", alteration: 0 });
+      expect(result).to.deep.include({ letter: "C", alteration: -1 });
+      expect(result).to.deep.include({ letter: "A", alteration: 2 });
+    });
+
+    describe("property tests", () => {
+      it("all returned spellings have correct pitch class", () => {
+        fc.assert(
+          fc.property(fc.integer({ min: 0, max: 11 }), (pitchClass) => {
+            const spellings = getEnharmonicSpellings(pitchClass);
+            for (const spelling of spellings) {
+              const pc = (((NATURAL_SEMITONES[spelling.letter] + spelling.alteration) % 12) + 12) % 12;
+              if (pc !== pitchClass) return false;
+            }
+            return true;
+          }),
+          { numRuns: 12 }
+        );
+      });
+
+      it("returns at least 2 spellings for each pitch class", () => {
+        fc.assert(
+          fc.property(fc.integer({ min: 0, max: 11 }), (pitchClass) => {
+            const spellings = getEnharmonicSpellings(pitchClass);
+            return spellings.length >= 2;
+          }),
+          { numRuns: 12 }
+        );
+      });
+    });
+  });
+
+  describe("chooseBestChromatic", () => {
+    const C_MAJOR_SPELLINGS: NoteSpellings = { C: 0, D: 0, E: 0, F: 0, G: 0, A: 0, B: 0 };
+    const G_MAJOR_SPELLINGS: NoteSpellings = { C: 0, D: 0, E: 0, F: 1, G: 0, A: 0, B: 0 };
+    const F_MAJOR_SPELLINGS: NoteSpellings = { C: 0, D: 0, E: 0, F: 0, G: 0, A: 0, B: -1 };
+
+    describe("prefers natural when available", () => {
+      it("pitch class 5 with options [E#, F] chooses F", () => {
+        const options: { letter: "C" | "D" | "E" | "F" | "G" | "A" | "B"; alteration: number }[] = [
+          { letter: "E", alteration: 1 },
+          { letter: "F", alteration: 0 },
+        ];
+        const result = chooseBestChromatic(options, C_MAJOR, C_MAJOR_SPELLINGS);
+        expect(result).to.deep.equal({ letter: "F", alteration: 0 });
+      });
+    });
+
+    describe("prefers key direction", () => {
+      it("pitch class 1 in G major chooses C#", () => {
+        const options: { letter: "C" | "D" | "E" | "F" | "G" | "A" | "B"; alteration: number }[] = [
+          { letter: "C", alteration: 1 },
+          { letter: "D", alteration: -1 },
+        ];
+        const result = chooseBestChromatic(options, G_MAJOR, G_MAJOR_SPELLINGS);
+        expect(result).to.deep.equal({ letter: "C", alteration: 1 });
+      });
+
+      it("pitch class 1 in F major chooses Db", () => {
+        const options: { letter: "C" | "D" | "E" | "F" | "G" | "A" | "B"; alteration: number }[] = [
+          { letter: "C", alteration: 1 },
+          { letter: "D", alteration: -1 },
+        ];
+        const result = chooseBestChromatic(options, F_MAJOR, F_MAJOR_SPELLINGS);
+        expect(result).to.deep.equal({ letter: "D", alteration: -1 });
+      });
+    });
+
+    describe("avoids measure accidental conflict", () => {
+      it("pitch class 1 in C major with measure ^C chooses C#", () => {
+        const options: { letter: "C" | "D" | "E" | "F" | "G" | "A" | "B"; alteration: number }[] = [
+          { letter: "C", alteration: 1 },
+          { letter: "D", alteration: -1 },
+        ];
+        const merged: NoteSpellings = { C: 1, D: 0, E: 0, F: 0, G: 0, A: 0, B: 0 };
+        const result = chooseBestChromatic(options, C_MAJOR, merged);
+        expect(result).to.deep.equal({ letter: "C", alteration: 1 });
+      });
+    });
+
+    describe("prefers single over double accidentals", () => {
+      it("prefers C# over B##", () => {
+        const options = getEnharmonicSpellings(1);
+        const result = chooseBestChromatic(options, G_MAJOR, G_MAJOR_SPELLINGS);
+        expect(result.alteration).to.be.oneOf([1, -1]);
+      });
+    });
+
+    describe("fallback", () => {
+      it("pitch class 1 in C major with no preferences chooses first single accidental", () => {
+        const options: { letter: "C" | "D" | "E" | "F" | "G" | "A" | "B"; alteration: number }[] = [
+          { letter: "B", alteration: 2 },
+          { letter: "C", alteration: 1 },
+          { letter: "D", alteration: -1 },
+        ];
+        const result = chooseBestChromatic(options, C_MAJOR, C_MAJOR_SPELLINGS);
+        expect(result.alteration).to.be.oneOf([1, -1]);
+      });
+    });
+
+    describe("property tests", () => {
+      const genKeyAndSpellings = fc.constantFrom(
+        { key: C_MAJOR, spellings: C_MAJOR_SPELLINGS },
+        { key: G_MAJOR, spellings: G_MAJOR_SPELLINGS },
+        { key: F_MAJOR, spellings: F_MAJOR_SPELLINGS }
+      );
+
+      it("always returns one of the input options", () => {
+        fc.assert(
+          fc.property(fc.integer({ min: 0, max: 11 }), genKeyAndSpellings, (pitchClass, { key, spellings }) => {
+            const options = getEnharmonicSpellings(pitchClass);
+            const result = chooseBestChromatic(options, key, spellings);
+            return options.some((o) => o.letter === result.letter && o.alteration === result.alteration);
+          }),
+          { numRuns: 100 }
+        );
+      });
+
+      it("result has same pitch class as input", () => {
+        fc.assert(
+          fc.property(fc.integer({ min: 0, max: 11 }), genKeyAndSpellings, (pitchClass, { key, spellings }) => {
+            const options = getEnharmonicSpellings(pitchClass);
+            const result = chooseBestChromatic(options, key, spellings);
+            const resultPc = (((NATURAL_SEMITONES[result.letter] + result.alteration) % 12) + 12) % 12;
+            return resultPc === pitchClass;
+          }),
+          { numRuns: 100 }
+        );
+      });
     });
   });
 });

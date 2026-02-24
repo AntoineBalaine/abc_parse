@@ -34,7 +34,7 @@ export function chordToVoicedNotes(chord: Chord, key: KeySignature, measureAccid
     if (!(content instanceof Note)) continue;
 
     const pitch = content.pitch;
-    const letter = pitch.noteLetter.lexeme.toUpperCase();
+    const letter = pitch.noteLetter.lexeme.toUpperCase() as "C" | "D" | "E" | "F" | "G" | "A" | "B";
     const octave = computeOctaveFromPitch(pitch);
 
     let alteration: number;
@@ -812,7 +812,7 @@ export function buildSpreadVoicing(
 /**
  * Converts a KeyRoot enum to its letter name.
  */
-export function keyRootToLetter(root: KeyRoot): string {
+export function keyRootToLetter(root: KeyRoot): "C" | "D" | "E" | "F" | "G" | "A" | "B" {
   const mapping: Record<KeyRoot, string> = {
     [KeyRoot.C]: "C",
     [KeyRoot.D]: "D",
@@ -824,7 +824,7 @@ export function keyRootToLetter(root: KeyRoot): string {
     [KeyRoot.HP]: "A", // Highland Pipes default to A
     [KeyRoot.Hp]: "A",
   };
-  return mapping[root] ?? "C";
+  return (mapping[root] as "C" | "D" | "E" | "F" | "G" | "A" | "B") ?? "C";
 }
 
 /**
@@ -1245,7 +1245,7 @@ export const DIATONIC_QUALITIES: Array<{ quality: ChordQuality; extension: 7 }> 
  * @param interval The scale degree interval to descend (1-8)
  * @returns The letter that is `interval` scale degrees below `letter`
  */
-export function descendScale(letter: string, interval: number): string {
+export function descendScale(letter: "C" | "D" | "E" | "F" | "G" | "A" | "B", interval: number): "C" | "D" | "E" | "F" | "G" | "A" | "B" {
   if (interval === 8) return letter;
   const index = LETTERS.indexOf(letter);
   return LETTERS[(index - (interval - 1) + 7) % 7];
@@ -1335,7 +1335,7 @@ export function getKeyAccidentalFor(letter: string, key: KeySignature): number {
  * @param measureAccidentals Map of letter to semitone alteration (already converted from AccidentalType)
  * @returns Object with { letter: semitoneAlteration } for all seven letters
  */
-export function mergeAccidentals(key: KeySignature, measureAccidentals: Map<string, number> | null): NoteSpellings {
+export function mergeAccidentals(key: KeySignature, measureAccidentals: Map<"C" | "D" | "E" | "F" | "G" | "A" | "B", number> | null): NoteSpellings {
   const result: NoteSpellings = { C: 0, D: 0, E: 0, F: 0, G: 0, A: 0, B: 0 };
 
   // Apply key signature
@@ -1376,7 +1376,7 @@ export const MODE_TO_OFFSET: Record<Mode, number> = {
  * @param key The key signature (determines mode and accidentals)
  * @returns A ParsedChord representing the diatonic 7th chord on that degree
  */
-export function deriveDiatonicChord(rootLetter: string, key: KeySignature): ParsedChord {
+export function deriveDiatonicChord(rootLetter: "C" | "D" | "E" | "F" | "G" | "A" | "B", key: KeySignature): ParsedChord {
   const tonicLetter = keyRootToLetter(key.root);
   const tonicIndex = LETTERS.indexOf(tonicLetter);
   const rootIndex = LETTERS.indexOf(rootLetter);

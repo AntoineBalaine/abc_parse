@@ -1,26 +1,13 @@
 import { Selection } from "../selection";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
-import {
-  ABCContext,
-  Pitch,
-  Token,
-  TT,
-  resolveMelodyPitch,
-  accidentalTypeToSemitones,
-  semitonesToAccidentalString,
-  semitonesToAccidentalType,
-  spellPitch,
-  mergeAccidentals,
-  computeOctaveFromPitch,
-  Spelling,
-} from "abc-parser";
-import { AccidentalType } from "abc-parser/types/abcjs-ast";
+import { ABCContext, Pitch, Token, TT, resolveMelodyPitch, semitonesToAccidentalType, spellPitch, mergeAccidentals, computeOctaveFromPitch } from "abc-parser";
 import { DocumentSnapshots, ContextSnapshot, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
 import { toAst } from "../csTree/toAst";
 import { fromAst } from "../csTree/fromAst";
 import { findNodesById } from "./types";
 import { findChildByTag, replaceChild, getNodeLineAndChar } from "./treeUtils";
 import { insertSnapshotSorted } from "./parallel";
+import { spellingToPitch, convertMeasureAccidentalsToSemitones } from "./pitchHelpers";
 
 /**
  * Transposes selected notes by the specified number of semitones.
@@ -146,18 +133,6 @@ function transposePitchWithContext(
 }
 
 /**
- * Converts ContextSnapshot.measureAccidentals (AccidentalType) to semitones.
- */
-function convertMeasureAccidentalsToSemitones(measureAccidentals: Map<string, AccidentalType> | undefined): Map<string, number> | null {
-  if (!measureAccidentals) return null;
-  const result = new Map<string, number>();
-  for (const [letter, accType] of measureAccidentals) {
-    result.set(letter, accidentalTypeToSemitones(accType));
-  }
-  return result;
-}
-
-/**
  * Creates a new Pitch AST node preserving the original letter and accidental,
  * only adjusting the octave. Used for octave transpositions.
  *
@@ -189,46 +164,6 @@ function octaviate(pitchExpr: Pitch, newOctave: number, ctx: ABCContext): Pitch 
   if (pitchExpr.alteration) {
     accidentalToken = new Token(TT.ACCIDENTAL, pitchExpr.alteration.lexeme, ctx.generateId());
   }
-
-  return new Pitch(ctx.generateId(), {
-    alteration: accidentalToken,
-    noteLetter: letterToken,
-    octave: octaveToken,
-  });
-}
-
-/**
- * Builds a Pitch AST node from a spelling and target MIDI pitch.
- *
- * @param spelling The spelling (letter and alteration)
- * @param targetMidi The target MIDI pitch (used to determine octave)
- * @param needsExplicitAccidental Whether to include an explicit accidental token
- * @param ctx ABCContext for generating node IDs
- * @returns A new Pitch AST node
- */
-function spellingToPitch(spelling: Spelling, targetMidi: number, needsExplicitAccidental: boolean, ctx: ABCContext): Pitch {
-  const octave = Math.floor(targetMidi / 12) - 1;
-
-  // Create accidental token only if needed
-  let accidentalToken: Token | undefined;
-  if (needsExplicitAccidental) {
-    accidentalToken = new Token(TT.ACCIDENTAL, semitonesToAccidentalString(spelling.alteration), ctx.generateId());
-  }
-
-  // Create note letter (case determines base octave in ABC notation)
-  let letterStr: string;
-  let octaveStr: string;
-
-  if (octave <= 4) {
-    letterStr = spelling.letter.toUpperCase();
-    octaveStr = ",".repeat(4 - octave);
-  } else {
-    letterStr = spelling.letter.toLowerCase();
-    octaveStr = "'".repeat(octave - 5);
-  }
-
-  const letterToken = new Token(TT.NOTE_LETTER, letterStr, ctx.generateId());
-  const octaveToken = octaveStr !== "" ? new Token(TT.OCTAVE, octaveStr, ctx.generateId()) : undefined;
 
   return new Pitch(ctx.generateId(), {
     alteration: accidentalToken,

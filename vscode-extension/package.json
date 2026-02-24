@@ -216,6 +216,11 @@
         "category": "ABC"
       },
       {
+        "command": "abc.enharmonizeToKey",
+        "title": "ABC: Enharmonize to Key",
+        "category": "ABC"
+      },
+      {
         "command": "abc.setRhythm",
         "title": "ABC: Set Rhythm",
         "category": "ABC"
@@ -525,6 +530,10 @@
         },
         {
           "command": "abc.enharmonize",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.enharmonizeToKey",
           "when": "editorLangId == abc"
         },
         {

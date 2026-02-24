@@ -1,28 +1,40 @@
 import { Selection } from "../selection";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
-import { ABCContext, Pitch, Token, TT, toMidiPitch, fromMidiPitch } from "abc-parser";
+import { ABCContext, Pitch, Token, TT, toMidiPitch, fromMidiPitch, mergeAccidentals, semitonesToAccidentalType } from "abc-parser";
+import {
+  findDiatonicSpelling,
+  getEnharmonicSpellings,
+  chooseBestChromatic,
+  resolveMelodyPitch,
+  PitchContext,
+  noteLetterToMidi,
+} from "abc-parser/music-theory/pitchUtils";
+import { DocumentSnapshots, ContextSnapshot, encode, getSnapshotAtPosition } from "abc-parser/interpreter/ContextInterpreter";
 import { toAst } from "../csTree/toAst";
 import { fromAst } from "../csTree/fromAst";
 import { findNodesById } from "./types";
-import { findChildByTag, replaceChild } from "./treeUtils";
+import { findChildByTag, replaceChild, getNodeLineAndChar } from "./treeUtils";
+import { spellingToPitch, convertMeasureAccidentalsToSemitones, toPitchComponents } from "./pitchHelpers";
+import { insertSnapshotSorted } from "./parallel";
+import { selectNotesOrChords } from "../selectors/typeSelectors";
 
 const FLAT_SPELLING: { letter: string; accidental: string | null }[] = [
-  { letter: "C", accidental: null },   // 0
-  { letter: "D", accidental: "_" },    // 1
-  { letter: "D", accidental: null },   // 2
-  { letter: "E", accidental: "_" },    // 3
-  { letter: "E", accidental: null },   // 4
-  { letter: "F", accidental: null },   // 5
-  { letter: "G", accidental: "_" },    // 6
-  { letter: "G", accidental: null },   // 7
-  { letter: "A", accidental: "_" },    // 8
-  { letter: "A", accidental: null },   // 9
-  { letter: "B", accidental: "_" },    // 10
-  { letter: "B", accidental: null },   // 11
+  { letter: "C", accidental: null }, // 0
+  { letter: "D", accidental: "_" }, // 1
+  { letter: "D", accidental: null }, // 2
+  { letter: "E", accidental: "_" }, // 3
+  { letter: "E", accidental: null }, // 4
+  { letter: "F", accidental: null }, // 5
+  { letter: "G", accidental: "_" }, // 6
+  { letter: "G", accidental: null }, // 7
+  { letter: "A", accidental: "_" }, // 8
+  { letter: "A", accidental: null }, // 9
+  { letter: "B", accidental: "_" }, // 10
+  { letter: "B", accidental: null }, // 11
 ];
 
 export function fromMidiPitchFlat(midiPitch: number, ctx: ABCContext): Pitch {
-  const pitchClass = midiPitch % 12;
+  const pitchClass = ((midiPitch % 12) + 12) % 12;
   const { letter, accidental } = FLAT_SPELLING[pitchClass];
 
   const midiOctave = Math.floor(midiPitch / 12) - 1;
@@ -113,4 +125,178 @@ function enharmonizePitchChild(noteNode: CSNode, ctx: ABCContext): void {
 
   const newPitchCSNode = fromAst(newPitchExpr, ctx);
   replaceChild(noteNode, pitchResult.prev, pitchCSNode, newPitchCSNode);
+}
+
+/**
+ * Re-spells notes according to the current key signature and measure accidentals.
+ *
+ * This transform:
+ * - Corrects misspelled notes (e.g., _G -> F in G major)
+ * - Removes redundant accidentals (e.g., ^F -> F in G major)
+ * - Chooses optimal spellings for chromatic notes based on key direction
+ *
+ * The MIDI pitch is always preserved - only the spelling changes.
+ *
+ * @param selection The selection containing Note node IDs
+ * @param snapshots DocumentSnapshots from ContextInterpreter (with snapshotAccidentals: true)
+ * @param ctx ABCContext for generating node IDs
+ * @returns The modified selection
+ */
+export function enharmonizeToKey(selection: Selection, snapshots: DocumentSnapshots, ctx: ABCContext): Selection {
+  const notesOrChords = selectNotesOrChords(selection);
+
+  for (const cursor of notesOrChords.cursors) {
+    const nodes = findNodesById(notesOrChords.root, cursor);
+
+    for (const node of nodes) {
+      if (node.tag === TAGS.Note) {
+        enharmonizeNoteToKey(node, null, snapshots, ctx);
+      } else if (node.tag === TAGS.Chord) {
+        const { line, char } = getNodeLineAndChar(node);
+        const chordPos = encode(line, char);
+
+        let current = node.firstChild;
+        while (current !== null) {
+          if (current.tag === TAGS.Note) {
+            enharmonizeNoteToKey(current, chordPos, snapshots, ctx);
+          }
+          current = current.nextSibling;
+        }
+      }
+    }
+  }
+
+  return selection;
+}
+
+function enharmonizeNoteToKey(noteNode: CSNode, chordPos: number | null, snapshots: DocumentSnapshots, ctx: ABCContext): void {
+  // Extract pitch components (letter, octave, accidental)
+  const pitchComponents = toPitchComponents(noteNode);
+  if (pitchComponents === null) return;
+
+  const { letter, octave, explicitAccidental } = pitchComponents;
+
+  // Find the Pitch child for replacement operations
+  const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
+  if (pitchResult === null) return;
+
+  // Get context snapshot BEFORE this position to avoid including the note's own accidental.
+  // Because the interpreter adds measure accidentals to snapshots at the note's position,
+  // we need to look up pos - 1 to get the context before this note.
+  // For notes inside a chord, we use the chord's position (passed by caller) so all notes
+  // in the chord share the same context (the one from before the chord started).
+  let lookupPos: number;
+  if (chordPos !== null) {
+    lookupPos = chordPos;
+  } else {
+    const { line, char } = getNodeLineAndChar(noteNode);
+    lookupPos = encode(line, char);
+  }
+  const snapshot = getSnapshotAtPosition(snapshots, lookupPos - 1);
+
+  // Build PitchContext for resolveMelodyPitch
+  const pitchContext: PitchContext = {
+    key: snapshot.key,
+    measureAccidentals: snapshot.measureAccidentals,
+    transpose: snapshot.transpose ?? 0,
+  };
+
+  // Resolve the actual sounding MIDI pitch considering key, measure accidentals, and transpose
+  const midi = resolveMelodyPitch(letter, octave, explicitAccidental, pitchContext);
+
+  // Derive the effective alteration from the resolved MIDI pitch
+  const baseMidi = noteLetterToMidi(letter, octave);
+  const alteration = midi - pitchContext.transpose - baseMidi;
+
+  // Build merged accidentals (key + measure)
+  const measureAccidentalsSemitones = convertMeasureAccidentalsToSemitones(snapshot.measureAccidentals);
+  const merged = mergeAccidentals(snapshot.key, measureAccidentalsSemitones);
+
+  const targetPitchClass = ((midi % 12) + 12) % 12;
+  const referenceSpelling = findDiatonicSpelling(merged, targetPitchClass);
+
+  const voicedNote = { letter, midi, alteration };
+
+  if (referenceSpelling !== null) {
+    // Diatonic case
+    respellDiatonic(noteNode, pitchResult, voicedNote, referenceSpelling, ctx);
+  } else {
+    // Chromatic case
+    respellChromatic(noteNode, pitchResult, voicedNote, snapshot, snapshots, merged, ctx);
+  }
+}
+
+function respellDiatonic(
+  noteNode: CSNode,
+  pitchResult: { node: CSNode; prev: CSNode | null },
+  voicedNote: { letter: "C" | "D" | "E" | "F" | "G" | "A" | "B"; midi: number; alteration: number },
+  referenceSpelling: { letter: "C" | "D" | "E" | "F" | "G" | "A" | "B"; alteration: number },
+  ctx: ABCContext
+): void {
+  const needsRespell = voicedNote.letter !== referenceSpelling.letter || voicedNote.alteration !== referenceSpelling.alteration;
+
+  const hasRedundantAccidental = !needsRespell && hasAccidentalNode(pitchResult.node);
+
+  if (needsRespell || hasRedundantAccidental) {
+    // Re-spell to reference spelling without explicit accidental
+    const newPitch = spellingToPitch(referenceSpelling, voicedNote.midi, false, ctx);
+    const newPitchCS = fromAst(newPitch, ctx);
+    replaceChild(noteNode, pitchResult.prev, pitchResult.node, newPitchCS);
+  }
+}
+
+/**
+ * Re-spells a chromatic note according to the key's direction preference.
+ *
+ * NOTE: This function intentionally mutates the snapshots parameter when it writes
+ * an explicit accidental. This is necessary so that subsequent notes in the same
+ * measure see the updated accidental context and are re-spelled correctly.
+ */
+function respellChromatic(
+  noteNode: CSNode,
+  pitchResult: { node: CSNode; prev: CSNode | null },
+  voicedNote: { letter: string; midi: number; alteration: number },
+  snapshot: ContextSnapshot,
+  snapshots: DocumentSnapshots,
+  merged: Record<"C" | "D" | "E" | "F" | "G" | "A" | "B", number>,
+  ctx: ABCContext
+): void {
+  const targetPitchClass = ((voicedNote.midi % 12) + 12) % 12;
+  const options = getEnharmonicSpellings(targetPitchClass);
+  const best = chooseBestChromatic(options, snapshot.key, merged);
+
+  const needsRespell = voicedNote.letter !== best.letter || voicedNote.alteration !== best.alteration;
+
+  if (!needsRespell) return;
+
+  const needsExplicit = (merged[best.letter] ?? 0) !== best.alteration;
+  const newPitch = spellingToPitch(best, voicedNote.midi, needsExplicit, ctx);
+  const newPitchCS = fromAst(newPitch, ctx);
+  replaceChild(noteNode, pitchResult.prev, pitchResult.node, newPitchCS);
+
+  // Update snapshots so subsequent notes see this accidental
+  if (needsExplicit) {
+    const { line, char } = getNodeLineAndChar(noteNode);
+    const pos = encode(line, char);
+    const newMeasureAccidentals = new Map(snapshot.measureAccidentals ?? []);
+    newMeasureAccidentals.set(best.letter, semitonesToAccidentalType(best.alteration));
+    insertSnapshotSorted(snapshots, pos, {
+      ...snapshot,
+      measureAccidentals: newMeasureAccidentals,
+    });
+  }
+}
+
+/**
+ * Checks if a Pitch CSNode has an ACCIDENTAL token child.
+ */
+function hasAccidentalNode(pitchNode: CSNode): boolean {
+  let current = pitchNode.firstChild;
+  while (current !== null) {
+    if (isTokenNode(current) && getTokenData(current).tokenType === TT.ACCIDENTAL) {
+      return true;
+    }
+    current = current.nextSibling;
+  }
+  return false;
 }

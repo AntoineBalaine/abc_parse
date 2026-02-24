@@ -214,6 +214,7 @@ map global abc-transform <a-P> ':abc-transform-harmonize-down<ret>'  -docstring 
 map global abc-transform + ':abc-add-sharp<ret>'                -docstring 'add sharp'
 map global abc-transform <minus> ':abc-add-flat<ret>'           -docstring 'add flat'
 map global abc-transform e ':abc-enharmonize<ret>'              -docstring 'enharmonize'
+map global abc-transform E ':abc-enharmonize-to-key<ret>'       -docstring 'enharmonize to key'
 
 # --- Rhythm Transforms ---
 map global abc-transform * ':abc-transform-multiply-rhythm<ret>'     -docstring '[count] multiply length'

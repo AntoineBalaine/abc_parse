@@ -40,9 +40,11 @@ export { parseKeyRoot, parseKeyAccidental } from "../utils/keyUtils";
 // Re-export pitch utilities
 export {
   PitchContext,
+  KeyDirection,
   resolveMelodyPitch,
   pitchToNoteName,
   noteLetterToMidi,
+  countOctaveMarkers,
   accidentalToSemitones,
   accidentalTypeToSemitones,
   semitonesToAccidentalString,
@@ -52,6 +54,10 @@ export {
   spellPitch,
   chromaticSpelling,
   computeOctaveFromPitch,
+  findDiatonicSpelling,
+  getKeyDirection,
+  getEnharmonicSpellings,
+  chooseBestChromatic,
 } from "./pitchUtils";
 
 // Re-export constants

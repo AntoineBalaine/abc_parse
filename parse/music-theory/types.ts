@@ -70,4 +70,4 @@ export interface ChordToken {
  * Note spellings map: for each letter (C-B), the current semitone alteration.
  * Used to represent key signature + measure accidentals combined.
  */
-export type NoteSpellings = Record<string, number>;
+export type NoteSpellings = Record<"C" | "D" | "E" | "F" | "G" | "A" | "B", number>;

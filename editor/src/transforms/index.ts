@@ -1,4 +1,5 @@
 export { findNodesById, TransformFn, InspectionFn } from "./types";
+export { spellingToPitch, convertMeasureAccidentalsToSemitones } from "./pitchHelpers";
 export {
   findChildByTag,
   removeChild,
@@ -21,7 +22,7 @@ export { setRhythm } from "./setRhythm";
 export { sumRhythm } from "./sumRhythm";
 export { addToRhythm } from "./addToRhythm";
 export { unwrapSingle } from "./unwrapSingle";
-export { enharmonize } from "./enharmonize";
+export { enharmonize, enharmonizeToKey } from "./enharmonize";
 export { filter } from "./filter";
 export { pitch } from "./pitch";
 export { length } from "./length";
@@ -34,6 +35,7 @@ export {
   // Phase 5: Chord-symbol-based harmonization
   VoicingType,
   HarmonizeSnapshot,
+  contextToHarmonizeSnapshot,
   extractLead,
   formatNote,
   toChordAst,

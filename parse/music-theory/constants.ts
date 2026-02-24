@@ -10,14 +10,14 @@ import { Mode } from "../types/abcjs-ast";
  * For example, F# and Gb have the same MIDI pitch but different spellings.
  */
 export interface Spelling {
-  letter: string; // "C", "D", "E", "F", "G", "A", "B"
+  letter: "C" | "D" | "E" | "F" | "G" | "A" | "B"; // "C", "D", "E", "F", "G", "A", "B"
   alteration: number; // semitones: -2 (double flat) to +2 (double sharp)
 }
 
 /**
  * The seven note letters in scale order starting from C.
  */
-export const LETTERS: string[] = ["C", "D", "E", "F", "G", "A", "B"];
+export const LETTERS: ("C" | "D" | "E" | "F" | "G" | "A" | "B")[] = ["C", "D", "E", "F", "G", "A", "B"];
 
 /**
  * Maps note letters to their natural semitone offset from C.
@@ -47,8 +47,20 @@ export const FLAT_ORDER = ["B", "E", "A", "D", "G", "C", "F"];
  */
 export const MAJOR_KEY_SHARPS: Record<string, number> = {
   C: 0,
-  G: 1, D: 2, A: 3, E: 4, B: 5, "F#": 6, "C#": 7,
-  F: -1, Bb: -2, Eb: -3, Ab: -4, Db: -5, Gb: -6, Cb: -7,
+  G: 1,
+  D: 2,
+  A: 3,
+  E: 4,
+  B: 5,
+  "F#": 6,
+  "C#": 7,
+  F: -1,
+  Bb: -2,
+  Eb: -3,
+  Ab: -4,
+  Db: -5,
+  Gb: -6,
+  Cb: -7,
 };
 
 /**

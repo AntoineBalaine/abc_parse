@@ -85,6 +85,7 @@ export {
   addToRhythm,
   unwrapSingle,
   enharmonize,
+  enharmonizeToKey,
   filter,
   pitch,
   length,
