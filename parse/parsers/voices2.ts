@@ -395,6 +395,27 @@ function isVoiceMarkerLine(line: tune_body_code[]): boolean {
 }
 
 /**
+ * Check if a line starts with an inline voice marker (after optional whitespace).
+ * Returns the voice ID if found, or null if the line doesn't start with an inline voice marker.
+ *
+ * This is used to detect voice order reversal on music lines that begin with [V:x].
+ * Info line voice markers (V: on their own line) are handled separately.
+ */
+function getLeadingInlineVoiceId(line: tune_body_code[]): string | null {
+  for (const expr of line) {
+    if (isToken(expr) && expr.type === TT.WS) {
+      continue; // Skip leading whitespace
+    }
+    if (expr instanceof Inline_field && isVoiceMarker(expr)) {
+      return extractVoiceId(expr);
+    }
+    // First non-WS element is not an inline voice marker
+    return null;
+  }
+  return null;
+}
+
+/**
  * Find the index of the next line that has music (i.e., has an entry in lineToBarRange).
  * Stops looking if another voice marker line is encountered, because the music after
  * that voice marker belongs to it, not to the voice marker we started from.
@@ -559,24 +580,45 @@ function rangesOverlap(range1: { start: number; end: number } | null, range2: { 
 }
 
 /**
- * Parse elements with multiple voices using bar overlap detection
+ * Parse elements with multiple voices using bar overlap detection.
+ *
+ * System boundaries are detected when:
+ * 1. A music line's bar range does not overlap with the current system's bar range
+ * 2. A music line starts with an inline voice marker [V:x] whose voice index is
+ *    lower than the last voice seen (voice order reversal)
  */
-function parseVoicesWithBarOverlap(lines: tune_body_code[][]): System[] {
+function parseVoicesWithBarOverlap(lines: tune_body_code[][], voices: string[]): System[] {
   const lineToBarRange = buildBarMapsFromLines(lines);
   const systems: System[] = [];
   let currentSystem: tune_body_code[] = [];
   let currentSystemStartLineIdx: number | null = null;
+  let lastVoiceIdx = -1;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
     if (isCommentOrInfoLine(line)) {
       if (isVoiceMarkerLine(line)) {
+        const voiceMarker = line.find((expr) => isVoiceMarker(expr)) as Info_line | Inline_field;
+        const voiceIdx = voices.indexOf(extractVoiceId(voiceMarker));
+
+        // Check voice order reversal
+        if (lastVoiceIdx >= 0 && voiceIdx >= 0 && voiceIdx <= lastVoiceIdx) {
+          if (currentSystem.length > 0) {
+            systems.push(currentSystem);
+          }
+          currentSystem = [...line];
+          currentSystemStartLineIdx = null;
+          lastVoiceIdx = voiceIdx;
+          continue;
+        }
+
         const nextMusicIdx = findNextMusicLineIdx(lines, lineToBarRange, i + 1);
 
         if (nextMusicIdx === null) {
           // No immediate music for this voice marker (another voice marker came first,
           // or no music at all). Add to current system.
+          if (voiceIdx >= 0) lastVoiceIdx = voiceIdx;
           currentSystem.push(...line);
           continue;
         }
@@ -588,12 +630,28 @@ function parseVoicesWithBarOverlap(lines: tune_body_code[][]): System[] {
           }
           currentSystem = [...line];
           currentSystemStartLineIdx = null; // Will be set when we encounter the music line
+          lastVoiceIdx = -1;
           continue;
         }
+
+        if (voiceIdx >= 0) lastVoiceIdx = voiceIdx;
       }
       // Non-voice-marker info lines, or voice markers whose music is in current system
       currentSystem.push(...line);
       continue;
+    } else {
+      const inlineVoiceId = getLeadingInlineVoiceId(line);
+      if (inlineVoiceId !== null) {
+        const voiceIdx = voices.indexOf(inlineVoiceId);
+        if (lastVoiceIdx >= 0 && voiceIdx >= 0 && voiceIdx <= lastVoiceIdx) {
+          if (currentSystem.length > 0) {
+            systems.push(currentSystem);
+          }
+          currentSystem = [];
+          currentSystemStartLineIdx = null;
+        }
+        if (voiceIdx >= 0) lastVoiceIdx = voiceIdx;
+      }
     }
 
     const lineRange = lineToBarRange.get(i);
@@ -748,6 +806,6 @@ export function parseSystemsWithVoices(elements: tune_body_code[], voices: strin
     return parseNoVoices(ctx);
   } else {
     const lines = splitIntoLines(elements);
-    return parseVoicesWithBarOverlap(lines);
+    return parseVoicesWithBarOverlap(lines, voices);
   }
 }

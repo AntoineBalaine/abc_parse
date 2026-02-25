@@ -1146,4 +1146,45 @@ describe("Formatter2: Info_line fallback path (no value2)", () => {
     const result = formatter.visitInfoLineExpr(infoLine);
     assert.equal(result, "V:RH clef=treble octave=-2");
   });
+
+  describe("multi-voice system boundary detection", () => {
+    let formatter: AbcFormatter;
+    let ctx: ABCContext;
+
+    beforeEach(() => {
+      ctx = new ABCContext();
+      formatter = new AbcFormatter(ctx);
+    });
+
+    it("should preserve spacing in multi-voice systems with inline voice markers", () => {
+      const input = `X:1
+L:1/4
+V:1
+[DG_B] "G7" =B
+V:2
+A           B
+[V:1] "Fm7" c "BbM7" d |
+[V:2]       C        d |`;
+
+      const result = format(input, ctx, formatter);
+      expect(result).to.equal(input);
+    });
+
+    it("should preserve spacing in multi-voice systems with info line voice markers", () => {
+      const input = `%%gchordfont Times 16
+X:1
+L:1/4
+V:1
+[DG_B] "G7" =B
+V:2
+A           B
+V:1
+"Fm7" c "BbM7" d |
+V:2
+      c        d |`;
+
+      const result = format(input, ctx, formatter);
+      expect(result).to.equal(input);
+    });
+  });
 });

@@ -4,7 +4,16 @@ import { isToken, isVoiceMarker } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { ParseCtx, parseTune } from "../parsers/parse2";
 import { Scanner, Token, TT } from "../parsers/scan2";
-import { isNewSystem, parseNoVoices, parseSystemsWithVoices, parseVoices, extractVoiceId, VoiceCtx, LinearVoiceCtx, buildLinearSystems } from "../parsers/voices2";
+import {
+  isNewSystem,
+  parseNoVoices,
+  parseSystemsWithVoices,
+  parseVoices,
+  extractVoiceId,
+  VoiceCtx,
+  LinearVoiceCtx,
+  buildLinearSystems,
+} from "../parsers/voices2";
 import { Info_line, Inline_field, tune_body_code } from "../types/Expr2";
 
 const expect = chai.expect;
@@ -539,8 +548,14 @@ D|`;
       for (let i = 0; i < system.length; i++) {
         if (isVoiceMarker(system[i])) {
           const id = extractVoiceId(system[i] as Info_line);
-          if (id === "1") { foundV1 = true; v1Index = i; }
-          if (id === "2") { foundV2 = true; v2Index = i; }
+          if (id === "1") {
+            foundV1 = true;
+            v1Index = i;
+          }
+          if (id === "2") {
+            foundV2 = true;
+            v2Index = i;
+          }
         }
       }
 
@@ -561,7 +576,7 @@ D|`;
       const elements: tune_body_code[] = [
         new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "1")]),
         createToken(TT.NOTE_LETTER, "C"),
-        createToken(TT.EOL, "\n")
+        createToken(TT.EOL, "\n"),
       ];
       const systems = buildLinearSystems(elements, ["1"]);
       expect(systems).to.have.lengthOf(1);
@@ -579,7 +594,7 @@ D|`;
         createToken(TT.EOL, "\n"),
         new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "1")]),
         createToken(TT.NOTE_LETTER, "E"),
-        createToken(TT.EOL, "\n")
+        createToken(TT.EOL, "\n"),
       ];
       const systems = buildLinearSystems(elements, ["1", "2"]);
       expect(systems).to.have.lengthOf(2);
@@ -592,7 +607,7 @@ D|`;
         createToken(TT.NOTE_LETTER, "C"),
         createToken(TT.EOL, "\n"),
         createToken(TT.NOTE_LETTER, "D"),
-        createToken(TT.EOL, "\n")
+        createToken(TT.EOL, "\n"),
       ];
       const systems = buildLinearSystems(elements, ["1"]);
       expect(systems).to.have.lengthOf(2);
@@ -609,7 +624,7 @@ D|`;
         createToken(TT.EOL, "\n"),
         new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "1")]),
         createToken(TT.NOTE_LETTER, "E"),
-        createToken(TT.EOL, "\n")
+        createToken(TT.EOL, "\n"),
       ];
       const voices = ["1", "2"];
       const systems = buildLinearSystems(elements, voices);
@@ -625,7 +640,7 @@ D|`;
         createToken(TT.EOL, "\n"),
         new Info_line(ctx.generateId(), [createToken(TT.INF_HDR, "V:"), createToken(TT.INFO_STR, "1")]),
         createToken(TT.NOTE_LETTER, "D"),
-        createToken(TT.EOL, "\n")
+        createToken(TT.EOL, "\n"),
       ];
       const voices = ["1", "2"];
       const systems = buildLinearSystems(elements, voices);
@@ -806,56 +821,6 @@ CDEF|GABC|`;
       expect(tune.tune_header.voices).to.have.lengthOf(2);
       expect(tune.tune_header.voices).to.include("1");
       expect(tune.tune_header.voices).to.include("2");
-    });
-
-    it("should group non-sequential voice lines with overlapping bars into same system", () => {
-      const sample = `X:1
-V:1 clef=treble
-V:2 clef=bass
-K:C
-V:2
-CDEF|GABC|defg|abcd|
-V:1
-CDEF|GABC|defg|abcd|`;
-
-      const ctx = new ABCContext();
-      const tokens = Scanner(sample, ctx);
-      const parseCtx = new ParseCtx(tokens, ctx);
-      const tune = parseTune(parseCtx);
-
-      expect(tune).to.not.be.null;
-      const systems = tune.tune_body?.sequence;
-
-      // Voice 2 plays bars 1-4, Voice 1 plays bars 1-4
-      // These should be in the same system because they overlap (bars 1-4)
-      expect(systems).to.have.lengthOf(1);
-      expect(systems![0].length).to.be.greaterThan(0);
-    });
-
-    it("should group multiple non-sequential overlapping voice lines", () => {
-      const sample = `X:1
-V:1 clef=treble
-V:2 clef=bass
-V:3 clef=alto
-K:C
-V:3
-CDEF|GABC|
-V:1
-CDEF|GABC|
-V:2
-CDEF|GABC|`;
-
-      const ctx = new ABCContext();
-      const tokens = Scanner(sample, ctx);
-      const parseCtx = new ParseCtx(tokens, ctx);
-      const tune = parseTune(parseCtx);
-
-      expect(tune).to.not.be.null;
-      const systems = tune.tune_body?.sequence;
-
-      // V:3 bars 1-2, V:1 bars 1-2, V:2 bars 1-2
-      // All overlap, so should be one system
-      expect(systems).to.have.lengthOf(1);
     });
 
     it("should separate systems when voice lines do not overlap in bar numbers", () => {
