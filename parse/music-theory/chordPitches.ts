@@ -1,5 +1,4 @@
-import { KeyRoot, KeyAccidental } from "../types/abcjs-ast";
-import { ChordQuality, ParsedChord, ChordAlteration } from "./types";
+import { KeyRoot } from "../types/abcjs-ast";
 import { LETTERS } from "./constants";
 import {
   VoicedNote,
@@ -10,6 +9,7 @@ import {
   keyAccidentalToSemitones,
   spellFromRoot,
 } from "./harmonization";
+import { ChordQuality, ParsedChord, ChordAlteration } from "./types";
 
 /**
  * Root note to semitone offset.

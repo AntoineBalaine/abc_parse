@@ -1,8 +1,8 @@
 import { expect } from "chai";
-import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
 import { ABCContext } from "../parsers/Context";
-import { TT } from "../parsers/scan2";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
+import { TT } from "../parsers/scan2";
+import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
 
 describe("ABCx Scanner - New Chord Quality Symbols", () => {
   it("should scan chord with minus for minor (C-7)", () => {

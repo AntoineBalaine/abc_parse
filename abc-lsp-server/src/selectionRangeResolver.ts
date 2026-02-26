@@ -1,5 +1,5 @@
-import { CSNode, isTokenNode, TokenData, TAGS, Selection } from "editor";
 import { Range, Position } from "abc-parser";
+import { CSNode, isTokenNode, TokenData, TAGS, Selection } from "editor";
 
 export function findNodeById(root: CSNode, targetId: number): CSNode | null {
   if (root.id === targetId) return root;

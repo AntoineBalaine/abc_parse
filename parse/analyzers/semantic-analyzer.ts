@@ -52,8 +52,6 @@ import {
   Measurement,
   SystemBreak,
 } from "../types/Expr2";
-
-// Import analyzer functions
 import { analyzeDirective } from "./directive-analyzer";
 import { analyzeInfoLine } from "./info-line-analyzer";
 
@@ -126,31 +124,31 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
   // Visitor interface implementation (pass-through for non-directive expressions)
   // ============================================================================
 
-  visitToken(token: Token): SemanticData | null {
+  visitToken(_token: Token): SemanticData | null {
     return null;
   }
 
-  visitAnnotationExpr(expr: Annotation): SemanticData | null {
+  visitAnnotationExpr(_expr: Annotation): SemanticData | null {
     return null;
   }
 
-  visitBarLineExpr(expr: BarLine): SemanticData | null {
+  visitBarLineExpr(_expr: BarLine): SemanticData | null {
     return null;
   }
 
-  visitChordExpr(expr: Chord): SemanticData | null {
+  visitChordExpr(_expr: Chord): SemanticData | null {
     return null;
   }
 
-  visitCommentExpr(expr: Comment): SemanticData | null {
+  visitCommentExpr(_expr: Comment): SemanticData | null {
     return null;
   }
 
-  visitDecorationExpr(expr: Decoration): SemanticData | null {
+  visitDecorationExpr(_expr: Decoration): SemanticData | null {
     return null;
   }
 
-  visitSystemBreakExpr(expr: SystemBreak): SemanticData | null {
+  visitSystemBreakExpr(_expr: SystemBreak): SemanticData | null {
     return null;
   }
 
@@ -181,7 +179,7 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
     return null;
   }
 
-  visitGraceGroupExpr(expr: Grace_group): SemanticData | null {
+  visitGraceGroupExpr(_expr: Grace_group): SemanticData | null {
     return null;
   }
 
@@ -209,43 +207,43 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
     return result;
   }
 
-  visitLyricLineExpr(expr: Lyric_line): SemanticData | null {
+  visitLyricLineExpr(_expr: Lyric_line): SemanticData | null {
     return null;
   }
 
-  visitLyricSectionExpr(expr: Lyric_section): SemanticData | null {
+  visitLyricSectionExpr(_expr: Lyric_section): SemanticData | null {
     return null;
   }
 
-  visitMacroDeclExpr(expr: Macro_decl): SemanticData | null {
+  visitMacroDeclExpr(_expr: Macro_decl): SemanticData | null {
     return null;
   }
 
-  visitMacroInvocationExpr(expr: Macro_invocation): SemanticData | null {
+  visitMacroInvocationExpr(_expr: Macro_invocation): SemanticData | null {
     return null;
   }
 
-  visitMultiMeasureRestExpr(expr: MultiMeasureRest): SemanticData | null {
+  visitMultiMeasureRestExpr(_expr: MultiMeasureRest): SemanticData | null {
     return null;
   }
 
-  visitNoteExpr(expr: Note): SemanticData | null {
+  visitNoteExpr(_expr: Note): SemanticData | null {
     return null;
   }
 
-  visitPitchExpr(expr: Pitch): SemanticData | null {
+  visitPitchExpr(_expr: Pitch): SemanticData | null {
     return null;
   }
 
-  visitRestExpr(expr: Rest): SemanticData | null {
+  visitRestExpr(_expr: Rest): SemanticData | null {
     return null;
   }
 
-  visitRhythmExpr(expr: Rhythm): SemanticData | null {
+  visitRhythmExpr(_expr: Rhythm): SemanticData | null {
     return null;
   }
 
-  visitSymbolExpr(expr: Symbol): SemanticData | null {
+  visitSymbolExpr(_expr: Symbol): SemanticData | null {
     return null;
   }
 
@@ -288,59 +286,59 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
     return null;
   }
 
-  visitUserSymbolDeclExpr(expr: User_symbol_decl): SemanticData | null {
+  visitUserSymbolDeclExpr(_expr: User_symbol_decl): SemanticData | null {
     return null;
   }
 
-  visitUserSymbolInvocationExpr(expr: User_symbol_invocation): SemanticData | null {
+  visitUserSymbolInvocationExpr(_expr: User_symbol_invocation): SemanticData | null {
     return null;
   }
 
-  visitYSpacerExpr(expr: YSPACER): SemanticData | null {
+  visitYSpacerExpr(_expr: YSPACER): SemanticData | null {
     return null;
   }
 
-  visitBeamExpr(expr: Beam): SemanticData | null {
+  visitBeamExpr(_expr: Beam): SemanticData | null {
     return null;
   }
 
-  visitVoiceOverlayExpr(expr: Voice_overlay): SemanticData | null {
+  visitVoiceOverlayExpr(_expr: Voice_overlay): SemanticData | null {
     return null;
   }
 
-  visitLineContinuationExpr(expr: Line_continuation): SemanticData | null {
+  visitLineContinuationExpr(_expr: Line_continuation): SemanticData | null {
     return null;
   }
 
-  visitTupletExpr(expr: Tuplet): SemanticData | null {
+  visitTupletExpr(_expr: Tuplet): SemanticData | null {
     return null;
   }
 
-  visitErrorExpr(expr: ErrorExpr): SemanticData | null {
+  visitErrorExpr(_expr: ErrorExpr): SemanticData | null {
     return null;
   }
 
-  visitKV(expr: KV): SemanticData | null {
+  visitKV(_expr: KV): SemanticData | null {
     return null;
   }
 
-  visitBinary(expr: Binary): SemanticData | null {
+  visitBinary(_expr: Binary): SemanticData | null {
     return null;
   }
 
-  visitGrouping(expr: Grouping): SemanticData | null {
+  visitGrouping(_expr: Grouping): SemanticData | null {
     return null;
   }
 
-  visitAbsolutePitch(expr: AbsolutePitch): SemanticData | null {
+  visitAbsolutePitch(_expr: AbsolutePitch): SemanticData | null {
     return null;
   }
 
-  visitRationalExpr(expr: Rational): SemanticData | null {
+  visitRationalExpr(_expr: Rational): SemanticData | null {
     return null;
   }
 
-  visitMeasurementExpr(expr: Measurement): SemanticData | null {
+  visitMeasurementExpr(_expr: Measurement): SemanticData | null {
     return null;
   }
 
@@ -352,7 +350,7 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
   }
 
   // ChordSymbol is ABCx-specific - ABCx files must be converted to ABC before analysis
-  visitChordSymbolExpr(expr: ChordSymbol): SemanticData | null {
+  visitChordSymbolExpr(_expr: ChordSymbol): SemanticData | null {
     return null;
   }
 }

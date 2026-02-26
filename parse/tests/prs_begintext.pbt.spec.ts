@@ -61,16 +61,8 @@ describe("Parser Property-Based: Text Directive (%%begintext)", () => {
         const formatter = new AbcFormatter(sharedContext);
         const formatted = formatter.stringify(result);
 
-        // Reconstruct expected output from original tokens
-        let expected = "%%begintext";
+        // Get the FREE_TXT token from original tokens
         const freeTextToken = gen.tokens.find((t) => t.type === TT.FREE_TXT);
-        if (freeTextToken) {
-          expected += "\n" + freeTextToken.lexeme;
-        }
-        const hasEndText = gen.tokens.some((t) => t.lexeme === "endtext");
-        if (hasEndText) {
-          expected += "\n%%endtext";
-        }
 
         // Property: Formatted output should match expected pattern
         // Note: We check if formatted contains the key elements, as formatting may vary slightly

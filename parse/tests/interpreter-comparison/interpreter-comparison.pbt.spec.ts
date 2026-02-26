@@ -129,7 +129,7 @@ describe.skip("Parser Robustness", () => {
     fc.assert(
       fc.property(genCompleteABC, (abcString) => {
         // Parse with our parser - should never hang or crash
-        const { tunes, ctx } = parseWithYourParser(abcString);
+        const { tunes } = parseWithYourParser(abcString);
 
         // Should complete successfully (may produce 0 or more tunes)
         expect(tunes).to.be.an("array");

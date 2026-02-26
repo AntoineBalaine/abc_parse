@@ -11,7 +11,7 @@ import {
   prsUserSymbolDecl,
   parseTune,
 } from "../parsers/parse2";
-import { Token, TT, Scanner } from "../parsers/scan2";
+import { TT, Scanner } from "../parsers/scan2";
 import {
   Chord,
   Grace_group,

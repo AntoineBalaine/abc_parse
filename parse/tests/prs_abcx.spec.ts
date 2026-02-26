@@ -9,8 +9,8 @@
 
 import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
-import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
 import { parseAbcx } from "../parsers/parse_abcx";
+import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
 import { ChordSymbol, BarLine, Tune, File_structure } from "../types/Expr2";
 
 describe("ABCx Parser", () => {

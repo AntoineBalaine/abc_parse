@@ -13,7 +13,7 @@ describe("Parser Property Tests", () => {
     fc.assert(
       fc.property(ParserGen.genMusicSequence, (sequence) => {
         try {
-          const tuneBody = prsBody(new ParseCtx(sequence.tokens, testContext));
+          prsBody(new ParseCtx(sequence.tokens, testContext));
           return true;
         } catch (e) {
           console.error("Parsing crashed with error:", e);

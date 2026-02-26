@@ -10,10 +10,7 @@
  * - Emits ChordPosition entries for chords that meet the minimum voice count threshold
  */
 
-import { TuneDefaults, VoiceState, newVxState, createTuneDefaults, createFileDefaults, FileDefaults } from "./InterpreterState";
-import { convertAccidentalToType } from "./helpers";
 import { SemanticData } from "../analyzers/semantic-analyzer";
-import { AccidentalType } from "../types/abcjs-ast";
 import { NATURAL_SEMITONES } from "../music-theory/constants";
 import { getKeyAccidentalForPitch, accidentalTypeToSemitones as pitchUtilsAccidentalTypeToSemitones } from "../music-theory/pitchUtils";
 import { Token, TT } from "../parsers/scan2";
@@ -65,6 +62,8 @@ import {
   isVoiceInfo,
 } from "../types/Expr2";
 import { encode } from "./ContextInterpreter";
+import { convertAccidentalToType } from "./helpers";
+import { TuneDefaults, VoiceState, newVxState, createTuneDefaults, createFileDefaults, FileDefaults } from "./InterpreterState";
 
 // ============================================================================
 // Types
@@ -345,13 +344,13 @@ export class ChordPositionCollector implements Visitor<void> {
     this.handleContextDirective(expr.id);
   }
 
-  visitBarLineExpr(expr: BarLine): void {
+  visitBarLineExpr(_expr: BarLine): void {
     // Barline clears measure accidentals for current voice
     const voice = this.getCurrentVoice();
     voice.measureAccidentals.clear();
   }
 
-  visitSystemBreakExpr(expr: SystemBreak): void {
+  visitSystemBreakExpr(_expr: SystemBreak): void {
     // System break clears accidentals for all voices
     this.clearAllVoicesAccidentals();
   }
@@ -432,38 +431,38 @@ export class ChordPositionCollector implements Visitor<void> {
   // No-op Visitor Stubs (required by Visitor interface)
   // ============================================================================
 
-  visitToken(token: Token): void {}
-  visitRestExpr(expr: Rest): void {}
-  visitTupletExpr(expr: Tuplet): void {
+  visitToken(_token: Token): void {}
+  visitRestExpr(_expr: Rest): void {}
+  visitTupletExpr(_expr: Tuplet): void {
     // Tuplet markers don't contain notes directly - notes follow the marker
   }
-  visitGraceGroupExpr(expr: Grace_group): void {}
-  visitDecorationExpr(expr: Decoration): void {}
-  visitAnnotationExpr(expr: Annotation): void {}
-  visitCommentExpr(expr: Comment): void {}
-  visitSymbolExpr(expr: Symbol): void {}
-  visitVoiceOverlayExpr(expr: Voice_overlay): void {
+  visitGraceGroupExpr(_expr: Grace_group): void {}
+  visitDecorationExpr(_expr: Decoration): void {}
+  visitAnnotationExpr(_expr: Annotation): void {}
+  visitCommentExpr(_expr: Comment): void {}
+  visitSymbolExpr(_expr: Symbol): void {}
+  visitVoiceOverlayExpr(_expr: Voice_overlay): void {
     // Voice overlay only contains tokens (not notes)
   }
-  visitLineContinuationExpr(expr: Line_continuation): void {}
-  visitMacroDeclExpr(expr: Macro_decl): void {}
-  visitMacroInvocationExpr(expr: Macro_invocation): void {}
-  visitUserSymbolDeclExpr(expr: User_symbol_decl): void {}
-  visitUserSymbolInvocationExpr(expr: User_symbol_invocation): void {}
-  visitLyricLineExpr(expr: Lyric_line): void {}
-  visitLyricSectionExpr(expr: Lyric_section): void {}
-  visitPitchExpr(expr: Pitch): void {}
-  visitRhythmExpr(expr: Rhythm): void {}
-  visitErrorExpr(expr: ErrorExpr): void {}
-  visitKV(expr: KV): void {}
-  visitBinary(expr: Binary): void {}
-  visitGrouping(expr: Grouping): void {}
-  visitAbsolutePitch(expr: AbsolutePitch): void {}
-  visitRationalExpr(expr: Rational): void {}
-  visitMeasurementExpr(expr: Measurement): void {}
-  visitUnary(expr: Unary): void {}
-  visitDirectiveExpr(expr: Directive): void {}
-  visitMultiMeasureRestExpr(expr: MultiMeasureRest): void {}
-  visitYSpacerExpr(expr: YSPACER): void {}
-  visitChordSymbolExpr(expr: ChordSymbol): void {}
+  visitLineContinuationExpr(_expr: Line_continuation): void {}
+  visitMacroDeclExpr(_expr: Macro_decl): void {}
+  visitMacroInvocationExpr(_expr: Macro_invocation): void {}
+  visitUserSymbolDeclExpr(_expr: User_symbol_decl): void {}
+  visitUserSymbolInvocationExpr(_expr: User_symbol_invocation): void {}
+  visitLyricLineExpr(_expr: Lyric_line): void {}
+  visitLyricSectionExpr(_expr: Lyric_section): void {}
+  visitPitchExpr(_expr: Pitch): void {}
+  visitRhythmExpr(_expr: Rhythm): void {}
+  visitErrorExpr(_expr: ErrorExpr): void {}
+  visitKV(_expr: KV): void {}
+  visitBinary(_expr: Binary): void {}
+  visitGrouping(_expr: Grouping): void {}
+  visitAbsolutePitch(_expr: AbsolutePitch): void {}
+  visitRationalExpr(_expr: Rational): void {}
+  visitMeasurementExpr(_expr: Measurement): void {}
+  visitUnary(_expr: Unary): void {}
+  visitDirectiveExpr(_expr: Directive): void {}
+  visitMultiMeasureRestExpr(_expr: MultiMeasureRest): void {}
+  visitYSpacerExpr(_expr: YSPACER): void {}
+  visitChordSymbolExpr(_expr: ChordSymbol): void {}
 }

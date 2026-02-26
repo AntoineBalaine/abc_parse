@@ -7,14 +7,14 @@
  * fills null entries with silenced content, and flattens to deferred style.
  */
 
-import { isGraceGroup, isInfo_line, isTuplet, isVoiceMarker, isWS } from "../helpers";
+import { isGraceGroup, isInfo_line, isTuplet, isVoiceMarker } from "../helpers";
+import { isBarLine } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import { extractVoiceId, VoiceSequenceMap } from "../parsers/voices2";
 import { File_structure, Info_line, MultiMeasureRest, System, Tune, Tune_Body, tune_body_code } from "../types/Expr2";
-import { isTimeEvent } from "../Visitors/fmt2/fmt_timeMap";
-import { isBarLine } from "../helpers";
 import { cloneLine } from "../Visitors/CloneVisitor";
+import { isTimeEvent } from "../Visitors/fmt2/fmt_timeMap";
 
 /**
  * Silence a music line by removing time events, grace groups, and tuplet markers,
@@ -195,7 +195,7 @@ function fillNullVoices(systemMap: VoiceSequenceMap, allVoices: string[], ctx: A
       // Remove the voice marker from the cloned template before silencing
       const withoutVoiceMarker: tune_body_code[] = [];
       for (let i = 0; i < cloned.length; i++) {
-        let el = cloned[i];
+        const el = cloned[i];
         if (isVoiceMarker(el)) {
           if (isInfo_line(el)) {
             i++; // skip EOL
@@ -358,7 +358,7 @@ export function convertTuneToDeferred(tune: Tune, ctx: ABCContext): Tune {
     }
 
     // Skip systems where all voices have null content (no voice content found)
-    const hasVoiceContent = Array.from(systemMap.values()).some(seq => seq !== null);
+    const hasVoiceContent = Array.from(systemMap.values()).some((seq) => seq !== null);
     if (!hasVoiceContent) {
       continue;
     }

@@ -16,21 +16,7 @@ export const genKeyRoot = fc.constantFrom("A", "B", "C", "D", "E", "F", "G");
 // ABC pitch notation: ^ for sharp, _ for flat, empty for natural
 export const genKeyAccidental = fc.constantFrom("", "^", "_");
 
-export const genMode = fc.constantFrom(
-  "major",
-  "minor",
-  "m",
-  "dorian",
-  "phrygian",
-  "lydian",
-  "mixolydian",
-  "locrian",
-  "Mix",
-  "Dor",
-  "Phr",
-  "Lyd",
-  "Loc"
-);
+export const genMode = fc.constantFrom("major", "minor", "m", "dorian", "phrygian", "lydian", "mixolydian", "locrian", "Mix", "Dor", "Phr", "Lyd", "Loc");
 
 export const genClefName = fc.constantFrom("treble", "bass", "alto", "tenor", "perc", "none");
 
@@ -439,7 +425,7 @@ export const genTranscriptionInfo = genNameText.map((text) => ({
 /**
  * Generate H: (history) info line
  */
-// NOTE: Use fc.stringMatching with an alphanumeri here, with NO LINEBREAKS. Spaces and punctuation accepted.
+// NOTE: Use fc.stringMatching with an alphanumeri here, with NO LINEBREAKS. Spaces and punctuation accepted.
 // abandon genInfoLineText.
 export const genHistoryInfo = genTextWithPunctuation.map((text) => ({
   infoLine: new Info_line(

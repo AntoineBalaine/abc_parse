@@ -242,7 +242,7 @@ function compareMetaText(differences: Difference[], yours: Record<string, any>, 
 /**
  * Compare formatting objects (shallow comparison for now)
  */
-function compareFormatting(differences: Difference[], yours: Record<string, any>, theirs: Record<string, any>, strict: boolean = false): void {
+function compareFormatting(differences: Difference[], yours: Record<string, any>, theirs: Record<string, any>, _strict: boolean = false): void {
   const yourKeys = Object.keys(yours);
   const theirKeys = Object.keys(theirs);
 

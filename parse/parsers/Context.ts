@@ -1,5 +1,5 @@
-import { AbcErrorReporter } from "./ErrorReporter";
 import { FormatterConfig, DEFAULT_FORMATTER_CONFIG } from "../types/Expr2";
+import { AbcErrorReporter } from "./ErrorReporter";
 
 class IdGenerator {
   static instance: IdGenerator;

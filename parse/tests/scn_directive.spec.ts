@@ -3,7 +3,7 @@ import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { scanDirective } from "../parsers/infoLines/scanDirective";
-import { Ctx, TT, Token } from "../parsers/scan2";
+import { Ctx, TT } from "../parsers/scan2";
 import {
   genMeasurementUnit,
   genNumberWithUnit,
@@ -17,10 +17,6 @@ import {
 describe("Directive Scanner Tests", () => {
   function createCtx(source: string): Ctx {
     return new Ctx(source, new ABCContext(new AbcErrorReporter()));
-  }
-
-  function tokensToString(tokens: Token[]): string {
-    return tokens.map((t) => `${TT[t.type]}:${t.lexeme}`).join(" ");
   }
 
   describe("Basic directive scanning", () => {

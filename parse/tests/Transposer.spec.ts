@@ -63,7 +63,6 @@ describe("Transposer", () => {
 
   describe("Roundtrip conversion", () => {
     const ctx = new ABCContext();
-    const formatter = new AbcFormatter(ctx);
 
     // Test cases for roundtrip conversion (toMidiPitch -> fromMidiPitch)
     const abcNotations = [
@@ -112,13 +111,13 @@ describe("Transposer", () => {
       // This is a simplified approach - in a real implementation,
       // you would parse the ABC notation to create a proper Pitch object
       const tokens = abc.split("");
-      let alteration, noteLetter, octave;
+      let alteration, octave;
 
       if (tokens[0] === "^" || tokens[0] === "_") {
         alteration = tokens.shift();
       }
 
-      noteLetter = tokens.shift();
+      const noteLetter = tokens.shift();
 
       if (tokens.length > 0) {
         octave = tokens.join("");
@@ -703,7 +702,6 @@ describe("Transposer", () => {
 
   describe("Range-based transposition with string output", () => {
     const ctx = new ABCContext();
-    const formatter = new AbcFormatter(ctx);
 
     // Helper function to create a note with position information
     const createNote = (noteLetter: string, line: number, position: number, alteration?: string, octave?: string): Note => {
@@ -847,22 +845,22 @@ describe("Transposer", () => {
         let ln_count = 0;
         let pos = 0;
         while (pos < inpt.length) {
-          if (inpt[pos] == "\n") {
+          if (inpt[pos] === "\n") {
             ln_count++;
-            if (ln_count == range.start.line) {
+            if (ln_count === range.start.line) {
               strt_ln_pos = pos;
             }
 
-            if (ln_count == range.end.line) {
+            if (ln_count === range.end.line) {
               end_ln_pos = pos;
             }
-            if (end_ln_pos != null && strt_ln_pos != null) {
+            if (end_ln_pos !== null && strt_ln_pos !== null) {
               break;
             }
           }
           pos++;
         }
-        if (strt_ln_pos == null || end_ln_pos == null) {
+        if (strt_ln_pos === null || end_ln_pos === null) {
           throw new Error("Invalid range");
         }
         const startChar = strt_ln_pos + 1 + range.start.character;

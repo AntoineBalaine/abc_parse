@@ -5,13 +5,13 @@
  */
 
 import { expect } from "chai";
+import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Scanner } from "../parsers/scan2";
 import { parse } from "../parsers/parse2";
-import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
-import { TuneInterpreter } from "./TuneInterpreter";
+import { Scanner } from "../parsers/scan2";
 import { StaffSystem } from "../types/abcjs-ast";
+import { TuneInterpreter } from "./TuneInterpreter";
 
 describe("Multi-Staff Implementation", () => {
   function interpretABC(abc: string) {

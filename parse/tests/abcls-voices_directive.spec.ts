@@ -1,17 +1,16 @@
 import { expect } from "chai";
 import * as fc from "fast-check";
-import { ABCContext } from "../parsers/Context";
-import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { scanDirective } from "../parsers/infoLines/scanDirective";
-import { parseDirective } from "../parsers/infoLines/parseDirective";
-import { ParseCtx, parse } from "../parsers/parse2";
-import { Scanner, Ctx, Token, TT } from "../parsers/scan2";
-import { Directive, File_structure, Tune } from "../types/Expr2";
 import { analyzeDirective } from "../analyzers/directive-analyzer";
 import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
+import { ABCContext } from "../parsers/Context";
+import { AbcErrorReporter } from "../parsers/ErrorReporter";
+import { parseDirective } from "../parsers/infoLines/parseDirective";
+import { scanDirective } from "../parsers/infoLines/scanDirective";
+import { ParseCtx, parse } from "../parsers/parse2";
+import { Scanner, Ctx, Token, TT } from "../parsers/scan2";
 import { AbclsVoicesDirectiveData } from "../types/directive-specs";
+import { Directive, File_structure, Tune } from "../types/Expr2";
 import { genAbclsVoicesDirective } from "./scn_infoln_generators";
-import { genAbclsVoicesDirectiveExpr } from "./prs_pbt.generators.spec";
 
 describe("%%abcls-voices Directive Tests", () => {
   let context: ABCContext;

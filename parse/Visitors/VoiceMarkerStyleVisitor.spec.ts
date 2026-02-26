@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
-import { Scanner } from "../parsers/scan2";
 import { parse } from "../parsers/parse2";
+import { Scanner } from "../parsers/scan2";
 import { Tune, Tune_Body } from "../types/Expr2";
 import { AbcFormatter } from "./Formatter2";
 import { VoiceMarkerStyleVisitor } from "./VoiceMarkerStyleVisitor";

@@ -10,7 +10,6 @@
 
 import { isToken } from "../helpers";
 import { Token, TT } from "../parsers/scan2";
-import { parseKeyRoot } from "../utils/keyUtils";
 import {
   KeyInfo,
   KeyRoot,
@@ -27,6 +26,7 @@ import {
   VoiceProperties,
 } from "../types/abcjs-ast";
 import { Info_line, InfoLineUnion, Expr, KV, Binary, Rational, Grouping, Annotation } from "../types/Expr2";
+import { parseKeyRoot } from "../utils/keyUtils";
 import { IRational } from "../Visitors/fmt2/rational";
 import { SemanticAnalyzer } from "./semantic-analyzer";
 
@@ -866,56 +866,62 @@ function applyVoiceProperty(properties: VoiceProperties, key: string, value: str
       properties.clef = getClefInfo(value);
       break;
 
-    case "transpose":
+    case "transpose": {
       const transposeValue = parseInt(value);
       if (!isNaN(transposeValue)) {
         properties.transpose = transposeValue;
       }
       break;
+    }
 
-    case "octave":
+    case "octave": {
       const octaveValue = parseInt(value);
       if (!isNaN(octaveValue)) {
         properties.octave = octaveValue;
       }
       break;
+    }
 
     case "middle":
     case "m":
       properties.middle = value;
       break;
 
-    case "stafflines":
+    case "stafflines": {
       const stafflinesValue = parseInt(value);
       if (!isNaN(stafflinesValue)) {
         properties.stafflines = stafflinesValue;
       }
       break;
+    }
 
-    case "staffscale":
+    case "staffscale": {
       const staffscaleValue = parseFloat(value);
       if (!isNaN(staffscaleValue)) {
         properties.staffscale = staffscaleValue;
       }
       break;
+    }
 
-    case "scale":
+    case "scale": {
       const scaleValue = parseFloat(value);
       if (!isNaN(scaleValue)) {
         properties.staffscale = scaleValue;
       }
       break;
+    }
 
     case "perc":
       properties.perc = value.toLowerCase() === "true" || value === "1";
       break;
 
-    case "instrument":
+    case "instrument": {
       const instrumentValue = parseInt(value);
       if (!isNaN(instrumentValue)) {
         properties.instrument = instrumentValue;
       }
       break;
+    }
 
     case "merge":
       properties.merge = value.toLowerCase() === "true" || value === "1";
@@ -941,12 +947,13 @@ function applyVoiceProperty(properties: VoiceProperties, key: string, value: str
       break;
 
     case "space":
-    case "spc":
+    case "spc": {
       const spaceValue = parseFloat(value);
       if (!isNaN(spaceValue)) {
         properties.space = spaceValue;
       }
       break;
+    }
 
     case "bracket":
     case "brk":
@@ -1000,7 +1007,7 @@ function isBracketBracePosition(value: string): boolean {
  * Because ABC notation allows optional whitespace after the colon (T: title or T:title),
  * we trim the result to match abcjs behavior.
  */
-export function analyzeTitleInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+export function analyzeTitleInfo(expr: Info_line, _analyzer: SemanticAnalyzer): InfoLineUnion | null {
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
 
   const titleParts: string[] = [];
@@ -1028,7 +1035,7 @@ export function analyzeTitleInfo(expr: Info_line, analyzer: SemanticAnalyzer): I
  * Because ABC notation allows optional whitespace after the colon,
  * we trim the result to match abcjs behavior.
  */
-export function analyzeComposerInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+export function analyzeComposerInfo(expr: Info_line, _analyzer: SemanticAnalyzer): InfoLineUnion | null {
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
 
   const composerParts: string[] = [];
@@ -1056,7 +1063,7 @@ export function analyzeComposerInfo(expr: Info_line, analyzer: SemanticAnalyzer)
  * Because ABC notation allows optional whitespace after the colon,
  * we trim the result to match abcjs behavior.
  */
-export function analyzeOriginInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+export function analyzeOriginInfo(expr: Info_line, _analyzer: SemanticAnalyzer): InfoLineUnion | null {
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
 
   const originParts: string[] = [];
@@ -1117,7 +1124,7 @@ export function analyzeReferenceNumberInfo(expr: Info_line, analyzer: SemanticAn
  *
  * Just concatenates all tokens into a string
  */
-export function analyzeRhythmInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+export function analyzeRhythmInfo(expr: Info_line, _analyzer: SemanticAnalyzer): InfoLineUnion | null {
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
 
   const rhythmParts: string[] = [];
@@ -1143,7 +1150,7 @@ export function analyzeRhythmInfo(expr: Info_line, analyzer: SemanticAnalyzer): 
  *
  * Just concatenates all tokens into a string
  */
-export function analyzeBookInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+export function analyzeBookInfo(expr: Info_line, _analyzer: SemanticAnalyzer): InfoLineUnion | null {
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
 
   const bookParts: string[] = [];
@@ -1169,7 +1176,7 @@ export function analyzeBookInfo(expr: Info_line, analyzer: SemanticAnalyzer): In
  *
  * Just concatenates all tokens into a string
  */
-export function analyzeSourceInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+export function analyzeSourceInfo(expr: Info_line, _analyzer: SemanticAnalyzer): InfoLineUnion | null {
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
 
   const sourceParts: string[] = [];
@@ -1195,7 +1202,7 @@ export function analyzeSourceInfo(expr: Info_line, analyzer: SemanticAnalyzer): 
  *
  * Just concatenates all tokens into a string
  */
-export function analyzeDiscographyInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+export function analyzeDiscographyInfo(expr: Info_line, _analyzer: SemanticAnalyzer): InfoLineUnion | null {
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
 
   const discographyParts: string[] = [];
@@ -1221,7 +1228,7 @@ export function analyzeDiscographyInfo(expr: Info_line, analyzer: SemanticAnalyz
  *
  * Just concatenates all tokens into a string
  */
-export function analyzeNotesInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+export function analyzeNotesInfo(expr: Info_line, _analyzer: SemanticAnalyzer): InfoLineUnion | null {
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
 
   const notesParts: string[] = [];
@@ -1247,7 +1254,7 @@ export function analyzeNotesInfo(expr: Info_line, analyzer: SemanticAnalyzer): I
  *
  * Just concatenates all tokens into a string
  */
-export function analyzeTranscriptionInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+export function analyzeTranscriptionInfo(expr: Info_line, _analyzer: SemanticAnalyzer): InfoLineUnion | null {
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
 
   const transcriptionParts: string[] = [];
@@ -1273,7 +1280,7 @@ export function analyzeTranscriptionInfo(expr: Info_line, analyzer: SemanticAnal
  *
  * Just concatenates all tokens into a string
  */
-export function analyzeHistoryInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+export function analyzeHistoryInfo(expr: Info_line, _analyzer: SemanticAnalyzer): InfoLineUnion | null {
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
 
   const historyParts: string[] = [];
@@ -1299,7 +1306,7 @@ export function analyzeHistoryInfo(expr: Info_line, analyzer: SemanticAnalyzer):
  *
  * Just concatenates all tokens into a string
  */
-export function analyzeAuthorInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+export function analyzeAuthorInfo(expr: Info_line, _analyzer: SemanticAnalyzer): InfoLineUnion | null {
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
 
   const authorParts: string[] = [];
@@ -1324,7 +1331,7 @@ export function analyzeAuthorInfo(expr: Info_line, analyzer: SemanticAnalyzer): 
  *
  * Just concatenates all tokens into a string.
  */
-export function analyzePartsInfo(expr: Info_line, analyzer: SemanticAnalyzer): InfoLineUnion | null {
+export function analyzePartsInfo(expr: Info_line, _analyzer: SemanticAnalyzer): InfoLineUnion | null {
   const values = expr.value2 && expr.value2.length > 0 ? expr.value2 : expr.value;
 
   const partsParts: string[] = [];

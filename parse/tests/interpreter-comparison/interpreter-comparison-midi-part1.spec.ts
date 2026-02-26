@@ -27,7 +27,6 @@ C D E F|G A B c|`;
       expect(abcjsResult.length).to.be.greaterThan(0);
 
       const abcjsTune = abcjsResult[0];
-      const ourTune = ourResult.tunes[0];
 
       // Because MIDI commands are stored in tune.formatting.midi,
       // we verify that both parsers store the command correctly

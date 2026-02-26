@@ -1,9 +1,9 @@
 import chai from "chai";
 import { ABCContext } from "../parsers/Context";
-import { Scanner, Token, TT } from "../parsers/scan2";
 import { ParseCtx, parseTune } from "../parsers/parse2";
-import { cloneExpr, cloneLine, cloneToken } from "../Visitors/CloneVisitor";
+import { Scanner, Token, TT } from "../parsers/scan2";
 import { Note, Pitch, Rhythm, Chord, Beam, BarLine, tune_body_code } from "../types/Expr2";
+import { cloneExpr, cloneLine, cloneToken } from "../Visitors/CloneVisitor";
 
 const expect = chai.expect;
 

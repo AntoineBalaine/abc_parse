@@ -1,4 +1,4 @@
-import { advance, Ctx, isAtEnd, TT, WS, collectInvalidInfoLn, EOL } from "../scan2";
+import { advance, Ctx, isAtEnd, TT, WS, collectInvalidInfoLn } from "../scan2";
 import { pEOL, pSectionBrk, pInfoLine } from "../scan_tunebody";
 import { infoHeader } from "./infoLnHelper";
 

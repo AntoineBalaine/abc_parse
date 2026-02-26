@@ -477,8 +477,6 @@ describe("processBar function", () => {
         return false;
       }
 
-      const duration2 = calculateDuration(regularNote, context);
-
       // Verify the time map
       if (result.map.size !== 2) {
         logDebugInfo(`Expected time map size 2, got ${result.map.size}`, bar, [], result.map);

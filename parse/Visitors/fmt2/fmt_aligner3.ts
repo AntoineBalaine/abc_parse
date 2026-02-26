@@ -128,7 +128,7 @@ class GCtx {
   toString(): string {
     let result = "Alignment Points:\n";
 
-    this.list.forEach((item, idx) => {
+    this.list.forEach((item, _idx) => {
       const [key, locations] = item;
 
       if (typeof key === "number") {
@@ -358,22 +358,10 @@ export function aligner(gCtx: GCtx, voiceSplits: Array<VoiceSplit>, stringifyVis
 }
 
 function scanSymbolLinePts(gCtx: GCtx, symCtx: SymbolLnCtx) {
-  const parentAlignPts = gCtx.list
-    .map((aPt): AlignPt | null => {
-      if (typeof aPt[0] === "number") {
-        return aPt;
-      }
-      const newLocs = aPt[1].filter((loc) => loc.voiceIdx === symCtx.parentVxIdx);
-      if (newLocs.length === 0) return null;
-      return [aPt[0], newLocs];
-    })
-    .filter((n): n is AlignPt => n != null);
-
   const first = peek(symCtx);
   if (!(isToken(first) && first.type === TT.SY_HDR)) return false;
   advance(symCtx);
   while (!isAtEnd(symCtx)) {
-    const cur = peek(symCtx);
     if (barlinePts(gCtx, symCtx)) continue;
     if (symbolLnTimeEvent(gCtx, symCtx)) continue;
     advance(symCtx);

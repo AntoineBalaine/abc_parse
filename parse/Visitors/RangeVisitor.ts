@@ -153,7 +153,7 @@ export class RangeVisitor implements Visitor<Range> {
   }
 
   visitNoteExpr(expr: Note): Range {
-    const { pitch, rhythm, tie } = expr;
+    const { pitch, rhythm } = expr;
     // TODO accomodate tie
     return [pitch, rhythm]
       .filter((e): e is Pitch | Rest | Rhythm => !!e)

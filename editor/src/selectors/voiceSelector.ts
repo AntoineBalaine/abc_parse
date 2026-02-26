@@ -1,7 +1,7 @@
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { Selection } from "../selection";
-import { findByTag } from "./treeWalk";
 import { collectCursorIds, expandScopeToDescendants, isInScope } from "./scopeUtils";
+import { findByTag } from "./treeWalk";
 
 /**
  * Parses a voice ID input string into an array of unique voice IDs.

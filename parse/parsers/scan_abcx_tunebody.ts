@@ -6,6 +6,7 @@
  * multi-measure rests, and inline fields.
  */
 
+import { ABCContext } from "./Context";
 import { scanDirective } from "./infoLines/scanDirective";
 import {
   Ctx,
@@ -29,7 +30,6 @@ import {
   pSectionBrk,
   rest,
 } from "./scan_tunebody";
-import { ABCContext } from "./Context";
 
 /**
  * Chord symbol pattern for ABCx format

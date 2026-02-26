@@ -1,12 +1,10 @@
-import { expect } from "chai";
 import * as fc from "fast-check";
-import { ABCContext } from "../parsers/Context";
-import { Scanner, TT } from "../parsers/scan2";
-import { parse } from "../parsers/parse2";
-import { Tune, Tune_Body, Info_line, Inline_field } from "../types/Expr2";
-import { AbcFormatter } from "./Formatter2";
-import { VoiceMarkerStyleVisitor } from "./VoiceMarkerStyleVisitor";
 import { isInfo_line, isInline_field } from "../helpers";
+import { ABCContext } from "../parsers/Context";
+import { parse } from "../parsers/parse2";
+import { Scanner, TT } from "../parsers/scan2";
+import { Tune, Tune_Body } from "../types/Expr2";
+import { VoiceMarkerStyleVisitor } from "./VoiceMarkerStyleVisitor";
 
 /**
  * Helper to parse ABC input and extract the tune body.

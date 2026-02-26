@@ -1,9 +1,9 @@
-import { Selection } from "../selection";
-import { TAGS } from "../csTree/types";
 import { ABCContext, IRational } from "abc-parser";
-import { findNodesById } from "./types";
-import { findRhythmChild, replaceRhythm } from "./treeUtils";
+import { TAGS } from "../csTree/types";
+import { Selection } from "../selection";
 import { extractBrokenToken, rationalToRhythm } from "./rhythm";
+import { findRhythmChild, replaceRhythm } from "./treeUtils";
+import { findNodesById } from "./types";
 
 export function setRhythm(selection: Selection, rational: IRational, ctx: ABCContext): Selection {
   for (const cursor of selection.cursors) {

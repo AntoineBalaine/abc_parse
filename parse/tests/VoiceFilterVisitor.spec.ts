@@ -1,11 +1,11 @@
 import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Scanner } from "../parsers/scan2";
 import { parse } from "../parsers/parse2";
-import { filterVoiceInAst, filterVoicesInAbc, VoiceFilterState, FilterContext } from "../Visitors/VoiceFilterVisitor";
+import { Scanner } from "../parsers/scan2";
+import { File_structure } from "../types/Expr2";
 import { AbcFormatter } from "../Visitors/Formatter2";
-import { File_structure, Tune, Info_line, Directive } from "../types/Expr2";
+import { filterVoiceInAst, filterVoicesInAbc } from "../Visitors/VoiceFilterVisitor";
 
 describe("VoiceFilterVisitor", () => {
   let context: ABCContext;

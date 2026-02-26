@@ -1,3 +1,4 @@
+import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { isComment, isNote, isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
@@ -46,11 +47,10 @@ import {
   Voice_overlay,
   YSPACER,
 } from "../types/Expr2";
+import { CourtesyAccidentalsTransform } from "./CourtesyAccidentalsTransform";
 import { alignTune, discoverVoicesInTuneBody, getSnapshotsIfZeroLength } from "./fmt2/fmt_aligner";
 import { resolveRules } from "./fmt2/fmt_rules_assignment";
 import { VoiceMarkerStyleVisitor } from "./VoiceMarkerStyleVisitor";
-import { CourtesyAccidentalsTransform } from "./CourtesyAccidentalsTransform";
-import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 
 /**
  * Checks if a comment is "empty" (contains only % or % followed by whitespace).

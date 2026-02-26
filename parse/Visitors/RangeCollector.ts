@@ -132,7 +132,7 @@ export class ExpressionCollector implements Visitor<void> {
     }
   }
 
-  visitFileHeaderExpr(expr: File_header): void {
+  visitFileHeaderExpr(_expr: File_header): void {
     // File header is typically not in the range of interest
   }
 
@@ -232,7 +232,7 @@ export class ExpressionCollector implements Visitor<void> {
     }
   }
 
-  visitTuneHeaderExpr(expr: Tune_header): void {
+  visitTuneHeaderExpr(_expr: Tune_header): void {
     // Tune header is typically not in the range of interest
   }
 

@@ -1,9 +1,9 @@
-import { Selection } from "../selection";
-import { TAGS } from "../csTree/types";
 import { ABCContext, IRational, addRational } from "abc-parser";
-import { findNodesById } from "./types";
-import { findRhythmChild, replaceRhythm } from "./treeUtils";
+import { TAGS } from "../csTree/types";
+import { Selection } from "../selection";
 import { extractBrokenToken, rationalToRhythm, getNodeRhythm } from "./rhythm";
+import { findRhythmChild, replaceRhythm } from "./treeUtils";
+import { findNodesById } from "./types";
 
 export function addToRhythm(selection: Selection, rational: IRational, ctx: ABCContext): Selection {
   // Adding zero is a no-op

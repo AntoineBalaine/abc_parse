@@ -1,8 +1,8 @@
 import { expect } from "chai";
-import { parse } from "../parsers/parse2";
-import { Scanner } from "../parsers/scan2";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
+import { parse } from "../parsers/parse2";
+import { Scanner } from "../parsers/scan2";
 import { Tune, Info_line } from "../types/Expr2";
 
 /**
@@ -46,7 +46,7 @@ describe("Parser header/body boundary", function () {
   describe("V: followed by K: (correct behavior)", function () {
     it("V: should be in header when followed by K:", function () {
       const abc = "X:1\nT:Test\nV:0\nK:C\nCDEF|";
-      const { headerInfoLineKeys, bodyInfoLineKeys } = parseAbc(abc);
+      const { headerInfoLineKeys } = parseAbc(abc);
 
       expect(headerInfoLineKeys).to.include("V:");
       expect(headerInfoLineKeys).to.include("K:");

@@ -1,12 +1,12 @@
 import { expect } from "chai";
-import { Scanner } from "../parsers/scan2";
-import { parse } from "../parsers/parse2";
+import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
+import { ChordQuality } from "../music-theory/types";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
-import { ContextInterpreter } from "./ContextInterpreter";
-import { ChordQuality } from "../music-theory/types";
+import { parse } from "../parsers/parse2";
+import { Scanner } from "../parsers/scan2";
 import { KeyRoot } from "../types/abcjs-ast";
+import { ContextInterpreter } from "./ContextInterpreter";
 
 function parseAndInterpret(input: string) {
   const ctx = new ABCContext(new AbcErrorReporter());

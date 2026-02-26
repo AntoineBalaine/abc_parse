@@ -1,5 +1,5 @@
-import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { TT } from "abc-parser";
+import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { Selection } from "../selection";
 
 export interface DelimiterConfig {

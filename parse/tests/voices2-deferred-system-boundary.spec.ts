@@ -2,8 +2,7 @@ import chai from "chai";
 import { isToken, isVoiceMarker } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { parse } from "../parsers/parse2";
-import { Scanner } from "../parsers/scan2";
-import { TT } from "../parsers/scan2";
+import { Scanner, TT } from "../parsers/scan2";
 import { extractVoiceId } from "../parsers/voices2";
 import { Info_line, Inline_field, Tune, tune_body_code } from "../types/Expr2";
 
@@ -24,17 +23,6 @@ function parseAndGetSystems(abc: string): tune_body_code[][] {
     throw new Error("Failed to parse tune or tune has no body");
   }
   return tune.tune_body.sequence;
-}
-
-/**
- * Helper function to check if an element is a voice marker with a specific voice ID.
- */
-function isVoiceMarkerWithId(element: tune_body_code, voiceId: string): boolean {
-  if (!isVoiceMarker(element)) {
-    return false;
-  }
-  const id = extractVoiceId(element as Info_line | Inline_field);
-  return id === voiceId;
 }
 
 /**

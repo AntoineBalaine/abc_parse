@@ -1,14 +1,14 @@
-import { AbcFormatter, convertTuneToDeferred, File_structure, Tune } from "abc-parser";
 import { abc2midi, midi2abc } from "abc-midi";
 import type { ConversionOptions } from "abc-midi";
+import { AbcFormatter, convertTuneToDeferred, File_structure, Tune } from "abc-parser";
+import { Token } from "abc-parser";
 import { ResponseError } from "vscode-languageserver";
 import { HandlerResult, Position, Range, SemanticTokens, SemanticTokensBuilder, TextDocuments, TextEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
-import { LspEventListener, mapTTtoStandardScope } from "./server_helpers";
-import { Token } from "abc-parser";
 import { PreviewManager } from "./PreviewManager";
+import { LspEventListener, mapTTtoStandardScope } from "./server_helpers";
 
 /** Common interface for ABC and ABCx documents */
 type DocumentType = AbcDocument | AbcxDocument;

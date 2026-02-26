@@ -1,6 +1,6 @@
+import { encode, getSnapshotAtPosition, DocumentSnapshots, ContextSnapshot } from "abc-parser/interpreter/ContextInterpreter";
 import { CSNode } from "../csTree/types";
 import { firstTokenData } from "../selectors/treeWalk";
-import { encode, getSnapshotAtPosition, DocumentSnapshots, ContextSnapshot } from "abc-parser/interpreter/ContextInterpreter";
 
 /**
  * Gets the context snapshot for a CSNode.

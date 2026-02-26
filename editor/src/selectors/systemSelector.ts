@@ -9,8 +9,8 @@
 
 import { CSNode, TAGS } from "../csTree/types";
 import { Selection, Cursor } from "../selection";
-import { findByTag } from "./treeWalk";
 import { collectCursorIds, hasDescendantInScope, collectDescendantIds, expandScopeToDescendants } from "./scopeUtils";
+import { findByTag } from "./treeWalk";
 
 /**
  * Finds preceding Info_line nodes for a System node.

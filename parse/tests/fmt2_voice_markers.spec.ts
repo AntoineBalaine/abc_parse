@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { parse } from "../parsers/parse2";
 import { Scanner } from "../parsers/scan2";
-import { File_structure, Tune } from "../types/Expr2";
+import { File_structure } from "../types/Expr2";
 import { AbcFormatter } from "../Visitors/Formatter2";
 
 function parseFile(input: string, ctx: ABCContext): File_structure {

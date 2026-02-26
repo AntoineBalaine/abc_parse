@@ -1,11 +1,10 @@
-import { expect } from "chai";
 import * as fc from "fast-check";
+import { isInfo_line, isInline_field } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { parse } from "../parsers/parse2";
 import { Scanner, TT } from "../parsers/scan2";
 import { File_structure, Tune, VoiceMarkerStyle } from "../types/Expr2";
 import { AbcFormatter } from "../Visitors/Formatter2";
-import { isInfo_line, isInline_field } from "../helpers";
 
 function parseFile(input: string, ctx: ABCContext): File_structure {
   const tokens = Scanner(input, ctx);

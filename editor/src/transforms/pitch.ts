@@ -1,9 +1,9 @@
-import { Selection } from "../selection";
-import { CSNode, TAGS } from "../csTree/types";
-import { findNodesById } from "./types";
-import { findChildByTag } from "./treeUtils";
-import { toAst } from "../csTree/toAst";
 import { Pitch as PitchExpr, toMidiPitch } from "abc-parser";
+import { toAst } from "../csTree/toAst";
+import { CSNode, TAGS } from "../csTree/types";
+import { Selection } from "../selection";
+import { findChildByTag } from "./treeUtils";
+import { findNodesById } from "./types";
 
 export function pitch(selection: Selection): number[] {
   const results: number[] = [];

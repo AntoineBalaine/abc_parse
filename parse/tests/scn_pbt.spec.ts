@@ -1,7 +1,7 @@
 import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { Ctx, Scanner, Token, TT } from "../parsers/scan2";
-import { pDuration, pitch, pPitch, scanTune } from "../parsers/scan_tunebody";
+import { pitch, pPitch, scanTune } from "../parsers/scan_tunebody";
 import {
   genInfoLine2,
   genTokenSequence,
@@ -170,8 +170,6 @@ describe("Scanner Property Tests", () => {
 });
 
 describe("gen scan from regex", () => {
-  const genNote = fc.stringMatching(new RegExp(`^${pPitch.source}(${pDuration.source})?`));
-  const genRhythm = fc.stringMatching(new RegExp(`^${pDuration.source}$`));
   it("PBT - pitch", () => {
     const genPitch = fc.stringMatching(new RegExp(`^${pPitch.source}$`));
     fc.assert(

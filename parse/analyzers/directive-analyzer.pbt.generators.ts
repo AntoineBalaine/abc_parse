@@ -785,10 +785,16 @@ export const genDecorationName = fc.oneof(
 );
 
 export const genDecorationDefinition = fc
-  .array(fc.oneof(fc.constantFrom("abc", "def", "xyz", "123", "456", "postscript", "code"), fc.integer({ min: 0, max: 100 }).map((n) => n.toString())), {
-    minLength: 0,
-    maxLength: 10,
-  })
+  .array(
+    fc.oneof(
+      fc.constantFrom("abc", "def", "xyz", "123", "456", "postscript", "code"),
+      fc.integer({ min: 0, max: 100 }).map((n) => n.toString())
+    ),
+    {
+      minLength: 0,
+      maxLength: 10,
+    }
+  )
   .map((parts) => (parts.length > 0 ? parts.join(" ") : undefined));
 
 export const genDecoDirective = fc

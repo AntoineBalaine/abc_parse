@@ -1,8 +1,8 @@
+import { AbcFormatter } from "abc-parser";
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { AbcDocument } from "./AbcDocument";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { AbcFormatter } from "abc-parser";
+import { AbcDocument } from "./AbcDocument";
 
 function createTextDocument(uri: string, content: string): TextDocument {
   return TextDocument.create(uri, "abc", 0, content);

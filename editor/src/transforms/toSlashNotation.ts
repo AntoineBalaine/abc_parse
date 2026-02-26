@@ -11,18 +11,18 @@
  * separately, and broken rhythm does not persist across barlines.
  */
 
-import { CSNode, TAGS, isTokenNode, getTokenData, isBarLine } from "../csTree/types";
-import { firstTokenData } from "../selectors/treeWalk";
-import { Selection } from "../selection";
-import { fromAst } from "../csTree/fromAst";
-import { remove, insertBefore, insertAfter, appendChild } from "cstree";
 import { DocumentSnapshots, ContextSnapshot, getRangeSnapshots, encode } from "abc-parser/interpreter/ContextInterpreter";
-import { Range } from "abc-parser/types/types";
 import { ABCContext } from "abc-parser/parsers/Context";
 import { Token, TT } from "abc-parser/parsers/scan2";
-import { Note, Pitch, Rhythm, Inline_field } from "abc-parser/types/Expr2";
 import { ClefProperties, ClefType } from "abc-parser/types/abcjs-ast";
+import { Note, Pitch, Rhythm, Inline_field } from "abc-parser/types/Expr2";
+import { Range } from "abc-parser/types/types";
 import { IRational, createRational, addRational, multiplyRational, divideRational, greaterRational } from "abc-parser/Visitors/fmt2/rational";
+import { remove, insertBefore, insertAfter } from "cstree";
+import { fromAst } from "../csTree/fromAst";
+import { CSNode, TAGS, isTokenNode, getTokenData, isBarLine } from "../csTree/types";
+import { Selection } from "../selection";
+import { firstTokenData } from "../selectors/treeWalk";
 
 // ============================================================================
 // Types

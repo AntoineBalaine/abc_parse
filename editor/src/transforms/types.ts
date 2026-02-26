@@ -1,6 +1,6 @@
-import { Selection } from "../selection";
-import { CSNode } from "../csTree/types";
 import { IRational } from "abc-parser";
+import { CSNode } from "../csTree/types";
+import { Selection } from "../selection";
 
 export type TransformFn = (selection: Selection, ...args: any[]) => Selection;
 

@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { scanChordSymbol } from "../music-theory/scanChordSymbol";
 import { parseChordSymbol } from "../music-theory/parseChordSymbol";
+import { scanChordSymbol } from "../music-theory/scanChordSymbol";
 import { ChordQuality } from "../music-theory/types";
 import { KeyRoot, KeyAccidental } from "../types/abcjs-ast";
 

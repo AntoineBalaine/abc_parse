@@ -1,9 +1,9 @@
-import { Selection } from "../selection";
-import { TAGS } from "../csTree/types";
 import { ABCContext, createRational, divideRational } from "abc-parser";
-import { findNodesById } from "./types";
-import { findRhythmChild, replaceRhythm } from "./treeUtils";
+import { TAGS } from "../csTree/types";
+import { Selection } from "../selection";
 import { extractBrokenToken, rhythmToRational, rationalToRhythm } from "./rhythm";
+import { findRhythmChild, replaceRhythm } from "./treeUtils";
+import { findNodesById } from "./types";
 
 /**
  * Divide the rhythm of selected notes/chords/rests by the given factor.

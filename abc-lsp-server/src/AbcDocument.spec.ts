@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
+import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
-import { TextDocument } from "vscode-languageserver-textdocument";
 
 function createTextDocument(uri: string, content: string): TextDocument {
   return TextDocument.create(uri, "abc", 0, content);

@@ -1,8 +1,6 @@
 import { expect } from "chai";
 import fc from "fast-check";
-import { KeyRoot, KeyAccidental } from "../types/abcjs-ast";
-import { ChordQuality, ParsedChord } from "../music-theory/types";
-import { Spelling, NATURAL_SEMITONES, LETTERS } from "../music-theory/constants";
+import { NATURAL_SEMITONES, LETTERS } from "../music-theory/constants";
 import {
   VoicedNote,
   ChordFunction,
@@ -18,7 +16,6 @@ import {
   getArrangements6,
   scoreVoiceLeading,
   scoreSpreadQuality,
-  placeArrangements,
   buildSpreadVoicing,
   // Phase 2: Chord Tone Validation
   isChordTone,
@@ -40,14 +37,15 @@ import {
   accidentalTypeToSemitones,
   semitonesToKeyAccidental,
   getKeyAccidentalFor,
-  MODE_TO_OFFSET,
   deriveDiatonicChord,
   // Parallel transform helpers
   voicedNoteOctave,
   shiftChordDiatonic,
   shiftChordChromatic,
 } from "../music-theory/harmonization";
+import { ChordQuality, ParsedChord } from "../music-theory/types";
 import { NoteSpellings } from "../music-theory/types";
+import { KeyRoot, KeyAccidental } from "../types/abcjs-ast";
 import { KeySignature, AccidentalType, Mode, NoteLetter } from "../types/abcjs-ast";
 
 function makeChord(
@@ -756,7 +754,7 @@ describe("harmonization", () => {
     describe("example-based tests", () => {
       it("returns GT2 for tension lead", () => {
         const lead = mockVoicedNote(9, 74);
-        const result = getArrangements4(lead, [], seventh, fifth, root);
+        const result = getArrangements4(lead, seventh, fifth);
 
         expect(result).to.not.be.null;
         expect(result![0][0].func).to.equal(7);
@@ -764,7 +762,7 @@ describe("harmonization", () => {
 
       it("returns fifth for guide tone lead", () => {
         const lead = mockVoicedNote(7, 71);
-        const result = getArrangements4(lead, [], null, fifth, root);
+        const result = getArrangements4(lead, null, fifth);
 
         expect(result).to.not.be.null;
         expect(result![0][0].func).to.equal(5);
@@ -772,7 +770,7 @@ describe("harmonization", () => {
 
       it("returns GT2 for root lead", () => {
         const lead = mockVoicedNote(8, 72);
-        const result = getArrangements4(lead, [], seventh, fifth, root);
+        const result = getArrangements4(lead, seventh, fifth);
 
         expect(result).to.not.be.null;
         expect(result![0][0].func).to.equal(7);
@@ -780,7 +778,7 @@ describe("harmonization", () => {
 
       it("returns null when GT2 is null and lead is tension", () => {
         const lead = mockVoicedNote(9, 74);
-        const result = getArrangements4(lead, [], null, fifth, root);
+        const result = getArrangements4(lead, null, fifth);
 
         expect(result).to.be.null;
       });
@@ -789,7 +787,7 @@ describe("harmonization", () => {
     describe("property-based tests", () => {
       it("returns arrays of length 1 for all arrangements", () => {
         const lead = mockVoicedNote(7, 71);
-        const result = getArrangements4(lead, [], null, fifth, root);
+        const result = getArrangements4(lead, null, fifth);
 
         expect(result).to.not.be.null;
         for (const arr of result!) {

@@ -1,9 +1,9 @@
 import { IRational, createRational, Rhythm, Token, TT, ABCContext } from "abc-parser";
-import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
-import { toAst } from "../csTree/toAst";
-import { fromAst } from "../csTree/fromAst";
-import { findRhythmChild } from "./treeUtils";
 import { appendChild, remove, findChild } from "cstree";
+import { fromAst } from "../csTree/fromAst";
+import { toAst } from "../csTree/toAst";
+import { CSNode, isTokenNode, getTokenData } from "../csTree/types";
+import { findRhythmChild } from "./treeUtils";
 
 export function extractBrokenToken(rhythmNode: CSNode): CSNode | null {
   const brokenNode = findChild(rhythmNode, (n) => isTokenNode(n) && getTokenData(n).tokenType === TT.RHY_BRKN);

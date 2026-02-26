@@ -20,8 +20,13 @@
  *   - mode: null → no filtering (pass through all)
  */
 
+import { analyzeDirective } from "../analyzers/directive-analyzer";
+import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { ABCContext } from "../parsers/Context";
+import { parse } from "../parsers/parse2";
 import { Token } from "../parsers/scan2";
+import { Scanner } from "../parsers/scan2";
+import { AbclsVoicesDirectiveData } from "../types/directive-specs";
 import {
   Directive,
   File_header,
@@ -35,9 +40,7 @@ import {
   Voice_overlay,
   System,
 } from "../types/Expr2";
-import { analyzeDirective } from "../analyzers/directive-analyzer";
-import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
-import { AbclsVoicesDirectiveData } from "../types/directive-specs";
+import { AbcFormatter } from "./Formatter2";
 
 /**
  * Filter state for a single scope (file or tune)
@@ -217,9 +220,7 @@ export class VoiceFilterVisitor {
 
   filter(ast: File_structure): File_structure {
     // Filter file header
-    const filteredFileHeader = ast.file_header
-      ? this.filterFileHeader(ast.file_header)
-      : null;
+    const filteredFileHeader = ast.file_header ? this.filterFileHeader(ast.file_header) : null;
 
     // Filter tunes
     const filteredContents: Array<Tune | Token> = [];
@@ -232,13 +233,7 @@ export class VoiceFilterVisitor {
       }
     }
 
-    return new File_structure(
-      this.context.generateId(),
-      filteredFileHeader,
-      filteredContents,
-      ast.linear,
-      structuredClone(ast.formatterConfig)
-    );
+    return new File_structure(this.context.generateId(), filteredFileHeader, filteredContents, ast.linear, structuredClone(ast.formatterConfig));
   }
 
   getFilterState(tuneIndex: number): VoiceFilterState {
@@ -252,7 +247,7 @@ export class VoiceFilterVisitor {
 
   filterFileHeader(header: File_header): File_header {
     // Remove %%abcls-voices directives from file header
-    const filteredContents = header.contents.filter(item => {
+    const filteredContents = header.contents.filter((item) => {
       if (item instanceof Directive && item.key.lexeme.toLowerCase() === "abcls-voices") {
         return false;
       }
@@ -269,9 +264,7 @@ export class VoiceFilterVisitor {
     const filteredHeader = this.filterTuneHeader(tune.tune_header, filterState);
 
     // Filter tune body
-    const filteredBody = tune.tune_body
-      ? this.filterTuneBody(tune.tune_body, filterState)
-      : undefined;
+    const filteredBody = tune.tune_body ? this.filterTuneBody(tune.tune_body, filterState) : undefined;
 
     return new Tune(this.context.generateId(), filteredHeader, filteredBody || null, tune.linear, { ...tune.formatterConfig });
   }
@@ -300,9 +293,7 @@ export class VoiceFilterVisitor {
     }
 
     // Update voices array to only include filtered voices
-    const filteredVoices = header.voices.filter(voiceId =>
-      voiceIsIncluded(voiceId, filterState)
-    );
+    const filteredVoices = header.voices.filter((voiceId) => voiceIsIncluded(voiceId, filterState));
 
     return new Tune_header(this.context.generateId(), filteredInfoLines, filteredVoices);
   }
@@ -335,9 +326,7 @@ export class VoiceFilterVisitor {
     }
 
     // Filter voices list to match filtered content
-    const filteredVoices = body.voices.filter(voiceId =>
-      voiceIsIncluded(voiceId, filterState)
-    );
+    const filteredVoices = body.voices.filter((voiceId) => voiceIsIncluded(voiceId, filterState));
 
     return new Tune_Body(this.context.generateId(), filteredSequence, filteredVoices);
   }
@@ -429,9 +418,6 @@ export function filterVoiceInAst(ast: File_structure, context: ABCContext): File
  */
 export function filterVoicesInAbc(abc: string, context: ABCContext): string {
   // Avoid circular dependency by using dynamic require
-  const { Scanner } = require("../parsers/scan2");
-  const { parse } = require("../parsers/parse2");
-  const { AbcFormatter } = require("./Formatter2");
 
   // Parse the ABC string
   const tokens = Scanner(abc, context);

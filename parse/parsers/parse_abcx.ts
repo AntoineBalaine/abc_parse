@@ -25,7 +25,6 @@ import {
 } from "../types/Expr2";
 import { ABCContext } from "./Context";
 import { parseDirective } from "./infoLines/parseDirective";
-import { Token, TT } from "./scan2";
 import {
   ParseCtx,
   prsComment,
@@ -37,6 +36,7 @@ import {
   isTuneStart,
   isTune,
 } from "./parse2";
+import { Token, TT } from "./scan2";
 
 /**
  * Main ABCx parser function

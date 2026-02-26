@@ -14,6 +14,7 @@ import {
   LinearVoiceCtx,
   buildLinearSystems,
 } from "../parsers/voices2";
+import { buildBarMapsFromLines, splitIntoLines } from "../parsers/voices2";
 import { Info_line, Inline_field, tune_body_code } from "../types/Expr2";
 
 const expect = chai.expect;
@@ -61,15 +62,7 @@ function createVoiceCtx(elements: tune_body_code[], voices: string[] = []) {
   return new VoiceCtx(elements, voices);
 }
 
-// Helper function to parse ABC notation into tokens
-function parseABC(abc: string): Token[] {
-  const ctx = new ABCContext();
-  return Scanner(abc, ctx);
-}
-
 // Import the internal functions for testing (we'll need to export them temporarily)
-import { buildBarMapsFromLines, splitIntoLines } from "../parsers/voices2";
-import { getAllVoices } from "../abcl";
 
 describe("voices2.ts", () => {
   describe("Helper functions - splitIntoLines", () => {

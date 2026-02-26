@@ -1,12 +1,12 @@
-import { Selection } from "../selection";
-import { CSNode, isRest, isBarLine, isTokenNode, getTokenData } from "../csTree/types";
 import { ABCContext, addRational, equalRational, TT } from "abc-parser";
-import { findNodesById } from "./types";
+import { remove } from "cstree";
+import { CSNode, isRest, isBarLine, isTokenNode, getTokenData } from "../csTree/types";
+import { Selection } from "../selection";
+import { isVoiceMarker } from "../selectors/voiceSelector";
+import { isPowerOfTwoRational, nextMeaningfulSibling } from "./consolidationUtils";
 import { getNodeRhythm, rationalToRhythm } from "./rhythm";
 import { replaceRhythm } from "./treeUtils";
-import { remove } from "cstree";
-import { isPowerOfTwoRational, nextMeaningfulSibling } from "./consolidationUtils";
-import { isVoiceMarker } from "../selectors/voiceSelector";
+import { findNodesById } from "./types";
 
 /**
  * Extracts the rest type ('z' or 'x') from a Rest node.

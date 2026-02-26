@@ -8,13 +8,13 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { discoverAbcFiles } from "./file-discovery";
-import { Scanner } from "../../../parsers/scan2";
-import { parse } from "../../../parsers/parse2";
 import { SemanticAnalyzer } from "../../../analyzers/semantic-analyzer";
 import { TuneInterpreter } from "../../../interpreter/TuneInterpreter";
 import { ABCContext } from "../../../parsers/Context";
 import { AbcErrorReporter } from "../../../parsers/ErrorReporter";
+import { parse } from "../../../parsers/parse2";
+import { Scanner } from "../../../parsers/scan2";
+import { discoverAbcFiles } from "./file-discovery";
 
 // ============================================================================
 // Test Configuration
@@ -96,7 +96,7 @@ describe("Pipeline Diagnostics - Interpreter", function () {
 
         // Run Interpreter (pass source text for correct char positions)
         const interpreter = new TuneInterpreter(analyzer, ctx, content);
-        const result = interpreter.interpretFile(ast);
+        interpreter.interpretFile(ast);
 
         // If we reach here without hanging, the interpreter worked
       } catch (error) {
@@ -166,7 +166,7 @@ describe("Pipeline Diagnostics - Interpreter", function () {
 
         // Run Interpreter (pass source text for correct char positions)
         const interpreter = new TuneInterpreter(analyzer, ctx, content);
-        const result = interpreter.interpretFile(ast);
+        interpreter.interpretFile(ast);
 
         // If we reach here without hanging, the interpreter worked
       } catch (error) {

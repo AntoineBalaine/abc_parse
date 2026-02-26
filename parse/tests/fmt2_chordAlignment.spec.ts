@@ -4,59 +4,16 @@ import { ABCContext } from "../parsers/Context";
 import { ParseCtx, parseTune } from "../parsers/parse2";
 import { Scanner } from "../parsers/scan2";
 import { System } from "../types/Expr2";
-import { alignBars } from "../Visitors/fmt2/fmt_aligner";
 import { resolveRules } from "../Visitors/fmt2/fmt_rules_assignment";
 import { mapTimePoints } from "../Visitors/fmt2/fmt_timeMap";
-import { findFmtblLines, VoiceSplit } from "../Visitors/fmt2/fmt_timeMapHelpers";
-import { AbcFormatter } from "../Visitors/Formatter2";
+import { findFmtblLines } from "../Visitors/fmt2/fmt_timeMapHelpers";
 
 describe("Chord Alignment Tests", () => {
-  let stringifyVisitor: AbcFormatter;
   let ctx: ABCContext;
 
   beforeEach(() => {
     ctx = new ABCContext();
-    stringifyVisitor = new AbcFormatter(ctx);
   });
-
-  function format(input: string): string {
-    const tokens = Scanner(input, ctx);
-    const parseCtx = new ParseCtx(tokens, ctx);
-    const ast = parseTune(parseCtx);
-    if (!ast) {
-      throw new Error("Failed to parse");
-    }
-
-    // 1. Rules resolution phase
-    const withRules = resolveRules(ast, ctx);
-
-    // 2. Process each system in the tune body
-    if (withRules.tune_body && withRules.tune_header.voices.length > 1) {
-      withRules.tune_body.sequence = withRules.tune_body.sequence.map((system) => {
-        // Split system into voices/noformat lines
-        let voiceSplits: Array<VoiceSplit> = findFmtblLines(system);
-
-        // Skip if no formattable content
-        if (!voiceSplits.some((split) => split.type === "formatted")) {
-          return system;
-        }
-
-        // Get bar-based alignment points
-        const barTimeMaps = mapTimePoints(voiceSplits);
-
-        // Process each bar
-        for (const barTimeMap of barTimeMaps) {
-          voiceSplits = alignBars(voiceSplits, barTimeMap, stringifyVisitor, ctx);
-        }
-
-        // Reconstruct system from aligned voices
-        return voiceSplits.flatMap((split) => split.content);
-      });
-    }
-
-    // 3. Print using visitor
-    return stringifyVisitor.stringify(withRules);
-  }
 
   function parseSystem(input: string): System {
     const tokens = Scanner(input, ctx);
@@ -93,7 +50,6 @@ X:1
       expect(barTimeMaps.length).to.be.greaterThan(0, "Should have bar time maps");
 
       const firstBar = barTimeMaps[0];
-      const timePoints = Array.from(firstBar.map.keys()).sort();
 
       // We should have at least one time point for the chord
       expect(firstBar.map.size).to.be.greaterThan(0, "Should have time points for chords");

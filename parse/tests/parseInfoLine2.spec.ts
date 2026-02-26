@@ -6,6 +6,7 @@ import { parseInfoLine2 } from "../parsers/infoLines/parseInfoLine2";
 import { ParseCtx, prsInfoLine } from "../parsers/parse2";
 import { Token, TT } from "../parsers/scan2";
 import { KV, Binary, Unary, Grouping, Info_line, AbsolutePitch, Pitch } from "../types/Expr2";
+import { AbcFormatter } from "../Visitors/Formatter2";
 import {
   genKVExpr,
   genBinaryExpr,
@@ -408,12 +409,7 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
               // For debugging: check what we actually got
               expect(expr).to.satisfy(
                 (e: any) =>
-                  e instanceof KV ||
-                  e instanceof Binary ||
-                  e instanceof Grouping ||
-                  e instanceof Token ||
-                  e instanceof AbsolutePitch ||
-                  e instanceof Pitch // Allow tokens for now
+                  e instanceof KV || e instanceof Binary || e instanceof Grouping || e instanceof Token || e instanceof AbsolutePitch || e instanceof Pitch // Allow tokens for now
               );
             });
           }
@@ -696,7 +692,6 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
       expect((clefKv.value as Token).lexeme).to.equal("bass");
 
       // Test formatting - verify INVALID token is included with proper spacing
-      const { AbcFormatter } = require("../Visitors/Formatter2");
       const formatter = new AbcFormatter(context);
       const formattedOutput = formatter.visitInfoLineExpr(result!);
 

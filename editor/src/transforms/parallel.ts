@@ -1,15 +1,4 @@
-import { Selection } from "../selection";
-import { CSNode, TAGS } from "../csTree/types";
 import { ABCContext, Pitch, Rhythm, Token, Note } from "abc-parser";
-import { AccidentalType } from "abc-parser/types/abcjs-ast";
-import { DocumentSnapshots, ContextSnapshot, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
-import { ChordPosition } from "abc-parser/interpreter/ChordPositionCollector";
-import { toAst } from "../csTree/toAst";
-import { fromAst } from "../csTree/fromAst";
-import { findNodesById } from "./types";
-import { findChildByTag, findTieChild, getNodeLineAndChar } from "./treeUtils";
-import { replace, getParent } from "cstree";
-import { pitchToDiatonic, toChordAst, HarmonizeSnapshot } from "./harmonize";
 import {
   accidentalTypeToSemitones,
   findPreviousChordInVoice,
@@ -22,7 +11,18 @@ import {
   mergeAccidentals,
   semitonesToAccidentalType,
 } from "abc-parser";
+import { ChordPosition } from "abc-parser/interpreter/ChordPositionCollector";
+import { DocumentSnapshots, ContextSnapshot, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
+import { AccidentalType } from "abc-parser/types/abcjs-ast";
 import { cloneExpr, cloneToken } from "abc-parser/Visitors/CloneVisitor";
+import { replace, getParent } from "cstree";
+import { fromAst } from "../csTree/fromAst";
+import { toAst } from "../csTree/toAst";
+import { CSNode, TAGS } from "../csTree/types";
+import { Selection } from "../selection";
+import { pitchToDiatonic, toChordAst, HarmonizeSnapshot } from "./harmonize";
+import { findChildByTag, findTieChild, getNodeLineAndChar } from "./treeUtils";
+import { findNodesById } from "./types";
 
 export type ParallelDirection = "prev" | "next";
 export type ParallelMode = "diatonic" | "chromatic";

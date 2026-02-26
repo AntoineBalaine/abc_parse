@@ -1,8 +1,8 @@
-import { scanChordSymbol } from "./scanChordSymbol";
-import { parseChordSymbol } from "./parseChordSymbol";
 import { chordToPitches } from "./chordPitches";
-import { ParsedChord } from "./types";
 import { VoicedNote } from "./harmonization";
+import { parseChordSymbol } from "./parseChordSymbol";
+import { scanChordSymbol } from "./scanChordSymbol";
+import { ParsedChord } from "./types";
 
 export interface ChordInfo {
   parsed: ParsedChord;

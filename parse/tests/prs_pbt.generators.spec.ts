@@ -1,6 +1,7 @@
 import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
+import { parseExpression } from "../parsers/infoLines/parseInfoLine2";
 import { ParseCtx } from "../parsers/parse2";
 import { Token, TT } from "../parsers/scan2";
 import {
@@ -26,7 +27,6 @@ import {
   Tuplet,
   YSPACER,
 } from "../types/Expr2";
-import { parseExpression } from "../parsers/infoLines/parseInfoLine2";
 import * as ScannerGen from "./scn_pbt.generators.spec";
 
 // Create a shared context for all generators
@@ -301,7 +301,6 @@ export const genInlineFieldExpr = ScannerGen.genInlineField.map((tokens) => {
   const field = tokens.find((t) => t.type === TT.INF_HDR)!;
 
   // Find bracket positions
-  const leftBracketIdx = tokens.findIndex((t) => t.type === TT.INLN_FLD_LFT_BRKT);
   const rightBracketIdx = tokens.findIndex((t) => t.type === TT.INLN_FLD_RGT_BRKT);
   const fieldIdx = tokens.findIndex((t) => t.type === TT.INF_HDR);
 
@@ -466,7 +465,7 @@ export const genMacroScenario = genMacroDeclExpr.chain(macro_decl => {
 // Parser expression generators for tune header elements
 // Comment expression generator
 
-export const genCommentExpr = ScannerGen.genCommentToken.map(([comment, eol]) => {
+export const genCommentExpr = ScannerGen.genCommentToken.map(([comment, _eol]) => {
   return new Comment(sharedContext.generateId(), comment);
 });
 

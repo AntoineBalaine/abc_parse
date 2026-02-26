@@ -8,11 +8,11 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { discoverAbcFiles } from "./file-discovery";
-import { Scanner } from "../../../parsers/scan2";
-import { parse } from "../../../parsers/parse2";
 import { ABCContext } from "../../../parsers/Context";
 import { AbcErrorReporter } from "../../../parsers/ErrorReporter";
+import { parse } from "../../../parsers/parse2";
+import { Scanner } from "../../../parsers/scan2";
+import { discoverAbcFiles } from "./file-discovery";
 
 // ============================================================================
 // Test Configuration
@@ -86,7 +86,7 @@ describe("Pipeline Diagnostics - Parser", function () {
         const tokens = Scanner(content, ctx);
 
         // Run Parser
-        const ast = parse(tokens, ctx);
+        parse(tokens, ctx);
 
         // If we reach here without hanging, the parser worked
       } catch (error) {
@@ -148,7 +148,7 @@ describe("Pipeline Diagnostics - Parser", function () {
         const tokens = Scanner(content, ctx);
 
         // Run Parser
-        const ast = parse(tokens, ctx);
+        parse(tokens, ctx);
 
         // If we reach here without hanging, the parser worked
       } catch (error) {

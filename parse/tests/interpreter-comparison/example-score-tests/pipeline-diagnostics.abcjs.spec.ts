@@ -8,8 +8,8 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { discoverAbcFiles } from "./file-discovery";
 import { parseWithAbcjs } from "../abcjs-wrapper";
+import { discoverAbcFiles } from "./file-discovery";
 
 // ============================================================================
 // Test Configuration
@@ -79,7 +79,7 @@ describe("Pipeline Diagnostics - abcjs Parser", function () {
         }
 
         // Parse with abcjs
-        const tunes = parseWithAbcjs(content);
+        parseWithAbcjs(content);
 
         // If we reach here without hanging, abcjs worked
       } catch (error) {

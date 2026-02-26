@@ -17,11 +17,9 @@ describe("Directive Analyzer - Header/Footer", () => {
 
   describe("%%header directive", () => {
     it("should parse single section (center only)", () => {
-      const directive = new Directive(
-        context.generateId(),
-        new Token(TT.IDENTIFIER, "header", context.generateId()),
-        [new Token(TT.FREE_TXT, "Center Text", context.generateId())]
-      );
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "header", context.generateId()), [
+        new Token(TT.FREE_TXT, "Center Text", context.generateId()),
+      ]);
 
       const result = analyzer.visitDirectiveExpr(directive);
 
@@ -35,11 +33,9 @@ describe("Directive Analyzer - Header/Footer", () => {
     });
 
     it("should parse two sections (left and center)", () => {
-      const directive = new Directive(
-        context.generateId(),
-        new Token(TT.IDENTIFIER, "header", context.generateId()),
-        [new Token(TT.FREE_TXT, "Left\tCenter", context.generateId())]
-      );
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "header", context.generateId()), [
+        new Token(TT.FREE_TXT, "Left\tCenter", context.generateId()),
+      ]);
 
       const result = analyzer.visitDirectiveExpr(directive);
 
@@ -52,11 +48,9 @@ describe("Directive Analyzer - Header/Footer", () => {
     });
 
     it("should parse three sections (left, center, right)", () => {
-      const directive = new Directive(
-        context.generateId(),
-        new Token(TT.IDENTIFIER, "header", context.generateId()),
-        [new Token(TT.FREE_TXT, "Left\tCenter\tRight", context.generateId())]
-      );
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "header", context.generateId()), [
+        new Token(TT.FREE_TXT, "Left\tCenter\tRight", context.generateId()),
+      ]);
 
       const result = analyzer.visitDirectiveExpr(directive);
 
@@ -69,11 +63,9 @@ describe("Directive Analyzer - Header/Footer", () => {
     });
 
     it("should handle quoted text with double quotes", () => {
-      const directive = new Directive(
-        context.generateId(),
-        new Token(TT.IDENTIFIER, "header", context.generateId()),
-        [new Token(TT.FREE_TXT, '"Left\tCenter"', context.generateId())]
-      );
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "header", context.generateId()), [
+        new Token(TT.FREE_TXT, '"Left\tCenter"', context.generateId()),
+      ]);
 
       const result = analyzer.visitDirectiveExpr(directive);
 
@@ -86,11 +78,9 @@ describe("Directive Analyzer - Header/Footer", () => {
     });
 
     it("should handle quoted text with single quotes", () => {
-      const directive = new Directive(
-        context.generateId(),
-        new Token(TT.IDENTIFIER, "header", context.generateId()),
-        [new Token(TT.FREE_TXT, "'Left\tCenter'", context.generateId())]
-      );
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "header", context.generateId()), [
+        new Token(TT.FREE_TXT, "'Left\tCenter'", context.generateId()),
+      ]);
 
       const result = analyzer.visitDirectiveExpr(directive);
 
@@ -103,11 +93,9 @@ describe("Directive Analyzer - Header/Footer", () => {
     });
 
     it("should warn about extra tabs (more than 3 sections)", () => {
-      const directive = new Directive(
-        context.generateId(),
-        new Token(TT.IDENTIFIER, "header", context.generateId()),
-        [new Token(TT.FREE_TXT, "A\tB\tC\tD", context.generateId())]
-      );
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "header", context.generateId()), [
+        new Token(TT.FREE_TXT, "A\tB\tC\tD", context.generateId()),
+      ]);
 
       const result = analyzer.visitDirectiveExpr(directive);
 
@@ -121,11 +109,9 @@ describe("Directive Analyzer - Header/Footer", () => {
     });
 
     it("should handle empty text", () => {
-      const directive = new Directive(
-        context.generateId(),
-        new Token(TT.IDENTIFIER, "header", context.generateId()),
-        [new Token(TT.FREE_TXT, "", context.generateId())]
-      );
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "header", context.generateId()), [
+        new Token(TT.FREE_TXT, "", context.generateId()),
+      ]);
 
       const result = analyzer.visitDirectiveExpr(directive);
 
@@ -138,11 +124,9 @@ describe("Directive Analyzer - Header/Footer", () => {
     });
 
     it("should handle field codes like $P, $N, $T", () => {
-      const directive = new Directive(
-        context.generateId(),
-        new Token(TT.IDENTIFIER, "header", context.generateId()),
-        [new Token(TT.FREE_TXT, "$T\tPage $P\t$C", context.generateId())]
-      );
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "header", context.generateId()), [
+        new Token(TT.FREE_TXT, "$T\tPage $P\t$C", context.generateId()),
+      ]);
 
       const result = analyzer.visitDirectiveExpr(directive);
 
@@ -155,11 +139,9 @@ describe("Directive Analyzer - Header/Footer", () => {
     });
 
     it("should handle empty sections with double tabs", () => {
-      const directive = new Directive(
-        context.generateId(),
-        new Token(TT.IDENTIFIER, "header", context.generateId()),
-        [new Token(TT.FREE_TXT, "$T\t\tPage $P", context.generateId())]
-      );
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "header", context.generateId()), [
+        new Token(TT.FREE_TXT, "$T\t\tPage $P", context.generateId()),
+      ]);
 
       const result = analyzer.visitDirectiveExpr(directive);
 
@@ -183,11 +165,9 @@ describe("Directive Analyzer - Header/Footer", () => {
 
   describe("%%footer directive", () => {
     it("should parse footer identically to header", () => {
-      const directive = new Directive(
-        context.generateId(),
-        new Token(TT.IDENTIFIER, "footer", context.generateId()),
-        [new Token(TT.FREE_TXT, "Page $P\t$T\t$N", context.generateId())]
-      );
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "footer", context.generateId()), [
+        new Token(TT.FREE_TXT, "Page $P\t$T\t$N", context.generateId()),
+      ]);
 
       const result = analyzer.visitDirectiveExpr(directive);
 
@@ -201,11 +181,9 @@ describe("Directive Analyzer - Header/Footer", () => {
     });
 
     it("should parse single section footer", () => {
-      const directive = new Directive(
-        context.generateId(),
-        new Token(TT.IDENTIFIER, "footer", context.generateId()),
-        [new Token(TT.FREE_TXT, "Page $P of $N", context.generateId())]
-      );
+      const directive = new Directive(context.generateId(), new Token(TT.IDENTIFIER, "footer", context.generateId()), [
+        new Token(TT.FREE_TXT, "Page $P of $N", context.generateId()),
+      ]);
 
       const result = analyzer.visitDirectiveExpr(directive);
 

@@ -669,7 +669,7 @@ describe("scan2", () => {
     });
     it("should parse concatenated tokens in symbol lines", () => {
       const ctx = createCtx("s:t|*|");
-      const result = symbol_line(ctx);
+      symbol_line(ctx);
       assert.equal(ctx.tokens[1].type, TT.SY_TXT);
       assert.equal(ctx.tokens[2].type, TT.BARLINE);
       assert.equal(ctx.tokens[3].type, TT.SY_STAR);

@@ -1,6 +1,6 @@
-import { Selection, Cursor } from "../selection";
 import { remove as cstreeRemove } from "cstree";
 import { CSNode } from "../csTree/types";
+import { Selection, Cursor } from "../selection";
 
 export function remove(selection: Selection): Selection {
   for (const cursor of selection.cursors) {

@@ -3,28 +3,8 @@ import * as fc from "fast-check";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
 import { Ctx, TT, Token, user_symbol_decl, user_symbol_invocation } from "../parsers/scan2";
-import { genCommentToken, genEOL, genSymbol, genUserSymbolHeader, genUserSymbolScenario, genUserSymbolVariable } from "./scn_pbt.generators.spec";
+import { genUserSymbolScenario } from "./scn_pbt.generators.spec";
 import { createRoundTripPredicate } from "./scn_pbt.spec";
-
-// Generate a user symbol line that returns both tokens and the variable name
-const genUserSymbolLine = fc
-  .tuple(
-    genEOL,
-    genUserSymbolHeader,
-    genUserSymbolVariable,
-    genSymbol, // The symbol content (!trill!, +pizz+, etc.)
-    fc.option(genCommentToken.map(([comment]) => comment)),
-    genEOL
-  )
-  .map(([eol1, header, variable, symbol, comment, eol2]) => {
-    const eqlToken = new Token(TT.EQL, "=", 0);
-    const tokens = [eol1, header, variable, eqlToken, symbol];
-    if (comment) tokens.push(comment);
-    tokens.push(eol2);
-    return { tokens, variable: variable.lexeme };
-  });
-
-// genUserSymbolScenario is now imported from generators file
 
 /** starts by pushing an EOL token to simulate being at the start of a line */
 function createUserSymbolCtx(source: string): Ctx {

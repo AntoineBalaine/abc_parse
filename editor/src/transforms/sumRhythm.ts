@@ -1,8 +1,8 @@
-import { Selection } from "../selection";
-import { TAGS } from "../csTree/types";
 import { IRational, createRational, addRational } from "abc-parser";
-import { findNodesById } from "./types";
+import { TAGS } from "../csTree/types";
+import { Selection } from "../selection";
 import { getNodeRhythm } from "./rhythm";
+import { findNodesById } from "./types";
 
 export function sumRhythm(selection: Selection): IRational[] {
   const results: IRational[] = [];

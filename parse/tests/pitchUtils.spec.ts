@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import * as fc from "fast-check";
+import { NATURAL_SEMITONES } from "../music-theory/constants";
 import {
   PitchContext,
   resolveMelodyPitch,
@@ -14,18 +15,15 @@ import {
   spellPitch,
   chromaticSpelling,
   computeOctaveFromPitch,
-  KeyDirection,
   findDiatonicSpelling,
   getKeyDirection,
   getEnharmonicSpellings,
   chooseBestChromatic,
 } from "../music-theory/pitchUtils";
 import { NoteSpellings } from "../music-theory/types";
-import { mergeAccidentals } from "../music-theory/harmonization";
-import { NATURAL_SEMITONES } from "../music-theory/constants";
-import { Pitch } from "../types/Expr2";
 import { Token, TT } from "../parsers/scan2";
 import { KeySignature, AccidentalType, KeyRoot, KeyAccidental, Mode } from "../types/abcjs-ast";
+import { Pitch } from "../types/Expr2";
 
 // Helper to create a basic key signature
 function makeKey(root: KeyRoot, acc: KeyAccidental, mode: Mode, accidentals: Array<{ note: string; acc: AccidentalType }> = []): KeySignature {

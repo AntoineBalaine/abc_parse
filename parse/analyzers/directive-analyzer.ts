@@ -1,11 +1,11 @@
 import { isToken } from "../helpers";
 import { StaffNomenclature, VxNomenclature } from "../interpreter/InterpreterState";
 import { Token, TT } from "../parsers/scan2";
+import { BracketBracePosition } from "../types/abcjs-ast";
 import { DirectiveSemanticData, FontSpec, DRUM_SOUND_NAMES, DrumSoundName, AbclsVoicesDirectiveData } from "../types/directive-specs";
 import { Directive, Annotation, Measurement, Rational, KV, Pitch } from "../types/Expr2";
-import { SemanticAnalyzer } from "./semantic-analyzer";
-import { BracketBracePosition } from "../types/abcjs-ast";
 import { IRational } from "../Visitors/fmt2/rational";
+import { SemanticAnalyzer } from "./semantic-analyzer";
 
 /**
  * Analyzes directives and produces semantic data.
@@ -407,7 +407,7 @@ function parseFullFontDefinition(
     }
 
     switch (state) {
-      case "face":
+      case "face": {
         // Inner loop: consume ALL face name tokens at once
         let hyphenLast = false;
         while (idx < tokens.length) {
@@ -461,7 +461,7 @@ function parseFullFontDefinition(
           state = "modifier"; // Let finished state handle box? Or handle here?
         }
         break;
-
+      }
       case "size":
         // Consume size number
         if (token.type === TT.NUMBER) {
@@ -1177,7 +1177,7 @@ function parseStaffDirective(
         break;
 
       case TT.NUMBER:
-      case TT.IDENTIFIER:
+      case TT.IDENTIFIER: {
         // This is a voice ID (can be alphanumeric identifier or numeric)
         const voiceId = value.lexeme;
 
@@ -1204,7 +1204,7 @@ function parseStaffDirective(
           addContinueBar(ctx);
         }
         break;
-
+      }
       default:
         analyzer.report(`Unexpected token type ${TT[value.type]} in score/staves directive`, directive);
         break;
@@ -1645,7 +1645,7 @@ function parseMidi(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
     }
 
     // Extract note name from Pitch: alteration (if present) + noteLetter
-    const noteName = (pitchValue.alteration?.lexeme || '') + pitchValue.noteLetter.lexeme;
+    const noteName = (pitchValue.alteration?.lexeme || "") + pitchValue.noteLetter.lexeme;
     params.push(noteName);
 
     // Validate and parse MIDI number

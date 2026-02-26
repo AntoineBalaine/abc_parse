@@ -1,12 +1,12 @@
 import { expect } from "chai";
 import * as fc from "fast-check";
-import { Scanner } from "../parsers/scan2";
-import { parse } from "../parsers/parse2";
+import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
-import { ContextInterpreter, getSnapshotAtPosition, encode } from "./ContextInterpreter";
+import { parse } from "../parsers/parse2";
+import { Scanner } from "../parsers/scan2";
 import { AccidentalType } from "../types/abcjs-ast";
+import { ContextInterpreter, getSnapshotAtPosition, encode } from "./ContextInterpreter";
 
 function parseAndInterpret(input: string, snapshotAccidentals = true) {
   const ctx = new ABCContext(new AbcErrorReporter());

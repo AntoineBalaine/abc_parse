@@ -8,16 +8,14 @@
  * Rest duration calculation details are tested in rest_calculation.spec.ts.
  */
 
-import * as fc from "fast-check";
 import { expect } from "chai";
+import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
-import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
 import { parseAbcx } from "../parsers/parse_abcx";
-import { AbcxToAbcConverter, convertAbcxToAbc } from "../Visitors/AbcxToAbcConverter";
-import { AbcFormatter } from "../Visitors/Formatter2";
+import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
 import { Annotation, BarLine, ChordSymbol, Rest, Tune, File_structure, tune_body_code } from "../types/Expr2";
+import { AbcxToAbcConverter, convertAbcxToAbc } from "../Visitors/AbcxToAbcConverter";
 import {
-  sharedContext,
   genChordSymbolExpr,
   genAbcxMultiBarSequence,
 } from "./prs_abcx.generators.spec";

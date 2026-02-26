@@ -1,14 +1,14 @@
-import { Selection } from "../selection";
-import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { ABCContext, Pitch, Token, TT, resolveMelodyPitch, semitonesToAccidentalType, spellPitch, mergeAccidentals, computeOctaveFromPitch } from "abc-parser";
 import { DocumentSnapshots, ContextSnapshot, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
-import { toAst } from "../csTree/toAst";
-import { fromAst } from "../csTree/fromAst";
-import { findNodesById } from "./types";
-import { findChildByTag, getNodeLineAndChar } from "./treeUtils";
 import { replace } from "cstree";
+import { fromAst } from "../csTree/fromAst";
+import { toAst } from "../csTree/toAst";
+import { CSNode, TAGS } from "../csTree/types";
+import { Selection } from "../selection";
 import { insertSnapshotSorted } from "./parallel";
 import { spellingToPitch, convertMeasureAccidentalsToSemitones } from "./pitchHelpers";
+import { findChildByTag, getNodeLineAndChar } from "./treeUtils";
+import { findNodesById } from "./types";
 
 /**
  * Transposes selected notes by the specified number of semitones.

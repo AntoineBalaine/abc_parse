@@ -1,6 +1,6 @@
 import { ABCContext, File_structure, parse, RangeVisitor, Scanner, Token, SemanticAnalyzer } from "abc-parser";
-import { DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
 import { ChordPosition, ChordPositionCollector } from "abc-parser/interpreter/ChordPositionCollector";
+import { DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
 import { fromAst, interpretContext } from "editor";
 import { Diagnostic } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";

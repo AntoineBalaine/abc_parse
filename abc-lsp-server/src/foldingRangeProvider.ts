@@ -12,18 +12,16 @@
  * - Info field sequences (contiguous same-type fields)
  */
 
-import { FoldingRange, FoldingRangeKind } from "vscode-languageserver";
 import {
   File_structure,
   Tune,
   Info_line,
-  Comment,
-  Directive,
   Inline_field,
   RangeVisitor,
   Token,
   TT,
 } from "abc-parser";
+import { FoldingRange, FoldingRangeKind } from "vscode-languageserver";
 
 /**
  * Configuration for which fold types to generate.

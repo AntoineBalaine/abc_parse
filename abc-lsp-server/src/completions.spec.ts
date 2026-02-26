@@ -1,7 +1,7 @@
 import { expect } from "chai";
+import * as fc from "fast-check";
 import { describe, it } from "mocha";
 import { CompletionItemKind, InsertTextFormat } from "vscode-languageserver";
-import * as fc from "fast-check";
 import {
   getDirectiveCompletionContext,
   getDirectiveCompletions,

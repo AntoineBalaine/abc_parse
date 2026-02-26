@@ -13,20 +13,18 @@
  */
 
 import { isToken } from "../helpers";
+import { ABCContext } from "../parsers/Context";
+import { parseAbcx } from "../parsers/parse_abcx";
 import { Token, TT } from "../parsers/scan2";
+import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
 import {
   Annotation,
   BarLine,
   Binary,
   ChordSymbol,
-  Comment,
-  Directive,
-  Expr,
   File_header,
   File_structure,
   Info_line,
-  Inline_field,
-  MultiMeasureRest,
   Rest,
   Rhythm,
   Tune,
@@ -34,8 +32,8 @@ import {
   Tune_header,
   tune_body_code,
 } from "../types/Expr2";
-import { ABCContext } from "../parsers/Context";
 import { IRational, createRational } from "./fmt2/rational";
+import { AbcFormatter } from "./Formatter2";
 
 /**
  * Configuration for ABCx to ABC conversion
@@ -88,17 +86,9 @@ export class AbcxToAbcConverter {
     }
 
     // Convert file header if present
-    const convertedFileHeader = ast.file_header
-      ? this.convertFileHeader(ast.file_header)
-      : null;
+    const convertedFileHeader = ast.file_header ? this.convertFileHeader(ast.file_header) : null;
 
-    return new File_structure(
-      this.abcContext.generateId(),
-      convertedFileHeader,
-      convertedContents,
-      ast.linear,
-      ast.formatterConfig
-    );
+    return new File_structure(this.abcContext.generateId(), convertedFileHeader, convertedContents, ast.linear, ast.formatterConfig);
   }
 
   /**
@@ -136,7 +126,7 @@ export class AbcxToAbcConverter {
       return {
         letter: restLetter,
         numerator: Math.round(restNumerator) / divisor,
-        denominator: restDenominator / divisor
+        denominator: restDenominator / divisor,
       };
     }
   }
@@ -200,9 +190,7 @@ export class AbcxToAbcConverter {
     const convertedHeader = this.convertTuneHeader(tune.tune_header, hasMeter, hasNoteLength);
 
     // Convert body
-    const convertedBody = tune.tune_body
-      ? this.convertTuneBody(tune.tune_body)
-      : null;
+    const convertedBody = tune.tune_body ? this.convertTuneBody(tune.tune_body) : null;
 
     return new Tune(this.abcContext.generateId(), convertedHeader, convertedBody, tune.linear, tune.formatterConfig);
   }
@@ -210,7 +198,7 @@ export class AbcxToAbcConverter {
   /**
    * Converts tune header (passes through unchanged - M: and L: are implied if not present)
    */
-  convertTuneHeader(header: Tune_header, hasMeter: boolean, hasNoteLength: boolean): Tune_header {
+  convertTuneHeader(header: Tune_header, _hasMeter: boolean, _hasNoteLength: boolean): Tune_header {
     // Pass through header unchanged - do NOT add default M: or L: fields
     // They can be implied, and it's up to the composer to decide whether to include them
     return new Tune_header(this.abcContext.generateId(), [...header.info_lines], header.voices);
@@ -220,7 +208,7 @@ export class AbcxToAbcConverter {
    * Converts tune body, transforming ChordSymbols to Annotation + Rest
    */
   convertTuneBody(body: Tune_Body): Tune_Body {
-    const convertedSystems = body.sequence.map(system => this.convertSystem(system));
+    const convertedSystems = body.sequence.map((system) => this.convertSystem(system));
     return new Tune_Body(this.abcContext.generateId(), convertedSystems, body.voices);
   }
 
@@ -257,10 +245,7 @@ export class AbcxToAbcConverter {
         const { letter, numerator, denominator } = this.calculateRestLength(chordsInCurrentBar, isFullBar);
 
         // Create annotation node: "ChordName"
-        const annotationToken = this.createToken(
-          TT.ANNOTATION,
-          `"${elem.token.lexeme}"`
-        );
+        const annotationToken = this.createToken(TT.ANNOTATION, `"${elem.token.lexeme}"`);
         const annotation = new Annotation(this.abcContext.generateId(), annotationToken);
         result.push(annotation);
 
@@ -309,14 +294,7 @@ export class AbcxToAbcConverter {
 /**
  * Helper function to convert ABCx string to ABC AST
  */
-export function convertAbcxToAbcAst(
-  abcx: string,
-  ctx: ABCContext,
-  config?: AbcxConversionConfig
-): File_structure {
-  const { ScannerAbcx } = require("../parsers/scan_abcx_tunebody");
-  const { parseAbcx } = require("../parsers/parse_abcx");
-
+export function convertAbcxToAbcAst(abcx: string, ctx: ABCContext, config?: AbcxConversionConfig): File_structure {
   const tokens = ScannerAbcx(abcx, ctx);
   const ast = parseAbcx(tokens, ctx);
   const converter = new AbcxToAbcConverter(ctx, config);
@@ -328,13 +306,7 @@ export function convertAbcxToAbcAst(
  * Helper function to convert ABCx string to ABC string
  * (for backwards compatibility - uses Formatter2 for stringification)
  */
-export function convertAbcxToAbc(
-  abcx: string,
-  ctx: ABCContext,
-  config?: AbcxConversionConfig
-): string {
-  const { AbcFormatter } = require("./Formatter2");
-
+export function convertAbcxToAbc(abcx: string, ctx: ABCContext, config?: AbcxConversionConfig): string {
   const abcAst = convertAbcxToAbcAst(abcx, ctx, config);
   const formatter = new AbcFormatter(ctx);
   return formatter.stringify(abcAst);

@@ -1,11 +1,11 @@
 import { expect } from "chai";
-import { AccidentalType } from "../types/abcjs-ast";
 import {
   abcPitchToMidi,
   accidentalToCents,
   midiToNoteName,
   abcPitchToNoteName,
 } from "../playback/pitch-utils";
+import { AccidentalType } from "../types/abcjs-ast";
 
 describe("playback/pitch-utils", () => {
   describe("abcPitchToMidi", () => {

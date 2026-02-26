@@ -1,8 +1,8 @@
 import { KeyRoot, KeyAccidental, KeySignature, AccidentalType, Mode } from "../types/abcjs-ast";
-import { ChordQuality, ParsedChord, NoteSpellings } from "./types";
-import { accidentalTypeToSemitones, computeOctaveFromPitch, noteLetterToMidi, accidentalToSemitones, spellPitch } from "./pitchUtils";
-import { Spelling, LETTERS, NATURAL_SEMITONES, SHARP_ORDER, FLAT_ORDER, MAJOR_KEY_SHARPS, MODE_FIFTH_OFFSET } from "./constants";
 import { Chord, Note } from "../types/Expr2";
+import { Spelling, LETTERS, NATURAL_SEMITONES, SHARP_ORDER, FLAT_ORDER, MAJOR_KEY_SHARPS, MODE_FIFTH_OFFSET } from "./constants";
+import { accidentalTypeToSemitones, computeOctaveFromPitch, noteLetterToMidi, accidentalToSemitones, spellPitch } from "./pitchUtils";
+import { ChordQuality, ParsedChord, NoteSpellings } from "./types";
 
 /**
  * VoicedNote combines a spelling with its MIDI pitch and chord function.
@@ -580,7 +580,7 @@ export function getArrangements5(lead: VoicedNote, tensions: VoicedNote[], GT2: 
  * @param root The root of the chord (not used for 4-voice, but kept for consistency)
  * @returns Array of possible arrangements, or null if no valid arrangement exists
  */
-export function getArrangements4(lead: VoicedNote, tensions: VoicedNote[], GT2: VoicedNote | null, fifth: VoicedNote, root: VoicedNote): VoicedNote[][] | null {
+export function getArrangements4(lead: VoicedNote, GT2: VoicedNote | null, fifth: VoicedNote): VoicedNote[][] | null {
   const leadFunc = lead.func;
 
   // CASE: lead is tension
@@ -781,7 +781,7 @@ export function buildSpreadVoicing(
   } else if (voiceCount === 5) {
     arrangements = getArrangements5(lead, tensionList, GT2, fifth, root);
   } else {
-    arrangements = getArrangements4(lead, tensionList, GT2, fifth, root);
+    arrangements = getArrangements4(lead, GT2, fifth);
   }
 
   if (arrangements === null || arrangements.length === 0) return null;

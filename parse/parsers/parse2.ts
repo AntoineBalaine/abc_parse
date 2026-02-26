@@ -7,7 +7,6 @@ import {
   Chord,
   Comment,
   Decoration,
-  Directive,
   ErrorExpr,
   Expr,
   File_header,
@@ -118,7 +117,7 @@ export interface ParseOptions {
  * @param abcContext - The ABC parsing context
  * @param options - Optional parsing options (reserved for future use)
  */
-export function parse(tokens: Token[], abcContext: ABCContext, options?: ParseOptions): File_structure {
+export function parse(tokens: Token[], abcContext: ABCContext, _options?: ParseOptions): File_structure {
   const ctx = new ParseCtx(tokens, abcContext);
   const seq: Array<Tune | Token> = [];
   const fileHeader = parseFileHeader(ctx);
@@ -411,11 +410,7 @@ export function prsBody(ctx: ParseCtx, voices: string[] = []): Tune_Body | null 
   // Collect voices from body elements (in addition to header-declared voices)
   const allVoices = collectVoicesInElements(processedElements as tune_body_code[], voices);
 
-  return new Tune_Body(
-    ctx.abcContext.generateId(),
-    prsSystems(processedElements as tune_body_code[], allVoices, ctx.abcContext.tuneLinear),
-    allVoices
-  );
+  return new Tune_Body(ctx.abcContext.generateId(), prsSystems(processedElements as tune_body_code[], allVoices, ctx.abcContext.tuneLinear), allVoices);
 }
 
 export function prcssBms(elmnts: Array<Expr | Token>, abcContext: ABCContext): Array<Expr | Token> {
@@ -547,7 +542,6 @@ export function parseNote(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Note |
 // Parse a pitch
 export function parsePitch(ctx: ParseCtx): Pitch | null {
   let alteration: Token | undefined;
-  let noteLetter: Token;
   let octave: Token | undefined;
 
   // Parse optional accidental
@@ -564,7 +558,7 @@ export function parsePitch(ctx: ParseCtx): Pitch | null {
     return null;
   }
 
-  noteLetter = ctx.previous();
+  const noteLetter = ctx.previous();
 
   // Parse optional octave
   if (ctx.match(TT.OCTAVE)) {

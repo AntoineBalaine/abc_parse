@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import { ABCContext } from "../../parsers/Context";
 import { AbcErrorReporter } from "../../parsers/ErrorReporter";
-import { Scanner } from "../../parsers/scan2";
 import { parse } from "../../parsers/parse2";
+import { Scanner } from "../../parsers/scan2";
 import { Tune } from "../../types/Expr2";
 import { ZeroLengthNoteDetector } from "./fmt_zeroLengthDetector";
 

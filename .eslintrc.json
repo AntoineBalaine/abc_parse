@@ -37,7 +37,8 @@
     "@typescript-eslint/no-explicit-any": "warn",
     "@typescript-eslint/ban-types": "off",
     "eqeqeq": "warn",
-    "no-throw-literal": "warn"
+    "no-throw-literal": "warn",
+    "no-empty": "off"
   },
   "ignorePatterns": ["out", "dist", "**/*.d.ts", "node_modules", "coverage"]
 }

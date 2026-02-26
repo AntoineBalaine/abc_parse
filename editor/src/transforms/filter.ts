@@ -1,5 +1,5 @@
-import { Selection } from "../selection";
 import { CSNode } from "../csTree/types";
+import { Selection } from "../selection";
 import { findNodesById } from "./types";
 
 export function filter(selection: Selection, predicate: (node: CSNode) => boolean): Selection {

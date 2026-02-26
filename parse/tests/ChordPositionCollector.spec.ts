@@ -1,10 +1,10 @@
 import { expect } from "chai";
+import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { ChordPositionCollector, ChordPosition, ChordCollectorConfig } from "../interpreter/ChordPositionCollector";
 import { findPreviousChordInVoice, findNextChordInVoice } from "../music-theory/voiceLeading";
-import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { ABCContext } from "../parsers/Context";
-import { Scanner } from "../parsers/scan2";
 import { parse } from "../parsers/parse2";
+import { Scanner } from "../parsers/scan2";
 
 /**
  * Helper to parse ABC source and collect chord positions.

@@ -1,10 +1,10 @@
+import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
 import { expect } from "chai";
+import { fromAst, createSelection, Selection, selectRange } from "editor";
 import { describe, it } from "mocha";
 import { Range } from "vscode-languageserver/node";
 import { resolveSelectionRanges, resolveContiguousRanges } from "./selectionRangeResolver";
 import { lookupSelector } from "./selectorLookup";
-import { fromAst, createSelection, Selection, selectRange } from "editor";
-import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
 
 function parseAbc(source: string): { ast: File_structure; ctx: ABCContext } {
   const ctx = new ABCContext();

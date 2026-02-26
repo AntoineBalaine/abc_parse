@@ -2,15 +2,10 @@ import { expect } from "chai";
 import { describe, it, beforeEach } from "mocha";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
+import { parseExpression } from "../parsers/infoLines/parseInfoLine2";
 import { ParseCtx } from "../parsers/parse2";
 import { Token, TT } from "../parsers/scan2";
-import {
-  Inline_field,
-  Binary,
-  KV,
-  AbsolutePitch,
-  Unary,
-} from "../types/Expr2";
+import { Inline_field, Binary, KV, AbsolutePitch, Unary } from "../types/Expr2";
 
 // Helper to access private parseInlineField function
 // We'll need to test through the public API or export it for testing
@@ -26,7 +21,6 @@ function parseInlineField(ctx: ParseCtx): Inline_field | null {
   const startPos = ctx.current;
 
   // Import parseExpression locally for testing
-  const { parseExpression } = require("../parsers/infoLines/parseInfoLine2");
 
   const expressions: Array<any> = [];
   while (!(ctx.isAtEnd() || ctx.check(TT.INLN_FLD_RGT_BRKT))) {

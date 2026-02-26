@@ -9,21 +9,17 @@
 import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { SemanticData } from "../analyzers/semantic-analyzer";
 import { isComment, isInfo_line } from "../helpers";
-import { convertAccidentalToType } from "./helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import {
   Tune,
   StaffSystem,
-  Staff,
   VoiceElement,
   NoteElement,
   BarElement,
   ElementType,
   RestType,
-  BarType,
   Pitch as ABCJSPitch,
-  AccidentalType,
   LyricProperties,
   LyricDivider,
   Decorations,
@@ -100,9 +96,9 @@ import {
   isHistoryInfo,
   isAuthorInfo,
 } from "../types/Expr2";
-import { Range } from "../types/types";
 import { IRational, createRational, multiplyRational, rationalToNumber } from "../Visitors/fmt2/rational";
 import { RangeVisitor } from "../Visitors/RangeVisitor";
+import { convertAccidentalToType, determineBarType } from "./helpers";
 import {
   InterpreterState,
   FileDefaults,
@@ -714,43 +710,6 @@ function isMeasurementDirective(type: string, data: unknown): data is Measuremen
     "wordsspace",
   ];
   return measurementDirectives.includes(type) && typeof data === "object" && data !== null && "value" in data;
-}
-
-/**
- * Type predicate: Check if directive is a number directive
- */
-function isNumberDirective(type: string, data: unknown): data is number {
-  const numberDirectives = ["lineThickness", "stretchlast", "voicescale", "scale", "barsperstaff", "measurenb", "barnumbers", "setbarnb", "fontboxpadding"];
-  return numberDirectives.includes(type) && typeof data === "number";
-}
-
-/**
- * Type predicate: Check if directive is a boolean directive
- */
-function isBooleanDirective(type: string, data: unknown): data is boolean {
-  const booleanDirectives = [
-    "bagpipes",
-    "flatbeams",
-    "jazzchords",
-    "accentAbove",
-    "germanAlphabet",
-    "titleleft",
-    "measurebox",
-    "graceslurs",
-    "staffnonote",
-    "printtempo",
-    "partsbox",
-    "freegchord",
-  ];
-  return booleanDirectives.includes(type) && typeof data === "boolean";
-}
-
-/**
- * Type predicate: Check if directive is a string directive
- */
-function isStringDirective(type: string, data: unknown): data is string {
-  const stringDirectives = ["map", "playtempo", "auquality", "continuous"];
-  return stringDirectives.includes(type) && typeof data === "string";
 }
 
 /**
@@ -1633,28 +1592,7 @@ export class TuneInterpreter implements Visitor<void> {
   }
 
   visitBarLineExpr(expr: BarLine): void {
-    const barString = expr.barline.map((t) => t.lexeme).join("");
-    let barType: BarType;
-
-    switch (barString) {
-      case "|":
-        barType = BarType.BarThin;
-        break;
-      case "||":
-        barType = BarType.BarThinThin;
-        break;
-      case "|:":
-        barType = BarType.BarLeftRepeat;
-        break;
-      case ":|":
-        barType = BarType.BarRightRepeat;
-        break;
-      case "::":
-        barType = BarType.BarDblRepeat;
-        break;
-      default:
-        barType = BarType.BarThin;
-    }
+    const barType = determineBarType(expr.barline);
 
     const range = this.rangeVisitor.visitBarLineExpr(expr);
 
@@ -1678,12 +1616,12 @@ export class TuneInterpreter implements Visitor<void> {
     nextMeasure(this.state);
   }
 
-  visitRhythmExpr(expr: Rhythm): void {
+  visitRhythmExpr(_expr: Rhythm): void {
     // This visitor method is not used - see calculateRhythm() helper function instead
   }
 
   // Placeholder implementations for other visitors
-  visitPitchExpr(expr: Pitch): void {
+  visitPitchExpr(_expr: Pitch): void {
     // Pitch is handled inline in visitNoteExpr
   }
 
@@ -1754,7 +1692,7 @@ export class TuneInterpreter implements Visitor<void> {
     // Store chord symbol to be applied to the next note
     voiceState.pendingChordSymbols.push(chordSymbol);
   }
-  visitCommentExpr(expr: Comment): void {}
+  visitCommentExpr(_expr: Comment): void {}
 
   visitDecorationExpr(expr: Decoration): void {
     // Decorations modify the next note, so add them to pending decorations
@@ -1786,7 +1724,7 @@ export class TuneInterpreter implements Visitor<void> {
       }
     }
   }
-  visitSystemBreakExpr(expr: SystemBreak): void {}
+  visitSystemBreakExpr(_expr: SystemBreak): void {}
   visitGraceGroupExpr(expr: Grace_group): void {
     const voiceState = this.state.voices.get(this.state.currentVoice);
     if (!voiceState) return;
@@ -1966,9 +1904,9 @@ export class TuneInterpreter implements Visitor<void> {
       note.lyric.push(lyrics[i]);
     }
   }
-  visitLyricSectionExpr(expr: Lyric_section): void {}
-  visitMacroDeclExpr(expr: Macro_decl): void {}
-  visitMacroInvocationExpr(expr: Macro_invocation): void {}
+  visitLyricSectionExpr(_expr: Lyric_section): void {}
+  visitMacroDeclExpr(_expr: Macro_decl): void {}
+  visitMacroInvocationExpr(_expr: Macro_invocation): void {}
   visitMultiMeasureRestExpr(expr: MultiMeasureRest): void {
     const range = this.rangeVisitor.visitMultiMeasureRestExpr(expr);
 
@@ -1996,10 +1934,10 @@ export class TuneInterpreter implements Visitor<void> {
 
     this.pushElement(element);
   }
-  visitSymbolExpr(expr: Symbol): void {}
-  visitUserSymbolDeclExpr(expr: User_symbol_decl): void {}
-  visitUserSymbolInvocationExpr(expr: User_symbol_invocation): void {}
-  visitYSpacerExpr(expr: YSPACER): void {}
+  visitSymbolExpr(_expr: Symbol): void {}
+  visitUserSymbolDeclExpr(_expr: User_symbol_decl): void {}
+  visitUserSymbolInvocationExpr(_expr: User_symbol_invocation): void {}
+  visitYSpacerExpr(_expr: YSPACER): void {}
   visitBeamExpr(expr: Beam): void {
     // User explicitly grouped these notes with beam syntax
     // We need to:
@@ -2021,7 +1959,7 @@ export class TuneInterpreter implements Visitor<void> {
       endBeamGroup(voiceState);
     }
   }
-  visitVoiceOverlayExpr(expr: Voice_overlay): void {}
+  visitVoiceOverlayExpr(_expr: Voice_overlay): void {}
   visitLineContinuationExpr(_expr: Line_continuation): void {}
 
   visitTupletExpr(expr: Tuplet): void {
@@ -2043,16 +1981,16 @@ export class TuneInterpreter implements Visitor<void> {
     voiceState.tupletR = r;
     voiceState.tupletNotesLeft = r;
   }
-  visitErrorExpr(expr: ErrorExpr): void {}
-  visitKV(expr: KV): void {}
-  visitBinary(expr: Binary): void {}
-  visitGrouping(expr: Grouping): void {}
-  visitAbsolutePitch(expr: AbsolutePitch): void {}
-  visitRationalExpr(expr: Rational): void {}
-  visitMeasurementExpr(expr: Measurement): void {}
-  visitUnary(expr: import("../types/Expr2").Unary): void {}
+  visitErrorExpr(_expr: ErrorExpr): void {}
+  visitKV(_expr: KV): void {}
+  visitBinary(_expr: Binary): void {}
+  visitGrouping(_expr: Grouping): void {}
+  visitAbsolutePitch(_expr: AbsolutePitch): void {}
+  visitRationalExpr(_expr: Rational): void {}
+  visitMeasurementExpr(_expr: Measurement): void {}
+  visitUnary(_expr: import("../types/Expr2").Unary): void {}
   // ChordSymbol is ABCx-specific - ABCx files must be converted to ABC before interpretation
-  visitChordSymbolExpr(expr: ChordSymbol): void {}
+  visitChordSymbolExpr(_expr: ChordSymbol): void {}
 
   // ============================================================================
   // Helper Methods

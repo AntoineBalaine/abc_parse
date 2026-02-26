@@ -135,7 +135,7 @@ describe("scanInfoLine2 - Unified Info Line Scanner", () => {
       fc.assert(
         fc.property(fc.constantFrom("M:C", "M:C|"), (input) => {
           const ctx = new Ctx(input, context);
-          const result = scanInfoLine2(ctx);
+          scanInfoLine2(ctx);
 
           expect(ctx.tokens[0].type).to.equal(TT.INF_HDR);
           expect(ctx.tokens[1].type).to.equal(TT.SPECIAL_LITERAL);

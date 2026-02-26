@@ -18,12 +18,7 @@ export { ScannerAbcx, scanAbcxTuneBody } from "../parsers/scan_abcx_tunebody";
 export { parseAbcx } from "../parsers/parse_abcx";
 
 // Converter
-export {
-  AbcxToAbcConverter,
-  AbcxConversionConfig,
-  convertAbcxToAbc,
-  convertAbcxToAbcAst,
-} from "../Visitors/AbcxToAbcConverter";
+export { AbcxToAbcConverter, AbcxConversionConfig, convertAbcxToAbc, convertAbcxToAbcAst } from "../Visitors/AbcxToAbcConverter";
 
 // AST Types (ChordSymbol is the ABCx-specific node type)
 export { ChordSymbol } from "../types/Expr2";

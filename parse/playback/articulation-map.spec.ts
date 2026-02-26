@@ -4,7 +4,6 @@
 
 import { expect } from "chai";
 import { Decorations } from "../types/abcjs-ast";
-import { NoteArticulation } from "./types";
 import {
   decorationsToArticulation,
   extractDynamics,
@@ -12,6 +11,7 @@ import {
   hasFermata,
   DYNAMICS_MAP,
 } from "./articulation-map";
+import { NoteArticulation } from "./types";
 
 describe("Articulation Map", () => {
   describe("decorationsToArticulation", () => {

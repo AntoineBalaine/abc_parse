@@ -101,9 +101,7 @@ export const genTuplet = fc
 export const genSlur = fc.constantFrom("(", ")").map((slur) => new Token(TT.SLUR, slur, sharedContext.generateId()));
 
 // Dotted slur generator - creates single DOTTED_SLUR token with lexeme ".("
-export const genDottedSlur = fc.constant([
-  new Token(TT.DOTTED_SLUR, ".(", sharedContext.generateId())
-]);
+export const genDottedSlur = fc.constant([new Token(TT.DOTTED_SLUR, ".(", sharedContext.generateId())]);
 
 // Decoration generator
 export const genDecoration = fc.stringMatching(/^[\~\.HJLMOPRSTuv]$/).map((deco) => new Token(TT.DECORATION, deco, sharedContext.generateId()));
@@ -147,32 +145,40 @@ export const genGraceGroup = fc
 // Inline field generator - wraps info line content in brackets
 export const genInlineField = fc.oneof(
   // Key info lines wrapped in brackets: [K:G], [K:D minor clef=bass]
-  fc.tuple(
-    fc.constantFrom(new Token(TT.INLN_FLD_LFT_BRKT, "[", sharedContext.generateId())),
-    genKeyInfoLine2,
-    fc.constantFrom(new Token(TT.INLN_FLD_RGT_BRKT, "]", sharedContext.generateId()))
-  ).map(([leftBrkt, keyTokens, rightBrkt]) => [leftBrkt, ...keyTokens, rightBrkt]),
+  fc
+    .tuple(
+      fc.constantFrom(new Token(TT.INLN_FLD_LFT_BRKT, "[", sharedContext.generateId())),
+      genKeyInfoLine2,
+      fc.constantFrom(new Token(TT.INLN_FLD_RGT_BRKT, "]", sharedContext.generateId()))
+    )
+    .map(([leftBrkt, keyTokens, rightBrkt]) => [leftBrkt, ...keyTokens, rightBrkt]),
 
   // Meter info lines wrapped in brackets: [M:3/4], [M:C|]
-  fc.tuple(
-    fc.constantFrom(new Token(TT.INLN_FLD_LFT_BRKT, "[", sharedContext.generateId())),
-    genMeterInfoLine2,
-    fc.constantFrom(new Token(TT.INLN_FLD_RGT_BRKT, "]", sharedContext.generateId()))
-  ).map(([leftBrkt, meterTokens, rightBrkt]) => [leftBrkt, ...meterTokens, rightBrkt]),
+  fc
+    .tuple(
+      fc.constantFrom(new Token(TT.INLN_FLD_LFT_BRKT, "[", sharedContext.generateId())),
+      genMeterInfoLine2,
+      fc.constantFrom(new Token(TT.INLN_FLD_RGT_BRKT, "]", sharedContext.generateId()))
+    )
+    .map(([leftBrkt, meterTokens, rightBrkt]) => [leftBrkt, ...meterTokens, rightBrkt]),
 
   // Note length info lines wrapped in brackets: [L:1/8]
-  fc.tuple(
-    fc.constantFrom(new Token(TT.INLN_FLD_LFT_BRKT, "[", sharedContext.generateId())),
-    genNoteLenInfoLine2,
-    fc.constantFrom(new Token(TT.INLN_FLD_RGT_BRKT, "]", sharedContext.generateId()))
-  ).map(([leftBrkt, lenTokens, rightBrkt]) => [leftBrkt, ...lenTokens, rightBrkt]),
+  fc
+    .tuple(
+      fc.constantFrom(new Token(TT.INLN_FLD_LFT_BRKT, "[", sharedContext.generateId())),
+      genNoteLenInfoLine2,
+      fc.constantFrom(new Token(TT.INLN_FLD_RGT_BRKT, "]", sharedContext.generateId()))
+    )
+    .map(([leftBrkt, lenTokens, rightBrkt]) => [leftBrkt, ...lenTokens, rightBrkt]),
 
   // Tempo info lines wrapped in brackets: [Q:1/4=120]
-  fc.tuple(
-    fc.constantFrom(new Token(TT.INLN_FLD_LFT_BRKT, "[", sharedContext.generateId())),
-    genTempoInfoLine2,
-    fc.constantFrom(new Token(TT.INLN_FLD_RGT_BRKT, "]", sharedContext.generateId()))
-  ).map(([leftBrkt, tempoTokens, rightBrkt]) => [leftBrkt, ...tempoTokens, rightBrkt])
+  fc
+    .tuple(
+      fc.constantFrom(new Token(TT.INLN_FLD_LFT_BRKT, "[", sharedContext.generateId())),
+      genTempoInfoLine2,
+      fc.constantFrom(new Token(TT.INLN_FLD_RGT_BRKT, "]", sharedContext.generateId()))
+    )
+    .map(([leftBrkt, tempoTokens, rightBrkt]) => [leftBrkt, ...tempoTokens, rightBrkt])
 );
 export const genEOL = fc.constantFrom(new Token(TT.EOL, "\n", sharedContext.generateId()));
 
@@ -199,7 +205,10 @@ export const genLineContinuation = fc
   .tuple(
     fc.option(fc.stringMatching(/^[ \t]+$/), { nil: "" }), // optional spaces/tabs after backslash
     // Optional comment: single % followed by text that doesn't contain %% anywhere
-    fc.option(fc.stringMatching(/^%[^%\n][^\n]*$/).filter(s => !s.includes("%%")), { nil: "" }),
+    fc.option(
+      fc.stringMatching(/^%[^%\n][^\n]*$/).filter((s) => !s.includes("%%")),
+      { nil: "" }
+    ),
     fc.constantFrom("\n") // newline (required for line continuation context)
   )
   .map(([spaces, comment, newline]) => {
@@ -411,55 +420,6 @@ export const genTokenSequence = fc
     const flatTokens = arrays.flat();
     return applyTokenFiltering(flatTokens);
   });
-
-// Helper function to determine if we're within an info line context where whitespace should be filtered
-function isWithinInfoLine(flatTokens: Token[], index: number): boolean {
-  // Look backwards to find if we're within an info line context
-  for (let j = index - 1; j >= 0; j--) {
-    const token = flatTokens[j];
-
-    // If we hit EOL, we're not in an info line anymore
-    if (token.type === TT.EOL) return false;
-
-    // If we find an info header, check what type of info line it is
-    if (token.type === TT.INF_HDR) {
-      const headerType = token.lexeme.charAt(0);
-
-      // For these info line types, the scanner skips whitespace in specific contexts
-      switch (headerType) {
-        case "V": // Voice info lines - scanner skips WS between components
-        case "K": // Key info lines - scanner skips WS around accidentals, modes, etc.
-        case "Q": // Tempo info lines - scanner skips WS around note values and BPM
-        case "M": // Meter info lines - scanner skips WS around numbers and operators
-        case "L": // Note length info lines - scanner skips WS around fractions
-          return true;
-        default:
-          // For generic info lines (T:, A:, etc.), whitespace is preserved in INFO_STR
-          return false;
-      }
-    }
-
-    // Continue looking backwards through valid info line tokens
-    const infoLineTokens = [
-      // info line tokens
-      TT.IDENTIFIER,
-      TT.NUMBER,
-      TT.ANNOTATION,
-      TT.SPECIAL_LITERAL,
-      TT.PLUS,
-      TT.SLASH,
-      TT.LPAREN,
-      TT.RPAREN,
-      TT.WS,
-      TT.DISCARD,
-    ];
-
-    if (!infoLineTokens.includes(token.type)) {
-      return false;
-    }
-  }
-  return false;
-}
 
 // Reusable token filtering function
 export function applyTokenFiltering(flatTokens: Token[]): Token[] {
@@ -784,11 +744,9 @@ export const genChordSymbolToken = fc
     // Optional bass note
     fc.oneof(
       fc.constant(""),
-      fc.tuple(
-        fc.constant("/"),
-        fc.constantFrom("A", "B", "C", "D", "E", "F", "G", "a", "c", "d", "e", "f", "g"),
-        fc.constantFrom("", "#", "b")
-      ).map(([slash, note, acc]) => `${slash}${note}${acc}`)
+      fc
+        .tuple(fc.constant("/"), fc.constantFrom("A", "B", "C", "D", "E", "F", "G", "a", "c", "d", "e", "f", "g"), fc.constantFrom("", "#", "b"))
+        .map(([slash, note, acc]) => `${slash}${note}${acc}`)
     )
   )
   .map(([root, accidental, quality, extension, alteration, bass]) => {

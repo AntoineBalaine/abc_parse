@@ -18,7 +18,7 @@ T:Simple Title
 K:C
 CDEF|`;
 
-        const result = runComparison(input);
+        runComparison(input);
         const yourTune = parseWithYourParser(input).tunes[0];
         const abcjsTune = parseWithAbcjs(input)[0];
 
@@ -336,7 +336,7 @@ GFGA Bcde|`;
         music: "GAB c2d|e2f g2a|b2c' d'2e'|",
       });
 
-      const { tunes, ctx } = parseWithYourParser(input);
+      const { tunes } = parseWithYourParser(input);
 
       expect(tunes).to.have.length(1);
 
@@ -357,7 +357,7 @@ T:Second Tune
 K:G
 GABc|`;
 
-      const { tunes, ctx } = parseWithYourParser(input);
+      const { tunes } = parseWithYourParser(input);
 
       expect(tunes).to.have.length(2);
 
@@ -382,7 +382,7 @@ Q:1/4=120
 K:D
 DEF|`;
 
-      const { tunes, ctx } = parseWithYourParser(input);
+      const { tunes } = parseWithYourParser(input);
 
       expect(tunes).to.have.length(1);
 
@@ -404,7 +404,7 @@ T:Test
 K:C
 CDEF|`;
 
-      const { tunes, ctx } = parseWithYourParser(input);
+      const { tunes } = parseWithYourParser(input);
 
       expect(tunes).to.have.length(1);
 
@@ -556,7 +556,7 @@ T:Second
 K:G
 GABcdefg|`;
 
-      const { tunes, ctx } = parseWithYourParser(input);
+      const { tunes } = parseWithYourParser(input);
 
       expect(tunes).to.have.length(2);
 
@@ -1312,7 +1312,7 @@ C D E F|
 V:2
 C, E, G, C|`;
 
-      const { tunes, ctx } = parseWithYourParser(input);
+      const { tunes } = parseWithYourParser(input);
 
       expect(tunes).to.have.length(1);
 
@@ -1871,7 +1871,6 @@ CDzEF|`;
       }
 
       const yourVoice = yourLine.staff[0].voices[0];
-      const abcjsVoice = abcjsLine.staff[0].voices[0];
 
       // C-D should be one beam
       const yourC = yourVoice[0];
@@ -1911,7 +1910,6 @@ CD|EF|`;
       }
 
       const yourVoice = yourLine.staff[0].voices[0];
-      const abcjsVoice = abcjsLine.staff[0].voices[0];
 
       // C-D should be one beam (before bar)
       const yourC = yourVoice[0];

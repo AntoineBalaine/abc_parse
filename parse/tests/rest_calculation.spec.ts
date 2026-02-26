@@ -11,10 +11,10 @@
 
 import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
-import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
 import { parseAbcx } from "../parsers/parse_abcx";
-import { AbcxToAbcConverter } from "../Visitors/AbcxToAbcConverter";
+import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
 import { Rest, Tune } from "../types/Expr2";
+import { AbcxToAbcConverter } from "../Visitors/AbcxToAbcConverter";
 import { createRational } from "../Visitors/fmt2/rational";
 
 describe("Rest Duration Calculation", () => {

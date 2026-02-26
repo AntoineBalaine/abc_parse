@@ -1,11 +1,11 @@
-import { Selection } from "../selection";
-import { CSNode, TAGS, isNote, isChord, isBarLine, isTokenNode, getTokenData } from "../csTree/types";
 import { ABCContext, addRational, equalRational } from "abc-parser";
+import { remove } from "cstree";
+import { CSNode, TAGS, isNote, isChord, isBarLine, isTokenNode, getTokenData } from "../csTree/types";
+import { Selection } from "../selection";
+import { isVoiceMarker } from "../selectors/voiceSelector";
+import { isPowerOfTwoRational, nextMeaningfulSibling } from "./consolidationUtils";
 import { getNodeRhythm, rationalToRhythm } from "./rhythm";
 import { replaceRhythm, findTieChild, findChildByTag } from "./treeUtils";
-import { remove } from "cstree";
-import { isPowerOfTwoRational, nextMeaningfulSibling } from "./consolidationUtils";
-import { isVoiceMarker } from "../selectors/voiceSelector";
 
 /**
  * Extracts the pitch lexeme string from a Note node.

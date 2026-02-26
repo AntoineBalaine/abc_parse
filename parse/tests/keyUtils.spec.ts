@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { parseKeyRoot, parseKeyAccidental } from "../utils/keyUtils";
 import { KeyRoot, KeyAccidental } from "../types/abcjs-ast";
+import { parseKeyRoot, parseKeyAccidental } from "../utils/keyUtils";
 
 describe("parseKeyRoot", () => {
   it("parses uppercase note letters", () => {

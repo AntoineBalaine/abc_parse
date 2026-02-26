@@ -1,12 +1,12 @@
-import * as fc from "fast-check";
-import { Position } from "abc-parser/types/types";
-import { Token, TT } from "abc-parser/parsers/scan2";
-import { Expr, Note, Rest, Chord, Rhythm, Pitch, Annotation, Decoration, Grace_group } from "abc-parser/types/Expr2";
 import { IRational, createRational, addRational, subtractRational, multiplyRational, compareRational, isToken } from "abc-parser";
 import { ABCContext } from "abc-parser/parsers/Context";
 import { AbcErrorReporter } from "abc-parser/parsers/ErrorReporter";
+import { Token, TT } from "abc-parser/parsers/scan2";
+import { Expr, Note, Rest, Chord, Rhythm, Pitch, Annotation, Decoration, Grace_group } from "abc-parser/types/Expr2";
+import { Position } from "abc-parser/types/types";
 import { AbcFormatter } from "abc-parser/Visitors/Formatter2";
 import { RangeVisitor } from "abc-parser/Visitors/RangeVisitor";
+import * as fc from "fast-check";
 
 type SystemAst = Array<Expr | Token>;
 

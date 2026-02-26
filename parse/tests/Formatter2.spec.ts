@@ -22,20 +22,6 @@ function removeTuneHeader(testStr: string): string {
   return testStr.replace(/X:1\n/, "");
 }
 
-// Helper function for running system tests
-function RunSystemTest(input: string, test: (systems: System[], expected: string) => void, expected: string): () => void {
-  return () => {
-    const ctx = new ABCContext();
-    const formatter = new AbcFormatter(ctx);
-    const tokens = Scanner(input, ctx);
-    const parseCtx = new ParseCtx(tokens, ctx);
-    const ast = parseTune(parseCtx);
-    if (!ast || !ast.tune_body) {
-      throw new Error("Failed to parse or no tune body");
-    }
-    test(ast.tune_body.sequence, expected);
-  };
-}
 
 // Type for system line tests
 type SystemLineTest = {

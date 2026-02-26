@@ -13,16 +13,11 @@
  * - Reuses semantic analyzer output rather than re-parsing directives
  */
 
-import { TuneDefaults, VoiceState, newVxState, createTuneDefaults, createFileDefaults } from "./InterpreterState";
-import { convertAccidentalToType } from "./helpers";
-import { Meter, KeySignature, ClefProperties, TempoProperties, MeterType, AccidentalType } from "../types/abcjs-ast";
-import { ParsedChord, scanChordSymbol, parseChordSymbol } from "../music-theory";
 import { SemanticData } from "../analyzers/semantic-analyzer";
-import { IRational } from "../Visitors/fmt2/rational";
+import { ParsedChord, scanChordSymbol, parseChordSymbol } from "../music-theory";
 import { ABCContext } from "../parsers/Context";
-import { RangeVisitor } from "../Visitors/RangeVisitor";
-import { Range } from "../types/types";
 import { Token, TT } from "../parsers/scan2";
+import { Meter, KeySignature, ClefProperties, TempoProperties, MeterType, AccidentalType } from "../types/abcjs-ast";
 import { InfoLineUnion } from "../types/Expr2";
 import {
   Visitor,
@@ -69,6 +64,11 @@ import {
   ChordSymbol,
   Expr,
 } from "../types/Expr2";
+import { Range } from "../types/types";
+import { IRational } from "../Visitors/fmt2/rational";
+import { RangeVisitor } from "../Visitors/RangeVisitor";
+import { convertAccidentalToType } from "./helpers";
+import { TuneDefaults, VoiceState, newVxState, createTuneDefaults, createFileDefaults } from "./InterpreterState";
 
 // ============================================================================
 // Type Guards
@@ -532,7 +532,7 @@ export class ContextInterpreter implements Visitor<void> {
     }
   }
 
-  visitBarLineExpr(expr: BarLine): void {
+  visitBarLineExpr(_expr: BarLine): void {
     this.state.measureNumber++;
     this.clearCurrentVoiceAccidentals();
   }
@@ -541,7 +541,7 @@ export class ContextInterpreter implements Visitor<void> {
   // No-op Stubs (required by Visitor<void> interface)
   // ============================================================================
 
-  visitToken(token: Token): void {}
+  visitToken(_token: Token): void {}
 
   visitNoteExpr(expr: Note): void {
     if (!this.config.snapshotAccidentals) return;
@@ -558,7 +558,7 @@ export class ContextInterpreter implements Visitor<void> {
     this.pushSnapshot(expr);
   }
 
-  visitRestExpr(expr: Rest): void {}
+  visitRestExpr(_expr: Rest): void {}
 
   visitChordExpr(expr: Chord): void {
     if (!this.config.snapshotAccidentals) return;
@@ -582,10 +582,10 @@ export class ContextInterpreter implements Visitor<void> {
       this.pushSnapshot(expr);
     }
   }
-  visitBeamExpr(expr: Beam): void {}
-  visitTupletExpr(expr: Tuplet): void {}
-  visitGraceGroupExpr(expr: Grace_group): void {}
-  visitDecorationExpr(expr: Decoration): void {}
+  visitBeamExpr(_expr: Beam): void {}
+  visitTupletExpr(_expr: Tuplet): void {}
+  visitGraceGroupExpr(_expr: Grace_group): void {}
+  visitDecorationExpr(_expr: Decoration): void {}
   visitAnnotationExpr(expr: Annotation): void {
     let text = expr.text.lexeme;
 
@@ -608,32 +608,32 @@ export class ContextInterpreter implements Visitor<void> {
     this.state.currentChord = parsed;
     this.pushSnapshot(expr);
   }
-  visitCommentExpr(expr: Comment): void {}
-  visitSystemBreakExpr(expr: SystemBreak): void {
+  visitCommentExpr(_expr: Comment): void {}
+  visitSystemBreakExpr(_expr: SystemBreak): void {
     this.clearAllVoicesAccidentals();
   }
-  visitSymbolExpr(expr: Symbol): void {}
-  visitVoiceOverlayExpr(expr: Voice_overlay): void {}
-  visitLineContinuationExpr(expr: Line_continuation): void {}
-  visitMacroDeclExpr(expr: Macro_decl): void {}
-  visitMacroInvocationExpr(expr: Macro_invocation): void {}
-  visitUserSymbolDeclExpr(expr: User_symbol_decl): void {}
-  visitUserSymbolInvocationExpr(expr: User_symbol_invocation): void {}
-  visitLyricLineExpr(expr: Lyric_line): void {}
-  visitLyricSectionExpr(expr: Lyric_section): void {}
-  visitPitchExpr(expr: Pitch): void {}
-  visitRhythmExpr(expr: Rhythm): void {}
-  visitErrorExpr(expr: ErrorExpr): void {}
-  visitKV(expr: KV): void {}
-  visitBinary(expr: Binary): void {}
-  visitGrouping(expr: Grouping): void {}
-  visitAbsolutePitch(expr: AbsolutePitch): void {}
-  visitRationalExpr(expr: Rational): void {}
-  visitMeasurementExpr(expr: Measurement): void {}
-  visitUnary(expr: Unary): void {}
-  visitDirectiveExpr(expr: Directive): void {}
-  visitMultiMeasureRestExpr(expr: MultiMeasureRest): void {}
-  visitYSpacerExpr(expr: YSPACER): void {}
-  visitChordSymbolExpr(expr: ChordSymbol): void {}
-  visitFileHeaderExpr(expr: File_header): void {}
+  visitSymbolExpr(_expr: Symbol): void {}
+  visitVoiceOverlayExpr(_expr: Voice_overlay): void {}
+  visitLineContinuationExpr(_expr: Line_continuation): void {}
+  visitMacroDeclExpr(_expr: Macro_decl): void {}
+  visitMacroInvocationExpr(_expr: Macro_invocation): void {}
+  visitUserSymbolDeclExpr(_expr: User_symbol_decl): void {}
+  visitUserSymbolInvocationExpr(_expr: User_symbol_invocation): void {}
+  visitLyricLineExpr(_expr: Lyric_line): void {}
+  visitLyricSectionExpr(_expr: Lyric_section): void {}
+  visitPitchExpr(_expr: Pitch): void {}
+  visitRhythmExpr(_expr: Rhythm): void {}
+  visitErrorExpr(_expr: ErrorExpr): void {}
+  visitKV(_expr: KV): void {}
+  visitBinary(_expr: Binary): void {}
+  visitGrouping(_expr: Grouping): void {}
+  visitAbsolutePitch(_expr: AbsolutePitch): void {}
+  visitRationalExpr(_expr: Rational): void {}
+  visitMeasurementExpr(_expr: Measurement): void {}
+  visitUnary(_expr: Unary): void {}
+  visitDirectiveExpr(_expr: Directive): void {}
+  visitMultiMeasureRestExpr(_expr: MultiMeasureRest): void {}
+  visitYSpacerExpr(_expr: YSPACER): void {}
+  visitChordSymbolExpr(_expr: ChordSymbol): void {}
+  visitFileHeaderExpr(_expr: File_header): void {}
 }

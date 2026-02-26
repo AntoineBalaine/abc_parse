@@ -262,7 +262,8 @@ export class RhythmVisitor implements Visitor<Expr> {
    */
   private syncTokenPositions(expr: Note) {
     const { end } = getPitchRange(expr.pitch);
-    let { line, character } = end;
+    const line = end.line;
+    let { character } = end;
     if (!expr.rhythm) {
       return expr;
     }

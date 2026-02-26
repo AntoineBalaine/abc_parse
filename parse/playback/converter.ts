@@ -5,20 +5,22 @@
  * into MuseSampler events for playback.
  */
 
-import { IRational, rationalToNumber, isRational } from "../Visitors/fmt2/rational";
 import {
   Tune,
-  NoteElement,
   Decorations,
   isNoteElement,
   isMusicLine,
   isTempoElement,
-  TempoProperties,
   Pitch as ABCJSPitch,
-  StaffSystem,
-  Staff,
   VoiceElement,
 } from "../types/abcjs-ast";
+import { IRational, rationalToNumber, isRational } from "../Visitors/fmt2/rational";
+import {
+  decorationsToArticulation,
+  extractDynamics,
+  hasFermata,
+} from "./articulation-map";
+import { abcPitchToMidi, accidentalToCents } from "./pitch-utils";
 import {
   NoteEvent,
   DynamicsEvent,
@@ -26,13 +28,6 @@ import {
   NoteArticulation,
   ConversionResult,
 } from "./types";
-import { abcPitchToMidi, accidentalToCents } from "./pitch-utils";
-import {
-  decorationsToArticulation,
-  extractDynamics,
-  hasFermata,
-  DYNAMICS_MAP,
-} from "./articulation-map";
 
 /**
  * Default tempo if none specified (BPM).
@@ -105,7 +100,7 @@ function getTempo(tune: Tune): number {
  * Extracts the beat length from a Tune.
  * Falls back to default 1/8 if not specified.
  */
-function getBeatLength(tune: Tune): IRational {
+function getBeatLength(_tune: Tune): IRational {
   // The Tune interface has getBeatLength() but it returns a number
   // We need the fraction form for accurate calculation
   // For now, use the default

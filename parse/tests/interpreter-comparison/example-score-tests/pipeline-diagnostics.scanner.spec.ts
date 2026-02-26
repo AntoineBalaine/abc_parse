@@ -8,10 +8,10 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { discoverAbcFiles } from "./file-discovery";
-import { Scanner } from "../../../parsers/scan2";
 import { ABCContext } from "../../../parsers/Context";
 import { AbcErrorReporter } from "../../../parsers/ErrorReporter";
+import { Scanner } from "../../../parsers/scan2";
+import { discoverAbcFiles } from "./file-discovery";
 
 // ============================================================================
 // Test Configuration
@@ -82,7 +82,7 @@ describe("Pipeline Diagnostics - Scanner", function () {
 
         // Create context and run Scanner
         const ctx = new ABCContext(new AbcErrorReporter());
-        const tokens = Scanner(content, ctx);
+        Scanner(content, ctx);
 
         // If we reach here without hanging, the scanner worked
       } catch (error) {
@@ -141,7 +141,7 @@ describe("Pipeline Diagnostics - Scanner", function () {
 
         // Create context and run Scanner
         const ctx = new ABCContext(new AbcErrorReporter());
-        const tokens = Scanner(content, ctx);
+        Scanner(content, ctx);
 
         // If we reach here without hanging, the scanner worked
       } catch (error) {

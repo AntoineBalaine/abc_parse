@@ -4,8 +4,8 @@
  * Adapts the LCS-based diffChars function to produce LSP TextEdits.
  */
 
-import { TextEdit, Range } from "vscode-languageserver";
 import { diffChars, Change } from "editor";
+import { TextEdit, Range } from "vscode-languageserver";
 
 /**
  * Computes LSP TextEdits from character-level diff between old and new text.

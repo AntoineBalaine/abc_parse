@@ -291,6 +291,7 @@ export function stringifyRhythm(rhythm: Rhythm) {
   retStr += rhythm.separator || "";
   retStr += rhythm.denominator || "";
   retStr += rhythm.broken || "";
+  return retStr;
 }
 
 export function followedByWS(expr: music_code) {
@@ -389,7 +390,7 @@ export const isEmptyRange = (range: Range): boolean => {
   return range.start.line === Infinity || range.end.line === -1;
 };
 
-export const reduceRanges = (acc: Range, cur: Range, index: number, arr: Range[]): Range => {
+export const reduceRanges = (acc: Range, cur: Range, index: number, _arr: Range[]): Range => {
   if (index === 0) {
     return cur;
   }

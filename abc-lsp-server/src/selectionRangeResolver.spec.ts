@@ -1,8 +1,8 @@
+import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
 import { expect } from "chai";
+import { fromAst, createSelection, selectChords, selectNotes, selectTop, selectVoices } from "editor";
 import { describe, it } from "mocha";
 import { resolveSelectionRanges, resolveContiguousRanges, findNodeById } from "./selectionRangeResolver";
-import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
-import { fromAst, createSelection, selectChords, selectNotes, selectTop, selectVoices } from "editor";
 
 function parseAbc(source: string): { ast: File_structure; ctx: ABCContext } {
   const ctx = new ABCContext();

@@ -1,9 +1,9 @@
-import { Selection } from "../selection";
-import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { TT } from "abc-parser";
-import { findNodesById } from "./types";
 import { remove, insertBefore, appendChild, getParent } from "cstree";
+import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
+import { Selection } from "../selection";
 import { findRhythmChild, findTieChild, replaceRhythm } from "./treeUtils";
+import { findNodesById } from "./types";
 
 export function unwrapSingle(selection: Selection): Selection {
   for (const cursor of selection.cursors) {

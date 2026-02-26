@@ -6,12 +6,11 @@
  * we test all available example files systematically.
  */
 
-import { expect } from "chai";
 import * as fs from "fs";
 import * as path from "path";
-import { discoverAbcFiles } from "./file-discovery";
 import { ComparisonResult } from "../comparison-utils";
 import { runComparison } from "../test-helpers";
+import { discoverAbcFiles } from "./file-discovery";
 
 // ============================================================================
 // Test Configuration

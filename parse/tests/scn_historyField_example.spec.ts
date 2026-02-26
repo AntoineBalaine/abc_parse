@@ -1,7 +1,7 @@
 import { assert } from "chai";
 import { ABCContext } from "../parsers/Context";
-import { Scanner, TT } from "../parsers/scan2";
 import { ParseCtx, prsTuneHdr } from "../parsers/parse2";
+import { Scanner, TT } from "../parsers/scan2";
 import { Info_line } from "../types/Expr2";
 
 /**

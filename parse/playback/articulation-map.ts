@@ -6,7 +6,7 @@
  */
 
 import { Decorations } from "../types/abcjs-ast";
-import { NoteArticulation, NoteArticulation2, NoteArticulationFlags } from "./types";
+import { NoteArticulation, NoteArticulationFlags } from "./types";
 
 /**
  * Maps ABC decorations to MuseSampler articulation flags.

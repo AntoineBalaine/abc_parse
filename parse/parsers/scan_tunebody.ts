@@ -1,5 +1,5 @@
 import { scanDirective } from "./infoLines/scanDirective";
-import { absolutePitch, identifier, infoLineIdentifier, singleChar, specialLiteral, stringLiteral, unsignedNumber } from "./infoLines/scanInfoLine2";
+import { absolutePitch, infoLineIdentifier, singleChar, specialLiteral, stringLiteral, unsignedNumber } from "./infoLines/scanInfoLine2";
 import {
   Ctx,
   EOL,
@@ -15,7 +15,6 @@ import {
   user_symbol_invocation,
 } from "./scan2";
 
-const pLETTER_COLON = /[a-zA-Z]:/;
 export const pEOL = "\n";
 export const pMacroLine = /[m][ \t]*:/;
 export const pUserSymbol = /U[ \t]*:/;
@@ -38,14 +37,10 @@ export const pPitch = new RegExp(`((\\^[\\^\\/]?)|(_[_\\/]?)|=)?[a-gA-G][,']*`);
 export const pString = /"[^\n]*"/;
 // Chord pattern: [ followed by pitches (with optional rhythm) and/or strings, then ]
 // Note: rhythm values inside chords are allowed (scanner parses them, interpreter handles them)
-export const pChord = new RegExp(
-  `\\[[ \\t]*((${pString.source}[ \\t]*)+|(${pPitch.source}(?:${pDuration.source})?-?[ \\t]*)+)\\]`
-);
+export const pChord = new RegExp(`\\[[ \\t]*((${pString.source}[ \\t]*)+|(${pPitch.source}(?:${pDuration.source})?-?[ \\t]*)+)\\]`);
 export const pDeco = /[\~\.HJKkLMnOPRSTuv]/;
 
 export const pTuplet = new RegExp(`\\(${pNumber.source}(:(${pNumber.source})?)?(:(${pNumber.source})?)?`);
-const pNote = new RegExp(`-?${pDeco.source}?${pPitch.source}${pDuration.source}?-?`);
-const pRestFull = new RegExp(`${pRest.source}${pDuration.source}?`);
 export const pBrLn = /((\[\|)|(\|\])|(\|\|)|(\|))/;
 const pSymbol = /![^\n!]*!/;
 const pDecoLookahead = new RegExp(`^${pDeco.source}+(?=(${pPitch.source}|${pRest.source}|${pChord.source}|${pSymbol.source}))`);
@@ -121,9 +116,6 @@ export function line_continuation(ctx: Ctx): boolean {
 export function tuplet(ctx: Ctx): boolean {
   const fullMatch = new RegExp(`^${pTuplet.source}`).exec(ctx.source.substring(ctx.current));
   if (!fullMatch) return false;
-
-  // Save the original start position
-  const originalStart = ctx.current;
 
   // Push the opening parenthesis token
   ctx.start = ctx.current;
@@ -877,7 +869,7 @@ export function lyric_line(ctx: Ctx): boolean {
   if (!match) return false;
   ctx.current += match[0].length;
 
-  if (match[0].charAt(0) == "W") {
+  if (match[0].charAt(0) === "W") {
     ctx.push(TT.LY_SECT_HDR);
   } else {
     ctx.push(TT.LY_HDR);

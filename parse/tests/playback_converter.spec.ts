@@ -1,11 +1,11 @@
 import { expect } from "chai";
-import { createRational } from "../Visitors/fmt2/rational";
 import {
   durationToMicroseconds,
   createSimpleNoteEvents,
   convertTuneToMuseSamplerEvents,
 } from "../playback/converter";
 import { NoteArticulation } from "../playback/types";
+import { createRational } from "../Visitors/fmt2/rational";
 
 describe("playback/converter", () => {
   describe("durationToMicroseconds", () => {

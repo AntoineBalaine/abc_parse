@@ -1,11 +1,9 @@
 import assert from "assert";
-import chai from "chai";
 import { ABCContext } from "../parsers/Context";
 import { ParseCtx, parseTune } from "../parsers/parse2";
 import { Scanner } from "../parsers/scan2";
 import { File_header, File_structure } from "../types/Expr2";
 import { RhythmVisitor } from "../Visitors/RhythmTransform";
-const expect = chai.expect;
 
 export function tuneHeader(testStr: string) {
   return `X:1\n${testStr}`;

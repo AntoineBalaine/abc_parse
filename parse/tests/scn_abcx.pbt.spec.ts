@@ -8,11 +8,11 @@
  * All other token types (barlines, annotations, etc.) are tested in scn_pbt.spec.ts.
  */
 
-import * as fc from "fast-check";
 import { expect } from "chai";
+import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
-import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
 import { Token, TT } from "../parsers/scan2";
+import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
 import {
   genChordSymbolToken,
   genAbcxTokenSequence,

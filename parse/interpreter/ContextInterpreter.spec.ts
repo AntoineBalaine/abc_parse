@@ -1,13 +1,13 @@
 import { expect } from "chai";
 import * as fc from "fast-check";
-import { encode, binarySearchFloor, ContextInterpreter, getRangeSnapshots, getSnapshotAtPosition } from "./ContextInterpreter";
+import { SemanticAnalyzer, SemanticData } from "../analyzers/semantic-analyzer";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Scanner } from "../parsers/scan2";
 import { parse } from "../parsers/parse2";
-import { SemanticAnalyzer, SemanticData } from "../analyzers/semantic-analyzer";
-import { File_structure, Tune } from "../types/Expr2";
+import { Scanner } from "../parsers/scan2";
 import { MeterType } from "../types/abcjs-ast";
+import { File_structure } from "../types/Expr2";
+import { encode, binarySearchFloor, ContextInterpreter, getRangeSnapshots, getSnapshotAtPosition } from "./ContextInterpreter";
 
 // ============================================================================
 // Test Helpers

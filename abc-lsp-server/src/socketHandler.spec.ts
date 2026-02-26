@@ -1,17 +1,17 @@
-import { expect } from "chai";
-import { describe, it, beforeEach, afterEach } from "mocha";
-import * as net from "net";
 import * as fs from "fs";
-import * as path from "path";
+import * as net from "net";
 import * as os from "os";
-import { SocketHandler, computeSocketPath } from "./socketHandler";
-import { ERROR_CODES } from "./constants";
+import * as path from "path";
+import { abc2midi } from "abc-midi";
+import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
+import { expect } from "chai";
+import { fromAst, CSNode } from "editor";
+import { describe, it, beforeEach, afterEach } from "mocha";
+import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
-import { fromAst, CSNode } from "editor";
-import { Scanner, parse, ABCContext, File_structure, ScannerAbcx, parseAbcx } from "abc-parser";
-import { abc2midi } from "abc-midi";
-import { TextDocument } from "vscode-languageserver-textdocument";
+import { ERROR_CODES } from "./constants";
+import { SocketHandler, computeSocketPath } from "./socketHandler";
 
 interface LSPRange {
   start: { line: number; character: number };

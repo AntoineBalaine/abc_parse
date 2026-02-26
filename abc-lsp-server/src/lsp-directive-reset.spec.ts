@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { TextDocument } from "vscode-languageserver-textdocument";
 import { TextEdit } from "vscode-languageserver";
+import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcLspServer } from "./AbcLspServer";
 
 /**

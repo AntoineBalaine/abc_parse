@@ -8,12 +8,12 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { discoverAbcFiles } from "./file-discovery";
-import { Scanner } from "../../../parsers/scan2";
-import { parse } from "../../../parsers/parse2";
 import { SemanticAnalyzer } from "../../../analyzers/semantic-analyzer";
 import { ABCContext } from "../../../parsers/Context";
 import { AbcErrorReporter } from "../../../parsers/ErrorReporter";
+import { parse } from "../../../parsers/parse2";
+import { Scanner } from "../../../parsers/scan2";
+import { discoverAbcFiles } from "./file-discovery";
 
 // ============================================================================
 // Test Configuration

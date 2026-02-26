@@ -1,6 +1,6 @@
+import { ABCContext } from "../../parsers/Context";
 import { Token, TT } from "../../parsers/scan2";
 import { Rhythm } from "../../types/Expr2";
-import { ABCContext } from "../../parsers/Context";
 
 export interface IRational {
   numerator: number;

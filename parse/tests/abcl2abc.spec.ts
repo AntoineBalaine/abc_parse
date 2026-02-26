@@ -1,13 +1,13 @@
 import { expect } from "chai";
+import { abclToAbc, convertFileToDeferred, convertTuneToDeferred } from "../abcl";
+import { isVoiceMarker, isComment } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { abclToAbc, convertFileToDeferred, convertTuneToDeferred, getAllVoices } from "../abcl";
-import { Scanner } from "../parsers/scan2";
 import { parse, parseTune, ParseCtx } from "../parsers/parse2";
-import { AbcFormatter } from "../Visitors/Formatter2";
+import { Scanner } from "../parsers/scan2";
+import { extractVoiceId } from "../parsers/voices2";
 import { Info_line, Tune } from "../types/Expr2";
-import { LinearVoiceCtx, parseVoices, extractVoiceId } from "../parsers/voices2";
-import { isVoiceMarker, isComment } from "../helpers";
+import { AbcFormatter } from "../Visitors/Formatter2";
 
 function createCtx(): ABCContext {
   return new ABCContext(new AbcErrorReporter());

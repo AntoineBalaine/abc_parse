@@ -1,7 +1,7 @@
+import { cloneToken, isInfo_line, isInline_field, isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import { Info_line, Inline_field, System, Tune_Body, VoiceMarkerStyle, tune_body_code } from "../types/Expr2";
-import { cloneToken, isInfo_line, isInline_field, isToken } from "../helpers";
 
 /**
  * Visitor that transforms voice markers between inline ([V:1]) and infoline (V:1) forms.

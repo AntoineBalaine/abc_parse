@@ -6,15 +6,15 @@
 
 import { expect } from "chai";
 import * as fc from "fast-check";
+import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Scanner, Token } from "../parsers/scan2";
 import { parse } from "../parsers/parse2";
-import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
-import { TuneInterpreter } from "./TuneInterpreter";
+import { Scanner, Token } from "../parsers/scan2";
+import { genNote, genChord, genRest, genBarline } from "../tests/scn_pbt.generators.spec";
 import { StaffSystem, ElementType } from "../types/abcjs-ast";
 import { AbcFormatter } from "../Visitors/Formatter2";
-import { genNote, genChord, genRest, genBarline } from "../tests/scn_pbt.generators.spec";
+import { TuneInterpreter } from "./TuneInterpreter";
 
 // ============================================================================
 // Generators
@@ -145,7 +145,7 @@ function countExpectedElements(bodySections: any[]): number {
   let total = 0;
   for (const section of bodySections) {
     for (const measure of section.measures) {
-      const [elements, barline] = measure;
+      const [elements] = measure;
       // Each item in elements array is ONE musical element (note/chord/rest)
       // regardless of how many tokens it contains
       total += elements.length;
@@ -153,53 +153,6 @@ function countExpectedElements(bodySections: any[]): number {
     }
   }
   return total;
-}
-
-/**
- * Extract voice-to-staff mapping from tune structure
- */
-function getVoiceToStaffMapping(tune: any): Map<string, number> {
-  const mapping = new Map<string, number>();
-
-  for (const system of tune.systems) {
-    if (!("staff" in system)) continue;
-    const staffSystem = system as StaffSystem;
-
-    for (let staffNum = 0; staffNum < staffSystem.staff.length; staffNum++) {
-      const staff = staffSystem.staff[staffNum];
-      // In our implementation, each staff.voices[i] corresponds to a voice
-      // We'd need to track which voice ID is at which position
-      // For now, we can verify that each (staff, voice_index) pair is consistent
-    }
-  }
-
-  return mapping;
-}
-
-/**
- * Check if a voice appears in multiple positions across systems
- */
-function checkVoicePositionConsistency(tune: any): boolean {
-  // Track (staffNum, voiceIndex) for each voice
-  const voicePositions = new Map<string, Set<string>>();
-
-  for (const system of tune.systems) {
-    if (!("staff" in system)) continue;
-    const staffSystem = system as StaffSystem;
-
-    for (let staffNum = 0; staffNum < staffSystem.staff.length; staffNum++) {
-      const staff = staffSystem.staff[staffNum];
-      for (let voiceIdx = 0; voiceIdx < staff.voices.length; voiceIdx++) {
-        if (staff.voices[voiceIdx].length > 0) {
-          const key = `${staffNum},${voiceIdx}`;
-          // In a real implementation, we'd track voice ID -> position mapping
-          // For now, verify that each (staff, voice) pair is unique per system
-        }
-      }
-    }
-  }
-
-  return true;
 }
 
 // ============================================================================
@@ -210,7 +163,7 @@ describe("Multi-Staff Property-Based Tests", () => {
   it("property: all elements are conserved (nothing lost or duplicated)", () => {
     fc.assert(
       fc.property(genMultiVoiceTune, ({ abc, bodySections }) => {
-        const { tune, ctx } = interpretABC(abc);
+        const { tune } = interpretABC(abc);
 
         // Count expected elements (from generated pattern)
         const expectedCount = countExpectedElements(bodySections);
@@ -256,7 +209,7 @@ describe("Multi-Staff Property-Based Tests", () => {
 
   it("property: staff count is consistent", () => {
     fc.assert(
-      fc.property(genMultiVoiceTune, ({ abc, declaredVoices }) => {
+      fc.property(genMultiVoiceTune, ({ abc }) => {
         const { tune } = interpretABC(abc);
 
         // Staff count should be consistent across systems

@@ -1,5 +1,5 @@
-import { CSNode, isTokenNode, getTokenData } from "../csTree/types";
 import { IRational, TT } from "abc-parser";
+import { CSNode, isTokenNode, getTokenData } from "../csTree/types";
 
 /**
  * Checks if a number is a power of two.

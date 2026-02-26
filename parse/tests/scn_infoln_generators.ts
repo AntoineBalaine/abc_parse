@@ -232,7 +232,7 @@ export const genKeyInfoLine2 = fc
     ),
     genEOL
   )
-  .map(([header, leadingWs, keySig, modifiers, eol]) => [header, ...(leadingWs ? [leadingWs] : []), keySig, ...modifiers.flat()]);
+  .map(([header, leadingWs, keySig, modifiers, _eol]) => [header, ...(leadingWs ? [leadingWs] : []), keySig, ...modifiers.flat()]);
 
 // Meter info: M: 4/4 or M: (2+3)/8 or M: C|
 // Includes optional whitespace around operators to test parser robustness
@@ -286,7 +286,7 @@ export const genMeterInfoLine2 = fc
     ),
     genEOL
   )
-  .map(([header, ws, content, eol]) => [header, ...(ws ? [ws] : []), ...(Array.isArray(content) ? content : [content])]);
+  .map(([header, ws, content, _eol]) => [header, ...(ws ? [ws] : []), ...(Array.isArray(content) ? content : [content])]);
 
 // Note length info: L: 1/4
 // Includes optional whitespace around the slash operator
@@ -301,7 +301,7 @@ export const genNoteLenInfoLine2 = fc
     genNumber,
     genEOL
   )
-  .map(([header, ws, num, ws1, slash, ws2, denom, eol]) =>
+  .map(([header, ws, num, ws1, slash, ws2, denom, _eol]) =>
     [header, ws, num, ws1, slash, ws2, denom].filter((t): t is Token => t !== null)
   );
 
@@ -324,7 +324,7 @@ export const genTempoInfoLine2 = fc
     ),
     genEOL
   )
-  .map(([header, parts, eol]) => [header, ...parts.flat().flat()]);
+  .map(([header, parts, _eol]) => [header, ...parts.flat().flat()]);
 
 /**
  * Generator for generic info lines (T:, A:, C:, O:, etc.)
@@ -339,7 +339,7 @@ export const genGenericInfoLine = fc
     fc.stringMatching(/^[^&\s%\n]+$/).map((content) => new Token(TT.INFO_STR, content, sharedContext.generateId())),
     genEOL
   )
-  .map(([header, content, eol]) => [header, content]);
+  .map(([header, content, _eol]) => [header, content]);
 
 /**
  * Generator for complete info lines using proper syntax-aware generators
