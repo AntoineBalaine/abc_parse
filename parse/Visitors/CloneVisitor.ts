@@ -56,50 +56,52 @@ import { System } from "../types/types";
  */
 export class Cloner implements Visitor<Expr | Token> {
   public ctx: ABCContext;
-  constructor(ctx: ABCContext) {
+  public preservePosition: boolean;
+  constructor(ctx: ABCContext, preservePosition = false) {
     this.ctx = ctx;
+    this.preservePosition = preservePosition;
   }
 
   visitToken(token: Token): Token {
-    return cloneToken(token, this.ctx);
+    return cloneToken(token, this.ctx, this.preservePosition);
   }
 
   visitAnnotationExpr(expr: Annotation): Expr | Token {
-    return new Annotation(this.ctx.generateId(), cloneToken(expr.text, this.ctx));
+    return new Annotation(this.ctx.generateId(), cloneToken(expr.text, this.ctx, this.preservePosition));
   }
 
   visitBarLineExpr(expr: BarLine): BarLine {
     return new BarLine(
       this.ctx.generateId(),
-      expr.barline.map((e) => cloneToken(e, this.ctx)),
-      expr.repeatNumbers ? expr.repeatNumbers.map((e) => cloneToken(e, this.ctx)) : undefined
+      expr.barline.map((e) => cloneToken(e, this.ctx, this.preservePosition)),
+      expr.repeatNumbers ? expr.repeatNumbers.map((e) => cloneToken(e, this.ctx, this.preservePosition)) : undefined
     );
   }
 
   visitChordExpr(expr: Chord): Chord {
     const newContents = expr.contents.map((content) => {
       if (isToken(content)) {
-        return cloneToken(content, this.ctx);
+        return cloneToken(content, this.ctx, this.preservePosition);
       } else {
         return content.accept(this);
       }
     }) as Array<Note | Token | Annotation>;
     const newRhythm = expr.rhythm ? (expr.rhythm.accept(this) as Rhythm) : undefined;
-    const newTie = expr.tie ? cloneToken(expr.tie, this.ctx) : undefined;
-    const newLeftBracket = expr.leftBracket ? cloneToken(expr.leftBracket, this.ctx) : undefined;
-    const newRightBracket = expr.rightBracket ? cloneToken(expr.rightBracket, this.ctx) : undefined;
+    const newTie = expr.tie ? cloneToken(expr.tie, this.ctx, this.preservePosition) : undefined;
+    const newLeftBracket = expr.leftBracket ? cloneToken(expr.leftBracket, this.ctx, this.preservePosition) : undefined;
+    const newRightBracket = expr.rightBracket ? cloneToken(expr.rightBracket, this.ctx, this.preservePosition) : undefined;
     return new Chord(this.ctx.generateId(), newContents, newRhythm, newTie, newLeftBracket, newRightBracket);
   }
 
   visitCommentExpr(expr: Comment): Comment {
-    return new Comment(this.ctx.generateId(), cloneToken(expr.token, this.ctx));
+    return new Comment(this.ctx.generateId(), cloneToken(expr.token, this.ctx, this.preservePosition));
   }
 
   visitDirectiveExpr(expr: Directive): Directive {
-    const newKey = cloneToken(expr.key, this.ctx);
+    const newKey = cloneToken(expr.key, this.ctx, this.preservePosition);
     const newValues = expr.values.map((v) => {
       if (isToken(v)) {
-        return cloneToken(v, this.ctx);
+        return cloneToken(v, this.ctx, this.preservePosition);
       } else {
         return v.accept(this) as Rational | Pitch | KV | Measurement | Annotation;
       }
@@ -108,17 +110,17 @@ export class Cloner implements Visitor<Expr | Token> {
   }
 
   visitSystemBreakExpr(expr: SystemBreak): SystemBreak {
-    return new SystemBreak(this.ctx.generateId(), cloneToken(expr.symbol, this.ctx));
+    return new SystemBreak(this.ctx.generateId(), cloneToken(expr.symbol, this.ctx, this.preservePosition));
   }
 
   visitDecorationExpr(expr: Decoration): Decoration {
-    return new Decoration(this.ctx.generateId(), cloneToken(expr.decoration, this.ctx));
+    return new Decoration(this.ctx.generateId(), cloneToken(expr.decoration, this.ctx, this.preservePosition));
   }
 
   visitFileHeaderExpr(expr: File_header): File_header {
     const newContents = expr.contents.map((e) => {
       if (isToken(e)) {
-        return cloneToken(e, this.ctx);
+        return cloneToken(e, this.ctx, this.preservePosition);
       } else {
         return e.accept(this) as Expr;
       }
@@ -130,7 +132,7 @@ export class Cloner implements Visitor<Expr | Token> {
     const newHeader = expr.file_header ? (expr.file_header.accept(this) as File_header) : null;
     const newContents = expr.contents.map((e) => {
       if (isToken(e)) {
-        return cloneToken(e, this.ctx);
+        return cloneToken(e, this.ctx, this.preservePosition);
       } else {
         return e.accept(this) as Tune;
       }
@@ -141,7 +143,7 @@ export class Cloner implements Visitor<Expr | Token> {
   visitGraceGroupExpr(expr: Grace_group): Grace_group {
     const newNotes = expr.notes.map((content) => {
       if (isToken(content)) {
-        return cloneToken(content, this.ctx);
+        return cloneToken(content, this.ctx, this.preservePosition);
       } else {
         return content.accept(this) as Note;
       }
@@ -150,21 +152,21 @@ export class Cloner implements Visitor<Expr | Token> {
   }
 
   visitInfoLineExpr(expr: Info_line): Info_line {
-    const newKey = cloneToken(expr.key, this.ctx);
-    const newValue = expr.value.map((e) => cloneToken(e, this.ctx));
+    const newKey = cloneToken(expr.key, this.ctx, this.preservePosition);
+    const newValue = expr.value.map((e) => cloneToken(e, this.ctx, this.preservePosition));
     const newValue2 = expr.value2 ? expr.value2.map((e) => e.accept(this) as Expr) : undefined;
     return new Info_line(this.ctx.generateId(), [newKey, ...newValue], expr.parsed, newValue2);
   }
 
   visitInlineFieldExpr(expr: Inline_field): Inline_field {
-    const newField = cloneToken(expr.field, this.ctx);
-    const newText = expr.text.map((e) => cloneToken(e, this.ctx));
+    const newField = cloneToken(expr.field, this.ctx, this.preservePosition);
+    const newText = expr.text.map((e) => cloneToken(e, this.ctx, this.preservePosition));
     return new Inline_field(this.ctx.generateId(), newField, newText);
   }
 
   visitLyricLineExpr(expr: Lyric_line): Lyric_line {
-    const newHeader = cloneToken(expr.header, this.ctx);
-    const newContents = expr.contents.map((e) => cloneToken(e, this.ctx));
+    const newHeader = cloneToken(expr.header, this.ctx, this.preservePosition);
+    const newContents = expr.contents.map((e) => cloneToken(e, this.ctx, this.preservePosition));
     return new Lyric_line(this.ctx.generateId(), newHeader, newContents);
   }
 
@@ -174,34 +176,34 @@ export class Cloner implements Visitor<Expr | Token> {
   }
 
   visitMacroDeclExpr(expr: Macro_decl): Macro_decl {
-    const newHeader = cloneToken(expr.header, this.ctx);
-    const newVariable = cloneToken(expr.variable, this.ctx);
-    const newContent = cloneToken(expr.content, this.ctx);
-    const newEquals = expr.equals ? cloneToken(expr.equals, this.ctx) : undefined;
+    const newHeader = cloneToken(expr.header, this.ctx, this.preservePosition);
+    const newVariable = cloneToken(expr.variable, this.ctx, this.preservePosition);
+    const newContent = cloneToken(expr.content, this.ctx, this.preservePosition);
+    const newEquals = expr.equals ? cloneToken(expr.equals, this.ctx, this.preservePosition) : undefined;
     return new Macro_decl(this.ctx.generateId(), newHeader, newVariable, newContent, newEquals);
   }
 
   visitMacroInvocationExpr(expr: Macro_invocation): Macro_invocation {
-    return new Macro_invocation(this.ctx.generateId(), cloneToken(expr.variable, this.ctx));
+    return new Macro_invocation(this.ctx.generateId(), cloneToken(expr.variable, this.ctx, this.preservePosition));
   }
 
   visitMultiMeasureRestExpr(expr: MultiMeasureRest): MultiMeasureRest {
-    const newRest = cloneToken(expr.rest, this.ctx);
-    const newLength = expr.length ? cloneToken(expr.length, this.ctx) : undefined;
+    const newRest = cloneToken(expr.rest, this.ctx, this.preservePosition);
+    const newLength = expr.length ? cloneToken(expr.length, this.ctx, this.preservePosition) : undefined;
     return new MultiMeasureRest(this.ctx.generateId(), newRest, newLength);
   }
 
   visitNoteExpr(expr: Note): Note {
     const newPitch = expr.pitch.accept(this) as Pitch;
     const newRhythm = expr.rhythm ? (expr.rhythm.accept(this) as Rhythm) : undefined;
-    const newTie = expr.tie ? cloneToken(expr.tie, this.ctx) : undefined;
+    const newTie = expr.tie ? cloneToken(expr.tie, this.ctx, this.preservePosition) : undefined;
     return new Note(this.ctx.generateId(), newPitch, newRhythm, newTie);
   }
 
   visitPitchExpr(expr: Pitch): Pitch {
-    const newAlteration = expr.alteration ? cloneToken(expr.alteration, this.ctx) : undefined;
-    const newNoteLetter = cloneToken(expr.noteLetter, this.ctx);
-    const newOctave = expr.octave ? cloneToken(expr.octave, this.ctx) : undefined;
+    const newAlteration = expr.alteration ? cloneToken(expr.alteration, this.ctx, this.preservePosition) : undefined;
+    const newNoteLetter = cloneToken(expr.noteLetter, this.ctx, this.preservePosition);
+    const newOctave = expr.octave ? cloneToken(expr.octave, this.ctx, this.preservePosition) : undefined;
     return new Pitch(this.ctx.generateId(), {
       alteration: newAlteration,
       noteLetter: newNoteLetter,
@@ -211,26 +213,26 @@ export class Cloner implements Visitor<Expr | Token> {
 
   visitRestExpr(expr: Rest): Rest {
     const newRhythm = expr.rhythm ? (expr.rhythm.accept(this) as Rhythm) : undefined;
-    return new Rest(this.ctx.generateId(), cloneToken(expr.rest, this.ctx), newRhythm);
+    return new Rest(this.ctx.generateId(), cloneToken(expr.rest, this.ctx, this.preservePosition), newRhythm);
   }
 
   visitRhythmExpr(expr: Rhythm): Rhythm {
-    const newNumerator = expr.numerator ? cloneToken(expr.numerator, this.ctx) : null;
-    const newSeparator = expr.separator ? cloneToken(expr.separator, this.ctx) : undefined;
-    const newDenominator = expr.denominator ? cloneToken(expr.denominator, this.ctx) : null;
-    const newBroken = expr.broken ? cloneToken(expr.broken, this.ctx) : null;
+    const newNumerator = expr.numerator ? cloneToken(expr.numerator, this.ctx, this.preservePosition) : null;
+    const newSeparator = expr.separator ? cloneToken(expr.separator, this.ctx, this.preservePosition) : undefined;
+    const newDenominator = expr.denominator ? cloneToken(expr.denominator, this.ctx, this.preservePosition) : null;
+    const newBroken = expr.broken ? cloneToken(expr.broken, this.ctx, this.preservePosition) : null;
     return new Rhythm(this.ctx.generateId(), newNumerator, newSeparator, newDenominator, newBroken);
   }
 
   visitSymbolExpr(expr: Symbol): Symbol {
-    return new Symbol(this.ctx.generateId(), cloneToken(expr.symbol, this.ctx));
+    return new Symbol(this.ctx.generateId(), cloneToken(expr.symbol, this.ctx, this.preservePosition));
   }
 
   visitTuneBodyExpr(expr: Tune_Body): Tune_Body {
     const newSequence = expr.sequence.map((system) => {
       return system.map((element) => {
         if (isToken(element)) {
-          return cloneToken(element, this.ctx);
+          return cloneToken(element, this.ctx, this.preservePosition);
         } else {
           return element.accept(this);
         }
@@ -251,28 +253,28 @@ export class Cloner implements Visitor<Expr | Token> {
   }
 
   visitUserSymbolDeclExpr(expr: User_symbol_decl): User_symbol_decl {
-    const newHeader = cloneToken(expr.header, this.ctx);
-    const newVariable = cloneToken(expr.variable, this.ctx);
-    const newSymbol = cloneToken(expr.symbol, this.ctx);
-    const newEquals = expr.equals ? cloneToken(expr.equals, this.ctx) : undefined;
+    const newHeader = cloneToken(expr.header, this.ctx, this.preservePosition);
+    const newVariable = cloneToken(expr.variable, this.ctx, this.preservePosition);
+    const newSymbol = cloneToken(expr.symbol, this.ctx, this.preservePosition);
+    const newEquals = expr.equals ? cloneToken(expr.equals, this.ctx, this.preservePosition) : undefined;
     return new User_symbol_decl(this.ctx.generateId(), newHeader, newVariable, newSymbol, newEquals);
   }
 
   visitUserSymbolInvocationExpr(expr: User_symbol_invocation): User_symbol_invocation {
-    return new User_symbol_invocation(this.ctx.generateId(), cloneToken(expr.variable, this.ctx));
+    return new User_symbol_invocation(this.ctx.generateId(), cloneToken(expr.variable, this.ctx, this.preservePosition));
   }
 
   visitVoiceOverlayExpr(expr: Voice_overlay): Voice_overlay {
-    const newContents = expr.contents.map((token) => cloneToken(token, this.ctx));
+    const newContents = expr.contents.map((token) => cloneToken(token, this.ctx, this.preservePosition));
     return new Voice_overlay(this.ctx.generateId(), newContents);
   }
 
   visitLineContinuationExpr(expr: Line_continuation): Line_continuation {
-    return new Line_continuation(this.ctx.generateId(), cloneToken(expr.token, this.ctx));
+    return new Line_continuation(this.ctx.generateId(), cloneToken(expr.token, this.ctx, this.preservePosition));
   }
 
   visitYSpacerExpr(expr: YSPACER): YSPACER {
-    const newYSpacer = cloneToken(expr.ySpacer, this.ctx);
+    const newYSpacer = cloneToken(expr.ySpacer, this.ctx, this.preservePosition);
     const newRhythm = expr.rhythm ? (expr.rhythm.accept(this) as Rhythm) : undefined;
     return new YSPACER(this.ctx.generateId(), newYSpacer, newRhythm);
   }
@@ -280,7 +282,7 @@ export class Cloner implements Visitor<Expr | Token> {
   visitBeamExpr(expr: Beam): Beam {
     const newContents: Array<Beam_contents> = expr.contents.map((e) => {
       if (isToken(e)) {
-        return cloneToken(e, this.ctx);
+        return cloneToken(e, this.ctx, this.preservePosition);
       } else {
         return e.accept(this) as Beam_contents;
       }
@@ -289,20 +291,20 @@ export class Cloner implements Visitor<Expr | Token> {
   }
 
   visitTupletExpr(expr: Tuplet): Tuplet {
-    const new_p = cloneToken(expr.p, this.ctx);
+    const new_p = cloneToken(expr.p, this.ctx, this.preservePosition);
     let new_q: Token | undefined;
     let new_r: Token | undefined;
     if (expr.q) {
-      new_q = cloneToken(expr.q, this.ctx);
+      new_q = cloneToken(expr.q, this.ctx, this.preservePosition);
     }
     if (expr.r) {
-      new_r = cloneToken(expr.r, this.ctx);
+      new_r = cloneToken(expr.r, this.ctx, this.preservePosition);
     }
     return new Tuplet(this.ctx.generateId(), new_p, new_q, new_r);
   }
 
   visitErrorExpr(expr: ErrorExpr): ErrorExpr {
-    const tokens = expr.tokens.map((e) => cloneToken(e, this.ctx));
+    const tokens = expr.tokens.map((e) => cloneToken(e, this.ctx, this.preservePosition));
     const err_msg = expr.errorMessage ? cloneText(expr.errorMessage) : expr.errorMessage;
     return new ErrorExpr(this.ctx.generateId(), tokens, expr.expectedType, err_msg);
   }
@@ -312,15 +314,15 @@ export class Cloner implements Visitor<Expr | Token> {
     let newKey: Token | AbsolutePitch | undefined;
     if (expr.key) {
       if (isToken(expr.key)) {
-        newKey = cloneToken(expr.key, this.ctx);
+        newKey = cloneToken(expr.key, this.ctx, this.preservePosition);
       } else {
         newKey = expr.key.accept(this) as AbsolutePitch;
       }
     }
-    const newEquals = expr.equals ? cloneToken(expr.equals, this.ctx) : undefined;
+    const newEquals = expr.equals ? cloneToken(expr.equals, this.ctx, this.preservePosition) : undefined;
     let newValue: Token | Expr;
     if (isToken(expr.value)) {
-      newValue = cloneToken(expr.value, this.ctx);
+      newValue = cloneToken(expr.value, this.ctx, this.preservePosition);
     } else {
       newValue = expr.value.accept(this) as Expr;
     }
@@ -330,14 +332,14 @@ export class Cloner implements Visitor<Expr | Token> {
   visitBinary(expr: Binary): Binary {
     let newLeft: Expr | Token;
     if (isToken(expr.left)) {
-      newLeft = cloneToken(expr.left, this.ctx);
+      newLeft = cloneToken(expr.left, this.ctx, this.preservePosition);
     } else {
       newLeft = expr.left.accept(this) as Expr;
     }
-    const newOperator = cloneToken(expr.operator, this.ctx);
+    const newOperator = cloneToken(expr.operator, this.ctx, this.preservePosition);
     let newRight: Expr | Token;
     if (isToken(expr.right)) {
-      newRight = cloneToken(expr.right, this.ctx);
+      newRight = cloneToken(expr.right, this.ctx, this.preservePosition);
     } else {
       newRight = expr.right.accept(this) as Expr;
     }
@@ -345,10 +347,10 @@ export class Cloner implements Visitor<Expr | Token> {
   }
 
   visitUnary(expr: Unary): Unary {
-    const newOperator = cloneToken(expr.operator, this.ctx);
+    const newOperator = cloneToken(expr.operator, this.ctx, this.preservePosition);
     let newOperand: Expr | Token;
     if (isToken(expr.operand)) {
-      newOperand = cloneToken(expr.operand, this.ctx);
+      newOperand = cloneToken(expr.operand, this.ctx, this.preservePosition);
     } else {
       newOperand = expr.operand.accept(this) as Expr;
     }
@@ -357,51 +359,51 @@ export class Cloner implements Visitor<Expr | Token> {
 
   visitGrouping(expr: Grouping): Grouping {
     const newExpression = expr.expression.accept(this) as Expr;
-    const newLeftParen = expr.leftParen ? cloneToken(expr.leftParen, this.ctx) : undefined;
-    const newRightParen = expr.rightParen ? cloneToken(expr.rightParen, this.ctx) : undefined;
+    const newLeftParen = expr.leftParen ? cloneToken(expr.leftParen, this.ctx, this.preservePosition) : undefined;
+    const newRightParen = expr.rightParen ? cloneToken(expr.rightParen, this.ctx, this.preservePosition) : undefined;
     return new Grouping(this.ctx.generateId(), newExpression, newLeftParen, newRightParen);
   }
 
   visitAbsolutePitch(expr: AbsolutePitch): AbsolutePitch {
-    const newNoteLetter = cloneToken(expr.noteLetter, this.ctx);
-    const newAlteration = expr.alteration ? cloneToken(expr.alteration, this.ctx) : undefined;
-    const newOctave = expr.octave ? cloneToken(expr.octave, this.ctx) : undefined;
+    const newNoteLetter = cloneToken(expr.noteLetter, this.ctx, this.preservePosition);
+    const newAlteration = expr.alteration ? cloneToken(expr.alteration, this.ctx, this.preservePosition) : undefined;
+    const newOctave = expr.octave ? cloneToken(expr.octave, this.ctx, this.preservePosition) : undefined;
     return new AbsolutePitch(this.ctx.generateId(), newNoteLetter, newAlteration, newOctave);
   }
 
   visitRationalExpr(expr: Rational): Rational {
-    const newNumerator = cloneToken(expr.numerator, this.ctx);
-    const newSeparator = cloneToken(expr.separator, this.ctx);
-    const newDenominator = cloneToken(expr.denominator, this.ctx);
+    const newNumerator = cloneToken(expr.numerator, this.ctx, this.preservePosition);
+    const newSeparator = cloneToken(expr.separator, this.ctx, this.preservePosition);
+    const newDenominator = cloneToken(expr.denominator, this.ctx, this.preservePosition);
     return new Rational(this.ctx.generateId(), newNumerator, newSeparator, newDenominator);
   }
 
   visitMeasurementExpr(expr: Measurement): Measurement {
-    const newValue = cloneToken(expr.value, this.ctx);
-    const newScale = cloneToken(expr.scale, this.ctx);
+    const newValue = cloneToken(expr.value, this.ctx, this.preservePosition);
+    const newScale = cloneToken(expr.scale, this.ctx, this.preservePosition);
     return new Measurement(this.ctx.generateId(), newValue, newScale);
   }
 
   visitChordSymbolExpr(expr: ChordSymbol): ChordSymbol {
-    return new ChordSymbol(this.ctx.generateId(), cloneToken(expr.token, this.ctx));
+    return new ChordSymbol(this.ctx.generateId(), cloneToken(expr.token, this.ctx, this.preservePosition));
   }
 }
 
 // Helper functions for convenience
 export { cloneToken } from "../helpers";
 
-export function cloneLine(line: tune_body_code[], ctx: ABCContext): tune_body_code[] {
-  const cloner = new Cloner(ctx);
+export function cloneLine(line: tune_body_code[], ctx: ABCContext, preservePosition = false): tune_body_code[] {
+  const cloner = new Cloner(ctx, preservePosition);
   return line.map((element) => {
     if (isToken(element)) {
-      return cloneToken(element, ctx);
+      return cloneToken(element, ctx, preservePosition);
     } else {
       return element.accept(cloner) as tune_body_code;
     }
   });
 }
 
-export function cloneExpr<T extends Expr>(expr: T, ctx: ABCContext): T {
-  const cloner = new Cloner(ctx);
+export function cloneExpr<T extends Expr>(expr: T, ctx: ABCContext, preservePosition = false): T {
+  const cloner = new Cloner(ctx, preservePosition);
   return expr.accept(cloner) as T;
 }

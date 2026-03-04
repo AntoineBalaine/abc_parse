@@ -253,7 +253,7 @@ function walkForCursorRange(ctx: CursorRangeCtx, node: CSNode, insideSelected: b
  * Walks the tree to find nodes with IDs in the cursor set
  * and extracts their token positions (including tokens within selected nodes).
  */
-function getCursorRange(cursor: Set<number>, root: CSNode): Range | null {
+export function getCursorRange(cursor: Set<number>, root: CSNode): Range | null {
   const ctx: CursorRangeCtx = {
     cursor,
     minLine: Infinity,

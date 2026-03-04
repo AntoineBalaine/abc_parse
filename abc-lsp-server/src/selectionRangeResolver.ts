@@ -132,7 +132,7 @@ export function resolveRanges(
     : resolveSelectionRanges(newSelection);
 }
 
-function rangesOverlap(a: Range, b: Range): boolean {
+export function rangesOverlap(a: Range, b: Range): boolean {
   // Check if range a ends before range b starts (no overlap)
   if (a.end.line < b.start.line) return false;
   if (a.end.line === b.start.line && a.end.character <= b.start.character) return false;

@@ -255,8 +255,13 @@ export const mergeTokens = (tokens: Token[], ctx: ABCContext) => {
     });
 };
 
-export const cloneToken = (token: Token, ctx: ABCContext) => {
-  return new Token(token.type, cloneText(token.lexeme), ctx.generateId());
+export const cloneToken = (token: Token, ctx: ABCContext, preservePosition = false) => {
+  const clone = new Token(token.type, cloneText(token.lexeme), ctx.generateId());
+  if (preservePosition) {
+    clone.line = token.line;
+    clone.position = token.position;
+  }
+  return clone;
 };
 
 export const cloneText = (text: string) => {

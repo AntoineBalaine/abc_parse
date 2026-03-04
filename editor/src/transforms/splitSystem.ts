@@ -250,7 +250,7 @@ function splitVoiceLineByPosition(
 }
 
 // Append content with synthetic EOL
-function appendEOL(system: SystemAst, voiceLineContent: SystemAst, ctx: ABCContext): void {
+export function appendEOL(system: SystemAst, voiceLineContent: SystemAst, ctx: ABCContext): void {
   if (voiceLineContent.length === 0) return;
 
   for (const node of voiceLineContent) {
@@ -271,7 +271,7 @@ function startsWithVoiceMarker(voiceLine: SystemAst): boolean {
 // The Inline_field class expects text[0] to be the field token per Formatter2 convention
 // We use TT.INLN_FLD_LFT_BRKT/TT.INLN_FLD_RGT_BRKT so that toAst.ts buildInlineField
 // correctly recognizes them as bracket tokens (not as text content).
-function prependVoiceMarker(voiceLine: SystemAst, voiceId: string, ctx: ABCContext): void {
+export function prependVoiceMarker(voiceLine: SystemAst, voiceId: string, ctx: ABCContext): void {
   const fieldToken = new Token(TT.INF_HDR, "V:", ctx.generateId());
   const textToken = new Token(TT.INFO_STR, voiceId, ctx.generateId());
   const leftBracket = new Token(TT.INLN_FLD_LFT_BRKT, "[", ctx.generateId());
@@ -357,7 +357,7 @@ function splitSystemAst(
 }
 
 // Convert AST array to CSTree System node
-function toCSTreeSystem(systemArray: SystemAst, ctx: ABCContext): CSNode {
+export function toCSTreeSystem(systemArray: SystemAst, ctx: ABCContext): CSNode {
   const systemNode = createCSNode(TAGS.System, ctx.generateId(), { type: "empty" });
 
   for (const element of systemArray) {

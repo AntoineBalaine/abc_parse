@@ -111,7 +111,7 @@ function walkAndFilter(treeRoot: CSNode, startNode: CSNode | null, partIndex: nu
 /**
  * Collects all node IDs from a sibling chain, recursing into children.
  */
-function collectSiblingIds(startNode: CSNode | null): Set<number> {
+export function collectSiblingIds(startNode: CSNode | null): Set<number> {
   const ids = new Set<number>();
   let current = startNode;
   while (current !== null) {

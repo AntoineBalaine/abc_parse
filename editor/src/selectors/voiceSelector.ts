@@ -41,7 +41,7 @@ export function isVoiceMarker(node: CSNode): boolean {
  * Returns the first whitespace-delimited word from the value (to ignore metadata like clef=treble).
  * Returns null if extraction fails.
  */
-function extractVoiceId(node: CSNode): string | null {
+export function extractVoiceId(node: CSNode): string | null {
   let valueChild: CSNode | null | undefined = null;
 
   if (node.tag === TAGS.Info_line) {

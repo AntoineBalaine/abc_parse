@@ -261,3 +261,16 @@ export function findByPos(node: CSNode, tag: string, position: Position, parent:
 
   return null;
 }
+
+export function walkByTag<T>(tags: string[], ctx: T, callback: (node: CSNode, ctx: T) => void, node: CSNode | null): void {
+  let current = node;
+  while (current !== null) {
+    if (tags.includes(current.tag)) {
+      callback(current, ctx);
+    }
+    if (current.firstChild) {
+      walkByTag(tags, ctx, callback, current.firstChild);
+    }
+    current = current.nextSibling;
+  }
+}

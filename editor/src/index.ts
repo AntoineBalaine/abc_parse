@@ -43,7 +43,7 @@ export {
 } from "./selectors/delimiterSelectors";
 export { selectMeasures } from "./selectors/measureSelector";
 export { selectRange } from "./selectors/rangeSelector";
-export { selectVoices, isVoiceMarker } from "./selectors/voiceSelector";
+export { selectVoices, isVoiceMarker, extractVoiceId } from "./selectors/voiceSelector";
 export { selectSystem } from "./selectors/systemSelector";
 export { fanOutByPredicate, WalkStrategy } from "./selectors/fanOut";
 export {
@@ -57,6 +57,7 @@ export {
   findFirstByTag,
   findByPos,
   FindByPosResult,
+  walkByTag,
 } from "./selectors/treeWalk";
 
 // Transforms
