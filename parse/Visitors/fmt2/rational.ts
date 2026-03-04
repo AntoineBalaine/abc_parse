@@ -1,3 +1,7 @@
+import { Token, TT } from "../../parsers/scan2";
+import { Rhythm } from "../../types/Expr2";
+import { ABCContext } from "../../parsers/Context";
+
 export interface IRational {
   numerator: number;
   denominator: number;
@@ -185,6 +189,49 @@ export function rationalFromNumber(num: number, maxDenominator: number = 10000):
   }
 
   return createRational(sign * n, d);
+}
+
+/**
+ * Converts an IRational to an AST Rhythm expression. Because the explosion
+ * transform operates entirely on AST nodes (not CSNodes), we need to produce
+ * Rhythm exprs directly without going through CSTree conversion.
+ *
+ * Returns null when the rational is 1/1, which means the caller should remove
+ * the rhythm child entirely (1/1 is the default note length, so no token is needed).
+ */
+export function rationalToRhythmExpr(
+  rational: IRational,
+  ctx: ABCContext
+): Rhythm | null {
+  const normalized = createRational(rational.numerator, rational.denominator);
+  let { numerator, denominator } = normalized;
+
+  if (numerator < 0) {
+    numerator = 1;
+    denominator = 1;
+  }
+
+  if (numerator === 1 && denominator === 1) {
+    return null;
+  }
+
+  let numToken: Token | null = null;
+  let sepToken: Token | undefined = undefined;
+  let denToken: Token | undefined = undefined;
+
+  if (denominator === 1) {
+    numToken = new Token(TT.RHY_NUMER, numerator.toString(), ctx.generateId());
+  } else {
+    if (numerator !== 1) {
+      numToken = new Token(TT.RHY_NUMER, numerator.toString(), ctx.generateId());
+    }
+    sepToken = new Token(TT.RHY_SEP, "/", ctx.generateId());
+    if (denominator !== 2) {
+      denToken = new Token(TT.RHY_DENOM, denominator.toString(), ctx.generateId());
+    }
+  }
+
+  return new Rhythm(ctx.generateId(), numToken, sepToken, denToken ?? null);
 }
 
 /** Helper: parse rational string "n/d" to IRational

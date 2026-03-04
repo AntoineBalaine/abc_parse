@@ -123,6 +123,7 @@ export {
   splitSystem,
   splitSystems,
   SplitMetadata,
+  explosion,
 } from "./transforms";
 
 // Context utilities
