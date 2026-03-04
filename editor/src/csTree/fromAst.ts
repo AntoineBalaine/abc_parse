@@ -46,9 +46,10 @@ import {
   Visitor,
   ABCContext,
 } from "abc-parser";
-import { CSNode, TAGS, NodeData, createCSNode } from "./types";
+import { createNode, appendChild } from "cstree";
+import { CSNode, TAGS, NodeData } from "./types";
 
-function resolveTag(node: Expr | Token): string {
+function resolveTag(node: Expr | Token): TAGS {
   if (node instanceof Token) return TAGS.Token;
   if (node instanceof File_structure) return TAGS.File_structure;
   if (node instanceof Tune) return TAGS.Tune;
@@ -314,53 +315,25 @@ export const childrenVisitor: Visitor<ChildList> = {
 export function fromAst(node: Expr | Token, ctx: ABCContext): CSNode {
   const tag = resolveTag(node);
   const data = extractData(node);
-  const csNode = createCSNode(tag, node.id, data);
+  const csNode = createNode<TAGS, NodeData>(tag, node.id, data);
 
   // Handle Tune_Body specially to preserve System boundaries
   if (node instanceof Tune_Body) {
-    const systems = node.sequence;
-    if (systems.length > 0) {
-      // Create first System wrapper node
-      let firstSystemNode = createCSNode(TAGS.System, ctx.generateId(), { type: "empty" });
-      buildSystemChildren(firstSystemNode, systems[0], ctx);
-      csNode.firstChild = firstSystemNode;
-
-      // Create remaining System wrapper nodes
-      let currentSystem = firstSystemNode;
-      for (let i = 1; i < systems.length; i++) {
-        const systemNode = createCSNode(TAGS.System, ctx.generateId(), { type: "empty" });
-        buildSystemChildren(systemNode, systems[i], ctx);
-        currentSystem.nextSibling = systemNode;
-        currentSystem = systemNode;
+    for (const system of node.sequence) {
+      const systemNode = createNode<TAGS, NodeData>(TAGS.System, ctx.generateId(), { type: "empty" });
+      for (const element of system) {
+        appendChild(systemNode, fromAst(element, ctx));
       }
+      appendChild(csNode, systemNode);
     }
     return csNode;
   }
 
   // Standard processing for all other nodes
   const children = node.accept(childrenVisitor);
-  if (children.length > 0) {
-    csNode.firstChild = fromAst(children[0], ctx);
-    let current = csNode.firstChild;
-    for (let i = 1; i < children.length; i++) {
-      current.nextSibling = fromAst(children[i], ctx);
-      current = current.nextSibling;
-    }
+  for (const child of children) {
+    appendChild(csNode, fromAst(child, ctx));
   }
 
   return csNode;
-}
-
-/**
- * Build children for a System wrapper node from an array of tune_body_code elements.
- */
-function buildSystemChildren(systemNode: CSNode, elements: Array<Expr | Token>, ctx: ABCContext): void {
-  if (elements.length === 0) return;
-
-  systemNode.firstChild = fromAst(elements[0], ctx);
-  let current = systemNode.firstChild;
-  for (let i = 1; i < elements.length; i++) {
-    current.nextSibling = fromAst(elements[i], ctx);
-    current = current.nextSibling;
-  }
 }

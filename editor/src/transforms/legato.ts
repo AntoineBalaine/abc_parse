@@ -1,17 +1,15 @@
 import { Selection } from "../selection";
-import { CSNode, TAGS, isNote, isChord, isYSpacer, createCSNode } from "../csTree/types";
+import { createCSNode, CSNode, TAGS, isNote, isChord, isYSpacer } from "../csTree/types";
 import { ABCContext, TT } from "abc-parser";
-import { findParent, replaceChild, findTieChild, replaceRhythm, appendChild } from "./treeUtils";
+import { findTieChild, replaceRhythm } from "./treeUtils";
+import { replace, appendChild, getParent, remove, cloneSubtree } from "cstree";
 import { getNodeRhythm, rationalToRhythm } from "./rhythm";
 import { consolidateTiedNotes } from "./consolidateTiedNotes";
-import { reassignIds } from "./lineUtils";
 import { isVoiceMarker } from "../selectors/voiceSelector";
 
 interface ReplacementRecord {
   old: CSNode;
   new: CSNode;
-  parent: CSNode;
-  prev: CSNode | null;
 }
 
 interface LegatoContext {
@@ -19,7 +17,6 @@ interface LegatoContext {
   replacements: ReplacementRecord[];
   selectedIds: Set<number>;
   ctx: ABCContext;
-  root: CSNode;
 }
 
 /**
@@ -44,12 +41,12 @@ function isMultiMeasureRest(node: CSNode): boolean {
 }
 
 /**
- * We use structuredClone for a deep copy, then reassign fresh IDs to avoid ID collisions.
+ * We use cloneSubtree for a deep copy with fresh IDs to avoid ID collisions.
+ * cloneSubtree properly creates nodes with null parentRef, unlike structuredClone
+ * which would copy stale parentRefs pointing to the original tree.
  */
 function cloneNode(node: CSNode, ctx: ABCContext): CSNode {
-  const cloned = structuredClone(node);
-  reassignIds(cloned, ctx);
-  return cloned;
+  return cloneSubtree(node, () => ctx.generateId());
 }
 
 /**
@@ -118,13 +115,11 @@ function traverseSiblings(startNode: CSNode | null, legatoCtx: LegatoContext): v
         copyRhythmFromTarget(current, cloned, legatoCtx.ctx);
         addTieToNode(legatoCtx.currentSource, legatoCtx.ctx);
 
-        const parentResult = findParent(legatoCtx.root, current);
-        if (parentResult !== null) {
+        const parent = getParent(current);
+        if (parent !== null) {
           legatoCtx.replacements.push({
             old: current,
             new: cloned,
-            parent: parentResult.parent,
-            prev: parentResult.prev,
           });
         }
 
@@ -147,8 +142,8 @@ function traverseSiblings(startNode: CSNode | null, legatoCtx: LegatoContext): v
 }
 
 function applyReplacements(replacements: ReplacementRecord[], cursor: Set<number>): void {
-  for (const { old, new: newNode, parent, prev } of replacements) {
-    replaceChild(parent, prev, old, newNode);
+  for (const { old, new: newNode } of replacements) {
+    replace(old, newNode);
     cursor.delete(old.id);
     cursor.add(newNode.id);
   }
@@ -190,16 +185,11 @@ function removeTrailingTie(cursor: Set<number>, root: CSNode): void {
   // The last element in the document-ordered array has no successors in the cursor
   // by definition, so if it has a tie, that tie is trailing and should be removed.
   const last = notesAndChords[notesAndChords.length - 1];
-  const tieResult = findTieChild(last);
+  const tieNode = findTieChild(last);
 
-  if (tieResult !== null) {
+  if (tieNode !== null) {
     // Because this is the last note in the selection, we remove the tie.
-    if (tieResult.prev === null) {
-      last.firstChild = tieResult.node.nextSibling;
-    } else {
-      tieResult.prev.nextSibling = tieResult.node.nextSibling;
-    }
-    tieResult.node.nextSibling = null;
+    remove(tieNode);
   }
 }
 
@@ -230,7 +220,6 @@ export function legato(selection: Selection, ctx: ABCContext): Selection {
       replacements: [],
       selectedIds: cursor,
       ctx,
-      root: selection.root,
     };
 
     traverseSiblings(selection.root.firstChild, legatoCtx);

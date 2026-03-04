@@ -14,10 +14,7 @@ function walk(ctx: FanOutCtx, node: CSNode, inScope: boolean, parentIsChord: boo
   let current: CSNode | null = node;
   while (current) {
     const nowInScope = inScope || ctx.cursor.has(current.id);
-    const shouldMatch =
-      ctx.walkStrategy === "onlyChordNotes"
-        ? parentIsChord && nowInScope
-        : nowInScope;
+    const shouldMatch = ctx.walkStrategy === "onlyChordNotes" ? parentIsChord && nowInScope : nowInScope;
 
     if (shouldMatch && ctx.predicate(current)) {
       ctx.outputCursors.push(new Set([current.id]));
@@ -33,11 +30,7 @@ function walk(ctx: FanOutCtx, node: CSNode, inScope: boolean, parentIsChord: boo
   }
 }
 
-export function fanOutByPredicate(
-  input: Selection,
-  predicate: (node: CSNode) => boolean,
-  walkStrategy: WalkStrategy
-): Selection {
+export function fanOutByPredicate(input: Selection, predicate: (node: CSNode) => boolean, walkStrategy: WalkStrategy): Selection {
   const outputCursors: Set<number>[] = [];
 
   for (const cursor of input.cursors) {

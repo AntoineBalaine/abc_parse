@@ -5,7 +5,8 @@ import { DocumentSnapshots, ContextSnapshot, getSnapshotAtPosition, encode } fro
 import { toAst } from "../csTree/toAst";
 import { fromAst } from "../csTree/fromAst";
 import { findNodesById } from "./types";
-import { findChildByTag, replaceChild, getNodeLineAndChar } from "./treeUtils";
+import { findChildByTag, getNodeLineAndChar } from "./treeUtils";
+import { replace } from "cstree";
 import { insertSnapshotSorted } from "./parallel";
 import { spellingToPitch, convertMeasureAccidentalsToSemitones } from "./pitchHelpers";
 
@@ -52,10 +53,9 @@ export function transpose(selection: Selection, semitones: number, ctx: ABCConte
  * Transposes a pitch child node within a note using context-aware spelling.
  */
 function transposePitchChild(noteNode: CSNode, semitones: number, ctx: ABCContext, snapshots: DocumentSnapshots): void {
-  const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
-  if (pitchResult === null) return;
+  const pitchCSNode = findChildByTag(noteNode, TAGS.Pitch);
+  if (pitchCSNode === null) return;
 
-  const pitchCSNode = pitchResult.node;
   const pitchExpr = toAst(pitchCSNode) as Pitch;
 
   // Extract pitch components
@@ -67,7 +67,7 @@ function transposePitchChild(noteNode: CSNode, semitones: number, ctx: ABCContex
   const pos = encode(line, char);
   const snapshot = getSnapshotAtPosition(snapshots, pos - 1);
 
-  transposePitchWithContext(noteNode, pitchResult, pitchExpr, letter, octave, explicitAcc, semitones, snapshot, snapshots, ctx);
+  transposePitchWithContext(noteNode, pitchCSNode, pitchExpr, letter, octave, explicitAcc, semitones, snapshot, snapshots, ctx);
 }
 
 /**
@@ -75,7 +75,7 @@ function transposePitchChild(noteNode: CSNode, semitones: number, ctx: ABCContex
  */
 function transposePitchWithContext(
   noteNode: CSNode,
-  pitchResult: { node: CSNode; prev: CSNode | null },
+  pitchCSNode: CSNode,
   pitchExpr: Pitch,
   letter: string,
   octave: number,
@@ -99,7 +99,7 @@ function transposePitchWithContext(
     const newOctave = octave + octaveChange;
     const newPitchExpr = octaviate(pitchExpr, newOctave, ctx);
     const newPitchCSNode = fromAst(newPitchExpr, ctx);
-    replaceChild(noteNode, pitchResult.prev, pitchResult.node, newPitchCSNode);
+    replace(pitchCSNode, newPitchCSNode);
     return;
   }
 
@@ -117,7 +117,7 @@ function transposePitchWithContext(
   // Build new Pitch AST and replace in tree
   const newPitchExpr = spellingToPitch(spelling, targetMidi, needsExplicitAccidental, ctx);
   const newPitchCSNode = fromAst(newPitchExpr, ctx);
-  replaceChild(noteNode, pitchResult.prev, pitchResult.node, newPitchCSNode);
+  replace(pitchCSNode, newPitchCSNode);
 
   // If we wrote an explicit accidental, insert a snapshot at the correct sorted position
   // so subsequent notes see the updated measure accidentals

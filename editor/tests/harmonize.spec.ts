@@ -29,7 +29,7 @@ function getPitchLexeme(noteNode: any): string {
   const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
   if (!pitchResult) return "";
   let result = "";
-  let current = pitchResult.node.firstChild;
+  let current = pitchResult.firstChild;
   while (current !== null) {
     if (isTokenNode(current)) {
       result += getTokenData(current).lexeme;

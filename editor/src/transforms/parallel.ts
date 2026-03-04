@@ -7,7 +7,8 @@ import { ChordPosition } from "abc-parser/interpreter/ChordPositionCollector";
 import { toAst } from "../csTree/toAst";
 import { fromAst } from "../csTree/fromAst";
 import { findNodesById } from "./types";
-import { findChildByTag, findTieChild, findParent, replaceChild, getNodeLineAndChar } from "./treeUtils";
+import { findChildByTag, findTieChild, getNodeLineAndChar } from "./treeUtils";
+import { replace, getParent } from "cstree";
 import { pitchToDiatonic, toChordAst, HarmonizeSnapshot } from "./harmonize";
 import {
   accidentalTypeToSemitones,
@@ -30,27 +31,27 @@ export type ParallelMode = "diatonic" | "chromatic";
  * Extracts the Pitch AST from a Note CSNode.
  */
 export function getPitch(noteNode: CSNode): Pitch | null {
-  const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
-  if (pitchResult === null) return null;
-  return toAst(pitchResult.node) as Pitch;
+  const pitchNode = findChildByTag(noteNode, TAGS.Pitch);
+  if (pitchNode === null) return null;
+  return toAst(pitchNode) as Pitch;
 }
 
 /**
  * Extracts the Rhythm AST from a Note CSNode.
  */
 export function getRhythm(noteNode: CSNode): Rhythm | null {
-  const rhythmResult = findChildByTag(noteNode, TAGS.Rhythm);
-  if (rhythmResult === null) return null;
-  return toAst(rhythmResult.node) as Rhythm;
+  const rhythmNode = findChildByTag(noteNode, TAGS.Rhythm);
+  if (rhythmNode === null) return null;
+  return toAst(rhythmNode) as Rhythm;
 }
 
 /**
  * Extracts the Tie token from a Note CSNode.
  */
 export function getTie(noteNode: CSNode): Token | null {
-  const tieResult = findTieChild(noteNode);
-  if (tieResult === null) return null;
-  return toAst(tieResult.node) as Token;
+  const tieNode = findTieChild(noteNode);
+  if (tieNode === null) return null;
+  return toAst(tieNode) as Token;
 }
 
 /**
@@ -221,9 +222,9 @@ export function parallelDiatonic(
         const newChordCS = fromAst(chordAst, ctx);
 
         // Replace target note with new chord and update cursor
-        const parentResult = findParent(selection.root, noteNode);
-        if (parentResult) {
-          replaceChild(parentResult.parent, parentResult.prev, noteNode, newChordCS);
+        const parent = getParent(noteNode);
+        if (parent) {
+          replace(noteNode, newChordCS);
           cursor.delete(noteNode.id);
           cursor.add(newChordCS.id);
         }
@@ -340,9 +341,9 @@ export function parallelChromatic(
         const newChordCS = fromAst(chordAst, ctx);
 
         // Replace target note and update cursor
-        const parentResult = findParent(selection.root, noteNode);
-        if (parentResult) {
-          replaceChild(parentResult.parent, parentResult.prev, noteNode, newChordCS);
+        const parent = getParent(noteNode);
+        if (parent) {
+          replace(noteNode, newChordCS);
           cursor.delete(noteNode.id);
           cursor.add(newChordCS.id);
         }

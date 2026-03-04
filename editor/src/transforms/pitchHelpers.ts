@@ -88,10 +88,10 @@ export function convertMeasureAccidentalsToSemitones(
  * @returns The pitch components, or null if the node has no Pitch child
  */
 export function toPitchComponents(noteNode: CSNode): PitchComponents | null {
-  const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
-  if (!pitchResult) return null;
+  const pitchNode = findChildByTag(noteNode, TAGS.Pitch);
+  if (!pitchNode) return null;
 
-  const pitchExpr = toAst(pitchResult.node) as Pitch;
+  const pitchExpr = toAst(pitchNode) as Pitch;
   const rawLetter = pitchExpr.noteLetter.lexeme;
   const letter = rawLetter.toUpperCase() as NoteLetter;
   const baseOctave = rawLetter === rawLetter.toLowerCase() ? 5 : 4;

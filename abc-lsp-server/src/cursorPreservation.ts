@@ -61,20 +61,14 @@ function collectMusicElements(root: CSNode): CSNode[] {
  * Uses ordinal correspondence: the Nth music element in modified = Nth in fresh.
  * This is needed because the fresh tree has accurate token positions.
  */
-export function computeCursorRangesFromFreshTree(
-  cursorIds: number[],
-  modifiedRoot: CSNode,
-  freshRoot: CSNode
-): Range[] {
+export function computeCursorRangesFromFreshTree(cursorIds: number[], modifiedRoot: CSNode, freshRoot: CSNode): Range[] {
   // Build ordinal map: cursor ID -> ordinal position in modified tree
   const modifiedElements = collectMusicElements(modifiedRoot);
   const idToOrdinal = new Map<number, number>();
   modifiedElements.forEach((node, idx) => idToOrdinal.set(node.id, idx));
 
   // Get ordinal positions of cursor IDs
-  const ordinals = cursorIds
-    .map(id => idToOrdinal.get(id))
-    .filter((ord): ord is number => ord !== undefined);
+  const ordinals = cursorIds.map((id) => idToOrdinal.get(id)).filter((ord): ord is number => ord !== undefined);
 
   // Find corresponding nodes in fresh tree
   const freshElements = collectMusicElements(freshRoot);

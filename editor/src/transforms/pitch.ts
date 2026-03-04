@@ -20,9 +20,9 @@ export function pitch(selection: Selection): number[] {
 
 function extractPitch(csNode: CSNode): number | null {
   if (csNode.tag === TAGS.Note) {
-    const pitchResult = findChildByTag(csNode, TAGS.Pitch);
-    if (pitchResult === null) return null;
-    const pitchExpr = toAst(pitchResult.node) as PitchExpr;
+    const pitchNode = findChildByTag(csNode, TAGS.Pitch);
+    if (pitchNode === null) return null;
+    const pitchExpr = toAst(pitchNode) as PitchExpr;
     return toMidiPitch(pitchExpr);
   } else if (csNode.tag === TAGS.Chord) {
     let lastNote: CSNode | null = null;

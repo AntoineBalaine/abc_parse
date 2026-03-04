@@ -2,18 +2,15 @@ import { IRational, createRational, Rhythm, Token, TT, ABCContext } from "abc-pa
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { toAst } from "../csTree/toAst";
 import { fromAst } from "../csTree/fromAst";
-import { findRhythmChild, appendChild } from "./treeUtils";
+import { findRhythmChild } from "./treeUtils";
+import { appendChild, remove, findChild } from "cstree";
 
 export function extractBrokenToken(rhythmNode: CSNode): CSNode | null {
-  let current = rhythmNode.firstChild;
-  while (current !== null) {
-    if (isTokenNode(current) && getTokenData(current).tokenType === TT.RHY_BRKN) {
-      current.nextSibling = null;
-      return current;
-    }
-    current = current.nextSibling;
+  const brokenNode = findChild(rhythmNode, (n) => isTokenNode(n) && getTokenData(n).tokenType === TT.RHY_BRKN);
+  if (brokenNode) {
+    remove(brokenNode);
   }
-  return null;
+  return brokenNode;
 }
 
 export function rhythmToRational(rhythmNode: CSNode): IRational {
@@ -79,9 +76,10 @@ export function rationalToRhythm(rational: IRational, ctx: ABCContext, brokenTok
   // Convert to CSNode subtree
   const rhythmCSNode = fromAst(rhythmExpr, ctx);
 
-  // Append the broken token at the end of the Rhythm's child chain (if provided)
+  // Append the broken token at the end of the Rhythm's child chain (if provided).
+  // The broken token was already detached by extractBrokenToken (via remove), so its
+  // parentRef is null and appendChild will accept it.
   if (brokenToken) {
-    brokenToken.nextSibling = null;
     appendChild(rhythmCSNode, brokenToken);
   }
 
@@ -89,9 +87,9 @@ export function rationalToRhythm(rational: IRational, ctx: ABCContext, brokenTok
 }
 
 export function getNodeRhythm(parent: CSNode): IRational {
-  const rhythmChild = findRhythmChild(parent);
-  if (rhythmChild === null) {
+  const rhythmNode = findRhythmChild(parent);
+  if (rhythmNode === null) {
     return createRational(1, 1);
   }
-  return rhythmToRational(rhythmChild.node);
+  return rhythmToRational(rhythmNode);
 }

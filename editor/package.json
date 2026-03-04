@@ -5,7 +5,8 @@
   "main": "../out/editor/src/index.js",
   "types": "../out/editor/src/index.d.ts",
   "dependencies": {
-    "abc-parser": "*"
+    "abc-parser": "*",
+    "cstree": "*"
   },
   "scripts": {
     "build": "tsc -b",

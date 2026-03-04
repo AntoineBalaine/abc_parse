@@ -66,7 +66,7 @@ describe("remove", () => {
           if (notes.length === 0) return;
           // Select a random subset of notes to remove
           const toRemove = notes.slice(0, Math.max(1, Math.floor(notes.length / 2)));
-          const ids = new Set(toRemove.map(n => n.id));
+          const ids = new Set(toRemove.map((n) => n.id));
           const sel: Selection = { root, cursors: [ids] };
           remove(sel);
           const remaining = collectAll(root);
@@ -101,7 +101,7 @@ describe("remove", () => {
           const toRemove = [notes[0]];
           const subtreeSize = collectSubtree(toRemove[0]).length;
           const countBefore = collectAll(root).length;
-          const ids = new Set(toRemove.map(n => n.id));
+          const ids = new Set(toRemove.map((n) => n.id));
           const sel: Selection = { root, cursors: [ids] };
           remove(sel);
           const countAfter = collectAll(root).length;

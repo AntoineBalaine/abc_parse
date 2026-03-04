@@ -90,7 +90,7 @@ describe("unwrapSingle", () => {
         fc.property(genAbcWithChords, (source) => {
           const { root } = toCSTreeWithContext(source);
           const chords = findByTag(root, TAGS.Chord);
-          const singleNoteChords = chords.filter(c => {
+          const singleNoteChords = chords.filter((c) => {
             const noteChildren: any[] = [];
             let current = c.firstChild;
             while (current) {
@@ -100,7 +100,7 @@ describe("unwrapSingle", () => {
             return noteChildren.length === 1;
           });
           if (singleNoteChords.length === 0) return;
-          const ids = new Set(singleNoteChords.map(c => c.id));
+          const ids = new Set(singleNoteChords.map((c) => c.id));
           const sel: Selection = { root, cursors: [ids] };
           unwrapSingle(sel);
           for (const chord of singleNoteChords) {
@@ -116,7 +116,7 @@ describe("unwrapSingle", () => {
         fc.property(genAbcWithChords, (source) => {
           const { root } = toCSTreeWithContext(source);
           const chords = findByTag(root, TAGS.Chord);
-          const multiNoteChords = chords.filter(c => {
+          const multiNoteChords = chords.filter((c) => {
             let noteCount = 0;
             let current = c.firstChild;
             while (current) {
@@ -126,7 +126,7 @@ describe("unwrapSingle", () => {
             return noteCount > 1;
           });
           if (multiNoteChords.length === 0) return;
-          const ids = new Set(multiNoteChords.map(c => c.id));
+          const ids = new Set(multiNoteChords.map((c) => c.id));
           const sel: Selection = { root, cursors: [ids] };
           unwrapSingle(sel);
           for (const chord of multiNoteChords) {

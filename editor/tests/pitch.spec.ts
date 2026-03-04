@@ -96,7 +96,7 @@ describe("pitch", () => {
           for (const note of notes) {
             const pitchResult = findChildByTag(note, TAGS.Pitch);
             if (pitchResult) {
-              const pitchExpr = toAst(pitchResult.node) as PitchExpr;
+              const pitchExpr = toAst(pitchResult) as PitchExpr;
               expected.push(toMidiPitch(pitchExpr));
             }
           }

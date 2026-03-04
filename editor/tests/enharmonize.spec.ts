@@ -19,14 +19,14 @@ import { toPitchComponents } from "../src/transforms/pitchHelpers";
 function getNoteMidi(noteNode: any): number {
   const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
   if (!pitchResult) throw new Error("No pitch child");
-  const pitchExpr = toAst(pitchResult.node) as Pitch;
+  const pitchExpr = toAst(pitchResult) as Pitch;
   return toMidiPitch(pitchExpr);
 }
 
 function getAccidentalLexeme(noteNode: any): string | null {
   const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
   if (!pitchResult) return null;
-  let current = pitchResult.node.firstChild;
+  let current = pitchResult.firstChild;
   while (current !== null) {
     if (isTokenNode(current) && getTokenData(current).tokenType === TT.ACCIDENTAL) {
       return getTokenData(current).lexeme;
@@ -401,7 +401,7 @@ describe("enharmonize", () => {
             if (!pitchResult) return false;
             let letterLexeme: string | null = null;
             let octaveLexeme: string | null = null;
-            let cur = pitchResult.node.firstChild;
+            let cur = pitchResult.firstChild;
             while (cur !== null) {
               if (isTokenNode(cur)) {
                 const td = getTokenData(cur);
@@ -474,7 +474,7 @@ describe("enharmonize", () => {
           const rhythmBefore = notes.map((n) => {
             const r = findChildByTag(n, TAGS.Rhythm);
             if (!r) return null;
-            const ast = toAst(r.node);
+            const ast = toAst(r);
             return JSON.stringify(ast);
           });
 
@@ -485,7 +485,7 @@ describe("enharmonize", () => {
           const rhythmAfter = notes.map((n) => {
             const r = findChildByTag(n, TAGS.Rhythm);
             if (!r) return null;
-            const ast = toAst(r.node);
+            const ast = toAst(r);
             return JSON.stringify(ast);
           });
           expect(rhythmAfter).to.deep.equal(rhythmBefore);
@@ -880,7 +880,7 @@ describe("enharmonizeToKey", () => {
           const rhythmBefore = notes.map((n) => {
             const r = findChildByTag(n, TAGS.Rhythm);
             if (!r) return null;
-            const ast = toAst(r.node);
+            const ast = toAst(r);
             return JSON.stringify(ast);
           });
 
@@ -892,7 +892,7 @@ describe("enharmonizeToKey", () => {
           const rhythmAfter = notes.map((n) => {
             const r = findChildByTag(n, TAGS.Rhythm);
             if (!r) return null;
-            const ast = toAst(r.node);
+            const ast = toAst(r);
             return JSON.stringify(ast);
           });
 

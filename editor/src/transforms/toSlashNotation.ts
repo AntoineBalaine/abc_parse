@@ -15,7 +15,7 @@ import { CSNode, TAGS, isTokenNode, getTokenData, isBarLine } from "../csTree/ty
 import { firstTokenData } from "../selectors/treeWalk";
 import { Selection } from "../selection";
 import { fromAst } from "../csTree/fromAst";
-import { findParent, removeChild } from "./treeUtils";
+import { remove, insertBefore, insertAfter, appendChild } from "cstree";
 import { DocumentSnapshots, ContextSnapshot, getRangeSnapshots, encode } from "abc-parser/interpreter/ContextInterpreter";
 import { Range } from "abc-parser/types/types";
 import { ABCContext } from "abc-parser/parsers/Context";
@@ -161,37 +161,20 @@ function replaceWithSlashes(measure: SnapshotRegion, slashCount: number, pitch: 
     }
   }
 
-  // Find prev node before the first node in measure
+  // Insert slashes before removing old nodes, so we have a valid insertion anchor.
+  // We insert all slashes before the first node in the measure.
   const firstNode = measure.nodes[0];
-  const parentInfo = findParent(measure.parent, firstNode);
-  if (!parentInfo) return;
+  if (!firstNode.parentRef) return;
 
-  const anchorPrev = parentInfo.prev;
-
-  // Remove nodes that should be removed
-  for (const node of toRemove) {
-    const nodeParentInfo = findParent(measure.parent, node);
-    if (nodeParentInfo) {
-      removeChild(nodeParentInfo.parent, nodeParentInfo.prev, node);
-    }
-  }
-
-  // Link new slash nodes together
-  for (let i = 0; i < slashes.length - 1; i++) {
-    slashes[i].nextSibling = slashes[i + 1];
-  }
-
-  // Connect the last slash to what comes after
-  const nextAfterAnchor = anchorPrev ? anchorPrev.nextSibling : measure.parent.firstChild;
   if (slashes.length > 0) {
-    slashes[slashes.length - 1].nextSibling = nextAfterAnchor;
-
-    // Insert the slashes
-    if (anchorPrev === null) {
-      measure.parent.firstChild = slashes[0];
-    } else {
-      anchorPrev.nextSibling = slashes[0];
+    for (const slash of slashes) {
+      insertBefore(firstNode, slash);
     }
+  }
+
+  // Remove nodes that should be removed (after slashes are already in place)
+  for (const node of toRemove) {
+    remove(node);
   }
 
   // Store slashes in measure for style marker insertion
@@ -211,21 +194,13 @@ function insertStyleMarkers(firstMeasure: SnapshotRegion, lastMeasure: SnapshotR
 
   // Insert opening style marker before first measure's first node
   const firstNode = firstMeasure.nodes[0];
-  const firstParentInfo = findParent(firstMeasure.parent, firstNode);
-  if (firstParentInfo) {
-    // Link opening marker to first node
-    styleRhythm.nextSibling = firstNode;
-    if (firstParentInfo.prev === null) {
-      firstMeasure.parent.firstChild = styleRhythm;
-    } else {
-      firstParentInfo.prev.nextSibling = styleRhythm;
-    }
+  if (firstNode.parentRef) {
+    insertBefore(firstNode, styleRhythm);
   }
 
   // Insert closing style marker after last measure's last node
   const lastNode = lastMeasure.nodes[lastMeasure.nodes.length - 1];
-  styleNormal.nextSibling = lastNode.nextSibling;
-  lastNode.nextSibling = styleNormal;
+  insertAfter(lastNode, styleNormal);
 }
 
 // ============================================================================

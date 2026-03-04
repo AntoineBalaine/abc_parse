@@ -12,7 +12,7 @@ describe("sumRhythm", () => {
       const { root } = toCSTreeWithContext("X:1\nK:C\nC2 D2 E2|\n");
       const notes = findByTag(root, TAGS.Note);
       expect(notes.length).to.equal(3);
-      const sel: Selection = { root, cursors: [new Set(notes.map(n => n.id))] };
+      const sel: Selection = { root, cursors: [new Set(notes.map((n) => n.id))] };
       const result = sumRhythm(sel);
       expect(result.length).to.equal(1);
       expect(result[0].numerator).to.equal(6);
@@ -23,7 +23,7 @@ describe("sumRhythm", () => {
       const { root } = toCSTreeWithContext("X:1\nK:C\nC/ D/ E/|\n");
       const notes = findByTag(root, TAGS.Note);
       expect(notes.length).to.equal(3);
-      const sel: Selection = { root, cursors: [new Set(notes.map(n => n.id))] };
+      const sel: Selection = { root, cursors: [new Set(notes.map((n) => n.id))] };
       const result = sumRhythm(sel);
       expect(result.length).to.equal(1);
       expect(result[0].numerator).to.equal(3);
@@ -61,7 +61,7 @@ describe("sumRhythm", () => {
           const before = formatSelection({ root, cursors: [] });
           const notes = findByTag(root, TAGS.Note);
           if (notes.length === 0) return;
-          const sel: Selection = { root, cursors: [new Set(notes.map(n => n.id))] };
+          const sel: Selection = { root, cursors: [new Set(notes.map((n) => n.id))] };
           sumRhythm(sel);
           const after = formatSelection({ root, cursors: [] });
           expect(after).to.equal(before);
@@ -72,19 +72,15 @@ describe("sumRhythm", () => {
 
     it("sumRhythm returns one entry per cursor", () => {
       fc.assert(
-        fc.property(
-          genAbcTune,
-          fc.integer({ min: 1, max: 5 }),
-          (source, numCursors) => {
-            const { root } = toCSTreeWithContext(source);
-            const notes = findByTag(root, TAGS.Note);
-            if (notes.length === 0) return;
-            const cursors = Array.from({ length: numCursors }, () => new Set([notes[0].id]));
-            const sel: Selection = { root, cursors };
-            const result = sumRhythm(sel);
-            expect(result.length).to.equal(numCursors);
-          }
-        ),
+        fc.property(genAbcTune, fc.integer({ min: 1, max: 5 }), (source, numCursors) => {
+          const { root } = toCSTreeWithContext(source);
+          const notes = findByTag(root, TAGS.Note);
+          if (notes.length === 0) return;
+          const cursors = Array.from({ length: numCursors }, () => new Set([notes[0].id]));
+          const sel: Selection = { root, cursors };
+          const result = sumRhythm(sel);
+          expect(result.length).to.equal(numCursors);
+        }),
         { numRuns: 1000 }
       );
     });

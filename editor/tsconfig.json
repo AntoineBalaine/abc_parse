@@ -8,11 +8,15 @@
     "strict": true,
     "esModuleInterop": true,
     "declaration": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "paths": {
+      "cstree": ["../cstree/src/cstree"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "tests"],
   "references": [
-    { "path": "../parse" }
+    { "path": "../parse" },
+    { "path": "../cstree" }
   ]
 }

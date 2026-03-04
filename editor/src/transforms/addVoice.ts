@@ -1,6 +1,6 @@
 import { Selection } from "../selection";
-import { CSNode, TAGS, createCSNode, isTokenNode, getTokenData } from "../csTree/types";
-import { insertBefore, appendChild } from "./treeUtils";
+import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
+import { insertBefore, appendChild } from "cstree";
 import { ABCContext, TT } from "abc-parser";
 import { findFirstByTag } from "../selectors/treeWalk";
 
@@ -10,12 +10,7 @@ export interface VoiceParams {
   transpose?: number;
 }
 
-export function addVoice(
-  selection: Selection,
-  voiceId: string,
-  params: VoiceParams,
-  ctx: ABCContext
-): Selection {
+export function addVoice(selection: Selection, voiceId: string, params: VoiceParams, ctx: ABCContext): Selection {
   const tuneHeader = findTuneHeader(selection.root);
   if (tuneHeader === null) return selection;
 
@@ -24,7 +19,7 @@ export function addVoice(
 
   const kLineResult = findKLine(tuneHeader);
   if (kLineResult !== null) {
-    insertBefore(tuneHeader, kLineResult.prev, kLineResult.node, voiceInfoLine);
+    insertBefore(kLineResult.node, voiceInfoLine);
   } else {
     appendChild(tuneHeader, voiceInfoLine);
   }
@@ -64,8 +59,8 @@ function buildVoiceInfoLineNode(voiceText: string, ctx: ABCContext): CSNode {
   });
 
   const infoLineNode = createCSNode(TAGS.Info_line, ctx.generateId(), { type: "empty" });
-  infoLineNode.firstChild = keyToken;
-  keyToken.nextSibling = valueToken;
+  appendChild(infoLineNode, keyToken);
+  appendChild(infoLineNode, valueToken);
 
   return infoLineNode;
 }

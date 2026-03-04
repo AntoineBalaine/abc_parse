@@ -20,7 +20,7 @@ export function divideRhythm(selection: Selection, factor: number = 2, ctx: ABCC
     for (const csNode of nodes) {
       if (csNode.tag === TAGS.Note || csNode.tag === TAGS.Chord || csNode.tag === TAGS.Rest) {
         const existingRhythm = findRhythmChild(csNode);
-        const brokenToken = existingRhythm ? extractBrokenToken(existingRhythm.node) : null;
+        const brokenToken = existingRhythm ? extractBrokenToken(existingRhythm) : null;
 
         if (existingRhythm === null) {
           // No rhythm exists - the default is 1, so we divide 1 / factor
@@ -28,7 +28,7 @@ export function divideRhythm(selection: Selection, factor: number = 2, ctx: ABCC
           const newRhythm = rationalToRhythm(newRational, ctx, null);
           replaceRhythm(csNode, newRhythm);
         } else {
-          const currentRational = rhythmToRational(existingRhythm.node);
+          const currentRational = rhythmToRational(existingRhythm);
           const newRational = divideRational(currentRational, divisor);
           const newRhythm = rationalToRhythm(newRational, ctx, brokenToken);
           replaceRhythm(csNode, newRhythm);

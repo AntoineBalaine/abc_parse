@@ -13,7 +13,8 @@ import { DocumentSnapshots, ContextSnapshot, encode, getSnapshotAtPosition } fro
 import { toAst } from "../csTree/toAst";
 import { fromAst } from "../csTree/fromAst";
 import { findNodesById } from "./types";
-import { findChildByTag, replaceChild, getNodeLineAndChar } from "./treeUtils";
+import { findChildByTag, getNodeLineAndChar } from "./treeUtils";
+import { replace } from "cstree";
 import { spellingToPitch, convertMeasureAccidentalsToSemitones, toPitchComponents } from "./pitchHelpers";
 import { insertSnapshotSorted } from "./parallel";
 import { selectNotesOrChords } from "../selectors/typeSelectors";
@@ -87,10 +88,8 @@ export function enharmonize(selection: Selection, ctx: ABCContext): Selection {
 }
 
 function enharmonizePitchChild(noteNode: CSNode, ctx: ABCContext): void {
-  const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
-  if (pitchResult === null) return;
-
-  const pitchCSNode = pitchResult.node;
+  const pitchCSNode = findChildByTag(noteNode, TAGS.Pitch);
+  if (pitchCSNode === null) return;
 
   // Walk the Pitch's children to find the Alteration token (TT.ACCIDENTAL)
   let alterationToken: CSNode | null = null;
@@ -124,7 +123,7 @@ function enharmonizePitchChild(noteNode: CSNode, ctx: ABCContext): void {
   if (newPitchExpr === null) return;
 
   const newPitchCSNode = fromAst(newPitchExpr, ctx);
-  replaceChild(noteNode, pitchResult.prev, pitchCSNode, newPitchCSNode);
+  replace(pitchCSNode, newPitchCSNode);
 }
 
 /**
@@ -177,8 +176,8 @@ function enharmonizeNoteToKey(noteNode: CSNode, chordPos: number | null, snapsho
   const { letter, octave, explicitAccidental } = pitchComponents;
 
   // Find the Pitch child for replacement operations
-  const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
-  if (pitchResult === null) return;
+  const pitchCSNode = findChildByTag(noteNode, TAGS.Pitch);
+  if (pitchCSNode === null) return;
 
   // Get context snapshot BEFORE this position to avoid including the note's own accidental.
   // Because the interpreter adds measure accidentals to snapshots at the note's position,
@@ -219,29 +218,28 @@ function enharmonizeNoteToKey(noteNode: CSNode, chordPos: number | null, snapsho
 
   if (referenceSpelling !== null) {
     // Diatonic case
-    respellDiatonic(noteNode, pitchResult, voicedNote, referenceSpelling, ctx);
+    respellDiatonic(pitchCSNode, voicedNote, referenceSpelling, ctx);
   } else {
     // Chromatic case
-    respellChromatic(noteNode, pitchResult, voicedNote, snapshot, snapshots, merged, ctx);
+    respellChromatic(noteNode, pitchCSNode, voicedNote, snapshot, snapshots, merged, ctx);
   }
 }
 
 function respellDiatonic(
-  noteNode: CSNode,
-  pitchResult: { node: CSNode; prev: CSNode | null },
+  pitchCSNode: CSNode,
   voicedNote: { letter: "C" | "D" | "E" | "F" | "G" | "A" | "B"; midi: number; alteration: number },
   referenceSpelling: { letter: "C" | "D" | "E" | "F" | "G" | "A" | "B"; alteration: number },
   ctx: ABCContext
 ): void {
   const needsRespell = voicedNote.letter !== referenceSpelling.letter || voicedNote.alteration !== referenceSpelling.alteration;
 
-  const hasRedundantAccidental = !needsRespell && hasAccidentalNode(pitchResult.node);
+  const hasRedundantAccidental = !needsRespell && hasAccidentalNode(pitchCSNode);
 
   if (needsRespell || hasRedundantAccidental) {
     // Re-spell to reference spelling without explicit accidental
     const newPitch = spellingToPitch(referenceSpelling, voicedNote.midi, false, ctx);
     const newPitchCS = fromAst(newPitch, ctx);
-    replaceChild(noteNode, pitchResult.prev, pitchResult.node, newPitchCS);
+    replace(pitchCSNode, newPitchCS);
   }
 }
 
@@ -254,7 +252,7 @@ function respellDiatonic(
  */
 function respellChromatic(
   noteNode: CSNode,
-  pitchResult: { node: CSNode; prev: CSNode | null },
+  pitchCSNode: CSNode,
   voicedNote: { letter: string; midi: number; alteration: number },
   snapshot: ContextSnapshot,
   snapshots: DocumentSnapshots,
@@ -272,7 +270,7 @@ function respellChromatic(
   const needsExplicit = (merged[best.letter] ?? 0) !== best.alteration;
   const newPitch = spellingToPitch(best, voicedNote.midi, needsExplicit, ctx);
   const newPitchCS = fromAst(newPitch, ctx);
-  replaceChild(noteNode, pitchResult.prev, pitchResult.node, newPitchCS);
+  replace(pitchCSNode, newPitchCS);
 
   // Update snapshots so subsequent notes see this accidental
   if (needsExplicit) {

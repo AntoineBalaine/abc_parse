@@ -1,4 +1,7 @@
 import { TT } from "abc-parser";
+import type { CSNode as CSTNode, ParentRef } from "cstree";
+
+export type { ParentRef };
 
 export interface TokenData {
   type: "token";
@@ -14,13 +17,54 @@ export interface EmptyData {
 
 export type NodeData = TokenData | EmptyData;
 
-export interface CSNode {
-  tag: string;
-  id: number;
-  data: NodeData;
-  firstChild: CSNode | null;
-  nextSibling: CSNode | null;
+export enum TAGS {
+  File_structure = "File_structure",
+  Tune = "Tune",
+  Tune_header = "Tune_header",
+  Tune_Body = "Tune_Body",
+  System = "System",
+  Info_line = "Info_line",
+  Note = "Note",
+  Pitch = "Pitch",
+  Rhythm = "Rhythm",
+  Rest = "Rest",
+  Chord = "Chord",
+  Beam = "Beam",
+  Grace_group = "Grace_group",
+  BarLine = "BarLine",
+  Decoration = "Decoration",
+  Annotation = "Annotation",
+  Inline_field = "Inline_field",
+  MultiMeasureRest = "MultiMeasureRest",
+  YSPACER = "YSPACER",
+  SystemBreak = "SystemBreak",
+  Symbol = "Symbol",
+  Tuplet = "Tuplet",
+  Voice_overlay = "Voice_overlay",
+  Line_continuation = "Line_continuation",
+  Comment = "Comment",
+  Directive = "Directive",
+  Measurement = "Measurement",
+  Rational = "Rational",
+  File_header = "File_header",
+  Lyric_section = "Lyric_section",
+  AbsolutePitch = "AbsolutePitch",
+  Lyric_line = "Lyric_line",
+  Macro_decl = "Macro_decl",
+  Macro_invocation = "Macro_invocation",
+  User_symbol_decl = "User_symbol_decl",
+  User_symbol_invocation = "User_symbol_invocation",
+  KV = "KV",
+  Binary = "Binary",
+  Unary = "Unary",
+  Grouping = "Grouping",
+  ChordSymbol = "ChordSymbol",
+  ErrorExpr = "ErrorExpr",
+  SymbolLine = "SymbolLine",
+  Token = "Token",
 }
+
+export type CSNode = CSTNode<TAGS, NodeData>;
 
 export function isTokenNode(node: CSNode): node is CSNode & { data: TokenData } {
   return node.data.type === "token";
@@ -31,56 +75,9 @@ export function getTokenData(node: CSNode): TokenData {
   return node.data as TokenData;
 }
 
-export function createCSNode(tag: string, id: number, data: NodeData): CSNode {
-  return { tag, id, data, firstChild: null, nextSibling: null };
+export function createCSNode(tag: TAGS, id: number, data: NodeData): CSNode {
+  return { tag, id, data, firstChild: null, nextSibling: null, parentRef: null };
 }
-
-export const TAGS: Record<string, string> = {
-  File_structure: "File_structure",
-  Tune: "Tune",
-  Tune_header: "Tune_header",
-  Tune_Body: "Tune_Body",
-  System: "System",
-  Info_line: "Info_line",
-  Note: "Note",
-  Pitch: "Pitch",
-  Rhythm: "Rhythm",
-  Rest: "Rest",
-  Chord: "Chord",
-  Beam: "Beam",
-  Grace_group: "Grace_group",
-  BarLine: "BarLine",
-  Decoration: "Decoration",
-  Annotation: "Annotation",
-  Inline_field: "Inline_field",
-  MultiMeasureRest: "MultiMeasureRest",
-  YSPACER: "YSPACER",
-  SystemBreak: "SystemBreak",
-  Symbol: "Symbol",
-  Tuplet: "Tuplet",
-  Voice_overlay: "Voice_overlay",
-  Line_continuation: "Line_continuation",
-  Comment: "Comment",
-  Directive: "Directive",
-  Measurement: "Measurement",
-  Rational: "Rational",
-  File_header: "File_header",
-  Lyric_section: "Lyric_section",
-  AbsolutePitch: "AbsolutePitch",
-  Lyric_line: "Lyric_line",
-  Macro_decl: "Macro_decl",
-  Macro_invocation: "Macro_invocation",
-  User_symbol_decl: "User_symbol_decl",
-  User_symbol_invocation: "User_symbol_invocation",
-  KV: "KV",
-  Binary: "Binary",
-  Unary: "Unary",
-  Grouping: "Grouping",
-  ChordSymbol: "ChordSymbol",
-  ErrorExpr: "ErrorExpr",
-  SymbolLine: "SymbolLine",
-  Token: "Token",
-};
 
 export function isRest(node: CSNode): boolean {
   return node.tag === TAGS.Rest || node.tag === TAGS.MultiMeasureRest;

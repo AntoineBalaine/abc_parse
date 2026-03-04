@@ -222,7 +222,7 @@ describe("explode", () => {
       const chords = findByTag(root, TAGS.Chord);
       const sel: Selection = {
         root,
-        cursors: [new Set([...graceGroups.map(g => g.id), ...chords.map(c => c.id)])],
+        cursors: [new Set([...graceGroups.map((g) => g.id), ...chords.map((c) => c.id)])],
       };
 
       explode(sel, 2, ctx);
@@ -380,8 +380,8 @@ describe("explode", () => {
       const cursor1Ids = result.cursors[1];
 
       // Cursor 0 should contain the top note (E), cursor 1 should contain bottom note (C)
-      const notesInCursor0 = allNotes.filter(n => cursor0Ids.has(n.id));
-      const notesInCursor1 = allNotes.filter(n => cursor1Ids.has(n.id));
+      const notesInCursor0 = allNotes.filter((n) => cursor0Ids.has(n.id));
+      const notesInCursor1 = allNotes.filter((n) => cursor1Ids.has(n.id));
 
       // Part 0 has top note E, Part 1 has bottom note C
       expect(notesInCursor0.length).to.equal(1);
@@ -421,9 +421,7 @@ describe("explode", () => {
 
             // Count original rhythm-bearing elements
             const originalChordCount = findByTag(root, TAGS.Chord).length;
-            const originalNoteCount = findByTag(root, TAGS.Note).filter(
-              (n) => !findByTag(root, TAGS.Chord).some((c) => isDescendant(c, n))
-            ).length;
+            const originalNoteCount = findByTag(root, TAGS.Note).filter((n) => !findByTag(root, TAGS.Chord).some((c) => isDescendant(c, n))).length;
             const originalRestCount = findByTag(root, TAGS.Rest).length;
             const originalTotal = originalChordCount + originalNoteCount + originalRestCount;
 
@@ -433,9 +431,7 @@ describe("explode", () => {
             // - original elements (1 chord)
             // - partCount new elements (each is either a note or rest)
             const afterChordCount = findByTag(root, TAGS.Chord).length;
-            const afterNoteCount = findByTag(root, TAGS.Note).filter(
-              (n) => !findByTag(root, TAGS.Chord).some((c) => isDescendant(c, n))
-            ).length;
+            const afterNoteCount = findByTag(root, TAGS.Note).filter((n) => !findByTag(root, TAGS.Chord).some((c) => isDescendant(c, n))).length;
             const afterRestCount = findByTag(root, TAGS.Rest).length;
 
             // We expect partCount new rhythm-bearing elements to be added
@@ -449,45 +445,42 @@ describe("explode", () => {
 
     it("preset functions produce correct part count", () => {
       fc.assert(
-        fc.property(
-          fc.array(fc.constantFrom("C", "D", "E", "F", "G", "A", "B"), { minLength: 2, maxLength: 4 }),
-          (notes) => {
-            const chordContent = notes.join("");
-            const abc = `X:1\nK:C\n[${chordContent}] |\n`;
+        fc.property(fc.array(fc.constantFrom("C", "D", "E", "F", "G", "A", "B"), { minLength: 2, maxLength: 4 }), (notes) => {
+          const chordContent = notes.join("");
+          const abc = `X:1\nK:C\n[${chordContent}] |\n`;
 
-            // Test explode2
-            {
-              const { root, ctx } = toCSTreeWithContext(abc);
-              const chords = findByTag(root, TAGS.Chord);
-              if (chords.length === 0) return true;
-              const sel: Selection = { root, cursors: [new Set([chords[0].id])] };
-              const beforeNotes = findByTag(root, TAGS.Note).length;
-              const beforeRests = findByTag(root, TAGS.Rest).length;
-              explode2(sel, ctx);
-              const afterNotes = findByTag(root, TAGS.Note).length;
-              const afterRests = findByTag(root, TAGS.Rest).length;
-              const newElements = afterNotes + afterRests - beforeNotes - beforeRests;
-              if (newElements !== 2) return false;
-            }
-
-            // Test explode3
-            {
-              const { root, ctx } = toCSTreeWithContext(abc);
-              const chords = findByTag(root, TAGS.Chord);
-              if (chords.length === 0) return true;
-              const sel: Selection = { root, cursors: [new Set([chords[0].id])] };
-              const beforeNotes = findByTag(root, TAGS.Note).length;
-              const beforeRests = findByTag(root, TAGS.Rest).length;
-              explode3(sel, ctx);
-              const afterNotes = findByTag(root, TAGS.Note).length;
-              const afterRests = findByTag(root, TAGS.Rest).length;
-              const newElements = afterNotes + afterRests - beforeNotes - beforeRests;
-              if (newElements !== 3) return false;
-            }
-
-            return true;
+          // Test explode2
+          {
+            const { root, ctx } = toCSTreeWithContext(abc);
+            const chords = findByTag(root, TAGS.Chord);
+            if (chords.length === 0) return true;
+            const sel: Selection = { root, cursors: [new Set([chords[0].id])] };
+            const beforeNotes = findByTag(root, TAGS.Note).length;
+            const beforeRests = findByTag(root, TAGS.Rest).length;
+            explode2(sel, ctx);
+            const afterNotes = findByTag(root, TAGS.Note).length;
+            const afterRests = findByTag(root, TAGS.Rest).length;
+            const newElements = afterNotes + afterRests - beforeNotes - beforeRests;
+            if (newElements !== 2) return false;
           }
-        ),
+
+          // Test explode3
+          {
+            const { root, ctx } = toCSTreeWithContext(abc);
+            const chords = findByTag(root, TAGS.Chord);
+            if (chords.length === 0) return true;
+            const sel: Selection = { root, cursors: [new Set([chords[0].id])] };
+            const beforeNotes = findByTag(root, TAGS.Note).length;
+            const beforeRests = findByTag(root, TAGS.Rest).length;
+            explode3(sel, ctx);
+            const afterNotes = findByTag(root, TAGS.Note).length;
+            const afterRests = findByTag(root, TAGS.Rest).length;
+            const newElements = afterNotes + afterRests - beforeNotes - beforeRests;
+            if (newElements !== 3) return false;
+          }
+
+          return true;
+        }),
         { numRuns: 50 }
       );
     });
@@ -508,7 +501,7 @@ describe("explode", () => {
 
             const sel: Selection = {
               root,
-              cursors: [new Set([...findByTag(root, TAGS.Grace_group).map(g => g.id), chords[0].id])],
+              cursors: [new Set([...findByTag(root, TAGS.Grace_group).map((g) => g.id), chords[0].id])],
             };
 
             explode(sel, partCount, ctx);

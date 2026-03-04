@@ -10,9 +10,7 @@ import { voiceInfoLineToInline, voiceInlineToInfoLine } from "../src/transforms/
  */
 function applyInfoLineToInline(input: string): string {
   const { root, ctx } = toCSTreeWithContext(input);
-  const infoLines = findByTag(root, TAGS.Info_line).filter(
-    (n) => n.firstChild && n.firstChild.data.type === "token" && n.firstChild.data.lexeme === "V:"
-  );
+  const infoLines = findByTag(root, TAGS.Info_line).filter((n) => n.firstChild && n.firstChild.data.type === "token" && n.firstChild.data.lexeme === "V:");
   if (infoLines.length === 0) {
     return formatSelection({ root, cursors: [] });
   }

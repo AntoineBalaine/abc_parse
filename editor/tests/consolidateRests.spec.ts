@@ -176,74 +176,63 @@ describe("consolidateRests", () => {
   describe("property-based tests", () => {
     it("idempotence: applying consolidateRests twice yields the same result as once", () => {
       fc.assert(
-        fc.property(
-          fc.array(fc.constantFrom("z", "z/2", "z2", "z/4", "z4"), { minLength: 1, maxLength: 5 }),
-          (restStrings) => {
-            const source = "X:1\nK:C\n" + restStrings.join(" ") + " |\n";
-            const { root: root1, ctx: ctx1 } = toCSTreeWithContext(source);
-            const rests1 = findByTag(root1, TAGS.Rest);
-            const sel1: Selection = { root: root1, cursors: [new Set(rests1.map((r) => r.id))] };
-            consolidateRests(sel1, ctx1);
-            const afterOnce = formatSelection(sel1);
+        fc.property(fc.array(fc.constantFrom("z", "z/2", "z2", "z/4", "z4"), { minLength: 1, maxLength: 5 }), (restStrings) => {
+          const source = "X:1\nK:C\n" + restStrings.join(" ") + " |\n";
+          const { root: root1, ctx: ctx1 } = toCSTreeWithContext(source);
+          const rests1 = findByTag(root1, TAGS.Rest);
+          const sel1: Selection = { root: root1, cursors: [new Set(rests1.map((r) => r.id))] };
+          consolidateRests(sel1, ctx1);
+          const afterOnce = formatSelection(sel1);
 
-            // Apply again
-            const { root: root2, ctx: ctx2 } = toCSTreeWithContext(afterOnce);
-            const rests2 = findByTag(root2, TAGS.Rest);
-            const sel2: Selection = { root: root2, cursors: [new Set(rests2.map((r) => r.id))] };
-            consolidateRests(sel2, ctx2);
-            const afterTwice = formatSelection(sel2);
+          // Apply again
+          const { root: root2, ctx: ctx2 } = toCSTreeWithContext(afterOnce);
+          const rests2 = findByTag(root2, TAGS.Rest);
+          const sel2: Selection = { root: root2, cursors: [new Set(rests2.map((r) => r.id))] };
+          consolidateRests(sel2, ctx2);
+          const afterTwice = formatSelection(sel2);
 
-            expect(afterTwice).to.equal(afterOnce);
-          }
-        ),
+          expect(afterTwice).to.equal(afterOnce);
+        }),
         { numRuns: 100 }
       );
     });
 
     it("total duration is preserved", () => {
       fc.assert(
-        fc.property(
-          fc.array(fc.constantFrom("z", "z/2", "z2", "z/4", "z4", "z/8", "z8"), { minLength: 2, maxLength: 6 }),
-          (restStrings) => {
-            const source = "X:1\nK:C\n" + restStrings.join(" ") + " |\n";
-            const { root, ctx } = toCSTreeWithContext(source);
+        fc.property(fc.array(fc.constantFrom("z", "z/2", "z2", "z/4", "z4", "z/8", "z8"), { minLength: 2, maxLength: 6 }), (restStrings) => {
+          const source = "X:1\nK:C\n" + restStrings.join(" ") + " |\n";
+          const { root, ctx } = toCSTreeWithContext(source);
 
-            const durationBefore = sumRestDurations(root);
+          const durationBefore = sumRestDurations(root);
 
-            const rests = findByTag(root, TAGS.Rest);
-            const sel: Selection = { root, cursors: [new Set(rests.map((r) => r.id))] };
-            consolidateRests(sel, ctx);
+          const rests = findByTag(root, TAGS.Rest);
+          const sel: Selection = { root, cursors: [new Set(rests.map((r) => r.id))] };
+          consolidateRests(sel, ctx);
 
-            const durationAfter = sumRestDurations(root);
+          const durationAfter = sumRestDurations(root);
 
-            expect(durationAfter.numerator * durationBefore.denominator).to.equal(
-              durationBefore.numerator * durationAfter.denominator
-            );
-          }
-        ),
+          expect(durationAfter.numerator * durationBefore.denominator).to.equal(durationBefore.numerator * durationAfter.denominator);
+        }),
         { numRuns: 100 }
       );
     });
 
     it("rest count is non-increasing", () => {
       fc.assert(
-        fc.property(
-          fc.array(fc.constantFrom("z", "z/2", "z2", "z/4", "z4"), { minLength: 1, maxLength: 5 }),
-          (restStrings) => {
-            const source = "X:1\nK:C\n" + restStrings.join(" ") + " |\n";
-            const { root, ctx } = toCSTreeWithContext(source);
+        fc.property(fc.array(fc.constantFrom("z", "z/2", "z2", "z/4", "z4"), { minLength: 1, maxLength: 5 }), (restStrings) => {
+          const source = "X:1\nK:C\n" + restStrings.join(" ") + " |\n";
+          const { root, ctx } = toCSTreeWithContext(source);
 
-            const countBefore = findByTag(root, TAGS.Rest).length;
+          const countBefore = findByTag(root, TAGS.Rest).length;
 
-            const rests = findByTag(root, TAGS.Rest);
-            const sel: Selection = { root, cursors: [new Set(rests.map((r) => r.id))] };
-            consolidateRests(sel, ctx);
+          const rests = findByTag(root, TAGS.Rest);
+          const sel: Selection = { root, cursors: [new Set(rests.map((r) => r.id))] };
+          consolidateRests(sel, ctx);
 
-            const countAfter = findByTag(root, TAGS.Rest).length;
+          const countAfter = findByTag(root, TAGS.Rest).length;
 
-            expect(countAfter).to.be.at.most(countBefore);
-          }
-        ),
+          expect(countAfter).to.be.at.most(countBefore);
+        }),
         { numRuns: 100 }
       );
     });

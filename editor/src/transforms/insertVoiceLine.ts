@@ -1,27 +1,18 @@
 import { Selection } from "../selection";
-import { CSNode, TAGS, createCSNode, isTokenNode, getTokenData } from "../csTree/types";
+import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { ABCContext, TT } from "abc-parser";
 import { noteToRest, chordToRest } from "./toRest";
 import { addVoice } from "./addVoice";
 import { findFirstByTag } from "../selectors/treeWalk";
-import {
-  groupElementsBySourceLine,
-  reassignIds,
-  findTuneBody,
-  findTargetNote,
-  nodeOrDescendantInSet,
-} from "./lineUtils";
+import { cloneSubtree, appendChild, insertAfter, remove } from "cstree";
+import { groupElementsBySourceLine, reassignIds, findTuneBody, findTargetNote, nodeOrDescendantInSet } from "./lineUtils";
 
 /**
  * Inserts a new voice line by duplicating lines containing selected notes.
  * Non-selected notes are converted to rests, preserving rhythm.
  * If the voice ID doesn't exist in the header, it is added automatically.
  */
-export function insertVoiceLine(
-  selection: Selection,
-  voiceName: string,
-  ctx: ABCContext
-): Selection {
+export function insertVoiceLine(selection: Selection, voiceName: string, ctx: ABCContext): Selection {
   // Flatten all cursor sets into a single Set of selected node IDs
   const selectedIds = new Set<number>();
   for (const cursor of selection.cursors) {
@@ -67,8 +58,11 @@ export function insertVoiceLine(
     const elements = elementsByLine.get(lineNum);
     if (!elements || elements.length === 0) continue;
 
-    // Clone all elements on this line
-    const clonedElements: CSNode[] = elements.map(e => structuredClone(e));
+    // Clone all elements on this line using cloneSubtree (preserves IDs for now, reassigned later)
+    const clonedElements: CSNode[] = elements.map((e) => cloneSubtree(e, () => e.id, true));
+
+    // Build a temporary container to hold the chain during processing
+    const tempContainer = createCSNode(TAGS.System, -1, { type: "empty" } as any);
 
     // Build the cloned chain: voice marker, space, then cloned elements
     const voiceMarker = createInlineVoiceMarker(voiceName, ctx);
@@ -80,13 +74,12 @@ export function insertVoiceLine(
       position: 0,
     });
 
-    // Link: voiceMarker -> space -> cloned elements
-    voiceMarker.nextSibling = spaceAfterMarker;
-    spaceAfterMarker.nextSibling = clonedElements[0];
-    for (let i = 0; i < clonedElements.length - 1; i++) {
-      clonedElements[i].nextSibling = clonedElements[i + 1];
+    // Link nodes into temp container using appendChild
+    appendChild(tempContainer, voiceMarker);
+    appendChild(tempContainer, spaceAfterMarker);
+    for (const cloned of clonedElements) {
+      appendChild(tempContainer, cloned);
     }
-    clonedElements[clonedElements.length - 1].nextSibling = null;
 
     // Remove grace groups before non-selected notes (must be done before note-to-rest conversion)
     removeUnselectedGraceGroups(spaceAfterMarker, selectedIds);
@@ -105,11 +98,18 @@ export function insertVoiceLine(
       reassignIds(cloned, ctx);
     }
 
-    // Insert the cloned chain after the last original element on this line
+    // Insert the chain after the last original element on this line.
+    // Detach all nodes from the temp container and insert them after lastOriginal.
     const lastOriginal = elements[elements.length - 1];
-    const originalNext = lastOriginal.nextSibling;
-    lastOriginal.nextSibling = voiceMarker;
-    clonedElements[clonedElements.length - 1].nextSibling = originalNext;
+    let insertAnchor = lastOriginal;
+    let toMove = tempContainer.firstChild;
+    while (toMove !== null) {
+      const next = toMove.nextSibling;
+      remove(toMove);
+      insertAfter(insertAnchor, toMove);
+      insertAnchor = toMove;
+      toMove = next;
+    }
   }
 
   return selection;
@@ -152,10 +152,10 @@ function createInlineVoiceMarker(voiceName: string, ctx: ABCContext): CSNode {
   });
 
   const inlineField = createCSNode(TAGS.Inline_field, ctx.generateId(), { type: "empty" });
-  inlineField.firstChild = leftBracket;
-  leftBracket.nextSibling = field;
-  field.nextSibling = text;
-  text.nextSibling = rightBracket;
+  appendChild(inlineField, leftBracket);
+  appendChild(inlineField, field);
+  appendChild(inlineField, text);
+  appendChild(inlineField, rightBracket);
 
   return inlineField;
 }
@@ -178,23 +178,13 @@ function chordHasSelectedNotes(chord: CSNode, selectedIds: Set<number>): boolean
  * Removes notes from a chord that are not in the selected set.
  */
 function removeUnselectedNotesFromChord(chord: CSNode, selectedIds: Set<number>): void {
-  let prev: CSNode | null = null;
   let current = chord.firstChild;
 
   while (current !== null) {
     const next = current.nextSibling;
 
     if (current.tag === TAGS.Note && !selectedIds.has(current.id)) {
-      // Remove this note
-      if (prev === null) {
-        chord.firstChild = next;
-      } else {
-        prev.nextSibling = next;
-      }
-      current.nextSibling = null;
-      // Don't update prev since we removed current
-    } else {
-      prev = current;
+      remove(current);
     }
 
     current = next;
@@ -276,11 +266,7 @@ function findTuneHeader(root: CSNode): CSNode | null {
  * Must be called before note-to-rest conversion because it examines the original IDs.
  * Also recursively handles grace groups inside Beam/Tuplet containers.
  */
-function removeUnselectedGraceGroups(
-  startNode: CSNode,
-  selectedIds: Set<number>
-): void {
-  let prev: CSNode | null = startNode;
+function removeUnselectedGraceGroups(startNode: CSNode, selectedIds: Set<number>): void {
   let current = startNode.nextSibling;
 
   while (current !== null) {
@@ -291,36 +277,51 @@ function removeUnselectedGraceGroups(
       let shouldRemove = false;
 
       if (targetNote === null) {
-        // Orphan grace group with no target - keep it
         shouldRemove = false;
       } else if (targetNote.tag === TAGS.Rest) {
-        // Grace group before a rest - remove it
         shouldRemove = true;
       } else if (targetNote.tag === TAGS.Note) {
-        // Remove if target note is not selected
         shouldRemove = !selectedIds.has(targetNote.id);
       } else if (targetNote.tag === TAGS.Chord) {
-        // Remove if chord has no selected notes
         shouldRemove = !chordHasSelectedNotes(targetNote, selectedIds);
       }
 
       if (shouldRemove) {
-        // Remove the grace group from the sibling chain
-        prev.nextSibling = next;
-        current.nextSibling = null;
+        remove(current);
         current = next;
         continue;
       }
     } else if (current.tag === TAGS.Beam || current.tag === TAGS.Tuplet) {
       // Recursively handle grace groups inside containers
-      // Create a dummy head to simplify removal from firstChild
-      const dummyHead = createCSNode(TAGS.Token, -1, { type: "empty" });
-      dummyHead.nextSibling = current.firstChild;
-      removeUnselectedGraceGroups(dummyHead, selectedIds);
-      current.firstChild = dummyHead.nextSibling;
+      removeUnselectedGraceGroupsInContainer(current, selectedIds);
     }
 
-    prev = current;
+    current = next;
+  }
+}
+
+function removeUnselectedGraceGroupsInContainer(container: CSNode, selectedIds: Set<number>): void {
+  let current = container.firstChild;
+  while (current !== null) {
+    const next = current.nextSibling;
+    if (current.tag === TAGS.Grace_group) {
+      const targetNote = findTargetNote(current);
+      let shouldRemove = false;
+      if (targetNote === null) {
+        shouldRemove = false;
+      } else if (targetNote.tag === TAGS.Rest) {
+        shouldRemove = true;
+      } else if (targetNote.tag === TAGS.Note) {
+        shouldRemove = !selectedIds.has(targetNote.id);
+      } else if (targetNote.tag === TAGS.Chord) {
+        shouldRemove = !chordHasSelectedNotes(targetNote, selectedIds);
+      }
+      if (shouldRemove) {
+        remove(current);
+      }
+    } else if (current.tag === TAGS.Beam || current.tag === TAGS.Tuplet) {
+      removeUnselectedGraceGroupsInContainer(current, selectedIds);
+    }
     current = next;
   }
 }
@@ -330,11 +331,7 @@ function removeUnselectedGraceGroups(
  * Converts non-selected notes to rests and handles chords.
  * Grace groups should be removed before calling this function.
  */
-function processElementForVoiceInsert(
-  node: CSNode,
-  selectedIds: Set<number>,
-  ctx: ABCContext
-): void {
+function processElementForVoiceInsert(node: CSNode, selectedIds: Set<number>, ctx: ABCContext): void {
   if (node.tag === TAGS.Note) {
     if (!selectedIds.has(node.id)) {
       noteToRest(node, ctx);

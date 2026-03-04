@@ -1,16 +1,11 @@
 import { Selection } from "../selection";
-import { CSNode, TAGS, createCSNode } from "../csTree/types";
+import { createCSNode, CSNode, TAGS } from "../csTree/types";
 import { ABCContext } from "abc-parser";
 import { noteToRest, chordToRest } from "./toRest";
 import { unwrapSingle } from "./unwrapSingle";
 import { consolidateRests } from "./consolidateRests";
-import {
-  groupElementsBySourceLine,
-  reassignIds,
-  findTuneBody,
-  collectNotesFromChord,
-  nodeOrDescendantInSet,
-} from "./lineUtils";
+import { cloneSubtree, appendChild, insertAfter, remove } from "cstree";
+import { groupElementsBySourceLine, reassignIds, findTuneBody, collectNotesFromChord, nodeOrDescendantInSet } from "./lineUtils";
 
 /**
  * Filters a chord to keep only the note at the specified part index.
@@ -19,7 +14,7 @@ import {
  */
 function filterChordToPart(chordNode: CSNode, partIndex: number, ctx: ABCContext): void {
   const notes = collectNotesFromChord(chordNode);
-  const noteIndex = (notes.length - 1) - partIndex;
+  const noteIndex = notes.length - 1 - partIndex;
 
   if (noteIndex < 0) {
     // The chord doesn't have enough notes for this part - convert to rest
@@ -28,27 +23,13 @@ function filterChordToPart(chordNode: CSNode, partIndex: number, ctx: ABCContext
   }
 
   // Remove all notes except the one at noteIndex
-  let prev: CSNode | null = null;
   let current = chordNode.firstChild;
 
   while (current !== null) {
     const next = current.nextSibling;
 
-    if (current.tag === TAGS.Note) {
-      if (current !== notes[noteIndex]) {
-        // Remove this note from the chord
-        if (prev === null) {
-          chordNode.firstChild = next;
-        } else {
-          prev.nextSibling = next;
-        }
-        current.nextSibling = null;
-        // Don't update prev since we removed current
-      } else {
-        prev = current;
-      }
-    } else {
-      prev = current;
+    if (current.tag === TAGS.Note && current !== notes[noteIndex]) {
+      remove(current);
     }
 
     current = next;
@@ -67,23 +48,13 @@ function removeGraceGroupsForLowerParts(parent: CSNode, partIndex: number): void
     return; // Keep grace groups for top voice
   }
 
-  let prev: CSNode | null = null;
   let current = parent.firstChild;
 
   while (current !== null) {
     const next = current.nextSibling;
 
     if (current.tag === TAGS.Grace_group) {
-      // Remove grace group from the sibling chain
-      if (prev === null) {
-        parent.firstChild = next;
-      } else {
-        prev.nextSibling = next;
-      }
-      current.nextSibling = null;
-      // Don't update prev since we removed current
-    } else {
-      prev = current;
+      remove(current);
     }
 
     current = next;
@@ -169,11 +140,7 @@ function collectSiblingIds(startNode: CSNode | null): Set<number> {
  * Returns a new Selection where each cursor contains all element IDs
  * from one created line (in document order).
  */
-export function explode(
-  selection: Selection,
-  partCount: number,
-  ctx: ABCContext
-): Selection {
+export function explode(selection: Selection, partCount: number, ctx: ABCContext): Selection {
   if (partCount < 1) {
     return selection;
   }
@@ -223,24 +190,15 @@ export function explode(
 
     // Create partCount copies, from last to first (so they end up in order)
     for (let partIndex = partCount - 1; partIndex >= 0; partIndex--) {
-      // Clone all elements on this line
-      const clonedElements: CSNode[] = elements.map(e => structuredClone(e));
-
-      // Link the cloned elements together
-      for (let i = 0; i < clonedElements.length - 1; i++) {
-        clonedElements[i].nextSibling = clonedElements[i + 1];
-      }
-      clonedElements[clonedElements.length - 1].nextSibling = null;
-
-      // Reassign IDs to all cloned elements
-      for (const cloned of clonedElements) {
-        reassignIds(cloned, ctx);
-      }
+      // Clone all elements on this line using cloneSubtree to avoid stale parentRefs
+      const clonedElements: CSNode[] = elements.map((e) => cloneSubtree(e, () => ctx.generateId()));
 
       // Create a System node to hold the cloned chain during processing.
       // This allows unwrapSingle to find the parent of chords correctly.
       const systemNode = createCSNode(TAGS.System, ctx.generateId(), { type: "empty" });
-      systemNode.firstChild = clonedElements[0];
+      for (const cloned of clonedElements) {
+        appendChild(systemNode, cloned);
+      }
 
       // Walk and filter the cloned elements
       walkAndFilter(systemNode, systemNode.firstChild, partIndex, ctx);
@@ -253,22 +211,17 @@ export function explode(
       // After consolidation, allIds has been updated (consumed IDs removed)
       createdLineCursors.push(allIds);
 
-      // Extract the processed chain from the System node
-      // (the first child may have changed if elements were promoted)
-      let firstProcessed = systemNode.firstChild;
-      let lastProcessed = firstProcessed;
-      while (lastProcessed && lastProcessed.nextSibling) {
-        lastProcessed = lastProcessed.nextSibling;
-      }
-
-      // Insert the processed chain after the last original element on this line
-      if (firstProcessed) {
-        const lastOriginal = elements[elements.length - 1];
-        const originalNext = lastOriginal.nextSibling;
-        lastOriginal.nextSibling = firstProcessed;
-        if (lastProcessed) {
-          lastProcessed.nextSibling = originalNext;
-        }
+      // Insert the processed chain after the last original element on this line.
+      // Detach each node from systemNode and insert after lastOriginal.
+      const lastOriginal = elements[elements.length - 1];
+      let insertAnchor = lastOriginal;
+      let toMove = systemNode.firstChild;
+      while (toMove !== null) {
+        const next = toMove.nextSibling;
+        remove(toMove);
+        insertAfter(insertAnchor, toMove);
+        insertAnchor = toMove;
+        toMove = next;
       }
     }
   }

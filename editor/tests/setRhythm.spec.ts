@@ -86,7 +86,7 @@ describe("setRhythm", () => {
           const { root, ctx } = toCSTreeWithContext(source);
           const notes = findByTag(root, TAGS.Note);
           if (notes.length === 0) return;
-          const ids = new Set(notes.map(n => n.id));
+          const ids = new Set(notes.map((n) => n.id));
           const sel: Selection = { root, cursors: [ids] };
           setRhythm(sel, rational, ctx);
           for (const note of notes) {
@@ -105,7 +105,7 @@ describe("setRhythm", () => {
           const { root, ctx } = toCSTreeWithContext(source);
           const notes = findByTag(root, TAGS.Note);
           if (notes.length === 0) return;
-          const ids = new Set(notes.map(n => n.id));
+          const ids = new Set(notes.map((n) => n.id));
           const sel: Selection = { root, cursors: [ids] };
           setRhythm(sel, createRational(1, 1), ctx);
           for (const note of notes) {

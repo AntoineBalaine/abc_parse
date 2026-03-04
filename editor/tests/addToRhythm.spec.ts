@@ -70,7 +70,7 @@ describe("addToRhythm", () => {
           const notes = findByTag(root, TAGS.Note);
           if (notes.length === 0) return;
           const before = formatSelection({ root, cursors: [] });
-          const ids = new Set(notes.map(n => n.id));
+          const ids = new Set(notes.map((n) => n.id));
           const sel: Selection = { root, cursors: [ids] };
           addToRhythm(sel, createRational(0, 1), ctx);
           const after = formatSelection(sel);
@@ -82,29 +82,25 @@ describe("addToRhythm", () => {
 
     it("after add-to-rhythm(r), each selected node's rhythm equals original + r (clamped)", () => {
       fc.assert(
-        fc.property(
-          genAbcTune,
-          fc.integer({ min: 1, max: 4 }),
-          (source, addNum) => {
-            const { root, ctx } = toCSTreeWithContext(source);
-            const notes = findByTag(root, TAGS.Note);
-            if (notes.length === 0) return;
-            const rhythmsBefore = notes.map(n => getNodeRhythm(n));
-            const ids = new Set(notes.map(n => n.id));
-            const sel: Selection = { root, cursors: [ids] };
-            const delta = createRational(addNum, 1);
-            addToRhythm(sel, delta, ctx);
-            for (let i = 0; i < notes.length; i++) {
-              const expected = {
-                numerator: rhythmsBefore[i].numerator + addNum * rhythmsBefore[i].denominator,
-                denominator: rhythmsBefore[i].denominator,
-              };
-              const r = getNodeRhythm(notes[i]);
-              // createRational normalizes, so compare values
-              expect(r.numerator * expected.denominator).to.equal(expected.numerator * r.denominator);
-            }
+        fc.property(genAbcTune, fc.integer({ min: 1, max: 4 }), (source, addNum) => {
+          const { root, ctx } = toCSTreeWithContext(source);
+          const notes = findByTag(root, TAGS.Note);
+          if (notes.length === 0) return;
+          const rhythmsBefore = notes.map((n) => getNodeRhythm(n));
+          const ids = new Set(notes.map((n) => n.id));
+          const sel: Selection = { root, cursors: [ids] };
+          const delta = createRational(addNum, 1);
+          addToRhythm(sel, delta, ctx);
+          for (let i = 0; i < notes.length; i++) {
+            const expected = {
+              numerator: rhythmsBefore[i].numerator + addNum * rhythmsBefore[i].denominator,
+              denominator: rhythmsBefore[i].denominator,
+            };
+            const r = getNodeRhythm(notes[i]);
+            // createRational normalizes, so compare values
+            expect(r.numerator * expected.denominator).to.equal(expected.numerator * r.denominator);
           }
-        ),
+        }),
         { numRuns: 1000 }
       );
     });

@@ -1,12 +1,12 @@
+import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter, File_structure, Tune } from "abc-parser";
+import { SemanticData } from "abc-parser/analyzers/semantic-analyzer";
+import { ContextInterpreter, DocumentSnapshots, encode, getSnapshotAtPosition } from "abc-parser/interpreter/ContextInterpreter";
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter, File_structure, Tune } from "abc-parser";
-import { ContextInterpreter, DocumentSnapshots, encode, getSnapshotAtPosition } from "abc-parser/interpreter/ContextInterpreter";
-import { SemanticData } from "abc-parser/analyzers/semantic-analyzer";
-import { fromAst } from "../src/csTree/fromAst";
-import { CSNode } from "../src/csTree/types";
 import { getContextForNode } from "../src/context/contextUtils";
-import { findFirstByTag, firstTokenData } from "../src/selectors/treeWalk";
+import { fromAst } from "../src/csTree/fromAst";
+import { CSNode, TAGS } from "../src/csTree/types";
+import { findFirstByTag } from "../src/selectors/treeWalk";
 
 function parseWithContext(source: string): {
   ast: File_structure;
@@ -93,11 +93,12 @@ K:G
 
     it("returns null for node without tokens", () => {
       const emptyNode: CSNode = {
-        tag: "Note",
+        tag: "Note" as TAGS,
         id: 999,
         data: { type: "empty" },
         firstChild: null,
         nextSibling: null,
+        parentRef: null,
       };
 
       const snapshots: DocumentSnapshots = [];

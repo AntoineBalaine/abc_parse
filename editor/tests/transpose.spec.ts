@@ -227,7 +227,7 @@ function buildPitchContext(key: KeySignature, measureAcc: Map<string, number>): 
 function getNoteMidi(noteNode: any): number {
   const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
   if (!pitchResult) throw new Error("No pitch child");
-  const pitchExpr = toAst(pitchResult.node) as Pitch;
+  const pitchExpr = toAst(pitchResult) as Pitch;
   return toMidiPitch(pitchExpr);
 }
 
@@ -258,7 +258,7 @@ function toCSTreeWithSnapshots(source: string): { root: any; ctx: ABCContext; sn
 function getNoteAccidental(noteNode: any): string {
   const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
   if (!pitchResult) return "";
-  const pitchExpr = toAst(pitchResult.node) as Pitch;
+  const pitchExpr = toAst(pitchResult) as Pitch;
   return pitchExpr.alteration?.lexeme ?? "";
 }
 
@@ -268,7 +268,7 @@ function getNoteAccidental(noteNode: any): string {
 function getNoteLetter(noteNode: any): string {
   const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
   if (!pitchResult) return "";
-  const pitchExpr = toAst(pitchResult.node) as Pitch;
+  const pitchExpr = toAst(pitchResult) as Pitch;
   return pitchExpr.noteLetter.lexeme;
 }
 

@@ -1,9 +1,9 @@
-import { Selection } from "../selection";
-import { CSNode, TAGS, createCSNode, isTokenNode, getTokenData } from "../csTree/types";
 import { ABCContext, TT } from "abc-parser";
-import { findNodesById } from "./types";
-import { findParent, insertBefore, removeChild, appendChild } from "./treeUtils";
+import { insertBefore, appendChild, getParent, remove, cloneSubtree } from "cstree";
+import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
+import { Selection } from "../selection";
 import { findFirstByTag } from "../selectors/treeWalk";
+import { findNodesById } from "./types";
 
 /**
  * Returns true if node is an Info_line with V: key
@@ -66,7 +66,7 @@ export function findPrev(parent: CSNode, target: CSNode): CSNode | null {
 
 /**
  * Extracts voice content CSNodes from either Info_line or Inline_field.
- * Returns cloned nodes (using structuredClone) to avoid sharing.
+ * Returns cloned nodes (using cloneSubtree) to avoid sharing.
  */
 export function extractVoiceContent(node: CSNode): CSNode[] {
   const result: CSNode[] = [];
@@ -78,7 +78,7 @@ export function extractVoiceContent(node: CSNode): CSNode[] {
       current = current.nextSibling; // Skip the V: key token
     }
     while (current !== null) {
-      result.push(structuredClone(current));
+      result.push(cloneSubtree(current, () => current!.id, true));
       current = current.nextSibling;
     }
   } else if (node.tag === TAGS.Inline_field) {
@@ -103,14 +103,9 @@ export function extractVoiceContent(node: CSNode): CSNode[] {
           continue;
         }
       }
-      result.push(structuredClone(current));
+      result.push(cloneSubtree(current, () => current!.id, true));
       current = current.nextSibling;
     }
-  }
-
-  // Clear nextSibling on cloned nodes (they'll be re-chained by the caller)
-  for (const cloned of result) {
-    cloned.nextSibling = null;
   }
 
   return result;
@@ -132,12 +127,10 @@ export function createInfoLineFromContent(voiceContent: CSNode[], ctx: ABCContex
     position: 0,
   });
 
-  // Build child chain
-  infoLine.firstChild = keyToken;
-  let current = keyToken;
+  // Build child chain using appendChild to maintain parentRef
+  appendChild(infoLine, keyToken);
   for (const content of voiceContent) {
-    current.nextSibling = content;
-    current = content;
+    appendChild(infoLine, content);
   }
 
   return infoLine;
@@ -178,15 +171,12 @@ export function createInlineFieldFromContent(voiceContent: CSNode[], ctx: ABCCon
   });
 
   // Build child chain: leftBracket -> fieldToken -> ...voiceContent -> rightBracket
-  inlineField.firstChild = leftBracket;
-  leftBracket.nextSibling = fieldToken;
-
-  let current: CSNode = fieldToken;
+  appendChild(inlineField, leftBracket);
+  appendChild(inlineField, fieldToken);
   for (const content of voiceContent) {
-    current.nextSibling = content;
-    current = content;
+    appendChild(inlineField, content);
   }
-  current.nextSibling = rightBracket;
+  appendChild(inlineField, rightBracket);
 
   return inlineField;
 }
@@ -215,43 +205,37 @@ export function findLineStart(parent: CSNode, target: CSNode): CSNode | null {
  * Removes node and any trailing EOL/WS tokens from the sibling chain.
  */
 export function removeNodeAndTrailingEOL(parent: CSNode, prev: CSNode | null, node: CSNode): void {
-  // First, find what comes after node and any trailing EOL/WS
+  // Remove trailing EOL/WS tokens after the node
   let trailing = node.nextSibling;
   while (trailing !== null && isEOLorWS(trailing)) {
-    trailing = trailing.nextSibling;
+    const next = trailing.nextSibling;
+    remove(trailing);
+    trailing = next;
   }
 
-  // Remove by linking prev to trailing
-  if (prev === null) {
-    parent.firstChild = trailing;
-  } else {
-    prev.nextSibling = trailing;
-  }
-  node.nextSibling = null;
+  // Remove the node itself
+  remove(node);
 }
 
 /**
  * Removes any leading WS token before node, the node itself, and any trailing WS after node.
  */
 export function removeNodeAndSurroundingWS(parent: CSNode, prev: CSNode | null, node: CSNode): void {
-  // Determine the actual start (skip leading WS if present)
-  let actualPrev = prev;
+  // Remove leading WS if present
   if (prev !== null && isTokenNode(prev) && getTokenData(prev).tokenType === TT.WS) {
-    actualPrev = findPrev(parent, prev);
+    remove(prev);
   }
 
-  // Determine what comes after (skip trailing WS)
+  // Remove trailing WS
   let after = node.nextSibling;
   while (after !== null && isTokenNode(after) && getTokenData(after).tokenType === TT.WS) {
-    after = after.nextSibling;
+    const next = after.nextSibling;
+    remove(after);
+    after = next;
   }
 
-  // Relink the chain
-  if (actualPrev === null) {
-    parent.firstChild = after;
-  } else {
-    actualPrev.nextSibling = after;
-  }
+  // Remove the node itself
+  remove(node);
 }
 
 /**
@@ -265,10 +249,11 @@ export function voiceInfoLineToInline(selection: Selection, ctx: ABCContext): Se
     for (const voiceLine of nodes) {
       if (!isVoiceInfoLine(voiceLine)) continue;
 
-      // Find parent and predecessor
-      const parentInfo = findParent(selection.root, voiceLine);
-      if (!parentInfo) continue;
-      const { parent, prev } = parentInfo;
+      // Find parent and predecessor using parentRef
+      const parent = getParent(voiceLine);
+      if (!parent) continue;
+      const ref = voiceLine.parentRef!;
+      const prev = ref.tag === "sibling" ? ref.prev : null;
 
       // Only convert V: info lines in Tune_Body (via System), not in Tune_Header
       // Because of the System wrapper nodes, V: info lines are now children of System, not directly of Tune_Body
@@ -304,7 +289,6 @@ export function voiceInfoLineToInline(selection: Selection, ctx: ABCContext): Se
 
       // If no music content in current System, check the next System
       // because V: info lines might trigger system boundaries
-      let insertContainer = containerParent;
       if (nextMusic === null && systemParent !== null) {
         const nextSystem = systemParent.nextSibling;
         if (nextSystem !== null && nextSystem.tag === TAGS.System) {
@@ -315,7 +299,6 @@ export function voiceInfoLineToInline(selection: Selection, ctx: ABCContext): Se
           }
           if (firstInNextSystem !== null) {
             nextMusic = firstInNextSystem;
-            insertContainer = nextSystem;
           }
         }
       }
@@ -325,9 +308,6 @@ export function voiceInfoLineToInline(selection: Selection, ctx: ABCContext): Se
 
       // Now insert the inline field
       if (nextMusic !== null) {
-        // Find predecessor of nextMusic (may have changed after removal)
-        const nextPrev = findPrev(insertContainer, nextMusic);
-
         // Create space token
         const spaceToken = createCSNode(TAGS.Token, ctx.generateId(), {
           type: "token",
@@ -338,8 +318,8 @@ export function voiceInfoLineToInline(selection: Selection, ctx: ABCContext): Se
         });
 
         // Insert inline field and space before next music content
-        insertBefore(insertContainer, nextPrev, nextMusic, inlineField);
-        insertBefore(insertContainer, inlineField, nextMusic, spaceToken);
+        insertBefore(nextMusic, inlineField);
+        insertBefore(nextMusic, spaceToken);
       } else {
         // No following content - append inline field and preserve trailing EOL if there was one
         appendChild(containerParent, inlineField);
@@ -365,10 +345,11 @@ export function voiceInfoLineToInline(selection: Selection, ctx: ABCContext): Se
  * the container (System or Tune_Body for legacy paths) and the child within that container.
  */
 function findContainerForNode(root: CSNode, target: CSNode): { container: CSNode; containerChild: CSNode; containerChildPrev: CSNode | null } | null {
-  const parentInfo = findParent(root, target);
-  if (!parentInfo) return null;
+  const immediateParent = getParent(target);
+  if (!immediateParent) return null;
 
-  const { parent: immediateParent, prev: prevInParent } = parentInfo;
+  const targetRef = target.parentRef!;
+  const prevInParent = targetRef.tag === "sibling" ? targetRef.prev : null;
 
   // Determine the container: System node or Tune_Body (for legacy paths)
   let container: CSNode;
@@ -380,9 +361,9 @@ function findContainerForNode(root: CSNode, target: CSNode): { container: CSNode
     if (!tuneBody) return null;
 
     // Check if immediateParent is a System
-    const systemParentInfo = findParent(root, immediateParent);
-    if (systemParentInfo && systemParentInfo.parent.tag === TAGS.System) {
-      container = systemParentInfo.parent;
+    const systemParent = getParent(immediateParent);
+    if (systemParent && systemParent.tag === TAGS.System) {
+      container = systemParent;
     } else if (immediateParent === tuneBody) {
       container = tuneBody;
     } else {
@@ -434,10 +415,11 @@ export function voiceInlineToInfoLine(selection: Selection, ctx: ABCContext): Se
     for (const inlineField of nodes) {
       if (!isVoiceInlineField(inlineField)) continue;
 
-      // Find the immediate parent of the inline field
-      const parentInfo = findParent(selection.root, inlineField);
-      if (!parentInfo) continue;
-      const { parent: immediateParent, prev: prevInParent } = parentInfo;
+      // Find the immediate parent of the inline field using parentRef
+      const immediateParent = getParent(inlineField);
+      if (!immediateParent) continue;
+      const inlineRef = inlineField.parentRef!;
+      const prevInParent = inlineRef.tag === "sibling" ? inlineRef.prev : null;
 
       // Find the container (System or Tune_Body) and the child within it
       const containerInfo = findContainerForNode(selection.root, inlineField);
@@ -506,20 +488,22 @@ export function voiceInlineToInfoLine(selection: Selection, ctx: ABCContext): Se
         }
 
         // Remove the WS nodes between insertPrev and containerChild
-        if (insertPrev === null) {
-          container.firstChild = leadingEOL;
-        } else {
-          insertPrev.nextSibling = leadingEOL;
+        let wsToRemove = insertPrev ? insertPrev.nextSibling : container.firstChild;
+        while (wsToRemove !== null && wsToRemove !== containerChild) {
+          const next = wsToRemove.nextSibling;
+          remove(wsToRemove);
+          wsToRemove = next;
         }
-        leadingEOL.nextSibling = containerChild;
+        // Insert leadingEOL before containerChild
+        insertBefore(containerChild, leadingEOL);
 
         // Update currentContainerChildPrev to point to the newly inserted EOL
         currentContainerChildPrev = leadingEOL;
       }
 
       // Insert Info_line and EOL before the containerChild
-      insertBefore(container, currentContainerChildPrev, containerChild, infoLine);
-      insertBefore(container, infoLine, containerChild, eolToken);
+      insertBefore(containerChild, infoLine);
+      insertBefore(containerChild, eolToken);
 
       // Remove inline field and surrounding whitespace from its immediate parent
       // After insertion, we need to find the new predecessor of the inline field

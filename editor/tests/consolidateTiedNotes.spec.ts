@@ -230,9 +230,7 @@ describe("consolidateTiedNotes", () => {
 
           const durationAfter = sumNoteDurations(root);
 
-          expect(durationAfter.numerator * durationBefore.denominator).to.equal(
-            durationBefore.numerator * durationAfter.denominator
-          );
+          expect(durationAfter.numerator * durationBefore.denominator).to.equal(durationBefore.numerator * durationAfter.denominator);
         }),
         { numRuns: 100 }
       );
@@ -294,28 +292,25 @@ describe("consolidateTiedNotes", () => {
 
     it("no orphaned ties: every note with a tie has a following note with same pitch", () => {
       fc.assert(
-        fc.property(
-          fc.array(fc.constantFrom("C-", "C"), { minLength: 2, maxLength: 6 }),
-          (elements) => {
-            const source = "X:1\nK:C\n" + elements.join("") + " |\n";
-            const { root, ctx } = toCSTreeWithContext(source);
+        fc.property(fc.array(fc.constantFrom("C-", "C"), { minLength: 2, maxLength: 6 }), (elements) => {
+          const source = "X:1\nK:C\n" + elements.join("") + " |\n";
+          const { root, ctx } = toCSTreeWithContext(source);
 
-            const sel: Selection = {
-              root,
-              cursors: [selectAll(root, [TAGS.Note])],
-            };
-            consolidateTiedNotes(sel, ctx);
+          const sel: Selection = {
+            root,
+            cursors: [selectAll(root, [TAGS.Note])],
+          };
+          consolidateTiedNotes(sel, ctx);
 
-            const notes = findByTag(root, TAGS.Note);
-            for (let i = 0; i < notes.length - 1; i++) {
-              if (hasTie(notes[i])) {
-                const pitch1 = getPitchFromNote(notes[i]);
-                const pitch2 = getPitchFromNote(notes[i + 1]);
-                expect(pitch1).to.equal(pitch2);
-              }
+          const notes = findByTag(root, TAGS.Note);
+          for (let i = 0; i < notes.length - 1; i++) {
+            if (hasTie(notes[i])) {
+              const pitch1 = getPitchFromNote(notes[i]);
+              const pitch2 = getPitchFromNote(notes[i + 1]);
+              expect(pitch1).to.equal(pitch2);
             }
           }
-        ),
+        }),
         { numRuns: 100 }
       );
     });

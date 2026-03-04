@@ -1,26 +1,22 @@
 import { ABCContext, TT } from "abc-parser";
+import { remove, replace, insertBefore } from "cstree";
+import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { Selection } from "../selection";
-import { CSNode, TAGS, isTokenNode, getTokenData, createCSNode } from "../csTree/types";
+import { findChildByTag } from "./treeUtils";
 import { findNodesById } from "./types";
-import { findChildByTag, removeChild, replaceChild, insertBefore } from "./treeUtils";
 
 type AccidentalState = "none" | "sharp" | "flat" | "natural" | "dblsharp" | "dblflat";
 
 /**
  * Find the accidental token in a Pitch node.
- * Returns the token node and its predecessor for removal/replacement.
  */
-function findAccidentalInPitch(
-  pitchNode: CSNode
-): { node: CSNode; prev: CSNode | null } | null {
-  let prev: CSNode | null = null;
+function findAccidentalInPitch(pitchNode: CSNode): CSNode | null {
   let current = pitchNode.firstChild;
 
   while (current !== null) {
     if (isTokenNode(current) && getTokenData(current).tokenType === TT.ACCIDENTAL) {
-      return { node: current, prev };
+      return current;
     }
-    prev = current;
     current = current.nextSibling;
   }
   return null;
@@ -29,17 +25,13 @@ function findAccidentalInPitch(
 /**
  * Find the NOTE_LETTER token in a Pitch node.
  */
-function findNoteLetterInPitch(
-  pitchNode: CSNode
-): { node: CSNode; prev: CSNode | null } | null {
-  let prev: CSNode | null = null;
+function findNoteLetterInPitch(pitchNode: CSNode): CSNode | null {
   let current = pitchNode.firstChild;
 
   while (current !== null) {
     if (isTokenNode(current) && getTokenData(current).tokenType === TT.NOTE_LETTER) {
-      return { node: current, prev };
+      return current;
     }
-    prev = current;
     current = current.nextSibling;
   }
   return null;
@@ -49,10 +41,10 @@ function findNoteLetterInPitch(
  * Get the current accidental state from a Pitch node.
  */
 function getAccidentalState(pitchNode: CSNode): AccidentalState {
-  const accResult = findAccidentalInPitch(pitchNode);
-  if (accResult === null) return "none";
+  const accNode = findAccidentalInPitch(pitchNode);
+  if (accNode === null) return "none";
 
-  const lexeme = getTokenData(accResult.node).lexeme;
+  const lexeme = getTokenData(accNode).lexeme;
   switch (lexeme) {
     case "^":
       return "sharp";
@@ -94,47 +86,45 @@ function createAccidentalNode(lexeme: string, ctx: ABCContext): CSNode {
  * - dblsharp → (no change, already maximum)
  */
 function applySharpToNote(noteNode: CSNode, ctx: ABCContext): void {
-  const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
-  if (pitchResult === null) return;
-
-  const pitchNode = pitchResult.node;
+  const pitchNode = findChildByTag(noteNode, TAGS.Pitch);
+  if (pitchNode === null) return;
   const currentState = getAccidentalState(pitchNode);
-  const accResult = findAccidentalInPitch(pitchNode);
+  const accNode = findAccidentalInPitch(pitchNode);
 
   switch (currentState) {
     case "none": {
-      const noteLetterResult = findNoteLetterInPitch(pitchNode);
-      if (noteLetterResult !== null) {
+      const noteLetterNode = findNoteLetterInPitch(pitchNode);
+      if (noteLetterNode !== null) {
         const sharpNode = createAccidentalNode("^", ctx);
-        insertBefore(pitchNode, noteLetterResult.prev, noteLetterResult.node, sharpNode);
+        insertBefore(noteLetterNode, sharpNode);
       }
       break;
     }
 
     case "flat":
-      if (accResult !== null) {
-        removeChild(pitchNode, accResult.prev, accResult.node);
+      if (accNode !== null) {
+        remove(accNode);
       }
       break;
 
     case "natural":
-      if (accResult !== null) {
+      if (accNode !== null) {
         const sharpNode = createAccidentalNode("^", ctx);
-        replaceChild(pitchNode, accResult.prev, accResult.node, sharpNode);
+        replace(accNode, sharpNode);
       }
       break;
 
     case "sharp":
-      if (accResult !== null) {
+      if (accNode !== null) {
         const dblSharpNode = createAccidentalNode("^^", ctx);
-        replaceChild(pitchNode, accResult.prev, accResult.node, dblSharpNode);
+        replace(accNode, dblSharpNode);
       }
       break;
 
     case "dblflat":
-      if (accResult !== null) {
+      if (accNode !== null) {
         const flatNode = createAccidentalNode("_", ctx);
-        replaceChild(pitchNode, accResult.prev, accResult.node, flatNode);
+        replace(accNode, flatNode);
       }
       break;
 
@@ -156,47 +146,45 @@ function applySharpToNote(noteNode: CSNode, ctx: ABCContext): void {
  * - dblflat → (no change, already maximum)
  */
 function applyFlatToNote(noteNode: CSNode, ctx: ABCContext): void {
-  const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
-  if (pitchResult === null) return;
-
-  const pitchNode = pitchResult.node;
+  const pitchNode = findChildByTag(noteNode, TAGS.Pitch);
+  if (pitchNode === null) return;
   const currentState = getAccidentalState(pitchNode);
-  const accResult = findAccidentalInPitch(pitchNode);
+  const accNode = findAccidentalInPitch(pitchNode);
 
   switch (currentState) {
     case "none": {
-      const noteLetterResult = findNoteLetterInPitch(pitchNode);
-      if (noteLetterResult !== null) {
+      const noteLetterNode = findNoteLetterInPitch(pitchNode);
+      if (noteLetterNode !== null) {
         const flatNode = createAccidentalNode("_", ctx);
-        insertBefore(pitchNode, noteLetterResult.prev, noteLetterResult.node, flatNode);
+        insertBefore(noteLetterNode, flatNode);
       }
       break;
     }
 
     case "sharp":
-      if (accResult !== null) {
-        removeChild(pitchNode, accResult.prev, accResult.node);
+      if (accNode !== null) {
+        remove(accNode);
       }
       break;
 
     case "natural":
-      if (accResult !== null) {
+      if (accNode !== null) {
         const flatNode = createAccidentalNode("_", ctx);
-        replaceChild(pitchNode, accResult.prev, accResult.node, flatNode);
+        replace(accNode, flatNode);
       }
       break;
 
     case "flat":
-      if (accResult !== null) {
+      if (accNode !== null) {
         const dblFlatNode = createAccidentalNode("__", ctx);
-        replaceChild(pitchNode, accResult.prev, accResult.node, dblFlatNode);
+        replace(accNode, dblFlatNode);
       }
       break;
 
     case "dblsharp":
-      if (accResult !== null) {
+      if (accNode !== null) {
         const sharpNode = createAccidentalNode("^", ctx);
-        replaceChild(pitchNode, accResult.prev, accResult.node, sharpNode);
+        replace(accNode, sharpNode);
       }
       break;
 

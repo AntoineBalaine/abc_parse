@@ -2,17 +2,11 @@ export { findNodesById, TransformFn, InspectionFn } from "./types";
 export { spellingToPitch, convertMeasureAccidentalsToSemitones } from "./pitchHelpers";
 export {
   findChildByTag,
-  removeChild,
-  replaceChild,
-  insertBefore,
-  insertAfter,
-  appendChild,
-  collectChildren,
-  findParent,
   findRhythmChild,
   findTieChild,
   replaceRhythm,
   replaceNodeWithSequence,
+  getNodeLineAndChar,
 } from "./treeUtils";
 export { rhythmToRational, rationalToRhythm, extractBrokenToken, getNodeRhythm } from "./rhythm";
 export { remove } from "./remove";

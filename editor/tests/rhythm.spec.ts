@@ -2,19 +2,14 @@ import { expect } from "chai";
 import { describe, it } from "mocha";
 import * as fc from "fast-check";
 import { toCSTreeWithContext, findByTag } from "./helpers";
-import { TAGS, createCSNode } from "../src/csTree/types";
+import { createCSNode, TAGS } from "../src/csTree/types";
 import { TT, ABCContext, AbcFormatter, Expr, createRational } from "abc-parser";
 import { toAst } from "../src/csTree/toAst";
 import { findChildByTag } from "../src/transforms/treeUtils";
-import {
-  rhythmToRational,
-  rationalToRhythm,
-  extractBrokenToken,
-  getNodeRhythm,
-} from "../src/transforms/rhythm";
+import { rhythmToRational, rationalToRhythm, extractBrokenToken, getNodeRhythm } from "../src/transforms/rhythm";
 
-function formatRhythmCSNode(rhythmNode: any, ctx: ABCContext): string {
-  const ast = toAst(rhythmNode);
+function formatRhythmCSNode(rhythmResult: any, ctx: ABCContext): string {
+  const ast = toAst(rhythmResult);
   return new AbcFormatter(ctx).stringify(ast as Expr);
 }
 
@@ -25,7 +20,7 @@ describe("rhythm utilities", () => {
       const notes = findByTag(root, TAGS.Note);
       const rhythmResult = findChildByTag(notes[0], TAGS.Rhythm);
       expect(rhythmResult).to.not.be.null;
-      const r = rhythmToRational(rhythmResult!.node);
+      const r = rhythmToRational(rhythmResult!);
       expect(r.numerator).to.equal(2);
       expect(r.denominator).to.equal(1);
     });
@@ -35,7 +30,7 @@ describe("rhythm utilities", () => {
       const notes = findByTag(root, TAGS.Note);
       const rhythmResult = findChildByTag(notes[0], TAGS.Rhythm);
       expect(rhythmResult).to.not.be.null;
-      const r = rhythmToRational(rhythmResult!.node);
+      const r = rhythmToRational(rhythmResult!);
       expect(r.numerator).to.equal(1);
       expect(r.denominator).to.equal(2);
     });
@@ -45,7 +40,7 @@ describe("rhythm utilities", () => {
       const notes = findByTag(root, TAGS.Note);
       const rhythmResult = findChildByTag(notes[0], TAGS.Rhythm);
       expect(rhythmResult).to.not.be.null;
-      const r = rhythmToRational(rhythmResult!.node);
+      const r = rhythmToRational(rhythmResult!);
       expect(r.numerator).to.equal(3);
       expect(r.denominator).to.equal(4);
     });
@@ -55,7 +50,7 @@ describe("rhythm utilities", () => {
       const notes = findByTag(root, TAGS.Note);
       const rhythmResult = findChildByTag(notes[0], TAGS.Rhythm);
       expect(rhythmResult).to.not.be.null;
-      const r = rhythmToRational(rhythmResult!.node);
+      const r = rhythmToRational(rhythmResult!);
       expect(r.numerator).to.equal(1);
       expect(r.denominator).to.equal(4);
     });
@@ -65,10 +60,10 @@ describe("rhythm utilities", () => {
       const notes = findByTag(root, TAGS.Note);
       const rhythmResult = findChildByTag(notes[0], TAGS.Rhythm);
       expect(rhythmResult).to.not.be.null;
-      const r = rhythmToRational(rhythmResult!.node);
+      const r = rhythmToRational(rhythmResult!);
       expect(r.numerator).to.equal(2);
       expect(r.denominator).to.equal(1);
-      const broken = extractBrokenToken(rhythmResult!.node);
+      const broken = extractBrokenToken(rhythmResult!);
       expect(broken).to.not.be.null;
     });
   });
@@ -91,7 +86,11 @@ describe("rhythm utilities", () => {
     it("creates a CSNode with only the broken token for {1, 1} when brokenToken is provided", () => {
       const ctx = new ABCContext();
       const brokenToken = createCSNode(TAGS.Token, ctx.generateId(), {
-        type: "token", lexeme: ">", tokenType: TT.RHY_BRKN, line: 0, position: 0
+        type: "token",
+        lexeme: ">",
+        tokenType: TT.RHY_BRKN,
+        line: 0,
+        position: 0,
       });
       const result = rationalToRhythm(createRational(1, 1), ctx, brokenToken);
       expect(result).to.not.be.null;
@@ -111,7 +110,11 @@ describe("rhythm utilities", () => {
     it("creates a CSNode for {2, 1} with brokenToken that formats as '2>'", () => {
       const ctx = new ABCContext();
       const brokenToken = createCSNode(TAGS.Token, ctx.generateId(), {
-        type: "token", lexeme: ">", tokenType: TT.RHY_BRKN, line: 0, position: 0
+        type: "token",
+        lexeme: ">",
+        tokenType: TT.RHY_BRKN,
+        line: 0,
+        position: 0,
       });
       const result = rationalToRhythm(createRational(2, 1), ctx, brokenToken);
       expect(result).to.not.be.null;
@@ -146,7 +149,11 @@ describe("rhythm utilities", () => {
       // Zero-duration notes are valid (for slash notation), so we preserve the 0
       const ctx = new ABCContext();
       const brokenToken = createCSNode(TAGS.Token, ctx.generateId(), {
-        type: "token", lexeme: "<", tokenType: TT.RHY_BRKN, line: 0, position: 0
+        type: "token",
+        lexeme: "<",
+        tokenType: TT.RHY_BRKN,
+        line: 0,
+        position: 0,
       });
       const result = rationalToRhythm(createRational(0, 1), ctx, brokenToken);
       expect(result).to.not.be.null;
@@ -176,26 +183,20 @@ describe("rhythm utilities", () => {
   describe("property-based: rhythmToRational roundtrip", () => {
     it("for Rhythm CSNodes without broken tokens, roundtripping via rationals preserves the formatted output", () => {
       fc.assert(
-        fc.property(
-          fc.tuple(
-            fc.integer({ min: 1, max: 16 }),
-            fc.integer({ min: 1, max: 16 })
-          ),
-          ([num, den]) => {
-            const ctx = new ABCContext();
-            const rational = createRational(num, den);
-            const rhythmNode = rationalToRhythm(rational, ctx);
-            if (rhythmNode === null) {
-              // This is the {1, 1} case - the default note length
-              expect(rational.numerator).to.equal(1);
-              expect(rational.denominator).to.equal(1);
-              return;
-            }
-            const roundtripped = rhythmToRational(rhythmNode);
-            expect(roundtripped.numerator).to.equal(rational.numerator);
-            expect(roundtripped.denominator).to.equal(rational.denominator);
+        fc.property(fc.tuple(fc.integer({ min: 1, max: 16 }), fc.integer({ min: 1, max: 16 })), ([num, den]) => {
+          const ctx = new ABCContext();
+          const rational = createRational(num, den);
+          const rhythmResult = rationalToRhythm(rational, ctx);
+          if (rhythmResult === null) {
+            // This is the {1, 1} case - the default note length
+            expect(rational.numerator).to.equal(1);
+            expect(rational.denominator).to.equal(1);
+            return;
           }
-        ),
+          const roundtripped = rhythmToRational(rhythmResult);
+          expect(roundtripped.numerator).to.equal(rational.numerator);
+          expect(roundtripped.denominator).to.equal(rational.denominator);
+        }),
         { numRuns: 1000 }
       );
     });
@@ -203,20 +204,20 @@ describe("rhythm utilities", () => {
     it("for Rhythm CSNodes with broken tokens, the broken token is preserved through roundtrip", () => {
       fc.assert(
         fc.property(
-          fc.tuple(
-            fc.integer({ min: 1, max: 16 }),
-            fc.integer({ min: 1, max: 16 }),
-            fc.constantFrom(">", "<", ">>", "<<")
-          ),
+          fc.tuple(fc.integer({ min: 1, max: 16 }), fc.integer({ min: 1, max: 16 }), fc.constantFrom(">", "<", ">>", "<<")),
           ([num, den, brokenLexeme]) => {
             const ctx = new ABCContext();
             const rational = createRational(num, den);
             const brokenToken = createCSNode(TAGS.Token, ctx.generateId(), {
-              type: "token", lexeme: brokenLexeme, tokenType: TT.RHY_BRKN, line: 0, position: 0
+              type: "token",
+              lexeme: brokenLexeme,
+              tokenType: TT.RHY_BRKN,
+              line: 0,
+              position: 0,
             });
-            const rhythmNode = rationalToRhythm(rational, ctx, brokenToken);
-            expect(rhythmNode).to.not.be.null;
-            const extracted = extractBrokenToken(rhythmNode!);
+            const rhythmResult = rationalToRhythm(rational, ctx, brokenToken);
+            expect(rhythmResult).to.not.be.null;
+            const extracted = extractBrokenToken(rhythmResult!);
             expect(extracted).to.not.be.null;
           }
         ),

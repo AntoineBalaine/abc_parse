@@ -11,7 +11,7 @@ export function setRhythm(selection: Selection, rational: IRational, ctx: ABCCon
     for (const csNode of nodes) {
       if (csNode.tag === TAGS.Note || csNode.tag === TAGS.Rest || csNode.tag === TAGS.Chord) {
         const existingRhythm = findRhythmChild(csNode);
-        const brokenToken = existingRhythm ? extractBrokenToken(existingRhythm.node) : null;
+        const brokenToken = existingRhythm ? extractBrokenToken(existingRhythm) : null;
         const newRhythm = rationalToRhythm(rational, ctx, brokenToken);
         replaceRhythm(csNode, newRhythm);
       }

@@ -1,20 +1,20 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { toCSTree, findByTag, collectAll } from "./helpers";
-import { CSNode, TAGS, createCSNode, isTokenNode, getTokenData } from "../src/csTree/types";
+import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import { TT } from "abc-parser";
-import {
-  findChildByTag,
-  removeChild,
-  replaceChild,
-  appendChild,
-  findParent,
-  findTieChild,
-  findRhythmChild,
-  replaceRhythm,
-  collectChildren,
-  insertBefore,
-} from "../src/transforms/treeUtils";
+import { findChildByTag, findTieChild, findRhythmChild, replaceRhythm } from "../src/transforms/treeUtils";
+import { remove, replace, insertBefore, appendChild, getParent } from "cstree";
+
+function collectChildren(parent: CSNode): CSNode[] {
+  const result: CSNode[] = [];
+  let current = parent.firstChild;
+  while (current !== null) {
+    result.push(current);
+    current = current.nextSibling;
+  }
+  return result;
+}
 
 describe("treeUtils", () => {
   describe("findChildByTag", () => {
@@ -25,7 +25,7 @@ describe("treeUtils", () => {
       const note = notes[0];
       const result = findChildByTag(note, TAGS.Rhythm);
       expect(result).to.not.be.null;
-      expect(result!.node.tag).to.equal(TAGS.Rhythm);
+      expect(result!.tag).to.equal(TAGS.Rhythm);
     });
 
     it("returns null when no matching child exists", () => {
@@ -43,44 +43,11 @@ describe("treeUtils", () => {
       const note = notes[0];
       const result = findChildByTag(note, TAGS.Pitch);
       expect(result).to.not.be.null;
-      expect(result!.node.tag).to.equal(TAGS.Pitch);
-      expect(result!.prev).to.be.null; // Pitch is firstChild
+      expect(result!.tag).to.equal(TAGS.Pitch);
     });
   });
 
-  describe("removeChild", () => {
-    it("removes the first child by updating parent.firstChild", () => {
-      const root = toCSTree("X:1\nK:C\nC2|\n");
-      const notes = findByTag(root, TAGS.Note);
-      const note = notes[0];
-      const pitchResult = findChildByTag(note, TAGS.Pitch);
-      expect(pitchResult).to.not.be.null;
-      const rhythmBefore = findChildByTag(note, TAGS.Rhythm);
-      removeChild(note, pitchResult!.prev, pitchResult!.node);
-      // Now the firstChild should be the Rhythm
-      expect(note.firstChild).to.equal(rhythmBefore!.node);
-    });
-
-    it("removes a middle child by updating prev.nextSibling", () => {
-      // Note with Pitch, Rhythm, Tie: C2-
-      const root = toCSTree("X:1\nK:C\nC2-|\n");
-      const notes = findByTag(root, TAGS.Note);
-      const note = notes[0];
-      const rhythmResult = findChildByTag(note, TAGS.Rhythm);
-      expect(rhythmResult).to.not.be.null;
-      const pitchResult = findChildByTag(note, TAGS.Pitch);
-      expect(pitchResult).to.not.be.null;
-      removeChild(note, rhythmResult!.prev, rhythmResult!.node);
-      // Pitch's nextSibling should now skip Rhythm
-      expect(pitchResult!.node.nextSibling).to.not.be.null;
-      // The remaining sibling should be the tie token
-      const remaining = pitchResult!.node.nextSibling!;
-      expect(isTokenNode(remaining)).to.be.true;
-      expect(getTokenData(remaining).tokenType).to.equal(TT.TIE);
-    });
-  });
-
-  describe("replaceChild", () => {
+  describe("replace (cstree)", () => {
     it("preserves the rest of the sibling chain", () => {
       const root = toCSTree("X:1\nK:C\nC2-|\n");
       const notes = findByTag(root, TAGS.Note);
@@ -90,7 +57,7 @@ describe("treeUtils", () => {
 
       // Create a replacement node
       const replacement = createCSNode(TAGS.Pitch, 9999, { type: "empty" });
-      replaceChild(note, pitchResult!.prev, pitchResult!.node, replacement);
+      replace(pitchResult!, replacement);
 
       expect(note.firstChild).to.equal(replacement);
       // The replacement should have the rest of the chain
@@ -99,7 +66,7 @@ describe("treeUtils", () => {
     });
   });
 
-  describe("appendChild", () => {
+  describe("appendChild (cstree)", () => {
     it("sets firstChild on an empty parent", () => {
       const parent = createCSNode(TAGS.Note, 1000, { type: "empty" });
       const child = createCSNode(TAGS.Pitch, 1001, { type: "empty" });
@@ -122,45 +89,34 @@ describe("treeUtils", () => {
     });
   });
 
-  describe("findParent", () => {
-    it("returns the parent and prev of a node found in the tree", () => {
+  describe("getParent (cstree)", () => {
+    it("returns the parent of a node found in the tree", () => {
       const root = toCSTree("X:1\nK:C\nC2 D|\n");
       const notes = findByTag(root, TAGS.Note);
       expect(notes.length).to.be.greaterThanOrEqual(1);
       const rhythmResult = findChildByTag(notes[0], TAGS.Rhythm);
       expect(rhythmResult).to.not.be.null;
-      const parentResult = findParent(root, rhythmResult!.node);
-      expect(parentResult).to.not.be.null;
-      expect(parentResult!.parent).to.equal(notes[0]);
+      const parent = getParent(rhythmResult!);
+      expect(parent).to.not.be.null;
+      expect(parent).to.equal(notes[0]);
     });
 
     it("returns null when the target is the root", () => {
       const root = toCSTree("X:1\nK:C\nC|\n");
-      const result = findParent(root, root);
+      const result = getParent(root);
       expect(result).to.be.null;
-    });
-
-    it("returns prev=null when the target is the parent's firstChild", () => {
-      const root = toCSTree("X:1\nK:C\nC2|\n");
-      const notes = findByTag(root, TAGS.Note);
-      const note = notes[0];
-      const pitchResult = findChildByTag(note, TAGS.Pitch);
-      const parentResult = findParent(root, pitchResult!.node);
-      expect(parentResult).to.not.be.null;
-      expect(parentResult!.parent).to.equal(note);
-      expect(parentResult!.prev).to.be.null;
     });
   });
 
   describe("findTieChild", () => {
-    it("returns the Tie token and its predecessor on a Note with a tie", () => {
+    it("returns the Tie token on a Note with a tie", () => {
       const root = toCSTree("X:1\nK:C\nC-|\n");
       const notes = findByTag(root, TAGS.Note);
       const note = notes[0];
       const result = findTieChild(note);
       expect(result).to.not.be.null;
-      expect(isTokenNode(result!.node)).to.be.true;
-      expect(getTokenData(result!.node).tokenType).to.equal(TT.TIE);
+      expect(isTokenNode(result!)).to.be.true;
+      expect(getTokenData(result!).tokenType).to.equal(TT.TIE);
     });
 
     it("returns null on a Note without a tie", () => {
@@ -181,7 +137,7 @@ describe("treeUtils", () => {
       replaceRhythm(note, newRhythm);
       const found = findRhythmChild(note);
       expect(found).to.not.be.null;
-      expect(found!.node).to.equal(newRhythm);
+      expect(found).to.equal(newRhythm);
     });
 
     it("removes the existing Rhythm when newRhythm is null", () => {
@@ -203,11 +159,11 @@ describe("treeUtils", () => {
       replaceRhythm(note, newRhythm);
       const found = findRhythmChild(note);
       expect(found).to.not.be.null;
-      expect(found!.node).to.equal(newRhythm);
+      expect(found).to.equal(newRhythm);
       // Rhythm should come before Tie
       const tie = findTieChild(note);
       expect(tie).to.not.be.null;
-      expect(newRhythm.nextSibling).to.equal(tie!.node);
+      expect(newRhythm.nextSibling).to.equal(tie);
     });
 
     it("appends at end when no existing Rhythm and no Tie", () => {
@@ -219,7 +175,7 @@ describe("treeUtils", () => {
       replaceRhythm(note, newRhythm);
       const found = findRhythmChild(note);
       expect(found).to.not.be.null;
-      expect(found!.node).to.equal(newRhythm);
+      expect(found).to.equal(newRhythm);
       const children = collectChildren(note);
       expect(children[children.length - 1]).to.equal(newRhythm);
     });

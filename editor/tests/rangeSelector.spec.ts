@@ -70,35 +70,30 @@ describe("rangeSelector", () => {
   describe("property-based", () => {
     it("selected nodes overlap with the given range", () => {
       fc.assert(
-        fc.property(
-          genAbcTune,
-          fc.nat(10),
-          fc.nat(50),
-          (abc, startCol, width) => {
-            const sel = toSelection(abc);
-            const endCol = startCol + width + 1;
-            const result = selectRange(sel, 2, startCol, 2, endCol);
-            for (const cursor of result.cursors) {
-              const nodeId = [...cursor][0];
-              const node = findById(result.root, nodeId);
-              if (!node) return false;
-              const first = firstTokenData(node);
-              const last = lastTokenData(node);
-              if (!first || !last) return false;
-              // Node must overlap with range: not entirely before AND not entirely after
-              const nodeEndCol = last.position + last.lexeme.length;
-              // Node ends before range starts -> no overlap
-              if (last.line < 2 || (last.line === 2 && nodeEndCol <= startCol)) {
-                return false;
-              }
-              // Node starts after range ends -> no overlap
-              if (first.line > 2 || (first.line === 2 && first.position >= endCol)) {
-                return false;
-              }
+        fc.property(genAbcTune, fc.nat(10), fc.nat(50), (abc, startCol, width) => {
+          const sel = toSelection(abc);
+          const endCol = startCol + width + 1;
+          const result = selectRange(sel, 2, startCol, 2, endCol);
+          for (const cursor of result.cursors) {
+            const nodeId = [...cursor][0];
+            const node = findById(result.root, nodeId);
+            if (!node) return false;
+            const first = firstTokenData(node);
+            const last = lastTokenData(node);
+            if (!first || !last) return false;
+            // Node must overlap with range: not entirely before AND not entirely after
+            const nodeEndCol = last.position + last.lexeme.length;
+            // Node ends before range starts -> no overlap
+            if (last.line < 2 || (last.line === 2 && nodeEndCol <= startCol)) {
+              return false;
             }
-            return true;
+            // Node starts after range ends -> no overlap
+            if (first.line > 2 || (first.line === 2 && first.position >= endCol)) {
+              return false;
+            }
           }
-        )
+          return true;
+        })
       );
     });
 
@@ -120,33 +115,29 @@ describe("rangeSelector", () => {
 
     it("single-character range on music line always selects at least one node", () => {
       fc.assert(
-        fc.property(
-          genAbcTune,
-          fc.nat(20),
-          (abc, col) => {
-            const sel = toSelection(abc);
-            // Single-character range on line 2 (the music line in generated tunes)
-            const result = selectRange(sel, 2, col, 2, col + 1);
-            // Because generated tunes always have content on line 2, a single-char
-            // range somewhere on that line should either:
-            // - select a node that overlaps (result.cursors.length > 0), or
-            // - be beyond the line content (in which case the position is past EOF)
-            // We only verify that when a node is selected, it overlaps with the range.
-            for (const cursor of result.cursors) {
-              const nodeId = [...cursor][0];
-              const node = findById(result.root, nodeId);
-              if (!node) return false;
-              const first = firstTokenData(node);
-              const last = lastTokenData(node);
-              if (!first || !last) return false;
-              const nodeEndCol = last.position + last.lexeme.length;
-              // Node must overlap: not (ends before start OR starts after end)
-              if (last.line === 2 && nodeEndCol <= col) return false;
-              if (first.line === 2 && first.position >= col + 1) return false;
-            }
-            return true;
+        fc.property(genAbcTune, fc.nat(20), (abc, col) => {
+          const sel = toSelection(abc);
+          // Single-character range on line 2 (the music line in generated tunes)
+          const result = selectRange(sel, 2, col, 2, col + 1);
+          // Because generated tunes always have content on line 2, a single-char
+          // range somewhere on that line should either:
+          // - select a node that overlaps (result.cursors.length > 0), or
+          // - be beyond the line content (in which case the position is past EOF)
+          // We only verify that when a node is selected, it overlaps with the range.
+          for (const cursor of result.cursors) {
+            const nodeId = [...cursor][0];
+            const node = findById(result.root, nodeId);
+            if (!node) return false;
+            const first = firstTokenData(node);
+            const last = lastTokenData(node);
+            if (!first || !last) return false;
+            const nodeEndCol = last.position + last.lexeme.length;
+            // Node must overlap: not (ends before start OR starts after end)
+            if (last.line === 2 && nodeEndCol <= col) return false;
+            if (first.line === 2 && first.position >= col + 1) return false;
           }
-        )
+          return true;
+        })
       );
     });
   });

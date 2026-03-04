@@ -20,14 +20,14 @@ export function multiplyRhythm(selection: Selection, factor: number = 2, ctx: AB
     for (const csNode of nodes) {
       if (csNode.tag === TAGS.Note || csNode.tag === TAGS.Chord || csNode.tag === TAGS.Rest) {
         const existingRhythm = findRhythmChild(csNode);
-        const brokenToken = existingRhythm ? extractBrokenToken(existingRhythm.node) : null;
+        const brokenToken = existingRhythm ? extractBrokenToken(existingRhythm) : null;
 
         if (existingRhythm === null) {
           // No rhythm exists - the default is 1, so we multiply 1 * factor = factor
           const newRhythm = rationalToRhythm(multiplier, ctx, null);
           replaceRhythm(csNode, newRhythm);
         } else {
-          const currentRational = rhythmToRational(existingRhythm.node);
+          const currentRational = rhythmToRational(existingRhythm);
           const newRational = multiplyRational(currentRational, multiplier);
           const newRhythm = rationalToRhythm(newRational, ctx, brokenToken);
           replaceRhythm(csNode, newRhythm);

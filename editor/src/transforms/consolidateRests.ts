@@ -3,7 +3,8 @@ import { CSNode, isRest, isBarLine, isTokenNode, getTokenData } from "../csTree/
 import { ABCContext, addRational, equalRational, TT } from "abc-parser";
 import { findNodesById } from "./types";
 import { getNodeRhythm, rationalToRhythm } from "./rhythm";
-import { findParent, replaceRhythm, removeChild } from "./treeUtils";
+import { replaceRhythm } from "./treeUtils";
+import { remove } from "cstree";
 import { isPowerOfTwoRational, nextMeaningfulSibling } from "./consolidationUtils";
 import { isVoiceMarker } from "../selectors/voiceSelector";
 
@@ -78,10 +79,7 @@ function consolidatePass(selection: Selection, ctx: ABCContext, consumedIds: Set
       replaceRhythm(restNode, newRhythm);
 
       // Remove the next rest from the tree
-      const parentResult = findParent(selection.root, next);
-      if (parentResult !== null) {
-        removeChild(parentResult.parent, parentResult.prev, next);
-      }
+      remove(next);
 
       consumedIds.add(next.id);
       cursor.delete(next.id);

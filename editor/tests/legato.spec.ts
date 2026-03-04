@@ -20,12 +20,7 @@ function selectAll(root: any, tags: string[]): Set<number> {
 }
 
 function sumDurations(root: any): IRational {
-  const nodes = [
-    ...findByTag(root, TAGS.Note),
-    ...findByTag(root, TAGS.Rest),
-    ...findByTag(root, TAGS.Chord),
-    ...findByTag(root, TAGS.YSPACER),
-  ];
+  const nodes = [...findByTag(root, TAGS.Note), ...findByTag(root, TAGS.Rest), ...findByTag(root, TAGS.Chord), ...findByTag(root, TAGS.YSPACER)];
   let sum = createRational(0, 1);
   for (const node of nodes) {
     sum = addRational(sum, getNodeRhythm(node));
@@ -282,9 +277,7 @@ describe("legato", () => {
 
           const durationAfter = sumDurations(root);
 
-          expect(durationAfter.numerator * durationBefore.denominator).to.equal(
-            durationBefore.numerator * durationAfter.denominator
-          );
+          expect(durationAfter.numerator * durationBefore.denominator).to.equal(durationBefore.numerator * durationAfter.denominator);
         }),
         { numRuns: 100 }
       );

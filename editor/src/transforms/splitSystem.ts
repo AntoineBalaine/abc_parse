@@ -6,10 +6,10 @@ import { mapTimePoints, isTimeEvent } from "abc-parser/Visitors/fmt2/fmt_timeMap
 import { DocumentSnapshots, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
 import { RangeVisitor } from "abc-parser/Visitors/RangeVisitor";
 import { Selection } from "../selection";
-import { CSNode, TAGS, createCSNode } from "../csTree/types";
+import { createCSNode, CSNode, TAGS } from "../csTree/types";
 import { toAst } from "../csTree/toAst";
 import { fromAst } from "../csTree/fromAst";
-import { collectChildren } from "./treeUtils";
+import { collectChildren, appendChild, remove, insertAfter } from "cstree";
 import { findByPos, firstTokenNode, comparePositions } from "../selectors/treeWalk";
 import { isEOL, isInlineField } from "abc-parser/helpers";
 
@@ -360,15 +360,9 @@ function splitSystemAst(
 function toCSTreeSystem(systemArray: SystemAst, ctx: ABCContext): CSNode {
   const systemNode = createCSNode(TAGS.System, ctx.generateId(), { type: "empty" });
 
-  let prevChild: CSNode | null = null;
   for (const element of systemArray) {
     const childNode = fromAst(element, ctx);
-    if (prevChild) {
-      prevChild.nextSibling = childNode;
-    } else {
-      systemNode.firstChild = childNode;
-    }
-    prevChild = childNode;
+    appendChild(systemNode, childNode);
   }
 
   return systemNode;
@@ -388,18 +382,15 @@ function updateCSTree(
   const systemBeforeCS = toCSTreeSystem(systemBeforeAst, ctx);
   const systemAfterCS = toCSTreeSystem(systemAfterAst, ctx);
 
-  const nextSibling = originalSystemNode.nextSibling;
-
-  systemBeforeCS.nextSibling = systemAfterCS;
-  systemAfterCS.nextSibling = nextSibling;
-
-  if (prevSibling) {
-    prevSibling.nextSibling = systemBeforeCS;
-  } else {
-    tuneBody.firstChild = systemBeforeCS;
+  // Replace the original system with the two new systems.
+  // Because systemBeforeCS and systemAfterCS are freshly created (parentRef === null),
+  // we can use insertAfter/remove to replace originalSystemNode.
+  if (originalSystemNode.parentRef) {
+    // Insert the two new systems after the original, then remove the original
+    insertAfter(originalSystemNode, systemBeforeCS);
+    insertAfter(systemBeforeCS, systemAfterCS);
+    remove(originalSystemNode);
   }
-
-  originalSystemNode.nextSibling = null;
 
   const firstNode = firstTokenNode(systemAfterCS);
   const cursorNodeId = firstNode ? firstNode.id : null;

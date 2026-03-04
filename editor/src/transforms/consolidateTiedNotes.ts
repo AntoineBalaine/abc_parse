@@ -2,7 +2,8 @@ import { Selection } from "../selection";
 import { CSNode, TAGS, isNote, isChord, isBarLine, isTokenNode, getTokenData } from "../csTree/types";
 import { ABCContext, addRational, equalRational } from "abc-parser";
 import { getNodeRhythm, rationalToRhythm } from "./rhythm";
-import { findParent, removeChild, replaceRhythm, findTieChild, findChildByTag } from "./treeUtils";
+import { replaceRhythm, findTieChild, findChildByTag } from "./treeUtils";
+import { remove } from "cstree";
 import { isPowerOfTwoRational, nextMeaningfulSibling } from "./consolidationUtils";
 import { isVoiceMarker } from "../selectors/voiceSelector";
 
@@ -13,10 +14,9 @@ import { isVoiceMarker } from "../selectors/voiceSelector";
  * Returns null if pitch cannot be extracted.
  */
 function getPitchLexeme(noteNode: CSNode): string | null {
-  const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
-  if (!pitchResult) return null;
+  const pitchNode = findChildByTag(noteNode, TAGS.Pitch);
+  if (!pitchNode) return null;
 
-  const pitchNode = pitchResult.node;
   let lexeme = "";
   let current = pitchNode.firstChild;
   while (current !== null) {
@@ -80,14 +80,9 @@ function sameChordPitches(a: CSNode, b: CSNode): boolean {
  * Removes the tie token from a node (Note or Chord).
  */
 function removeTie(node: CSNode): void {
-  const tieResult = findTieChild(node);
-  if (tieResult) {
-    if (tieResult.prev === null) {
-      node.firstChild = tieResult.node.nextSibling;
-    } else {
-      tieResult.prev.nextSibling = tieResult.node.nextSibling;
-    }
-    tieResult.node.nextSibling = null;
+  const tieNode = findTieChild(node);
+  if (tieNode) {
+    remove(tieNode);
   }
 }
 
@@ -190,10 +185,7 @@ function consolidateBarPass(barNodes: CSNode[], consumedIds: Set<number>, ctx: A
     }
 
     // Remove the next node from the tree
-    const parentResult = findParent(root, next);
-    if (parentResult !== null) {
-      removeChild(parentResult.parent, parentResult.prev, next);
-    }
+    remove(next);
 
     consumedIds.add(next.id);
     cursor.delete(next.id);

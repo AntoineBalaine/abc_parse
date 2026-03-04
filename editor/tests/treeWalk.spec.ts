@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import * as fc from "fast-check";
-import { CSNode, TAGS, isTokenNode, getTokenData, createCSNode } from "../src/csTree/types";
+import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import {
   firstTokenData,
   lastTokenData,

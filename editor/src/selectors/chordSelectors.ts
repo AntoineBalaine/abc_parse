@@ -40,10 +40,7 @@ function walk(ctx: ChordWalkCtx, node: CSNode, inScope: boolean): void {
   }
 }
 
-function chordWalk(
-  input: Selection,
-  pickNotes: (notes: CSNode[]) => CSNode[]
-): Selection {
+function chordWalk(input: Selection, pickNotes: (notes: CSNode[]) => CSNode[]): Selection {
   const outputCursors: Set<number>[] = [];
 
   for (const cursor of input.cursors) {

@@ -104,7 +104,7 @@ describe("toRest", () => {
           const { root, ctx } = toCSTreeWithContext(source);
           const notes = findByTag(root, TAGS.Note);
           if (notes.length === 0) return;
-          const ids = new Set(notes.map(n => n.id));
+          const ids = new Set(notes.map((n) => n.id));
           const sel: Selection = { root, cursors: [ids] };
           toRest(sel, ctx);
           // All selected IDs should now be Rest nodes
@@ -122,8 +122,8 @@ describe("toRest", () => {
           const { root, ctx } = toCSTreeWithContext(source);
           const notes = findByTag(root, TAGS.Note);
           if (notes.length === 0) return;
-          const rhythmsBefore = notes.map(n => getNodeRhythm(n));
-          const ids = new Set(notes.map(n => n.id));
+          const rhythmsBefore = notes.map((n) => getNodeRhythm(n));
+          const ids = new Set(notes.map((n) => n.id));
           const sel: Selection = { root, cursors: [ids] };
           toRest(sel, ctx);
           // Check rhythms are preserved

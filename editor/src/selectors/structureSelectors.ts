@@ -4,9 +4,7 @@ import { findAncestorByTag, findByTag, findNodeById } from "./treeWalk";
 
 export function selectTune(input: Selection): Selection {
   // Check if we have a meaningful scope (not empty and not just the root)
-  const hasScope =
-    input.cursors.length > 0 &&
-    !(input.cursors.length === 1 && input.cursors[0].size === 1 && input.cursors[0].has(input.root.id));
+  const hasScope = input.cursors.length > 0 && !(input.cursors.length === 1 && input.cursors[0].size === 1 && input.cursors[0].has(input.root.id));
 
   // If no meaningful scope, return all Tunes in the document
   if (!hasScope) {

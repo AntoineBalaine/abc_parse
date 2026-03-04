@@ -72,12 +72,8 @@ function collectInsideIds(delimNode: CSNode, config: DelimiterConfig): Set<numbe
     child = child.nextSibling;
   }
 
-  const openIdx = children.findIndex(
-    (c) => isTokenNode(c) && getTokenData(c).tokenType === config.openTokenType
-  );
-  const closeIdx = findLastIndex(children, (c) =>
-    isTokenNode(c) && getTokenData(c).tokenType === config.closeTokenType
-  );
+  const openIdx = children.findIndex((c) => isTokenNode(c) && getTokenData(c).tokenType === config.openTokenType);
+  const closeIdx = findLastIndex(children, (c) => isTokenNode(c) && getTokenData(c).tokenType === config.closeTokenType);
 
   if (openIdx === -1 || closeIdx === -1 || closeIdx <= openIdx) {
     return new Set();
@@ -97,11 +93,7 @@ function findLastIndex<T>(arr: T[], predicate: (item: T) => boolean): number {
   return -1;
 }
 
-function delimiterWalk(
-  input: Selection,
-  config: DelimiterConfig,
-  collectFn: (delimNode: CSNode, config: DelimiterConfig) => Set<number>
-): Selection {
+function delimiterWalk(input: Selection, config: DelimiterConfig, collectFn: (delimNode: CSNode, config: DelimiterConfig) => Set<number>): Selection {
   const outputCursors: Set<number>[] = [];
 
   for (const cursor of input.cursors) {

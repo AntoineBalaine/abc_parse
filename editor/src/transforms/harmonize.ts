@@ -1,12 +1,13 @@
 import { Selection } from "../selection";
-import { CSNode, TAGS, createCSNode, isTokenNode, getTokenData } from "../csTree/types";
+import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { ABCContext, Pitch, TT, Token, Note, Chord } from "abc-parser";
 import { KeySignature, AccidentalType } from "abc-parser/types/abcjs-ast";
 import { DocumentSnapshots, ContextSnapshot, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
 import { toAst } from "../csTree/toAst";
 import { fromAst } from "../csTree/fromAst";
 import { findNodesById } from "./types";
-import { findChildByTag, findParent, findTieChild, removeChild, replaceChild, getNodeLineAndChar } from "./treeUtils";
+import { findChildByTag, findTieChild, getNodeLineAndChar } from "./treeUtils";
+import { remove, replace, getParent, appendChild, insertAfter } from "cstree";
 import {
   VoicedNote,
   Spelling,
@@ -115,20 +116,20 @@ export function stepDiatonic(pitch: Pitch, steps: number, ctx: ABCContext): Pitc
  * Wraps a standalone note in a chord with its harmony note.
  * The rhythm and tie are moved from the note to the chord level.
  */
-function wrapNoteInChord(root: CSNode, noteNode: CSNode, steps: number, ctx: ABCContext): void {
-  const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
-  if (pitchResult === null) {
+function wrapNoteInChord(noteNode: CSNode, steps: number, ctx: ABCContext): void {
+  const pitchNode = findChildByTag(noteNode, TAGS.Pitch);
+  if (pitchNode === null) {
     return;
   }
 
-  // Find the parent before we modify anything
-  const parentResult = findParent(root, noteNode);
-  if (parentResult === null) {
+  // We need a parent to splice the chord into the tree
+  const parent = getParent(noteNode);
+  if (parent === null) {
     return;
   }
 
   // Compute the harmony pitch
-  const pitchExpr = toAst(pitchResult.node) as Pitch;
+  const pitchExpr = toAst(pitchNode) as Pitch;
   const harmonyPitchExpr = stepDiatonic(pitchExpr, steps, ctx);
 
   // Create harmony note (pitch only, no rhythm/tie)
@@ -139,16 +140,14 @@ function wrapNoteInChord(root: CSNode, noteNode: CSNode, steps: number, ctx: ABC
   let rhythmNode: CSNode | null = null;
   let tieNode: CSNode | null = null;
 
-  const rhythmResult = findChildByTag(noteNode, TAGS.Rhythm);
-  if (rhythmResult !== null) {
-    rhythmNode = rhythmResult.node;
-    removeChild(noteNode, rhythmResult.prev, rhythmResult.node);
+  rhythmNode = findChildByTag(noteNode, TAGS.Rhythm);
+  if (rhythmNode !== null) {
+    remove(rhythmNode);
   }
 
-  const tieResult = findTieChild(noteNode);
-  if (tieResult !== null) {
-    tieNode = tieResult.node;
-    removeChild(noteNode, tieResult.prev, tieResult.node);
+  tieNode = findTieChild(noteNode);
+  if (tieNode !== null) {
+    remove(tieNode);
   }
 
   // Create chord CSNode
@@ -158,34 +157,20 @@ function wrapNoteInChord(root: CSNode, noteNode: CSNode, steps: number, ctx: ABC
   const leftBracketCSNode = fromAst(new Token(TT.CHRD_LEFT_BRKT, "[", ctx.generateId()), ctx);
   const rightBracketCSNode = fromAst(new Token(TT.CHRD_RIGHT_BRKT, "]", ctx.generateId()), ctx);
 
-  // Save the original note's sibling (the chord will take its place in the tree)
-  const originalNextSibling = noteNode.nextSibling;
-  noteNode.nextSibling = null;
+  // Replace the note with the chord in the tree (this detaches noteNode and sets chordCSNode in its place)
+  replace(noteNode, chordCSNode);
 
   // Build chord's child linked list: leftBracket -> note -> harmonyNote -> rightBracket -> rhythm? -> tie?
-  chordCSNode.firstChild = leftBracketCSNode;
-  leftBracketCSNode.nextSibling = noteNode;
-  noteNode.nextSibling = harmonyNoteCSNode;
-  harmonyNoteCSNode.nextSibling = rightBracketCSNode;
-
-  let lastChild: CSNode = rightBracketCSNode;
+  // All these nodes have parentRef === null (freshly created or detached via replace/remove).
+  appendChild(chordCSNode, leftBracketCSNode);
+  appendChild(chordCSNode, noteNode);
+  appendChild(chordCSNode, harmonyNoteCSNode);
+  appendChild(chordCSNode, rightBracketCSNode);
   if (rhythmNode !== null) {
-    lastChild.nextSibling = rhythmNode;
-    lastChild = rhythmNode;
+    appendChild(chordCSNode, rhythmNode);
   }
   if (tieNode !== null) {
-    lastChild.nextSibling = tieNode;
-    lastChild = tieNode;
-  }
-
-  // The chord takes the note's position in the tree
-  chordCSNode.nextSibling = originalNextSibling;
-
-  // Update the parent to point to the chord instead of the note
-  if (parentResult.prev === null) {
-    parentResult.parent.firstChild = chordCSNode;
-  } else {
-    parentResult.prev.nextSibling = chordCSNode;
+    appendChild(chordCSNode, tieNode);
   }
 }
 
@@ -208,12 +193,12 @@ function harmonizeChord(chordNode: CSNode, steps: number, ctx: ABCContext): void
   // Create harmony notes for each original note
   const harmonyNotes: CSNode[] = [];
   for (const noteNode of notesToHarmonize) {
-    const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
-    if (pitchResult === null) {
+    const pitchNode = findChildByTag(noteNode, TAGS.Pitch);
+    if (pitchNode === null) {
       continue;
     }
 
-    const pitchExpr = toAst(pitchResult.node) as Pitch;
+    const pitchExpr = toAst(pitchNode) as Pitch;
     const harmonyPitchExpr = stepDiatonic(pitchExpr, steps, ctx);
 
     const harmonyNoteExpr = new Note(ctx.generateId(), harmonyPitchExpr, undefined, undefined);
@@ -234,15 +219,13 @@ function harmonizeChord(chordNode: CSNode, steps: number, ctx: ABCContext): void
     return;
   }
 
-  // Insert all harmony notes after the last original note
-  // This produces [C E A c] from [C A] with +2 steps (E follows C, c follows A)
-  const afterLastNote = lastOriginalNote.nextSibling;
-  let lastInserted = lastOriginalNote;
+  // Insert all harmony notes after the last original note.
+  // This produces [C E A c] from [C A] with +2 steps (E follows C, c follows A).
+  let insertAnchor = lastOriginalNote;
   for (const harmonyNote of harmonyNotes) {
-    lastInserted.nextSibling = harmonyNote;
-    lastInserted = harmonyNote;
+    insertAfter(insertAnchor, harmonyNote);
+    insertAnchor = harmonyNote;
   }
-  lastInserted.nextSibling = afterLastNote;
 }
 
 /**
@@ -266,7 +249,7 @@ export function harmonize(selection: Selection, steps: number, ctx: ABCContext):
     const nodes = findNodesById(selection.root, cursor);
     for (const csNode of nodes) {
       if (csNode.tag === TAGS.Note) {
-        wrapNoteInChord(selection.root, csNode, steps, ctx);
+        wrapNoteInChord(csNode, steps, ctx);
       } else if (csNode.tag === TAGS.Chord) {
         harmonizeChord(csNode, steps, ctx);
       }
@@ -675,9 +658,9 @@ export function harmonizeVoicing(
       // Convert to CSNode and replace the original note
       const { csNode: chordCsNode, newAccidentals } = toCSChord(voicedChord, snapshot, ctx);
 
-      const parentResult = findParent(selection.root, csNode);
-      if (parentResult) {
-        replaceChild(parentResult.parent, parentResult.prev, csNode, chordCsNode);
+      const parent = getParent(csNode);
+      if (parent) {
+        replace(csNode, chordCsNode);
       }
 
       // Update local accidentals for subsequent notes in the same transform pass

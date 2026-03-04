@@ -10,7 +10,7 @@ import { findChildByTag } from "../src/transforms/treeUtils";
 function getAccidentalLexeme(noteNode: any): string | null {
   const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
   if (!pitchResult) return null;
-  let current = pitchResult.node.firstChild;
+  let current = pitchResult.firstChild;
   while (current !== null) {
     if (isTokenNode(current) && getTokenData(current).tokenType === TT.ACCIDENTAL) {
       return getTokenData(current).lexeme;

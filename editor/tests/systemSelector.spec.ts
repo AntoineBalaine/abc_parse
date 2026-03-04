@@ -24,16 +24,16 @@ function parseToCSTree(source: string): { root: CSNode; ctx: ABCContext } {
 }
 
 function findFirstNote(root: CSNode): CSNode | undefined {
-  return collectAll(root).find(n => n.tag === TAGS.Note);
+  return collectAll(root).find((n) => n.tag === TAGS.Note);
 }
 
 function findNoteByIndex(root: CSNode, index: number): CSNode | undefined {
-  const notes = collectAll(root).filter(n => n.tag === TAGS.Note);
+  const notes = collectAll(root).filter((n) => n.tag === TAGS.Note);
   return notes[index];
 }
 
 function findFirstSystem(root: CSNode): CSNode | undefined {
-  return collectAll(root).find(n => n.tag === TAGS.System);
+  return collectAll(root).find((n) => n.tag === TAGS.System);
 }
 
 function findSystemByIndex(root: CSNode, index: number): CSNode | undefined {
@@ -111,8 +111,8 @@ cdef|`;
       expect(systems.length).to.be.at.least(2);
 
       // Select one note from first system and one from second
-      const notesInSystem0 = collectAll(systems[0]).filter(n => n.tag === TAGS.Note);
-      const notesInSystem1 = collectAll(systems[1]).filter(n => n.tag === TAGS.Note);
+      const notesInSystem0 = collectAll(systems[0]).filter((n) => n.tag === TAGS.Note);
+      const notesInSystem1 = collectAll(systems[1]).filter((n) => n.tag === TAGS.Note);
 
       if (notesInSystem0.length > 0 && notesInSystem1.length > 0) {
         const inputSel: Selection = {
@@ -143,15 +143,12 @@ GABc|`;
       expect(systems.length).to.be.at.least(1);
 
       // Select two different notes from the same system
-      const notesInSystem0 = collectAll(systems[0]).filter(n => n.tag === TAGS.Note);
+      const notesInSystem0 = collectAll(systems[0]).filter((n) => n.tag === TAGS.Note);
       if (notesInSystem0.length >= 2) {
         // Put them in separate input cursors
         const inputSel: Selection = {
           root,
-          cursors: [
-            new Set([notesInSystem0[0].id]),
-            new Set([notesInSystem0[1].id]),
-          ],
+          cursors: [new Set([notesInSystem0[0].id]), new Set([notesInSystem0[1].id])],
         };
 
         const result = selectSystem(inputSel);
@@ -175,7 +172,7 @@ CDEF|`;
       expect(tuneHeader).to.exist;
 
       // Select something in the header
-      const headerInfoLine = collectAll(tuneHeader).find(n => n.tag === TAGS.Info_line);
+      const headerInfoLine = collectAll(tuneHeader).find((n) => n.tag === TAGS.Info_line);
       expect(headerInfoLine).to.exist;
 
       const inputSel: Selection = {
@@ -241,7 +238,7 @@ CDEF|`;
       expect(systems.length).to.be.at.least(2);
 
       // Find the V:1 info line (in first system)
-      const infoLinesInSystem0 = collectAll(systems[0]).filter(n => n.tag === TAGS.Info_line);
+      const infoLinesInSystem0 = collectAll(systems[0]).filter((n) => n.tag === TAGS.Info_line);
       expect(infoLinesInSystem0.length).to.be.at.least(1);
 
       // Select the V:1 info line
@@ -276,9 +273,7 @@ CDEF|`;
 
       // The cursor should contain the System node's ID
       const systems = findByTag(root, TAGS.System);
-      const containingSystem = systems.find(sys =>
-        collectAll(sys).some(n => n.id === firstNote!.id)
-      );
+      const containingSystem = systems.find((sys) => collectAll(sys).some((n) => n.id === firstNote!.id));
       expect(containingSystem).to.exist;
       expect(result.cursors[0].has(containingSystem!.id)).to.be.true;
     });
@@ -332,7 +327,7 @@ GABc|`;
       const sel = parseToSelection(source);
 
       // Find notes from both tunes
-      const allNotes = collectAll(sel.root).filter(n => n.tag === TAGS.Note);
+      const allNotes = collectAll(sel.root).filter((n) => n.tag === TAGS.Note);
       expect(allNotes.length).to.be.at.least(2);
 
       // Select first note from each tune
@@ -351,108 +346,89 @@ GABc|`;
   describe("property-based tests", () => {
     it("output cursors never overlap", () => {
       fc.assert(
-        fc.property(
-          fc.constantFrom(
-            "X:1\nK:C\nCDEF|\n",
-            "X:1\nK:C\nV:1\nCD|\nV:2\nEF|\n",
-            "X:1\nK:C\nCDEF|\n\nX:2\nK:G\nGABc|\n"
-          ),
-          (source) => {
-            const sel = parseToSelection(source);
-            const notes = collectAll(sel.root).filter(n => n.tag === TAGS.Note);
-            if (notes.length === 0) return true;
+        fc.property(fc.constantFrom("X:1\nK:C\nCDEF|\n", "X:1\nK:C\nV:1\nCD|\nV:2\nEF|\n", "X:1\nK:C\nCDEF|\n\nX:2\nK:G\nGABc|\n"), (source) => {
+          const sel = parseToSelection(source);
+          const notes = collectAll(sel.root).filter((n) => n.tag === TAGS.Note);
+          if (notes.length === 0) return true;
 
-            // Select all notes
-            const inputSel: Selection = {
-              root: sel.root,
-              cursors: [new Set(notes.map(n => n.id))],
-            };
+          // Select all notes
+          const inputSel: Selection = {
+            root: sel.root,
+            cursors: [new Set(notes.map((n) => n.id))],
+          };
 
-            const result = selectSystem(inputSel);
+          const result = selectSystem(inputSel);
 
-            // Check no ID appears in multiple cursors
-            const seenIds = new Set<number>();
-            for (const cursor of result.cursors) {
-              for (const id of cursor) {
-                if (seenIds.has(id)) return false;
-                seenIds.add(id);
-              }
+          // Check no ID appears in multiple cursors
+          const seenIds = new Set<number>();
+          for (const cursor of result.cursors) {
+            for (const id of cursor) {
+              if (seenIds.has(id)) return false;
+              seenIds.add(id);
             }
-            return true;
           }
-        ),
+          return true;
+        }),
         { numRuns: 10 }
       );
     });
 
     it("every output ID belongs to a System node or preceding Info_line", () => {
       fc.assert(
-        fc.property(
-          fc.constantFrom(
-            "X:1\nK:C\nCDEF|\n",
-            "X:1\nK:C\nV:1\nCD|\nV:2\nEF|\n"
-          ),
-          (source) => {
-            const sel = parseToSelection(source);
-            const notes = collectAll(sel.root).filter(n => n.tag === TAGS.Note);
-            if (notes.length === 0) return true;
+        fc.property(fc.constantFrom("X:1\nK:C\nCDEF|\n", "X:1\nK:C\nV:1\nCD|\nV:2\nEF|\n"), (source) => {
+          const sel = parseToSelection(source);
+          const notes = collectAll(sel.root).filter((n) => n.tag === TAGS.Note);
+          if (notes.length === 0) return true;
 
-            const inputSel: Selection = {
-              root: sel.root,
-              cursors: [new Set([notes[0].id])],
-            };
+          const inputSel: Selection = {
+            root: sel.root,
+            cursors: [new Set([notes[0].id])],
+          };
 
-            const result = selectSystem(inputSel);
+          const result = selectSystem(inputSel);
 
-            // All IDs in output should be findable in the tree
-            for (const cursor of result.cursors) {
-              for (const id of cursor) {
-                const node = findNodeById(sel.root, id);
-                if (!node) return false;
-              }
+          // All IDs in output should be findable in the tree
+          for (const cursor of result.cursors) {
+            for (const id of cursor) {
+              const node = findNodeById(sel.root, id);
+              if (!node) return false;
             }
-            return true;
           }
-        ),
+          return true;
+        }),
         { numRuns: 10 }
       );
     });
 
     it("selectSystem is idempotent", () => {
       fc.assert(
-        fc.property(
-          fc.constantFrom(
-            "X:1\nK:C\nCDEF|\n",
-            "X:1\nK:C\nV:1\nCD|\nV:2\nEF|\n"
-          ),
-          (source) => {
-            const sel = parseToSelection(source);
-            const notes = collectAll(sel.root).filter(n => n.tag === TAGS.Note);
-            if (notes.length === 0) return true;
+        fc.property(fc.constantFrom("X:1\nK:C\nCDEF|\n", "X:1\nK:C\nV:1\nCD|\nV:2\nEF|\n"), (source) => {
+          const sel = parseToSelection(source);
+          const notes = collectAll(sel.root).filter((n) => n.tag === TAGS.Note);
+          if (notes.length === 0) return true;
 
-            const inputSel: Selection = {
-              root: sel.root,
-              cursors: [new Set([notes[0].id])],
-            };
+          const inputSel: Selection = {
+            root: sel.root,
+            cursors: [new Set([notes[0].id])],
+          };
 
-            const result1 = selectSystem(inputSel);
-            const result2 = selectSystem(result1);
+          const result1 = selectSystem(inputSel);
+          const result2 = selectSystem(result1);
 
-            // Same number of cursors
-            if (result1.cursors.length !== result2.cursors.length) return false;
+          // Same number of cursors
+          if (result1.cursors.length !== result2.cursors.length) return false;
 
-            // Same IDs in each cursor
-            for (let i = 0; i < result1.cursors.length; i++) {
-              const ids1 = [...result1.cursors[i]].sort((a, b) => a - b);
-              const ids2 = [...result2.cursors[i]].sort((a, b) => a - b);
-              if (ids1.length !== ids2.length) return false;
-              for (let j = 0; j < ids1.length; j++) {
-                if (ids1[j] !== ids2[j]) return false;
-              }
+          // Same IDs in each cursor
+          for (let i = 0; i < result1.cursors.length; i++) {
+            const ids1 = [...result1.cursors[i]].sort((a, b) => a - b);
+            const ids2 = [...result2.cursors[i]].sort((a, b) => a - b);
+            if (ids1.length !== ids2.length) return false;
+            for (let j = 0; j < ids1.length; j++) {
+              if (ids1[j] !== ids2[j]) return false;
             }
-            return true;
           }
-        ),
+          return true;
+        }),
         { numRuns: 10 }
       );
     });

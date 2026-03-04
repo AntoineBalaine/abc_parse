@@ -145,11 +145,7 @@ CDEF|GABc|`;
   describe("property-based tests", () => {
     it("System node count in CSTree equals tune_body.sequence.length", () => {
       fc.assert(
-        fc.property(fc.constantFrom(
-          "X:1\nK:C\nCDEF|\n",
-          "X:1\nK:C\nV:1\nCD|\nV:2\nEF|\n",
-          "X:1\nK:C\nCDEF|GABc|cdef|\n"
-        ), (source) => {
+        fc.property(fc.constantFrom("X:1\nK:C\nCDEF|\n", "X:1\nK:C\nV:1\nCD|\nV:2\nEF|\n", "X:1\nK:C\nCDEF|GABc|cdef|\n"), (source) => {
           const ctx = new ABCContext();
           const tokens = Scanner(source, ctx);
           const ast = parse(tokens, ctx);
@@ -166,11 +162,7 @@ CDEF|GABc|`;
 
     it("round-trip preserves system count", () => {
       fc.assert(
-        fc.property(fc.constantFrom(
-          "X:1\nK:C\nCDEF|\n",
-          "X:1\nK:C\nV:1\nCD|\nV:2\nEF|\n",
-          "X:1\nK:C\nCDEF|GABc|cdef|\n"
-        ), (source) => {
+        fc.property(fc.constantFrom("X:1\nK:C\nCDEF|\n", "X:1\nK:C\nV:1\nCD|\nV:2\nEF|\n", "X:1\nK:C\nCDEF|GABc|cdef|\n"), (source) => {
           const ctx = new ABCContext();
           const tokens = Scanner(source, ctx);
           const ast = parse(tokens, ctx);

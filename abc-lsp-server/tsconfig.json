@@ -15,10 +15,11 @@
     "target": "es2020",
     "paths": {
       "editor": ["../editor/src/index"],
-      "abc-midi": ["../midi/dist/src/index"]
+      "abc-midi": ["../midi/dist/src/index"],
+      "cstree": ["../cstree/src/cstree"]
     }
   },
   "include": ["./src/**/*.ts"],
   "exclude": ["node_modules", ".vscode-test", "**/*.spec.ts"],
-  "references": [{ "path": "../parse" }, { "path": "../editor" }, { "path": "../midi" }]
+  "references": [{ "path": "../parse" }, { "path": "../editor" }, { "path": "../midi" }, { "path": "../cstree" }]
 }

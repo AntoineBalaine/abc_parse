@@ -20,11 +20,7 @@ function collectNodesBefore(root: CSNode, target: CSNode): CSNode[] {
   return result;
 }
 
-function walkAndCollect(
-  node: CSNode | null,
-  target: CSNode,
-  result: CSNode[]
-): boolean {
+function walkAndCollect(node: CSNode | null, target: CSNode, result: CSNode[]): boolean {
   let current = node;
   while (current !== null) {
     if (current === target) return true; // Found target, stop collecting
@@ -98,10 +94,7 @@ function findTargetNode(selection: Selection): CSNode | null {
  * @param samePhysicalLine If true, stop at EOL tokens (physical line breaks)
  * @returns The chord match or null if not found
  */
-export function selectPreviousChordSymbol(
-  selection: Selection,
-  samePhysicalLine: boolean = true
-): ChordSymbolMatch | null {
+export function selectPreviousChordSymbol(selection: Selection, samePhysicalLine: boolean = true): ChordSymbolMatch | null {
   const targetNode = findTargetNode(selection);
   if (targetNode === null) return null;
 

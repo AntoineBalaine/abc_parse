@@ -193,214 +193,193 @@ describe("insertVoiceLine", () => {
   describe("property-based tests", () => {
     it("duplicated line has same number of note/rest elements as original", () => {
       fc.assert(
-        fc.property(
-          fc.integer({ min: 2, max: 5 }),
-          fc.integer({ min: 0, max: 4 }),
-          (noteCount, selectedIndex) => {
-            const actualIndex = Math.min(selectedIndex, noteCount - 1);
-            const notes = Array(noteCount).fill("C").join(" ");
-            const abc = `X:1\nK:C\n${notes} |\n`;
-            const { root, ctx } = toCSTreeWithContext(abc);
-            const noteNodes = findByTag(root, TAGS.Note);
+        fc.property(fc.integer({ min: 2, max: 5 }), fc.integer({ min: 0, max: 4 }), (noteCount, selectedIndex) => {
+          const actualIndex = Math.min(selectedIndex, noteCount - 1);
+          const notes = Array(noteCount).fill("C").join(" ");
+          const abc = `X:1\nK:C\n${notes} |\n`;
+          const { root, ctx } = toCSTreeWithContext(abc);
+          const noteNodes = findByTag(root, TAGS.Note);
 
-            if (noteNodes.length === 0) return true;
+          if (noteNodes.length === 0) return true;
 
-            const sel: Selection = { root, cursors: [new Set([noteNodes[actualIndex].id])] };
-            insertVoiceLine(sel, "V2", ctx);
+          const sel: Selection = { root, cursors: [new Set([noteNodes[actualIndex].id])] };
+          insertVoiceLine(sel, "V2", ctx);
 
-            const result = formatSelection(sel);
-            // Count the [V:V2] line's elements
-            const voiceLineMatch = result.match(/\[V:V2\]([^|]+)\|/);
-            if (voiceLineMatch) {
-              const voiceLine = voiceLineMatch[1];
-              // Count notes (C-B, c-b) and rests (z)
-              const elements = voiceLine.match(/[A-Ga-gz]/g) || [];
-              expect(elements.length).to.equal(noteCount);
-            }
-            return true;
+          const result = formatSelection(sel);
+          // Count the [V:V2] line's elements
+          const voiceLineMatch = result.match(/\[V:V2\]([^|]+)\|/);
+          if (voiceLineMatch) {
+            const voiceLine = voiceLineMatch[1];
+            // Count notes (C-B, c-b) and rests (z)
+            const elements = voiceLine.match(/[A-Ga-gz]/g) || [];
+            expect(elements.length).to.equal(noteCount);
           }
-        ),
+          return true;
+        }),
         { numRuns: 20 }
       );
     });
 
     it("selected note appears in duplicated line", () => {
       fc.assert(
-        fc.property(
-          fc.constantFrom("C", "D", "E", "F", "G"),
-          fc.integer({ min: 0, max: 3 }),
-          (noteLetter, position) => {
-            const notes = ["A", "B", "A", "B"];
-            const actualPos = Math.min(position, notes.length - 1);
-            notes[actualPos] = noteLetter;
-            const abc = `X:1\nK:C\n${notes.join(" ")} |\n`;
-            const { root, ctx } = toCSTreeWithContext(abc);
-            const noteNodes = findByTag(root, TAGS.Note);
+        fc.property(fc.constantFrom("C", "D", "E", "F", "G"), fc.integer({ min: 0, max: 3 }), (noteLetter, position) => {
+          const notes = ["A", "B", "A", "B"];
+          const actualPos = Math.min(position, notes.length - 1);
+          notes[actualPos] = noteLetter;
+          const abc = `X:1\nK:C\n${notes.join(" ")} |\n`;
+          const { root, ctx } = toCSTreeWithContext(abc);
+          const noteNodes = findByTag(root, TAGS.Note);
 
-            if (noteNodes.length === 0) return true;
+          if (noteNodes.length === 0) return true;
 
-            const sel: Selection = { root, cursors: [new Set([noteNodes[actualPos].id])] };
-            insertVoiceLine(sel, "V2", ctx);
+          const sel: Selection = { root, cursors: [new Set([noteNodes[actualPos].id])] };
+          insertVoiceLine(sel, "V2", ctx);
 
-            const result = formatSelection(sel);
-            // The voice line should contain the selected note letter
-            const voiceLineMatch = result.match(/\[V:V2\]([^|]+)\|/);
-            if (voiceLineMatch) {
-              expect(voiceLineMatch[1]).to.include(noteLetter);
-            }
-            return true;
+          const result = formatSelection(sel);
+          // The voice line should contain the selected note letter
+          const voiceLineMatch = result.match(/\[V:V2\]([^|]+)\|/);
+          if (voiceLineMatch) {
+            expect(voiceLineMatch[1]).to.include(noteLetter);
           }
-        ),
+          return true;
+        }),
         { numRuns: 20 }
       );
     });
 
     it("whitespace between elements is preserved after transform (genMusicSequence)", () => {
       fc.assert(
-        fc.property(
-          ParserGen.genMusicSequence,
-          fc.integer({ min: 0, max: 9 }),
-          (musicSeq, selectedIdx) => {
-            // Build ABC with whitespace between elements
-            const bodyText = musicSeq.tokens.map(t => t.lexeme).join(" ");
-            const abc = `X:1\nK:C\n${bodyText} |\n`;
+        fc.property(ParserGen.genMusicSequence, fc.integer({ min: 0, max: 9 }), (musicSeq, selectedIdx) => {
+          // Build ABC with whitespace between elements
+          const bodyText = musicSeq.tokens.map((t) => t.lexeme).join(" ");
+          const abc = `X:1\nK:C\n${bodyText} |\n`;
 
-            const { root, ctx } = toCSTreeWithContext(abc);
-            const notes = findByTag(root, TAGS.Note);
+          const { root, ctx } = toCSTreeWithContext(abc);
+          const notes = findByTag(root, TAGS.Note);
 
-            if (notes.length === 0) return true;
+          if (notes.length === 0) return true;
 
-            // Count top-level WS tokens before transform
-            const tuneBody = findByTag(root, TAGS.Tune_Body)[0];
-            const countWsTokens = (node: typeof root): number => {
-              let count = 0;
-              let child = node.firstChild;
-              while (child) {
-                if (child.tag === "Token" && child.data.type === "token" &&
-                    (child.data as { tokenType: number }).tokenType === 76) {
-                  count++;
-                }
-                child = child.nextSibling;
+          // Count top-level WS tokens before transform
+          const tuneBody = findByTag(root, TAGS.Tune_Body)[0];
+          const countWsTokens = (node: typeof root): number => {
+            let count = 0;
+            let child = node.firstChild;
+            while (child) {
+              if (child.tag === "Token" && child.data.type === "token" && (child.data as { tokenType: number }).tokenType === 76) {
+                count++;
               }
-              return count;
-            };
-            const wsBefore = countWsTokens(tuneBody);
+              child = child.nextSibling;
+            }
+            return count;
+          };
+          const wsBefore = countWsTokens(tuneBody);
 
-            // Select a random note
-            const actualIdx = Math.min(selectedIdx, notes.length - 1);
-            const sel: Selection = { root, cursors: [new Set([notes[actualIdx].id])] };
+          // Select a random note
+          const actualIdx = Math.min(selectedIdx, notes.length - 1);
+          const sel: Selection = { root, cursors: [new Set([notes[actualIdx].id])] };
 
-            insertVoiceLine(sel, "V2", ctx);
+          insertVoiceLine(sel, "V2", ctx);
 
-            // Count WS tokens after transform - should have at least doubled
-            // because the line was duplicated with its whitespace
-            const wsAfter = countWsTokens(tuneBody);
-            expect(wsAfter).to.be.gte(wsBefore);
+          // Count WS tokens after transform - should have at least doubled
+          // because the line was duplicated with its whitespace
+          const wsAfter = countWsTokens(tuneBody);
+          expect(wsAfter).to.be.gte(wsBefore);
 
-            // Format and re-parse
-            const result = formatSelection(sel);
-            const { root: reparsedRoot } = toCSTreeWithContext(result);
+          // Format and re-parse
+          const result = formatSelection(sel);
+          const { root: reparsedRoot } = toCSTreeWithContext(result);
 
-            // The duplicated voice line should exist
-            expect(result).to.include("[V:V2]");
+          // The duplicated voice line should exist
+          expect(result).to.include("[V:V2]");
 
-            // Re-parsed tree should have at least as many notes as original
-            // (original notes + selected note in voice line, rests don't count as notes)
-            const reparsedNotes = findByTag(reparsedRoot, TAGS.Note);
-            expect(reparsedNotes.length).to.be.gte(notes.length);
+          // Re-parsed tree should have at least as many notes as original
+          // (original notes + selected note in voice line, rests don't count as notes)
+          const reparsedNotes = findByTag(reparsedRoot, TAGS.Note);
+          expect(reparsedNotes.length).to.be.gte(notes.length);
 
-            return true;
-          }
-        ),
+          return true;
+        }),
         { numRuns: 100 }
       );
     });
 
     it("beam boundaries are preserved - no merging of adjacent beams", () => {
       fc.assert(
-        fc.property(
-          ParserGen.genMusicSequence,
-          fc.integer({ min: 0, max: 9 }),
-          (musicSeq, selectedIdx) => {
-            // Insert whitespace between elements to create beam boundaries
-            const bodyText = musicSeq.tokens.map(t => t.lexeme).join(" ");
-            const abc = `X:1\nK:C\n${bodyText} |\n`;
+        fc.property(ParserGen.genMusicSequence, fc.integer({ min: 0, max: 9 }), (musicSeq, selectedIdx) => {
+          // Insert whitespace between elements to create beam boundaries
+          const bodyText = musicSeq.tokens.map((t) => t.lexeme).join(" ");
+          const abc = `X:1\nK:C\n${bodyText} |\n`;
 
-            const { root, ctx } = toCSTreeWithContext(abc);
-            const notes = findByTag(root, TAGS.Note);
-            const beamsBefore = findByTag(root, TAGS.Beam);
+          const { root, ctx } = toCSTreeWithContext(abc);
+          const notes = findByTag(root, TAGS.Note);
+          const beamsBefore = findByTag(root, TAGS.Beam);
 
-            if (notes.length === 0) return true;
+          if (notes.length === 0) return true;
 
-            const actualIdx = Math.min(selectedIdx, notes.length - 1);
-            const sel: Selection = { root, cursors: [new Set([notes[actualIdx].id])] };
+          const actualIdx = Math.min(selectedIdx, notes.length - 1);
+          const sel: Selection = { root, cursors: [new Set([notes[actualIdx].id])] };
 
-            // Count beams after transform (before re-parse)
-            insertVoiceLine(sel, "V2", ctx);
-            const beamsAfterTransform = findByTag(sel.root, TAGS.Beam);
+          // Count beams after transform (before re-parse)
+          insertVoiceLine(sel, "V2", ctx);
+          const beamsAfterTransform = findByTag(sel.root, TAGS.Beam);
 
-            const result = formatSelection(sel);
-            const { root: reparsedRoot } = toCSTreeWithContext(result);
-            const beamsAfterReparse = findByTag(reparsedRoot, TAGS.Beam);
+          const result = formatSelection(sel);
+          const { root: reparsedRoot } = toCSTreeWithContext(result);
+          const beamsAfterReparse = findByTag(reparsedRoot, TAGS.Beam);
 
-            // After transform we should have 2x the beams (original + duplicated line)
-            // After re-parse we should still have at least that many
-            // If beams merged due to missing whitespace, we'd have fewer
-            if (beamsBefore.length > 0) {
-              expect(beamsAfterTransform.length).to.be.gte(beamsBefore.length);
-              expect(beamsAfterReparse.length).to.be.gte(beamsBefore.length);
-            }
-
-            return true;
+          // After transform we should have 2x the beams (original + duplicated line)
+          // After re-parse we should still have at least that many
+          // If beams merged due to missing whitespace, we'd have fewer
+          if (beamsBefore.length > 0) {
+            expect(beamsAfterTransform.length).to.be.gte(beamsBefore.length);
+            expect(beamsAfterReparse.length).to.be.gte(beamsBefore.length);
           }
-        ),
+
+          return true;
+        }),
         { numRuns: 100 }
       );
     });
 
     it("roundtrip: formatted output re-parses to equivalent structure", () => {
       fc.assert(
-        fc.property(
-          ParserGen.genMusicSequence,
-          fc.integer({ min: 0, max: 9 }),
-          (musicSeq, selectedIdx) => {
-            const bodyText = musicSeq.tokens.map(t => t.lexeme).join(" ");
-            const abc = `X:1\nK:C\n${bodyText} |\n`;
+        fc.property(ParserGen.genMusicSequence, fc.integer({ min: 0, max: 9 }), (musicSeq, selectedIdx) => {
+          const bodyText = musicSeq.tokens.map((t) => t.lexeme).join(" ");
+          const abc = `X:1\nK:C\n${bodyText} |\n`;
 
-            const { root, ctx } = toCSTreeWithContext(abc);
-            const notes = findByTag(root, TAGS.Note);
-            const rests = findByTag(root, TAGS.Rest);
-            const chords = findByTag(root, TAGS.Chord);
-            const barlines = findByTag(root, TAGS.BarLine);
+          const { root, ctx } = toCSTreeWithContext(abc);
+          const notes = findByTag(root, TAGS.Note);
+          const rests = findByTag(root, TAGS.Rest);
+          const chords = findByTag(root, TAGS.Chord);
+          const barlines = findByTag(root, TAGS.BarLine);
 
-            if (notes.length === 0) return true;
+          if (notes.length === 0) return true;
 
-            const actualIdx = Math.min(selectedIdx, notes.length - 1);
-            const sel: Selection = { root, cursors: [new Set([notes[actualIdx].id])] };
+          const actualIdx = Math.min(selectedIdx, notes.length - 1);
+          const sel: Selection = { root, cursors: [new Set([notes[actualIdx].id])] };
 
-            insertVoiceLine(sel, "V2", ctx);
+          insertVoiceLine(sel, "V2", ctx);
 
-            const result = formatSelection(sel);
-            const { root: reparsedRoot } = toCSTreeWithContext(result);
+          const result = formatSelection(sel);
+          const { root: reparsedRoot } = toCSTreeWithContext(result);
 
-            // Count elements after re-parse
-            const reparsedNotes = findByTag(reparsedRoot, TAGS.Note);
-            const reparsedRests = findByTag(reparsedRoot, TAGS.Rest);
-            const reparsedChords = findByTag(reparsedRoot, TAGS.Chord);
-            const reparsedBarlines = findByTag(reparsedRoot, TAGS.BarLine);
+          // Count elements after re-parse
+          const reparsedNotes = findByTag(reparsedRoot, TAGS.Note);
+          const reparsedRests = findByTag(reparsedRoot, TAGS.Rest);
+          const reparsedChords = findByTag(reparsedRoot, TAGS.Chord);
+          const reparsedBarlines = findByTag(reparsedRoot, TAGS.BarLine);
 
-            // Should have at least original notes (unselected become rests)
-            expect(reparsedNotes.length).to.be.gte(notes.length);
-            // Should have more rests (non-selected notes converted)
-            expect(reparsedRests.length).to.be.gte(rests.length);
-            // Chords should at least be preserved from original line
-            expect(reparsedChords.length).to.be.gte(chords.length);
-            // Barlines should double (original + voice line)
-            expect(reparsedBarlines.length).to.be.gte(barlines.length);
+          // Should have at least original notes (unselected become rests)
+          expect(reparsedNotes.length).to.be.gte(notes.length);
+          // Should have more rests (non-selected notes converted)
+          expect(reparsedRests.length).to.be.gte(rests.length);
+          // Chords should at least be preserved from original line
+          expect(reparsedChords.length).to.be.gte(chords.length);
+          // Barlines should double (original + voice line)
+          expect(reparsedBarlines.length).to.be.gte(barlines.length);
 
-            return true;
-          }
-        ),
+          return true;
+        }),
         { numRuns: 100 }
       );
     });

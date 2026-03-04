@@ -2,15 +2,8 @@ import { Selection } from "../selection";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { TT } from "abc-parser";
 import { findNodesById } from "./types";
-import {
-  findRhythmChild,
-  findTieChild,
-  findParent,
-  insertBefore,
-  removeChild,
-  appendChild,
-  replaceRhythm,
-} from "./treeUtils";
+import { remove, insertBefore, appendChild, getParent } from "cstree";
+import { findRhythmChild, findTieChild, replaceRhythm } from "./treeUtils";
 
 export function unwrapSingle(selection: Selection): Selection {
   for (const cursor of selection.cursors) {
@@ -35,11 +28,11 @@ export function unwrapSingle(selection: Selection): Selection {
       }
 
       // Only unwrap if there is exactly one Note among the content children
-      const noteChildren = contentChildren.filter(c => c.tag === TAGS.Note);
+      const noteChildren = contentChildren.filter((c) => c.tag === TAGS.Note);
       if (noteChildren.length !== 1) continue;
 
       const singleNoteChild = noteChildren[0];
-      const nonNoteChildren = contentChildren.filter(c => c.tag !== TAGS.Note);
+      const nonNoteChildren = contentChildren.filter((c) => c.tag !== TAGS.Note);
 
       // Save chord-level rhythm and tie before restructuring
       const chordRhythm = findRhythmChild(csNode);
@@ -47,27 +40,29 @@ export function unwrapSingle(selection: Selection): Selection {
 
       // Promote non-Note content children (annotations, etc.) as siblings
       // before the chord in the parent's child chain
-      if (nonNoteChildren.length > 0) {
-        const parentResult = findParent(selection.root, csNode);
-        if (parentResult) {
-          let prev = parentResult.prev;
-          for (const child of nonNoteChildren) {
-            child.nextSibling = null;
-            insertBefore(parentResult.parent, prev, csNode, child);
-            prev = child; // the inserted child is now prev of csNode
-          }
+      if (nonNoteChildren.length > 0 && getParent(csNode)) {
+        for (const child of nonNoteChildren) {
+          remove(child);
+          insertBefore(csNode, child);
         }
       }
 
       // Change tag to Note
       csNode.tag = TAGS.Note;
 
-      // Promote the Note child's children as this node's children
-      csNode.firstChild = singleNoteChild.firstChild;
+      // Remove all remaining children of csNode (brackets, etc.)
+      while (csNode.firstChild) remove(csNode.firstChild);
+
+      // Move the single note's children into csNode
+      while (singleNoteChild.firstChild) {
+        const child = singleNoteChild.firstChild;
+        remove(child);
+        appendChild(csNode, child);
+      }
 
       // Handle rhythm inheritance: chord's rhythm takes precedence
       if (chordRhythm) {
-        replaceRhythm(csNode, chordRhythm.node);
+        replaceRhythm(csNode, chordRhythm);
       }
 
       // Handle tie inheritance: chord's tie is appended at the end
@@ -75,10 +70,10 @@ export function unwrapSingle(selection: Selection): Selection {
         // Remove any existing tie from the promoted children (chord's takes precedence)
         const existingTie = findTieChild(csNode);
         if (existingTie) {
-          removeChild(csNode, existingTie.prev, existingTie.node);
+          remove(existingTie);
         }
-        chordTie.node.nextSibling = null;
-        appendChild(csNode, chordTie.node);
+        remove(chordTie);
+        appendChild(csNode, chordTie);
       }
     }
   }
