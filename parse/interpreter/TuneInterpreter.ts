@@ -9,6 +9,7 @@
 import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { SemanticData } from "../analyzers/semantic-analyzer";
 import { isComment, isInfo_line } from "../helpers";
+import { convertAccidentalToType } from "./helpers";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import {
@@ -1419,7 +1420,7 @@ export class TuneInterpreter implements Visitor<void> {
       pitch: pitchNumber,
       name: (accidental || "") + noteLetter,
       verticalPos: this.calculateVerticalPos(pitchNumber, clef),
-      accidental: accidental ? this.convertAccidental(accidental) : undefined,
+      accidental: accidental ? convertAccidentalToType(accidental) : undefined,
     };
 
     // Calculate duration with broken rhythm handling
@@ -1573,7 +1574,7 @@ export class TuneInterpreter implements Visitor<void> {
           pitch: pitchNumber,
           name: (accidental || "") + noteLetter,
           verticalPos: this.calculateVerticalPos(pitchNumber, clef),
-          accidental: accidental ? this.convertAccidental(accidental) : undefined,
+          accidental: accidental ? convertAccidentalToType(accidental) : undefined,
         });
       }
     }
@@ -1828,7 +1829,7 @@ export class TuneInterpreter implements Visitor<void> {
 
       // Add accidental if present
       if (accidental) {
-        graceNote.accidental = this.convertAccidental(accidental);
+        graceNote.accidental = convertAccidentalToType(accidental);
       }
 
       // Mark first note as acciaccatura if the grace group has the slash
@@ -2094,23 +2095,6 @@ export class TuneInterpreter implements Visitor<void> {
       return 7 * octave.length;
     }
     return 0;
-  }
-
-  convertAccidental(accidental: string): AccidentalType {
-    switch (accidental) {
-      case "^":
-        return AccidentalType.Sharp;
-      case "_":
-        return AccidentalType.Flat;
-      case "=":
-        return AccidentalType.Natural;
-      case "^^":
-        return AccidentalType.DblSharp;
-      case "__":
-        return AccidentalType.DblFlat;
-      default:
-        return AccidentalType.Natural;
-    }
   }
 
   /**

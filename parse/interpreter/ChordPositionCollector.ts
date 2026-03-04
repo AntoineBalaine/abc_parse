@@ -11,6 +11,7 @@
  */
 
 import { TuneDefaults, VoiceState, newVxState, createTuneDefaults, createFileDefaults, FileDefaults } from "./InterpreterState";
+import { convertAccidentalToType } from "./helpers";
 import { SemanticData } from "../analyzers/semantic-analyzer";
 import { AccidentalType } from "../types/abcjs-ast";
 import { NATURAL_SEMITONES } from "../music-theory/constants";
@@ -220,26 +221,6 @@ export class ChordPositionCollector implements Visitor<void> {
   }
 
   /**
-   * Converts an accidental string to AccidentalType.
-   */
-  convertAccidental(accidental: string): AccidentalType {
-    switch (accidental) {
-      case "^":
-        return AccidentalType.Sharp;
-      case "_":
-        return AccidentalType.Flat;
-      case "=":
-        return AccidentalType.Natural;
-      case "^^":
-        return AccidentalType.DblSharp;
-      case "__":
-        return AccidentalType.DblFlat;
-      default:
-        return AccidentalType.Natural;
-    }
-  }
-
-  /**
    * Converts a Pitch AST node to MIDI pitch, applying key signature,
    * measure accidentals, and voice properties (transpose, octave).
    */
@@ -267,7 +248,7 @@ export class ChordPositionCollector implements Visitor<void> {
     if (pitch.alteration) {
       // Explicit accidental in the note
       const accString = pitch.alteration.lexeme;
-      const accType = this.convertAccidental(accString);
+      const accType = convertAccidentalToType(accString);
       accidentalSemitones = pitchUtilsAccidentalTypeToSemitones(accType);
 
       // Store in measure accidentals
@@ -385,7 +366,7 @@ export class ChordPositionCollector implements Visitor<void> {
 
     if (pitch.alteration) {
       const letter = pitch.noteLetter.lexeme.toUpperCase() as "C" | "D" | "E" | "F" | "G" | "A" | "B";
-      const accType = this.convertAccidental(pitch.alteration.lexeme);
+      const accType = convertAccidentalToType(pitch.alteration.lexeme);
       voice.measureAccidentals.set(letter, accType);
     }
   }
@@ -404,7 +385,7 @@ export class ChordPositionCollector implements Visitor<void> {
       // Track measure accidentals
       if (pitch.alteration) {
         const letter = pitch.noteLetter.lexeme.toUpperCase() as "C" | "D" | "E" | "F" | "G" | "A" | "B";
-        const accType = this.convertAccidental(pitch.alteration.lexeme);
+        const accType = convertAccidentalToType(pitch.alteration.lexeme);
         voice.measureAccidentals.set(letter, accType);
       }
 

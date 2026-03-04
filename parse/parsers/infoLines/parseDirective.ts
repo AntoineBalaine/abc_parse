@@ -18,10 +18,10 @@ export type HeaderContext = "file" | "tune";
  * - %%abcls-fmt system-comments
  * - %%abcls-fmt voice-markers=inline
  * - %%abcls-fmt voice-markers=infoline
+ * - %%abcls-fmt courtesy-accidentals
  *
- * For system-comments, the presence of the directive enables both the feature and linear mode.
- * System comments only make sense for linear (interleaved voice) tunes,
- * so we enable linear mode implicitly.
+ * Each standalone identifier option sets a boolean flag on the formatter config.
+ * Linear mode is controlled separately via %%abcls-parse linear.
  *
  * @param directive - The directive to check
  * @param ctx - The parsing context
@@ -46,6 +46,16 @@ function checkFormatterDirective(directive: Directive, ctx: ParseCtx, headerCont
       ctx.abcContext.formatterConfig = { ...ctx.abcContext.formatterConfig, systemComments: true };
     } else {
       ctx.abcContext.tuneFormatterConfig = { ...ctx.abcContext.tuneFormatterConfig, systemComments: true };
+    }
+    return;
+  }
+
+  // Check for "courtesy-accidentals" option (standalone identifier)
+  if (option instanceof Token && option.lexeme.toLowerCase() === "courtesy-accidentals") {
+    if (headerContext === "file") {
+      ctx.abcContext.formatterConfig = { ...ctx.abcContext.formatterConfig, courtesyAccidentals: true };
+    } else {
+      ctx.abcContext.tuneFormatterConfig = { ...ctx.abcContext.tuneFormatterConfig, courtesyAccidentals: true };
     }
     return;
   }
@@ -120,11 +130,7 @@ function checkParseDirective(directive: Directive, ctx: ParseCtx, headerContext:
  * @param prnt_arr - Optional array to push the parsed directive to
  * @param headerContext - Optional context indicating file or tune header (for %%abcls-parse handling)
  */
-export function parseDirective(
-  ctx: ParseCtx,
-  prnt_arr?: Array<Expr | Token>,
-  headerContext?: HeaderContext
-): Directive | null {
+export function parseDirective(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>, headerContext?: HeaderContext): Directive | null {
   if (!ctx.match(TT.STYLESHEET_DIRECTIVE)) {
     return null;
   }
@@ -274,12 +280,7 @@ function parseRationalOrNumber(ctx: ParseCtx, values: Array<Token | Rational | P
  * Because the scanner handles text capture for these directives,
  * we simply consume the FREE_TXT token that contains the text content.
  */
-function parseTextDirective(
-  ctx: ParseCtx,
-  directiveKey: Token,
-  prnt_arr?: Array<Expr | Token>,
-  headerContext?: HeaderContext
-): Directive | null {
+function parseTextDirective(ctx: ParseCtx, directiveKey: Token, prnt_arr?: Array<Expr | Token>, headerContext?: HeaderContext): Directive | null {
   const values: Array<Token | Rational | Pitch | KV | Measurement | Annotation> = [];
 
   // Next token should be FREE_TXT containing the text content

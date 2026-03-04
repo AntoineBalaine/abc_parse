@@ -50,6 +50,8 @@ import {
 import { alignTune, discoverVoicesInTuneBody, getSnapshotsIfZeroLength } from "./fmt2/fmt_aligner";
 import { resolveRules } from "./fmt2/fmt_rules_assignment";
 import { VoiceMarkerStyleVisitor } from "./VoiceMarkerStyleVisitor";
+import { CourtesyAccidentalsTransform } from "./CourtesyAccidentalsTransform";
+import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 
 /**
  * Checks if a comment is "empty" (contains only % or % followed by whitespace).
@@ -193,6 +195,14 @@ export class AbcFormatter implements Visitor<string> {
     // 2. Discover voices declared in tune body and update the voices list
     if (tuneToFormat.tune_body) {
       discoverVoicesInTuneBody(tuneToFormat.tune_header.voices, tuneToFormat.tune_body);
+    }
+
+    // 2a. Add courtesy accidentals if configured
+    if (tuneToFormat.formatterConfig.courtesyAccidentals && tuneToFormat.tune_body) {
+      const analyzer = new SemanticAnalyzer(this.ctx);
+      tuneToFormat.accept(analyzer);
+      const courtesyTransform = new CourtesyAccidentalsTransform();
+      courtesyTransform.transform(tuneToFormat, analyzer.data, this.ctx);
     }
 
     // 2b. Check for zero-length notes and get snapshots if needed

@@ -182,11 +182,14 @@ export type FormatterConfig = {
   systemComments: boolean;
   /** When set, convert voice markers to the specified style during formatting */
   voiceMarkerStyle: VoiceMarkerStyle | null;
+  /** When true, insert courtesy accidentals for notes altered in the previous measure */
+  courtesyAccidentals: boolean;
 };
 
 export const DEFAULT_FORMATTER_CONFIG: FormatterConfig = {
   systemComments: false,
   voiceMarkerStyle: null,
+  courtesyAccidentals: false,
 };
 
 export abstract class Expr {
@@ -474,8 +477,7 @@ export class Tuplet extends Expr {
   p: Token;
   q?: Token;
   r?: Token;
-  constructor(id: number, p: Token, q?: Token, r?: Token,
-              leftParen?: Token, firstColon?: Token, secondColon?: Token) {
+  constructor(id: number, p: Token, q?: Token, r?: Token, leftParen?: Token, firstColon?: Token, secondColon?: Token) {
     super(id);
     this.p = p;
     this.q = q;
@@ -547,8 +549,7 @@ export class Grace_group extends Expr {
   acciaccaturaSlash?: Token;
   notes: Array<Note | Token>;
   isAccacciatura?: boolean;
-  constructor(id: number, notes: Array<Note | Token>, isAccacciatura?: boolean,
-              leftBrace?: Token, rightBrace?: Token, acciaccaturaSlash?: Token) {
+  constructor(id: number, notes: Array<Note | Token>, isAccacciatura?: boolean, leftBrace?: Token, rightBrace?: Token, acciaccaturaSlash?: Token) {
     super(id);
     this.notes = notes;
     this.isAccacciatura = isAccacciatura;
@@ -566,9 +567,8 @@ export class Inline_field extends Expr {
   rightBracket?: Token;
   field: Token;
   text: Array<Token>;
-  value2?: Array<Expr>;  // Parsed expressions (same as Info_line)
-  constructor(id: number, field: Token, text: Array<Token>, value2?: Array<Expr>,
-              leftBracket?: Token, rightBracket?: Token) {
+  value2?: Array<Expr>; // Parsed expressions (same as Info_line)
+  constructor(id: number, field: Token, text: Array<Token>, value2?: Array<Expr>, leftBracket?: Token, rightBracket?: Token) {
     super(id);
     this.field = field;
     this.text = text;
@@ -587,8 +587,7 @@ export class Chord extends Expr {
   contents: Array<Note | Token | Annotation>;
   rhythm?: Rhythm;
   tie?: Token;
-  constructor(id: number, contents: Array<Note | Token | Annotation>, rhythm?: Rhythm, tie?: Token,
-              leftBracket?: Token, rightBracket?: Token) {
+  constructor(id: number, contents: Array<Note | Token | Annotation>, rhythm?: Rhythm, tie?: Token, leftBracket?: Token, rightBracket?: Token) {
     super(id);
     this.contents = contents;
     this.rhythm = rhythm;

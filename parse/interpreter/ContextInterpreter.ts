@@ -14,6 +14,7 @@
  */
 
 import { TuneDefaults, VoiceState, newVxState, createTuneDefaults, createFileDefaults } from "./InterpreterState";
+import { convertAccidentalToType } from "./helpers";
 import { Meter, KeySignature, ClefProperties, TempoProperties, MeterType, AccidentalType } from "../types/abcjs-ast";
 import { ParsedChord, scanChordSymbol, parseChordSymbol } from "../music-theory";
 import { SemanticData } from "../analyzers/semantic-analyzer";
@@ -361,26 +362,6 @@ export class ContextInterpreter implements Visitor<void> {
   }
 
   /**
-   * Converts an accidental string to AccidentalType.
-   */
-  convertAccidental(accidental: string): AccidentalType {
-    switch (accidental) {
-      case "^":
-        return AccidentalType.Sharp;
-      case "_":
-        return AccidentalType.Flat;
-      case "=":
-        return AccidentalType.Natural;
-      case "^^":
-        return AccidentalType.DblSharp;
-      case "__":
-        return AccidentalType.DblFlat;
-      default:
-        return AccidentalType.Natural;
-    }
-  }
-
-  /**
    * Extracts the position from an expression using RangeVisitor.
    */
   getPosition(expr: Expr): { line: number; char: number } {
@@ -579,7 +560,7 @@ export class ContextInterpreter implements Visitor<void> {
     if (!alteration) return;
 
     const pitchClass = expr.pitch.noteLetter.lexeme.toUpperCase() as "C" | "D" | "E" | "F" | "G" | "A" | "B";
-    const accidentalType = this.convertAccidental(alteration);
+    const accidentalType = convertAccidentalToType(alteration);
 
     const voice = this.getCurrentVoice();
     voice.measureAccidentals.set(pitchClass, accidentalType);
@@ -600,7 +581,7 @@ export class ContextInterpreter implements Visitor<void> {
         const alteration = content.pitch.alteration?.lexeme;
         if (alteration) {
           const pitchClass = content.pitch.noteLetter.lexeme.toUpperCase() as "C" | "D" | "E" | "F" | "G" | "A" | "B";
-          const accidentalType = this.convertAccidental(alteration);
+          const accidentalType = convertAccidentalToType(alteration);
           voice.measureAccidentals.set(pitchClass, accidentalType);
           hasAccidental = true;
         }
