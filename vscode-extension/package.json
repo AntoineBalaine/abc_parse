@@ -356,6 +356,11 @@
         "category": "ABC"
       },
       {
+        "command": "abc.explosion",
+        "title": "ABC: Timed Explosion (Explode to Named Voices)",
+        "category": "ABC"
+      },
+      {
         "command": "abc.multiplyRhythm",
         "title": "ABC: Double Rhythm Length",
         "category": "ABC"
@@ -652,6 +657,10 @@
         },
         {
           "command": "abc.explode4",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.explosion",
           "when": "editorLangId == abc"
         },
         {
