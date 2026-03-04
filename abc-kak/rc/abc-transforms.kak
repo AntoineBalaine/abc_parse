@@ -259,6 +259,25 @@ define-command abc-explode4 \
     abc-transform-impl explode4
 }
 
+define-command abc-explosion -params 1.. \
+    -docstring "abc-explosion <target-voice-id> [<target-voice-id> ...]: Explode chords into specified target voices" %{
+    evaluate-commands %sh{
+        # Build JSON array of target voice IDs from positional params
+        json_arr="["
+        first=true
+        for vid in "$@"; do
+            if [ "$first" = true ]; then
+                first=false
+            else
+                json_arr="$json_arr,"
+            fi
+            json_arr="$json_arr\"$vid\""
+        done
+        json_arr="$json_arr]"
+        printf 'abc-transform-impl explosion '\''[%s]'\''\n' "$json_arr"
+    }
+}
+
 # ============================================================================
 # Voice Marker Transform Commands
 # ============================================================================
