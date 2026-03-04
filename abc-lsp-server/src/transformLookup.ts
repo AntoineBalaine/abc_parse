@@ -41,6 +41,7 @@ import {
   ParallelDirection,
   ParallelMode,
   splitSystems,
+  explosion,
 } from "editor";
 import { ABCContext, IRational, Position } from "abc-parser";
 import { DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
@@ -96,6 +97,10 @@ const TRANSFORM_MAP: Record<string, TransformFn> = {
     const positions = args[1] as Position[];
     return splitSystems(sel, positions, ctx, snapshots);
   },
+  // For explosion, args are: [snapshots, targetVoiceIds]
+  // (snapshots is prepended by socketHandler because it's context-aware)
+  explosion: (sel, ctx, ...args) =>
+    explosion(sel, args[1] as string[], ctx, args[0] as DocumentSnapshots),
 };
 
 export function lookupTransform(name: string): TransformFn | null {
@@ -110,4 +115,4 @@ export function lookupTransform(name: string): TransformFn | null {
  * Transforms that require DocumentSnapshots from ContextInterpreter.
  * These transforms need musical context like meter, note length, and clef.
  */
-export const CONTEXT_AWARE_TRANSFORMS = new Set(["transpose", "toSlashNotation", "harmonizeVoicing", "parallelVoicing", "splitSystems", "enharmonizeToKey"]);
+export const CONTEXT_AWARE_TRANSFORMS = new Set(["transpose", "toSlashNotation", "harmonizeVoicing", "parallelVoicing", "splitSystems", "enharmonizeToKey", "explosion"]);

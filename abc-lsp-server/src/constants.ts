@@ -16,7 +16,7 @@ export const ERROR_CODES = {
  * Because these transforms operate on the sequential relationship between nodes,
  * they need to see all nodes together rather than each node in isolation.
  */
-export const GROUPED_CURSOR_TRANSFORMS = new Set(["legato", "consolidateRests", "toSlashNotation"]);
+export const GROUPED_CURSOR_TRANSFORMS = new Set(["legato", "consolidateRests", "toSlashNotation", "explosion"]);
 
 /**
  * Transforms that operate on cursor positions rather than selected nodes.
