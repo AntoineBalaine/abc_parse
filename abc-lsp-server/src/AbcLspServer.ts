@@ -1,4 +1,5 @@
-import { AbcFormatter, convertTuneToDeferred, File_structure, Tune } from "abc-parser";
+import { AbcFormatter, convertTuneToDeferred, File_structure, Tune, abc2midi } from "abc-parser";
+import { ResponseError } from "vscode-languageserver";
 import { HandlerResult, Position, Range, SemanticTokens, SemanticTokensBuilder, TextDocuments, TextEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcDocument } from "./AbcDocument";
@@ -40,10 +41,7 @@ export class AbcLspServer {
   documents: TextDocuments<TextDocument>;
   listener: LspEventListener;
 
-  constructor(
-    documents: TextDocuments<TextDocument>,
-    listener: LspEventListener
-  ) {
+  constructor(documents: TextDocuments<TextDocument>, listener: LspEventListener) {
     this.documents = documents;
     this.listener = listener;
 
@@ -218,14 +216,41 @@ export class AbcLspServer {
       }
     }
 
-    const convertedAst = new File_structure(
-      doc.ctx.generateId(),
-      ast.file_header,
-      convertedContents,
-      ast.linear
-    );
+    const convertedAst = new File_structure(doc.ctx.generateId(), ast.file_header, convertedContents, ast.linear);
 
     const formatter = new AbcFormatter(doc.ctx);
     return formatter.stringify(convertedAst);
+  }
+
+  /**
+   * Export a document to MIDI, returning base64-encoded MIDI bytes.
+   * Because the LSP JSON protocol cannot transport raw binary, we encode as base64.
+   */
+  exportMidi(uri: string, tuneNumbers?: number[]): string {
+    const doc = this.abcDocuments.get(uri);
+    if (!doc) {
+      throw new ResponseError(-1, "Document not found");
+    }
+
+    if (doc instanceof AbcxDocument) {
+      throw new ResponseError(-1, "MIDI export is not supported for ABCx chord sheet files");
+    }
+
+    if (!(doc instanceof AbcDocument)) {
+      throw new ResponseError(-1, "Document has not been analyzed yet");
+    }
+
+    if (!doc.AST) {
+      doc.analyze();
+    }
+
+    if (!doc.AST) {
+      throw new ResponseError(-1, "Document could not be parsed");
+    }
+
+    const options = tuneNumbers && tuneNumbers.length > 0 ? { tuneNumbers } : undefined;
+    const midiBytes = abc2midi(doc.AST, doc.ctx, options);
+
+    return Buffer.from(midiBytes).toString("base64");
   }
 }

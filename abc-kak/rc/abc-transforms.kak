@@ -453,3 +453,40 @@ define-command abc-parallel-chromatic-prev -docstring "Create parallel chords us
 define-command abc-parallel-chromatic-next -docstring "Create parallel chords using chromatic shift from next chord" %{
     abc-parallel-voicing "next" "chromatic"
 }
+
+# ============================================================================
+# MIDI Export Command
+# ============================================================================
+
+define-command abc-export-midi -params 0..1 \
+    -docstring "abc-export-midi [path]: Export current ABC file to MIDI. Prompts for path if omitted." %{
+    evaluate-commands %sh{
+        if [ -n "$1" ]; then
+            printf 'abc-export-midi-impl %s\n' "$1"
+        else
+            printf 'prompt "Output path: " %%{ abc-export-midi-impl %%val{text} }\n'
+        fi
+    }
+}
+
+define-command -hidden abc-export-midi-impl -params 1 %{
+    evaluate-commands %sh{
+        output_path="$1"
+        uri="file://${kak_buffile}"
+
+        result=$(node "$kak_opt_abc_client_path" \
+            --socket="$kak_opt_abc_socket_path" \
+            --uri="$uri" \
+            --method="abc.exportMidi" \
+            --output-path="$output_path" \
+            --timeout="$kak_opt_abc_timeout" 2>&1)
+
+        if [ $? -eq 0 ]; then
+            escaped_path=$(printf '%s' "$output_path" | sed "s/'/''/g")
+            printf 'echo -markup '\''{Information}MIDI exported to %s'\''\n' "$escaped_path"
+        else
+            escaped=$(printf '%s' "$result" | sed "s/'/''/g; s/{/{{/g; s/}/}}/g")
+            printf 'echo -markup '\''{Error}%s'\''\n' "$escaped"
+        fi
+    }
+}

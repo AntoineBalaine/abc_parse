@@ -444,6 +444,11 @@
         "command": "abc.splitSystem",
         "title": "ABC: Split System at Cursor",
         "category": "ABC"
+      },
+      {
+        "command": "abc.exportToMidi",
+        "title": "ABC: Export to MIDI",
+        "category": "ABC"
       }
     ],
     "menus": {
@@ -714,6 +719,10 @@
         },
         {
           "command": "abc.splitSystem",
+          "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.exportToMidi",
           "when": "editorLangId == abc"
         }
       ]

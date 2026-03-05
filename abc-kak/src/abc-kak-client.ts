@@ -51,6 +51,7 @@ interface ClientArgs {
   ranges: string;
   positions: string;
   bufferFile: string | null;
+  outputPath: string | null;
   timeout: number;
 }
 
@@ -82,6 +83,7 @@ interface LspResponse {
     edits?: LspTextEdit[];
     cursorRanges?: LspRange[];
     url?: string;
+    midi?: string;
   };
   error?: {
     code: number;
@@ -126,6 +128,7 @@ function parseArgs(): ClientArgs {
     ranges: "",
     positions: "",
     bufferFile: null,
+    outputPath: null,
     timeout: 5000,
   };
 
@@ -152,6 +155,8 @@ function parseArgs(): ClientArgs {
       args.positions = arg.substring("--positions=".length);
     } else if (arg.startsWith("--buffer-file=")) {
       args.bufferFile = arg.substring("--buffer-file=".length);
+    } else if (arg.startsWith("--output-path=")) {
+      args.outputPath = arg.substring("--output-path=".length);
     } else if (arg.startsWith("--timeout=")) {
       args.timeout = parseInt(arg.substring("--timeout=".length), 10);
     }
@@ -178,6 +183,11 @@ function parseArgs(): ClientArgs {
   // Buffer file is only required for selector/transform modes
   if ((args.selector || args.transform) && !args.bufferFile) {
     error("Missing required --buffer-file argument for selector/transform mode");
+  }
+
+  // Output path is required for abc.exportMidi
+  if (args.method === "abc.exportMidi" && !args.outputPath) {
+    error("Missing required --output-path argument for abc.exportMidi");
   }
 
   return args;
@@ -458,17 +468,11 @@ function sendRequest(socketPath: string, request: LspRequest, timeout: number): 
  */
 function rangesOverlap(a: LspRange, b: LspRange): boolean {
   // a ends before b starts
-  if (
-    a.end.line < b.start.line ||
-    (a.end.line === b.start.line && a.end.character <= b.start.character)
-  ) {
+  if (a.end.line < b.start.line || (a.end.line === b.start.line && a.end.character <= b.start.character)) {
     return false;
   }
   // b ends before a starts
-  if (
-    b.end.line < a.start.line ||
-    (b.end.line === a.start.line && b.end.character <= a.start.character)
-  ) {
+  if (b.end.line < a.start.line || (b.end.line === a.start.line && b.end.character <= a.start.character)) {
     return false;
   }
   return true;
@@ -484,11 +488,7 @@ function rangesOverlap(a: LspRange, b: LspRange): boolean {
  *   Following lines: Kakoune commands to apply edits
  *   Last line: "SELECT <final_ranges>"
  */
-function generateEditCommands(
-  edits: LspTextEdit[],
-  lines: string[],
-  selectionRanges: LspRange[]
-): EditResult | null {
+function generateEditCommands(edits: LspTextEdit[], lines: string[], selectionRanges: LspRange[]): EditResult | null {
   if (edits.length === 0) {
     return null;
   }
@@ -505,9 +505,7 @@ function generateEditCommands(
   const editResults: Omit<EditWithDelta, "lineDelta">[] = [];
 
   for (const edit of sortedEdits) {
-    const isInsert =
-      edit.range.start.line === edit.range.end.line &&
-      edit.range.start.character === edit.range.end.character;
+    const isInsert = edit.range.start.line === edit.range.end.line && edit.range.start.character === edit.range.end.character;
 
     // Convert LSP range to Kakoune descriptor
     const kakRange = lspRangeToKakDescriptor(edit.range, lines);
@@ -571,10 +569,7 @@ function generateEditCommands(
     const newTextLines = edit.newText.split("\n");
 
     // Check if this edit overlaps with the original selection
-    const isInSelection =
-      !selectionRanges ||
-      selectionRanges.length === 0 ||
-      selectionRanges.some((sel) => rangesOverlap(edit.originalRange, sel));
+    const isInSelection = !selectionRanges || selectionRanges.length === 0 || selectionRanges.some((sel) => rangesOverlap(edit.originalRange, sel));
 
     if (isInSelection) {
       // Convert start position to Kakoune format (1-indexed, byte offset)
@@ -646,6 +641,12 @@ async function main(): Promise<void> {
         method: args.method,
         params: { uri: args.uri, positions },
       };
+    } else if (args.method === "abc.exportMidi") {
+      request = {
+        id: 1,
+        method: args.method,
+        params: { uri: args.uri },
+      };
     } else {
       error(`Unknown method: ${args.method}`);
     }
@@ -666,6 +667,21 @@ async function main(): Promise<void> {
     if (args.method === "abc.startPreview" && response.result?.url) {
       console.log(response.result.url);
     }
+
+    // For abc.exportMidi: decode base64 and write to output path
+    if (args.method === "abc.exportMidi") {
+      if (!response.result?.midi) {
+        error("Server returned no MIDI data");
+      }
+      try {
+        const bytes = Buffer.from(response.result!.midi!, "base64");
+        fs.writeFileSync(args.outputPath!, bytes);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        error(`Failed to write MIDI file: ${message}`);
+      }
+    }
+
     // Other methods: no output on success
     process.exit(0);
   }
@@ -728,9 +744,7 @@ async function main(): Promise<void> {
     }
 
     // Convert LSP ranges to Kakoune descriptors
-    const descriptors = result.ranges
-      .map((range) => lspRangeToKakDescriptor(range, lines))
-      .filter((desc): desc is string => desc !== null);
+    const descriptors = result.ranges.map((range) => lspRangeToKakDescriptor(range, lines)).filter((desc): desc is string => desc !== null);
 
     if (descriptors.length === 0) {
       console.log("");
@@ -762,9 +776,7 @@ async function main(): Promise<void> {
 
     // Convert server's cursor ranges to Kakoune descriptors using the new text
     const cursorRanges = result.cursorRanges ?? [];
-    const kakCursorRanges = cursorRanges
-      .map((range) => lspRangeToKakDescriptor(range, newLines))
-      .filter((desc): desc is string => desc !== null);
+    const kakCursorRanges = cursorRanges.map((range) => lspRangeToKakDescriptor(range, newLines)).filter((desc): desc is string => desc !== null);
 
     // Output format:
     // Line 1: EDITS

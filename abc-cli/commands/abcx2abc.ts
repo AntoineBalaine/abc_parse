@@ -5,7 +5,7 @@
  */
 
 import { Command } from "commander";
-import { ABCContext, ScannerAbcx, parseAbcx, AbcxToAbcConverter, AbcFormatter } from "../../parse/index";
+import { ABCContext, ScannerAbcx, parseAbcx, AbcxToAbcConverter, AbcFormatter } from "abc-parser";
 import { readAbcFile, writeFile, printDiagnostics } from "../utils/shared";
 
 /**

@@ -1,4 +1,4 @@
-import { ExtensionContext, commands } from "vscode";
+import * as vscode from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
 import { MIDIIn } from "./Midi/midi-in";
 
@@ -6,27 +6,27 @@ import { MIDIIn } from "./Midi/midi-in";
  * This functionality is ripped from LilyPond's extension.
  * Allows for taking MIDI input and converting it to ABC notation.
  */
-const registerMidiInputs = (context: ExtensionContext) => {
+const registerMidiInputs = (context: vscode.ExtensionContext) => {
   // start midi input
-  const startInputMidiCmd = commands.registerCommand("abc.startMIDIInput", () => {
+  const startInputMidiCmd = vscode.commands.registerCommand("abc.startMIDIInput", () => {
     MIDIIn.startMIDIInput();
   });
   context.subscriptions.push(startInputMidiCmd);
 
   // stop midi input
-  const stopInputMidiCmd = commands.registerCommand("abc.stopMIDIInput", () => {
+  const stopInputMidiCmd = vscode.commands.registerCommand("abc.stopMIDIInput", () => {
     MIDIIn.stopMIDIInput();
   });
   context.subscriptions.push(stopInputMidiCmd);
 
   // set midi input device
-  const setInputMidiDeviceCmd = commands.registerCommand("abc.setInputMIDIDevice", () => {
+  const setInputMidiDeviceCmd = vscode.commands.registerCommand("abc.setInputMIDIDevice", () => {
     MIDIIn.setInputMIDIDevice();
   });
   context.subscriptions.push(setInputMidiDeviceCmd);
 
   // restart midi input
-  const restartMIDIInputCmd = commands.registerCommand("abc.restartMIDIInput", () => {
+  const restartMIDIInputCmd = vscode.commands.registerCommand("abc.restartMIDIInput", () => {
     MIDIIn.restartMIDIInput();
   });
   context.subscriptions.push(restartMIDIInputCmd);
@@ -35,11 +35,41 @@ const registerMidiInputs = (context: ExtensionContext) => {
   MIDIIn.initMIDIStatusBarItems();
 };
 
+function registerMidiExport(context: vscode.ExtensionContext, client: LanguageClient) {
+  const exportMidiCmd = vscode.commands.registerCommand("abc.exportToMidi", async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || editor.document.languageId !== "abc") return;
+
+    const sourcePath = editor.document.fileName;
+    const defaultUri = vscode.Uri.file(sourcePath.replace(/\.abc$/, ".mid"));
+
+    const saveUri = await vscode.window.showSaveDialog({
+      defaultUri,
+      filters: { "MIDI files": ["mid", "midi"] },
+    });
+    if (!saveUri) return;
+
+    try {
+      const result = await client.sendRequest<{ midi: string }>("abc.exportMidi", {
+        uri: editor.document.uri.toString(),
+      });
+
+      const bytes = Buffer.from(result.midi, "base64");
+      await vscode.workspace.fs.writeFile(saveUri, bytes);
+      vscode.window.showInformationMessage(`MIDI exported to ${saveUri.fsPath}`);
+    } catch (error: any) {
+      vscode.window.showErrorMessage(`MIDI export failed: ${error.message || error}`);
+    }
+  });
+  context.subscriptions.push(exportMidiCmd);
+}
+
 /**
  * Register the commands that the extension will use to ask the server to do special things.
  * The old transform commands (divideRhythm, multiplyRhythm, transposeUp, transposeDn) have been
  * replaced by the new abct2-based transform commands in transformCommands.ts.
  */
-export function registerCommands(context: ExtensionContext, client: LanguageClient) {
+export function registerCommands(context: vscode.ExtensionContext, client: LanguageClient) {
   registerMidiInputs(context);
+  registerMidiExport(context, client);
 }

@@ -3,7 +3,7 @@
  */
 
 import { readFileSync, writeFileSync } from "fs";
-import { ABCContext, Scanner, parse, AbcError } from "../../parse/index";
+import { ABCContext, Scanner, parse, AbcError } from "abc-parser";
 
 /**
  * Read an ABC file from disk
@@ -64,6 +64,38 @@ export function formatDiagnostic(error: AbcError, filePath: string, source: stri
   output += `  ${caretLine}\n`;
 
   return output;
+}
+
+/**
+ * Because we support both comma-separated values and repeated flags,
+ * we need to parse all tune numbers from the input.
+ */
+export function parseTuneNumbers(tuneOptions: string | string[] | undefined): number[] {
+  if (!tuneOptions) {
+    return [];
+  }
+
+  // Because Commander.js provides either a string or an array of strings,
+  // we need to handle both cases.
+  const values = Array.isArray(tuneOptions) ? tuneOptions : [tuneOptions];
+
+  const numbers: number[] = [];
+  for (const value of values) {
+    // Because the user can provide comma-separated values,
+    // we need to split on commas.
+    const parts = value
+      .split(/[,-]/g)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    for (const part of parts) {
+      const num = parseInt(part, 10);
+      if (!isNaN(num)) {
+        numbers.push(num);
+      }
+    }
+  }
+
+  return numbers;
 }
 
 /**

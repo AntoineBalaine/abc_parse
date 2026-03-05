@@ -284,3 +284,6 @@ map global abc-transform y     ':abc-parallel-diatonic-prev<ret>'  -docstring 'p
 map global abc-transform Y     ':abc-parallel-diatonic-next<ret>'  -docstring 'parallel diatonic from next'
 map global abc-transform <a-y> ':abc-parallel-chromatic-prev<ret>' -docstring 'parallel chromatic from prev'
 map global abc-transform <a-Y> ':abc-parallel-chromatic-next<ret>' -docstring 'parallel chromatic from next'
+
+# --- Export ---
+map global abc-transform m ':abc-export-midi<ret>'               -docstring 'export to MIDI'

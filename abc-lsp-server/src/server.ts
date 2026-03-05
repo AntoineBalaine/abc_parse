@@ -2,6 +2,9 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
+import { File_structure, Scanner, parse, ABCContext, SemanticAnalyzer } from "abc-parser";
+import { ChordPositionCollector } from "abc-parser/interpreter/ChordPositionCollector";
+import { fromAst, createSelection, Selection, CSNode, TAGS, selectRange } from "editor";
 import {
   CompletionItem,
   CompletionItemKind,
@@ -19,8 +22,8 @@ import {
   createConnection,
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { AbcLspServer } from "./AbcLspServer";
 import { AbcDocument } from "./AbcDocument";
+import { AbcLspServer } from "./AbcLspServer";
 import {
   DECORATION_SYMBOLS,
   getDirectiveCompletionContext,
@@ -43,20 +46,17 @@ import {
   ABCLS_FMT_OPTIONS,
   ABCLS_VOICES_OPTIONS,
 } from "./completions";
-import { standardTokenScopes } from "./server_helpers";
+import { GROUPED_CURSOR_TRANSFORMS, POSITION_BASED_TRANSFORMS, TRANSFORM_NODE_TAGS } from "./constants";
+import { serializeCSTree } from "./csTreeSerializer";
+import { collectSurvivingCursorIds, computeCursorRangesFromFreshTree } from "./cursorPreservation";
+import { computeFoldingRanges, DEFAULT_FOLDING_CONFIG } from "./foldingRangeProvider";
+import { PreviewManager } from "./PreviewManager";
 import { findNodesInRange, resolveRanges, resolveSelectionRanges } from "./selectionRangeResolver";
 import { lookupSelector } from "./selectorLookup";
-import { lookupTransform, CONTEXT_AWARE_TRANSFORMS } from "./transformLookup";
-import { collectSurvivingCursorIds, computeCursorRangesFromFreshTree } from "./cursorPreservation";
-import { serializeCSTree } from "./csTreeSerializer";
-import { computeTextEditsFromDiff } from "./textEditFromDiff";
-import { fromAst, createSelection, Selection, CSNode, TAGS, selectRange } from "editor";
-import { File_structure, Scanner, parse, ABCContext, SemanticAnalyzer } from "abc-parser";
-import { ChordPositionCollector } from "abc-parser/interpreter/ChordPositionCollector";
-import { computeFoldingRanges, DEFAULT_FOLDING_CONFIG } from "./foldingRangeProvider";
+import { standardTokenScopes } from "./server_helpers";
 import { SocketHandler, computeSocketPath } from "./socketHandler";
-import { PreviewManager } from "./PreviewManager";
-import { GROUPED_CURSOR_TRANSFORMS, POSITION_BASED_TRANSFORMS, TRANSFORM_NODE_TAGS } from "./constants";
+import { computeTextEditsFromDiff } from "./textEditFromDiff";
+import { lookupTransform, CONTEXT_AWARE_TRANSFORMS } from "./transformLookup";
 
 // ============================================================================
 // CLI Argument Parsing
@@ -601,6 +601,11 @@ connection.onRequest("abc.getPreviewContent", (params: { uri: string }): { conte
   return { content };
 });
 
+connection.onRequest("abc.exportMidi", (params: { uri: string; tuneNumbers?: number[] }): { midi: string } => {
+  const midi = abcServer.exportMidi(params.uri, params.tuneNumbers);
+  return { midi };
+});
+
 documents.listen(connection);
 connection.listen();
 
@@ -618,6 +623,7 @@ abcServer.previewManager = previewManager;
 if (socketPath) {
   socketHandler = new SocketHandler(socketPath, (uri) => abcServer.abcDocuments.get(uri), getCsTree);
   socketHandler.setPreviewManager(previewManager);
+  socketHandler.setExportMidi((uri, tuneNumbers) => abcServer.exportMidi(uri, tuneNumbers));
 
   socketHandler
     .start()

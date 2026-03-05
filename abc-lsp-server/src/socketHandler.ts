@@ -1,20 +1,20 @@
-import * as net from "net";
 import * as fs from "fs";
+import * as net from "net";
 import * as path from "path";
 import * as readline from "readline";
-import { findNodesInRange, resolveRanges, resolveSelectionRanges } from "./selectionRangeResolver";
-import { lookupSelector, getAvailableSelectors } from "./selectorLookup";
-import { lookupTransform, CONTEXT_AWARE_TRANSFORMS } from "./transformLookup";
-import { fromAst, createSelection, Selection, selectRange, CSNode, TAGS } from "editor";
 import { File_structure, ABCContext, Scanner, parse, SemanticAnalyzer } from "abc-parser";
 import { ChordPositionCollector } from "abc-parser/interpreter/ChordPositionCollector";
+import { fromAst, createSelection, Selection, selectRange, CSNode, TAGS } from "editor";
 import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
-import { serializeCSTree } from "./csTreeSerializer";
-import { computeTextEditsFromDiff } from "./textEditFromDiff";
-import { PreviewManager } from "./PreviewManager";
-import { collectSurvivingCursorIds, computeCursorRangesFromFreshTree } from "./cursorPreservation";
 import { ERROR_CODES, GROUPED_CURSOR_TRANSFORMS, TRANSFORM_NODE_TAGS, POSITION_BASED_TRANSFORMS } from "./constants";
+import { serializeCSTree } from "./csTreeSerializer";
+import { collectSurvivingCursorIds, computeCursorRangesFromFreshTree } from "./cursorPreservation";
+import { PreviewManager } from "./PreviewManager";
+import { findNodesInRange, resolveRanges, resolveSelectionRanges } from "./selectionRangeResolver";
+import { lookupSelector, getAvailableSelectors } from "./selectorLookup";
+import { computeTextEditsFromDiff } from "./textEditFromDiff";
+import { lookupTransform, CONTEXT_AWARE_TRANSFORMS } from "./transformLookup";
 
 // ============================================================================
 // Types
@@ -62,7 +62,11 @@ interface SuccessResult {
   success: boolean;
 }
 
-type SocketResult = SelectorResult | TransformResult | StartPreviewResult | SuccessResult;
+interface ExportMidiResult {
+  midi: string;
+}
+
+type SocketResult = SelectorResult | TransformResult | StartPreviewResult | SuccessResult | ExportMidiResult;
 
 interface SocketResponse {
   id: number | string;
@@ -75,6 +79,7 @@ interface SocketResponse {
 
 type DocumentGetter = (uri: string) => AbcDocument | AbcxDocument | undefined;
 type CsTreeGetter = (ast: File_structure, ctx: ABCContext) => CSNode;
+type ExportMidiFn = (uri: string, tuneNumbers?: number[]) => string;
 
 // ============================================================================
 // Socket Path Computation
@@ -302,6 +307,25 @@ function validatePreviewCursorParams(params: SocketRequest["params"]): { uri: st
   }
 
   return { uri: params.uri!, positions: rawParams.positions as number[] };
+}
+
+function validateExportMidiParams(params: SocketRequest["params"]): { uri: string; tuneNumbers?: number[] } {
+  if (!params) {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Missing params" };
+  }
+
+  const rawParams = params as { uri?: string; tuneNumbers?: number[] };
+  if (!validateUri(rawParams.uri)) {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Invalid or missing URI" };
+  }
+
+  if (rawParams.tuneNumbers !== undefined) {
+    if (!Array.isArray(rawParams.tuneNumbers) || !rawParams.tuneNumbers.every((n) => typeof n === "number")) {
+      throw { code: ERROR_CODES.INVALID_PARAMS, message: "tuneNumbers must be an array of numbers" };
+    }
+  }
+
+  return { uri: rawParams.uri!, tuneNumbers: rawParams.tuneNumbers };
 }
 
 // ============================================================================
@@ -598,6 +622,7 @@ export class SocketHandler {
   getCsTree: CsTreeGetter;
   isOwner = false;
   previewManager: PreviewManager | null = null;
+  exportMidiFn: ExportMidiFn | null = null;
 
   constructor(socketPath: string, getDocument: DocumentGetter, getCsTree: CsTreeGetter) {
     this.socketPath = socketPath;
@@ -607,6 +632,10 @@ export class SocketHandler {
 
   setPreviewManager(previewManager: PreviewManager): void {
     this.previewManager = previewManager;
+  }
+
+  setExportMidi(fn: ExportMidiFn): void {
+    this.exportMidiFn = fn;
   }
 
   /**
@@ -732,6 +761,13 @@ export class SocketHandler {
         }
         this.previewManager.shutdown();
         result = { success: true };
+      } else if (request.method === "abc.exportMidi") {
+        if (!this.exportMidiFn) {
+          throw { code: ERROR_CODES.INVALID_REQUEST, message: "MIDI export not initialized" };
+        }
+        const validatedParams = validateExportMidiParams(request.params);
+        const midi = this.exportMidiFn(validatedParams.uri, validatedParams.tuneNumbers);
+        result = { midi };
       } else {
         throw { code: ERROR_CODES.UNKNOWN_METHOD, message: `Unknown method: "${request.method}"` };
       }

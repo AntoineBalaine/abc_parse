@@ -2,59 +2,10 @@
  * Render command: Render ABC files to SVG
  */
 
+import { Scanner, parse, ABCContext, AbcFormatter, Tune, getXNumber } from "abc-parser";
 import { Command } from "commander";
-import { readAbcFile } from "../utils/shared";
 import { renderAbcToSvg, SvgRenderError } from "../svg-renderer";
-import { Scanner, parse, ABCContext, AbcFormatter, Tune, Info_line } from "../../parse/index";
-
-/**
- * Because the X: info line stores its value as an array of tokens,
- * we need to extract the number from the first token.
- */
-function getXNumber(tune: Tune): number | null {
-  const infoLines = tune.tune_header.info_lines.filter((item): item is Info_line => item instanceof Info_line);
-
-  const xInfoLine = infoLines.find((line) => line.key.lexeme.trim() === "X:");
-
-  if (xInfoLine && xInfoLine.value.length > 0) {
-    const xNumber = parseInt(xInfoLine.value[0].lexeme, 10);
-    return isNaN(xNumber) ? null : xNumber;
-  }
-
-  return null;
-}
-
-/**
- * Because we support both comma-separated values and repeated flags,
- * we need to parse all tune numbers from the input.
- */
-function parseTuneNumbers(tuneOptions: string | string[] | undefined): number[] {
-  if (!tuneOptions) {
-    return [];
-  }
-
-  // Because Commander.js provides either a string or an array of strings,
-  // we need to handle both cases.
-  const values = Array.isArray(tuneOptions) ? tuneOptions : [tuneOptions];
-
-  const numbers: number[] = [];
-  for (const value of values) {
-    // Because the user can provide comma-separated values,
-    // we need to split on commas.
-    const parts = value
-      .split(/[,-]/g)
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
-    for (const part of parts) {
-      const num = parseInt(part, 10);
-      if (!isNaN(num)) {
-        numbers.push(num);
-      }
-    }
-  }
-
-  return numbers;
-}
+import { readAbcFile, parseTuneNumbers } from "../utils/shared";
 
 export const renderCommand = new Command("render")
   .description("Render an ABC file to SVG")
