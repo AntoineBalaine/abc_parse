@@ -7,6 +7,7 @@ export * from "./parsers/scan2";
 export { Scanner, Token, TT } from "./parsers/scan2";
 export * from "./parsers/voices2";
 export * from "./types/Expr2";
+export * from "./Visitors/BarMapVisitor";
 export * from "./Visitors/CourtesyAccidentalsTransform";
 export * from "./Visitors/Formatter2";
 export * from "./Visitors/RangeCollector";
