@@ -9,7 +9,8 @@ import { ERROR_CODES } from "./constants";
 import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
 import { fromAst, CSNode } from "editor";
-import { Scanner, parse, ABCContext, File_structure, ScannerAbcx, parseAbcx, abc2midi } from "abc-parser";
+import { Scanner, parse, ABCContext, File_structure, ScannerAbcx, parseAbcx } from "abc-parser";
+import { abc2midi } from "abc-midi";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
 interface LSPRange {

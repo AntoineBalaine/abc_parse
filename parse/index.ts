@@ -40,6 +40,3 @@ export * from "./abcl";
 export * from "./playback";
 // Music theory module for chord symbol parsing
 export * from "./music-theory";
-// MIDI export utility
-export { abc2midi, getXNumber } from "./midi-export";
-export type { Abc2MidiOptions } from "./midi-export";

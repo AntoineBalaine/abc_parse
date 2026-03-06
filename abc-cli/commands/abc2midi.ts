@@ -3,7 +3,7 @@
  */
 
 import { writeFileSync } from "fs";
-import { abc2midi } from "abc-parser";
+import { abc2midi } from "abc-midi";
 import { Command } from "commander";
 import { readAbcFile, parseAbc, parseTuneNumbers } from "../utils/shared";
 

@@ -1,9 +1,5 @@
 import * as abcjs from "abcjs";
-import { convertFileToDeferred } from "../abcl/AbclToAbcConverter";
-import { ABCContext } from "../parsers/Context";
-import { Token } from "../parsers/scan2";
-import { File_structure, Tune, Info_line } from "../types/Expr2";
-import { AbcFormatter } from "../Visitors/Formatter2";
+import { convertFileToDeferred, ABCContext, Token, File_structure, Tune, Info_line, AbcFormatter } from "abc-parser";
 
 export interface Abc2MidiOptions {
   tuneNumbers?: number[];

@@ -10,7 +10,7 @@
     "baseUrl": ".",
     "paths": {
       "abc-parser/*": ["../parse/dist/*"],
-      "abc-midi": ["../midi/src/index.ts"]
+      "abc-midi": ["../midi/dist/src/index"]
     }
   },
   "include": ["*.ts", "commands/**/*.ts", "utils/**/*.ts"],

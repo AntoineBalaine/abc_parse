@@ -15,7 +15,7 @@
     "target": "es2020",
     "paths": {
       "editor": ["../editor/src/index"],
-      "abc-midi": ["../midi/src/index"]
+      "abc-midi": ["../midi/dist/src/index"]
     }
   },
   "include": ["./src/**/*.ts"],

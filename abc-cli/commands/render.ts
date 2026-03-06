@@ -2,7 +2,8 @@
  * Render command: Render ABC files to SVG
  */
 
-import { Scanner, parse, ABCContext, AbcFormatter, Tune, getXNumber } from "abc-parser";
+import { Scanner, parse, ABCContext, AbcFormatter, Tune } from "abc-parser";
+import { getXNumber } from "abc-midi";
 import { Command } from "commander";
 import { renderAbcToSvg, SvgRenderError } from "../svg-renderer";
 import { readAbcFile, parseTuneNumbers } from "../utils/shared";
