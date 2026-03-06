@@ -23,7 +23,6 @@ import {
   SystemBreak,
   Symbol,
   Tuplet,
-  Music_code,
   Voice_overlay,
   Line_continuation,
   Comment,
@@ -47,7 +46,6 @@ import {
   SymbolLine,
   tune_body_code,
   Beam_contents,
-  music_code,
 } from "abc-parser";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "./types";
 
@@ -101,8 +99,6 @@ function buildExpr(node: CSNode, children: Array<Expr | Token>): Expr {
       return buildInlineField(node.id, children);
     case TAGS.Directive:
       return buildDirective(node.id, children);
-    case TAGS.Music_code:
-      return buildMusicCode(node.id, children);
     case TAGS.Beam:
       return buildBeam(node.id, children);
     case TAGS.Tune_Body:
@@ -211,10 +207,6 @@ function buildUserSymbolInvocation(id: number, children: Array<Expr | Token>): U
 }
 
 // --- Array containers ---
-
-function buildMusicCode(id: number, children: Array<Expr | Token>): Music_code {
-  return new Music_code(id, children as music_code[]);
-}
 
 function buildBeam(id: number, children: Array<Expr | Token>): Beam {
   return new Beam(id, children as Beam_contents[]);

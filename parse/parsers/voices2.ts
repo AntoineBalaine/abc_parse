@@ -1,4 +1,4 @@
-import { isBarLine, isComment, isInfo_line, isMusicCode, isMusicExpr, isToken, isVoiceMarker, isWS } from "../helpers";
+import { isBarLine, isComment, isInfo_line, isMusicExpr, isToken, isVoiceMarker, isWS } from "../helpers";
 import { Info_line, Inline_field, System, tune_body_code } from "../types/Expr2";
 import { Token, TT } from "./scan2";
 
@@ -542,13 +542,6 @@ export function buildBarMapsFromLines(lines: tune_body_code[][]): Map<number, { 
     for (const expr of line) {
       // Process the expression itself
       processExprForBarMapping(expr, state);
-
-      // If it's a Music_code container, also process its contents
-      if (isMusicCode(expr)) {
-        for (const child of expr.contents) {
-          processExprForBarMapping(child, state);
-        }
-      }
     }
 
     // Update the shared state

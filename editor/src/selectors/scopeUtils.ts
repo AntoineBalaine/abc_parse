@@ -51,7 +51,7 @@ export function expandScopeToDescendants(root: CSNode, scopeIds: Set<number>): S
 
 /**
  * Returns true if the node's ID is in scopeIds, OR if any descendant's ID is in scopeIds.
- * This ensures that if the user selected specific notes within a Music_code line,
+ * This ensures that if the user selected specific notes within a music line,
  * that line is considered in scope.
  */
 export function hasDescendantInScope(node: CSNode, scopeIds: Set<number>): boolean {

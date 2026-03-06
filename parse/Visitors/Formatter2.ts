@@ -28,7 +28,6 @@ import {
   Macro_invocation,
   Measurement,
   MultiMeasureRest,
-  Music_code,
   Note,
   Pitch,
   Rational,
@@ -277,18 +276,6 @@ export class AbcFormatter implements Visitor<string> {
 
   visitLineContinuationExpr(expr: Line_continuation) {
     return expr.token.lexeme;
-  }
-
-  visitMusicCodeExpr(expr: Music_code): string {
-    return expr.contents
-      .map((content) => {
-        if (content instanceof Token) {
-          return content.lexeme;
-        } else {
-          return content.accept(this);
-        }
-      })
-      .join("");
   }
 
   visitAnnotationExpr(expr: Annotation): string {

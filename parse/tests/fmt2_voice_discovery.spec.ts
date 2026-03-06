@@ -135,7 +135,7 @@ CDEF|
     });
   });
 
-  describe("discovers voices from inline fields nested in Music_code", () => {
+  describe("discovers voices from inline fields in music code", () => {
     it("finds [V:] inside music code sections", () => {
       const input = `X:1
 K:C

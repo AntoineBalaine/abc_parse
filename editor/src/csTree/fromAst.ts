@@ -23,7 +23,6 @@ import {
   SystemBreak,
   Symbol,
   Tuplet,
-  Music_code,
   Voice_overlay,
   Line_continuation,
   Comment,
@@ -73,7 +72,6 @@ function resolveTag(node: Expr | Token): string {
   if (node instanceof SystemBreak) return TAGS.SystemBreak;
   if (node instanceof Symbol) return TAGS.Symbol;
   if (node instanceof Tuplet) return TAGS.Tuplet;
-  if (node instanceof Music_code) return TAGS.Music_code;
   if (node instanceof Voice_overlay) return TAGS.Voice_overlay;
   if (node instanceof Line_continuation) return TAGS.Line_continuation;
   if (node instanceof Comment) return TAGS.Comment;
@@ -233,9 +231,6 @@ export const childrenVisitor: Visitor<ChildList> = {
     if (expr.secondColon) children.push(expr.secondColon);
     if (expr.r) children.push(expr.r);
     return children;
-  },
-  visitMusicCodeExpr(expr: Music_code): ChildList {
-    return [...expr.contents];
   },
   visitVoiceOverlayExpr(expr: Voice_overlay): ChildList {
     return [...expr.contents];

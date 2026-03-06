@@ -25,7 +25,6 @@ import {
   Info_line,
   Inline_field,
   BarLine,
-  Music_code,
   Note,
   Chord,
   Beam,
@@ -265,13 +264,6 @@ export class CourtesyAccidentalsTransform implements Visitor<void> {
   visitBarLineExpr(_expr: BarLine): void {
     this.state.measureNumber++;
     rotateMeasureAccidentals(this.state);
-  }
-
-  visitMusicCodeExpr(expr: Music_code): void {
-    for (const content of expr.contents) {
-      if (content instanceof Token) continue;
-      content.accept(this);
-    }
   }
 
   visitBeamExpr(expr: Beam): void {

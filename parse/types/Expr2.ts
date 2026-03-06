@@ -25,7 +25,6 @@ export interface Visitor<R> {
   visitMacroDeclExpr(expr: Macro_decl): R;
   visitMacroInvocationExpr(expr: Macro_invocation): R;
   visitMultiMeasureRestExpr(expr: MultiMeasureRest): R;
-  visitMusicCodeExpr(expr: Music_code): R;
   visitNoteExpr(expr: Note): R;
   visitPitchExpr(expr: Pitch): R;
   visitRestExpr(expr: Rest): R;
@@ -656,17 +655,6 @@ export type music_code =
   | Macro_invocation
   | User_symbol_invocation
   | ErrorExpr;
-
-export class Music_code extends Expr {
-  contents: Array<music_code>;
-  constructor(id: number, contents: Array<music_code>) {
-    super(id);
-    this.contents = contents;
-  }
-  accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitMusicCodeExpr(this);
-  }
-}
 
 export type Beam_contents =
   | Token

@@ -58,7 +58,6 @@ export const TAGS: Record<string, string> = {
   SystemBreak: "SystemBreak",
   Symbol: "Symbol",
   Tuplet: "Tuplet",
-  Music_code: "Music_code",
   Voice_overlay: "Voice_overlay",
   Line_continuation: "Line_continuation",
   Comment: "Comment",

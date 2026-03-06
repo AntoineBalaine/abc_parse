@@ -1,11 +1,7 @@
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { Selection } from "../selection";
 import { findByTag } from "./treeWalk";
-import {
-  collectCursorIds,
-  expandScopeToDescendants,
-  isInScope,
-} from "./scopeUtils";
+import { collectCursorIds, expandScopeToDescendants, isInScope } from "./scopeUtils";
 
 /**
  * Parses a voice ID input string into an array of unique voice IDs.
@@ -13,8 +9,8 @@ import {
  * Normalizes "default" to empty string.
  */
 function parseVoiceIds(input: string): string[] {
-  const ids = input.split(/[, \t]+/).filter(id => id !== "");
-  const normalized = ids.map(id => id === "default" ? "" : id);
+  const ids = input.split(/[, \t]+/).filter((id) => id !== "");
+  const normalized = ids.map((id) => (id === "default" ? "" : id));
   return [...new Set(normalized)];
 }
 
@@ -115,8 +111,8 @@ function flushCurrentRun(ctx: VoiceWalkCtx): void {
 }
 
 /**
- * Walks the children of a container node (Tune_Body, System, or Music_code), tracking voice
- * changes and selecting matching elements. Recurses into System and Music_code nodes.
+ * Walks the children of a container node (Tune_Body or System), tracking voice
+ * changes and selecting matching elements. Recurses into System nodes.
  */
 function walkChildren(ctx: VoiceWalkCtx, containerNode: CSNode): void {
   let child = containerNode.firstChild;
@@ -141,9 +137,7 @@ function walkChildren(ctx: VoiceWalkCtx, containerNode: CSNode): void {
       flushCurrentRun(ctx);
     }
 
-    if (child.tag === TAGS.Music_code) {
-      walkChildren(ctx, child);
-    } else if (targetMatches) {
+    if (targetMatches) {
       ctx.foundMatch = true;
       ctx.lastMatchingVoice = ctx.currentVoice;
       if (isInScope(child, ctx.scopeIds, ctx.hasScope)) {
@@ -242,15 +236,13 @@ export function selectVoices(input: Selection, voiceIds: string): Selection {
     targetVoiceIds = new Set([""]);
   } else {
     // Multi-voice or single non-default voice: filter out default
-    const nonDefaultIds = parsedIds.filter(id => id !== "");
+    const nonDefaultIds = parsedIds.filter((id) => id !== "");
     targetVoiceIds = new Set(nonDefaultIds.length > 0 ? nonDefaultIds : [""]);
   }
 
   const rawScopeIds = collectCursorIds(input.cursors);
 
-  const hasScope =
-    input.cursors.length > 0 &&
-    !(input.cursors.length === 1 && input.cursors[0].size === 1 && input.cursors[0].has(input.root.id));
+  const hasScope = input.cursors.length > 0 && !(input.cursors.length === 1 && input.cursors[0].size === 1 && input.cursors[0].has(input.root.id));
 
   // Expand scope to include all descendants of selected nodes.
   // This ensures that when a parent (e.g., Tune) is selected, all its children are in scope.

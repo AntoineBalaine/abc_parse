@@ -28,7 +28,6 @@ import {
   Macro_invocation,
   Measurement,
   MultiMeasureRest,
-  Music_code,
   Note,
   Pitch,
   Rational,
@@ -170,24 +169,6 @@ export class Transposer implements Visitor<Expr | Token> {
     return expr;
   }
   visitMultiMeasureRestExpr(expr: MultiMeasureRest): MultiMeasureRest {
-    return expr;
-  }
-  visitMusicCodeExpr(expr: Music_code): Music_code {
-    expr.contents.map((e) => {
-      if (isToken(e)) {
-        return e;
-      } else if (isBeam(e)) {
-        return this.visitBeamExpr(e);
-      } else if (isChord(e)) {
-        return this.visitChordExpr(e);
-      } else if (isNote(e)) {
-        return this.visitNoteExpr(e);
-      } else if (isGraceGroup(e)) {
-        return this.visitGraceGroupExpr(e);
-      } else {
-        return e;
-      }
-    });
     return expr;
   }
   visitNoteExpr(expr: Note): Note {

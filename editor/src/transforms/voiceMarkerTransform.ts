@@ -434,7 +434,7 @@ export function voiceInlineToInfoLine(selection: Selection, ctx: ABCContext): Se
     for (const inlineField of nodes) {
       if (!isVoiceInlineField(inlineField)) continue;
 
-      // Find the immediate parent of the inline field (likely Music_code)
+      // Find the immediate parent of the inline field
       const parentInfo = findParent(selection.root, inlineField);
       if (!parentInfo) continue;
       const { parent: immediateParent, prev: prevInParent } = parentInfo;

@@ -26,7 +26,6 @@ import {
   Macro_invocation,
   Measurement,
   MultiMeasureRest,
-  Music_code,
   Note,
   Pitch,
   Rational,
@@ -84,13 +83,6 @@ export class ZeroLengthNoteDetector implements Visitor<boolean> {
     return false;
   }
 
-  visitMusicCodeExpr(expr: Music_code): boolean {
-    for (const item of expr.contents) {
-      if (!isToken(item) && item.accept(this)) return true;
-    }
-    return false;
-  }
-
   visitBeamExpr(expr: Beam): boolean {
     for (const item of expr.contents) {
       if (!isToken(item) && item.accept(this)) return true;
@@ -100,7 +92,7 @@ export class ZeroLengthNoteDetector implements Visitor<boolean> {
 
   visitTupletExpr(_expr: Tuplet): boolean {
     // Tuplet only contains parameters (p, q, r), not notes
-    // The notes affected by the tuplet are siblings in Music_code
+    // The notes affected by the tuplet are siblings in the containing system
     return false;
   }
 

@@ -29,8 +29,6 @@ import {
   Macro_invocation,
   Measurement,
   MultiMeasureRest,
-  Music_code,
-  music_code,
   Note,
   Pitch,
   Rational,
@@ -191,17 +189,6 @@ export class Cloner implements Visitor<Expr | Token> {
     const newRest = cloneToken(expr.rest, this.ctx);
     const newLength = expr.length ? cloneToken(expr.length, this.ctx) : undefined;
     return new MultiMeasureRest(this.ctx.generateId(), newRest, newLength);
-  }
-
-  visitMusicCodeExpr(expr: Music_code): Music_code {
-    const newContents: Array<music_code> = expr.contents.map((e) => {
-      if (isToken(e)) {
-        return cloneToken(e, this.ctx);
-      } else {
-        return e.accept(this) as music_code;
-      }
-    });
-    return new Music_code(this.ctx.generateId(), newContents);
   }
 
   visitNoteExpr(expr: Note): Note {

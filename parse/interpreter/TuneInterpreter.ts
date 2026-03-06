@@ -49,7 +49,6 @@ import {
   Tune_Body,
   Info_line,
   Directive,
-  Music_code,
   Note,
   Rest,
   Chord,
@@ -1393,13 +1392,6 @@ export class TuneInterpreter implements Visitor<void> {
           this.ctx.errorReporter.interpreterError(warning, expr);
         }
       }
-    }
-  }
-
-  visitMusicCodeExpr(expr: Music_code): void {
-    // Visit each content element
-    for (const content of expr.contents) {
-      content.accept(this);
     }
   }
 

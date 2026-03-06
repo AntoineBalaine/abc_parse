@@ -9,11 +9,7 @@
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { Selection } from "../selection";
 import { findByTag } from "./treeWalk";
-import {
-  collectCursorIds,
-  expandScopeToDescendants,
-  isInScope,
-} from "./scopeUtils";
+import { collectCursorIds, expandScopeToDescendants, isInScope } from "./scopeUtils";
 
 interface MeasureWalkCtx {
   outputCursors: Set<number>[];
@@ -24,13 +20,15 @@ interface MeasureWalkCtx {
 }
 
 function isMusicElement(node: CSNode): boolean {
-  return node.tag === TAGS.Note
-    || node.tag === TAGS.Chord
-    || node.tag === TAGS.Rest
-    || node.tag === TAGS.Beam
-    || node.tag === TAGS.Grace_group
-    || node.tag === TAGS.MultiMeasureRest
-    || node.tag === TAGS.Tuplet;
+  return (
+    node.tag === TAGS.Note ||
+    node.tag === TAGS.Chord ||
+    node.tag === TAGS.Rest ||
+    node.tag === TAGS.Beam ||
+    node.tag === TAGS.Grace_group ||
+    node.tag === TAGS.MultiMeasureRest ||
+    node.tag === TAGS.Tuplet
+  );
 }
 
 /**
@@ -60,10 +58,10 @@ function flushCurrentRun(ctx: MeasureWalkCtx): void {
 }
 
 /**
- * Walks the children of a container node (Tune_Body, System, or Music_code), splitting
+ * Walks the children of a container node (Tune_Body or System), splitting
  * by barlines and collecting music elements that are in scope.
- * Recurses into System and Music_code nodes because the CSTree wraps tune body content
- * in System nodes, and multi-line tunes have barlines inside Music_code children.
+ * Recurses into System nodes because the CSTree wraps tune body content
+ * in System nodes.
  */
 function walkChildren(ctx: MeasureWalkCtx, containerNode: CSNode): void {
   let child = containerNode.firstChild;
@@ -77,8 +75,6 @@ function walkChildren(ctx: MeasureWalkCtx, containerNode: CSNode): void {
     if (child.tag === TAGS.System) {
       walkChildren(ctx, child);
       flushCurrentRun(ctx);
-    } else if (child.tag === TAGS.Music_code) {
-      walkChildren(ctx, child);
     } else if (child.tag === TAGS.BarLine) {
       flushCurrentRun(ctx);
     } else if (isInlineVoiceMarker(child)) {
@@ -130,9 +126,7 @@ function walkForMeasures(ctx: MeasureWalkCtx, root: CSNode): void {
 export function selectMeasures(input: Selection): Selection {
   const rawScopeIds = collectCursorIds(input.cursors);
 
-  const hasScope =
-    input.cursors.length > 0 &&
-    !(input.cursors.length === 1 && input.cursors[0].size === 1 && input.cursors[0].has(input.root.id));
+  const hasScope = input.cursors.length > 0 && !(input.cursors.length === 1 && input.cursors[0].size === 1 && input.cursors[0].has(input.root.id));
 
   const scopeIds = hasScope ? expandScopeToDescendants(input.root, rawScopeIds) : rawScopeIds;
 

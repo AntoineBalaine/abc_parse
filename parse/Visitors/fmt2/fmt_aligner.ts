@@ -3,7 +3,7 @@ import { ContextInterpreter, DocumentSnapshots } from "../../interpreter/Context
 import { ABCContext } from "../../parsers/Context";
 import { Token, TT } from "../../parsers/scan2";
 import { extractVoiceId } from "../../parsers/voices2";
-import { Info_line, Inline_field, Music_code, Tune, Tune_Body, tune_body_code } from "../../types/Expr2";
+import { Info_line, Inline_field, Tune, Tune_Body, tune_body_code } from "../../types/Expr2";
 import { AbcFormatter } from "../Formatter2";
 import { aligner, scanAlignPoints } from "./fmt_aligner3";
 import { createLocationMapper } from "./fmt_alignerHelpers";
@@ -19,8 +19,7 @@ import { ZeroLengthNoteDetector } from "./fmt_zeroLengthDetector";
  */
 
 /**
- * Extracts voice ID from an element. Because Inline_field elements
- * can be nested inside Music_code.contents, we traverse into Music_code.
+ * Extracts the voice ID from an element.
  * Returns the first voice ID found, or null if none.
  */
 function extractVoiceIdFromElement(element: tune_body_code): string | null {
@@ -29,14 +28,6 @@ function extractVoiceIdFromElement(element: tune_body_code): string | null {
     // extractVoiceId returns empty string for invalid voice IDs
     if (voiceId === "") return null;
     return voiceId;
-  } else if (element instanceof Music_code) {
-    for (const child of element.contents) {
-      if (child instanceof Inline_field) {
-        const voiceId = extractVoiceId(child);
-        if (voiceId === "") continue;
-        return voiceId;
-      }
-    }
   }
   return null;
 }
@@ -45,9 +36,6 @@ function extractVoiceIdFromElement(element: tune_body_code): string | null {
  * Traverses the tune body to discover all voice IDs declared via V: info lines
  * or [V:] inline fields. Appends newly discovered voice IDs to the provided
  * voices array (mutates in place). Returns the same array for convenience.
- *
- * Because Inline_field elements can appear inside Music_code.contents, we use
- * extractVoiceIdFromElement for traversal.
  */
 export function discoverVoicesInTuneBody(voices: string[], tuneBody: Tune_Body): string[] {
   const seen = new Set<string>(voices);

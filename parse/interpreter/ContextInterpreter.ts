@@ -34,7 +34,6 @@ import {
   Info_line,
   Inline_field,
   BarLine,
-  Music_code,
   Note,
   Rest,
   Chord,
@@ -450,15 +449,6 @@ export class ContextInterpreter implements Visitor<void> {
         }
         element.accept(this);
       }
-    }
-  }
-
-  visitMusicCodeExpr(expr: Music_code): void {
-    for (const content of expr.contents) {
-      if (content instanceof Token) {
-        continue;
-      }
-      content.accept(this);
     }
   }
 

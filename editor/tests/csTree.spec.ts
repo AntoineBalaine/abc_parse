@@ -3,18 +3,9 @@ import { describe, it } from "mocha";
 import * as fc from "fast-check";
 import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import { toAst } from "../src/csTree/toAst";
-import { TT, File_structure, Tune, Music_code, Inline_field, KV, isToken, Scanner, parse, ABCContext, Token } from "abc-parser";
-import {
-  toCSTree, collectAll, collectSubtree, findByTag, siblingCount,
-  genAbcTune, genAbcWithChords, genAbcMultiTune,
-  roundtrip, formatAst
-} from "./helpers";
-import {
-  genMeterInfoLine2,
-  genNoteLenInfoLine2,
-  genKeyInfoLine2,
-  genTempoInfoLine2,
-} from "../../parse/tests/scn_infoln_generators";
+import { TT, File_structure, Tune, Inline_field, KV, isToken, Scanner, parse, ABCContext, Token } from "abc-parser";
+import { toCSTree, collectAll, collectSubtree, findByTag, siblingCount, genAbcTune, genAbcWithChords, genAbcMultiTune, roundtrip, formatAst } from "./helpers";
+import { genMeterInfoLine2, genNoteLenInfoLine2, genKeyInfoLine2, genTempoInfoLine2 } from "../../parse/tests/scn_infoln_generators";
 
 /**
  * Convert a token array to a string by concatenating lexemes.
@@ -192,12 +183,12 @@ describe("csTree - toAst roundtrip", () => {
       ["rest with rhythm", "X:1\nK:C\nz3/4|\n"],
       ["beam contents", "X:1\nK:C\nCDEF|\n"],
       ["decoration", "X:1\nK:C\n!mf!C|\n"],
-      ["annotation", "X:1\nK:C\n\"Am\"C|\n"],
+      ["annotation", 'X:1\nK:C\n"Am"C|\n'],
       ["tuplet (3", "X:1\nK:C\n(3CDE|\n"],
       ["tuplet (3:2:3", "X:1\nK:C\n(3:2:3CDE|\n"],
       ["multi-measure rest", "X:1\nK:C\nZ4|\n"],
       ["y spacer", "X:1\nK:C\ny2C|\n"],
-      ["chord symbol", "X:1\nK:C\n\"^Intro\"C|\n"],
+      ["chord symbol", 'X:1\nK:C\n"^Intro"C|\n'],
       ["multi-tune with section break", "X:1\nK:C\nCDE|\n\nX:2\nK:G\nGAB|\n"],
       ["note with broken rhythm", "X:1\nK:C\nC>D|\n"],
       ["rest plain", "X:1\nK:C\nz|\n"],
@@ -438,13 +429,7 @@ describe("csTree - Info_line value2 preservation (Phase 1: fromAst)", () => {
         if (!tune.tune_body) continue;
         for (const system of tune.tune_body.sequence) {
           for (const item of system) {
-            if (item instanceof Music_code) {
-              for (const elem of item.contents) {
-                if (elem instanceof Inline_field) {
-                  results.push(elem);
-                }
-              }
-            } else if (item instanceof Inline_field) {
+            if (item instanceof Inline_field) {
               results.push(item);
             }
           }
@@ -480,18 +465,16 @@ describe("csTree - Info_line value2 preservation (Phase 1: fromAst)", () => {
       // Generator for voice IDs that are single tokens (either purely alphabetic or purely numeric).
       // Mixed alphanumeric IDs like "7A" get tokenized as separate tokens (NUMBER + IDENTIFIER),
       // which causes spacing issues during roundtrip. This is a known scanner limitation.
-      const genAlphaVoiceId = fc.array(fc.constantFrom(...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')), { minLength: 1, maxLength: 4 }).map(chars => chars.join(''));
-      const genNumericVoiceId = fc.integer({ min: 1, max: 99 }).map(n => String(n));
+      const genAlphaVoiceId = fc
+        .array(fc.constantFrom(..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")), { minLength: 1, maxLength: 4 })
+        .map((chars) => chars.join(""));
+      const genNumericVoiceId = fc.integer({ min: 1, max: 99 }).map((n) => String(n));
       const genVoiceId = fc.oneof(genAlphaVoiceId, genNumericVoiceId);
-      const genClef = fc.constantFrom('treble', 'bass', 'alto', 'tenor');
+      const genClef = fc.constantFrom("treble", "bass", "alto", "tenor");
       const genOctave = fc.integer({ min: -2, max: 2 });
 
       // Generator for inline voice fields with various parameter combinations
-      const genInlineVoiceField = fc.tuple(
-        genVoiceId,
-        fc.option(genClef),
-        fc.option(genOctave)
-      ).map(([voiceId, clef, octave]) => {
+      const genInlineVoiceField = fc.tuple(genVoiceId, fc.option(genClef), fc.option(genOctave)).map(([voiceId, clef, octave]) => {
         let params = voiceId;
         if (clef !== null) params += ` clef=${clef}`;
         if (octave !== null) params += ` octave=${octave}`;
@@ -559,12 +542,7 @@ describe("csTree - Info_line value2 reconstruction (Phase 2: toAst)", () => {
 
   describe("property-based roundtrip tests using scanner generators", () => {
     // Generate any info line type
-    const genAnyInfoLine = fc.oneof(
-      genMeterInfoLine2,
-      genNoteLenInfoLine2,
-      genKeyInfoLine2,
-      genTempoInfoLine2
-    );
+    const genAnyInfoLine = fc.oneof(genMeterInfoLine2, genNoteLenInfoLine2, genKeyInfoLine2, genTempoInfoLine2);
 
     it("CSTree ↔ AST conversion is lossless for info lines", () => {
       fc.assert(
@@ -572,9 +550,7 @@ describe("csTree - Info_line value2 reconstruction (Phase 2: toAst)", () => {
           const infoLine = tokensToString(tokens);
           // K: lines don't need an extra K: line after them
           const isKeyLine = infoLine.startsWith("K:");
-          const input = isKeyLine
-            ? `X:1\n${infoLine}\nCDE|\n`
-            : `X:1\n${infoLine}\nK:C\nCDE|\n`;
+          const input = isKeyLine ? `X:1\n${infoLine}\nCDE|\n` : `X:1\n${infoLine}\nK:C\nCDE|\n`;
 
           const first = roundtrip(input);
           const second = roundtrip(first);

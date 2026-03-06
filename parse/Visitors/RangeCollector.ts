@@ -28,7 +28,6 @@ import {
   Macro_invocation,
   Measurement,
   MultiMeasureRest,
-  Music_code,
   Note,
   Pitch,
   Rational,
@@ -56,7 +55,10 @@ import { RangeVisitor } from "./RangeVisitor";
 export class ExpressionCollector implements Visitor<void> {
   private collected: Array<Expr | Token> = [];
   private rangeVisitor: RangeVisitor;
-  constructor(public ctx: ABCContext, private range: Range) {
+  constructor(
+    public ctx: ABCContext,
+    private range: Range
+  ) {
     this.rangeVisitor = new RangeVisitor();
   }
 
@@ -179,20 +181,6 @@ export class ExpressionCollector implements Visitor<void> {
   visitMultiMeasureRestExpr(expr: MultiMeasureRest): void {
     if (this.isInRange(expr)) {
       this.collected.push(expr);
-    }
-  }
-
-  visitMusicCodeExpr(expr: Music_code): void {
-    if (this.isInRange(expr)) {
-      this.collected.push(expr);
-    } else {
-      expr.contents.forEach((content) => {
-        if (isToken(content)) {
-          this.visitToken(content);
-        } else {
-          content.accept(this);
-        }
-      });
     }
   }
 

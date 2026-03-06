@@ -18,7 +18,6 @@ import {
   Line_continuation,
   Measurement,
   MultiMeasureRest,
-  Music_code,
   music_code,
   Note,
   Pitch,
@@ -169,10 +168,6 @@ export function foundBeam(elements: Array<Expr | Token>, index: number): boolean
     return followedByNote(elements, index + 1);
   }
   return false;
-}
-
-export function isMusicCode(expr: Expr | Token): expr is Music_code {
-  return expr instanceof Music_code;
 }
 
 export const isBeam = (expr: unknown): expr is Beam => {

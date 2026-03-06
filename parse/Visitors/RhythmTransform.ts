@@ -29,8 +29,6 @@ import {
   Macro_invocation,
   Measurement,
   MultiMeasureRest,
-  Music_code,
-  music_code,
   Note,
   Pitch,
   Rational,
@@ -223,17 +221,6 @@ export class RhythmVisitor implements Visitor<Expr> {
   }
 
   visitMultiMeasureRestExpr(expr: MultiMeasureRest): MultiMeasureRest {
-    return expr;
-  }
-
-  visitMusicCodeExpr(expr: Music_code): Music_code {
-    expr.contents = expr.contents.map((e) => {
-      if (isToken(e)) {
-        return e;
-      } else {
-        return e.accept(this);
-      }
-    }) as Array<music_code>;
     return expr;
   }
 

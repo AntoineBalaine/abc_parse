@@ -108,7 +108,7 @@ describe("measureSelector", () => {
       const result = selectMeasures(sel);
       expect(result.cursors.length).to.equal(2);
       // Verify at least one Tuplet is found in first measure
-      const hasTuplet = [...result.cursors[0]].some(id => {
+      const hasTuplet = [...result.cursors[0]].some((id) => {
         const node = findById(sel.root, id);
         return node?.tag === TAGS.Tuplet;
       });
@@ -144,7 +144,7 @@ describe("measureSelector", () => {
   });
 
   describe("multi-line tunes", () => {
-    it("handles barlines across multiple Music_code lines", () => {
+    it("handles barlines across multiple lines", () => {
       const sel = toSelection("X:1\nK:C\nC D |\nE F |\n");
       const result = selectMeasures(sel);
       // Two measures: (C D) and (E F)
@@ -217,12 +217,14 @@ describe("measureSelector", () => {
       expect(result.cursors.length).to.equal(4);
       // First measure should only contain elements from line 1 (0-indexed)
       const measure1Ids = [...result.cursors[0]];
-      const measure1Nodes = measure1Ids.map(id => findById(sel.root, id));
-      const measure1Lines = new Set(measure1Nodes.map(n => {
-        if (!n) return undefined;
-        const first = firstTokenData(n);
-        return first?.line;
-      }));
+      const measure1Nodes = measure1Ids.map((id) => findById(sel.root, id));
+      const measure1Lines = new Set(
+        measure1Nodes.map((n) => {
+          if (!n) return undefined;
+          const first = firstTokenData(n);
+          return first?.line;
+        })
+      );
       // All elements in first measure should be on the same line
       expect(measure1Lines.size).to.equal(1);
     });

@@ -28,7 +28,6 @@ import {
   Macro_decl,
   Macro_invocation,
   MultiMeasureRest,
-  Music_code,
   Note,
   Pitch,
   Rest,
@@ -230,16 +229,6 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
     return null;
   }
 
-  visitMusicCodeExpr(expr: Music_code): SemanticData | null {
-    // Traverse music code contents to find and analyze inline fields
-    for (const item of expr.contents) {
-      if (item instanceof Inline_field) {
-        item.accept(this);
-      }
-    }
-    return null;
-  }
-
   visitNoteExpr(expr: Note): SemanticData | null {
     return null;
   }
@@ -267,8 +256,6 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
         if (item instanceof Directive) {
           item.accept(this);
         } else if (item instanceof Info_line) {
-          item.accept(this);
-        } else if (item instanceof Music_code) {
           item.accept(this);
         } else if (item instanceof Inline_field) {
           item.accept(this);

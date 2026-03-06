@@ -27,7 +27,6 @@ import {
   Info_line,
   Inline_field,
   BarLine,
-  Music_code,
   Note,
   Rest,
   Chord,
@@ -420,13 +419,6 @@ export class ChordPositionCollector implements Visitor<void> {
     }
 
     this.state.positions.push(position);
-  }
-
-  visitMusicCodeExpr(expr: Music_code): void {
-    for (const element of expr.contents) {
-      if (element instanceof Token) continue;
-      element.accept(this);
-    }
   }
 
   visitBeamExpr(expr: Beam): void {

@@ -26,7 +26,6 @@ import {
   Macro_invocation,
   Measurement,
   MultiMeasureRest,
-  Music_code,
   Note,
   Pitch,
   Rational,
@@ -152,17 +151,7 @@ export class RangeVisitor implements Visitor<Range> {
       .map((t) => getTokenRange(t))
       .reduce(reduceRanges, EMPTY_RANGE);
   }
-  visitMusicCodeExpr(expr: Music_code): Range {
-    return expr.contents
-      .map((e) => {
-        if (isToken(e)) {
-          return getTokenRange(e);
-        } else {
-          return e.accept(this);
-        }
-      })
-      .reduce(reduceRanges, EMPTY_RANGE);
-  }
+
   visitNoteExpr(expr: Note): Range {
     const { pitch, rhythm, tie } = expr;
     // TODO accomodate tie
