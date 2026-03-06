@@ -12,6 +12,7 @@
     "lint:fix": "eslint . --ext ts --fix"
   },
   "dependencies": {
+    "abc-midi": "*",
     "abc-parser": "*",
     "abcjs": "^6.5.2",
     "svgdom": "^0.1.23",

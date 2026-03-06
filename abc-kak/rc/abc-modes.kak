@@ -287,3 +287,4 @@ map global abc-transform <a-Y> ':abc-parallel-chromatic-next<ret>' -docstring 'p
 
 # --- Export ---
 map global abc-transform m ':abc-export-midi<ret>'               -docstring 'export to MIDI'
+map global abc-transform M ':abc-import-midi '                   -docstring 'import from MIDI'

@@ -9,7 +9,7 @@ import { ERROR_CODES } from "./constants";
 import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
 import { fromAst, CSNode } from "editor";
-import { Scanner, parse, ABCContext, File_structure, ScannerAbcx, parseAbcx } from "abc-parser";
+import { Scanner, parse, ABCContext, File_structure, ScannerAbcx, parseAbcx, abc2midi } from "abc-parser";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
 interface LSPRange {
@@ -73,11 +73,7 @@ describe("Socket Handler", () => {
     documents = new Map();
     csTreeCache = new WeakMap();
 
-    handler = new SocketHandler(
-      socketPath,
-      (uri) => documents.get(uri),
-      getCsTree
-    );
+    handler = new SocketHandler(socketPath, (uri) => documents.get(uri), getCsTree);
   });
 
   afterEach(() => {
@@ -132,11 +128,7 @@ describe("Socket Handler", () => {
       expect(isOwner1).to.be.true;
 
       // Try to start second handler on same path
-      const handler2 = new SocketHandler(
-        socketPath,
-        (uri) => documents.get(uri),
-        getCsTree
-      );
+      const handler2 = new SocketHandler(socketPath, (uri) => documents.get(uri), getCsTree);
 
       const isOwner2 = await handler2.start();
       expect(isOwner2).to.be.false;
@@ -524,6 +516,61 @@ describe("Socket Handler", () => {
         const firstRange = response.result!.ranges[0];
         expect(firstRange.start.line).to.equal(2);
         expect(firstRange.start.character).to.equal(0);
+      });
+    });
+
+    describe("abc.importMidi dispatch", () => {
+      beforeEach(() => {
+        handler.setImportMidi((midiBase64, options) => {
+          // Use the real midi2abc via AbcLspServer's importMidi pattern
+          const { midi2abc } = require("abc-midi");
+          const bytes = Buffer.from(midiBase64, "base64");
+          return midi2abc(new Uint8Array(bytes), options);
+        });
+      });
+
+      it("returns ABC string for valid base64-encoded MIDI", async () => {
+        const abc = "X:1\nT:Test\nM:4/4\nL:1/4\nK:C\nCDEF|GABc|\n";
+        const ctx = new ABCContext();
+        const tokens = Scanner(abc, ctx);
+        const ast = parse(tokens, ctx);
+        const midiBytes = abc2midi(ast, ctx);
+        const midiBase64 = Buffer.from(midiBytes).toString("base64");
+
+        const response = await sendRequest<{ id: number; result?: { abc: string }; error?: { code: number; message: string } }>({
+          id: 1,
+          method: "abc.importMidi",
+          params: { midi: midiBase64 },
+        });
+
+        expect(response).to.have.property("result");
+        expect(response.result!.abc).to.be.a("string");
+        expect(response.result!.abc).to.include("X:");
+      });
+
+      it("returns error for missing midi parameter", async () => {
+        const response = await sendRequest<ErrorResponse>({
+          id: 1,
+          method: "abc.importMidi",
+          params: {},
+        });
+
+        expect(response).to.have.property("error");
+        expect(response.error.code).to.equal(ERROR_CODES.INVALID_PARAMS);
+        expect(response.error.message).to.include("midi");
+      });
+
+      it("returns error when importMidi is not initialized", async () => {
+        handler.importMidiFn = null;
+
+        const response = await sendRequest<ErrorResponse>({
+          id: 1,
+          method: "abc.importMidi",
+          params: { midi: "AAAA" },
+        });
+
+        expect(response).to.have.property("error");
+        expect(response.error.message).to.include("not initialized");
       });
     });
   });

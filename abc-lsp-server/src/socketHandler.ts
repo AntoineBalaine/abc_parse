@@ -66,7 +66,11 @@ interface ExportMidiResult {
   midi: string;
 }
 
-type SocketResult = SelectorResult | TransformResult | StartPreviewResult | SuccessResult | ExportMidiResult;
+interface ImportMidiResult {
+  abc: string;
+}
+
+type SocketResult = SelectorResult | TransformResult | StartPreviewResult | SuccessResult | ExportMidiResult | ImportMidiResult;
 
 interface SocketResponse {
   id: number | string;
@@ -80,6 +84,7 @@ interface SocketResponse {
 type DocumentGetter = (uri: string) => AbcDocument | AbcxDocument | undefined;
 type CsTreeGetter = (ast: File_structure, ctx: ABCContext) => CSNode;
 type ExportMidiFn = (uri: string, tuneNumbers?: number[]) => string;
+type ImportMidiFn = (midiBase64: string, options?: { title?: string; composer?: string }) => string;
 
 // ============================================================================
 // Socket Path Computation
@@ -326,6 +331,36 @@ function validateExportMidiParams(params: SocketRequest["params"]): { uri: strin
   }
 
   return { uri: rawParams.uri!, tuneNumbers: rawParams.tuneNumbers };
+}
+
+export function validateImportMidiParams(params: SocketRequest["params"]): {
+  midi: string;
+  title?: string;
+  composer?: string;
+} {
+  if (!params) {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Missing params" };
+  }
+
+  const rawParams = params as { midi?: string; title?: string; composer?: string };
+
+  if (typeof rawParams.midi !== "string" || rawParams.midi.length === 0) {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Missing required 'midi' parameter" };
+  }
+
+  if (rawParams.title !== undefined && typeof rawParams.title !== "string") {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "'title' must be a string" };
+  }
+
+  if (rawParams.composer !== undefined && typeof rawParams.composer !== "string") {
+    throw { code: ERROR_CODES.INVALID_PARAMS, message: "'composer' must be a string" };
+  }
+
+  return {
+    midi: rawParams.midi,
+    title: rawParams.title,
+    composer: rawParams.composer,
+  };
 }
 
 // ============================================================================
@@ -623,6 +658,7 @@ export class SocketHandler {
   isOwner = false;
   previewManager: PreviewManager | null = null;
   exportMidiFn: ExportMidiFn | null = null;
+  importMidiFn: ImportMidiFn | null = null;
 
   constructor(socketPath: string, getDocument: DocumentGetter, getCsTree: CsTreeGetter) {
     this.socketPath = socketPath;
@@ -636,6 +672,10 @@ export class SocketHandler {
 
   setExportMidi(fn: ExportMidiFn): void {
     this.exportMidiFn = fn;
+  }
+
+  setImportMidi(fn: ImportMidiFn): void {
+    this.importMidiFn = fn;
   }
 
   /**
@@ -768,6 +808,13 @@ export class SocketHandler {
         const validatedParams = validateExportMidiParams(request.params);
         const midi = this.exportMidiFn(validatedParams.uri, validatedParams.tuneNumbers);
         result = { midi };
+      } else if (request.method === "abc.importMidi") {
+        if (!this.importMidiFn) {
+          throw { code: ERROR_CODES.INVALID_REQUEST, message: "MIDI import not initialized" };
+        }
+        const { midi, ...options } = validateImportMidiParams(request.params);
+        const abc = this.importMidiFn(midi, options);
+        result = { abc };
       } else {
         throw { code: ERROR_CODES.UNKNOWN_METHOD, message: `Unknown method: "${request.method}"` };
       }

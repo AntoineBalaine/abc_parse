@@ -5,7 +5,9 @@
   "main": "../out/midi/src/index.js",
   "types": "../out/midi/src/index.d.ts",
   "dependencies": {
-    "abc-parser": "*"
+    "abc-parser": "*",
+    "jzz": "^1.7.4",
+    "jzz-midi-smf": "^1.8.1"
   },
   "scripts": {
     "build": "tsc -b",

@@ -64,6 +64,30 @@ function registerMidiExport(context: vscode.ExtensionContext, client: LanguageCl
   context.subscriptions.push(exportMidiCmd);
 }
 
+function registerMidiImport(context: vscode.ExtensionContext, client: LanguageClient) {
+  const importMidiCmd = vscode.commands.registerCommand("abc.importFromMidi", async () => {
+    const fileUri = await vscode.window.showOpenDialog({
+      filters: { "MIDI files": ["mid", "midi"] },
+      canSelectMany: false,
+    });
+    if (!fileUri || fileUri.length === 0) return;
+
+    try {
+      const bytes = await vscode.workspace.fs.readFile(fileUri[0]);
+      const midiBase64 = Buffer.from(bytes).toString("base64");
+
+      const result = await client.sendRequest<{ abc: string }>("abc.importMidi", {
+        midi: midiBase64,
+      });
+      const doc = await vscode.workspace.openTextDocument({ content: result.abc, language: "abc" });
+      await vscode.window.showTextDocument(doc);
+    } catch (error: any) {
+      vscode.window.showErrorMessage(`MIDI import failed: ${error.message || error}`);
+    }
+  });
+  context.subscriptions.push(importMidiCmd);
+}
+
 /**
  * Register the commands that the extension will use to ask the server to do special things.
  * The old transform commands (divideRhythm, multiplyRhythm, transposeUp, transposeDn) have been
@@ -72,4 +96,5 @@ function registerMidiExport(context: vscode.ExtensionContext, client: LanguageCl
 export function registerCommands(context: vscode.ExtensionContext, client: LanguageClient) {
   registerMidiInputs(context);
   registerMidiExport(context, client);
+  registerMidiImport(context, client);
 }

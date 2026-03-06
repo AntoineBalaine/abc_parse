@@ -9,11 +9,10 @@
     "noResolve": false,
     "baseUrl": ".",
     "paths": {
-      "abc-parser/*": ["../parse/dist/*"]
+      "abc-parser/*": ["../parse/dist/*"],
+      "abc-midi": ["../midi/src/index.ts"]
     }
   },
   "include": ["*.ts", "commands/**/*.ts", "utils/**/*.ts"],
-  "references": [
-    { "path": "../parse" }
-  ]
+  "references": [{ "path": "../parse" }, { "path": "../midi" }]
 }

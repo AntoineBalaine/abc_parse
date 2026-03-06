@@ -54,7 +54,7 @@ import { PreviewManager } from "./PreviewManager";
 import { findNodesInRange, resolveRanges, resolveSelectionRanges } from "./selectionRangeResolver";
 import { lookupSelector } from "./selectorLookup";
 import { standardTokenScopes } from "./server_helpers";
-import { SocketHandler, computeSocketPath } from "./socketHandler";
+import { SocketHandler, computeSocketPath, validateImportMidiParams } from "./socketHandler";
 import { computeTextEditsFromDiff } from "./textEditFromDiff";
 import { lookupTransform, CONTEXT_AWARE_TRANSFORMS } from "./transformLookup";
 
@@ -606,6 +606,12 @@ connection.onRequest("abc.exportMidi", (params: { uri: string; tuneNumbers?: num
   return { midi };
 });
 
+connection.onRequest("abc.importMidi", (params: Record<string, unknown>): { abc: string } => {
+  const { midi, ...options } = validateImportMidiParams(params as any);
+  const abc = abcServer.importMidi(midi, options);
+  return { abc };
+});
+
 documents.listen(connection);
 connection.listen();
 
@@ -624,6 +630,7 @@ if (socketPath) {
   socketHandler = new SocketHandler(socketPath, (uri) => abcServer.abcDocuments.get(uri), getCsTree);
   socketHandler.setPreviewManager(previewManager);
   socketHandler.setExportMidi((uri, tuneNumbers) => abcServer.exportMidi(uri, tuneNumbers));
+  socketHandler.setImportMidi((midiBase64, options) => abcServer.importMidi(midiBase64, options));
 
   socketHandler
     .start()

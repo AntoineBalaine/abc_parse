@@ -1,4 +1,6 @@
 import { AbcFormatter, convertTuneToDeferred, File_structure, Tune, abc2midi } from "abc-parser";
+import { midi2abc } from "abc-midi";
+import type { ConversionOptions } from "abc-midi";
 import { ResponseError } from "vscode-languageserver";
 import { HandlerResult, Position, Range, SemanticTokens, SemanticTokensBuilder, TextDocuments, TextEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -252,5 +254,14 @@ export class AbcLspServer {
     const midiBytes = abc2midi(doc.AST, doc.ctx, options);
 
     return Buffer.from(midiBytes).toString("base64");
+  }
+
+  /**
+   * Import MIDI bytes into ABC notation.
+   * The input is base64-encoded MIDI data; the output is an ABC string.
+   */
+  importMidi(midiBase64: string, options?: ConversionOptions): string {
+    const bytes = Buffer.from(midiBase64, "base64");
+    return midi2abc(new Uint8Array(bytes), options);
   }
 }

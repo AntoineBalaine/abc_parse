@@ -12,6 +12,7 @@
     "prepublish": "npm run build"
   },
   "dependencies": {
+    "abc-midi": "*",
     "abc-parser": "*",
     "abcjs": "^6.5.2",
     "commander": "^12.0.0",

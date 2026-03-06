@@ -490,3 +490,41 @@ define-command -hidden abc-export-midi-impl -params 1 %{
         fi
     }
 }
+
+define-command abc-import-midi -params 1..2 \
+    -docstring "abc-import-midi <midi-file> [output-file]: Convert MIDI file to ABC notation." %{
+    evaluate-commands %sh{
+        escaped_1=$(printf '%s' "$1" | sed "s/'/''/g")
+        if [ -n "$2" ]; then
+            escaped_2=$(printf '%s' "$2" | sed "s/'/''/g")
+            printf "abc-import-midi-impl '%s' '%s'\n" "$escaped_1" "$escaped_2"
+        else
+            output_path="${1%.*}.abc"
+            escaped_out=$(printf '%s' "$output_path" | sed "s/'/''/g")
+            printf "abc-import-midi-impl '%s' '%s'\n" "$escaped_1" "$escaped_out"
+        fi
+    }
+}
+
+define-command -hidden abc-import-midi-impl -params 2 %{
+    evaluate-commands %sh{
+        input_path="$1"
+        output_path="$2"
+
+        result=$(node "$kak_opt_abc_client_path" \
+            --socket="$kak_opt_abc_socket_path" \
+            --method="abc.importMidi" \
+            --input-path="$input_path" \
+            --output-path="$output_path" \
+            --timeout="$kak_opt_abc_timeout" 2>&1)
+
+        if [ $? -eq 0 ]; then
+            escaped_path=$(printf '%s' "$output_path" | sed "s/'/''/g")
+            printf "edit '%s'\n" "$escaped_path"
+            printf 'echo -markup '\''{Information}MIDI imported to %s'\''\n' "$escaped_path"
+        else
+            escaped=$(printf '%s' "$result" | sed "s/'/''/g; s/{/{{/g; s/}/}}/g")
+            printf 'echo -markup '\''{Error}%s'\''\n' "$escaped"
+        fi
+    }
+}

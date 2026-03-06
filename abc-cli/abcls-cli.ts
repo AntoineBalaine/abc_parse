@@ -11,6 +11,7 @@ import { checkCommand } from "./commands/check";
 import { renderCommand } from "./commands/render";
 import { abcx2abcCommand } from "./commands/abcx2abc";
 import { abc2midiCommand } from "./commands/abc2midi";
+import { midi2abcCommand } from "./commands/midi2abc";
 
 const program = new Command();
 
@@ -22,6 +23,7 @@ program.addCommand(checkCommand);
 program.addCommand(renderCommand);
 program.addCommand(abcx2abcCommand);
 program.addCommand(abc2midiCommand);
+program.addCommand(midi2abcCommand);
 
 // Parse command-line arguments
 program.parse(process.argv);

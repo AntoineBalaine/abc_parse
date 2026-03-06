@@ -449,6 +449,11 @@
         "command": "abc.exportToMidi",
         "title": "ABC: Export to MIDI",
         "category": "ABC"
+      },
+      {
+        "command": "abc.importFromMidi",
+        "title": "ABC: Import from MIDI",
+        "category": "ABC"
       }
     ],
     "menus": {
@@ -724,6 +729,9 @@
         {
           "command": "abc.exportToMidi",
           "when": "editorLangId == abc"
+        },
+        {
+          "command": "abc.importFromMidi"
         }
       ]
     },

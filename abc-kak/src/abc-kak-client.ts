@@ -17,6 +17,7 @@
  *   --ranges=DESC         Kakoune selection descriptors, space-separated (optional)
  *   --positions=OFFSETS   Cursor byte offsets, space-separated (for abc.previewCursor)
  *   --buffer-file=PATH    Path to temp file containing buffer content (for selector/transform)
+ *   --input-path=PATH     Path to input file (for abc.importMidi)
  *   --timeout=MS          Request timeout in milliseconds (default: 5000)
  *
  * Selector mode output (on success, exit 0):
@@ -52,6 +53,7 @@ interface ClientArgs {
   positions: string;
   bufferFile: string | null;
   outputPath: string | null;
+  inputPath: string | null;
   timeout: number;
 }
 
@@ -84,6 +86,7 @@ interface LspResponse {
     cursorRanges?: LspRange[];
     url?: string;
     midi?: string;
+    abc?: string;
   };
   error?: {
     code: number;
@@ -129,6 +132,7 @@ function parseArgs(): ClientArgs {
     positions: "",
     bufferFile: null,
     outputPath: null,
+    inputPath: null,
     timeout: 5000,
   };
 
@@ -157,6 +161,8 @@ function parseArgs(): ClientArgs {
       args.bufferFile = arg.substring("--buffer-file=".length);
     } else if (arg.startsWith("--output-path=")) {
       args.outputPath = arg.substring("--output-path=".length);
+    } else if (arg.startsWith("--input-path=")) {
+      args.inputPath = arg.substring("--input-path=".length);
     } else if (arg.startsWith("--timeout=")) {
       args.timeout = parseInt(arg.substring("--timeout=".length), 10);
     }
@@ -166,8 +172,8 @@ function parseArgs(): ClientArgs {
     error("Missing required --socket argument");
   }
 
-  // URI is required for all methods except abc.shutdownPreview
-  if (!args.uri && args.method !== "abc.shutdownPreview") {
+  // URI is required for all methods except abc.shutdownPreview and abc.importMidi
+  if (!args.uri && args.method !== "abc.shutdownPreview" && args.method !== "abc.importMidi") {
     error("Missing required --uri argument");
   }
 
@@ -188,6 +194,14 @@ function parseArgs(): ClientArgs {
   // Output path is required for abc.exportMidi
   if (args.method === "abc.exportMidi" && !args.outputPath) {
     error("Missing required --output-path argument for abc.exportMidi");
+  }
+
+  // Input path and output path are required for abc.importMidi
+  if (args.method === "abc.importMidi" && !args.inputPath) {
+    error("Missing required --input-path argument for abc.importMidi");
+  }
+  if (args.method === "abc.importMidi" && !args.outputPath) {
+    error("Missing required --output-path argument for abc.importMidi");
   }
 
   return args;
@@ -647,6 +661,20 @@ async function main(): Promise<void> {
         method: args.method,
         params: { uri: args.uri },
       };
+    } else if (args.method === "abc.importMidi") {
+      let midiBytes: Buffer;
+      try {
+        midiBytes = fs.readFileSync(args.inputPath!);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        error(`Failed to read MIDI file: ${message}`);
+      }
+      const midiBase64 = midiBytes.toString("base64");
+      request = {
+        id: 1,
+        method: args.method,
+        params: { midi: midiBase64 },
+      };
     } else {
       error(`Unknown method: ${args.method}`);
     }
@@ -679,6 +707,19 @@ async function main(): Promise<void> {
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         error(`Failed to write MIDI file: ${message}`);
+      }
+    }
+
+    // For abc.importMidi: write the returned ABC string to output path
+    if (args.method === "abc.importMidi") {
+      if (!response.result?.abc) {
+        error("Server returned no ABC data");
+      }
+      try {
+        fs.writeFileSync(args.outputPath!, response.result!.abc!);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        error(`Failed to write ABC file: ${message}`);
       }
     }
 
