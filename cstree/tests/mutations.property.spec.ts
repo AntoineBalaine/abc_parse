@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";
-import { createNode, appendChild, remove, replace, insertBefore, insertAfter, verifyIntegrity } from "../src/index";
-import { makeCtx, TestTag, type TNode } from "./helpers";
+import { appendChild, remove, replace, insertBefore, insertAfter, verifyIntegrity } from "../src/cstree";
+import { createNode, makeCtx, TestTag, type TNode } from "./helpers";
 
 function collectReachable(root: TNode): TNode[] {
   const result: TNode[] = [];

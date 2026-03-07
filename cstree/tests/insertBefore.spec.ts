@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { createNode, appendChild, insertBefore } from "../src/index";
-import { makeCtx, TestTag } from "./helpers";
+import { appendChild, insertBefore } from "../src/cstree";
+import { createNode, makeCtx, TestTag } from "./helpers";
 
 describe("insertBefore", () => {
   it("inserts before the first child", () => {

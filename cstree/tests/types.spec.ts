@@ -1,8 +1,7 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { createNode } from "../src/index";
-import type { CSNode, ParentRef } from "../src/index";
-import { TestTag } from "./helpers";
+import type { CSNode, ParentRef } from "../src/cstree";
+import { createNode, TestTag, type TestDataMap } from "./helpers";
 
 enum OtherTag {
   Foo = "foo",
@@ -10,10 +9,10 @@ enum OtherTag {
 
 describe("cstree types", () => {
   it("CSNode is structurally valid", () => {
-    const node: CSNode<TestTag, number> = {
+    const node: CSNode<TestTag, TestDataMap> = {
       tag: TestTag.A,
       id: 0,
-      data: 42,
+      data: "hello",
       firstChild: null,
       nextSibling: null,
       parentRef: null,
@@ -23,7 +22,7 @@ describe("cstree types", () => {
   });
 
   it("ParentRef firstChild variant is structurally valid", () => {
-    const parent: CSNode<TestTag, string> = {
+    const parent: CSNode<TestTag, TestDataMap> = {
       tag: TestTag.Root,
       id: 0,
       data: "r",
@@ -31,21 +30,21 @@ describe("cstree types", () => {
       nextSibling: null,
       parentRef: null,
     };
-    const ref: ParentRef<TestTag, string> = { tag: "firstChild", parent };
+    const ref: ParentRef<TestTag, TestDataMap> = { tag: "firstChild", parent };
     expect(ref.tag).to.equal("firstChild");
     expect(ref.parent).to.equal(parent);
   });
 
   it("ParentRef sibling variant is structurally valid", () => {
-    const prev: CSNode<TestTag, number> = {
+    const prev: CSNode<TestTag, TestDataMap> = {
       tag: TestTag.A,
       id: 0,
-      data: 1,
+      data: "x",
       firstChild: null,
       nextSibling: null,
       parentRef: null,
     };
-    const ref: ParentRef<TestTag, number> = { tag: "sibling", prev };
+    const ref: ParentRef<TestTag, TestDataMap> = { tag: "sibling", prev };
     expect(ref.tag).to.equal("sibling");
     expect(ref.prev).to.equal(prev);
   });
@@ -55,7 +54,7 @@ describe("cstree types", () => {
     createNode("not_a_tag", 0, "data");
 
     // @ts-expect-error: OtherTag is not assignable to TestTag
-    const _node: CSNode<TestTag, string> = createNode(OtherTag.Foo, 0, "data");
+    const _node: CSNode<OtherTag, { [OtherTag.Foo]: string }> = createNode(OtherTag.Foo, 0, "data");
     void _node;
   });
 });

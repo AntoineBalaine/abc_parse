@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";
-import { createNode } from "../src/index";
-import { makeCtx, TestTag } from "./helpers";
+
+import { createNode, makeCtx, TestTag } from "./helpers";
 
 describe("createNode", () => {
   it("returns a node with the correct tag, data, and id", () => {

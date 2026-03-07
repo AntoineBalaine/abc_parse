@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { createNode, appendChild, insertAfter } from "../src/index";
-import { makeCtx, TestTag } from "./helpers";
+import { appendChild, insertAfter } from "../src/cstree";
+import { createNode, makeCtx, TestTag } from "./helpers";
 
 describe("insertAfter", () => {
   it("inserts after a middle child", () => {

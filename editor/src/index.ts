@@ -4,9 +4,11 @@ export { Selection, Cursor, createSelection } from "./selection";
 // CSTree types and utilities
 export {
   CSNode,
+  CSNodeOf,
   TokenData,
   EmptyData,
   NodeData,
+  EditorDataMap,
   TAGS,
   ParentRef,
   isTokenNode,

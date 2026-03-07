@@ -48,7 +48,9 @@ export function unwrapSingle(selection: Selection): Selection {
       }
 
       // Change tag to Note
-      csNode.tag = TAGS.Note;
+      // We intentionally repurpose this Chord node as a Note node by mutating its tag.
+      // The cast is needed because the DataMap pattern makes the tag field narrowly typed.
+      (csNode as any).tag = TAGS.Note;
 
       // Remove all remaining children of csNode (brackets, etc.)
       while (csNode.firstChild) remove(csNode.firstChild);

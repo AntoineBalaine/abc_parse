@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import fc from "fast-check";
-import { createNode, appendChild, cloneSubtree, collectChildren, verifyIntegrity } from "../src/index";
-import type { CSNode } from "../src/index";
-import { makeCtx, TestTag, type TNode } from "./helpers";
+import { appendChild, cloneSubtree, collectChildren, verifyIntegrity } from "../src/cstree";
+import type { CSNode } from "../src/cstree";
+import { createNode, makeCtx, TestTag, type TNode } from "./helpers";
 
 describe("cloneSubtree", () => {
   it("clones a leaf node with a different ID", () => {
@@ -124,13 +124,13 @@ describe("cloneSubtree", () => {
   });
 });
 
-function collectAll<Tag extends string, D>(root: CSNode<Tag, D>): CSNode<Tag, D>[] {
-  const result: CSNode<Tag, D>[] = [];
-  const stack: CSNode<Tag, D>[] = [root];
+function collectAll<T extends string, DM extends Record<T, unknown>>(root: CSNode<T, DM>): CSNode<T, DM>[] {
+  const result: CSNode<T, DM>[] = [];
+  const stack: CSNode<T, DM>[] = [root];
   while (stack.length > 0) {
     const node = stack.pop()!;
     result.push(node);
-    const children: CSNode<Tag, D>[] = [];
+    const children: CSNode<T, DM>[] = [];
     let child = node.firstChild;
     while (child !== null) {
       children.push(child);

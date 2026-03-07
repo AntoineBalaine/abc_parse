@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";
-import { createNode, appendChild, getParent } from "../src/index";
-import { makeCtx, TestTag, type TNode } from "./helpers";
+import { appendChild, getParent } from "../src/cstree";
+import { createNode, makeCtx, TestTag, type TNode } from "./helpers";
 
 describe("getParent", () => {
   it("returns null for root", () => {
@@ -65,7 +65,7 @@ describe("getParent", () => {
           const root = createNode(TestTag.Root, ctx.generateId(), "r");
           const allNodes: TNode[] = [root];
 
-          let parents = [root];
+          let parents: TNode[] = [root];
           for (let d = 0; d < depth; d++) {
             const nextParents: TNode[] = [];
             for (const p of parents) {

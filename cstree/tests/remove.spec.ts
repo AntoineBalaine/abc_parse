@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { createNode, appendChild, remove } from "../src/index";
-import { makeCtx, TestTag } from "./helpers";
+import { appendChild, remove } from "../src/cstree";
+import { createNode, makeCtx, TestTag } from "./helpers";
 
 describe("remove", () => {
   it("removes the first child of three", () => {

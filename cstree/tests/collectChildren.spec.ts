@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import fc from "fast-check";
-import { createNode, appendChild, remove, collectChildren } from "../src/index";
-import { makeCtx, TestTag } from "./helpers";
+import { appendChild, remove, collectChildren } from "../src/cstree";
+import { createNode, makeCtx, TestTag } from "./helpers";
 
 describe("collectChildren", () => {
   it("returns an empty array when the parent has no children", () => {

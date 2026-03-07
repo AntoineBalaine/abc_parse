@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { createNode, appendChild, findChild } from "../src/index";
-import { makeCtx, TestTag } from "./helpers";
+import { appendChild, findChild } from "../src/cstree";
+import { createNode, makeCtx, TestTag } from "./helpers";
 
 describe("findChild", () => {
   it("returns null when the parent has no children", () => {

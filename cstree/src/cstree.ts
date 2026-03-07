@@ -1,15 +1,33 @@
-export type ParentRef<Tag extends string, D> = { tag: "firstChild"; parent: CSNode<Tag, D> } | { tag: "sibling"; prev: CSNode<Tag, D> } | null;
-
-export interface CSNode<Tag extends string, D> {
-  tag: Tag;
+/**
+ * A single variant of the node union, parameterized by one specific tag K.
+ * createNode returns this type so that TypeScript can verify the literal
+ * object without a cast. CSNodeOf<K> is assignable to CSNode (the full
+ * union) when K is a literal tag value.
+ */
+export interface CSNodeOf<K extends string, AllTags extends string, DM extends Record<AllTags, unknown>> {
+  tag: K;
   id: number;
-  data: D;
-  firstChild: CSNode<Tag, D> | null;
-  nextSibling: CSNode<Tag, D> | null;
-  parentRef: ParentRef<Tag, D>;
+  data: DM[K & AllTags];
+  firstChild: CSNode<AllTags, DM> | null;
+  nextSibling: CSNode<AllTags, DM> | null;
+  parentRef: ParentRef<AllTags, DM>;
 }
 
-export function createNode<Tag extends string, D>(tag: Tag, id: number, data: D): CSNode<Tag, D> {
+/**
+ * The full distributive union of all node variants. Because this type is
+ * produced by mapping over every tag and indexing into the result, checking
+ * node.tag narrows node.data to the corresponding data type.
+ */
+export type CSNode<T extends string, DM extends Record<T, unknown>> = {
+  [K in T]: CSNodeOf<K, T, DM>;
+}[T];
+
+export type ParentRef<T extends string, DM extends Record<T, unknown>> =
+  | { tag: "firstChild"; parent: CSNode<T, DM> }
+  | { tag: "sibling"; prev: CSNode<T, DM> }
+  | null;
+
+export function createNode<T extends string, DM extends Record<T, unknown>, K extends T>(tag: K, id: number, data: DM[K]): CSNodeOf<K, T, DM> {
   return {
     tag,
     id,
@@ -20,7 +38,7 @@ export function createNode<Tag extends string, D>(tag: Tag, id: number, data: D)
   };
 }
 
-export function appendChild<Tag extends string, D>(parent: CSNode<Tag, D>, newNode: CSNode<Tag, D>): void {
+export function appendChild<T extends string, DM extends Record<T, unknown>>(parent: CSNode<T, DM>, newNode: CSNode<T, DM>): void {
   if (newNode.parentRef !== null) return;
 
   if (parent.firstChild === null) {
@@ -37,7 +55,7 @@ export function appendChild<Tag extends string, D>(parent: CSNode<Tag, D>, newNo
   newNode.nextSibling = null;
 }
 
-export function remove<Tag extends string, D>(target: CSNode<Tag, D>): void {
+export function remove<T extends string, DM extends Record<T, unknown>>(target: CSNode<T, DM>): void {
   const ref = target.parentRef;
   if (ref === null) return;
 
@@ -59,7 +77,7 @@ export function remove<Tag extends string, D>(target: CSNode<Tag, D>): void {
   target.nextSibling = null;
 }
 
-export function replace<Tag extends string, D>(target: CSNode<Tag, D>, newNode: CSNode<Tag, D>): void {
+export function replace<T extends string, DM extends Record<T, unknown>>(target: CSNode<T, DM>, newNode: CSNode<T, DM>): void {
   const ref = target.parentRef;
   if (ref === null) return;
   if (newNode.parentRef !== null) return;
@@ -81,7 +99,7 @@ export function replace<Tag extends string, D>(target: CSNode<Tag, D>, newNode: 
   target.nextSibling = null;
 }
 
-export function insertBefore<Tag extends string, D>(anchor: CSNode<Tag, D>, newNode: CSNode<Tag, D>): void {
+export function insertBefore<T extends string, DM extends Record<T, unknown>>(anchor: CSNode<T, DM>, newNode: CSNode<T, DM>): void {
   const ref = anchor.parentRef;
   if (ref === null) return;
   if (newNode.parentRef !== null) return;
@@ -98,7 +116,7 @@ export function insertBefore<Tag extends string, D>(anchor: CSNode<Tag, D>, newN
   anchor.parentRef = { tag: "sibling", prev: newNode };
 }
 
-export function insertAfter<Tag extends string, D>(anchor: CSNode<Tag, D>, newNode: CSNode<Tag, D>): void {
+export function insertAfter<T extends string, DM extends Record<T, unknown>>(anchor: CSNode<T, DM>, newNode: CSNode<T, DM>): void {
   if (anchor.parentRef === null) return;
   if (newNode.parentRef !== null) return;
 
@@ -111,7 +129,7 @@ export function insertAfter<Tag extends string, D>(anchor: CSNode<Tag, D>, newNo
   newNode.parentRef = { tag: "sibling", prev: anchor };
 }
 
-export function getParent<Tag extends string, D>(node: CSNode<Tag, D>): CSNode<Tag, D> | null {
+export function getParent<T extends string, DM extends Record<T, unknown>>(node: CSNode<T, DM>): CSNode<T, DM> | null {
   if (node.parentRef === null) return null;
 
   if (node.parentRef.tag === "firstChild") {
@@ -125,7 +143,7 @@ export function getParent<Tag extends string, D>(node: CSNode<Tag, D>): CSNode<T
   return current.parentRef?.parent ?? null;
 }
 
-export function verifyIntegrity<Tag extends string, D>(root: CSNode<Tag, D>): boolean {
+export function verifyIntegrity<T extends string, DM extends Record<T, unknown>>(root: CSNode<T, DM>): boolean {
   if (root.parentRef !== null) return false;
 
   for (const node of preOrder(root)) {
@@ -149,7 +167,10 @@ export function verifyIntegrity<Tag extends string, D>(root: CSNode<Tag, D>): bo
   return true;
 }
 
-export function findChild<Tag extends string, D>(parent: CSNode<Tag, D>, predicate: (node: CSNode<Tag, D>) => boolean): CSNode<Tag, D> | null {
+export function findChild<T extends string, DM extends Record<T, unknown>>(
+  parent: CSNode<T, DM>,
+  predicate: (node: CSNode<T, DM>) => boolean
+): CSNode<T, DM> | null {
   let current = parent.firstChild;
   while (current !== null) {
     if (predicate(current)) return current;
@@ -158,8 +179,8 @@ export function findChild<Tag extends string, D>(parent: CSNode<Tag, D>, predica
   return null;
 }
 
-export function collectChildren<Tag extends string, D>(parent: CSNode<Tag, D>): CSNode<Tag, D>[] {
-  const result: CSNode<Tag, D>[] = [];
+export function collectChildren<T extends string, DM extends Record<T, unknown>>(parent: CSNode<T, DM>): CSNode<T, DM>[] {
+  const result: CSNode<T, DM>[] = [];
   let current = parent.firstChild;
   while (current !== null) {
     result.push(current);
@@ -168,9 +189,13 @@ export function collectChildren<Tag extends string, D>(parent: CSNode<Tag, D>): 
   return result;
 }
 
-export function cloneSubtree<Tag extends string, D>(node: CSNode<Tag, D>, generateId: () => number, preserveIds: boolean = false): CSNode<Tag, D> {
+export function cloneSubtree<T extends string, DM extends Record<T, unknown>>(
+  node: CSNode<T, DM>,
+  generateId: () => number,
+  preserveIds: boolean = false
+): CSNode<T, DM> {
   const id = preserveIds ? node.id : generateId();
-  const clone = createNode(node.tag, id, structuredClone(node.data));
+  const clone = createNode<T, DM, T>(node.tag, id, structuredClone(node.data));
   let child = node.firstChild;
   while (child !== null) {
     const clonedChild = cloneSubtree(child, generateId, preserveIds);
@@ -180,13 +205,13 @@ export function cloneSubtree<Tag extends string, D>(node: CSNode<Tag, D>, genera
   return clone;
 }
 
-function preOrder<Tag extends string, D>(root: CSNode<Tag, D>): CSNode<Tag, D>[] {
-  const result: CSNode<Tag, D>[] = [];
-  const stack: CSNode<Tag, D>[] = [root];
+function preOrder<T extends string, DM extends Record<T, unknown>>(root: CSNode<T, DM>): CSNode<T, DM>[] {
+  const result: CSNode<T, DM>[] = [];
+  const stack: CSNode<T, DM>[] = [root];
   while (stack.length > 0) {
     const node = stack.pop()!;
     result.push(node);
-    const children: CSNode<Tag, D>[] = [];
+    const children: CSNode<T, DM>[] = [];
     let child = node.firstChild;
     while (child !== null) {
       children.push(child);

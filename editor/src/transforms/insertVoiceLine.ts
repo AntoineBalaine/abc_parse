@@ -62,7 +62,7 @@ export function insertVoiceLine(selection: Selection, voiceName: string, ctx: AB
     const clonedElements: CSNode[] = elements.map((e) => cloneSubtree(e, () => e.id, true));
 
     // Build a temporary container to hold the chain during processing
-    const tempContainer = createCSNode(TAGS.System, -1, { type: "empty" } as any);
+    const tempContainer = createCSNode(TAGS.System, -1, { type: "empty" });
 
     // Build the cloned chain: voice marker, space, then cloned elements
     const voiceMarker = createInlineVoiceMarker(voiceName, ctx);

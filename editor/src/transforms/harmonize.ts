@@ -221,7 +221,7 @@ function harmonizeChord(chordNode: CSNode, steps: number, ctx: ABCContext): void
 
   // Insert all harmony notes after the last original note.
   // This produces [C E A c] from [C A] with +2 steps (E follows C, c follows A).
-  let insertAnchor = lastOriginalNote;
+  let insertAnchor: CSNode = lastOriginalNote;
   for (const harmonyNote of harmonyNotes) {
     insertAfter(insertAnchor, harmonyNote);
     insertAnchor = harmonyNote;

@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";
-import { createNode, appendChild } from "../src/index";
-import { makeCtx, TestTag, type TNode } from "./helpers";
+import { appendChild } from "../src/cstree";
+import { createNode, makeCtx, TestTag, type TNode } from "./helpers";
 
 describe("appendChild", () => {
   it("appending to an empty parent sets firstChild", () => {

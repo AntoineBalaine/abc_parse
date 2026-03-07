@@ -1,7 +1,7 @@
 import { TT } from "abc-parser";
-import type { CSNode as CSTNode, ParentRef } from "cstree";
+import type { CSNode as CSTNode, CSNodeOf, ParentRef } from "cstree";
 
-export type { ParentRef };
+export type { ParentRef, CSNodeOf };
 
 export interface TokenData {
   type: "token";
@@ -64,18 +64,65 @@ export enum TAGS {
   Token = "Token",
 }
 
-export type CSNode = CSTNode<TAGS, NodeData>;
+export type EditorDataMap = {
+  [TAGS.File_structure]: EmptyData;
+  [TAGS.Tune]: EmptyData;
+  [TAGS.Tune_header]: EmptyData;
+  [TAGS.Tune_Body]: EmptyData;
+  [TAGS.System]: EmptyData;
+  [TAGS.Info_line]: EmptyData;
+  [TAGS.Note]: EmptyData;
+  [TAGS.Pitch]: EmptyData;
+  [TAGS.Rhythm]: EmptyData;
+  [TAGS.Rest]: EmptyData;
+  [TAGS.Chord]: EmptyData;
+  [TAGS.Beam]: EmptyData;
+  [TAGS.Grace_group]: EmptyData;
+  [TAGS.BarLine]: EmptyData;
+  [TAGS.Decoration]: EmptyData;
+  [TAGS.Annotation]: EmptyData;
+  [TAGS.Inline_field]: EmptyData;
+  [TAGS.MultiMeasureRest]: EmptyData;
+  [TAGS.YSPACER]: EmptyData;
+  [TAGS.SystemBreak]: EmptyData;
+  [TAGS.Symbol]: EmptyData;
+  [TAGS.Tuplet]: EmptyData;
+  [TAGS.Voice_overlay]: EmptyData;
+  [TAGS.Line_continuation]: EmptyData;
+  [TAGS.Comment]: EmptyData;
+  [TAGS.Directive]: EmptyData;
+  [TAGS.Measurement]: EmptyData;
+  [TAGS.Rational]: EmptyData;
+  [TAGS.File_header]: EmptyData;
+  [TAGS.Lyric_section]: EmptyData;
+  [TAGS.AbsolutePitch]: EmptyData;
+  [TAGS.Lyric_line]: EmptyData;
+  [TAGS.Macro_decl]: EmptyData;
+  [TAGS.Macro_invocation]: EmptyData;
+  [TAGS.User_symbol_decl]: EmptyData;
+  [TAGS.User_symbol_invocation]: EmptyData;
+  [TAGS.KV]: EmptyData;
+  [TAGS.Binary]: EmptyData;
+  [TAGS.Unary]: EmptyData;
+  [TAGS.Grouping]: EmptyData;
+  [TAGS.ChordSymbol]: EmptyData;
+  [TAGS.ErrorExpr]: EmptyData;
+  [TAGS.SymbolLine]: EmptyData;
+  [TAGS.Token]: TokenData;
+};
 
-export function isTokenNode(node: CSNode): node is CSNode & { data: TokenData } {
-  return node.data.type === "token";
+export type CSNode = CSTNode<TAGS, EditorDataMap>;
+
+export function isTokenNode(node: CSNode): node is CSNodeOf<TAGS.Token, TAGS, EditorDataMap> {
+  return node.tag === TAGS.Token;
 }
 
 export function getTokenData(node: CSNode): TokenData {
-  if (node.data.type !== "token") throw new Error("getTokenData called on non-token node");
-  return node.data as TokenData;
+  if (node.tag !== TAGS.Token) throw new Error("getTokenData called on non-token node");
+  return node.data;
 }
 
-export function createCSNode(tag: TAGS, id: number, data: NodeData): CSNode {
+export function createCSNode<K extends TAGS>(tag: K, id: number, data: EditorDataMap[K]): CSNodeOf<K, TAGS, EditorDataMap> {
   return { tag, id, data, firstChild: null, nextSibling: null, parentRef: null };
 }
 
