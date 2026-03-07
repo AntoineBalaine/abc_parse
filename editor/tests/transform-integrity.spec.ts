@@ -3,7 +3,7 @@ import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/Co
 import { expect } from "chai";
 import { verifyIntegrity } from "cstree";
 import { describe, it } from "mocha";
-import { TAGS } from "../src/csTree/types";
+import { TAGS, isTokenNode } from "../src/csTree/types";
 import { addToRhythm } from "../src/transforms/addToRhythm";
 import { divideRhythm } from "../src/transforms/divideRhythm";
 import { explode2 } from "../src/transforms/explode";
@@ -122,7 +122,7 @@ describe("transform integrity", () => {
     const { root, ctx } = toCSTreeWithContext("X:1\nK:C\nV:1\nCDEF|\nV:2\nGABc|\n");
     const infoLines = findByTag(root, TAGS.Info_line).filter((n) => {
       const child = n.firstChild;
-      if (!child || child.data.type !== "token") return false;
+      if (!child || !isTokenNode(child)) return false;
       return child.data.lexeme === "V:";
     });
     const bodyInfoLines = infoLines.filter((n) => {

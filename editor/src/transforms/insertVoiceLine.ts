@@ -1,11 +1,11 @@
-import { Selection } from "../selection";
-import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { ABCContext, TT } from "abc-parser";
-import { noteToRest, chordToRest } from "./toRest";
-import { addVoice } from "./addVoice";
-import { findFirstByTag } from "../selectors/treeWalk";
 import { cloneSubtree, appendChild, insertAfter, remove } from "cstree";
+import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
+import { Selection } from "../selection";
+import { findFirstByTag } from "../selectors/treeWalk";
+import { addVoice } from "./addVoice";
 import { groupElementsBySourceLine, reassignIds, findTuneBody, findTargetNote, nodeOrDescendantInSet } from "./lineUtils";
+import { noteToRest, chordToRest } from "./toRest";
 
 /**
  * Inserts a new voice line by duplicating lines containing selected notes.
@@ -62,12 +62,11 @@ export function insertVoiceLine(selection: Selection, voiceName: string, ctx: AB
     const clonedElements: CSNode[] = elements.map((e) => cloneSubtree(e, () => e.id, true));
 
     // Build a temporary container to hold the chain during processing
-    const tempContainer = createCSNode(TAGS.System, -1, { type: "empty" });
+    const tempContainer = createCSNode(TAGS.System, -1, null);
 
     // Build the cloned chain: voice marker, space, then cloned elements
     const voiceMarker = createInlineVoiceMarker(voiceName, ctx);
     const spaceAfterMarker = createCSNode(TAGS.Token, ctx.generateId(), {
-      type: "token",
       lexeme: " ",
       tokenType: TT.WS,
       line: 0,
@@ -120,7 +119,6 @@ export function insertVoiceLine(selection: Selection, voiceName: string, ctx: AB
  */
 function createInlineVoiceMarker(voiceName: string, ctx: ABCContext): CSNode {
   const leftBracket = createCSNode(TAGS.Token, ctx.generateId(), {
-    type: "token",
     lexeme: "[",
     tokenType: TT.INLN_FLD_LFT_BRKT,
     line: 0,
@@ -128,7 +126,6 @@ function createInlineVoiceMarker(voiceName: string, ctx: ABCContext): CSNode {
   });
 
   const field = createCSNode(TAGS.Token, ctx.generateId(), {
-    type: "token",
     lexeme: "V:",
     tokenType: TT.INF_HDR,
     line: 0,
@@ -136,7 +133,6 @@ function createInlineVoiceMarker(voiceName: string, ctx: ABCContext): CSNode {
   });
 
   const text = createCSNode(TAGS.Token, ctx.generateId(), {
-    type: "token",
     lexeme: voiceName,
     tokenType: TT.INFO_STR,
     line: 0,
@@ -144,14 +140,13 @@ function createInlineVoiceMarker(voiceName: string, ctx: ABCContext): CSNode {
   });
 
   const rightBracket = createCSNode(TAGS.Token, ctx.generateId(), {
-    type: "token",
     lexeme: "]",
     tokenType: TT.INLN_FLD_RGT_BRKT,
     line: 0,
     position: 3 + voiceName.length,
   });
 
-  const inlineField = createCSNode(TAGS.Inline_field, ctx.generateId(), { type: "empty" });
+  const inlineField = createCSNode(TAGS.Inline_field, ctx.generateId(), null);
   appendChild(inlineField, leftBracket);
   appendChild(inlineField, field);
   appendChild(inlineField, text);

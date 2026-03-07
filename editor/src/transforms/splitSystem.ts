@@ -1,17 +1,17 @@
-import { Position, Range } from "abc-parser/types/types";
 import { Token, TT, Expr, Inline_field, ABCContext, System } from "abc-parser";
-import { IRational, compareRational, parseRational, rationalToString } from "abc-parser/Visitors/fmt2/rational";
-import { VoiceSplit, BarAlignment, Location, findFmtblLines, getNodeId } from "abc-parser/Visitors/fmt2/fmt_timeMapHelpers";
-import { mapTimePoints, isTimeEvent } from "abc-parser/Visitors/fmt2/fmt_timeMap";
-import { DocumentSnapshots, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
-import { RangeVisitor } from "abc-parser/Visitors/RangeVisitor";
-import { Selection } from "../selection";
-import { createCSNode, CSNode, TAGS } from "../csTree/types";
-import { toAst } from "../csTree/toAst";
-import { fromAst } from "../csTree/fromAst";
-import { collectChildren, appendChild, remove, insertAfter } from "cstree";
-import { findByPos, firstTokenNode, comparePositions } from "../selectors/treeWalk";
 import { isEOL, isInlineField } from "abc-parser/helpers";
+import { DocumentSnapshots, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
+import { Position, Range } from "abc-parser/types/types";
+import { mapTimePoints, isTimeEvent } from "abc-parser/Visitors/fmt2/fmt_timeMap";
+import { VoiceSplit, BarAlignment, Location, findFmtblLines, getNodeId } from "abc-parser/Visitors/fmt2/fmt_timeMapHelpers";
+import { IRational, parseRational, rationalToString } from "abc-parser/Visitors/fmt2/rational";
+import { RangeVisitor } from "abc-parser/Visitors/RangeVisitor";
+import { collectChildren, appendChild, remove, insertAfter } from "cstree";
+import { fromAst } from "../csTree/fromAst";
+import { toAst } from "../csTree/toAst";
+import { createCSNode, CSNode, TAGS } from "../csTree/types";
+import { Selection } from "../selection";
+import { findByPos, firstTokenNode, comparePositions } from "../selectors/treeWalk";
 
 type SystemAst = Array<Expr | Token>;
 
@@ -358,7 +358,7 @@ function splitSystemAst(
 
 // Convert AST array to CSTree System node
 export function toCSTreeSystem(systemArray: SystemAst, ctx: ABCContext): CSNode {
-  const systemNode = createCSNode(TAGS.System, ctx.generateId(), { type: "empty" });
+  const systemNode = createCSNode(TAGS.System, ctx.generateId(), null);
 
   for (const element of systemArray) {
     const childNode = fromAst(element, ctx);

@@ -39,7 +39,7 @@ K:C
       const tune = ast.contents.find((c: any) => c.constructor.name === "Tune");
       expect(tune).to.not.be.undefined;
 
-      const csTree = fromAst(tune, ctx);
+      const csTree = fromAst(tune!, ctx);
 
       // Find a note node
       const noteNode = findFirstByTag(csTree, "Note");
@@ -95,7 +95,7 @@ K:G
       const emptyNode: CSNode = {
         tag: "Note" as TAGS,
         id: 999,
-        data: { type: "empty" },
+        data: null,
         firstChild: null,
         nextSibling: null,
         parentRef: null,

@@ -4,18 +4,17 @@ import type { CSNode as CSTNode, CSNodeOf, ParentRef } from "cstree";
 export type { ParentRef, CSNodeOf };
 
 export interface TokenData {
-  type: "token";
   lexeme: string;
   tokenType: TT;
   line: number;
   position: number;
 }
 
-export interface EmptyData {
-  type: "empty";
+export interface TuneBodyData {
+  voices: string[];
 }
 
-export type NodeData = TokenData | EmptyData;
+export type NodeData = TokenData | TuneBodyData | null;
 
 export enum TAGS {
   File_structure = "File_structure",
@@ -65,49 +64,49 @@ export enum TAGS {
 }
 
 export type EditorDataMap = {
-  [TAGS.File_structure]: EmptyData;
-  [TAGS.Tune]: EmptyData;
-  [TAGS.Tune_header]: EmptyData;
-  [TAGS.Tune_Body]: EmptyData;
-  [TAGS.System]: EmptyData;
-  [TAGS.Info_line]: EmptyData;
-  [TAGS.Note]: EmptyData;
-  [TAGS.Pitch]: EmptyData;
-  [TAGS.Rhythm]: EmptyData;
-  [TAGS.Rest]: EmptyData;
-  [TAGS.Chord]: EmptyData;
-  [TAGS.Beam]: EmptyData;
-  [TAGS.Grace_group]: EmptyData;
-  [TAGS.BarLine]: EmptyData;
-  [TAGS.Decoration]: EmptyData;
-  [TAGS.Annotation]: EmptyData;
-  [TAGS.Inline_field]: EmptyData;
-  [TAGS.MultiMeasureRest]: EmptyData;
-  [TAGS.YSPACER]: EmptyData;
-  [TAGS.SystemBreak]: EmptyData;
-  [TAGS.Symbol]: EmptyData;
-  [TAGS.Tuplet]: EmptyData;
-  [TAGS.Voice_overlay]: EmptyData;
-  [TAGS.Line_continuation]: EmptyData;
-  [TAGS.Comment]: EmptyData;
-  [TAGS.Directive]: EmptyData;
-  [TAGS.Measurement]: EmptyData;
-  [TAGS.Rational]: EmptyData;
-  [TAGS.File_header]: EmptyData;
-  [TAGS.Lyric_section]: EmptyData;
-  [TAGS.AbsolutePitch]: EmptyData;
-  [TAGS.Lyric_line]: EmptyData;
-  [TAGS.Macro_decl]: EmptyData;
-  [TAGS.Macro_invocation]: EmptyData;
-  [TAGS.User_symbol_decl]: EmptyData;
-  [TAGS.User_symbol_invocation]: EmptyData;
-  [TAGS.KV]: EmptyData;
-  [TAGS.Binary]: EmptyData;
-  [TAGS.Unary]: EmptyData;
-  [TAGS.Grouping]: EmptyData;
-  [TAGS.ChordSymbol]: EmptyData;
-  [TAGS.ErrorExpr]: EmptyData;
-  [TAGS.SymbolLine]: EmptyData;
+  [TAGS.File_structure]: null;
+  [TAGS.Tune]: null;
+  [TAGS.Tune_header]: null;
+  [TAGS.Tune_Body]: TuneBodyData;
+  [TAGS.System]: null;
+  [TAGS.Info_line]: null;
+  [TAGS.Note]: null;
+  [TAGS.Pitch]: null;
+  [TAGS.Rhythm]: null;
+  [TAGS.Rest]: null;
+  [TAGS.Chord]: null;
+  [TAGS.Beam]: null;
+  [TAGS.Grace_group]: null;
+  [TAGS.BarLine]: null;
+  [TAGS.Decoration]: null;
+  [TAGS.Annotation]: null;
+  [TAGS.Inline_field]: null;
+  [TAGS.MultiMeasureRest]: null;
+  [TAGS.YSPACER]: null;
+  [TAGS.SystemBreak]: null;
+  [TAGS.Symbol]: null;
+  [TAGS.Tuplet]: null;
+  [TAGS.Voice_overlay]: null;
+  [TAGS.Line_continuation]: null;
+  [TAGS.Comment]: null;
+  [TAGS.Directive]: null;
+  [TAGS.Measurement]: null;
+  [TAGS.Rational]: null;
+  [TAGS.File_header]: null;
+  [TAGS.Lyric_section]: null;
+  [TAGS.AbsolutePitch]: null;
+  [TAGS.Lyric_line]: null;
+  [TAGS.Macro_decl]: null;
+  [TAGS.Macro_invocation]: null;
+  [TAGS.User_symbol_decl]: null;
+  [TAGS.User_symbol_invocation]: null;
+  [TAGS.KV]: null;
+  [TAGS.Binary]: null;
+  [TAGS.Unary]: null;
+  [TAGS.Grouping]: null;
+  [TAGS.ChordSymbol]: null;
+  [TAGS.ErrorExpr]: null;
+  [TAGS.SymbolLine]: null;
   [TAGS.Token]: TokenData;
 };
 

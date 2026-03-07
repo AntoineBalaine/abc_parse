@@ -47,7 +47,7 @@ import {
   tune_body_code,
   Beam_contents,
 } from "abc-parser";
-import { CSNode, TAGS, isTokenNode, getTokenData } from "./types";
+import { CSNode, TAGS, isTokenNode, getTokenData, TuneBodyData } from "./types";
 
 function collectChildren(node: CSNode): CSNode[] {
   const result: CSNode[] = [];
@@ -704,14 +704,13 @@ function buildTuneBodyFromSystems(tuneBodyNode: CSNode): Tune_Body {
     systemChild = systemChild.nextSibling;
   }
 
-  // If no System children were found, return empty Tune_Body
-  // Note: voices list is not preserved in CSTree, so we pass empty array.
-  // The caller can re-collect voices from the body if needed.
+  const voices = (tuneBodyNode.data as TuneBodyData).voices;
+
   if (systems.length === 0) {
-    return new Tune_Body(tuneBodyNode.id, [], []);
+    return new Tune_Body(tuneBodyNode.id, [], voices);
   }
 
-  return new Tune_Body(tuneBodyNode.id, systems, []);
+  return new Tune_Body(tuneBodyNode.id, systems, voices);
 }
 
 // Legacy function kept for compatibility - not used when System nodes are present

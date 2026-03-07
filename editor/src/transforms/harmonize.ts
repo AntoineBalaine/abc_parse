@@ -1,13 +1,4 @@
-import { Selection } from "../selection";
-import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { ABCContext, Pitch, TT, Token, Note, Chord } from "abc-parser";
-import { KeySignature, AccidentalType } from "abc-parser/types/abcjs-ast";
-import { DocumentSnapshots, ContextSnapshot, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
-import { toAst } from "../csTree/toAst";
-import { fromAst } from "../csTree/fromAst";
-import { findNodesById } from "./types";
-import { findChildByTag, findTieChild, getNodeLineAndChar } from "./treeUtils";
-import { remove, replace, getParent, appendChild, insertAfter } from "cstree";
 import {
   VoicedNote,
   Spelling,
@@ -27,7 +18,6 @@ import {
   deriveDiatonicChord,
   getKeyAccidentalFor,
   FUNC_FOR_TENSION,
-  NATURAL_SEMITONES,
   LETTERS,
   noteLetterToMidi,
   semitonesToAccidentalString,
@@ -39,7 +29,16 @@ import {
   findPreviousChordInVoice,
   voicedNoteOctave,
 } from "abc-parser";
+import { DocumentSnapshots, ContextSnapshot, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
+import { KeySignature } from "abc-parser/types/abcjs-ast";
+import { remove, replace, getParent, appendChild, insertAfter } from "cstree";
+import { fromAst } from "../csTree/fromAst";
+import { toAst } from "../csTree/toAst";
+import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
+import { Selection } from "../selection";
 import { toPitchComponents, NoteLetter } from "./pitchHelpers";
+import { findChildByTag, findTieChild, getNodeLineAndChar } from "./treeUtils";
+import { findNodesById } from "./types";
 
 const DIATONIC_LETTERS = "CDEFGAB";
 
@@ -151,7 +150,7 @@ function wrapNoteInChord(noteNode: CSNode, steps: number, ctx: ABCContext): void
   }
 
   // Create chord CSNode
-  const chordCSNode = createCSNode(TAGS.Chord, ctx.generateId(), { type: "empty" });
+  const chordCSNode = createCSNode(TAGS.Chord, ctx.generateId(), null);
 
   // Create bracket tokens
   const leftBracketCSNode = fromAst(new Token(TT.CHRD_LEFT_BRKT, "[", ctx.generateId()), ctx);

@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { TAGS } from "../src/csTree/types";
+import { TAGS, isTokenNode } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { selectVoices } from "../src/selectors/voiceSelector";
 import { selectRange } from "../src/selectors/rangeSelector";
@@ -47,7 +47,7 @@ describe("voiceSelector", () => {
       const infos = findByTag(sel.root, TAGS.Info_line);
       const v2Info = infos.find((n) => {
         const firstChild = n.firstChild;
-        if (!firstChild || firstChild.data.type !== "token") return false;
+        if (!firstChild || !isTokenNode(firstChild)) return false;
         return firstChild.data.lexeme.includes("V:2");
       });
       if (v2Info) {
@@ -69,7 +69,7 @@ describe("voiceSelector", () => {
       const infos = findByTag(sel.root, TAGS.Info_line);
       const v1Info = infos.find((n) => {
         const firstChild = n.firstChild;
-        if (!firstChild || firstChild.data.type !== "token") return false;
+        if (!firstChild || !isTokenNode(firstChild)) return false;
         return firstChild.data.lexeme.includes("V:1");
       });
       if (v1Info) {
@@ -92,7 +92,7 @@ describe("voiceSelector", () => {
       const infos = findByTag(sel.root, TAGS.Info_line);
       const v1Info = infos.find((n) => {
         const firstChild = n.firstChild;
-        if (!firstChild || firstChild.data.type !== "token") return false;
+        if (!firstChild || !isTokenNode(firstChild)) return false;
         return firstChild.data.lexeme.includes("V:1");
       });
       if (v1Info) {
@@ -257,7 +257,7 @@ ABC             | DFE             | DBA
       const notesByLexeme = new Map<string, CSNode[]>();
       for (const note of notes) {
         const firstChild = note.firstChild;
-        if (firstChild && firstChild.data.type === "token") {
+        if (firstChild && isTokenNode(firstChild)) {
           const lexeme = firstChild.data.lexeme;
           if (!notesByLexeme.has(lexeme)) {
             notesByLexeme.set(lexeme, []);
@@ -273,7 +273,7 @@ ABC             | DFE             | DBA
       const infos = findByTag(sel.root, TAGS.Info_line);
       for (const info of infos) {
         const firstChild = info.firstChild;
-        if (firstChild && firstChild.data.type === "token") {
+        if (firstChild && isTokenNode(firstChild)) {
           const lexeme = firstChild.data.lexeme;
           if (lexeme.includes("V:2") || lexeme.includes("V:3") || lexeme.includes("V:4")) {
             expect(selectedIds.has(info.id)).to.be.false;
@@ -369,7 +369,7 @@ ABC             | DFE             | DBA
       const infos = findByTag(sel.root, TAGS.Info_line);
       const v3Info = infos.find((n) => {
         const firstChild = n.firstChild;
-        if (!firstChild || firstChild.data.type !== "token") return false;
+        if (!firstChild || !isTokenNode(firstChild)) return false;
         return firstChild.data.lexeme.includes("V:3");
       });
       if (v3Info) {
@@ -418,7 +418,7 @@ ABC             | DFE             | DBA
       const notes = findByTag(sel.root, TAGS.Note);
       const noteA = notes.find((n) => {
         const firstChild = n.firstChild;
-        if (!firstChild || firstChild.data.type !== "token") return false;
+        if (!firstChild || !isTokenNode(firstChild)) return false;
         return firstChild.data.lexeme === "A";
       });
       if (noteA) {

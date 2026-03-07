@@ -1,11 +1,11 @@
-import { Selection } from "../selection";
-import { createCSNode, CSNode, TAGS } from "../csTree/types";
 import { ABCContext } from "abc-parser";
+import { cloneSubtree, appendChild, insertAfter, remove } from "cstree";
+import { createCSNode, CSNode, TAGS } from "../csTree/types";
+import { Selection } from "../selection";
+import { consolidateRests } from "./consolidateRests";
+import { groupElementsBySourceLine, findTuneBody, collectNotesFromChord, nodeOrDescendantInSet } from "./lineUtils";
 import { noteToRest, chordToRest } from "./toRest";
 import { unwrapSingle } from "./unwrapSingle";
-import { consolidateRests } from "./consolidateRests";
-import { cloneSubtree, appendChild, insertAfter, remove } from "cstree";
-import { groupElementsBySourceLine, reassignIds, findTuneBody, collectNotesFromChord, nodeOrDescendantInSet } from "./lineUtils";
 
 /**
  * Filters a chord to keep only the note at the specified part index.
@@ -195,7 +195,7 @@ export function explode(selection: Selection, partCount: number, ctx: ABCContext
 
       // Create a System node to hold the cloned chain during processing.
       // This allows unwrapSingle to find the parent of chords correctly.
-      const systemNode = createCSNode(TAGS.System, ctx.generateId(), { type: "empty" });
+      const systemNode = createCSNode(TAGS.System, ctx.generateId(), null);
       for (const cloned of clonedElements) {
         appendChild(systemNode, cloned);
       }

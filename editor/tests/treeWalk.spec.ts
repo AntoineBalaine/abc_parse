@@ -56,7 +56,7 @@ describe("treeWalk", () => {
     });
 
     it("returns null for a CSNode with no Token descendants", () => {
-      const emptyNode = createCSNode("Empty", 999, { type: "empty" });
+      const emptyNode = createCSNode("Empty", 999, null);
       const result = firstTokenData(emptyNode);
       expect(result).to.be.null;
     });
@@ -94,7 +94,7 @@ describe("treeWalk", () => {
     });
 
     it("returns null for a node with no token descendants", () => {
-      const emptyNode = createCSNode("Empty", 999, { type: "empty" });
+      const emptyNode = createCSNode("Empty", 999, null);
       const result = lastTokenData(emptyNode);
       expect(result).to.be.null;
     });

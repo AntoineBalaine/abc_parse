@@ -265,7 +265,7 @@ describe("insertVoiceLine", () => {
             let count = 0;
             let child = node.firstChild;
             while (child) {
-              if (child.tag === "Token" && child.data.type === "token" && (child.data as { tokenType: number }).tokenType === 76) {
+              if (child.tag === TAGS.Token && child.data.tokenType === 76) {
                 count++;
               }
               child = child.nextSibling;

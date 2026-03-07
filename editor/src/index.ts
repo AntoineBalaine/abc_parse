@@ -6,7 +6,7 @@ export {
   CSNode,
   CSNodeOf,
   TokenData,
-  EmptyData,
+  TuneBodyData,
   NodeData,
   EditorDataMap,
   TAGS,
@@ -130,3 +130,4 @@ export { getContextForNode } from "./context/contextUtils";
 
 // Utils
 export { diffChars, Change } from "./utils/diffToPatches";
+export { computeNodeRange, rangesOverlap } from "./utils/rangeUtils";

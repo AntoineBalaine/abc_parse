@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { toCSTreeWithContext, findByTag, formatSelection } from "./helpers";
-import { TAGS } from "../src/csTree/types";
+import { TAGS, isTokenNode } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { voiceInfoLineToInline, voiceInlineToInfoLine } from "../src/transforms/voiceMarkerTransform";
 
@@ -10,7 +10,7 @@ import { voiceInfoLineToInline, voiceInlineToInfoLine } from "../src/transforms/
  */
 function applyInfoLineToInline(input: string): string {
   const { root, ctx } = toCSTreeWithContext(input);
-  const infoLines = findByTag(root, TAGS.Info_line).filter((n) => n.firstChild && n.firstChild.data.type === "token" && n.firstChild.data.lexeme === "V:");
+  const infoLines = findByTag(root, TAGS.Info_line).filter((n) => n.firstChild && isTokenNode(n.firstChild) && n.firstChild.data.lexeme === "V:");
   if (infoLines.length === 0) {
     return formatSelection({ root, cursors: [] });
   }
@@ -27,7 +27,7 @@ function applyInlineToInfoLine(input: string): string {
   const inlineFields = findByTag(root, TAGS.Inline_field).filter((n) => {
     let child = n.firstChild;
     while (child) {
-      if (child.data.type === "token" && child.data.lexeme === "V:") {
+      if (isTokenNode(child) && child.data.lexeme === "V:") {
         return true;
       }
       child = child.nextSibling;

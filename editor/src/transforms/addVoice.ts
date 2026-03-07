@@ -1,7 +1,7 @@
-import { Selection } from "../selection";
-import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
-import { insertBefore, appendChild } from "cstree";
 import { ABCContext, TT } from "abc-parser";
+import { insertBefore, appendChild } from "cstree";
+import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
+import { Selection } from "../selection";
 import { findFirstByTag } from "../selectors/treeWalk";
 
 export interface VoiceParams {
@@ -43,7 +43,6 @@ function buildVoiceText(voiceId: string, params: VoiceParams): string {
 
 function buildVoiceInfoLineNode(voiceText: string, ctx: ABCContext): CSNode {
   const keyToken = createCSNode(TAGS.Token, ctx.generateId(), {
-    type: "token",
     lexeme: "V:",
     tokenType: TT.INF_HDR,
     line: 0,
@@ -51,14 +50,13 @@ function buildVoiceInfoLineNode(voiceText: string, ctx: ABCContext): CSNode {
   });
 
   const valueToken = createCSNode(TAGS.Token, ctx.generateId(), {
-    type: "token",
     lexeme: voiceText,
     tokenType: TT.INFO_STR,
     line: 0,
     position: 2,
   });
 
-  const infoLineNode = createCSNode(TAGS.Info_line, ctx.generateId(), { type: "empty" });
+  const infoLineNode = createCSNode(TAGS.Info_line, ctx.generateId(), null);
   appendChild(infoLineNode, keyToken);
   appendChild(infoLineNode, valueToken);
 

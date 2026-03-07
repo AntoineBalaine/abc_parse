@@ -1,9 +1,9 @@
-import { Selection } from "../selection";
-import { createCSNode, CSNode, TAGS } from "../csTree/types";
 import { ABCContext, TT } from "abc-parser";
-import { findNodesById } from "./types";
-import { findRhythmChild } from "./treeUtils";
 import { remove, appendChild } from "cstree";
+import { createCSNode, CSNode, TAGS } from "../csTree/types";
+import { Selection } from "../selection";
+import { findRhythmChild } from "./treeUtils";
+import { findNodesById } from "./types";
 
 export function toRest(selection: Selection, ctx: ABCContext): Selection {
   for (const cursor of selection.cursors) {
@@ -29,7 +29,6 @@ export function noteToRest(csNode: CSNode, ctx: ABCContext): void {
 
   // Create rest Token CSNode
   const restToken = createCSNode(TAGS.Token, ctx.generateId(), {
-    type: "token",
     lexeme: "z",
     tokenType: TT.REST,
     line: 0,
@@ -65,7 +64,6 @@ export function chordToRest(csNode: CSNode, ctx: ABCContext): void {
 
   // Create rest Token CSNode
   const restToken = createCSNode(TAGS.Token, ctx.generateId(), {
-    type: "token",
     lexeme: "z",
     tokenType: TT.REST,
     line: 0,

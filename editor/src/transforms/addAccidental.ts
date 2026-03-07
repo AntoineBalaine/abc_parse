@@ -66,7 +66,6 @@ function getAccidentalState(pitchNode: CSNode): AccidentalState {
  */
 function createAccidentalNode(lexeme: string, ctx: ABCContext): CSNode {
   return createCSNode(TAGS.Token, ctx.generateId(), {
-    type: "token",
     lexeme: lexeme,
     tokenType: TT.ACCIDENTAL,
     line: 0,

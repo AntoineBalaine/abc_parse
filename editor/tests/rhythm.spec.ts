@@ -86,7 +86,6 @@ describe("rhythm utilities", () => {
     it("creates a CSNode with only the broken token for {1, 1} when brokenToken is provided", () => {
       const ctx = new ABCContext();
       const brokenToken = createCSNode(TAGS.Token, ctx.generateId(), {
-        type: "token",
         lexeme: ">",
         tokenType: TT.RHY_BRKN,
         line: 0,
@@ -110,7 +109,6 @@ describe("rhythm utilities", () => {
     it("creates a CSNode for {2, 1} with brokenToken that formats as '2>'", () => {
       const ctx = new ABCContext();
       const brokenToken = createCSNode(TAGS.Token, ctx.generateId(), {
-        type: "token",
         lexeme: ">",
         tokenType: TT.RHY_BRKN,
         line: 0,
@@ -149,7 +147,6 @@ describe("rhythm utilities", () => {
       // Zero-duration notes are valid (for slash notation), so we preserve the 0
       const ctx = new ABCContext();
       const brokenToken = createCSNode(TAGS.Token, ctx.generateId(), {
-        type: "token",
         lexeme: "<",
         tokenType: TT.RHY_BRKN,
         line: 0,
@@ -209,7 +206,6 @@ describe("rhythm utilities", () => {
             const ctx = new ABCContext();
             const rational = createRational(num, den);
             const brokenToken = createCSNode(TAGS.Token, ctx.generateId(), {
-              type: "token",
               lexeme: brokenLexeme,
               tokenType: TT.RHY_BRKN,
               line: 0,

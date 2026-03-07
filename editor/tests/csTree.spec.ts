@@ -1,11 +1,11 @@
-import { expect } from "chai";
-import { describe, it } from "mocha";
-import * as fc from "fast-check";
-import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
-import { toAst } from "../src/csTree/toAst";
 import { TT, File_structure, Tune, Inline_field, KV, isToken, Scanner, parse, ABCContext, Token } from "abc-parser";
-import { toCSTree, collectAll, collectSubtree, findByTag, siblingCount, genAbcTune, genAbcWithChords, genAbcMultiTune, roundtrip, formatAst } from "./helpers";
+import { expect } from "chai";
+import * as fc from "fast-check";
+import { describe, it } from "mocha";
 import { genMeterInfoLine2, genNoteLenInfoLine2, genKeyInfoLine2, genTempoInfoLine2 } from "../../parse/tests/scn_infoln_generators";
+import { toAst } from "../src/csTree/toAst";
+import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
+import { toCSTree, collectAll, collectSubtree, findByTag, siblingCount, genAbcTune, genAbcWithChords, genAbcMultiTune, roundtrip, formatAst } from "./helpers";
 
 /**
  * Convert a token array to a string by concatenating lexemes.
@@ -207,13 +207,6 @@ describe("csTree - toAst roundtrip", () => {
 });
 
 describe("csTree - Delimiter Token Children", () => {
-  function getTokenChildren(root: ReturnType<typeof toCSTree>, parentTag: string) {
-    const parents = findByTag(root, parentTag);
-    if (parents.length === 0) return [];
-    const subtree = collectSubtree(parents[0]);
-    return subtree.filter((n) => n.tag === TAGS.Token && isTokenNode(n));
-  }
-
   describe("Chord delimiter tokens as children", () => {
     it("Chord CS node has left bracket and right bracket Token children", () => {
       const root = toCSTree("X:1\nK:C\n[CEG]|\n");
@@ -284,10 +277,10 @@ describe("csTree - Delimiter Token Children", () => {
       expect(tokenTypes).to.not.include(TT.GRC_GRP_SLSH);
     });
 
-    it("Grace_group uses EmptyData (no GraceGroupData)", () => {
+    it("Grace_group uses null data (no GraceGroupData)", () => {
       const root = toCSTree("X:1\nK:C\n{/c}D|\n");
       const ggs = findByTag(root, TAGS.Grace_group);
-      expect(ggs[0].data.type).to.equal("empty");
+      expect(ggs[0].data).to.equal(null);
     });
 
     it("isAccacciatura is correctly derived from slash token presence in toAst", () => {
@@ -502,7 +495,7 @@ describe("csTree - Info_line value2 reconstruction (Phase 2: toAst)", () => {
       const ast = toAst(root);
 
       // The ast should be a File_structure
-      expect(ast).to.be.instanceOf(require("abc-parser").File_structure);
+      expect(ast).to.be.instanceOf(File_structure);
 
       // Roundtrip should preserve the content
       const result = roundtrip(input);

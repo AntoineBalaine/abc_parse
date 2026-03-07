@@ -56,7 +56,7 @@ describe("treeUtils", () => {
       expect(pitchResult).to.not.be.null;
 
       // Create a replacement node
-      const replacement = createCSNode(TAGS.Pitch, 9999, { type: "empty" });
+      const replacement = createCSNode(TAGS.Pitch, 9999, null);
       replace(pitchResult!, replacement);
 
       expect(note.firstChild).to.equal(replacement);
@@ -68,8 +68,8 @@ describe("treeUtils", () => {
 
   describe("appendChild (cstree)", () => {
     it("sets firstChild on an empty parent", () => {
-      const parent = createCSNode(TAGS.Note, 1000, { type: "empty" });
-      const child = createCSNode(TAGS.Pitch, 1001, { type: "empty" });
+      const parent = createCSNode(TAGS.Note, 1000, null);
+      const child = createCSNode(TAGS.Pitch, 1001, null);
       appendChild(parent, child);
       expect(parent.firstChild).to.equal(child);
     });
@@ -79,7 +79,7 @@ describe("treeUtils", () => {
       const notes = findByTag(root, TAGS.Note);
       const note = notes[0];
       const childBefore = collectChildren(note).length;
-      const newChild = createCSNode(TAGS.Rhythm, 9999, { type: "empty" });
+      const newChild = createCSNode(TAGS.Rhythm, 9999, null);
       appendChild(note, newChild);
       const childAfter = collectChildren(note).length;
       expect(childAfter).to.equal(childBefore + 1);
@@ -133,7 +133,7 @@ describe("treeUtils", () => {
       const root = toCSTree("X:1\nK:C\nC2|\n");
       const notes = findByTag(root, TAGS.Note);
       const note = notes[0];
-      const newRhythm = createCSNode(TAGS.Rhythm, 9999, { type: "empty" });
+      const newRhythm = createCSNode(TAGS.Rhythm, 9999, null);
       replaceRhythm(note, newRhythm);
       const found = findRhythmChild(note);
       expect(found).to.not.be.null;
@@ -155,7 +155,7 @@ describe("treeUtils", () => {
       const note = notes[0];
       // Verify no Rhythm child exists
       expect(findRhythmChild(note)).to.be.null;
-      const newRhythm = createCSNode(TAGS.Rhythm, 9999, { type: "empty" });
+      const newRhythm = createCSNode(TAGS.Rhythm, 9999, null);
       replaceRhythm(note, newRhythm);
       const found = findRhythmChild(note);
       expect(found).to.not.be.null;
@@ -171,7 +171,7 @@ describe("treeUtils", () => {
       const notes = findByTag(root, TAGS.Note);
       const note = notes[0];
       expect(findRhythmChild(note)).to.be.null;
-      const newRhythm = createCSNode(TAGS.Rhythm, 9999, { type: "empty" });
+      const newRhythm = createCSNode(TAGS.Rhythm, 9999, null);
       replaceRhythm(note, newRhythm);
       const found = findRhythmChild(note);
       expect(found).to.not.be.null;

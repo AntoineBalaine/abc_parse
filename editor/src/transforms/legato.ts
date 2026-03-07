@@ -1,11 +1,11 @@
-import { Selection } from "../selection";
-import { createCSNode, CSNode, TAGS, isNote, isChord, isYSpacer } from "../csTree/types";
 import { ABCContext, TT } from "abc-parser";
-import { findTieChild, replaceRhythm } from "./treeUtils";
 import { replace, appendChild, getParent, remove, cloneSubtree } from "cstree";
-import { getNodeRhythm, rationalToRhythm } from "./rhythm";
-import { consolidateTiedNotes } from "./consolidateTiedNotes";
+import { createCSNode, CSNode, TAGS, isNote, isChord, isYSpacer } from "../csTree/types";
+import { Selection } from "../selection";
 import { isVoiceMarker } from "../selectors/voiceSelector";
+import { consolidateTiedNotes } from "./consolidateTiedNotes";
+import { getNodeRhythm, rationalToRhythm } from "./rhythm";
+import { findTieChild, replaceRhythm } from "./treeUtils";
 
 interface ReplacementRecord {
   old: CSNode;
@@ -58,7 +58,6 @@ function addTieToNode(node: CSNode, ctx: ABCContext): void {
   }
 
   const tieToken = createCSNode(TAGS.Token, ctx.generateId(), {
-    type: "token",
     lexeme: "-",
     tokenType: TT.TIE,
     line: 0,

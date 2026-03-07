@@ -116,11 +116,10 @@ export function extractVoiceContent(node: CSNode): CSNode[] {
  * Children: [V: token, ...voiceContent] linked via nextSibling
  */
 export function createInfoLineFromContent(voiceContent: CSNode[], ctx: ABCContext): CSNode {
-  const infoLine = createCSNode(TAGS.Info_line, ctx.generateId(), { type: "empty" });
+  const infoLine = createCSNode(TAGS.Info_line, ctx.generateId(), null);
 
   // Create V: key token
   const keyToken = createCSNode(TAGS.Token, ctx.generateId(), {
-    type: "token",
     lexeme: "V:",
     tokenType: TT.INF_HDR,
     line: 0,
@@ -141,11 +140,10 @@ export function createInfoLineFromContent(voiceContent: CSNode[], ctx: ABCContex
  * Children: [left bracket, V: token, ...voiceContent, right bracket]
  */
 export function createInlineFieldFromContent(voiceContent: CSNode[], ctx: ABCContext): CSNode {
-  const inlineField = createCSNode(TAGS.Inline_field, ctx.generateId(), { type: "empty" });
+  const inlineField = createCSNode(TAGS.Inline_field, ctx.generateId(), null);
 
   // Create left bracket
   const leftBracket = createCSNode(TAGS.Token, ctx.generateId(), {
-    type: "token",
     lexeme: "[",
     tokenType: TT.INLN_FLD_LFT_BRKT,
     line: 0,
@@ -154,7 +152,6 @@ export function createInlineFieldFromContent(voiceContent: CSNode[], ctx: ABCCon
 
   // Create V: field token
   const fieldToken = createCSNode(TAGS.Token, ctx.generateId(), {
-    type: "token",
     lexeme: "V:",
     tokenType: TT.INF_HDR,
     line: 0,
@@ -163,7 +160,6 @@ export function createInlineFieldFromContent(voiceContent: CSNode[], ctx: ABCCon
 
   // Create right bracket
   const rightBracket = createCSNode(TAGS.Token, ctx.generateId(), {
-    type: "token",
     lexeme: "]",
     tokenType: TT.INLN_FLD_RGT_BRKT,
     line: 0,
@@ -310,7 +306,6 @@ export function voiceInfoLineToInline(selection: Selection, ctx: ABCContext): Se
       if (nextMusic !== null) {
         // Create space token
         const spaceToken = createCSNode(TAGS.Token, ctx.generateId(), {
-          type: "token",
           lexeme: " ",
           tokenType: TT.WS,
           line: 0,
@@ -325,7 +320,6 @@ export function voiceInfoLineToInline(selection: Selection, ctx: ABCContext): Se
         appendChild(containerParent, inlineField);
         if (hasTrailingEOL) {
           const trailingEOL = createCSNode(TAGS.Token, ctx.generateId(), {
-            type: "token",
             lexeme: "\n",
             tokenType: TT.EOL,
             line: 0,
@@ -434,7 +428,6 @@ export function voiceInlineToInfoLine(selection: Selection, ctx: ABCContext): Se
 
       // Create EOL token
       const eolToken = createCSNode(TAGS.Token, ctx.generateId(), {
-        type: "token",
         lexeme: "\n",
         tokenType: TT.EOL,
         line: 0,
@@ -473,7 +466,6 @@ export function voiceInlineToInfoLine(selection: Selection, ctx: ABCContext): Se
       // If there's content before the inline field, insert EOL first to end that line
       if (needsLeadingEOL) {
         const leadingEOL = createCSNode(TAGS.Token, ctx.generateId(), {
-          type: "token",
           lexeme: "\n",
           tokenType: TT.EOL,
           line: 0,

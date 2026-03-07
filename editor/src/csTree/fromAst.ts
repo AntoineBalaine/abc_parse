@@ -52,55 +52,54 @@ import { CSNode, TAGS, createCSNode } from "./types";
 function createCsNodeFromAst(node: Expr | Token): CSNode {
   if (node instanceof Token) {
     return createCSNode(TAGS.Token, node.id, {
-      type: "token",
       lexeme: node.lexeme,
       tokenType: node.type,
       line: node.line,
       position: node.position,
     });
   }
-  if (node instanceof File_structure) return createCSNode(TAGS.File_structure, node.id, { type: "empty" });
-  if (node instanceof Tune) return createCSNode(TAGS.Tune, node.id, { type: "empty" });
-  if (node instanceof Tune_header) return createCSNode(TAGS.Tune_header, node.id, { type: "empty" });
-  if (node instanceof Tune_Body) return createCSNode(TAGS.Tune_Body, node.id, { type: "empty" });
-  if (node instanceof Info_line) return createCSNode(TAGS.Info_line, node.id, { type: "empty" });
-  if (node instanceof SymbolLine) return createCSNode(TAGS.Info_line, node.id, { type: "empty" });
-  if (node instanceof Note) return createCSNode(TAGS.Note, node.id, { type: "empty" });
-  if (node instanceof Pitch) return createCSNode(TAGS.Pitch, node.id, { type: "empty" });
-  if (node instanceof Rhythm) return createCSNode(TAGS.Rhythm, node.id, { type: "empty" });
-  if (node instanceof Rest) return createCSNode(TAGS.Rest, node.id, { type: "empty" });
-  if (node instanceof Chord) return createCSNode(TAGS.Chord, node.id, { type: "empty" });
-  if (node instanceof Beam) return createCSNode(TAGS.Beam, node.id, { type: "empty" });
-  if (node instanceof Grace_group) return createCSNode(TAGS.Grace_group, node.id, { type: "empty" });
-  if (node instanceof BarLine) return createCSNode(TAGS.BarLine, node.id, { type: "empty" });
-  if (node instanceof Decoration) return createCSNode(TAGS.Decoration, node.id, { type: "empty" });
-  if (node instanceof Annotation) return createCSNode(TAGS.Annotation, node.id, { type: "empty" });
-  if (node instanceof Inline_field) return createCSNode(TAGS.Inline_field, node.id, { type: "empty" });
-  if (node instanceof MultiMeasureRest) return createCSNode(TAGS.MultiMeasureRest, node.id, { type: "empty" });
-  if (node instanceof YSPACER) return createCSNode(TAGS.YSPACER, node.id, { type: "empty" });
-  if (node instanceof SystemBreak) return createCSNode(TAGS.SystemBreak, node.id, { type: "empty" });
-  if (node instanceof Symbol) return createCSNode(TAGS.Symbol, node.id, { type: "empty" });
-  if (node instanceof Tuplet) return createCSNode(TAGS.Tuplet, node.id, { type: "empty" });
-  if (node instanceof Voice_overlay) return createCSNode(TAGS.Voice_overlay, node.id, { type: "empty" });
-  if (node instanceof Line_continuation) return createCSNode(TAGS.Line_continuation, node.id, { type: "empty" });
-  if (node instanceof Comment) return createCSNode(TAGS.Comment, node.id, { type: "empty" });
-  if (node instanceof Directive) return createCSNode(TAGS.Directive, node.id, { type: "empty" });
-  if (node instanceof Measurement) return createCSNode(TAGS.Measurement, node.id, { type: "empty" });
-  if (node instanceof Rational) return createCSNode(TAGS.Rational, node.id, { type: "empty" });
-  if (node instanceof File_header) return createCSNode(TAGS.File_header, node.id, { type: "empty" });
-  if (node instanceof Lyric_section) return createCSNode(TAGS.Lyric_section, node.id, { type: "empty" });
-  if (node instanceof AbsolutePitch) return createCSNode(TAGS.AbsolutePitch, node.id, { type: "empty" });
-  if (node instanceof Lyric_line) return createCSNode(TAGS.Lyric_line, node.id, { type: "empty" });
-  if (node instanceof Macro_decl) return createCSNode(TAGS.Macro_decl, node.id, { type: "empty" });
-  if (node instanceof Macro_invocation) return createCSNode(TAGS.Macro_invocation, node.id, { type: "empty" });
-  if (node instanceof User_symbol_decl) return createCSNode(TAGS.User_symbol_decl, node.id, { type: "empty" });
-  if (node instanceof User_symbol_invocation) return createCSNode(TAGS.User_symbol_invocation, node.id, { type: "empty" });
-  if (node instanceof KV) return createCSNode(TAGS.KV, node.id, { type: "empty" });
-  if (node instanceof Binary) return createCSNode(TAGS.Binary, node.id, { type: "empty" });
-  if (node instanceof Unary) return createCSNode(TAGS.Unary, node.id, { type: "empty" });
-  if (node instanceof Grouping) return createCSNode(TAGS.Grouping, node.id, { type: "empty" });
-  if (node instanceof ChordSymbol) return createCSNode(TAGS.ChordSymbol, node.id, { type: "empty" });
-  if (node instanceof ErrorExpr) return createCSNode(TAGS.ErrorExpr, node.id, { type: "empty" });
+  if (node instanceof File_structure) return createCSNode(TAGS.File_structure, node.id, null);
+  if (node instanceof Tune) return createCSNode(TAGS.Tune, node.id, null);
+  if (node instanceof Tune_header) return createCSNode(TAGS.Tune_header, node.id, null);
+  if (node instanceof Tune_Body) return createCSNode(TAGS.Tune_Body, node.id, { voices: node.voices });
+  if (node instanceof Info_line) return createCSNode(TAGS.Info_line, node.id, null);
+  if (node instanceof SymbolLine) return createCSNode(TAGS.Info_line, node.id, null);
+  if (node instanceof Note) return createCSNode(TAGS.Note, node.id, null);
+  if (node instanceof Pitch) return createCSNode(TAGS.Pitch, node.id, null);
+  if (node instanceof Rhythm) return createCSNode(TAGS.Rhythm, node.id, null);
+  if (node instanceof Rest) return createCSNode(TAGS.Rest, node.id, null);
+  if (node instanceof Chord) return createCSNode(TAGS.Chord, node.id, null);
+  if (node instanceof Beam) return createCSNode(TAGS.Beam, node.id, null);
+  if (node instanceof Grace_group) return createCSNode(TAGS.Grace_group, node.id, null);
+  if (node instanceof BarLine) return createCSNode(TAGS.BarLine, node.id, null);
+  if (node instanceof Decoration) return createCSNode(TAGS.Decoration, node.id, null);
+  if (node instanceof Annotation) return createCSNode(TAGS.Annotation, node.id, null);
+  if (node instanceof Inline_field) return createCSNode(TAGS.Inline_field, node.id, null);
+  if (node instanceof MultiMeasureRest) return createCSNode(TAGS.MultiMeasureRest, node.id, null);
+  if (node instanceof YSPACER) return createCSNode(TAGS.YSPACER, node.id, null);
+  if (node instanceof SystemBreak) return createCSNode(TAGS.SystemBreak, node.id, null);
+  if (node instanceof Symbol) return createCSNode(TAGS.Symbol, node.id, null);
+  if (node instanceof Tuplet) return createCSNode(TAGS.Tuplet, node.id, null);
+  if (node instanceof Voice_overlay) return createCSNode(TAGS.Voice_overlay, node.id, null);
+  if (node instanceof Line_continuation) return createCSNode(TAGS.Line_continuation, node.id, null);
+  if (node instanceof Comment) return createCSNode(TAGS.Comment, node.id, null);
+  if (node instanceof Directive) return createCSNode(TAGS.Directive, node.id, null);
+  if (node instanceof Measurement) return createCSNode(TAGS.Measurement, node.id, null);
+  if (node instanceof Rational) return createCSNode(TAGS.Rational, node.id, null);
+  if (node instanceof File_header) return createCSNode(TAGS.File_header, node.id, null);
+  if (node instanceof Lyric_section) return createCSNode(TAGS.Lyric_section, node.id, null);
+  if (node instanceof AbsolutePitch) return createCSNode(TAGS.AbsolutePitch, node.id, null);
+  if (node instanceof Lyric_line) return createCSNode(TAGS.Lyric_line, node.id, null);
+  if (node instanceof Macro_decl) return createCSNode(TAGS.Macro_decl, node.id, null);
+  if (node instanceof Macro_invocation) return createCSNode(TAGS.Macro_invocation, node.id, null);
+  if (node instanceof User_symbol_decl) return createCSNode(TAGS.User_symbol_decl, node.id, null);
+  if (node instanceof User_symbol_invocation) return createCSNode(TAGS.User_symbol_invocation, node.id, null);
+  if (node instanceof KV) return createCSNode(TAGS.KV, node.id, null);
+  if (node instanceof Binary) return createCSNode(TAGS.Binary, node.id, null);
+  if (node instanceof Unary) return createCSNode(TAGS.Unary, node.id, null);
+  if (node instanceof Grouping) return createCSNode(TAGS.Grouping, node.id, null);
+  if (node instanceof ChordSymbol) return createCSNode(TAGS.ChordSymbol, node.id, null);
+  if (node instanceof ErrorExpr) return createCSNode(TAGS.ErrorExpr, node.id, null);
   throw new Error(`createCsNodeFromAst: unrecognized node type (id=${node.id}, constructor=${node.constructor?.name})`);
 }
 
@@ -312,7 +311,7 @@ export function fromAst(node: Expr | Token, ctx: ABCContext): CSNode {
   // Handle Tune_Body specially to preserve System boundaries
   if (node instanceof Tune_Body) {
     for (const system of node.sequence) {
-      const systemNode = createCSNode(TAGS.System, ctx.generateId(), { type: "empty" });
+      const systemNode = createCSNode(TAGS.System, ctx.generateId(), null);
       for (const element of system) {
         appendChild(systemNode, fromAst(element, ctx));
       }
