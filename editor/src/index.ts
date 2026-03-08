@@ -129,7 +129,7 @@ export {
 // Context utilities
 export { getContextForNode } from "./context/contextUtils";
 export { interpretContext, CsContextState } from "./context/csContextInterpreter";
-export { buildCsBarMap, BarMap, BarEntry } from "./context/csBarMap";
+export { buildMap, init, finalize, BarMap, BarEntry, BarMapState } from "./context/csBarMap";
 
 // Utils
 export { diffChars, Change } from "./utils/diffToPatches";

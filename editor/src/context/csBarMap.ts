@@ -10,9 +10,9 @@
  * a closing node ID that anchors the bar's position in the tree.
  */
 
+import { TT } from "abc-parser";
 import { visit, type CSVisitor } from "cstree";
 import { type CSNode, type EditorDataMap, TAGS, isTokenNode, getTokenData } from "../csTree/types";
-import { TT } from "abc-parser";
 import { isVoiceMarker, extractVoiceId } from "../selectors/voiceSelector";
 
 // ============================================================================
@@ -38,7 +38,7 @@ export type BarMap = Map<string, Map<number, BarEntry>>;
 
 type BarMapVisitor = CSVisitor<TAGS, EditorDataMap, BarMapState>;
 
-interface BarMapState {
+export interface BarMapState {
   visitor: BarMapVisitor;
   barMap: BarMap;
   voices: Map<string, VoiceBarState>;
@@ -115,7 +115,7 @@ function switchVoice(state: BarMapState, node: CSNode): void {
  * Called after all elements have been visited. Closes the final bar
  * for the active voice if it has content.
  */
-function finalize(state: BarMapState): void {
+export function finalize(state: BarMapState): void {
   const voiceState = state.voices.get(state.currentVoiceId)!;
   if (voiceState.hasContent && state.lastNodeId !== null) {
     closeCurrentBar(state, state.lastNodeId);
@@ -197,12 +197,11 @@ const barMapVisitor: BarMapVisitor = {
 // ============================================================================
 
 /**
- * Builds a bar map from a CSTree Tune_Body node. The visitor traverses
- * all systems, tracking voice switches and recording bar entries when
- * bars are closed by barlines, EOL tokens, voice markers, or the end
- * of the stream.
+ * Creates an initialized BarMapState ready for visiting. Callers can
+ * use this with `visit(node, state)` to build a bar map from any node
+ * (Tune_Body or System) without needing the `buildCsBarMap` wrapper.
  */
-export function buildCsBarMap(tuneBody: CSNode, startingVoiceId: string): BarMap {
+export function init(startingVoiceId: string): BarMapState {
   const state: BarMapState = {
     visitor: barMapVisitor,
     barMap: new Map(),
@@ -210,10 +209,19 @@ export function buildCsBarMap(tuneBody: CSNode, startingVoiceId: string): BarMap
     currentVoiceId: startingVoiceId,
     lastNodeId: null,
   };
-
   ensureVoice(state, startingVoiceId);
+  return state;
+}
+
+/**
+ * Builds a bar map from a CSTree Tune_Body node. The visitor traverses
+ * all systems, tracking voice switches and recording bar entries when
+ * bars are closed by barlines, EOL tokens, voice markers, or the end
+ * of the stream.
+ */
+export function buildMap(tuneBody: CSNode, startingVoiceId: string): BarMap {
+  const state = init(startingVoiceId);
   visit(tuneBody, state);
   finalize(state);
-
   return state.barMap;
 }

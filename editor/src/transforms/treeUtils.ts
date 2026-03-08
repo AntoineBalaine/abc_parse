@@ -1,6 +1,6 @@
+import { TT } from "abc-parser";
 import { findChild, remove, replace, insertBefore as cstreeInsertBefore, appendChild as cstreeAppendChild } from "cstree";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
-import { TT } from "abc-parser";
 
 export function findChildByTag(parent: CSNode, tag: string): CSNode | null {
   return findChild(parent, (n) => n.tag === tag);
