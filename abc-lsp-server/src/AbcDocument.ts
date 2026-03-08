@@ -1,6 +1,7 @@
 import { ABCContext, File_structure, parse, RangeVisitor, Scanner, Token, SemanticAnalyzer } from "abc-parser";
-import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
+import { DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
 import { ChordPosition, ChordPositionCollector } from "abc-parser/interpreter/ChordPositionCollector";
+import { fromAst, interpretContext } from "editor";
 import { Diagnostic } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { mapAbcErrorsToDiagnostics, mapAbcWarningsToDiagnostics } from "./server_helpers";
@@ -41,8 +42,8 @@ export class AbcDocument {
     }
     const analyzer = new SemanticAnalyzer(this.ctx);
     this.AST.accept(analyzer);
-    const interpreter = new ContextInterpreter();
-    this.snapshots = interpreter.interpret(this.AST, analyzer.data, this.ctx, { snapshotAccidentals });
+    const root = fromAst(this.AST, this.ctx);
+    this.snapshots = interpretContext(root, analyzer.data, { snapshotAccidentals });
     this.snapshotsHaveAccidentals = snapshotAccidentals;
     return this.snapshots;
   }
