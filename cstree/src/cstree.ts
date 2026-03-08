@@ -205,6 +205,69 @@ export function cloneSubtree<T extends string, DM extends Record<T, unknown>>(
   return clone;
 }
 
+// ============================================================================
+// Visitor Interface
+// ============================================================================
+
+/**
+ * A handler function for a specific node tag. The handler receives the matched
+ * node and a context object that carries both user state and the visitor dispatch
+ * table (via ctx.visitor).
+ *
+ * To recurse into a child, the handler calls visit(child, ctx). Any return
+ * values should be stored in the context object.
+ *
+ * Typical usage patterns:
+ * - Iterate node.firstChild chain, calling visit(child, ctx) on each child
+ *   to replicate default recursion behavior
+ * - Call visit on only specific children for selective traversal
+ * - Do not call visit at all to prevent any descent into children
+ *
+ * Warning: calling visit(node, ctx) on the handler's own node will cause
+ * infinite recursion.
+ */
+export type CSVisitorHandler<T extends string, DM extends Record<T, unknown>, Ctx> = (node: CSNode<T, DM>, ctx: Ctx) => void;
+
+/**
+ * A dispatch table mapping tag names to handler functions. Only tags that need
+ * custom handling require an entry; all other tags receive default recursion
+ * into their children.
+ */
+export type CSVisitor<T extends string, DM extends Record<T, unknown>, Ctx> = Partial<Record<T, CSVisitorHandler<T, DM, Ctx>>>;
+
+/**
+ * Visits a CSTree depth-first, dispatching to the handler found in ctx.visitor
+ * for each node's tag. When a handler exists, it receives the node and ctx.
+ * When no handler exists, children are visited automatically via default recursion.
+ *
+ * The context must carry a visitor field containing the dispatch table.
+ *
+ * We capture nextSibling before recursing so that tree mutations inside
+ * handlers do not cause skipped or double-visited siblings.
+ */
+export function visit<T extends string, DM extends Record<T, unknown>, Ctx extends { visitor: CSVisitor<T, DM, Ctx> }>(
+  root: CSNode<T, DM>,
+  ctx: Ctx
+): void {
+  const handler = ctx.visitor[root.tag as T];
+  if (handler) {
+    handler(root, ctx);
+    return;
+  }
+
+  // Default recursion: visit all children
+  let child = root.firstChild;
+  while (child !== null) {
+    const next = child.nextSibling;
+    visit(child, ctx);
+    child = next;
+  }
+}
+
+// ============================================================================
+// Internal Utilities
+// ============================================================================
+
 function preOrder<T extends string, DM extends Record<T, unknown>>(root: CSNode<T, DM>): CSNode<T, DM>[] {
   const result: CSNode<T, DM>[] = [];
   const stack: CSNode<T, DM>[] = [root];

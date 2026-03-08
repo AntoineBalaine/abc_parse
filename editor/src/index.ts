@@ -127,6 +127,7 @@ export {
 
 // Context utilities
 export { getContextForNode } from "./context/contextUtils";
+export { interpretContext, CsContextState } from "./context/csContextInterpreter";
 
 // Utils
 export { diffChars, Change } from "./utils/diffToPatches";

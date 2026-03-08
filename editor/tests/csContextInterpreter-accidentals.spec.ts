@@ -1,0 +1,218 @@
+import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter } from "abc-parser";
+import { encode, getSnapshotAtPosition } from "abc-parser/interpreter/ContextInterpreter";
+import { AccidentalType } from "abc-parser/types/abcjs-ast";
+import { expect } from "chai";
+import * as fc from "fast-check";
+import { interpretContext } from "../src/context/csContextInterpreter";
+import { fromAst } from "../src/csTree/fromAst";
+
+function parseAndInterpret(input: string, snapshotAccidentals = true) {
+  const ctx = new ABCContext(new AbcErrorReporter());
+  const tokens = Scanner(input, ctx);
+  const ast = parse(tokens, ctx);
+  const analyzer = new SemanticAnalyzer(ctx);
+  ast.accept(analyzer);
+  const csTree = fromAst(ast, ctx);
+  const snapshots = interpretContext(csTree, analyzer.data, { snapshotAccidentals });
+  return { snapshots, ctx };
+}
+
+describe("CSTree ContextInterpreter measure accidentals", () => {
+  it("should record sharp accidental", () => {
+    const input = "X:1\nK:C\n^F G A|";
+    const { snapshots } = parseAndInterpret(input);
+
+    const snapshot = getSnapshotAtPosition(snapshots, encode(2, 2));
+    expect(snapshot?.measureAccidentals?.get("F")).to.equal(AccidentalType.Sharp);
+  });
+
+  it("should record flat accidental", () => {
+    const input = "X:1\nK:C\n_B G A|";
+    const { snapshots } = parseAndInterpret(input);
+
+    const snapshot = getSnapshotAtPosition(snapshots, encode(2, 2));
+    expect(snapshot?.measureAccidentals?.get("B")).to.equal(AccidentalType.Flat);
+  });
+
+  it("should record natural accidental", () => {
+    const input = "X:1\nK:G\n=F G A|";
+    const { snapshots } = parseAndInterpret(input);
+
+    const snapshot = getSnapshotAtPosition(snapshots, encode(2, 2));
+    expect(snapshot?.measureAccidentals?.get("F")).to.equal(AccidentalType.Natural);
+  });
+
+  it("should record double sharp accidental", () => {
+    const input = "X:1\nK:C\n^^F G A|";
+    const { snapshots } = parseAndInterpret(input);
+
+    const snapshot = getSnapshotAtPosition(snapshots, encode(2, 3));
+    expect(snapshot?.measureAccidentals?.get("F")).to.equal(AccidentalType.DblSharp);
+  });
+
+  it("should record double flat accidental", () => {
+    const input = "X:1\nK:C\n__B G A|";
+    const { snapshots } = parseAndInterpret(input);
+
+    const snapshot = getSnapshotAtPosition(snapshots, encode(2, 3));
+    expect(snapshot?.measureAccidentals?.get("B")).to.equal(AccidentalType.DblFlat);
+  });
+
+  it("should update accidental when overridden", () => {
+    const input = "X:1\nK:C\n^F G =F|";
+    const { snapshots } = parseAndInterpret(input);
+
+    const lastSnapshot = snapshots[snapshots.length - 1].snapshot;
+    expect(lastSnapshot.measureAccidentals?.get("F")).to.equal(AccidentalType.Natural);
+  });
+
+  it("should clear accidentals at barline", () => {
+    const input = "X:1\nK:C\n^F G|A B|";
+    const { snapshots } = parseAndInterpret(input);
+
+    const snapshotsAfterBarline = snapshots.filter((s) => s.snapshot.measureNumber > 1);
+
+    for (const { snapshot } of snapshotsAfterBarline) {
+      if (snapshot.measureAccidentals) {
+        expect(snapshot.measureAccidentals.has("F")).to.be.false;
+      }
+    }
+  });
+
+  it("should record accidentals inside chords", () => {
+    const input = "X:1\nK:C\n[^FAC]|";
+    const { snapshots } = parseAndInterpret(input);
+
+    const chordSnapshot = snapshots.find((s) => s.snapshot.measureAccidentals?.has("F"));
+    expect(chordSnapshot?.snapshot.measureAccidentals?.get("F")).to.equal(AccidentalType.Sharp);
+  });
+
+  it("should record multiple accidentals inside chords", () => {
+    const input = "X:1\nK:C\n[^F_AC]|";
+    const { snapshots } = parseAndInterpret(input);
+
+    const chordSnapshot = snapshots.find((s) => s.snapshot.measureAccidentals?.has("F") && s.snapshot.measureAccidentals?.has("A"));
+    expect(chordSnapshot?.snapshot.measureAccidentals?.get("F")).to.equal(AccidentalType.Sharp);
+    expect(chordSnapshot?.snapshot.measureAccidentals?.get("A")).to.equal(AccidentalType.Flat);
+  });
+
+  it("should not include measureAccidentals when config is disabled", () => {
+    const input = "X:1\nK:C\n^F G A|";
+    const { snapshots } = parseAndInterpret(input, false);
+
+    for (const { snapshot } of snapshots) {
+      expect(snapshot.measureAccidentals).to.be.undefined;
+    }
+  });
+
+  it("should handle multiple notes with same pitch class", () => {
+    const input = "X:1\nK:C\n^F G ^f|";
+    const { snapshots } = parseAndInterpret(input);
+
+    const lastSnapshot = snapshots[snapshots.length - 1].snapshot;
+    expect(lastSnapshot.measureAccidentals?.get("F")).to.equal(AccidentalType.Sharp);
+  });
+
+  it("should clear accidentals at system break", () => {
+    const input = "X:1\nK:C\n^F G$\nA B|";
+    const { snapshots } = parseAndInterpret(input);
+
+    const snapshotsAfterSystemBreak = snapshots.filter((s) => s.snapshot.line > 2);
+    for (const { snapshot } of snapshotsAfterSystemBreak) {
+      if (snapshot.measureAccidentals) {
+        expect(snapshot.measureAccidentals.has("F")).to.be.false;
+      }
+    }
+  });
+
+  it("should clear accidentals at line end (EOL)", () => {
+    const input = "X:1\nK:C\n^F G\nA B|";
+    const { snapshots } = parseAndInterpret(input);
+
+    const snapshotsOnLine3 = snapshots.filter((s) => s.snapshot.line === 3);
+    for (const { snapshot } of snapshotsOnLine3) {
+      if (snapshot.measureAccidentals) {
+        expect(snapshot.measureAccidentals.has("F")).to.be.false;
+      }
+    }
+  });
+
+  it("should maintain separate accidentals per voice", () => {
+    const input = "X:1\nK:C\nV:1\n^F G|\nV:2\n_B A|";
+    const { snapshots } = parseAndInterpret(input);
+
+    const v1Snapshots = snapshots.filter((s) => s.snapshot.voiceId === "1");
+    const v1WithF = v1Snapshots.find((s) => s.snapshot.measureAccidentals?.has("F"));
+    expect(v1WithF).to.not.be.undefined;
+    expect(v1WithF?.snapshot.measureAccidentals?.has("B")).to.be.false;
+
+    const v2Snapshots = snapshots.filter((s) => s.snapshot.voiceId === "2");
+    const v2WithB = v2Snapshots.find((s) => s.snapshot.measureAccidentals?.has("B"));
+    expect(v2WithB).to.not.be.undefined;
+    expect(v2WithB?.snapshot.measureAccidentals?.has("F")).to.be.false;
+  });
+
+  it("should produce independent snapshot maps (not shared references)", () => {
+    const input = "X:1\nK:C\n^F G =F|";
+    const { snapshots } = parseAndInterpret(input);
+
+    const snapshotsWithAccidentals = snapshots.filter((s) => s.snapshot.measureAccidentals?.size);
+    if (snapshotsWithAccidentals.length >= 2) {
+      const first = snapshotsWithAccidentals[0].snapshot.measureAccidentals!;
+      const second = snapshotsWithAccidentals[1].snapshot.measureAccidentals!;
+
+      first.set("D", AccidentalType.Sharp);
+      expect(second.has("D")).to.be.false;
+    }
+  });
+});
+
+describe("CSTree ContextInterpreter measure accidentals properties", () => {
+  it("property: snapshot measureAccidentals only contains valid pitch classes", () => {
+    const noteWithAccidental = fc.constantFrom("^C", "_D", "=E", "^^F", "__G", "^A", "_B");
+    const noteWithoutAccidental = fc.constantFrom("A", "B", "C", "D", "E", "F", "G", "a", "b", "c", "d", "e", "f", "g");
+    const note = fc.oneof(noteWithAccidental, noteWithoutAccidental);
+    const measure = fc.array(note, { minLength: 1, maxLength: 8 }).map((notes) => notes.join(" ") + "|");
+    const body = fc.array(measure, { minLength: 1, maxLength: 4 }).map((measures) => measures.join(""));
+    const tune = body.map((b) => `X:1\nK:C\n${b}`);
+
+    fc.assert(
+      fc.property(tune, (input) => {
+        const { snapshots } = parseAndInterpret(input);
+
+        for (const { snapshot } of snapshots) {
+          if (snapshot.measureAccidentals !== undefined) {
+            for (const key of snapshot.measureAccidentals.keys()) {
+              if (!/^[A-G]$/.test(key)) return false;
+            }
+          }
+        }
+        return true;
+      })
+    );
+  });
+
+  it("property: accidentals are cleared at barlines", () => {
+    const accidental = fc.constantFrom("^", "_", "=");
+    const pitchClass = fc.constantFrom("C", "D", "E", "F", "G", "A", "B");
+    const noteWithAccidental = fc.tuple(accidental, pitchClass).map(([acc, pc]) => acc + pc);
+
+    fc.assert(
+      fc.property(noteWithAccidental, (note) => {
+        const input = `X:1\nK:C\n${note} G|A B|`;
+        const { snapshots } = parseAndInterpret(input);
+
+        const pc = note.slice(-1).toUpperCase() as "C" | "D" | "E" | "F" | "G" | "A" | "B";
+
+        const measure2Snapshots = snapshots.filter((s) => s.snapshot.measureNumber === 2);
+
+        for (const { snapshot } of measure2Snapshots) {
+          if (snapshot.measureAccidentals?.has(pc)) {
+            return false;
+          }
+        }
+        return true;
+      })
+    );
+  });
+});
