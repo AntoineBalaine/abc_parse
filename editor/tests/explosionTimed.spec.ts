@@ -7,9 +7,11 @@ import { createRational, rationalToNumber } from "abc-parser/Visitors/fmt2/ratio
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { fromAst } from "../src/csTree/fromAst";
+import { toAst } from "../src/csTree/toAst";
 import { createSelection, Selection } from "../src/selection";
 import { selectRange } from "../src/selectors/rangeSelector";
 import {
+  explosion,
   filterChordToPart,
   walkAndFilter,
   getBarSlice,
@@ -885,6 +887,188 @@ describe("explosionTimed", () => {
       expect(bar0Text).to.include("D");
       expect(bar0Text).to.include("E");
       expect(bar0Text).to.include("F");
+    });
+  });
+});
+
+/**
+ * Serializes a CSTree root back to ABC text by converting to AST and formatting.
+ */
+function serializeSelection(selection: Selection, ctx: ABCContext): string {
+  const ast = toAst(selection.root);
+  const formatter = new AbcFormatter(ctx);
+  return formatter.stringify(ast as Expr);
+}
+
+/**
+ * Creates a full test context and narrows the selection to a specific line range
+ * in the tune body. The line/col values are 0-indexed.
+ */
+function createExplosionTestContext(
+  abc: string,
+  startLine: number,
+  startCol: number,
+  endLine: number,
+  endCol: number
+): {
+  selection: Selection;
+  ctx: ABCContext;
+  snapshots: DocumentSnapshots;
+} {
+  const { selection, ctx, snapshots } = createFullTestContext(abc);
+  const narrowed = selectRange(selection, startLine, startCol, endLine, endCol);
+  // The explosion transform expects a single grouped cursor (as the LSP
+  // server provides via GROUPED_CURSOR_TRANSFORMS). selectRange creates
+  // one cursor per matched node, so we merge them here.
+  const merged = new Set<number>();
+  for (const cursor of narrowed.cursors) {
+    for (const id of cursor) merged.add(id);
+  }
+  return {
+    selection: { root: narrowed.root, cursors: [merged] },
+    ctx,
+    snapshots,
+  };
+}
+
+describe("end-to-end", () => {
+  describe("deferred style (ctx.tuneLinear = false)", () => {
+    it("D1: simple two-note chords exploded into two voices", () => {
+      const abc = "X:1\nK:C\n[CE] [DF] [EG]|\n";
+      const { selection, ctx, snapshots } = createExplosionTestContext(abc, 2, 0, 2, 100);
+
+      const result = explosion(selection, ["1", "2"], ctx, snapshots);
+      const text = serializeSelection(result, ctx);
+
+      expect(text).to.equal("X:1\nK:C\n[CE] [DF] [EG]|\n[V:1]E F G|\n[V:2]C D E|\n");
+      expect(result.cursors.length).to.equal(2);
+      expect(result.cursors[0].size).to.be.greaterThan(0);
+      expect(result.cursors[1].size).to.be.greaterThan(0);
+    });
+
+    it("D2: three-note chord exploded into three voices", () => {
+      const abc = "X:1\nK:C\n[CEG]|\n";
+      const { selection, ctx, snapshots } = createExplosionTestContext(abc, 2, 0, 2, 100);
+
+      const result = explosion(selection, ["1", "2", "3"], ctx, snapshots);
+      const text = serializeSelection(result, ctx);
+
+      expect(text).to.equal("X:1\nK:C\n[CEG]|\n[V:1]G|\n[V:2]E|\n[V:3]C|\n");
+      expect(result.cursors.length).to.equal(3);
+    });
+
+    it("D3: two-bar selection with mixed chords and standalone notes", () => {
+      const abc = "X:1\nK:C\n[CE] D | [EG] F|\n";
+      const { selection, ctx, snapshots } = createExplosionTestContext(abc, 2, 0, 2, 100);
+
+      const result = explosion(selection, ["1", "2"], ctx, snapshots);
+      const text = serializeSelection(result, ctx);
+
+      expect(text).to.equal("X:1\nK:C\n[CE] D | [EG] F|\n[V:1]E D | G F|\n[V:2]C z | E z|\n");
+      expect(result.cursors.length).to.equal(2);
+    });
+
+    it("D4: partial bar selection (only some notes selected)", () => {
+      const abc = "X:1\nK:C\nA [CE] [DF] B|\n";
+      const { selection, ctx, snapshots } = createExplosionTestContext(abc, 2, 2, 2, 11);
+
+      const result = explosion(selection, ["1", "2"], ctx, snapshots);
+      const text = serializeSelection(result, ctx);
+
+      // Partial bar selection is a known open issue (see bugtracker).
+      // The output is not fully correct but we lock in the current
+      // behavior to detect regressions.
+      expect(text).to.equal("X:1\nK:C\nA [CE] [DF] B|\n[V:1]ZA E F B|\n[V:2]Zz C D z|\n");
+    });
+
+    it("D5: tune with explicit voice declaration", () => {
+      const abc = "X:1\nK:C\nV:1\n[CE] [DF]| [EG] [FA]|\n";
+      const { selection, ctx, snapshots } = createExplosionTestContext(abc, 3, 0, 3, 100);
+
+      const result = explosion(selection, ["1", "2"], ctx, snapshots);
+      const text = serializeSelection(result, ctx);
+
+      expect(text).to.equal("X:1\nK:C\nV:1\nE F|  G A|\n[V:2]C D| E F|\n");
+      expect(result.cursors.length).to.equal(2);
+      expect(result.cursors[0].size).to.be.greaterThan(0);
+      expect(result.cursors[1].size).to.be.greaterThan(0);
+    });
+
+    it("D6: chords with rhythm are preserved in the exploded notes", () => {
+      const abc = "X:1\nK:C\n[CE]2 [DF]/|\n";
+      const { selection, ctx, snapshots } = createExplosionTestContext(abc, 2, 0, 2, 100);
+
+      const result = explosion(selection, ["1", "2"], ctx, snapshots);
+      const text = serializeSelection(result, ctx);
+
+      expect(text).to.equal("X:1\nK:C\n[CE]2 [DF]/|\n[V:1]E2 F/|\n[V:2]C2 D/|\n");
+    });
+  });
+
+  describe("linear style (ctx.tuneLinear = true)", () => {
+    it("L1: simple linear tune with chords", () => {
+      const abc = "X:1\n%%abcls-parse linear\nK:C\n[CE] [DF]|\n";
+      const { selection, ctx, snapshots } = createExplosionTestContext(abc, 3, 0, 3, 100);
+
+      const result = explosion(selection, ["1", "2"], ctx, snapshots);
+      const text = serializeSelection(result, ctx);
+
+      expect(text).to.equal("X:1\n%%abcls-parse linear\nK:C\n[CE] [DF]|\n[V:1]E F|\n[V:2]C D|\n");
+      expect(result.cursors.length).to.equal(2);
+    });
+
+    it("L2: linear tune with existing voices", () => {
+      const abc = "X:1\n%%abcls-parse linear\nK:C\nV:1\n[CE] [DF]|\nV:2\nG A|\n";
+      const { selection, ctx, snapshots } = createExplosionTestContext(abc, 4, 0, 4, 100);
+
+      const result = explosion(selection, ["1", "3"], ctx, snapshots);
+      const text = serializeSelection(result, ctx);
+
+      expect(text).to.equal("X:1\n%%abcls-parse linear\nK:C\nV:1\nE F|\nV:2\nG A|\n[V:3]C D|\n");
+    });
+  });
+
+  describe("guard clause coverage", () => {
+    it("G1: empty selection produces no changes", () => {
+      const abc = "X:1\nK:C\n[CE] [DF]|\n";
+      const { selection: baseSelection, ctx, snapshots } = createFullTestContext(abc);
+      const emptySelection: Selection = { root: baseSelection.root, cursors: [] };
+
+      const result = explosion(emptySelection, ["1", "2"], ctx, snapshots);
+      const text = serializeSelection(result, ctx);
+
+      expect(text).to.equal(abc);
+    });
+
+    it("G2: selection spanning multiple voices returns unchanged", () => {
+      const abc = "X:1\nK:C\nV:1\nC D|\nV:2\nE F|\n";
+      const { selection, ctx, snapshots } = createExplosionTestContext(abc, 3, 0, 5, 100);
+
+      const result = explosion(selection, ["3", "4"], ctx, snapshots);
+      const text = serializeSelection(result, ctx);
+
+      expect(text).to.equal(abc);
+    });
+
+    it("G3: tune with only standalone notes (no chords)", () => {
+      const abc = "X:1\nK:C\nC D E F|\n";
+      const { selection, ctx, snapshots } = createExplosionTestContext(abc, 2, 0, 2, 100);
+
+      const result = explosion(selection, ["1", "2"], ctx, snapshots);
+      const text = serializeSelection(result, ctx);
+
+      expect(text).to.equal("X:1\nK:C\nC D E F|\n[V:1]C D E F|\n");
+    });
+
+    it("G4: target voice IDs include the source voice", () => {
+      const abc = "X:1\nK:C\n[CE] [DF]|\n";
+      const { selection, ctx, snapshots } = createExplosionTestContext(abc, 2, 0, 2, 100);
+
+      const result = explosion(selection, ["1", "2"], ctx, snapshots);
+      const text = serializeSelection(result, ctx);
+
+      expect(text).to.equal("X:1\nK:C\n[CE] [DF]|\n[V:1]E F|\n[V:2]C D|\n");
+      expect(result.cursors.length).to.equal(2);
     });
   });
 });

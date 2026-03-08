@@ -264,7 +264,7 @@ export interface TimeMapEntry {
  * duration. Because the duration calculator maintains state for broken rhythms
  * and tuplets, we iterate sequentially and accumulate time.
  */
-export function buildTimeMap(content: System, startIdx: number, endIdx: number): TimeMapEntry[] {
+export function buildTimeMap(content: System, startIdx: number, endIdx: number, barDuration?: IRational): TimeMapEntry[] {
   const entries: TimeMapEntry[] = [];
   let currentTime = createRational(0, 1);
   const durCtx: DurationContext = {};
@@ -273,8 +273,20 @@ export function buildTimeMap(content: System, startIdx: number, endIdx: number):
     const node = content[i];
     if (!isTimeEvent(node)) continue;
 
-    const duration = calculateDuration(node, durCtx);
-    if (isInfiniteRational(duration)) break;
+    let duration = calculateDuration(node, durCtx);
+
+    // A multi-measure rest (Z) reports infinite duration because the
+    // parser's calculateDuration does not have access to the current
+    // time signature. When a barDuration is provided, we use it as
+    // the rest's duration so that replaceTimeRangeInBar can find an
+    // exact overlap and replace the rest without attempting a split.
+    if (isInfiniteRational(duration)) {
+      if (barDuration) {
+        duration = barDuration;
+      } else {
+        break;
+      }
+    }
 
     entries.push({ node, contentIdx: i, startTime: currentTime, duration });
     currentTime = addRational(currentTime, duration);
@@ -345,6 +357,17 @@ export function getSourceBarRange(barMap: BarMap, systems: System[], cursorRange
         endBarNum = entry.barNumber + 1;
       }
     }
+  }
+
+  // Clamp endBarNum to the highest bar number in the voice's barMap
+  // entries. Because the cursor selection can extend past the last
+  // barline, the loop above may overshoot by 1.
+  if (voiceEntries) {
+    let maxBar = 0;
+    for (const entry of voiceEntries.values()) {
+      if (entry.barNumber > maxBar) maxBar = entry.barNumber;
+    }
+    if (endBarNum > maxBar) endBarNum = maxBar;
   }
 
   return { start: startBarNum, end: endBarNum };
@@ -601,8 +624,8 @@ export function splitNoteAt(content: System, contentIdx: number, splitAt: IRatio
  * into two notes with adjusted durations. When the time range covers the
  * entire bar, no splitting occurs and the whole bar content is replaced.
  */
-export function replaceTimeRangeInBar(content: System, startIdx: number, endIdx: number, timeRange: TimeRange, replacement: System, ctx: ABCContext): void {
-  let timeMap = buildTimeMap(content, startIdx, endIdx);
+export function replaceTimeRangeInBar(content: System, startIdx: number, endIdx: number, timeRange: TimeRange, replacement: System, ctx: ABCContext, barDuration?: IRational): void {
+  let timeMap = buildTimeMap(content, startIdx, endIdx, barDuration);
 
   let firstOverlapIdx: number | null = null;
   let lastOverlapIdx: number | null = null;
@@ -632,7 +655,7 @@ export function replaceTimeRangeInBar(content: System, startIdx: number, endIdx:
     // After splitting, re-scan to get updated indices. Both overlap indices
     // must be incremented because the split inserted a new element before
     // all subsequent entries, shifting them by 1 in the rebuilt time map.
-    timeMap = buildTimeMap(content, startIdx, endIdx + splitCount);
+    timeMap = buildTimeMap(content, startIdx, endIdx + splitCount, barDuration);
     firstOverlapIdx = firstOverlapIdx + 1;
     lastOverlapIdx = lastOverlapIdx + 1;
   }
@@ -646,7 +669,7 @@ export function replaceTimeRangeInBar(content: System, startIdx: number, endIdx:
     splitCount++;
     // lastOverlapIdx stays the same: we replace only the first half
     // Re-scan so that the splice indices below are correct
-    timeMap = buildTimeMap(content, startIdx, endIdx + splitCount);
+    timeMap = buildTimeMap(content, startIdx, endIdx + splitCount, barDuration);
   }
 
   // Splice: remove the overlapping elements, insert replacement
@@ -709,7 +732,7 @@ function collectExistingVoicePositions(target: System | Tune_Body): ExistingVoic
 
 /**
  * Creates a new voice line and registers it in the bar map. The voice line
- * consists of a voice marker [V:voiceId], a Z multi-measure rest, and a
+ * consists of a voice marker [V:voiceId], a multi-measure rest Z, and a
  * barline |. The insertion position is determined by the canonical voice
  * ordering: we find the first existing voice whose position in voiceOrder
  * is greater than the new voice's position, and insert before it.
@@ -722,6 +745,12 @@ function createVoiceLine(barMap: BarMap, voiceId: string, insertionTarget: Syste
   const barline = new BarLine(ctx.generateId(), [new Token(TT.BARLINE, "|", ctx.generateId())]);
   voiceLine.push(zRest);
   voiceLine.push(barline);
+
+  // When inserting into a Tune_Body, each system needs a trailing EOL
+  // so that the formatter emits a newline between voice lines.
+  if (isTuneBody(insertionTarget)) {
+    voiceLine.push(new Token(TT.EOL, "\n", ctx.generateId()));
+  }
 
   const targetIdx = voiceOrder.indexOf(voiceId);
 
@@ -770,8 +799,8 @@ function createVoiceLine(barMap: BarMap, voiceId: string, insertionTarget: Syste
 
 /**
  * Creates a rest-filled bar for a voice and registers it in the bar map.
- * Appends a Z rest + barline to the voice's content in the system array,
- * then registers the new barline's node ID in the bar map.
+ * Appends a Z multi-measure rest + barline to the voice's content in the
+ * system array, then registers the new barline's node ID in the bar map.
  */
 function createBar(barMap: BarMap, voiceId: string, barNum: number, systems: System[], ctx: ABCContext): void {
   const voiceEntries = barMap.get(voiceId);
@@ -876,11 +905,22 @@ function explodeParts(
       // Compute time range from unfiltered source bar
       const timeRange = cursorRangeToTimeRange(sourceBarContent, 0, sourceBarContent.length, cursorRange);
 
+      // Compute the source bar's total duration so that buildTimeMap
+      // can assign a finite duration to any Z placeholder rests in the
+      // target bar. This ensures replaceTimeRangeInBar finds an exact
+      // overlap instead of attempting to split the Z rest.
+      const sourceTimeMap = buildTimeMap(sourceBarContent, 0, sourceBarContent.length);
+      let sourceBarDuration = createRational(0, 1);
+      if (sourceTimeMap.length > 0) {
+        const last = sourceTimeMap[sourceTimeMap.length - 1];
+        sourceBarDuration = addRational(last.startTime, last.duration);
+      }
+
       // Perform replacement in target bar. Because getBarSlice re-derives
       // startIdx by scanning the array, it is immune to staleness from splices.
       const targetSlice = findBarSliceInSystems(systems, targetBarEntry);
       if (!targetSlice) continue;
-      replaceTimeRangeInBar(targetSlice.content, targetSlice.startIdx, targetSlice.endIdx, timeRange, partBarContent, ctx);
+      replaceTimeRangeInBar(targetSlice.content, targetSlice.startIdx, targetSlice.endIdx, timeRange, partBarContent, ctx, sourceBarDuration);
 
       // Collect output selection IDs
       const outSet = outputSelections.get(part.targetVoiceId);
