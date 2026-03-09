@@ -1166,6 +1166,23 @@ function explodeParts(
         }
       }
     }
+
+    // Create rest-filled bars for source bars that fall outside the selection.
+    // Because the main loop only covers barRange.start..barRange.end, the
+    // target voice would be shorter than the source voice without these.
+    const sourceEntries = barMap.get(part.sourceVoiceId);
+    if (sourceEntries) {
+      let maxSourceBar = 0;
+      for (const entry of sourceEntries.values()) {
+        if (entry.barNumber > maxSourceBar) maxSourceBar = entry.barNumber;
+      }
+      for (let barNum = 0; barNum <= maxSourceBar; barNum++) {
+        if (barNum >= barRange.start && barNum <= barRange.end) continue;
+        const existing = findBarEntry(barMap, part.targetVoiceId, barNum);
+        if (existing !== null) continue;
+        createBar(barMap, part.targetVoiceId, barNum, rootNode, ctx);
+      }
+    }
   }
 }
 

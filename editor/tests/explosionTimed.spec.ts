@@ -1002,12 +1002,12 @@ describe("explosion CSTree end-to-end", () => {
 
       // Only the selected portion ([DGB] "G7" =B) appears in the target voices.
       // Trailing z = rest for the unselected time after the cursor.
-      // Remaining tracked bugs:
-      // - Second bar (_BAC) absent in new voices (missing-bars bug)
+      // The second bar (_BAC) is outside the selection, so the target voices
+      // receive a rest-filled placeholder bar (Z) to match the source voice's length.
       expect(text).to.equal(
         'X:1\nL:1/4\nK:F\n[V:1] [DGB] "G7" =B "Fm7" B | _BAC\n' +
-          '[V:2]B "G7" =Bz|\n' +
-          '[V:3][DG] "G7" zz|\n'
+          '[V:2]B "G7" =Bz|Z|\n' +
+          '[V:3][DG] "G7" zz|Z|\n'
       );
     });
   });
