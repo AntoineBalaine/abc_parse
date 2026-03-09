@@ -940,10 +940,9 @@ describe("explosion CSTree end-to-end", () => {
       const result = explosion(selection, ["1", "2"], ctx, snapshots);
       const text = serializeSelection(result, ctx);
 
-      // The trailing z rests appear because the replacement covers only the
-      // selected time range, while the full bar content is used as replacement
-      // (the "replaces entire bar" bug documented in the bugtracker).
-      expect(text).to.equal("X:1\nK:C\nA [CE] [DF] B|\n[V:1]zA E F Bz|\n[V:2]zz C D zz|\n");
+      // Leading z = rest for the unselected A before the cursor.
+      // Trailing z = rest for the unselected B after the cursor.
+      expect(text).to.equal("X:1\nK:C\nA [CE] [DF] B|\n[V:1]zE Fz|\n[V:2]zC Dz|\n");
     });
 
     it("tune with explicit voice declaration", () => {
@@ -1001,15 +1000,14 @@ describe("explosion CSTree end-to-end", () => {
       const result = explosion(selection, ["2", "3"], ctx, snapshots);
       const text = serializeSelection(result, ctx);
 
-      // Current output reflects several tracked bugs:
-      // - Leading space after [V:N] (whitespace token preservation)
-      // - "Fm7" B unfiltered in voice 2 (replaces-entire-bar bug)
-      // - Trailing z rest (time range covers only the selection)
+      // Only the selected portion ([DGB] "G7" =B) appears in the target voices.
+      // Trailing z = rest for the unselected time after the cursor.
+      // Remaining tracked bugs:
       // - Second bar (_BAC) absent in new voices (missing-bars bug)
       expect(text).to.equal(
         'X:1\nL:1/4\nK:F\n[V:1] [DGB] "G7" =B "Fm7" B | _BAC\n' +
-          '[V:2] B "G7" =B "Fm7" B z|\n' +
-          '[V:3] [DG] "G7" z "Fm7" z z|\n'
+          '[V:2]B "G7" =Bz|\n' +
+          '[V:3][DG] "G7" zz|\n'
       );
     });
   });

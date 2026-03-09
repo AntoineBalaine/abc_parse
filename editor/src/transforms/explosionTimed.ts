@@ -479,12 +479,13 @@ export function extractBarsContent(barMap: barmap.BarMap, barRange: BarRange, vo
     const slice = findBarSliceInSystems(rootNode, entry);
     if (!slice) continue;
 
-    // Clone each node from startNode to endNode and append to the result.
-    // Because the bar slice includes the closing barline, the output
-    // naturally contains barline delimiters between bars.
+    // Clone each node from startNode to endNode, preserving IDs so that
+    // downstream trimming in explodeParts can cross-check against the
+    // cursor selection set. Fresh IDs are assigned later when replacement
+    // nodes are cloned for insertion.
     let current = slice.startNode;
     while (current !== null) {
-      const clone = cloneSubtree(current, () => ctx.generateId());
+      const clone = cloneSubtree(current, () => ctx.generateId(), true);
       appendChild(systemNode, clone);
       if (current === slice.endNode) break;
       current = current.nextSibling;
@@ -668,8 +669,11 @@ export function prepareParts(
     // that cursorRangeToTimeRange can compute range overlaps.
     const unfilteredClone = cloneSubtree(sourceContent, () => ctx.generateId(), true);
 
-    // The filtered clone gets fresh IDs
-    const filteredClone = cloneSubtree(sourceContent, () => ctx.generateId());
+    // The filtered clone preserves source IDs so that explodeParts can
+    // cross-check node IDs against the cursor selection to trim content
+    // to the selected portion. Fresh IDs are assigned later when the
+    // replacement nodes are cloned for insertion.
+    const filteredClone = cloneSubtree(sourceContent, () => ctx.generateId(), true);
     filterToParts(filteredClone, assignment.partIndices, ctx);
 
     parts.push({
@@ -1033,6 +1037,30 @@ export function getVoiceIdsFromSelection(selection: Selection, snapshots: Docume
 // --- explodeParts ---
 
 /**
+ * Checks whether a node or any of its descendants has an ID in the
+ * given set. Because the filtered content is cloned with preserveData,
+ * its IDs match the original source tree's IDs, which allows us to
+ * cross-check against the cursor selection set.
+ */
+function nodeInSet(node: CSNode, ids: Set<number>): boolean {
+  if (ids.has(node.id)) return true;
+  let child = node.firstChild;
+  while (child !== null) {
+    if (nodeInSet(child, ids)) return true;
+    child = child.nextSibling;
+  }
+  return false;
+}
+
+/**
+ * Trims a list of nodes to only those that overlap the cursor selection.
+ * Each node is checked against the cursor ID set via nodeInSet.
+ */
+function trimToSelection(nodes: CSNode[], cursorIds: Set<number>): CSNode[] {
+  return nodes.filter((n) => nodeInSet(n, cursorIds));
+}
+
+/**
  * Collects sibling nodes from startNode up to (but not including) a BarLine
  * delimiter. Returns the collected nodes and the next node to continue from
  * (which is either the sibling after the barline, or null).
@@ -1061,6 +1089,7 @@ function explodeParts(
   barMap: barmap.BarMap,
   barRange: BarRange,
   cursorRange: Range,
+  cursorIds: Set<number>,
   rootNode: CSNode,
   ctx: ABCContext,
   outputSelections: Map<string, Set<number>>,
@@ -1122,8 +1151,10 @@ function explodeParts(
       const targetSlice = findBarSliceInSystems(rootNode, targetBarEntry);
       if (!targetSlice) continue;
 
-      // Clone filtered nodes so the original prepared content is not consumed
-      const replacementNodes = filteredSeg.nodes.map((n) => cloneSubtree(n, () => ctx.generateId()));
+      // Trim filtered nodes to only those within the cursor selection, then
+      // clone with fresh IDs so the original prepared content is not consumed.
+      const selectedNodes = trimToSelection(filteredSeg.nodes, cursorIds);
+      const replacementNodes = selectedNodes.map((n) => cloneSubtree(n, () => ctx.generateId()));
 
       replaceTimeRangeInBar(targetSlice, timeRange, replacementNodes, ctx, sourceBarDuration);
 
@@ -1205,7 +1236,7 @@ function explosionLinear(selection: Selection, targetVoiceIds: string[], ctx: AB
 
       const parts = prepareParts(barMap, barRange, Array.from(sourceVoiceIds), targetVoiceIds, currentSystem, ctx);
 
-      explodeParts(parts, barMap, barRange, cursorRange, currentSystem, ctx, outputSelections, voiceOrder, "linear");
+      explodeParts(parts, barMap, barRange, cursorRange, cursor, currentSystem, ctx, outputSelections, voiceOrder, "linear");
 
       currentSystem = nextSystem;
     }
@@ -1264,7 +1295,7 @@ function explosionDeferred(selection: Selection, targetVoiceIds: string[], ctx: 
 
     const parts = prepareParts(barMap, barRange, Array.from(sourceVoiceIds), targetVoiceIds, clonedTuneBody, ctx);
 
-    explodeParts(parts, barMap, barRange, cursorRange, clonedTuneBody, ctx, outputSelections, voiceOrder, "deferred");
+    explodeParts(parts, barMap, barRange, cursorRange, cursor, clonedTuneBody, ctx, outputSelections, voiceOrder, "deferred");
   }
 
   // Replace the original Tune_Body with the modified clone
