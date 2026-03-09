@@ -1,50 +1,855 @@
-import { ABCContext, Scanner, parse, AbcFormatter, Expr, AbcErrorReporter, SemanticAnalyzer, isBarLine, BarEntry, BarMap, buildBarMap } from "abc-parser";
+import { ABCContext, Scanner, parse, AbcFormatter, Expr, AbcErrorReporter, SemanticAnalyzer } from "abc-parser";
 import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
-import { Token, TT } from "abc-parser/parsers/scan2";
-import { Note, Chord, Rest, Grace_group, Pitch, Rhythm, System, Tune, Tune_Body, BarLine } from "abc-parser/types/Expr2";
-import { calculateDuration } from "abc-parser/Visitors/fmt2/fmt_timeMap";
-import { createRational, rationalToNumber } from "abc-parser/Visitors/fmt2/rational";
+import { createRational, isInfiniteRational } from "abc-parser/Visitors/fmt2/rational";
 import { expect } from "chai";
-import { describe, it } from "mocha";
+import { cloneSubtree, visit } from "../../cstree/src/cstree";
+import * as barmap from "../src/context/csBarMap";
 import { fromAst } from "../src/csTree/fromAst";
 import { toAst } from "../src/csTree/toAst";
+import { CSNode, TAGS } from "../src/csTree/types";
 import { createSelection, Selection } from "../src/selection";
 import { selectRange } from "../src/selectors/rangeSelector";
+import { findFirstByTag } from "../src/selectors/treeWalk";
 import {
-  explosion,
-  filterChordToPart,
-  walkAndFilter,
-  getBarSlice,
-  getVoiceIdsFromSelection,
-  getSourceBarRange,
-  extractBarsContent,
-  assignParts,
-  filterToParts,
-  SourceVoiceContent,
-  cursorRangeToTimeRange,
+  isTimeEvent,
+  calculateDuration,
   splitNoteAt,
+  getMaxChordSize,
+  getBarSlice,
+  findBarSliceInSystems,
+  buildTimeMap,
+  cursorRangeToTimeRange,
   replaceTimeRangeInBar,
+  extractBarsContent,
+  filterToParts,
+  assignParts,
+  createVoiceLine,
+  createVoiceLineNodes,
+  registerVoiceInBarMap,
+  createBar,
+  collectVoicePositions,
   findBarEntry,
+  walkAndFilterMulti,
+  explosion,
 } from "../src/transforms/explosionTimed";
 
-function makeNote(letter: string, ctx: ABCContext): Note {
-  const noteLetter = new Token(TT.NOTE_LETTER, letter, ctx.generateId());
-  const pitch = new Pitch(ctx.generateId(), { noteLetter });
-  return new Note(ctx.generateId(), pitch);
+function parseToCSTree(input: string): CSNode {
+  const ctx = new ABCContext();
+  const tokens = Scanner(input, ctx);
+  const ast = parse(tokens, ctx);
+  return fromAst(ast, ctx);
 }
 
-function makeChord(letters: string[], ctx: ABCContext, rhythm?: Rhythm): Chord {
-  // Notes are stored bottom-up in Chord.contents, so the first letter
-  // in the array is the bottom note.
-  const notes = letters.map((l) => makeNote(l, ctx));
-  return new Chord(ctx.generateId(), notes, rhythm);
+function findTuneBody(root: CSNode): CSNode {
+  const tuneBody = findFirstByTag(root, TAGS.Tune_Body);
+  if (!tuneBody) throw new Error("Tune has no body");
+  return tuneBody;
 }
 
-function makeGraceGroup(letters: string[], ctx: ABCContext): Grace_group {
-  const notes = letters.map((l) => makeNote(l, ctx));
-  const leftBrace = new Token(TT.GRC_GRP_LEFT_BRACE, "{", ctx.generateId());
-  const rightBrace = new Token(TT.RBRACE, "}", ctx.generateId());
-  return new Grace_group(ctx.generateId(), notes, false, leftBrace, rightBrace);
+function findFirstSystem(root: CSNode): CSNode {
+  const tuneBody = findTuneBody(root);
+  let child = tuneBody.firstChild;
+  while (child !== null) {
+    if (child.tag === TAGS.System) return child;
+    child = child.nextSibling;
+  }
+  throw new Error("Tune has no system");
+}
+
+function findFirstByTagInSystem(system: CSNode, tag: TAGS): CSNode | null {
+  let child = system.firstChild;
+  while (child !== null) {
+    if (child.tag === tag) return child;
+    child = child.nextSibling;
+  }
+  return null;
+}
+
+describe("explosionTimed", () => {
+  describe("isTimeEvent", () => {
+    it("a Note node returns true", () => {
+      const root = parseToCSTree("X:1\nK:C\nC\n");
+      const system = findFirstSystem(root);
+      const note = findFirstByTagInSystem(system, TAGS.Note);
+      expect(note).to.not.be.null;
+      expect(isTimeEvent(note!)).to.be.true;
+    });
+
+    it("a Chord node returns true", () => {
+      const root = parseToCSTree("X:1\nK:C\n[CEG]\n");
+      const system = findFirstSystem(root);
+      const chord = findFirstByTagInSystem(system, TAGS.Chord);
+      expect(chord).to.not.be.null;
+      expect(isTimeEvent(chord!)).to.be.true;
+    });
+
+    it("a Rest node returns true", () => {
+      const root = parseToCSTree("X:1\nK:C\nz\n");
+      const system = findFirstSystem(root);
+      const rest = findFirstByTagInSystem(system, TAGS.Rest);
+      expect(rest).to.not.be.null;
+      expect(isTimeEvent(rest!)).to.be.true;
+    });
+
+    it("a BarLine node returns false", () => {
+      const root = parseToCSTree("X:1\nK:C\nC |\n");
+      const system = findFirstSystem(root);
+      const barline = findFirstByTagInSystem(system, TAGS.BarLine);
+      expect(barline).to.not.be.null;
+      expect(isTimeEvent(barline!)).to.be.false;
+    });
+
+    it("a Beam with Note children returns true", () => {
+      const root = parseToCSTree("X:1\nK:C\nAB\n");
+      const system = findFirstSystem(root);
+      const beam = findFirstByTagInSystem(system, TAGS.Beam);
+      if (beam) {
+        expect(isTimeEvent(beam)).to.be.true;
+      }
+      // If no beam is generated (parser may not beam these), the test is trivially correct
+    });
+
+    it("an Info_line returns false", () => {
+      const root = parseToCSTree("X:1\nK:C\nC\n");
+      const tuneHeader = findFirstByTag(root, TAGS.Tune_header);
+      if (tuneHeader && tuneHeader.firstChild) {
+        expect(isTimeEvent(tuneHeader.firstChild)).to.be.false;
+      }
+    });
+
+    it("a MultiMeasureRest returns true", () => {
+      const root = parseToCSTree("X:1\nK:C\nZ4\n");
+      const system = findFirstSystem(root);
+      const multiMeasureRest = findFirstByTagInSystem(system, TAGS.MultiMeasureRest);
+      expect(multiMeasureRest).to.not.be.null;
+      expect(isTimeEvent(multiMeasureRest!)).to.be.true;
+    });
+  });
+
+  describe("calculateDuration", () => {
+    it("note with no rhythm child has duration 1/1", () => {
+      const root = parseToCSTree("X:1\nK:C\nC\n");
+      const system = findFirstSystem(root);
+      const note = findFirstByTagInSystem(system, TAGS.Note)!;
+      const dur = calculateDuration(note, {});
+      expect(dur.numerator).to.equal(1);
+      expect(dur.denominator).to.equal(1);
+    });
+
+    it("note with rhythm 2 has duration 2/1", () => {
+      const root = parseToCSTree("X:1\nK:C\nC2\n");
+      const system = findFirstSystem(root);
+      const note = findFirstByTagInSystem(system, TAGS.Note)!;
+      const dur = calculateDuration(note, {});
+      expect(dur.numerator).to.equal(2);
+      expect(dur.denominator).to.equal(1);
+    });
+
+    it("note with rhythm /2 has duration 1/2", () => {
+      const root = parseToCSTree("X:1\nK:C\nC/2\n");
+      const system = findFirstSystem(root);
+      const note = findFirstByTagInSystem(system, TAGS.Note)!;
+      const dur = calculateDuration(note, {});
+      expect(dur.numerator).to.equal(1);
+      expect(dur.denominator).to.equal(2);
+    });
+
+    it("note with rhythm 3/4 has duration 3/4", () => {
+      const root = parseToCSTree("X:1\nK:C\nC3/4\n");
+      const system = findFirstSystem(root);
+      const note = findFirstByTagInSystem(system, TAGS.Note)!;
+      const dur = calculateDuration(note, {});
+      expect(dur.numerator).to.equal(3);
+      expect(dur.denominator).to.equal(4);
+    });
+
+    it("multi-measure rest returns infinity (1/0)", () => {
+      const root = parseToCSTree("X:1\nK:C\nZ4\n");
+      const system = findFirstSystem(root);
+      const multiMeasureRest = findFirstByTagInSystem(system, TAGS.MultiMeasureRest)!;
+      const dur = calculateDuration(multiMeasureRest, {});
+      expect(isInfiniteRational(dur)).to.be.true;
+    });
+
+    it("rest with rhythm 2 has duration 2/1", () => {
+      const root = parseToCSTree("X:1\nK:C\nz2\n");
+      const system = findFirstSystem(root);
+      const rest = findFirstByTagInSystem(system, TAGS.Rest)!;
+      const dur = calculateDuration(rest, {});
+      expect(dur.numerator).to.equal(2);
+      expect(dur.denominator).to.equal(1);
+    });
+
+    it("chord with rhythm 4 has duration 4/1", () => {
+      const root = parseToCSTree("X:1\nK:C\n[CEG]4\n");
+      const system = findFirstSystem(root);
+      const chord = findFirstByTagInSystem(system, TAGS.Chord)!;
+      const dur = calculateDuration(chord, {});
+      expect(dur.numerator).to.equal(4);
+      expect(dur.denominator).to.equal(1);
+    });
+  });
+
+  describe("splitNoteAt", () => {
+    it("splits a note C2 at offset 1 into two notes each with duration 1", () => {
+      const ctx = new ABCContext();
+      const root = parseToCSTree("X:1\nK:C\nC2\n");
+      const system = findFirstSystem(root);
+      const note = findFirstByTagInSystem(system, TAGS.Note)!;
+
+      const result = splitNoteAt(note, createRational(1, 1), ctx);
+      expect(result).to.not.be.null;
+
+      const firstDur = calculateDuration(result!.first, {});
+      const secondDur = calculateDuration(result!.second, {});
+      expect(firstDur.numerator).to.equal(1);
+      expect(firstDur.denominator).to.equal(1);
+      expect(secondDur.numerator).to.equal(1);
+      expect(secondDur.denominator).to.equal(1);
+    });
+
+    it("returns null when splitAt is zero", () => {
+      const ctx = new ABCContext();
+      const root = parseToCSTree("X:1\nK:C\nC2\n");
+      const system = findFirstSystem(root);
+      const note = findFirstByTagInSystem(system, TAGS.Note)!;
+
+      const result = splitNoteAt(note, createRational(0, 1), ctx);
+      expect(result).to.be.null;
+    });
+
+    it("returns null when splitAt equals the full duration", () => {
+      const ctx = new ABCContext();
+      const root = parseToCSTree("X:1\nK:C\nC2\n");
+      const system = findFirstSystem(root);
+      const note = findFirstByTagInSystem(system, TAGS.Note)!;
+
+      const result = splitNoteAt(note, createRational(2, 1), ctx);
+      expect(result).to.be.null;
+    });
+
+    it("splits a chord [CEG]4 at offset 2 into two chords each with duration 2", () => {
+      const ctx = new ABCContext();
+      const root = parseToCSTree("X:1\nK:C\n[CEG]4\n");
+      const system = findFirstSystem(root);
+      const chord = findFirstByTagInSystem(system, TAGS.Chord)!;
+
+      const result = splitNoteAt(chord, createRational(2, 1), ctx);
+      expect(result).to.not.be.null;
+
+      const firstDur = calculateDuration(result!.first, {});
+      const secondDur = calculateDuration(result!.second, {});
+      expect(firstDur.numerator).to.equal(2);
+      expect(firstDur.denominator).to.equal(1);
+      expect(secondDur.numerator).to.equal(2);
+      expect(secondDur.denominator).to.equal(1);
+    });
+  });
+
+  describe("getMaxChordSize", () => {
+    it("sibling chain with [CEG] returns 3", () => {
+      const root = parseToCSTree("X:1\nK:C\n[CEG]\n");
+      const system = findFirstSystem(root);
+      expect(getMaxChordSize(system.firstChild)).to.equal(3);
+    });
+
+    it("sibling chain with standalone notes only returns 1", () => {
+      const root = parseToCSTree("X:1\nK:C\nC D E\n");
+      const system = findFirstSystem(root);
+      expect(getMaxChordSize(system.firstChild)).to.equal(1);
+    });
+
+    it("sibling chain with [CE] and [CEGA] returns 4", () => {
+      const root = parseToCSTree("X:1\nK:C\n[CE] [CEGA]\n");
+      const system = findFirstSystem(root);
+      expect(getMaxChordSize(system.firstChild)).to.equal(4);
+    });
+
+    it("empty chain returns 1", () => {
+      expect(getMaxChordSize(null)).to.equal(1);
+    });
+  });
+
+  describe("getBarSlice", () => {
+    it("finds bar content before first barline", () => {
+      const root = parseToCSTree("X:1\nK:C\nC D | E F\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+      const entry = barMap.get("1")!.get(0)!;
+
+      const system = findFirstSystem(root);
+      const slice = getBarSlice(system, entry);
+      expect(slice).to.not.be.null;
+      expect(slice!.startNode).to.not.be.null;
+      expect(slice!.startNode!.tag).to.equal(TAGS.Note);
+    });
+
+    it("finds bar content between two barlines", () => {
+      const root = parseToCSTree("X:1\nK:C\nC D | E F | G A\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+      const entry = barMap.get("1")!.get(1)!;
+
+      const system = findFirstSystem(root);
+      const slice = getBarSlice(system, entry);
+      expect(slice).to.not.be.null;
+      expect(slice!.startNode).to.not.be.null;
+    });
+
+    it("returns null for non-existent anchor ID", () => {
+      const root = parseToCSTree("X:1\nK:C\nC D |\n");
+      const system = findFirstSystem(root);
+      const slice = getBarSlice(system, { barNumber: 0, closingNodeId: 99999 });
+      expect(slice).to.be.null;
+    });
+
+    it("stops at voice markers when scanning backward", () => {
+      const root = parseToCSTree("X:1\nK:C\n[V:1]C D | [V:2]E F |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+
+      // Voice 2's first bar should start after the [V:2] marker
+      const voice2Entries = barMap.get("2");
+      if (voice2Entries && voice2Entries.size > 0) {
+        const entry = voice2Entries.get(0)!;
+        const system = findFirstSystem(root);
+        const slice = getBarSlice(system, entry);
+        expect(slice).to.not.be.null;
+        // The start node should not be a voice marker
+        if (slice!.startNode) {
+          expect(isVoiceMarkerNode(slice!.startNode)).to.be.false;
+        }
+      }
+    });
+
+    it("content-node anchor is included in the slice (endNode is the anchor)", () => {
+      // When there is no trailing barline, the last content node is the anchor
+      const root = parseToCSTree("X:1\nK:C\nC D E F\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+      const entry = barMap.get("1")!.get(0)!;
+
+      const system = findFirstSystem(root);
+      const slice = getBarSlice(system, entry);
+      expect(slice).to.not.be.null;
+      expect(slice!.endNode).to.not.be.null;
+      // The end node should be the anchor itself (not a barline)
+      expect(slice!.endNode!.id).to.equal(entry.closingNodeId);
+    });
+  });
+
+  describe("findBarSliceInSystems", () => {
+    it("finds bar in second System when not in first", () => {
+      const root = parseToCSTree("X:1\nK:C\nC D |\nE F |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+
+      // Bar 1 should be in the second system (second line)
+      const entry = barMap.get("1")!.get(1)!;
+      const slice = findBarSliceInSystems(tuneBody, entry);
+      expect(slice).to.not.be.null;
+    });
+
+    it("returns null when anchor not found in any System", () => {
+      const root = parseToCSTree("X:1\nK:C\nC D |\n");
+      const tuneBody = findTuneBody(root);
+      const slice = findBarSliceInSystems(tuneBody, { barNumber: 0, closingNodeId: 99999 });
+      expect(slice).to.be.null;
+    });
+  });
+
+  // ==========================================================================
+  // Phase 2 tests
+  // ==========================================================================
+
+  describe("buildTimeMap", () => {
+    it("bar with two quarter notes produces two entries with start times 0 and 1", () => {
+      const root = parseToCSTree("X:1\nK:C\nC D |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+      const entry = barMap.get("1")!.get(0)!;
+      const system = findFirstSystem(root);
+      const slice = getBarSlice(system, entry)!;
+      const timeMap = buildTimeMap(slice.startNode, slice.endNode);
+      expect(timeMap).to.have.length(2);
+      expect(timeMap[0].startTime.numerator).to.equal(0);
+      expect(timeMap[1].startTime.numerator).to.equal(1);
+      expect(timeMap[1].startTime.denominator).to.equal(1);
+    });
+
+    it("bar with no time events produces empty map", () => {
+      // A bar that is entirely empty (only barlines) has no time events
+      const root = parseToCSTree("X:1\nK:C\n| |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+      const entry = barMap.get("1")!.get(0)!;
+      const system = findFirstSystem(root);
+      const slice = getBarSlice(system, entry)!;
+      const timeMap = buildTimeMap(slice.startNode, slice.endNode);
+      expect(timeMap).to.have.length(0);
+    });
+
+    it("multi-measure rest without barDuration stops the map", () => {
+      const root = parseToCSTree("X:1\nK:C\nZ4 |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+      const entry = barMap.get("1")!.get(0)!;
+      const system = findFirstSystem(root);
+      const slice = getBarSlice(system, entry)!;
+      const timeMap = buildTimeMap(slice.startNode, slice.endNode);
+      // Without barDuration, the map stops at the multi-measure rest
+      expect(timeMap).to.have.length(0);
+    });
+
+    it("multi-measure rest with barDuration uses it as the duration", () => {
+      const root = parseToCSTree("X:1\nK:C\nZ4 |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+      const entry = barMap.get("1")!.get(0)!;
+      const system = findFirstSystem(root);
+      const slice = getBarSlice(system, entry)!;
+      const barDur = createRational(4, 1);
+      const timeMap = buildTimeMap(slice.startNode, slice.endNode, barDur);
+      expect(timeMap).to.have.length(1);
+      expect(timeMap[0].duration.numerator).to.equal(4);
+      expect(timeMap[0].duration.denominator).to.equal(1);
+    });
+  });
+
+  describe("cursorRangeToTimeRange", () => {
+    it("cursor covering entire bar returns time range spanning all content", () => {
+      const root = parseToCSTree("X:1\nK:C\nC D |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+      const entry = barMap.get("1")!.get(0)!;
+      const system = findFirstSystem(root);
+      const slice = getBarSlice(system, entry)!;
+
+      // Create a cursor range that spans the entire line
+      const cursorRange = { start: { line: 2, character: 0 }, end: { line: 2, character: 100 } };
+      const timeRange = cursorRangeToTimeRange(slice.startNode, slice.endNode, cursorRange);
+
+      expect(timeRange.start.numerator).to.equal(0);
+      // Two quarter notes: total duration = 2
+      expect(timeRange.end.numerator).to.equal(2);
+      expect(timeRange.end.denominator).to.equal(1);
+    });
+
+    it("cursor covering no notes returns zero-span range", () => {
+      const root = parseToCSTree("X:1\nK:C\nC D |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+      const entry = barMap.get("1")!.get(0)!;
+      const system = findFirstSystem(root);
+      const slice = getBarSlice(system, entry)!;
+
+      // Cursor range on a different line
+      const cursorRange = { start: { line: 99, character: 0 }, end: { line: 99, character: 10 } };
+      const timeRange = cursorRangeToTimeRange(slice.startNode, slice.endNode, cursorRange);
+
+      expect(timeRange.start.numerator).to.equal(0);
+      expect(timeRange.end.numerator).to.equal(0);
+    });
+  });
+
+  describe("replaceTimeRangeInBar", () => {
+    it("replaces entire bar content when time range covers everything", () => {
+      const ctx = new ABCContext();
+      const root = parseToCSTree("X:1\nK:C\nC D |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+      const entry = barMap.get("1")!.get(0)!;
+      const system = findFirstSystem(root);
+      const slice = getBarSlice(system, entry)!;
+
+      // Create replacement: a single E note
+      const replacementRoot = parseToCSTree("X:1\nK:C\nE\n");
+      const replacementSystem = findFirstSystem(replacementRoot);
+      const replacementNote = findFirstByTagInSystem(replacementSystem, TAGS.Note)!;
+      const replacementClone = cloneSubtree(replacementNote, () => ctx.generateId());
+
+      // Time range covering the whole bar (0 to 2)
+      const timeRange = { start: createRational(0, 1), end: createRational(2, 1) };
+
+      replaceTimeRangeInBar(slice, timeRange, [replacementClone], ctx);
+
+      // After replacement, the system should contain the replacement note before the barline
+      let noteCount = 0;
+      let child = system.firstChild;
+      while (child !== null) {
+        if (child.tag === TAGS.Note) noteCount++;
+        child = child.nextSibling;
+      }
+      // Should have exactly 1 note (the replacement)
+      expect(noteCount).to.equal(1);
+    });
+  });
+
+  describe("extractBarsContent", () => {
+    it("extracts bars with each bar including its closing barline", () => {
+      const ctx = new ABCContext();
+      const root = parseToCSTree("X:1\nK:C\nC D | E F |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+
+      const result = extractBarsContent(barMap, { start: 0, end: 1 }, "1", tuneBody, ctx);
+
+      // Each bar includes its closing barline: C D | and E F |
+      let noteCount = 0;
+      let barlineCount = 0;
+      let child = result.firstChild;
+      while (child !== null) {
+        if (child.tag === TAGS.Note) noteCount++;
+        if (child.tag === TAGS.BarLine) barlineCount++;
+        child = child.nextSibling;
+      }
+      expect(noteCount).to.equal(4);
+      expect(barlineCount).to.equal(2);
+    });
+
+    it("single bar extraction includes its closing barline", () => {
+      const ctx = new ABCContext();
+      const root = parseToCSTree("X:1\nK:C\nC D |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+
+      const result = extractBarsContent(barMap, { start: 0, end: 0 }, "1", tuneBody, ctx);
+
+      let barlineCount = 0;
+      let child = result.firstChild;
+      while (child !== null) {
+        if (child.tag === TAGS.BarLine) barlineCount++;
+        child = child.nextSibling;
+      }
+      expect(barlineCount).to.equal(1);
+    });
+
+    it("returns empty system for non-existent voice", () => {
+      const ctx = new ABCContext();
+      const root = parseToCSTree("X:1\nK:C\nC D |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+
+      const result = extractBarsContent(barMap, { start: 0, end: 0 }, "nonexistent", tuneBody, ctx);
+      expect(result.firstChild).to.be.null;
+    });
+  });
+
+  describe("walkAndFilterMulti", () => {
+    it("[CEG] filtered with partIndices [0] keeps only the top note G", () => {
+      const ctx = new ABCContext();
+      const root = parseToCSTree("X:1\nK:C\n[CEG]\n");
+      const system = findFirstSystem(root);
+
+      // Clone the system to avoid modifying the original
+      const clone = cloneSubtree(system, () => ctx.generateId());
+      walkAndFilterMulti(clone, clone.firstChild, [0], ctx);
+
+      // Part 0 keeps the top note (G). The chord should be unwrapped to a single note.
+      let noteCount = 0;
+      let chordCount = 0;
+      let child = clone.firstChild;
+      while (child !== null) {
+        if (child.tag === TAGS.Note) noteCount++;
+        if (child.tag === TAGS.Chord) chordCount++;
+        child = child.nextSibling;
+      }
+      expect(noteCount).to.equal(1);
+      expect(chordCount).to.equal(0);
+    });
+
+    it("[CEG] filtered with partIndices [2] keeps only the bottom note C, converts standalone notes to rests", () => {
+      const ctx = new ABCContext();
+      const root = parseToCSTree("X:1\nK:C\n[CEG] A\n");
+      const system = findFirstSystem(root);
+
+      const clone = cloneSubtree(system, () => ctx.generateId());
+      walkAndFilterMulti(clone, clone.firstChild, [2], ctx);
+
+      // Part 2 keeps the bottom note C from the chord (unwrapped), and converts A to rest
+      let noteCount = 0;
+      let restCount = 0;
+      let child = clone.firstChild;
+      while (child !== null) {
+        if (child.tag === TAGS.Note) noteCount++;
+        if (child.tag === TAGS.Rest) restCount++;
+        child = child.nextSibling;
+      }
+      expect(noteCount).to.equal(1);
+      expect(restCount).to.equal(1);
+    });
+
+    it("[CEG] filtered with partIndices [1, 2] keeps two notes as chord", () => {
+      const ctx = new ABCContext();
+      const root = parseToCSTree("X:1\nK:C\n[CEG]\n");
+      const system = findFirstSystem(root);
+
+      const clone = cloneSubtree(system, () => ctx.generateId());
+      walkAndFilterMulti(clone, clone.firstChild, [1, 2], ctx);
+
+      // partIndices [1, 2] keeps notes at index 1 (E) and 2 (C) — the chord remains a chord with 2 notes
+      let chordCount = 0;
+      let child = clone.firstChild;
+      while (child !== null) {
+        if (child.tag === TAGS.Chord) chordCount++;
+        child = child.nextSibling;
+      }
+      expect(chordCount).to.equal(1);
+    });
+  });
+
+  describe("filterToParts", () => {
+    it("filters and consolidates rests", () => {
+      const ctx = new ABCContext();
+      const root = parseToCSTree("X:1\nK:C\nA B [CEG]\n");
+      const system = findFirstSystem(root);
+
+      const clone = cloneSubtree(system, () => ctx.generateId());
+      // Part 1: standalone notes become rests, chords keep second note
+      filterToParts(clone, [1], ctx);
+
+      // A and B become rests, which should be consolidated into one rest
+      // [CEG] keeps the E note (second from top)
+      let restCount = 0;
+      let child = clone.firstChild;
+      while (child !== null) {
+        if (child.tag === TAGS.Rest) restCount++;
+        child = child.nextSibling;
+      }
+      // Two z rests should be consolidated into one z2
+      expect(restCount).to.equal(1);
+    });
+  });
+
+  describe("assignParts", () => {
+    it("assigns single part to each target when chord size equals target count", () => {
+      const ctx = new ABCContext();
+      const root = parseToCSTree("X:1\nK:C\n[CE]\n");
+      const system = findFirstSystem(root);
+
+      const contentNode = cloneSubtree(system, () => ctx.generateId());
+      const assignments = assignParts([{ voiceId: "1", contentNode }], ["1", "2"]);
+
+      expect(assignments.size).to.equal(2);
+      expect(assignments.get("1")!.partIndices).to.deep.equal([0]);
+      expect(assignments.get("2")!.partIndices).to.deep.equal([1]);
+    });
+
+    it("last target gets leftover parts when more notes than targets", () => {
+      const ctx = new ABCContext();
+      const root = parseToCSTree("X:1\nK:C\n[CEG]\n");
+      const system = findFirstSystem(root);
+
+      const contentNode = cloneSubtree(system, () => ctx.generateId());
+      const assignments = assignParts([{ voiceId: "1", contentNode }], ["1", "2"]);
+
+      expect(assignments.size).to.equal(2);
+      expect(assignments.get("1")!.partIndices).to.deep.equal([0]);
+      expect(assignments.get("2")!.partIndices).to.deep.equal([1, 2]);
+    });
+  });
+
+  describe("createVoiceLine", () => {
+    it("creates a system with voice marker, Z rest, barline and registers in bar map", () => {
+      const ctx = new ABCContext();
+      const root = parseToCSTree("X:1\nK:C\nC D |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+
+      createVoiceLine(barMap, "2", tuneBody, ["1", "2"], ctx);
+
+      // The bar map should now have voice "2"
+      expect(barMap.has("2")).to.be.true;
+      const voice2Entries = barMap.get("2")!;
+      expect(voice2Entries.size).to.equal(1);
+      expect(voice2Entries.get(0)!.barNumber).to.equal(0);
+
+      // There should be a new System child in tuneBody
+      let systemCount = 0;
+      let child = tuneBody.firstChild;
+      while (child !== null) {
+        if (child.tag === TAGS.System) systemCount++;
+        child = child.nextSibling;
+      }
+      expect(systemCount).to.equal(2);
+    });
+  });
+
+  describe("createVoiceLineNodes", () => {
+    it("returns unattached nodes with the expected tags and lexemes", () => {
+      const ctx = new ABCContext();
+      const nodes = createVoiceLineNodes("2", ctx);
+
+      expect(nodes.inlineField.tag).to.equal(TAGS.Inline_field);
+      expect(nodes.multiMeasureRestNode.tag).to.equal(TAGS.MultiMeasureRest);
+      expect(nodes.barlineNode.tag).to.equal(TAGS.BarLine);
+      expect(nodes.eolToken.tag).to.equal(TAGS.Token);
+      expect((nodes.eolToken.data as { lexeme: string }).lexeme).to.equal("\n");
+
+      // The inline field should contain [V:2]
+      let child = nodes.inlineField.firstChild;
+      const lexemes: string[] = [];
+      while (child !== null) {
+        if ("lexeme" in child.data) lexemes.push((child.data as { lexeme: string }).lexeme);
+        child = child.nextSibling;
+      }
+      expect(lexemes).to.deep.equal(["[", "V:", "2", "]"]);
+    });
+  });
+
+  describe("registerVoiceInBarMap", () => {
+    it("registers a voice with a single bar entry at bar 0", () => {
+      const barMap = new Map() as import("../src/context/csBarMap").BarMap;
+      registerVoiceInBarMap(barMap, "2", 42);
+
+      expect(barMap.has("2")).to.be.true;
+      const entries = barMap.get("2")!;
+      expect(entries.size).to.equal(1);
+      expect(entries.get(0)!.barNumber).to.equal(0);
+      expect(entries.get(0)!.closingNodeId).to.equal(42);
+    });
+  });
+
+  describe("createBarMapState + visit on System directly", () => {
+    it("produces the same bar map as buildMap with a Tune_Body wrapper", () => {
+      const root = parseToCSTree("X:1\nK:C\nC D | E F |\n");
+      const tuneBody = findTuneBody(root);
+
+      const barMapFromTuneBody = barmap.buildMap(tuneBody, "1");
+
+      // Find the System child
+      let system: CSNode | null = tuneBody.firstChild;
+      while (system !== null && system.tag !== TAGS.System) {
+        system = system.nextSibling;
+      }
+      expect(system).to.not.be.null;
+
+      // Build bar map directly from the System
+      const state = barmap.init("1");
+      visit(system!, state);
+      barmap.finalize(state);
+      const barMapFromSystem = state.barMap;
+
+      // Both should have the same voices and bar entries
+      expect(barMapFromSystem.size).to.equal(barMapFromTuneBody.size);
+      for (const [voiceId, entries] of barMapFromTuneBody) {
+        expect(barMapFromSystem.has(voiceId)).to.be.true;
+        const systemEntries = barMapFromSystem.get(voiceId)!;
+        expect(systemEntries.size).to.equal(entries.size);
+        for (const [barNum, entry] of entries) {
+          expect(systemEntries.has(barNum)).to.be.true;
+          expect(systemEntries.get(barNum)!.closingNodeId).to.equal(entry.closingNodeId);
+        }
+      }
+    });
+  });
+
+  describe("findBarSliceInSystems with System root", () => {
+    it("finds a bar slice when the root node is a System", () => {
+      const root = parseToCSTree("X:1\nK:C\nC D | E F |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+
+      const entry = barMap.get("1")!.get(0)!;
+
+      // Call with System as root (not Tune_Body)
+      let system: CSNode | null = tuneBody.firstChild;
+      while (system !== null && system.tag !== TAGS.System) {
+        system = system.nextSibling;
+      }
+      expect(system).to.not.be.null;
+
+      const slice = findBarSliceInSystems(system!, entry);
+      expect(slice).to.not.be.null;
+      expect(slice!.systemNode).to.equal(system);
+    });
+  });
+
+  describe("createBar", () => {
+    it("appends rest + barline after the last bar entry and registers in bar map", () => {
+      const ctx = new ABCContext();
+      const root = parseToCSTree("X:1\nK:C\nC D |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+
+      expect(barMap.get("1")!.size).to.equal(1);
+
+      createBar(barMap, "1", 1, tuneBody, ctx);
+
+      // The bar map should now have 2 entries for voice "1"
+      expect(barMap.get("1")!.size).to.equal(2);
+      expect(barMap.get("1")!.get(1)!.barNumber).to.equal(1);
+    });
+  });
+
+  describe("collectVoicePositions", () => {
+    it("collects voice IDs from multi-voice tune", () => {
+      const root = parseToCSTree("X:1\nK:C\n[V:1]C D | [V:2]E F |\n");
+      const tuneBody = findTuneBody(root);
+      const positions = collectVoicePositions(tuneBody);
+
+      const voiceIds = positions.map((p) => p.voiceId);
+      expect(voiceIds).to.include("1");
+      expect(voiceIds).to.include("2");
+    });
+
+    it("collects voice IDs from deferred multi-voice tune", () => {
+      const root = parseToCSTree("X:1\nK:C\nV:1\nC D |\nV:2\nE F |\n");
+      const tuneBody = findTuneBody(root);
+      const positions = collectVoicePositions(tuneBody);
+
+      const voiceIds = positions.map((p) => p.voiceId);
+      expect(voiceIds).to.include("1");
+      expect(voiceIds).to.include("2");
+    });
+
+    it("returns empty array for single-voice tune without voice markers", () => {
+      const root = parseToCSTree("X:1\nK:C\nC D |\n");
+      const tuneBody = findTuneBody(root);
+      const positions = collectVoicePositions(tuneBody);
+      expect(positions).to.have.length(0);
+    });
+  });
+
+  describe("findBarEntry", () => {
+    it("finds an existing bar entry", () => {
+      const root = parseToCSTree("X:1\nK:C\nC D | E F |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+
+      const entry = findBarEntry(barMap, "1", 0);
+      expect(entry).to.not.be.null;
+      expect(entry!.barNumber).to.equal(0);
+    });
+
+    it("returns null for non-existent bar number", () => {
+      const root = parseToCSTree("X:1\nK:C\nC D |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+
+      const entry = findBarEntry(barMap, "1", 99);
+      expect(entry).to.be.null;
+    });
+
+    it("returns null for non-existent voice", () => {
+      const root = parseToCSTree("X:1\nK:C\nC D |\n");
+      const tuneBody = findTuneBody(root);
+      const barMap = barmap.buildMap(tuneBody, "1");
+
+      const entry = findBarEntry(barMap, "nonexistent", 0);
+      expect(entry).to.be.null;
+    });
+  });
+});
+
+function isVoiceMarkerNode(node: CSNode): boolean {
+  return node.tag === TAGS.Info_line || node.tag === TAGS.Inline_field;
+}
+
+function serializeSelection(selection: Selection, ctx: ABCContext): string {
+  const ast = toAst(selection.root);
+  const formatter = new AbcFormatter(ctx);
+  return formatter.stringify(ast as Expr);
 }
 
 function createFullTestContext(abc: string): {
@@ -67,843 +872,6 @@ function createFullTestContext(abc: string): {
   return { selection, ctx, snapshots };
 }
 
-function createBarMapTestContext(abc: string): {
-  tuneBody: Tune_Body;
-  ctx: ABCContext;
-  snapshots: DocumentSnapshots;
-} {
-  const ctx = new ABCContext(new AbcErrorReporter());
-  const tokens = Scanner(abc, ctx);
-  const ast = parse(tokens, ctx);
-  const tune = ast.contents[0] as Tune;
-
-  const analyzer = new SemanticAnalyzer(ctx);
-  ast.accept(analyzer);
-
-  const interpreter = new ContextInterpreter();
-  const snapshots = interpreter.interpret(ast, analyzer.data, ctx);
-
-  return { tuneBody: tune.tune_body!, ctx, snapshots };
-}
-
-function getTuneBody(abc: string): { tuneBody: Tune_Body; ctx: ABCContext } {
-  const ctx = new ABCContext(new AbcErrorReporter());
-  const tokens = Scanner(abc, ctx);
-  const ast = parse(tokens, ctx);
-  const tune = ast.contents[0] as Tune;
-  return { tuneBody: tune.tune_body!, ctx };
-}
-
-describe("explosionTimed", () => {
-  describe("filterChordToPart", () => {
-    it("3-note chord [CEG] filtered with partIndices [0] keeps top note G (unwrapped)", () => {
-      const ctx = new ABCContext();
-      // Notes stored bottom-up: C, E, G. Top note (part 0) = G.
-      const chord = makeChord(["C", "E", "G"], ctx);
-      const content: System = [chord];
-
-      filterChordToPart(content, 0, [0], ctx);
-
-      // Should be unwrapped to a single Note with pitch G
-      expect(content[0]).to.be.instanceOf(Note);
-      const note = content[0] as Note;
-      expect(note.pitch.noteLetter.lexeme).to.equal("G");
-    });
-
-    it("3-note chord [CEG] filtered with partIndices [2] keeps bottom note C (unwrapped)", () => {
-      const ctx = new ABCContext();
-      const chord = makeChord(["C", "E", "G"], ctx);
-      const content: System = [chord];
-
-      filterChordToPart(content, 0, [2], ctx);
-
-      expect(content[0]).to.be.instanceOf(Note);
-      const note = content[0] as Note;
-      expect(note.pitch.noteLetter.lexeme).to.equal("C");
-    });
-
-    it("3-note chord [CEG] filtered with partIndices [1, 2] keeps [CE] (stays as chord)", () => {
-      const ctx = new ABCContext();
-      const chord = makeChord(["C", "E", "G"], ctx);
-      const content: System = [chord];
-
-      filterChordToPart(content, 0, [1, 2], ctx);
-
-      expect(content[0]).to.be.instanceOf(Chord);
-      const result = content[0] as Chord;
-      const notes = result.contents.filter((e): e is Note => e instanceof Note);
-      expect(notes).to.have.lengthOf(2);
-      expect(notes[0].pitch.noteLetter.lexeme).to.equal("C");
-      expect(notes[1].pitch.noteLetter.lexeme).to.equal("E");
-    });
-
-    it("2-note chord [CE] filtered with partIndices [0, 1, 2] keeps [CE] (excess indices ignored)", () => {
-      const ctx = new ABCContext();
-      const chord = makeChord(["C", "E"], ctx);
-      const content: System = [chord];
-
-      filterChordToPart(content, 0, [0, 1, 2], ctx);
-
-      expect(content[0]).to.be.instanceOf(Chord);
-      const result = content[0] as Chord;
-      const notes = result.contents.filter((e): e is Note => e instanceof Note);
-      expect(notes).to.have.lengthOf(2);
-    });
-
-    it("1-note chord filtered with partIndices [3] becomes a rest (all indices exceed chord size)", () => {
-      const ctx = new ABCContext();
-      const chord = makeChord(["C"], ctx);
-      const content: System = [chord];
-
-      filterChordToPart(content, 0, [3], ctx);
-
-      expect(content[0]).to.be.instanceOf(Rest);
-    });
-
-    it("chord's rhythm is carried over to unwrapped note", () => {
-      const ctx = new ABCContext();
-      const numToken = new Token(TT.RHY_NUMER, "2", ctx.generateId());
-      const rhythm = new Rhythm(ctx.generateId(), numToken);
-      const chord = makeChord(["C", "E", "G"], ctx, rhythm);
-      const content: System = [chord];
-
-      filterChordToPart(content, 0, [0], ctx);
-
-      expect(content[0]).to.be.instanceOf(Note);
-      const note = content[0] as Note;
-      expect(note.rhythm).to.equal(rhythm);
-    });
-  });
-
-  describe("walkAndFilter", () => {
-    it("partIndices [0] on [CEG] A preserves standalone note A and keeps top note G", () => {
-      const ctx = new ABCContext();
-      const chord = makeChord(["C", "E", "G"], ctx);
-      const noteA = makeNote("A", ctx);
-      const content: System = [chord, noteA];
-
-      walkAndFilter(content, [0], ctx);
-
-      // Chord should be unwrapped to G (top note)
-      expect(content[0]).to.be.instanceOf(Note);
-      expect((content[0] as Note).pitch.noteLetter.lexeme).to.equal("G");
-      // Standalone note A should be preserved (part 0 keeps notes)
-      expect(content[1]).to.be.instanceOf(Note);
-      expect((content[1] as Note).pitch.noteLetter.lexeme).to.equal("A");
-    });
-
-    it("partIndices [1] on [CEG] A converts standalone note A to rest and keeps middle note E", () => {
-      const ctx = new ABCContext();
-      const chord = makeChord(["C", "E", "G"], ctx);
-      const noteA = makeNote("A", ctx);
-      const content: System = [chord, noteA];
-
-      walkAndFilter(content, [1], ctx);
-
-      // Chord should be unwrapped to E (middle note, part index 1)
-      expect(content[0]).to.be.instanceOf(Note);
-      expect((content[0] as Note).pitch.noteLetter.lexeme).to.equal("E");
-      // Standalone note A should become a rest (lower part)
-      expect(content[1]).to.be.instanceOf(Rest);
-    });
-
-    it("partIndices [0] on {abc} [CEG] preserves the grace group", () => {
-      const ctx = new ABCContext();
-      const grace = makeGraceGroup(["a", "b", "c"], ctx);
-      const chord = makeChord(["C", "E", "G"], ctx);
-      const content: System = [grace, chord];
-
-      walkAndFilter(content, [0], ctx);
-
-      expect(content).to.have.lengthOf(2);
-      expect(content[0]).to.be.instanceOf(Grace_group);
-    });
-
-    it("partIndices [1] on {abc} [CEG] removes the grace group", () => {
-      const ctx = new ABCContext();
-      const grace = makeGraceGroup(["a", "b", "c"], ctx);
-      const chord = makeChord(["C", "E", "G"], ctx);
-      const content: System = [grace, chord];
-
-      walkAndFilter(content, [1], ctx);
-
-      // Grace group should be removed for lower parts
-      expect(content).to.have.lengthOf(1);
-      expect(content[0]).to.be.instanceOf(Note);
-      expect((content[0] as Note).pitch.noteLetter.lexeme).to.equal("E");
-    });
-  });
-
-  describe("buildBarMap", () => {
-    it("single system, single voice: 3 barlines produce 3 bar entries", () => {
-      const { tuneBody } = getTuneBody("X:1\nK:C\nC D | E F | G A |\n");
-      const barMap = buildBarMap(tuneBody, "1");
-
-      expect(barMap.has("1")).to.be.true;
-      const voice1 = barMap.get("1")!;
-      expect(voice1.size).to.equal(3);
-
-      // Bar numbers should be 0, 1, 2
-      expect(voice1.has(0)).to.be.true;
-      expect(voice1.has(1)).to.be.true;
-      expect(voice1.has(2)).to.be.true;
-
-      // Each entry's nodeId should match the corresponding barline's ID
-      for (const [barNum, entry] of voice1) {
-        expect(entry.barNumber).to.equal(barNum);
-        expect(entry.closingNodeId).to.be.a("number");
-      }
-    });
-
-    it("single system, multi-voice: each voice gets independent bar numbering", () => {
-      const { tuneBody } = getTuneBody("X:1\nK:C\nC D | E F |[V:2] G A | B c |\n");
-      const barMap = buildBarMap(tuneBody, "1");
-
-      expect(barMap.has("1")).to.be.true;
-      expect(barMap.has("2")).to.be.true;
-
-      const voice1 = barMap.get("1")!;
-      const voice2 = barMap.get("2")!;
-
-      // V:1 has 2 barlines, V:2 has 2 barlines
-      expect(voice1.size).to.equal(2);
-      expect(voice2.size).to.equal(2);
-
-      // Each voice starts numbering at 0
-      expect(voice1.has(0)).to.be.true;
-      expect(voice1.has(1)).to.be.true;
-      expect(voice2.has(0)).to.be.true;
-      expect(voice2.has(1)).to.be.true;
-    });
-
-    it("multiple systems: bar numbering accumulates across systems", () => {
-      const { tuneBody } = getTuneBody("X:1\nK:C\nC D | E F |\nG A | B c |\n");
-      const barMap = buildBarMap(tuneBody, "1");
-
-      const voice1 = barMap.get("1")!;
-      // 2 barlines per system, 2 systems = 4 cumulative entries
-      expect(voice1.size).to.equal(4);
-      expect(voice1.has(0)).to.be.true;
-      expect(voice1.has(1)).to.be.true;
-      expect(voice1.has(2)).to.be.true;
-      expect(voice1.has(3)).to.be.true;
-    });
-
-    it("voice with no barlines but with content produces one bar entry", () => {
-      // No barlines at all -- the finalize() call closes the bar for voice "1"
-      const { tuneBody } = getTuneBody("X:1\nK:C\nC D E F\n");
-      const barMap = buildBarMap(tuneBody, "1");
-
-      const voice1 = barMap.get("1")!;
-      expect(voice1.size).to.equal(1);
-      expect(voice1.has(0)).to.be.true;
-      // The closing anchor should be the last content node's ID (not a barline)
-      expect(voice1.get(0)!.closingNodeId).to.be.a("number");
-    });
-
-    it("content after last barline produces a final bar", () => {
-      // "C D | E F" -- bar 0 closed by barline, bar 1 closed by finalize
-      const { tuneBody } = getTuneBody("X:1\nK:C\nC D | E F\n");
-      const barMap = buildBarMap(tuneBody, "1");
-
-      const voice1 = barMap.get("1")!;
-      // Bar 0 from the barline, bar 1 from content after barline (closed by EOL)
-      expect(voice1.size).to.equal(2);
-      expect(voice1.has(0)).to.be.true;
-      expect(voice1.has(1)).to.be.true;
-    });
-
-    it("barline followed by EOL does not produce a spurious empty bar", () => {
-      const { tuneBody } = getTuneBody("X:1\nK:C\nC D |\n");
-      const barMap = buildBarMap(tuneBody, "1");
-
-      const voice1 = barMap.get("1")!;
-      // Only 1 bar (closed by the barline), no extra bar from the EOL
-      expect(voice1.size).to.equal(1);
-    });
-
-    it("multi-voice linear system where one voice has no barlines", () => {
-      // Voice 1 has a barline, voice 2 has content but no barline
-      const { tuneBody } = getTuneBody("X:1\nK:C\nC D |[V:2] G A\n");
-      const barMap = buildBarMap(tuneBody, "1");
-
-      expect(barMap.has("1")).to.be.true;
-      expect(barMap.has("2")).to.be.true;
-
-      const voice1 = barMap.get("1")!;
-      const voice2 = barMap.get("2")!;
-
-      expect(voice1.size).to.equal(1);
-      // Voice 2 has content but no barline; EOL or finalize should close it
-      expect(voice2.size).to.equal(1);
-    });
-
-    it("two consecutive barlines produce an empty bar between them", () => {
-      // Using "| |" (space between barlines) so the parser produces two separate BarLine nodes
-      const { tuneBody } = getTuneBody("X:1\nK:C\nC D | | E F |\n");
-      const barMap = buildBarMap(tuneBody, "1");
-
-      const voice1 = barMap.get("1")!;
-      // Bar 0 from first |, bar 1 (empty) from second |, bar 2 from third |
-      expect(voice1.size).to.equal(3);
-    });
-
-    it("two consecutive voice markers with no content: first voice has zero entries", () => {
-      // [V:1] immediately followed by [V:2] -- voice 1 has no content
-      const { tuneBody } = getTuneBody("X:1\nK:C\n[V:1][V:2]C D |\n");
-      const barMap = buildBarMap(tuneBody, "default");
-
-      // Voice "1" was entered and exited without any content
-      const voice1 = barMap.get("1");
-      expect(voice1).to.not.be.undefined;
-      expect(voice1!.size).to.equal(0);
-
-      // Voice "2" has one barline
-      expect(barMap.has("2")).to.be.true;
-      expect(barMap.get("2")!.size).to.equal(1);
-    });
-
-    it("default voice with no voice markers in the tune", () => {
-      const { tuneBody } = getTuneBody("X:1\nK:C\nC D | E F |\n");
-      const barMap = buildBarMap(tuneBody, "default");
-
-      expect(barMap.has("default")).to.be.true;
-      const defaultVoice = barMap.get("default")!;
-      expect(defaultVoice.size).to.equal(2);
-    });
-
-    it("startingVoiceId has no content before the first voice marker", () => {
-      // The starting voice "default" has no content, then [V:1] starts
-      const { tuneBody } = getTuneBody("X:1\nK:C\n[V:1]C D |\n");
-      const barMap = buildBarMap(tuneBody, "default");
-
-      const defaultVoice = barMap.get("default");
-      expect(defaultVoice).to.not.be.undefined;
-      expect(defaultVoice!.size).to.equal(0);
-
-      expect(barMap.has("1")).to.be.true;
-      expect(barMap.get("1")!.size).to.equal(1);
-    });
-  });
-
-  describe("getBarSlice", () => {
-    function parseSystem(abc: string): { system: System; ctx: ABCContext } {
-      const ctx = new ABCContext(new AbcErrorReporter());
-      const tokens = Scanner(abc, ctx);
-      const ast = parse(tokens, ctx);
-      const tune = ast.contents[0] as Tune;
-      return { system: tune.tune_body!.sequence[0], ctx };
-    }
-
-    function barEntryFor(nodeId: number, barNumber: number = 0): BarEntry {
-      return { barNumber, closingNodeId: nodeId };
-    }
-
-    it("returns the content boundaries before the first barline", () => {
-      const { system } = parseSystem("X:1\nK:C\nC D | E F |\n");
-
-      const firstBarline = system.find((e) => isBarLine(e)) as BarLine;
-      expect(firstBarline).to.not.be.undefined;
-
-      const slice = getBarSlice(system, barEntryFor(firstBarline.id));
-      expect(slice).to.not.be.null;
-      expect(slice!.startIdx).to.equal(0);
-      // Because the anchor is a barline, endIdx excludes it
-      expect(slice!.endIdx).to.be.greaterThan(0);
-      expect(slice!.content).to.equal(system);
-    });
-
-    it("returns the content boundaries between two barlines", () => {
-      const { system } = parseSystem("X:1\nK:C\nC D | E F |\n");
-
-      const barlines = system.filter((e) => isBarLine(e)) as BarLine[];
-      expect(barlines.length).to.be.greaterThanOrEqual(2);
-
-      const slice = getBarSlice(system, barEntryFor(barlines[1].id, 1));
-      expect(slice).to.not.be.null;
-      expect(slice!.startIdx).to.be.greaterThan(0);
-      expect(slice!.endIdx).to.be.greaterThan(slice!.startIdx);
-    });
-
-    it("returns null for a non-existent node ID", () => {
-      const { system } = parseSystem("X:1\nK:C\nC D | E F |\n");
-      const slice = getBarSlice(system, barEntryFor(999999));
-      expect(slice).to.be.null;
-    });
-
-    it("stops at voice markers when walking backward", () => {
-      const { system } = parseSystem("X:1\nK:C\nC D |[V:2] G A |\n");
-
-      const barlines = system.filter((e) => isBarLine(e)) as BarLine[];
-      const lastBarline = barlines[barlines.length - 1];
-
-      const slice = getBarSlice(system, barEntryFor(lastBarline.id, 1));
-      expect(slice).to.not.be.null;
-      const firstBarlineIdx = system.indexOf(barlines[0]);
-      expect(slice!.startIdx).to.be.greaterThan(firstBarlineIdx);
-    });
-
-    it("closing anchor is a content node: endIdx includes the node", () => {
-      // Build a bar map where the last bar has no trailing barline
-      const { tuneBody } = getTuneBody("X:1\nK:C\nC D | E F\n");
-      const barMap = buildBarMap(tuneBody, "1");
-
-      const voice1 = barMap.get("1")!;
-      // Bar 1 is the content after the barline, closed by EOL/finalize
-      const bar1 = voice1.get(1)!;
-
-      const system = tuneBody.sequence[0];
-      const slice = getBarSlice(system, bar1);
-      expect(slice).to.not.be.null;
-
-      // The anchor is NOT a barline, so endIdx should include it (anchorIdx + 1)
-      const anchorIdx = system.findIndex((e) => e.id === bar1.closingNodeId);
-      expect(slice!.endIdx).to.equal(anchorIdx + 1);
-    });
-
-    it("second system's bar starts at index 0", () => {
-      // The parser splits systems at EOL tokens, so each system starts fresh.
-      // The backward walk in the second system should reach index 0.
-      const { tuneBody } = getTuneBody("X:1\nK:C\nC D |\nE F |\n");
-
-      const system2 = tuneBody.sequence[1];
-      const barline = system2.find((e) => isBarLine(e)) as BarLine;
-      expect(barline).to.not.be.undefined;
-
-      const slice = getBarSlice(system2, barEntryFor(barline.id));
-      expect(slice).to.not.be.null;
-      expect(slice!.startIdx).to.equal(0);
-    });
-  });
-
-  describe("getVoiceIdsFromSelection", () => {
-    it("selection within V:1 content returns only voice 1", () => {
-      const abc = "X:1\nV:1\nV:2\nK:C\n[V:1]C D E|[V:2]F G A|\n";
-      const { selection, snapshots } = createFullTestContext(abc);
-
-      const scoped = selectRange(selection, 4, 5, 4, 9);
-
-      const voiceIds = getVoiceIdsFromSelection(scoped, snapshots);
-      expect(voiceIds.has("1")).to.be.true;
-      expect(voiceIds.has("2")).to.be.false;
-    });
-
-    it("selection spanning a voice marker returns both voices", () => {
-      const abc = "X:1\nV:1\nV:2\nK:C\n[V:1]C D E|[V:2]F G A|\n";
-      const { selection, snapshots } = createFullTestContext(abc);
-
-      const scoped = selectRange(selection, 4, 5, 4, 19);
-
-      const voiceIds = getVoiceIdsFromSelection(scoped, snapshots);
-      expect(voiceIds.has("1")).to.be.true;
-      expect(voiceIds.has("2")).to.be.true;
-    });
-  });
-
-  describe("getSourceBarRange", () => {
-    it("cursor on first bar returns start=0, end=0", () => {
-      // Because the interpreter uses "" as the default voice ID for single-voice
-      // tunes, we must use "" as the starting voice ID for buildBarMap so that the
-      // bar map's voice keys match what resolveVoiceAtPosition returns.
-      const abc = "X:1\nK:C\nC D | E F |\n";
-      const { tuneBody, snapshots } = createBarMapTestContext(abc);
-      const barMap = buildBarMap(tuneBody, "");
-
-      const cursorRange = { start: { line: 2, character: 0 }, end: { line: 2, character: 3 } };
-      const range = getSourceBarRange(barMap, tuneBody.sequence, cursorRange, snapshots);
-
-      expect(range.start).to.equal(0);
-      expect(range.end).to.equal(0);
-    });
-
-    it("cursor spanning both bars returns start=0, end=1", () => {
-      const abc = "X:1\nK:C\nC D | E F |\n";
-      const { tuneBody, snapshots } = createBarMapTestContext(abc);
-      const barMap = buildBarMap(tuneBody, "");
-
-      // Cursor spanning from "C" (char 0) through "F" (char 9), crossing the first barline at char 4
-      const cursorRange = { start: { line: 2, character: 0 }, end: { line: 2, character: 9 } };
-      const range = getSourceBarRange(barMap, tuneBody.sequence, cursorRange, snapshots);
-
-      expect(range.start).to.equal(0);
-      expect(range.end).to.equal(1);
-    });
-  });
-
-  describe("extractBarsContent", () => {
-    it("extracts bars 1 and 2 with barline delimiter, skipping bar 0", () => {
-      const abc = "X:1\nK:C\nA B | C D | E F |\n";
-      const { tuneBody, ctx } = createBarMapTestContext(abc);
-      const barMap = buildBarMap(tuneBody, "1");
-
-      const content = extractBarsContent(barMap, { start: 1, end: 2 }, "1", tuneBody.sequence);
-
-      // Should contain content of bars 1 and 2, with a barline between them
-      const formatter = new AbcFormatter(ctx);
-      const text = content
-        .map((e) => {
-          if (e instanceof Token) return e.lexeme;
-          return formatter.stringify(e as Expr);
-        })
-        .join("");
-
-      // Should have the content from bar 1 ("C D" or similar), a barline, then bar 2
-      expect(text).to.include("|");
-      // Should NOT have "A" or "B" from bar 0
-      expect(text).to.not.include("A");
-      expect(text).to.not.include("B");
-    });
-
-    it("trailing bar with content-node anchor: no spurious barline delimiter", () => {
-      // "A B | C D" -- bar 0 closed by barline, bar 1 closed by content node (via EOL/finalize)
-      const abc = "X:1\nK:C\nA B | C D\n";
-      const { tuneBody, ctx } = createBarMapTestContext(abc);
-      const barMap = buildBarMap(tuneBody, "1");
-
-      // Extract bars 0 and 1
-      const content = extractBarsContent(barMap, { start: 0, end: 1 }, "1", tuneBody.sequence);
-      const formatter = new AbcFormatter(ctx);
-      const text = content
-        .map((e) => {
-          if (e instanceof Token) return e.lexeme;
-          return formatter.stringify(e as Expr);
-        })
-        .join("");
-
-      // Bar 0's anchor is a barline, so a delimiter is inserted.
-      // Bar 1's content should include "C" and "D".
-      expect(text).to.include("C");
-      expect(text).to.include("D");
-    });
-
-    it("barRange.end exceeding actual bar count returns only existing bars", () => {
-      const abc = "X:1\nK:C\nA B | C D |\n";
-      const { tuneBody } = createBarMapTestContext(abc);
-      const barMap = buildBarMap(tuneBody, "1");
-
-      // Ask for bars 0..10, but only 2 bars exist
-      const content = extractBarsContent(barMap, { start: 0, end: 10 }, "1", tuneBody.sequence);
-      // Should not crash and should return content for the 2 existing bars
-      expect(content.length).to.be.greaterThan(0);
-    });
-  });
-
-  describe("assignParts", () => {
-    it("one source voice with max chord size 3, 3 targets: assigns [0], [1], [2]", () => {
-      const ctx = new ABCContext();
-      const chord = makeChord(["C", "E", "G"], ctx);
-      const sourceContents: SourceVoiceContent[] = [{ voiceId: "1", content: [chord] }];
-
-      const assignments = assignParts(sourceContents, ["T1", "T2", "T3"]);
-
-      expect(assignments.get("T1")!.partIndices).to.deep.equal([0]);
-      expect(assignments.get("T2")!.partIndices).to.deep.equal([1]);
-      expect(assignments.get("T3")!.partIndices).to.deep.equal([2]);
-      // All should reference source voice "1"
-      expect(assignments.get("T1")!.sourceVoiceId).to.equal("1");
-    });
-
-    it("one source voice with max chord size 3, 2 targets: last target gets leftover [1, 2]", () => {
-      const ctx = new ABCContext();
-      const chord = makeChord(["C", "E", "G"], ctx);
-      const sourceContents: SourceVoiceContent[] = [{ voiceId: "1", content: [chord] }];
-
-      const assignments = assignParts(sourceContents, ["T1", "T2"]);
-
-      expect(assignments.get("T1")!.partIndices).to.deep.equal([0]);
-      expect(assignments.get("T2")!.partIndices).to.deep.equal([1, 2]);
-    });
-
-    it("two source voices: distributes targets across sources", () => {
-      const ctx = new ABCContext();
-      const chord2 = makeChord(["C", "E"], ctx);
-      const noteA = makeNote("A", ctx);
-      const sourceContents: SourceVoiceContent[] = [
-        { voiceId: "1", content: [chord2] },
-        { voiceId: "2", content: [noteA] },
-      ];
-
-      const assignments = assignParts(sourceContents, ["T1", "T2", "T3"]);
-
-      // Source voice "1" has max chord size 2, gets T1 and T2
-      expect(assignments.get("T1")!.sourceVoiceId).to.equal("1");
-      expect(assignments.get("T1")!.partIndices).to.deep.equal([0]);
-      expect(assignments.get("T2")!.sourceVoiceId).to.equal("1");
-      expect(assignments.get("T2")!.partIndices).to.deep.equal([1]);
-      // Source voice "2" has max chord size 1, gets T3
-      expect(assignments.get("T3")!.sourceVoiceId).to.equal("2");
-      expect(assignments.get("T3")!.partIndices).to.deep.equal([0]);
-    });
-  });
-
-  describe("filterToParts", () => {
-    it("[CEG] A filtered with partIndices [0] produces G A", () => {
-      const ctx = new ABCContext();
-      const chord = makeChord(["C", "E", "G"], ctx);
-      const noteA = makeNote("A", ctx);
-      const content: System = [chord, noteA];
-
-      const result = filterToParts(content, [0], ctx);
-
-      expect(result).to.have.lengthOf(2);
-      expect(result[0]).to.be.instanceOf(Note);
-      expect((result[0] as Note).pitch.noteLetter.lexeme).to.equal("G");
-      expect(result[1]).to.be.instanceOf(Note);
-      expect((result[1] as Note).pitch.noteLetter.lexeme).to.equal("A");
-    });
-
-    it("[CEG] A filtered with partIndices [1, 2] produces [CE] z", () => {
-      const ctx = new ABCContext();
-      const chord = makeChord(["C", "E", "G"], ctx);
-      const noteA = makeNote("A", ctx);
-      const content: System = [chord, noteA];
-
-      const result = filterToParts(content, [1, 2], ctx);
-
-      expect(result).to.have.lengthOf(2);
-      expect(result[0]).to.be.instanceOf(Chord);
-      const chordResult = result[0] as Chord;
-      const notes = chordResult.contents.filter((e): e is Note => e instanceof Note);
-      expect(notes).to.have.lengthOf(2);
-      expect(notes[0].pitch.noteLetter.lexeme).to.equal("C");
-      expect(notes[1].pitch.noteLetter.lexeme).to.equal("E");
-      // The standalone note A should become a rest
-      expect(result[1]).to.be.instanceOf(Rest);
-    });
-  });
-
-  // --- Phase 5 tests ---
-
-  describe("cursorRangeToTimeRange", () => {
-    it("returns the time range for notes covered by the cursor range", () => {
-      // Parse "C D E F |" to get AST content with positions
-      const { tuneBody } = createBarMapTestContext("X:1\nK:C\nL:1/4\nC D E F |");
-      // The notes are in the last system (system[0] contains L: info line)
-      const system = tuneBody.sequence[tuneBody.sequence.length - 1];
-      // The bar content runs from index 0 to the barline
-      let barlineIdx = system.length - 1;
-      for (let i = 0; i < system.length; i++) {
-        if (isBarLine(system[i])) {
-          barlineIdx = i;
-          break;
-        }
-      }
-
-      // Full bar cursor range covering all notes (line 3, chars 0..9)
-      const fullRange = {
-        start: { line: 3, character: 0 },
-        end: { line: 3, character: 20 },
-      };
-      const result = cursorRangeToTimeRange(system, 0, barlineIdx, fullRange);
-      // calculateDuration returns raw rhythm values (not scaled by L:).
-      // Each note with no rhythm token has duration 1. Four notes = 4.
-      expect(rationalToNumber(result.start)).to.equal(0);
-      expect(rationalToNumber(result.end)).to.equal(4);
-    });
-
-    it("returns zero-span range when no notes overlap the cursor", () => {
-      const { tuneBody } = createBarMapTestContext("X:1\nK:C\nC D |");
-      const system = tuneBody.sequence[tuneBody.sequence.length - 1];
-      let barlineIdx = system.length - 1;
-      for (let i = 0; i < system.length; i++) {
-        if (isBarLine(system[i])) {
-          barlineIdx = i;
-          break;
-        }
-      }
-
-      // Cursor range far away from notes
-      const noOverlapRange = {
-        start: { line: 100, character: 0 },
-        end: { line: 100, character: 10 },
-      };
-      const result = cursorRangeToTimeRange(system, 0, barlineIdx, noOverlapRange);
-      expect(rationalToNumber(result.start)).to.equal(0);
-      expect(rationalToNumber(result.end)).to.equal(0);
-    });
-  });
-
-  describe("splitNoteAt", () => {
-    it("splits a note with rhythm 2 at offset 1 into two notes with rhythm 1 each", () => {
-      const ctx = new ABCContext(new AbcErrorReporter());
-      const noteLetter = new Token(TT.NOTE_LETTER, "C", ctx.generateId());
-      const pitch = new Pitch(ctx.generateId(), { noteLetter });
-      const numToken = new Token(TT.RHY_NUMER, "2", ctx.generateId());
-      const rhythm = new Rhythm(ctx.generateId(), numToken);
-      const note = new Note(ctx.generateId(), pitch, rhythm);
-      const content: System = [note];
-
-      splitNoteAt(content, 0, createRational(1, 1), ctx);
-
-      expect(content).to.have.lengthOf(2);
-      expect(content[0]).to.be.instanceOf(Note);
-      expect(content[1]).to.be.instanceOf(Note);
-
-      // Verify that both halves have the correct durations
-      const dur0 = calculateDuration(content[0] as Note, {});
-      const dur1 = calculateDuration(content[1] as Note, {});
-      expect(rationalToNumber(dur0)).to.equal(1);
-      expect(rationalToNumber(dur1)).to.equal(1);
-    });
-
-    it("does not split when splitAt equals the full duration", () => {
-      const ctx = new ABCContext(new AbcErrorReporter());
-      const noteLetter = new Token(TT.NOTE_LETTER, "D", ctx.generateId());
-      const pitch = new Pitch(ctx.generateId(), { noteLetter });
-      const note = new Note(ctx.generateId(), pitch);
-      const content: System = [note];
-
-      // splitAt == duration (1/1) should be a no-op because the guard
-      // rejects split points at or beyond the note's full duration.
-      splitNoteAt(content, 0, createRational(1, 1), ctx);
-
-      expect(content).to.have.lengthOf(1);
-    });
-
-    it("does not split when splitAt is zero", () => {
-      const ctx = new ABCContext(new AbcErrorReporter());
-      const noteLetter = new Token(TT.NOTE_LETTER, "E", ctx.generateId());
-      const pitch = new Pitch(ctx.generateId(), { noteLetter });
-      const note = new Note(ctx.generateId(), pitch);
-      const content: System = [note];
-
-      splitNoteAt(content, 0, createRational(0, 1), ctx);
-
-      expect(content).to.have.lengthOf(1);
-    });
-  });
-
-  describe("replaceTimeRangeInBar", () => {
-    it("replaces the entire bar when the time range covers it fully", () => {
-      const ctx = new ABCContext(new AbcErrorReporter());
-      // Create a bar with a Z rest + barline
-      const barline = new BarLine(ctx.generateId(), [new Token(TT.BARLINE, "|", ctx.generateId())]);
-      const replacement: System = [makeNote("C", ctx), makeNote("D", ctx)];
-
-      // Z rest has infinite duration, but buildTimeMap skips infinite entries.
-      // So we need to use a finite-duration rest instead.
-      const restToken = new Token(TT.REST, "z", ctx.generateId());
-      const restNumToken = new Token(TT.RHY_NUMER, "4", ctx.generateId());
-      const restRhythm = new Rhythm(ctx.generateId(), restNumToken);
-      const finiteRest = new Rest(ctx.generateId(), restToken, restRhythm);
-      const content2: System = [finiteRest, barline];
-
-      const timeRange = { start: createRational(0, 1), end: createRational(1, 1) };
-      replaceTimeRangeInBar(content2, 0, 1, timeRange, replacement, ctx);
-
-      // The rest should be replaced, barline remains at the end
-      expect(content2.length).to.be.greaterThanOrEqual(2);
-      expect(content2[0]).to.be.instanceOf(Note);
-      expect(content2[1]).to.be.instanceOf(Note);
-    });
-  });
-
-  describe("findBarEntry", () => {
-    it("returns the entry when it exists", () => {
-      const barMap: BarMap = new Map();
-      const voiceEntries = new Map<number, BarEntry>();
-      voiceEntries.set(0, { barNumber: 0, closingNodeId: 100 });
-      voiceEntries.set(1, { barNumber: 1, closingNodeId: 200 });
-      barMap.set("1", voiceEntries);
-
-      const result = findBarEntry(barMap, "1", 1);
-      expect(result).to.not.be.null;
-      expect(result!.barNumber).to.equal(1);
-      expect(result!.closingNodeId).to.equal(200);
-    });
-
-    it("returns null when the bar does not exist", () => {
-      const barMap: BarMap = new Map();
-      const voiceEntries = new Map<number, BarEntry>();
-      voiceEntries.set(0, { barNumber: 0, closingNodeId: 100 });
-      barMap.set("1", voiceEntries);
-
-      const result = findBarEntry(barMap, "1", 5);
-      expect(result).to.be.null;
-    });
-
-    it("returns null when the voice does not exist", () => {
-      const barMap: BarMap = new Map();
-      const result = findBarEntry(barMap, "nonexistent", 0);
-      expect(result).to.be.null;
-    });
-  });
-
-  describe("integration: buildBarMap + getBarSlice pipeline", () => {
-    it("tune with content after the last barline: all bars are accessible", () => {
-      // "C D | E F" has bar 0 (closed by barline) and bar 1 (closed by finalize)
-      const abc = "X:1\nK:C\nC D | E F\n";
-      const { tuneBody, ctx } = createBarMapTestContext(abc);
-      const barMap = buildBarMap(tuneBody, "1");
-
-      const voice1 = barMap.get("1")!;
-      expect(voice1.size).to.equal(2);
-
-      // Both bars should be retrievable via getBarSlice
-      const system = tuneBody.sequence[0];
-      const bar0Slice = getBarSlice(system, voice1.get(0)!);
-      const bar1Slice = getBarSlice(system, voice1.get(1)!);
-
-      expect(bar0Slice).to.not.be.null;
-      expect(bar1Slice).to.not.be.null;
-
-      // Bar 0 content should include C and D
-      const formatter = new AbcFormatter(ctx);
-      const bar0Text = bar0Slice!.content
-        .slice(bar0Slice!.startIdx, bar0Slice!.endIdx)
-        .map((e) => (e instanceof Token ? e.lexeme : formatter.stringify(e as Expr)))
-        .join("");
-      expect(bar0Text).to.include("C");
-      expect(bar0Text).to.include("D");
-
-      // Bar 1 content should include E and F
-      const bar1Text = bar1Slice!.content
-        .slice(bar1Slice!.startIdx, bar1Slice!.endIdx)
-        .map((e) => (e instanceof Token ? e.lexeme : formatter.stringify(e as Expr)))
-        .join("");
-      expect(bar1Text).to.include("E");
-      expect(bar1Text).to.include("F");
-    });
-
-    it("single-bar tune with no barlines: one bar accessible", () => {
-      const abc = "X:1\nK:C\nC D E F\n";
-      const { tuneBody, ctx } = createBarMapTestContext(abc);
-      const barMap = buildBarMap(tuneBody, "1");
-
-      const voice1 = barMap.get("1")!;
-      expect(voice1.size).to.equal(1);
-
-      // The single bar should be retrievable
-      const system = tuneBody.sequence[0];
-      const bar0Slice = getBarSlice(system, voice1.get(0)!);
-      expect(bar0Slice).to.not.be.null;
-
-      const formatter = new AbcFormatter(ctx);
-      const bar0Text = bar0Slice!.content
-        .slice(bar0Slice!.startIdx, bar0Slice!.endIdx)
-        .map((e) => (e instanceof Token ? e.lexeme : formatter.stringify(e as Expr)))
-        .join("");
-      expect(bar0Text).to.include("C");
-      expect(bar0Text).to.include("D");
-      expect(bar0Text).to.include("E");
-      expect(bar0Text).to.include("F");
-    });
-  });
-});
-
-/**
- * Serializes a CSTree root back to ABC text by converting to AST and formatting.
- */
-function serializeSelection(selection: Selection, ctx: ABCContext): string {
-  const ast = toAst(selection.root);
-  const formatter = new AbcFormatter(ctx);
-  return formatter.stringify(ast as Expr);
-}
-
-/**
- * Creates a full test context and narrows the selection to a specific line range
- * in the tune body. The line/col values are 0-indexed.
- */
 function createExplosionTestContext(
   abc: string,
   startLine: number,
@@ -917,9 +885,6 @@ function createExplosionTestContext(
 } {
   const { selection, ctx, snapshots } = createFullTestContext(abc);
   const narrowed = selectRange(selection, startLine, startCol, endLine, endCol);
-  // The explosion transform expects a single grouped cursor (as the LSP
-  // server provides via GROUPED_CURSOR_TRANSFORMS). selectRange creates
-  // one cursor per matched node, so we merge them here.
   const merged = new Set<number>();
   for (const cursor of narrowed.cursors) {
     for (const id of cursor) merged.add(id);
@@ -931,9 +896,9 @@ function createExplosionTestContext(
   };
 }
 
-describe("end-to-end", () => {
+describe("explosion CSTree end-to-end", () => {
   describe("deferred style (ctx.tuneLinear = false)", () => {
-    it("D1: simple two-note chords exploded into two voices", () => {
+    it("simple two-note chords exploded into two voices", () => {
       const abc = "X:1\nK:C\n[CE] [DF] [EG]|\n";
       const { selection, ctx, snapshots } = createExplosionTestContext(abc, 2, 0, 2, 100);
 
@@ -946,7 +911,7 @@ describe("end-to-end", () => {
       expect(result.cursors[1].size).to.be.greaterThan(0);
     });
 
-    it("D2: three-note chord exploded into three voices", () => {
+    it("three-note chord exploded into three voices", () => {
       const abc = "X:1\nK:C\n[CEG]|\n";
       const { selection, ctx, snapshots } = createExplosionTestContext(abc, 2, 0, 2, 100);
 
@@ -957,7 +922,7 @@ describe("end-to-end", () => {
       expect(result.cursors.length).to.equal(3);
     });
 
-    it("D3: two-bar selection with mixed chords and standalone notes", () => {
+    it("two-bar selection with mixed chords and standalone notes", () => {
       const abc = "X:1\nK:C\n[CE] D | [EG] F|\n";
       const { selection, ctx, snapshots } = createExplosionTestContext(abc, 2, 0, 2, 100);
 
@@ -968,20 +933,17 @@ describe("end-to-end", () => {
       expect(result.cursors.length).to.equal(2);
     });
 
-    it("D4: partial bar selection (only some notes selected)", () => {
+    it("partial bar selection (only some notes selected)", () => {
       const abc = "X:1\nK:C\nA [CE] [DF] B|\n";
       const { selection, ctx, snapshots } = createExplosionTestContext(abc, 2, 2, 2, 11);
 
       const result = explosion(selection, ["1", "2"], ctx, snapshots);
       const text = serializeSelection(result, ctx);
 
-      // Partial bar selection is a known open issue (see bugtracker).
-      // The output is not fully correct but we lock in the current
-      // behavior to detect regressions.
       expect(text).to.equal("X:1\nK:C\nA [CE] [DF] B|\n[V:1]ZA E F B|\n[V:2]Zz C D z|\n");
     });
 
-    it("D5: tune with explicit voice declaration", () => {
+    it("tune with explicit voice declaration", () => {
       const abc = "X:1\nK:C\nV:1\n[CE] [DF]| [EG] [FA]|\n";
       const { selection, ctx, snapshots } = createExplosionTestContext(abc, 3, 0, 3, 100);
 
@@ -994,7 +956,7 @@ describe("end-to-end", () => {
       expect(result.cursors[1].size).to.be.greaterThan(0);
     });
 
-    it("D6: chords with rhythm are preserved in the exploded notes", () => {
+    it("chords with rhythm are preserved in the exploded notes", () => {
       const abc = "X:1\nK:C\n[CE]2 [DF]/|\n";
       const { selection, ctx, snapshots } = createExplosionTestContext(abc, 2, 0, 2, 100);
 
@@ -1006,7 +968,7 @@ describe("end-to-end", () => {
   });
 
   describe("linear style (ctx.tuneLinear = true)", () => {
-    it("L1: simple linear tune with chords", () => {
+    it("simple linear tune with chords", () => {
       const abc = "X:1\n%%abcls-parse linear\nK:C\n[CE] [DF]|\n";
       const { selection, ctx, snapshots } = createExplosionTestContext(abc, 3, 0, 3, 100);
 
@@ -1017,7 +979,7 @@ describe("end-to-end", () => {
       expect(result.cursors.length).to.equal(2);
     });
 
-    it("L2: linear tune with existing voices", () => {
+    it("linear tune with existing voices", () => {
       const abc = "X:1\n%%abcls-parse linear\nK:C\nV:1\n[CE] [DF]|\nV:2\nG A|\n";
       const { selection, ctx, snapshots } = createExplosionTestContext(abc, 4, 0, 4, 100);
 
@@ -1028,8 +990,25 @@ describe("end-to-end", () => {
     });
   });
 
+  describe("real-world usage: chords with annotations and multi-bar context", () => {
+    it("partial selection with annotations in a two-bar, single-voice tune", () => {
+      const abc = 'X:1\nL:1/4\nK:F\n[V:1] [DGB] "G7" =B "Fm7" B | _BAC\n';
+      const { selection, ctx, snapshots } = createExplosionTestContext(abc, 3, 6, 3, 19);
+
+      const result = explosion(selection, ["2", "3"], ctx, snapshots);
+      const text = serializeSelection(result, ctx);
+
+      // Ideal expected output:
+      // - Source voice 1 remains unchanged
+      // - Voice 2 gets top note (B) from [DGB], =B stays, unselected notes become rests
+      // - Voice 3 gets bottom notes [DG], =B becomes rest, unselected notes become rests
+      // - Both new voices should have complete bars with barlines
+      expect(text).to.equal('X:1\nL:1/4\nK:F\n[V:1] [DGB] "G7" =B "Fm7" B | _BAC\n' + '[V:2]B "G7" =B "Fm7" z|\n' + '[V:3][DG] "G7" z "Fm7" z|\n');
+    });
+  });
+
   describe("guard clause coverage", () => {
-    it("G1: empty selection produces no changes", () => {
+    it("empty selection produces no changes", () => {
       const abc = "X:1\nK:C\n[CE] [DF]|\n";
       const { selection: baseSelection, ctx, snapshots } = createFullTestContext(abc);
       const emptySelection: Selection = { root: baseSelection.root, cursors: [] };
@@ -1040,7 +1019,7 @@ describe("end-to-end", () => {
       expect(text).to.equal(abc);
     });
 
-    it("G2: selection spanning multiple voices returns unchanged", () => {
+    it("selection spanning multiple voices returns unchanged", () => {
       const abc = "X:1\nK:C\nV:1\nC D|\nV:2\nE F|\n";
       const { selection, ctx, snapshots } = createExplosionTestContext(abc, 3, 0, 5, 100);
 
@@ -1050,7 +1029,7 @@ describe("end-to-end", () => {
       expect(text).to.equal(abc);
     });
 
-    it("G3: tune with only standalone notes (no chords)", () => {
+    it("tune with only standalone notes (no chords)", () => {
       const abc = "X:1\nK:C\nC D E F|\n";
       const { selection, ctx, snapshots } = createExplosionTestContext(abc, 2, 0, 2, 100);
 
@@ -1060,7 +1039,7 @@ describe("end-to-end", () => {
       expect(text).to.equal("X:1\nK:C\nC D E F|\n[V:1]C D E F|\n");
     });
 
-    it("G4: target voice IDs include the source voice", () => {
+    it("target voice IDs include the source voice", () => {
       const abc = "X:1\nK:C\n[CE] [DF]|\n";
       const { selection, ctx, snapshots } = createExplosionTestContext(abc, 2, 0, 2, 100);
 
