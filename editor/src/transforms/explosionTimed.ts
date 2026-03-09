@@ -330,7 +330,44 @@ export function cursorRangeToTimeRange(startNode: CSNode | null, endNode: CSNode
  * content. If a note straddles a boundary of the time range, it is
  * split into two notes with adjusted durations.
  */
+/**
+ * Converts a MultiMeasureRest node in-place to a regular Rest node with
+ * the given duration. Because MMRs represent whole measures, they cannot
+ * be split at sub-bar time offsets. Converting to a regular rest first
+ * allows the normal split logic to proceed.
+ */
+function convertMmrToRest(mmrNode: CSNode, duration: IRational, ctx: ABCContext): void {
+  while (mmrNode.firstChild) remove(mmrNode.firstChild);
+
+  const restToken = createCSNode(TAGS.Token, ctx.generateId(), {
+    lexeme: "z",
+    tokenType: TT.REST,
+    line: -1,
+    position: -1,
+  });
+
+  mmrNode.tag = TAGS.Rest;
+  appendChild(mmrNode, restToken);
+
+  const rhythmNode = rationalToRhythm(duration, ctx);
+  if (rhythmNode) appendChild(mmrNode, rhythmNode);
+}
+
 export function replaceTimeRangeInBar(barSlice: BarSlice, timeRange: TimeRange, replacementNodes: CSNode[], ctx: ABCContext, barDuration?: IRational): void {
+  // Convert any MultiMeasureRest nodes to regular rests before splitting,
+  // because MMRs represent whole measures and cannot be split at sub-bar
+  // time offsets. The converted rest uses barDuration as its duration.
+  if (barDuration) {
+    let scan = barSlice.startNode;
+    while (scan !== null) {
+      if (scan.tag === TAGS.MultiMeasureRest) {
+        convertMmrToRest(scan, barDuration, ctx);
+      }
+      if (scan === barSlice.endNode) break;
+      scan = scan.nextSibling;
+    }
+  }
+
   let timeMap = buildTimeMap(barSlice.startNode, barSlice.endNode, barDuration);
 
   let firstOverlapIdx: number | null = null;
