@@ -31,14 +31,14 @@ export const pDuration = /(\/+)|(([1-9][0-9]*)?\/[1-9][0-9]*)|([0-9]+)|([>]+|[<]
 export const pSectionBrk = /\n([ \t]*\n)+/;
 export const pNumber = /[1-9][0-9]*/;
 export const pRest = /[zZxX]/;
-const pAccidental = /^((\^[\^\/]?)|(_[_\/]?)|=)/;
+const pAccidental = /^((\^[\^/]?)|(_[_/]?)|=)/;
 // export const pPitch = /[\^=_]?[a-gA-G][,']*/;
 export const pPitch = new RegExp(`((\\^[\\^\\/]?)|(_[_\\/]?)|=)?[a-gA-G][,']*`);
 export const pString = /"[^\n]*"/;
 // Chord pattern: [ followed by pitches (with optional rhythm) and/or strings, then ]
 // Note: rhythm values inside chords are allowed (scanner parses them, interpreter handles them)
 export const pChord = new RegExp(`\\[[ \\t]*((${pString.source}[ \\t]*)+|(${pPitch.source}(?:${pDuration.source})?-?[ \\t]*)+)\\]`);
-export const pDeco = /[\~\.HJKkLMnOPRSTuv]/;
+export const pDeco = /[~.HJKkLMnOPRSTuv]/;
 
 export const pTuplet = new RegExp(`\\(${pNumber.source}(:(${pNumber.source})?)?(:(${pNumber.source})?)?`);
 export const pBrLn = /((\[\|)|(\|\])|(\|\|)|(\|))/;
@@ -49,7 +49,7 @@ inline field is a left bracket, followed by a letter, followed by a colon
 followed by any text, followed by a right bracket
 */
 export const pInlineField = /\[[ \t]*[a-zA-Z][ \t]*:[^\]]*\]/;
-export const pGraceGrp = new RegExp(`{\/?([-() \\t]*(${pPitch.source})(${pDuration.source})?[-() \\t]*)+}`);
+export const pGraceGrp = new RegExp(`{/?([-() \\t]*(${pPitch.source})(${pDuration.source})?[-() \\t]*)+}`);
 
 export function note(ctx: Ctx): boolean {
   const hasTie = tie(ctx);
@@ -79,7 +79,7 @@ export function tie(ctx: Ctx): boolean {
 
 export function ampersand(ctx: Ctx): boolean {
   if (!ctx.test("&")) return false;
-  if (ctx.test(/\&\n/)) {
+  if (ctx.test(/&\n/)) {
     advance(ctx, 2);
     ctx.push(TT.VOICE_OVRLAY);
     return true;
@@ -217,7 +217,7 @@ export function systemBreak(ctx: Ctx): boolean {
 }
 
 export function symbol(ctx: Ctx): boolean {
-  if (!(ctx.test(/![^\n!]*!/) || ctx.test(/\+[^\n\+]*\+/))) return false;
+  if (!(ctx.test(/![^\n!]*!/) || ctx.test(/\+[^\n+]*\+/))) return false;
   const is_plus_symbol = ctx.test("+");
   advance(ctx);
   while (!ctx.test(is_plus_symbol ? "+" : "!")) {

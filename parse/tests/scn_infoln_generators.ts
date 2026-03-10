@@ -694,7 +694,7 @@ export const genTextDirective = fc
   .tuple(
     // Generate 1-10 lines of text (these are the lines AFTER %% stripping)
     fc.array(
-      fc.stringMatching(/^[a-zA-Z0-9 .,'!?;:()\-]+$/).filter((s) => s.length > 0 && s.length < 80),
+      fc.stringMatching(/^[-a-zA-Z0-9 .,'!?;:()]+$/).filter((s) => s.length > 0 && s.length < 80),
       { minLength: 1, maxLength: 10 }
     )
   )

@@ -268,7 +268,7 @@ export const genNoteLenInfo = fc
  * Ensures no leading/trailing spaces
  */
 const genNameText = fc
-  .stringMatching(/^[A-Za-z][A-Za-z0-9 '\-]{0,40}[A-Za-z0-9]$/)
+  .stringMatching(/^[A-Za-z][A-Za-z0-9 '-]{0,40}[A-Za-z0-9]$/)
   .map((s) => s.trim())
   .filter((s) => s.length > 0);
 

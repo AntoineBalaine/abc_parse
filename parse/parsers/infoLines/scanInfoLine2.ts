@@ -50,9 +50,9 @@ export function singleChar(ctx: Ctx, char: string, tokenType: TT): boolean {
  * Scan identifier: unquoted words like "treble", "major", "clef"
  */
 export function identifier(ctx: Ctx): boolean {
-  if (!ctx.test(/[a-zA-Z][\-a-zA-Z0-9_]*/)) return false;
+  if (!ctx.test(/[a-zA-Z][-a-zA-Z0-9_]*/)) return false;
 
-  const match = /^[a-zA-Z][\-a-zA-Z0-9_]*/.exec(ctx.source.substring(ctx.current));
+  const match = /^[a-zA-Z][-a-zA-Z0-9_]*/.exec(ctx.source.substring(ctx.current));
   if (match) {
     ctx.current += match[0].length;
     ctx.push(TT.IDENTIFIER);

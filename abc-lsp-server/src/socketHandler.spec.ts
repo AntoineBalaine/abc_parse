@@ -2,12 +2,12 @@ import * as fs from "fs";
 import * as net from "net";
 import * as os from "os";
 import * as path from "path";
-import { abc2midi } from "abc-midi";
+import { abc2midi, midi2abc } from "abc-midi";
 import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
 import { expect } from "chai";
-import { fromAst, CSNode } from "editor";
 import { describe, it, beforeEach, afterEach } from "mocha";
 import { TextDocument } from "vscode-languageserver-textdocument";
+import { fromAst, CSNode } from "../../editor/src/index";
 import { AbcDocument } from "./AbcDocument";
 import { AbcxDocument } from "./AbcxDocument";
 import { ERROR_CODES } from "./constants";
@@ -27,13 +27,6 @@ interface SelectorResponse {
 interface ErrorResponse {
   id: number | string;
   error: { code: number; message: string };
-}
-
-// Helper to parse ABC content
-function parseAbc(source: string): File_structure {
-  const ctx = new ABCContext();
-  const tokens = Scanner(source, ctx);
-  return parse(tokens, ctx);
 }
 
 // Create a mock AbcDocument with a real instance
@@ -523,8 +516,6 @@ describe("Socket Handler", () => {
     describe("abc.importMidi dispatch", () => {
       beforeEach(() => {
         handler.setImportMidi((midiBase64, options) => {
-          // Use the real midi2abc via AbcLspServer's importMidi pattern
-          const { midi2abc } = require("abc-midi");
           const bytes = Buffer.from(midiBase64, "base64");
           return midi2abc(new Uint8Array(bytes), options);
         });

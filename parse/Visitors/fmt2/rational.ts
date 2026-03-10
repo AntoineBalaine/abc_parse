@@ -160,7 +160,7 @@ export function rationalFromNumber(num: number, maxDenominator: number = 10000):
   let d1 = 0;
   let a = Math.floor(num);
 
-  while (true) {
+  for (;;) {
     n = a * n1 + n;
     d = a * d1 + d;
 

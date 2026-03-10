@@ -26,7 +26,7 @@ export const genNoteLetter = fc.stringMatching(/^[a-gA-G]$/).map((letter) => new
 
 export const genOctave = fc.stringMatching(/^(,+|'+)$/).map((oct) => new Token(TT.OCTAVE, oct, sharedContext.generateId()));
 
-export const genAccidental = fc.stringMatching(/^((\^[\^\/]?)|(_[_\/]?)|=)$/).map((acc) => new Token(TT.ACCIDENTAL, acc, sharedContext.generateId()));
+export const genAccidental = fc.stringMatching(/^((\^[\^/]?)|(_[_/]?)|=)$/).map((acc) => new Token(TT.ACCIDENTAL, acc, sharedContext.generateId()));
 
 export const genRest = fc.stringMatching(/^[xXzZ]$/).map((rest) => new Token(TT.REST, rest, sharedContext.generateId()));
 
@@ -104,7 +104,7 @@ export const genSlur = fc.constantFrom("(", ")").map((slur) => new Token(TT.SLUR
 export const genDottedSlur = fc.constant([new Token(TT.DOTTED_SLUR, ".(", sharedContext.generateId())]);
 
 // Decoration generator
-export const genDecoration = fc.stringMatching(/^[\~\.HJLMOPRSTuv]$/).map((deco) => new Token(TT.DECORATION, deco, sharedContext.generateId()));
+export const genDecoration = fc.stringMatching(/^[~.HJLMOPRSTuv]$/).map((deco) => new Token(TT.DECORATION, deco, sharedContext.generateId()));
 
 // System break generator - must be surrounded by whitespace to avoid conflicts with symbols
 export const genSystemBreak = fc
@@ -115,7 +115,7 @@ export const genSystemBreak = fc
 export const genSymbol = fc.oneof(
   fc.stringMatching(/^![a-zA-Z][^\n!]*!$/).map((sym) => new Token(TT.SYMBOL, sym, sharedContext.generateId())),
   // FIXME: including the `:` here so that tests don't break. This is an edge case.
-  fc.stringMatching(/^\+[^\n:\+]*\+$/).map((sym) => new Token(TT.SYMBOL, sym, sharedContext.generateId()))
+  fc.stringMatching(/^\+[^\n:+]*\+$/).map((sym) => new Token(TT.SYMBOL, sym, sharedContext.generateId()))
 );
 
 // Y-spacer generator
@@ -279,7 +279,7 @@ export const genGraceGroupWithFollower = fc
 export const genDecorationWithFollower = fc
   .tuple(
     // The decoration
-    fc.stringMatching(/^[\~\.HLMOPRSTuv]+$/).map((deco) => new Token(TT.DECORATION, deco, sharedContext.generateId())),
+    fc.stringMatching(/^[~.HLMOPRSTuv]+$/).map((deco) => new Token(TT.DECORATION, deco, sharedContext.generateId())),
 
     // The follower - either a note or a chord
     fc.oneof(

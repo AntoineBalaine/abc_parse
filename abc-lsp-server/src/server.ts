@@ -424,7 +424,6 @@ connection.onRequest("abc.applyTransform", (params: ApplyTransformParams): Apply
   const root = fromAst(doc.AST, doc.ctx);
 
   // Convert editor selections to cursors
-  let selection: Selection;
   if (!params.selections || params.selections.length === 0) {
     // No selections provided - nothing to transform
     return { textEdits: [], cursorRanges: [] };
@@ -464,7 +463,7 @@ connection.onRequest("abc.applyTransform", (params: ApplyTransformParams): Apply
     return { textEdits: [], cursorRanges: [] };
   }
 
-  selection = { root, cursors: allCursors };
+  const selection: Selection = { root, cursors: allCursors };
 
   // Apply transform (mutates tree in place, returns updated Selection)
   let transformArgs = params.args;

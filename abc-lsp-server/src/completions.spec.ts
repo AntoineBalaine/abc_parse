@@ -502,7 +502,7 @@ describe("getFontDirectiveCompletions - property-based", () => {
         const result = getFontDirectiveCompletions(directive, true);
         expect(result).to.have.length(1);
         expect(result[0].insertTextFormat).to.equal(InsertTextFormat.Snippet);
-        expect(result[0].insertText).to.match(/\$\{[0-9]+[:|][^\}]+\}/);
+        expect(result[0].insertText).to.match(/\$\{[0-9]+[:|][^}]+\}/);
         expect(result[0].insertText).to.match(/\$\{4\|box,/);
         return true;
       })
@@ -515,7 +515,7 @@ describe("getFontDirectiveCompletions - property-based", () => {
         const result = getFontDirectiveCompletions(directive, true);
         expect(result).to.have.length(1);
         expect(result[0].insertTextFormat).to.equal(InsertTextFormat.Snippet);
-        expect(result[0].insertText).to.match(/\$\{[0-9]+[:|][^\}]+\}/);
+        expect(result[0].insertText).to.match(/\$\{[0-9]+[:|][^}]+\}/);
         expect(result[0].insertText).to.not.match(/\$\{4/);
         return true;
       })

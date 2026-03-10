@@ -96,7 +96,7 @@ function isAbcxRecoveryPoint(ctx: Ctx): boolean {
   return (
     ctx.test(pEOL) ||
     ctx.test(/[ \t]/) ||
-    ctx.test(/[|:\[\]]/) ||  // barline characters
+    ctx.test(/[|:[\]]/) ||  // barline characters
     ctx.test(/[A-Gacdefg]/) ||  // chord symbol start (excluding 'b' which is flat accidental)
     ctx.test('"') ||         // annotation start
     ctx.test('%')            // comment start
