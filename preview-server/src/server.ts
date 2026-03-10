@@ -3,7 +3,7 @@ import http from "http";
 import path from "path";
 import express from "express";
 import WebSocket from "ws";
-import { ClientMessage, CleanupMessage, ContentMessage, ServerMessage } from "./types";
+import { ClientMessage, CleanupMessage, ContentMessage, ServerMessage, isExportRequest, hasSvgContent } from "./types";
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -164,7 +164,7 @@ findAvailablePort(startPort).then((port) => {
               content: data.content,
             })
           );
-        } else if (data.type === "requestExport") {
+        } else if (isExportRequest(data)) {
           // Handle export request
           const scorePath = slugToPath.get(slug);
           if (!scorePath || !scoresByPath.has(scorePath)) {
@@ -184,7 +184,7 @@ findAvailablePort(startPort).then((port) => {
                 client.once("message", (svgMessage) => {
                   try {
                     const svgData = JSON.parse(svgMessage.toString()) as ClientMessage;
-                    if (svgData.type === "svgExport" && svgData.content) {
+                    if (hasSvgContent(svgData)) {
                       if (data.format === "svg") {
                         handleExport("svg", svgData.content, data.path);
                       } else {

@@ -228,7 +228,7 @@ source "%val{config}/kakrc"
     execSync('sleep 0.1', { cwd: this.testHome, env: this.testEnv });
   }
 
-  query(kakExpr: string, buffer?: string): string {
+  query(kakExpr: string, _buffer?: string): string {
     // Run query in client context via tmux (kak -p doesn't have client state)
     // For shell variables like $kak_selection, we use %sh{} to expand them
     // For kakoune expansions like %opt{...}, we use echo directly

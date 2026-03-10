@@ -1,6 +1,6 @@
 export interface ClientMessage {
   type: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ClickEvent {
@@ -19,10 +19,10 @@ export interface ContentMessage {
 
 export interface ConfigMessage {
   type: "config";
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
-export interface ExportRequest {
+export interface ExportRequest extends ClientMessage {
   type: "requestExport";
   format: "html" | "svg";
   path: string;
@@ -56,3 +56,11 @@ export interface ServerInfoMessage {
 }
 
 export type ServerMessage = ClickEvent | ContentMessage | ConfigMessage | ExportComplete | ExportError | CursorMoveMessage | CleanupMessage | ServerInfoMessage;
+
+export function isExportRequest(msg: ClientMessage): msg is ExportRequest {
+  return msg.type === "requestExport" && typeof msg.format === "string" && typeof msg.path === "string";
+}
+
+export function hasSvgContent(msg: ClientMessage): msg is ClientMessage & { content: string } {
+  return msg.type === "svgExport" && typeof msg.content === "string";
+}
