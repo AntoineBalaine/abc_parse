@@ -4,13 +4,7 @@
 
 import { expect } from "chai";
 import { Decorations } from "../types/abcjs-ast";
-import {
-  decorationsToArticulation,
-  extractDynamics,
-  isFermata,
-  hasFermata,
-  DYNAMICS_MAP,
-} from "./articulation-map";
+import { decorationsToArticulation, extractDynamics, isFermata, hasFermata, DYNAMICS_MAP } from "./articulation-map";
 import { NoteArticulation } from "./types";
 
 describe("Articulation Map", () => {
@@ -45,10 +39,7 @@ describe("Articulation Map", () => {
     });
 
     it("should combine multiple articulations with bitwise OR", () => {
-      const result = decorationsToArticulation([
-        Decorations.Staccato,
-        Decorations.Accent,
-      ]);
+      const result = decorationsToArticulation([Decorations.Staccato, Decorations.Accent]);
       const expected = NoteArticulation.Staccato | NoteArticulation.Accent;
       expect(result).to.equal(expected);
     });
@@ -116,11 +107,7 @@ describe("Articulation Map", () => {
     });
 
     it("should find dynamics among other decorations", () => {
-      const result = extractDynamics([
-        Decorations.Staccato,
-        Decorations.MF,
-        Decorations.Accent,
-      ]);
+      const result = extractDynamics([Decorations.Staccato, Decorations.MF, Decorations.Accent]);
       expect(result).to.equal(DYNAMICS_MAP[Decorations.MF]);
     });
   });
@@ -155,9 +142,7 @@ describe("Articulation Map", () => {
     });
 
     it("should return true when fermata is among other decorations", () => {
-      expect(
-        hasFermata([Decorations.Staccato, Decorations.Fermata, Decorations.Accent])
-      ).to.be.true;
+      expect(hasFermata([Decorations.Staccato, Decorations.Fermata, Decorations.Accent])).to.be.true;
     });
 
     it("should return false when no fermata present", () => {

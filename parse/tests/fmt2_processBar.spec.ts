@@ -95,12 +95,7 @@ describe("processBar function", () => {
       }
 
       if (timeMap.get(timeKey) !== eventId) {
-        logDebugInfo(
-          `Time map should have event ${eventId} at time ${timeKey}, but got ${timeMap.get(timeKey)}`,
-          timeEvents,
-          expectedDurations,
-          timeMap
-        );
+        logDebugInfo(`Time map should have event ${eventId} at time ${timeKey}, but got ${timeMap.get(timeKey)}`, timeEvents, expectedDurations, timeMap);
         return false;
       }
 

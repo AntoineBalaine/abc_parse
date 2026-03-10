@@ -234,10 +234,7 @@ describe("parseDirective - Directive Parser", () => {
     });
 
     it("should handle empty text directive", () => {
-      const tokens = [
-        new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
-        new Token(TT.IDENTIFIER, "text", context.generateId()),
-      ];
+      const tokens = [new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()), new Token(TT.IDENTIFIER, "text", context.generateId())];
 
       const ctx = new ParseCtx(tokens, context);
       const result = parseDirective(ctx);

@@ -9,15 +9,7 @@ import { spawn, ChildProcess } from "child_process";
 import { createInterface, Interface } from "readline";
 import * as path from "path";
 import * as os from "os";
-import {
-  InstrumentInfo,
-  NoteEvent,
-  DynamicsEvent,
-  Command,
-  Response,
-  noteEventToJson,
-  dynamicsEventToJson,
-} from "./types";
+import { InstrumentInfo, NoteEvent, DynamicsEvent, Command, Response, noteEventToJson, dynamicsEventToJson } from "./types";
 
 /**
  * Override path for the mscore binary.
@@ -49,20 +41,11 @@ function getDefaultLibraryPath(): string {
   const home = os.homedir();
   switch (os.platform()) {
     case "darwin":
-      return path.join(
-        home,
-        "Library/Application Support/MuseSampler/lib/libMuseSamplerCoreLib.dylib"
-      );
+      return path.join(home, "Library/Application Support/MuseSampler/lib/libMuseSamplerCoreLib.dylib");
     case "linux":
-      return path.join(
-        home,
-        ".local/share/MuseHub/MuseSampler/lib/libMuseSamplerCoreLib.so"
-      );
+      return path.join(home, ".local/share/MuseHub/MuseSampler/lib/libMuseSamplerCoreLib.so");
     case "win32":
-      return path.join(
-        process.env.APPDATA || "",
-        "MuseHub/MuseSampler/lib/MuseSamplerCoreLib.dll"
-      );
+      return path.join(process.env.APPDATA || "", "MuseHub/MuseSampler/lib/MuseSamplerCoreLib.dll");
     default:
       throw new Error(`Unsupported platform: ${os.platform()}`);
   }
@@ -220,8 +203,7 @@ export class Session {
 export class MuseSamplerClient {
   private process: ChildProcess | null = null;
   private readline: Interface | null = null;
-  private responseHandlers: Map<number, (response: Response) => void> =
-    new Map();
+  private responseHandlers: Map<number, (response: Response) => void> = new Map();
   private requestId = 0;
   private version: string | null = null;
 
@@ -309,11 +291,7 @@ export class MuseSamplerClient {
   /**
    * Create a new playback session.
    */
-  async createSession(
-    sampleRate = 44100,
-    blockSize = 512,
-    channels = 2
-  ): Promise<Session> {
+  async createSession(sampleRate = 44100, blockSize = 512, channels = 2): Promise<Session> {
     const response = await this.sendCommand({
       cmd: "create_session",
       sample_rate: sampleRate,

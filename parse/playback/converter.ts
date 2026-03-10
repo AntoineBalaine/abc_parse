@@ -5,29 +5,11 @@
  * into MuseSampler events for playback.
  */
 
-import {
-  Tune,
-  Decorations,
-  isNoteElement,
-  isMusicLine,
-  isTempoElement,
-  Pitch as ABCJSPitch,
-  VoiceElement,
-} from "../types/abcjs-ast";
+import { Tune, Decorations, isNoteElement, isMusicLine, isTempoElement, Pitch as ABCJSPitch, VoiceElement } from "../types/abcjs-ast";
 import { IRational, rationalToNumber, isRational } from "../Visitors/fmt2/rational";
-import {
-  decorationsToArticulation,
-  extractDynamics,
-  hasFermata,
-} from "./articulation-map";
+import { decorationsToArticulation, extractDynamics, hasFermata } from "./articulation-map";
 import { abcPitchToMidi, accidentalToCents } from "./pitch-utils";
-import {
-  NoteEvent,
-  DynamicsEvent,
-  NoteHead,
-  NoteArticulation,
-  ConversionResult,
-} from "./types";
+import { NoteEvent, DynamicsEvent, NoteHead, NoteArticulation, ConversionResult } from "./types";
 
 /**
  * Default tempo if none specified (BPM).
@@ -65,11 +47,7 @@ function durationToNumber(duration: IRational | number): number {
  * @param beatLength - Beat length as a fraction of a whole note
  * @returns Duration in microseconds
  */
-export function durationToMicroseconds(
-  duration: IRational | number,
-  tempo: number,
-  beatLength: IRational
-): bigint {
+export function durationToMicroseconds(duration: IRational | number, tempo: number, beatLength: IRational): bigint {
   // Duration in whole notes
   const wholeNotes = durationToNumber(duration);
 
@@ -110,14 +88,7 @@ function getBeatLength(_tune: Tune): IRational {
 /**
  * Converts an ABCJS Pitch to a MuseSampler NoteEvent.
  */
-function pitchToNoteEvent(
-  pitch: ABCJSPitch,
-  location_us: bigint,
-  duration_us: bigint,
-  tempo: number,
-  voice: number,
-  decorations: Decorations[]
-): NoteEvent {
+function pitchToNoteEvent(pitch: ABCJSPitch, location_us: bigint, duration_us: bigint, tempo: number, voice: number, decorations: Decorations[]): NoteEvent {
   return {
     voice: voice % 4, // MuseSampler supports 4 voices per track
     location_us,
@@ -150,9 +121,7 @@ function processVoice(
     if (isNoteElement(element)) {
       // Skip elements with invalid duration
       const hasDuration = element.duration !== undefined && element.duration !== null;
-      const isValidDuration = hasDuration && (
-        typeof element.duration === "number" || isRational(element.duration)
-      );
+      const isValidDuration = hasDuration && (typeof element.duration === "number" || isRational(element.duration));
       if (!isValidDuration) {
         continue;
       }
@@ -182,16 +151,7 @@ function processVoice(
         const decorations = element.decoration ?? [];
 
         for (const pitch of element.pitches) {
-          noteEvents.push(
-            pitchToNoteEvent(
-              pitch,
-              position_us,
-              duration_us,
-              tempo,
-              voiceIndex,
-              decorations
-            )
-          );
+          noteEvents.push(pitchToNoteEvent(pitch, position_us, duration_us, tempo, voiceIndex, decorations));
         }
       }
       // Rests don't produce note events but still advance time
@@ -247,15 +207,7 @@ export function convertTuneToMuseSamplerEvents(tune: Tune): ConversionResult {
         const startPosition = voicePositions.get(globalVoiceId) ?? 0n;
 
         // Process the voice
-        const endPosition = processVoice(
-          voice,
-          voiceIndex,
-          startPosition,
-          tempo,
-          beatLength,
-          noteEvents,
-          dynamicsEvents
-        );
+        const endPosition = processVoice(voice, voiceIndex, startPosition, tempo, beatLength, noteEvents, dynamicsEvents);
 
         // Update voice position
         voicePositions.set(globalVoiceId, endPosition);
@@ -300,10 +252,7 @@ export function convertTuneToMuseSamplerEvents(tune: Tune): ConversionResult {
  * @param tempo - Tempo in BPM
  * @returns ConversionResult
  */
-export function createSimpleNoteEvents(
-  notes: Array<{ pitch: number; duration_ms: number }>,
-  tempo: number = 120
-): ConversionResult {
+export function createSimpleNoteEvents(notes: Array<{ pitch: number; duration_ms: number }>, tempo: number = 120): ConversionResult {
   const noteEvents: NoteEvent[] = [];
   let position_us = 0n;
 

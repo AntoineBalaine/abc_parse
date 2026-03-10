@@ -548,45 +548,111 @@ export type DirectiveDataMap = {
 // without casts.
 
 export type FontDirectiveType =
-  | "titlefont" | "gchordfont" | "composerfont" | "subtitlefont"
-  | "tempofont" | "footerfont" | "headerfont" | "voicefont"
-  | "partsfont" | "tripletfont" | "vocalfont" | "textfont"
-  | "annotationfont" | "historyfont" | "infofont" | "measurefont"
-  | "repeatfont" | "wordsfont" | "tablabelfont" | "tabnumberfont"
-  | "tabgracefont" | "barlabelfont" | "barnumberfont" | "barnumfont";
+  | "titlefont"
+  | "gchordfont"
+  | "composerfont"
+  | "subtitlefont"
+  | "tempofont"
+  | "footerfont"
+  | "headerfont"
+  | "voicefont"
+  | "partsfont"
+  | "tripletfont"
+  | "vocalfont"
+  | "textfont"
+  | "annotationfont"
+  | "historyfont"
+  | "infofont"
+  | "measurefont"
+  | "repeatfont"
+  | "wordsfont"
+  | "tablabelfont"
+  | "tabnumberfont"
+  | "tabgracefont"
+  | "barlabelfont"
+  | "barnumberfont"
+  | "barnumfont";
 
 export type BooleanFlagDirectiveType =
-  | "bagpipes" | "flatbeams" | "jazzchords" | "accentAbove"
-  | "germanAlphabet" | "landscape" | "titlecaps" | "titleleft"
-  | "measurebox" | "continueall" | "endtext" | "beginps"
-  | "endps" | "font" | "nobarcheck" | "staffbreak"
-  | "slurgraces" | "exprabove" | "exprbelow";
+  | "bagpipes"
+  | "flatbeams"
+  | "jazzchords"
+  | "accentAbove"
+  | "germanAlphabet"
+  | "landscape"
+  | "titlecaps"
+  | "titleleft"
+  | "measurebox"
+  | "continueall"
+  | "endtext"
+  | "beginps"
+  | "endps"
+  | "font"
+  | "nobarcheck"
+  | "staffbreak"
+  | "slurgraces"
+  | "exprabove"
+  | "exprbelow";
 
 export type StringDirectiveType =
-  | "papersize" | "text" | "center" | "begintext"
-  | "abc-copyright" | "abc-creator" | "abc-edited-by"
-  | "abc-version" | "abc-charset" | "map" | "playtempo"
-  | "auquality" | "continuous" | "voicecolor"
-  | "multicol" | "titleformat";
+  | "papersize"
+  | "text"
+  | "center"
+  | "begintext"
+  | "abc-copyright"
+  | "abc-creator"
+  | "abc-edited-by"
+  | "abc-version"
+  | "abc-charset"
+  | "map"
+  | "playtempo"
+  | "auquality"
+  | "continuous"
+  | "voicecolor"
+  | "multicol"
+  | "titleformat";
 
 export type NumberDirectiveType =
-  | "lineThickness" | "voicescale" | "scale"
-  | "barsperstaff" | "measurenb" | "barnumbers" | "setbarnb"
-  | "fontboxpadding" | "bar" | "bar10";
+  | "lineThickness"
+  | "voicescale"
+  | "scale"
+  | "barsperstaff"
+  | "measurenb"
+  | "barnumbers"
+  | "setbarnb"
+  | "fontboxpadding"
+  | "bar"
+  | "bar10";
 
-export type BooleanValueDirectiveType =
-  | "graceslurs" | "staffnonote" | "printtempo" | "partsbox" | "freegchord";
+export type BooleanValueDirectiveType = "graceslurs" | "staffnonote" | "printtempo" | "partsbox" | "freegchord";
 
-export type PositionDirectiveType =
-  | "vocal" | "dynamic" | "gchord" | "ornament" | "volume";
+export type PositionDirectiveType = "vocal" | "dynamic" | "gchord" | "ornament" | "volume";
 
 export type MeasurementDirectiveType =
-  | "botmargin" | "botspace" | "composerspace" | "indent"
-  | "leftmargin" | "linesep" | "musicspace" | "partsspace"
-  | "pageheight" | "pagewidth" | "rightmargin" | "stafftopmargin"
-  | "staffsep" | "staffwidth" | "subtitlespace" | "sysstaffsep"
-  | "systemsep" | "textspace" | "titlespace" | "topmargin"
-  | "topspace" | "vocalspace" | "wordsspace" | "vskip";
+  | "botmargin"
+  | "botspace"
+  | "composerspace"
+  | "indent"
+  | "leftmargin"
+  | "linesep"
+  | "musicspace"
+  | "partsspace"
+  | "pageheight"
+  | "pagewidth"
+  | "rightmargin"
+  | "stafftopmargin"
+  | "staffsep"
+  | "staffwidth"
+  | "subtitlespace"
+  | "sysstaffsep"
+  | "systemsep"
+  | "textspace"
+  | "titlespace"
+  | "topmargin"
+  | "topspace"
+  | "vocalspace"
+  | "wordsspace"
+  | "vskip";
 
 // -- Derived types ---------------------------------------------------------
 
@@ -601,10 +667,7 @@ export type DirectiveSemanticData = {
   [K in DirectiveType]: DirectiveSemanticDataOf<K>;
 }[DirectiveType];
 
-export function createDirectiveData<K extends DirectiveType>(
-  type: K,
-  data: DirectiveDataMap[K]
-): DirectiveSemanticDataOf<K> {
+export function createDirectiveData<K extends DirectiveType>(type: K, data: DirectiveDataMap[K]): DirectiveSemanticDataOf<K> {
   return { type, data };
 }
 
@@ -702,4 +765,3 @@ export function getDirectiveSpec(name: string): { params: ParamSpec[] } | undefi
 export function getMidiCommandSpec(command: string): { params: ParamSpec[] } | undefined {
   return MIDI_COMMAND_SPECS[command];
 }
-

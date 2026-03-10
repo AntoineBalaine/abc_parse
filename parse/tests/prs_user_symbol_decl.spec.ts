@@ -7,11 +7,7 @@ import { createToken, createParseCtx } from "./prs_music_code.spec";
 
 describe("prsUserSymbolDecl", () => {
   it("should parse a simple user symbol declaration", () => {
-    const tokens = [
-      createToken(TT.USER_SY_HDR, "U:"),
-      createToken(TT.USER_SY, "T"),
-      createToken(TT.SYMBOL, "!trill!")
-    ];
+    const tokens = [createToken(TT.USER_SY_HDR, "U:"), createToken(TT.USER_SY, "T"), createToken(TT.SYMBOL, "!trill!")];
     const ctx = createParseCtx(tokens);
 
     const result = prsUserSymbolDecl(ctx);
@@ -25,11 +21,7 @@ describe("prsUserSymbolDecl", () => {
   });
 
   it("should parse user symbol with lowercase variable", () => {
-    const tokens = [
-      createToken(TT.USER_SY_HDR, "U:"),
-      createToken(TT.USER_SY, "h"),
-      createToken(TT.SYMBOL, "!fermata!")
-    ];
+    const tokens = [createToken(TT.USER_SY_HDR, "U:"), createToken(TT.USER_SY, "h"), createToken(TT.SYMBOL, "!fermata!")];
     const ctx = createParseCtx(tokens);
 
     const result = prsUserSymbolDecl(ctx);
@@ -41,11 +33,7 @@ describe("prsUserSymbolDecl", () => {
   });
 
   it("should parse user symbol with uppercase variable", () => {
-    const tokens = [
-      createToken(TT.USER_SY_HDR, "U:"),
-      createToken(TT.USER_SY, "H"),
-      createToken(TT.SYMBOL, "!staccato!")
-    ];
+    const tokens = [createToken(TT.USER_SY_HDR, "U:"), createToken(TT.USER_SY, "H"), createToken(TT.SYMBOL, "!staccato!")];
     const ctx = createParseCtx(tokens);
 
     const result = prsUserSymbolDecl(ctx);
@@ -57,11 +45,7 @@ describe("prsUserSymbolDecl", () => {
   });
 
   it("should parse user symbol with tilde variable", () => {
-    const tokens = [
-      createToken(TT.USER_SY_HDR, "U:"),
-      createToken(TT.USER_SY, "~"),
-      createToken(TT.SYMBOL, "!turn!")
-    ];
+    const tokens = [createToken(TT.USER_SY_HDR, "U:"), createToken(TT.USER_SY, "~"), createToken(TT.SYMBOL, "!turn!")];
     const ctx = createParseCtx(tokens);
 
     const result = prsUserSymbolDecl(ctx);
@@ -73,11 +57,7 @@ describe("prsUserSymbolDecl", () => {
   });
 
   it("should parse user symbol with plus notation", () => {
-    const tokens = [
-      createToken(TT.USER_SY_HDR, "U:"),
-      createToken(TT.USER_SY, "T"),
-      createToken(TT.SYMBOL, "+pizz+")
-    ];
+    const tokens = [createToken(TT.USER_SY_HDR, "U:"), createToken(TT.USER_SY, "T"), createToken(TT.SYMBOL, "+pizz+")];
     const ctx = createParseCtx(tokens);
 
     const result = prsUserSymbolDecl(ctx);
@@ -100,7 +80,7 @@ describe("prsUserSymbolDecl", () => {
   it("should return null when missing user symbol variable", () => {
     const tokens = [
       createToken(TT.USER_SY_HDR, "U:"),
-      createToken(TT.SYMBOL, "!trill!") // Missing USER_SY
+      createToken(TT.SYMBOL, "!trill!"), // Missing USER_SY
     ];
     const ctx = createParseCtx(tokens);
 
@@ -113,7 +93,7 @@ describe("prsUserSymbolDecl", () => {
   it("should return null when missing symbol content", () => {
     const tokens = [
       createToken(TT.USER_SY_HDR, "U:"),
-      createToken(TT.USER_SY, "T")
+      createToken(TT.USER_SY, "T"),
       // Missing SYMBOL
     ];
     const ctx = createParseCtx(tokens);
@@ -125,11 +105,7 @@ describe("prsUserSymbolDecl", () => {
   });
 
   it("should parse user symbol with complex symbol notation", () => {
-    const tokens = [
-      createToken(TT.USER_SY_HDR, "U:"),
-      createToken(TT.USER_SY, "T"),
-      createToken(TT.SYMBOL, "!>!")
-    ];
+    const tokens = [createToken(TT.USER_SY_HDR, "U:"), createToken(TT.USER_SY, "T"), createToken(TT.SYMBOL, "!>!")];
     const ctx = createParseCtx(tokens);
 
     const result = prsUserSymbolDecl(ctx);
@@ -140,11 +116,7 @@ describe("prsUserSymbolDecl", () => {
   });
 
   it("should parse user symbol with decorated symbol", () => {
-    const tokens = [
-      createToken(TT.USER_SY_HDR, "U:"),
-      createToken(TT.USER_SY, "w"),
-      createToken(TT.SYMBOL, "!accent!")
-    ];
+    const tokens = [createToken(TT.USER_SY_HDR, "U:"), createToken(TT.USER_SY, "w"), createToken(TT.SYMBOL, "!accent!")];
     const ctx = createParseCtx(tokens);
 
     const result = prsUserSymbolDecl(ctx);
@@ -213,10 +185,7 @@ describe("parseUserSymbolInvocation", () => {
   });
 
   it("should parse multiple user symbol invocations in sequence", () => {
-    const tokens = [
-      createToken(TT.USER_SY_INVOCATION, "T"),
-      createToken(TT.USER_SY_INVOCATION, "H")
-    ];
+    const tokens = [createToken(TT.USER_SY_INVOCATION, "T"), createToken(TT.USER_SY_INVOCATION, "H")];
     const ctx = createParseCtx(tokens);
 
     // Parse first invocation

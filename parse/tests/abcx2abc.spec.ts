@@ -15,10 +15,7 @@ import { parseAbcx } from "../parsers/parse_abcx";
 import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
 import { Annotation, BarLine, ChordSymbol, Rest, Tune, File_structure, tune_body_code } from "../types/Expr2";
 import { AbcxToAbcConverter, convertAbcxToAbc } from "../Visitors/AbcxToAbcConverter";
-import {
-  genChordSymbolExpr,
-  genAbcxMultiBarSequence,
-} from "./prs_abcx.generators.spec";
+import { genChordSymbolExpr, genAbcxMultiBarSequence } from "./prs_abcx.generators.spec";
 
 /**
  * Helper: Parse ABCx string into AST
@@ -67,9 +64,7 @@ describe("ABCx to ABC Converter Property Tests", () => {
           const source = `X:1\nK:C\n${chordLexeme} |`;
           const abcAst = convertToAst(source);
 
-          const annotations = getTuneBodyExprs(abcAst).filter(
-            (e) => e instanceof Annotation
-          ) as Annotation[];
+          const annotations = getTuneBodyExprs(abcAst).filter((e) => e instanceof Annotation) as Annotation[];
 
           // The chord should appear as an annotation with "^" prefix
           const expectedAnnotation = `"${chordLexeme}"`;
@@ -81,21 +76,18 @@ describe("ABCx to ABC Converter Property Tests", () => {
 
     it("property: chord count equals annotation count after conversion", () => {
       fc.assert(
-        fc.property(
-          fc.array(genChordSymbolExpr, { minLength: 1, maxLength: 8 }),
-          (chordExprs) => {
-            const chords = chordExprs.map((c) => c.expr.token.lexeme);
-            const source = `X:1\nK:C\n${chords.join(" | ")} |`;
+        fc.property(fc.array(genChordSymbolExpr, { minLength: 1, maxLength: 8 }), (chordExprs) => {
+          const chords = chordExprs.map((c) => c.expr.token.lexeme);
+          const source = `X:1\nK:C\n${chords.join(" | ")} |`;
 
-            const abcxAst = parseAbcxString(source);
-            const abcAst = convertToAst(source);
+          const abcxAst = parseAbcxString(source);
+          const abcAst = convertToAst(source);
 
-            const originalChordCount = countNodeType(abcxAst, ChordSymbol);
-            const convertedAnnotationCount = countNodeType(abcAst, Annotation);
+          const originalChordCount = countNodeType(abcxAst, ChordSymbol);
+          const convertedAnnotationCount = countNodeType(abcAst, Annotation);
 
-            return originalChordCount === convertedAnnotationCount;
-          }
-        ),
+          return originalChordCount === convertedAnnotationCount;
+        }),
         { numRuns: 200 }
       );
     });
@@ -104,21 +96,18 @@ describe("ABCx to ABC Converter Property Tests", () => {
   describe("Rest Generation", () => {
     it("property: all chord symbols have corresponding rests", () => {
       fc.assert(
-        fc.property(
-          fc.array(genChordSymbolExpr, { minLength: 1, maxLength: 6 }),
-          (chordExprs) => {
-            const chords = chordExprs.map((c) => c.expr.token.lexeme);
-            const source = `X:1\nK:C\n${chords.join(" | ")} |`;
+        fc.property(fc.array(genChordSymbolExpr, { minLength: 1, maxLength: 6 }), (chordExprs) => {
+          const chords = chordExprs.map((c) => c.expr.token.lexeme);
+          const source = `X:1\nK:C\n${chords.join(" | ")} |`;
 
-            const abcAst = convertToAst(source);
+          const abcAst = convertToAst(source);
 
-            const annotationCount = countNodeType(abcAst, Annotation);
-            const restCount = countNodeType(abcAst, Rest);
+          const annotationCount = countNodeType(abcAst, Annotation);
+          const restCount = countNodeType(abcAst, Rest);
 
-            // Each chord becomes annotation + rest, so counts should match
-            return annotationCount === restCount;
-          }
-        ),
+          // Each chord becomes annotation + rest, so counts should match
+          return annotationCount === restCount;
+        }),
         { numRuns: 200 }
       );
     });
@@ -130,9 +119,7 @@ describe("ABCx to ABC Converter Property Tests", () => {
           const source = `X:1\nK:C\n${chordLexeme} |`;
           const abcAst = convertToAst(source);
 
-          const rests = getTuneBodyExprs(abcAst).filter(
-            (e) => e instanceof Rest
-          ) as Rest[];
+          const rests = getTuneBodyExprs(abcAst).filter((e) => e instanceof Rest) as Rest[];
 
           if (rests.length !== 1) return false;
           return rests[0].rest.lexeme === "X";
@@ -143,22 +130,17 @@ describe("ABCx to ABC Converter Property Tests", () => {
 
     it("property: multiple chords per bar use x (partial rests)", () => {
       fc.assert(
-        fc.property(
-          fc.array(genChordSymbolExpr, { minLength: 2, maxLength: 4 }),
-          (chordExprs) => {
-            const chords = chordExprs.map((c) => c.expr.token.lexeme);
-            // All chords in ONE bar (no barline between them)
-            const source = `X:1\nK:C\n${chords.join(" ")} |`;
-            const abcAst = convertToAst(source);
+        fc.property(fc.array(genChordSymbolExpr, { minLength: 2, maxLength: 4 }), (chordExprs) => {
+          const chords = chordExprs.map((c) => c.expr.token.lexeme);
+          // All chords in ONE bar (no barline between them)
+          const source = `X:1\nK:C\n${chords.join(" ")} |`;
+          const abcAst = convertToAst(source);
 
-            const rests = getTuneBodyExprs(abcAst).filter(
-              (e) => e instanceof Rest
-            ) as Rest[];
+          const rests = getTuneBodyExprs(abcAst).filter((e) => e instanceof Rest) as Rest[];
 
-            // All rests should use lowercase x
-            return rests.every((r) => r.rest.lexeme === "x");
-          }
-        ),
+          // All rests should use lowercase x
+          return rests.every((r) => r.rest.lexeme === "x");
+        }),
         { numRuns: 200 }
       );
     });
@@ -190,41 +172,35 @@ describe("ABCx to ABC Converter Property Tests", () => {
   describe("Structure Preservation", () => {
     it("property: conversion produces valid ABC that can be formatted", () => {
       fc.assert(
-        fc.property(
-          fc.array(genChordSymbolExpr, { minLength: 1, maxLength: 6 }),
-          (chordExprs) => {
-            const chords = chordExprs.map((c) => c.expr.token.lexeme);
-            const source = `X:1\nK:C\n${chords.join(" | ")} |`;
+        fc.property(fc.array(genChordSymbolExpr, { minLength: 1, maxLength: 6 }), (chordExprs) => {
+          const chords = chordExprs.map((c) => c.expr.token.lexeme);
+          const source = `X:1\nK:C\n${chords.join(" | ")} |`;
 
-            try {
-              const ctx = new ABCContext();
-              const result = convertAbcxToAbc(source, ctx);
-              // Should produce a non-empty string
-              return result.length > 0;
-            } catch (e) {
-              return false;
-            }
+          try {
+            const ctx = new ABCContext();
+            const result = convertAbcxToAbc(source, ctx);
+            // Should produce a non-empty string
+            return result.length > 0;
+          } catch (e) {
+            return false;
           }
-        ),
+        }),
         { numRuns: 200 }
       );
     });
 
     it("property: formatted output contains all original chord names", () => {
       fc.assert(
-        fc.property(
-          fc.array(genChordSymbolExpr, { minLength: 1, maxLength: 5 }),
-          (chordExprs) => {
-            const chords = chordExprs.map((c) => c.expr.token.lexeme);
-            const source = `X:1\nK:C\n${chords.join(" | ")} |`;
+        fc.property(fc.array(genChordSymbolExpr, { minLength: 1, maxLength: 5 }), (chordExprs) => {
+          const chords = chordExprs.map((c) => c.expr.token.lexeme);
+          const source = `X:1\nK:C\n${chords.join(" | ")} |`;
 
-            const ctx = new ABCContext();
-            const result = convertAbcxToAbc(source, ctx);
+          const ctx = new ABCContext();
+          const result = convertAbcxToAbc(source, ctx);
 
-            // All original chord names should appear in the output as annotations
-            return chords.every((chord) => result.includes(`"${chord}"`));
-          }
-        ),
+          // All original chord names should appear in the output as annotations
+          return chords.every((chord) => result.includes(`"${chord}"`));
+        }),
         { numRuns: 200 }
       );
     });
@@ -234,9 +210,7 @@ describe("ABCx to ABC Converter Property Tests", () => {
     it("property: conversion never crashes on valid ABCx input", () => {
       fc.assert(
         fc.property(genAbcxMultiBarSequence, (sequence) => {
-          const chordLexemes = sequence.exprs
-            .filter((e) => e instanceof ChordSymbol)
-            .map((e) => (e as ChordSymbol).token.lexeme);
+          const chordLexemes = sequence.exprs.filter((e) => e instanceof ChordSymbol).map((e) => (e as ChordSymbol).token.lexeme);
 
           if (chordLexemes.length === 0) return true;
 

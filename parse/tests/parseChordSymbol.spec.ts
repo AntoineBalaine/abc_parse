@@ -213,21 +213,7 @@ describe("parseChordSymbol", () => {
   });
 
   describe("integration tests", () => {
-    const validChords = [
-      "C",
-      "Am",
-      "G7",
-      "Cmaj7",
-      "Cm7",
-      "Cdim7",
-      "C+",
-      "Csus4",
-      "Cadd9",
-      "F#m7",
-      "Bb/D",
-      "Cmaj7#11",
-      "C7b9",
-    ];
+    const validChords = ["C", "Am", "G7", "Cmaj7", "Cm7", "Cdim7", "C+", "Csus4", "Cadd9", "F#m7", "Bb/D", "Cmaj7#11", "C7b9"];
 
     for (const chord of validChords) {
       it(`round-trip: scan + parse produces valid result for "${chord}"`, () => {

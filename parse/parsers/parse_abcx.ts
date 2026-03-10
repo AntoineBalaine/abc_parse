@@ -25,17 +25,7 @@ import {
 } from "../types/Expr2";
 import { ABCContext } from "./Context";
 import { parseDirective } from "./infoLines/parseDirective";
-import {
-  ParseCtx,
-  prsComment,
-  prsInfoLine,
-  parseBarline,
-  parseAnnotation,
-  parseInlineField,
-  parseInvalidToken,
-  isTuneStart,
-  isTune,
-} from "./parse2";
+import { ParseCtx, prsComment, prsInfoLine, parseBarline, parseAnnotation, parseInlineField, parseInvalidToken, isTuneStart, isTune } from "./parse2";
 import { Token, TT } from "./scan2";
 
 /**
@@ -180,13 +170,7 @@ function parseAbcxBody(ctx: ParseCtx): Tune_Body | null {
 function parseAbcxMusicCode(ctx: ParseCtx, prnt_arr?: Array<Expr | Token>): Array<Expr | Token> | null {
   const elements: Array<Expr | Token> = [];
 
-  while (
-    !ctx.isAtEnd() &&
-    !ctx.check(TT.EOL) &&
-    !ctx.check(TT.COMMENT) &&
-    !ctx.check(TT.INF_HDR) &&
-    !ctx.check(TT.SCT_BRK)
-  ) {
+  while (!ctx.isAtEnd() && !ctx.check(TT.EOL) && !ctx.check(TT.COMMENT) && !ctx.check(TT.INF_HDR) && !ctx.check(TT.SCT_BRK)) {
     // WS tokens pass through - the formatter handles whitespace
     if (ctx.check(TT.WS)) {
       elements.push(ctx.advance());

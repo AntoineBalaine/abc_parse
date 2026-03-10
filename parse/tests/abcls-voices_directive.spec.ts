@@ -224,10 +224,7 @@ describe("%%abcls-voices Directive Tests", () => {
     });
 
     it("should report error for missing mode", () => {
-      const tokens = [
-        new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()),
-        new Token(TT.IDENTIFIER, "abcls-voices", context.generateId()),
-      ];
+      const tokens = [new Token(TT.STYLESHEET_DIRECTIVE, "%%", context.generateId()), new Token(TT.IDENTIFIER, "abcls-voices", context.generateId())];
 
       const ctx = new ParseCtx(tokens, context);
       const directive = parseDirective(ctx);
@@ -292,9 +289,7 @@ describe("%%abcls-voices Directive Tests", () => {
         fc.property(genAbclsVoicesDirective, (tokens) => {
           const ctx = new ABCContext(new AbcErrorReporter());
           // Filter out EOL and WS tokens for parsing (parser expects clean token stream)
-          const parseTokens = tokens.filter(
-            (t) => t.type !== TT.EOL && t.type !== TT.WS
-          );
+          const parseTokens = tokens.filter((t) => t.type !== TT.EOL && t.type !== TT.WS);
           const parseCtx = new ParseCtx(parseTokens, ctx);
           const result = parseDirective(parseCtx);
 
@@ -322,9 +317,7 @@ describe("%%abcls-voices Directive Tests", () => {
         fc.property(genAbclsVoicesDirective, (tokens) => {
           const ctx = new ABCContext(new AbcErrorReporter());
           // Filter out EOL and WS tokens for parsing
-          const parseTokens = tokens.filter(
-            (t) => t.type !== TT.EOL && t.type !== TT.WS
-          );
+          const parseTokens = tokens.filter((t) => t.type !== TT.EOL && t.type !== TT.WS);
           const parseCtx = new ParseCtx(parseTokens, ctx);
           const directive = parseDirective(parseCtx);
 
@@ -361,15 +354,11 @@ describe("%%abcls-voices Directive Tests", () => {
         fc.property(genAbclsVoicesDirective, (tokens) => {
           const ctx = new ABCContext(new AbcErrorReporter());
           // Filter out EOL and WS tokens, count IDENTIFIER tokens after mode
-          const parseTokens = tokens.filter(
-            (t) => t.type !== TT.EOL && t.type !== TT.WS
-          );
+          const parseTokens = tokens.filter((t) => t.type !== TT.EOL && t.type !== TT.WS);
 
           // Count voice IDs in generated tokens (all IDENTIFIER tokens after position 2)
           // Position 0: %%, Position 1: abcls-voices, Position 2: mode, Position 3+: voice IDs
-          const generatedVoiceIdCount = parseTokens.slice(3).filter(
-            (t) => t.type === TT.IDENTIFIER
-          ).length;
+          const generatedVoiceIdCount = parseTokens.slice(3).filter((t) => t.type === TT.IDENTIFIER).length;
 
           const parseCtx = new ParseCtx(parseTokens, ctx);
           const directive = parseDirective(parseCtx);
@@ -434,15 +423,11 @@ describe("%%abcls-voices Directive Tests", () => {
 
     it("should parse %%abcls-voices directive in file header of full tune", () => {
       fc.assert(
-        fc.property(
-          fc.constantFrom("show", "hide"),
-          fc.array(genVoiceId, { minLength: 1, maxLength: 3 }),
-          genTuneBodyContent,
-          (mode, voiceIds, body) => {
-            const ctx = new ABCContext(new AbcErrorReporter());
+        fc.property(fc.constantFrom("show", "hide"), fc.array(genVoiceId, { minLength: 1, maxLength: 3 }), genTuneBodyContent, (mode, voiceIds, body) => {
+          const ctx = new ABCContext(new AbcErrorReporter());
 
-            // Build a full ABC file with %%abcls-voices in file header
-            const source = `%%abcls-voices ${mode} ${voiceIds.join(" ")}
+          // Build a full ABC file with %%abcls-voices in file header
+          const source = `%%abcls-voices ${mode} ${voiceIds.join(" ")}
 
 X:1
 T:Test Tune
@@ -451,51 +436,44 @@ L:1/4
 K:C
 ${body}
 `;
-            // Parse the full file
-            const tokens = Scanner(source, ctx);
-            const ast = parse(tokens, ctx);
+          // Parse the full file
+          const tokens = Scanner(source, ctx);
+          const ast = parse(tokens, ctx);
 
-            // Property: parsing should succeed
-            if (!(ast instanceof File_structure)) return false;
+          // Property: parsing should succeed
+          if (!(ast instanceof File_structure)) return false;
 
-            // Property: file header should exist and contain the directive
-            if (!ast.file_header) return false;
+          // Property: file header should exist and contain the directive
+          if (!ast.file_header) return false;
 
-            const directives = ast.file_header.contents.filter(
-              (item) => item instanceof Directive && item.key.lexeme === "abcls-voices"
-            );
+          const directives = ast.file_header.contents.filter((item) => item instanceof Directive && item.key.lexeme === "abcls-voices");
 
-            // Property: exactly one %%abcls-voices directive in file header
-            if (directives.length !== 1) return false;
+          // Property: exactly one %%abcls-voices directive in file header
+          if (directives.length !== 1) return false;
 
-            const directive = directives[0] as Directive;
+          const directive = directives[0] as Directive;
 
-            // Property: directive should have correct mode and voice IDs
-            const modeToken = directive.values[0] as Token;
-            if (modeToken.lexeme.toLowerCase() !== mode) return false;
+          // Property: directive should have correct mode and voice IDs
+          const modeToken = directive.values[0] as Token;
+          if (modeToken.lexeme.toLowerCase() !== mode) return false;
 
-            // Property: voice ID count should match
-            const directiveVoiceIds = directive.values.slice(1).map((t) => (t as Token).lexeme);
-            if (directiveVoiceIds.length !== voiceIds.length) return false;
+          // Property: voice ID count should match
+          const directiveVoiceIds = directive.values.slice(1).map((t) => (t as Token).lexeme);
+          if (directiveVoiceIds.length !== voiceIds.length) return false;
 
-            return true;
-          }
-        ),
+          return true;
+        }),
         { numRuns: 50 }
       );
     });
 
     it("should parse %%abcls-voices directive in tune header of full tune", () => {
       fc.assert(
-        fc.property(
-          fc.constantFrom("show", "hide"),
-          fc.array(genVoiceId, { minLength: 1, maxLength: 3 }),
-          genTuneBodyContent,
-          (mode, voiceIds, body) => {
-            const ctx = new ABCContext(new AbcErrorReporter());
+        fc.property(fc.constantFrom("show", "hide"), fc.array(genVoiceId, { minLength: 1, maxLength: 3 }), genTuneBodyContent, (mode, voiceIds, body) => {
+          const ctx = new ABCContext(new AbcErrorReporter());
 
-            // Build a full ABC file with %%abcls-voices in tune header
-            const source = `X:1
+          // Build a full ABC file with %%abcls-voices in tune header
+          const source = `X:1
 T:Test Tune
 M:4/4
 L:1/4
@@ -503,56 +481,48 @@ L:1/4
 K:C
 ${body}
 `;
-            // Parse the full file
-            const tokens = Scanner(source, ctx);
-            const ast = parse(tokens, ctx);
+          // Parse the full file
+          const tokens = Scanner(source, ctx);
+          const ast = parse(tokens, ctx);
 
-            // Property: parsing should succeed
-            if (!(ast instanceof File_structure)) return false;
+          // Property: parsing should succeed
+          if (!(ast instanceof File_structure)) return false;
 
-            // Property: should have at least one tune
-            const tunes = ast.contents.filter((item) => item instanceof Tune);
-            if (tunes.length === 0) return false;
+          // Property: should have at least one tune
+          const tunes = ast.contents.filter((item) => item instanceof Tune);
+          if (tunes.length === 0) return false;
 
-            const tune = tunes[0] as Tune;
+          const tune = tunes[0] as Tune;
 
-            // Property: tune header should contain the directive
-            const directives = tune.tune_header.info_lines.filter(
-              (item) => item instanceof Directive && item.key.lexeme === "abcls-voices"
-            );
+          // Property: tune header should contain the directive
+          const directives = tune.tune_header.info_lines.filter((item) => item instanceof Directive && item.key.lexeme === "abcls-voices");
 
-            // Property: exactly one %%abcls-voices directive in tune header
-            if (directives.length !== 1) return false;
+          // Property: exactly one %%abcls-voices directive in tune header
+          if (directives.length !== 1) return false;
 
-            const directive = directives[0] as Directive;
+          const directive = directives[0] as Directive;
 
-            // Property: directive should have correct mode
-            const modeToken = directive.values[0] as Token;
-            if (modeToken.lexeme.toLowerCase() !== mode) return false;
+          // Property: directive should have correct mode
+          const modeToken = directive.values[0] as Token;
+          if (modeToken.lexeme.toLowerCase() !== mode) return false;
 
-            // Property: voice ID count should match
-            const directiveVoiceIds = directive.values.slice(1).map((t) => (t as Token).lexeme);
-            if (directiveVoiceIds.length !== voiceIds.length) return false;
+          // Property: voice ID count should match
+          const directiveVoiceIds = directive.values.slice(1).map((t) => (t as Token).lexeme);
+          if (directiveVoiceIds.length !== voiceIds.length) return false;
 
-            return true;
-          }
-        ),
+          return true;
+        }),
         { numRuns: 50 }
       );
     });
 
     it("should parse multiple tunes with different %%abcls-voices directives", () => {
       fc.assert(
-        fc.property(
-          fc.constantFrom("show", "hide"),
-          fc.constantFrom("show", "hide"),
-          genVoiceId,
-          genVoiceId,
-          (mode1, mode2, voiceId1, voiceId2) => {
-            const ctx = new ABCContext(new AbcErrorReporter());
+        fc.property(fc.constantFrom("show", "hide"), fc.constantFrom("show", "hide"), genVoiceId, genVoiceId, (mode1, mode2, voiceId1, voiceId2) => {
+          const ctx = new ABCContext(new AbcErrorReporter());
 
-            // Build a file with file-level directive and tune-level override
-            const source = `%%abcls-voices ${mode1} ${voiceId1}
+          // Build a file with file-level directive and tune-level override
+          const source = `%%abcls-voices ${mode1} ${voiceId1}
 
 X:1
 T:Tune 1
@@ -567,79 +537,68 @@ M:4/4
 K:C
 GABc|
 `;
-            const tokens = Scanner(source, ctx);
-            const ast = parse(tokens, ctx);
+          const tokens = Scanner(source, ctx);
+          const ast = parse(tokens, ctx);
 
-            if (!(ast instanceof File_structure)) return false;
+          if (!(ast instanceof File_structure)) return false;
 
-            // Property: file header should have directive
-            if (!ast.file_header) return false;
-            const fileDirectives = ast.file_header.contents.filter(
-              (item) => item instanceof Directive && item.key.lexeme === "abcls-voices"
-            );
-            if (fileDirectives.length !== 1) return false;
+          // Property: file header should have directive
+          if (!ast.file_header) return false;
+          const fileDirectives = ast.file_header.contents.filter((item) => item instanceof Directive && item.key.lexeme === "abcls-voices");
+          if (fileDirectives.length !== 1) return false;
 
-            // Property: tune 2 should have its own directive
-            const tunes = ast.contents.filter((item) => item instanceof Tune) as Tune[];
-            if (tunes.length !== 2) return false;
+          // Property: tune 2 should have its own directive
+          const tunes = ast.contents.filter((item) => item instanceof Tune) as Tune[];
+          if (tunes.length !== 2) return false;
 
-            const tune2Directives = tunes[1].tune_header.info_lines.filter(
-              (item) => item instanceof Directive && item.key.lexeme === "abcls-voices"
-            );
-            if (tune2Directives.length !== 1) return false;
+          const tune2Directives = tunes[1].tune_header.info_lines.filter((item) => item instanceof Directive && item.key.lexeme === "abcls-voices");
+          if (tune2Directives.length !== 1) return false;
 
-            // Property: tune 2's directive should have the second mode
-            const tune2Directive = tune2Directives[0] as Directive;
-            const tune2Mode = (tune2Directive.values[0] as Token).lexeme.toLowerCase();
-            if (tune2Mode !== mode2) return false;
+          // Property: tune 2's directive should have the second mode
+          const tune2Directive = tune2Directives[0] as Directive;
+          const tune2Mode = (tune2Directive.values[0] as Token).lexeme.toLowerCase();
+          if (tune2Mode !== mode2) return false;
 
-            return true;
-          }
-        ),
+          return true;
+        }),
         { numRuns: 30 }
       );
     });
 
     it("should preserve voice IDs through full parse pipeline", () => {
       fc.assert(
-        fc.property(
-          fc.constantFrom("show", "hide"),
-          fc.array(genVoiceId, { minLength: 1, maxLength: 5 }),
-          (mode, voiceIds) => {
-            const ctx = new ABCContext(new AbcErrorReporter());
+        fc.property(fc.constantFrom("show", "hide"), fc.array(genVoiceId, { minLength: 1, maxLength: 5 }), (mode, voiceIds) => {
+          const ctx = new ABCContext(new AbcErrorReporter());
 
-            const source = `X:1
+          const source = `X:1
 T:Test
 %%abcls-voices ${mode} ${voiceIds.join(" ")}
 K:C
 C|
 `;
-            const tokens = Scanner(source, ctx);
-            const ast = parse(tokens, ctx);
+          const tokens = Scanner(source, ctx);
+          const ast = parse(tokens, ctx);
 
-            if (!(ast instanceof File_structure)) return false;
+          if (!(ast instanceof File_structure)) return false;
 
-            const tunes = ast.contents.filter((item) => item instanceof Tune) as Tune[];
-            if (tunes.length === 0) return false;
+          const tunes = ast.contents.filter((item) => item instanceof Tune) as Tune[];
+          if (tunes.length === 0) return false;
 
-            const directives = tunes[0].tune_header.info_lines.filter(
-              (item) => item instanceof Directive && item.key.lexeme === "abcls-voices"
-            ) as Directive[];
-            if (directives.length !== 1) return false;
+          const directives = tunes[0].tune_header.info_lines.filter((item) => item instanceof Directive && item.key.lexeme === "abcls-voices") as Directive[];
+          if (directives.length !== 1) return false;
 
-            const directive = directives[0];
-            const parsedVoiceIds = directive.values.slice(1).map((t) => (t as Token).lexeme);
+          const directive = directives[0];
+          const parsedVoiceIds = directive.values.slice(1).map((t) => (t as Token).lexeme);
 
-            // Property: all voice IDs should be preserved exactly
-            if (parsedVoiceIds.length !== voiceIds.length) return false;
+          // Property: all voice IDs should be preserved exactly
+          if (parsedVoiceIds.length !== voiceIds.length) return false;
 
-            for (let i = 0; i < voiceIds.length; i++) {
-              if (parsedVoiceIds[i] !== voiceIds[i]) return false;
-            }
-
-            return true;
+          for (let i = 0; i < voiceIds.length; i++) {
+            if (parsedVoiceIds[i] !== voiceIds[i]) return false;
           }
-        ),
+
+          return true;
+        }),
         { numRuns: 50 }
       );
     });

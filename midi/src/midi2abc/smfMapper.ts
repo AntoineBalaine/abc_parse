@@ -53,13 +53,7 @@ export function smfToNoteSequence(smf: SMF): MNoteSequence {
   const noteEvents: MRawNoteEvent[] = [];
 
   // Pass 1: collect raw events from all tracks, tracking the highest tick seen
-  const maxTick = collectRawEvents(
-    smf,
-    tempoEvents,
-    timeSigEvents,
-    programChanges,
-    noteEvents
-  );
+  const maxTick = collectRawEvents(smf, tempoEvents, timeSigEvents, programChanges, noteEvents);
 
   // apply defaults for missing meta events
   if (tempoEvents.length === 0) {
@@ -70,14 +64,7 @@ export function smfToNoteSequence(smf: SMF): MNoteSequence {
   }
 
   // Pass 2: deduplicate, convert, pair, and assemble
-  return buildNoteSequence(
-    smf,
-    tempoEvents,
-    timeSigEvents,
-    programChanges,
-    noteEvents,
-    maxTick
-  );
+  return buildNoteSequence(smf, tempoEvents, timeSigEvents, programChanges, noteEvents, maxTick);
 }
 
 // =============================================================================
@@ -220,11 +207,7 @@ function ppqnConverter(ppqn: number): MTickConverter {
 // to convert to quarter notes.
 // All intermediate arithmetic uses BigInt to avoid overflow on long files.
 // The tempoEvents array must already be sorted and deduplicated.
-function smpteConverter(
-  fps: number,
-  ppf: number,
-  tempoEvents: MRawTempo[]
-): MTickConverter {
+function smpteConverter(fps: number, ppf: number, tempoEvents: MRawTempo[]): MTickConverter {
   const ticksPerSecond = BigInt(fps * ppf);
   const million = BigInt(1_000_000);
 
@@ -270,13 +253,8 @@ function smpteConverter(
     den = den / g;
 
     // safety check: the reduced values must fit in JavaScript's safe integer range
-    if (
-      num > BigInt(Number.MAX_SAFE_INTEGER) ||
-      den > BigInt(Number.MAX_SAFE_INTEGER)
-    ) {
-      throw new Error(
-        "SMPTE conversion overflow: reduced fraction exceeds Number.MAX_SAFE_INTEGER"
-      );
+    if (num > BigInt(Number.MAX_SAFE_INTEGER) || den > BigInt(Number.MAX_SAFE_INTEGER)) {
+      throw new Error("SMPTE conversion overflow: reduced fraction exceeds Number.MAX_SAFE_INTEGER");
     }
 
     return createRational(Number(num), Number(den));
@@ -299,12 +277,7 @@ function bigIntGCD(a: bigint, b: bigint): bigint {
 // Note pairing
 // =============================================================================
 
-function pairNotes(
-  noteEvents: MRawNoteEvent[],
-  converter: MTickConverter,
-  programChanges: MRawProgramChange[],
-  maxTick: number
-): MNote[] {
+function pairNotes(noteEvents: MRawNoteEvent[], converter: MTickConverter, programChanges: MRawProgramChange[], maxTick: number): MNote[] {
   // sort by tick; at equal ticks, note-offs come before note-ons
   noteEvents.sort((a, b) => {
     if (a.tick !== b.tick) return a.tick - b.tick;
@@ -324,14 +297,7 @@ function pairNotes(
     if (existing !== undefined) {
       // close the previous note at this tick, whether we got a note-off
       // or a new note-on on the same pitch (which truncates the previous one)
-      const note = buildNote(
-        converter,
-        programChanges,
-        existing,
-        event.tick,
-        event.channel,
-        event.pitch
-      );
+      const note = buildNote(converter, programChanges, existing, event.tick, event.channel, event.pitch);
       if (note !== undefined) notes.push(note);
       active.delete(key);
     }
@@ -345,14 +311,7 @@ function pairNotes(
   // close any remaining active notes at maxTick
   for (const [key, entry] of active) {
     const [channel, pitch] = parseKey(key);
-    const note = buildNote(
-      converter,
-      programChanges,
-      entry,
-      maxTick,
-      channel,
-      pitch
-    );
+    const note = buildNote(converter, programChanges, entry, maxTick, channel, pitch);
     if (note !== undefined) notes.push(note);
   }
 
@@ -396,11 +355,7 @@ function parseKey(key: string): [number, number] {
 // The programChanges array must be sorted by tick.
 // We reverse iterate so that the first match for this channel at or before
 // noteTick is the correct one, and we can return immediately.
-function lookupProgram(
-  programChanges: MRawProgramChange[],
-  channel: number,
-  noteTick: number
-): number {
+function lookupProgram(programChanges: MRawProgramChange[], channel: number, noteTick: number): number {
   for (let i = programChanges.length - 1; i >= 0; i--) {
     const pc = programChanges[i];
     if (pc.tick <= noteTick && pc.channel === channel) return pc.program;

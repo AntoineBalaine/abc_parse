@@ -13,7 +13,6 @@
  * like padding and responsive SVG mode.
  */
 
-
 /**
  * Result of SVG rendering
  */

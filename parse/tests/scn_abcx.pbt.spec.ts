@@ -13,10 +13,7 @@ import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { Token, TT } from "../parsers/scan2";
 import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
-import {
-  genChordSymbolToken,
-  genAbcxTokenSequence,
-} from "./scn_abcx.generators.spec";
+import { genChordSymbolToken, genAbcxTokenSequence } from "./scn_abcx.generators.spec";
 
 /**
  * ABCx-specific round-trip predicate.
@@ -41,9 +38,7 @@ function createAbcxRoundTripPredicate(originalTokens: Token[]): boolean {
   const rescannedTokens = ScannerAbcx(input, ctx);
 
   // Find where body starts (after K: line's EOL)
-  const kLineIndex = rescannedTokens.findIndex(
-    (t) => t.type === TT.INF_HDR && t.lexeme === "K:"
-  );
+  const kLineIndex = rescannedTokens.findIndex((t) => t.type === TT.INF_HDR && t.lexeme === "K:");
   if (kLineIndex === -1) return true;
 
   let bodyStart = kLineIndex;
@@ -153,9 +148,7 @@ describe("ABCx Scanner Property Tests", () => {
           const tokens = ScannerAbcx(input, ctx);
 
           // Property: Every X: line should be identified as tune header
-          const tuneHeaders = tokens.filter(
-            (t) => t.type === TT.INF_HDR && t.lexeme.startsWith("X:")
-          );
+          const tuneHeaders = tokens.filter((t) => t.type === TT.INF_HDR && t.lexeme.startsWith("X:"));
 
           const expectedTuneCount = (input.match(/^X:\d+/gm) || []).length;
           return tuneHeaders.length === expectedTuneCount;
@@ -233,9 +226,7 @@ describe("ABCx Scanner - ChordSymbol Token Tests", () => {
           const ctx = new ABCContext();
           const tokens = ScannerAbcx(source, ctx);
 
-          const scannedChord = tokens.find(
-            (t) => t.type === TT.CHORD_SYMBOL && t.lexeme === chordToken.lexeme
-          );
+          const scannedChord = tokens.find((t) => t.type === TT.CHORD_SYMBOL && t.lexeme === chordToken.lexeme);
           return scannedChord !== undefined;
         }),
         { numRuns: 500 }
@@ -244,18 +235,15 @@ describe("ABCx Scanner - ChordSymbol Token Tests", () => {
 
     it("property: multiple chords should produce multiple chord tokens", () => {
       fc.assert(
-        fc.property(
-          fc.array(genChordSymbolToken, { minLength: 2, maxLength: 8 }),
-          (chordTokens) => {
-            const chords = chordTokens.map((t) => t.lexeme);
-            const source = `X:1\nK:C\n${chords.join(" | ")} |`;
-            const ctx = new ABCContext();
-            const tokens = ScannerAbcx(source, ctx);
+        fc.property(fc.array(genChordSymbolToken, { minLength: 2, maxLength: 8 }), (chordTokens) => {
+          const chords = chordTokens.map((t) => t.lexeme);
+          const source = `X:1\nK:C\n${chords.join(" | ")} |`;
+          const ctx = new ABCContext();
+          const tokens = ScannerAbcx(source, ctx);
 
-            const scannedChordTokens = tokens.filter((t) => t.type === TT.CHORD_SYMBOL);
-            return scannedChordTokens.length >= chordTokens.length;
-          }
-        ),
+          const scannedChordTokens = tokens.filter((t) => t.type === TT.CHORD_SYMBOL);
+          return scannedChordTokens.length >= chordTokens.length;
+        }),
         { numRuns: 200 }
       );
     });

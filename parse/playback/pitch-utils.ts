@@ -20,13 +20,13 @@ import { AccidentalType } from "../types/abcjs-ast";
  * Each step is a diatonic step, not a semitone.
  */
 const PITCH_CLASS_TO_SEMITONE: Record<number, number> = {
-  0: 0,   // C
-  1: 2,   // D
-  2: 4,   // E
-  3: 5,   // F
-  4: 7,   // G
-  5: 9,   // A
-  6: 11,  // B
+  0: 0, // C
+  1: 2, // D
+  2: 4, // E
+  3: 5, // F
+  4: 7, // G
+  5: 9, // A
+  6: 11, // B
 };
 
 /**
@@ -38,8 +38,8 @@ const ACCIDENTAL_TO_SEMITONE: Record<AccidentalType, number> = {
   [AccidentalType.Natural]: 0,
   [AccidentalType.Sharp]: 1,
   [AccidentalType.DblSharp]: 2,
-  [AccidentalType.QuarterFlat]: 0,   // handled via offset_cents
-  [AccidentalType.QuarterSharp]: 0,  // handled via offset_cents
+  [AccidentalType.QuarterFlat]: 0, // handled via offset_cents
+  [AccidentalType.QuarterSharp]: 0, // handled via offset_cents
 };
 
 /**
@@ -67,10 +67,7 @@ const ACCIDENTAL_TO_CENTS: Record<AccidentalType, number> = {
  * @param accidental - Optional accidental type
  * @returns MIDI pitch number (60 = C4)
  */
-export function abcPitchToMidi(
-  verticalPos: number,
-  accidental?: AccidentalType
-): number {
+export function abcPitchToMidi(verticalPos: number, accidental?: AccidentalType): number {
   // Calculate octave offset from C4
   // We use floor division to handle negative positions correctly
   const octaveOffset = Math.floor(verticalPos / 7);
@@ -80,7 +77,7 @@ export function abcPitchToMidi(
   const pitchClass = ((verticalPos % 7) + 7) % 7;
 
   // Base MIDI pitch: C4 = 60
-  const baseMidi = 60 + (octaveOffset * 12) + PITCH_CLASS_TO_SEMITONE[pitchClass];
+  const baseMidi = 60 + octaveOffset * 12 + PITCH_CLASS_TO_SEMITONE[pitchClass];
 
   // Apply accidental offset
   const accidentalOffset = accidental ? ACCIDENTAL_TO_SEMITONE[accidental] : 0;
@@ -124,10 +121,7 @@ export function midiToNoteName(midi: number): string {
  * @param accidental - Optional accidental type
  * @returns Note name (e.g., "C4", "F#5")
  */
-export function abcPitchToNoteName(
-  verticalPos: number,
-  accidental?: AccidentalType
-): string {
+export function abcPitchToNoteName(verticalPos: number, accidental?: AccidentalType): string {
   const midi = abcPitchToMidi(verticalPos, accidental);
   let name = midiToNoteName(midi);
 

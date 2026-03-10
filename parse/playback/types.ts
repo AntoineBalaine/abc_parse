@@ -144,15 +144,15 @@ export enum NoteHead {
  * } ms_NoteEvent_5;
  */
 export interface NoteEvent {
-  voice: number;                        // 0-3
-  location_us: bigint;                  // microseconds from start
-  duration_us: bigint;                  // duration in microseconds
-  pitch: number;                        // MIDI pitch (60 = C4)
-  tempo: number;                        // BPM
-  offset_cents: number;                 // microtonal adjustment (-50 = quarter flat)
-  articulation: NoteArticulationFlags;  // bitflags from NoteArticulation
+  voice: number; // 0-3
+  location_us: bigint; // microseconds from start
+  duration_us: bigint; // duration in microseconds
+  pitch: number; // MIDI pitch (60 = C4)
+  tempo: number; // BPM
+  offset_cents: number; // microtonal adjustment (-50 = quarter flat)
+  articulation: NoteArticulationFlags; // bitflags from NoteArticulation
   articulation_2: NoteArticulation2Flags; // bitflags from NoteArticulation2
-  notehead: NoteHead;                   // notehead style
+  notehead: NoteHead; // notehead style
 }
 
 /**
@@ -165,8 +165,8 @@ export interface NoteEvent {
  * } ms_DynamicsEvent_2;
  */
 export interface DynamicsEvent {
-  location_us: bigint;  // microseconds from start
-  value: number;        // 0.0 - 1.0
+  location_us: bigint; // microseconds from start
+  value: number; // 0.0 - 1.0
 }
 
 /**
@@ -179,8 +179,8 @@ export interface DynamicsEvent {
  * } ms_PedalEvent_2;
  */
 export interface PedalEvent {
-  location_us: bigint;  // microseconds from start
-  value: number;        // 0.0 - 1.0
+  location_us: bigint; // microseconds from start
+  value: number; // 0.0 - 1.0
 }
 
 /**
@@ -202,7 +202,7 @@ export enum PitchBendType {
 
 export interface PitchBendInfo {
   event_id: bigint;
-  start_us: bigint;      // offset from the start of the note, not absolute time
+  start_us: bigint; // offset from the start of the note, not absolute time
   duration_us: bigint;
   offset_cents: number;
   type: PitchBendType;
@@ -237,7 +237,7 @@ export interface VibratoInfo {
  */
 export interface TextArticulationEvent {
   start_us: bigint;
-  articulation: string;  // articulation name
+  articulation: string; // articulation name
 }
 
 /**

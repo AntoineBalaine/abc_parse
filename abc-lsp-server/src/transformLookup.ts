@@ -99,8 +99,7 @@ const TRANSFORM_MAP: Record<string, TransformFn> = {
   },
   // For explosion, args are: [snapshots, targetVoiceIds]
   // (snapshots is prepended by socketHandler because it's context-aware)
-  explosion: (sel, ctx, ...args) =>
-    explosion(sel, args[1] as string[], ctx, args[0] as DocumentSnapshots),
+  explosion: (sel, ctx, ...args) => explosion(sel, args[1] as string[], ctx, args[0] as DocumentSnapshots),
 };
 
 export function lookupTransform(name: string): TransformFn | null {
@@ -115,4 +114,12 @@ export function lookupTransform(name: string): TransformFn | null {
  * Transforms that require DocumentSnapshots from ContextInterpreter.
  * These transforms need musical context like meter, note length, and clef.
  */
-export const CONTEXT_AWARE_TRANSFORMS = new Set(["transpose", "toSlashNotation", "harmonizeVoicing", "parallelVoicing", "splitSystems", "enharmonizeToKey", "explosion"]);
+export const CONTEXT_AWARE_TRANSFORMS = new Set([
+  "transpose",
+  "toSlashNotation",
+  "harmonizeVoicing",
+  "parallelVoicing",
+  "splitSystems",
+  "enharmonizeToKey",
+  "explosion",
+]);

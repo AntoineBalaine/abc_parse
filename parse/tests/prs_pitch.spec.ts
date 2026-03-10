@@ -77,4 +77,3 @@ describe("parsePitch", () => {
     assert.equal(ctx.current, 0); // Should rewind to the start
   });
 });
-

@@ -195,7 +195,7 @@ describe("Parser Property Tests", () => {
       fc.assert(
         fc.property(ParserGen.genMacroScenario, (scenario) => {
           // Parse the tokens
-          const tune = parseTune(new ParseCtx(scenario.tokens, testContext))
+          const tune = parseTune(new ParseCtx(scenario.tokens, testContext));
           const tuneBody = tune.tune_body!;
 
           // Check if we got a valid tune body

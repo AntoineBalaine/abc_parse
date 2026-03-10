@@ -199,10 +199,7 @@ export function rationalFromNumber(num: number, maxDenominator: number = 10000):
  * Returns null when the rational is 1/1, which means the caller should remove
  * the rhythm child entirely (1/1 is the default note length, so no token is needed).
  */
-export function rationalToRhythmExpr(
-  rational: IRational,
-  ctx: ABCContext
-): Rhythm | null {
+export function rationalToRhythmExpr(rational: IRational, ctx: ABCContext): Rhythm | null {
   const normalized = createRational(rational.numerator, rational.denominator);
   let { numerator, denominator } = normalized;
 

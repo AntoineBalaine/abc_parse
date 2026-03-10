@@ -12,9 +12,7 @@ function formatError(error: AbcError, sourceContent: string): string {
     const errorLine = lines[error.token?.line];
     const position = error.token?.position;
 
-    return [``, errorLine, " ".repeat(position) + "^", " ".repeat(position) + `${error.message} - line ${error.token.line + 1}:${position + 1}`].join(
-      "\n"
-    );
+    return [``, errorLine, " ".repeat(position) + "^", " ".repeat(position) + `${error.message} - line ${error.token.line + 1}:${position + 1}`].join("\n");
   } else {
     return "";
   }

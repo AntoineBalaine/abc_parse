@@ -3,14 +3,7 @@
  */
 
 import { expect } from "chai";
-import {
-  parseAbc,
-  abcToMuseSamplerEvents,
-  createAbcPlayer,
-  IMuseSamplerClient,
-  ISession,
-  ITrack,
-} from "./player";
+import { parseAbc, abcToMuseSamplerEvents, createAbcPlayer, IMuseSamplerClient, ISession, ITrack } from "./player";
 import { NoteEvent, DynamicsEvent } from "./types";
 
 describe("ABC Player", () => {

@@ -70,13 +70,7 @@ function walkRange(ctx: RangeWalkCtx, node: CSNode, inScope: boolean): void {
   }
 }
 
-export function selectRange(
-  input: Selection,
-  startLine: number,
-  startCol: number,
-  endLine: number,
-  endCol: number
-): Selection {
+export function selectRange(input: Selection, startLine: number, startCol: number, endLine: number, endCol: number): Selection {
   const outputCursors: Set<number>[] = [];
 
   for (const cursor of input.cursors) {

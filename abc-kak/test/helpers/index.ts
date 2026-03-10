@@ -1,1 +1,1 @@
-export { KakouneSession } from './kakoune-session';
+export { KakouneSession } from "./kakoune-session";

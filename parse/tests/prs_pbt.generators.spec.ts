@@ -63,23 +63,21 @@ const buildPitchExpr = (tokens: Token[]): Pitch => {
 };
 
 // Expression generators that use token generators
-export const genPitchExpr = fc
-  .tuple(fc.option(ScannerGen.genAccidental), ScannerGen.genNoteLetter, fc.option(ScannerGen.genOctave))
-  .map(([acc, note, oct]) => {
-    const tokens = [];
-    if (acc) tokens.push(acc);
-    tokens.push(note);
-    if (oct) tokens.push(oct);
+export const genPitchExpr = fc.tuple(fc.option(ScannerGen.genAccidental), ScannerGen.genNoteLetter, fc.option(ScannerGen.genOctave)).map(([acc, note, oct]) => {
+  const tokens = [];
+  if (acc) tokens.push(acc);
+  tokens.push(note);
+  if (oct) tokens.push(oct);
 
-    const alteration = acc ?? undefined;
-    const noteLetter = note;
-    const octave = oct ?? undefined;
+  const alteration = acc ?? undefined;
+  const noteLetter = note;
+  const octave = oct ?? undefined;
 
-    return {
-      tokens,
-      expr: new Pitch(sharedContext.generateId(), { alteration, noteLetter, octave }),
-    };
-  });
+  return {
+    tokens,
+    expr: new Pitch(sharedContext.generateId(), { alteration, noteLetter, octave }),
+  };
+});
 
 export const genNoteExpr = fc
   .tuple(ScannerGen.genPitch, fc.option(ScannerGen.genRhythm), fc.option(ScannerGen.genTie))
@@ -376,22 +374,22 @@ export const genBeamExpr = fc
   });
 
 /** no bars */
-const musicGenerators = [{ arbitrary: genNoteExpr, weight: 10 },
-{ arbitrary: genRestExpr, weight: 5 },
-// Removed genMultiMeasureRestExpr as multi-measure rests don't belong in a single bar
-{ arbitrary: genChordExpr, weight: 5 },
-{ arbitrary: genDecorationExpr, weight: 2 },
-{ arbitrary: genAnnotationExpr, weight: 2 },
-{ arbitrary: genSymbolExpr, weight: 1 },
-{ arbitrary: genYSpacerExpr, weight: 1 },
-{ arbitrary: genGraceGroupExpr, weight: 2 },
-{ arbitrary: genTupletExpr, weight: 2 },
-{ arbitrary: genInlineFieldExpr, weight: 1 },
-{ arbitrary: genBeamExpr, weight: 3 }]
+const musicGenerators = [
+  { arbitrary: genNoteExpr, weight: 10 },
+  { arbitrary: genRestExpr, weight: 5 },
+  // Removed genMultiMeasureRestExpr as multi-measure rests don't belong in a single bar
+  { arbitrary: genChordExpr, weight: 5 },
+  { arbitrary: genDecorationExpr, weight: 2 },
+  { arbitrary: genAnnotationExpr, weight: 2 },
+  { arbitrary: genSymbolExpr, weight: 1 },
+  { arbitrary: genYSpacerExpr, weight: 1 },
+  { arbitrary: genGraceGroupExpr, weight: 2 },
+  { arbitrary: genTupletExpr, weight: 2 },
+  { arbitrary: genInlineFieldExpr, weight: 1 },
+  { arbitrary: genBeamExpr, weight: 3 },
+];
 // Generate a simple music expression
-export const genMusicExpr = fc.oneof(...musicGenerators,
-  { arbitrary: genBarLineExpr, weight: 3 },
-);
+export const genMusicExpr = fc.oneof(...musicGenerators, { arbitrary: genBarLineExpr, weight: 3 });
 
 export const genMusicExpr_NoBar = fc.oneof(...musicGenerators);
 
@@ -411,54 +409,39 @@ export const genMusicSequence_NoBar = fc.array(genMusicExpr_NoBar, { minLength: 
 });
 
 // Macro expression generators
-export const genMacroDeclExpr = ScannerGen.genMacroDecl
-  .map(([eol1, header, ws1, variable, ws2, macroStr, comment, eol2]) => {
-    const tokens = [eol1, header];
-    if (ws1) tokens.push(ws1);
-    tokens.push(variable);
-    if (ws2) tokens.push(ws2);
-    tokens.push(macroStr);
-    if (comment) tokens.push(comment);
-    tokens.push(eol2);
+export const genMacroDeclExpr = ScannerGen.genMacroDecl.map(([eol1, header, ws1, variable, ws2, macroStr, comment, eol2]) => {
+  const tokens = [eol1, header];
+  if (ws1) tokens.push(ws1);
+  tokens.push(variable);
+  if (ws2) tokens.push(ws2);
+  tokens.push(macroStr);
+  if (comment) tokens.push(comment);
+  tokens.push(eol2);
 
-    const expr = new Macro_decl(sharedContext.generateId(), header, variable, macroStr);
-    return { tokens, expr };
-  });
+  const expr = new Macro_decl(sharedContext.generateId(), header, variable, macroStr);
+  return { tokens, expr };
+});
 
 export const genMacroInvocationExpr = (variableName: string) =>
-  fc.constantFrom(new Token(TT.MACRO_INVOCATION, variableName, sharedContext.generateId()))
-    .map((invocation) => {
-      return {
-        tokens: [invocation],
-        expr: new Macro_invocation(sharedContext.generateId(), invocation)
-      };
-    });
+  fc.constantFrom(new Token(TT.MACRO_INVOCATION, variableName, sharedContext.generateId())).map((invocation) => {
+    return {
+      tokens: [invocation],
+      expr: new Macro_invocation(sharedContext.generateId(), invocation),
+    };
+  });
 
-
-export const genMacroScenario = genMacroDeclExpr.chain(macro_decl => {
+export const genMacroScenario = genMacroDeclExpr.chain((macro_decl) => {
   const invocation = genMacroInvocationExpr(macro_decl.expr.variable.lexeme);
-  const tune_body_gen = fc.array(
-    fc.oneof(
-      ...musicGenerators,
-      { arbitrary: invocation, weight: 3 }
-    ),
-    { minLength: 1, maxLength: 5 }
-  );
+  const tune_body_gen = fc.array(fc.oneof(...musicGenerators, { arbitrary: invocation, weight: 3 }), { minLength: 1, maxLength: 5 });
 
-  return tune_body_gen.map(musicExprs => {
-    const allTokens = [
-      ...macro_decl.tokens,
-      ...musicExprs.flatMap(e => e.tokens)
-    ];
+  return tune_body_gen.map((musicExprs) => {
+    const allTokens = [...macro_decl.tokens, ...musicExprs.flatMap((e) => e.tokens)];
 
-    const allExprs = [
-      macro_decl.expr,
-      ...musicExprs.map(e => e.expr)
-    ];
+    const allExprs = [macro_decl.expr, ...musicExprs.map((e) => e.expr)];
 
     return {
       tokens: allTokens,
-      exprs: allExprs
+      exprs: allExprs,
     };
   });
 });
@@ -511,9 +494,7 @@ export const genChordSymbolExpr = ScannerGen.genChordSymbolToken.map((token) => 
  */
 export const genAbclsVoicesDirectiveExpr = ScannerGen.genAbclsVoicesDirective.map((tokens) => {
   // Filter out WS and EOL tokens for the expression values
-  const contentTokens = tokens.filter(
-    (t) => t.type !== TT.STYLESHEET_DIRECTIVE && t.type !== TT.EOL && t.type !== TT.WS
-  );
+  const contentTokens = tokens.filter((t) => t.type !== TT.STYLESHEET_DIRECTIVE && t.type !== TT.EOL && t.type !== TT.WS);
 
   // First token should be "abcls-voices" (the directive key)
   const keyToken = contentTokens[0];
@@ -529,4 +510,3 @@ export const genAbclsVoicesDirectiveExpr = ScannerGen.genAbclsVoicesDirective.ma
     expr: directive,
   };
 });
-

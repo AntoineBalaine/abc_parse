@@ -9,20 +9,9 @@ const DYNAMIC_MARKERS = {
   decrescendo: { start: "!>(!", end: "!>)!" },
 };
 
-function wrapDynamic(
-  text: string,
-  startOffset: number,
-  endOffset: number,
-  dynamicType: "crescendo" | "decrescendo"
-): string {
+function wrapDynamic(text: string, startOffset: number, endOffset: number, dynamicType: "crescendo" | "decrescendo"): string {
   const markers = DYNAMIC_MARKERS[dynamicType];
-  return (
-    text.slice(0, startOffset) +
-    markers.start +
-    text.slice(startOffset, endOffset) +
-    markers.end +
-    text.slice(endOffset)
-  );
+  return text.slice(0, startOffset) + markers.start + text.slice(startOffset, endOffset) + markers.end + text.slice(endOffset);
 }
 
 describe("wrapDynamic (text-based)", () => {

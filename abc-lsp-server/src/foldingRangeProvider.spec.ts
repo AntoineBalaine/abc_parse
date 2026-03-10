@@ -2,11 +2,7 @@ import { Scanner, parse, ABCContext, File_structure, Token } from "abc-parser";
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { FoldingRangeKind } from "vscode-languageserver";
-import {
-  computeFoldingRanges,
-  FoldingConfig,
-  DEFAULT_FOLDING_CONFIG,
-} from "./foldingRangeProvider";
+import { computeFoldingRanges, FoldingConfig, DEFAULT_FOLDING_CONFIG } from "./foldingRangeProvider";
 
 function parseAbc(source: string): { ast: File_structure; tokens: Token[] } {
   const ctx = new ABCContext();

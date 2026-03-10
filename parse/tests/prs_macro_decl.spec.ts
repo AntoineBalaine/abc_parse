@@ -9,11 +9,7 @@ import * as ScannerGen from "./scn_pbt.generators.spec";
 
 describe("prsMacroDecl", () => {
   it("should parse a simple macro declaration", () => {
-    const tokens = [
-      createToken(TT.MACRO_HDR, "m:"),
-      createToken(TT.MACRO_VAR, "var"),
-      createToken(TT.MACRO_STR, "content")
-    ];
+    const tokens = [createToken(TT.MACRO_HDR, "m:"), createToken(TT.MACRO_VAR, "var"), createToken(TT.MACRO_STR, "content")];
     const ctx = createParseCtx(tokens);
 
     const result = prsMacroDecl(ctx);
@@ -27,11 +23,7 @@ describe("prsMacroDecl", () => {
   });
 
   it("should parse macro with complex variable name", () => {
-    const tokens = [
-      createToken(TT.MACRO_HDR, "m:"),
-      createToken(TT.MACRO_VAR, "var123~"),
-      createToken(TT.MACRO_STR, "A B C")
-    ];
+    const tokens = [createToken(TT.MACRO_HDR, "m:"), createToken(TT.MACRO_VAR, "var123~"), createToken(TT.MACRO_STR, "A B C")];
     const ctx = createParseCtx(tokens);
 
     const result = prsMacroDecl(ctx);
@@ -43,11 +35,7 @@ describe("prsMacroDecl", () => {
   });
 
   it("should parse macro with musical notation content", () => {
-    const tokens = [
-      createToken(TT.MACRO_HDR, "m:"),
-      createToken(TT.MACRO_VAR, "trill"),
-      createToken(TT.MACRO_STR, "!trill!")
-    ];
+    const tokens = [createToken(TT.MACRO_HDR, "m:"), createToken(TT.MACRO_VAR, "trill"), createToken(TT.MACRO_STR, "!trill!")];
     const ctx = createParseCtx(tokens);
 
     const result = prsMacroDecl(ctx);
@@ -71,7 +59,7 @@ describe("prsMacroDecl", () => {
   it("should return null when missing macro variable", () => {
     const tokens = [
       createToken(TT.MACRO_HDR, "m:"),
-      createToken(TT.MACRO_STR, "content") // Missing MACRO_VAR
+      createToken(TT.MACRO_STR, "content"), // Missing MACRO_VAR
     ];
     const ctx = createParseCtx(tokens);
 
@@ -84,7 +72,7 @@ describe("prsMacroDecl", () => {
   it("should return null when missing macro content", () => {
     const tokens = [
       createToken(TT.MACRO_HDR, "m:"),
-      createToken(TT.MACRO_VAR, "var")
+      createToken(TT.MACRO_VAR, "var"),
       // Missing MACRO_STR
     ];
     const ctx = createParseCtx(tokens);
@@ -96,11 +84,7 @@ describe("prsMacroDecl", () => {
   });
 
   it("should handle empty macro content", () => {
-    const tokens = [
-      createToken(TT.MACRO_HDR, "m:"),
-      createToken(TT.MACRO_VAR, "empty"),
-      createToken(TT.MACRO_STR, "")
-    ];
+    const tokens = [createToken(TT.MACRO_HDR, "m:"), createToken(TT.MACRO_VAR, "empty"), createToken(TT.MACRO_STR, "")];
     const ctx = createParseCtx(tokens);
 
     const result = prsMacroDecl(ctx);
@@ -111,11 +95,7 @@ describe("prsMacroDecl", () => {
   });
 
   it("should parse macro with whitespace in content", () => {
-    const tokens = [
-      createToken(TT.MACRO_HDR, "m:"),
-      createToken(TT.MACRO_VAR, "phrase"),
-      createToken(TT.MACRO_STR, "C D E F ")
-    ];
+    const tokens = [createToken(TT.MACRO_HDR, "m:"), createToken(TT.MACRO_VAR, "phrase"), createToken(TT.MACRO_STR, "C D E F ")];
     const ctx = createParseCtx(tokens);
 
     const result = prsMacroDecl(ctx);
@@ -131,22 +111,20 @@ describe("prsMacroDecl round-trip", () => {
     fc.assert(
       fc.property(ScannerGen.genMacroDecl, (tokens) => {
         // Filter out EOL and whitespace tokens for parsing
-        const macroTokens = tokens.filter(t => t.type !== TT.EOL && t.type !== TT.WS);
-        
+        const macroTokens = tokens.filter((t) => t.type !== TT.EOL && t.type !== TT.WS);
+
         // Parse the macro declaration
         const ctx = createParseCtx(macroTokens);
         const result = prsMacroDecl(ctx);
-        
+
         // Should successfully parse
         if (!result) return false;
-        
+
         // Verify the parsed result matches the original tokens
         assert.instanceOf(result, Macro_decl);
-        
+
         // Check that parsing consumed the expected tokens
-        const expectedTokens = macroTokens.filter(t =>
-          t.type === TT.MACRO_HDR || t.type === TT.MACRO_VAR || t.type === TT.EQL || t.type === TT.MACRO_STR
-        );
+        const expectedTokens = macroTokens.filter((t) => t.type === TT.MACRO_HDR || t.type === TT.MACRO_VAR || t.type === TT.EQL || t.type === TT.MACRO_STR);
 
         return ctx.current === expectedTokens.length;
       }),
@@ -156,7 +134,7 @@ describe("prsMacroDecl round-trip", () => {
       }
     );
   });
-})
+});
 
 describe("parseMacroInvocation", () => {
   it("should parse a simple macro invocation", () => {
@@ -215,10 +193,7 @@ describe("parseMacroInvocation", () => {
   });
 
   it("should parse multiple macro invocations in sequence", () => {
-    const tokens = [
-      createToken(TT.MACRO_INVOCATION, "first"),
-      createToken(TT.MACRO_INVOCATION, "second")
-    ];
+    const tokens = [createToken(TT.MACRO_INVOCATION, "first"), createToken(TT.MACRO_INVOCATION, "second")];
     const ctx = createParseCtx(tokens);
 
     // Parse first invocation

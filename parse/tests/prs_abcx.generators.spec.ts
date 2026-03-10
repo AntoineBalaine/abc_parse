@@ -6,14 +6,7 @@
  */
 
 import * as fc from "fast-check";
-import {
-  sharedContext,
-  genChordSymbolExpr,
-  genBarLineExpr,
-  genAnnotationExpr,
-  genRestExpr,
-  genMultiMeasureRestExpr,
-} from "./prs_pbt.generators.spec";
+import { sharedContext, genChordSymbolExpr, genBarLineExpr, genAnnotationExpr, genRestExpr, genMultiMeasureRestExpr } from "./prs_pbt.generators.spec";
 
 // Re-export shared context and chord symbol expression generator
 export { sharedContext, genChordSymbolExpr };
@@ -52,14 +45,10 @@ export const genAbcxMusicSequenceWithChords = fc
     // At least one chord symbol
     fc.array(genChordSymbolExpr, { minLength: 1, maxLength: 5 }),
     // Optional other elements
-    fc.array(
-      fc.oneof(
-        { arbitrary: genBarLineExpr, weight: 5 },
-        { arbitrary: genAnnotationExpr, weight: 2 },
-        { arbitrary: genRestExpr, weight: 2 }
-      ),
-      { minLength: 0, maxLength: 10 }
-    )
+    fc.array(fc.oneof({ arbitrary: genBarLineExpr, weight: 5 }, { arbitrary: genAnnotationExpr, weight: 2 }, { arbitrary: genRestExpr, weight: 2 }), {
+      minLength: 0,
+      maxLength: 10,
+    })
   )
   .map(([chords, others]) => {
     // Interleave chords with other elements
@@ -76,27 +65,20 @@ export const genAbcxMusicSequenceWithChords = fc
  * ABCx bar generator
  * Creates a sequence of chords followed by a barline
  */
-export const genAbcxBar = fc
-  .tuple(
-    fc.array(genChordSymbolExpr, { minLength: 1, maxLength: 4 }),
-    genBarLineExpr
-  )
-  .map(([chords, barline]) => ({
-    tokens: [...chords.flatMap((c) => c.tokens), ...barline.tokens],
-    exprs: [...chords.map((c) => c.expr), barline.expr],
-    chordCount: chords.length,
-  }));
+export const genAbcxBar = fc.tuple(fc.array(genChordSymbolExpr, { minLength: 1, maxLength: 4 }), genBarLineExpr).map(([chords, barline]) => ({
+  tokens: [...chords.flatMap((c) => c.tokens), ...barline.tokens],
+  exprs: [...chords.map((c) => c.expr), barline.expr],
+  chordCount: chords.length,
+}));
 
 /**
  * ABCx multi-bar sequence generator
  * Creates multiple bars of chord symbols
  */
-export const genAbcxMultiBarSequence = fc
-  .array(genAbcxBar, { minLength: 1, maxLength: 8 })
-  .map((bars) => ({
-    tokens: bars.flatMap((b) => b.tokens),
-    exprs: bars.flatMap((b) => b.exprs),
-    barCount: bars.length,
-    totalChordCount: bars.reduce((sum, b) => sum + b.chordCount, 0),
-    chordsPerBar: bars.map((b) => b.chordCount),
-  }));
+export const genAbcxMultiBarSequence = fc.array(genAbcxBar, { minLength: 1, maxLength: 8 }).map((bars) => ({
+  tokens: bars.flatMap((b) => b.tokens),
+  exprs: bars.flatMap((b) => b.exprs),
+  barCount: bars.length,
+  totalChordCount: bars.reduce((sum, b) => sum + b.chordCount, 0),
+  chordsPerBar: bars.map((b) => b.chordCount),
+}));

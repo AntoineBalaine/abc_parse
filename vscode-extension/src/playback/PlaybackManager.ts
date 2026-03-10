@@ -22,10 +22,7 @@ export class PlaybackManager {
   private outputChannel: vscode.OutputChannel;
 
   private constructor() {
-    this.statusBarItem = vscode.window.createStatusBarItem(
-      vscode.StatusBarAlignment.Right,
-      100
-    );
+    this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     this.outputChannel = vscode.window.createOutputChannel("ABC Playback");
   }
 
@@ -66,10 +63,7 @@ export class PlaybackManager {
       const message = error instanceof Error ? error.message : String(error);
       this.outputChannel.appendLine(`Initialization failed: ${message}`);
 
-      vscode.window.showErrorMessage(
-        `MuseSampler initialization failed: ${message}. ` +
-          "Make sure Muse Sounds is installed via MuseHub."
-      );
+      vscode.window.showErrorMessage(`MuseSampler initialization failed: ${message}. ` + "Make sure Muse Sounds is installed via MuseHub.");
 
       this.updateStatusBar("Not Available", "error");
       return false;
@@ -140,9 +134,7 @@ export class PlaybackManager {
 
       // Convert to MuseSampler events
       const events = convertTuneToMuseSamplerEvents(tunes[0]);
-      this.outputChannel.appendLine(
-        `Converted ${events.noteEvents.length} notes, duration: ${Number(events.totalDuration_us) / 1000000}s`
-      );
+      this.outputChannel.appendLine(`Converted ${events.noteEvents.length} notes, duration: ${Number(events.totalDuration_us) / 1000000}s`);
 
       if (events.noteEvents.length === 0) {
         vscode.window.showWarningMessage("No playable notes found");
@@ -211,7 +203,6 @@ export class PlaybackManager {
           this.statusBarItem.command = "abc.playDocument";
         }
       }, durationMs + 500);
-
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.outputChannel.appendLine(`Playback error: ${message}`);

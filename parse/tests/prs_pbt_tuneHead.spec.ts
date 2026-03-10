@@ -56,7 +56,10 @@ export const genTextDirectiveExpr = ScannerGen.genTextDirective.map((tokens) => 
 
 // Tune header expression generator
 export const genTuneHeaderExpr = fc
-  .array(fc.oneof(genInfoLineExpr, genCommentExpr, genDirectiveExpr, genTextDirectiveExpr, genMacroDeclExpr, genUserSymbolDeclExpr), { minLength: 1, maxLength: 8 })
+  .array(fc.oneof(genInfoLineExpr, genCommentExpr, genDirectiveExpr, genTextDirectiveExpr, genMacroDeclExpr, genUserSymbolDeclExpr), {
+    minLength: 1,
+    maxLength: 8,
+  })
   .map((infoLines) => {
     return new Tune_header(sharedContext.generateId(), infoLines);
   });

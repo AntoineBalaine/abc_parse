@@ -56,18 +56,14 @@ function extractVoiceIds(tune: Tune): Set<string> {
 /**
  * Generate a voice ID (simple alphanumeric).
  */
-const genVoiceId = fc.array(
-  fc.constantFrom(..."123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".split("")),
-  { minLength: 1, maxLength: 3 }
-).map((chars) => chars.join(""));
+const genVoiceId = fc
+  .array(fc.constantFrom(..."123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".split("")), { minLength: 1, maxLength: 3 })
+  .map((chars) => chars.join(""));
 
 /**
  * Generate a simple note sequence.
  */
-const genNotes = fc.array(
-  fc.constantFrom("C", "D", "E", "F", "G", "A", "B"),
-  { minLength: 1, maxLength: 4 }
-).map((notes) => notes.join("") + "|");
+const genNotes = fc.array(fc.constantFrom("C", "D", "E", "F", "G", "A", "B"), { minLength: 1, maxLength: 4 }).map((notes) => notes.join("") + "|");
 
 /**
  * Generate a voice marker style directive.
@@ -77,11 +73,7 @@ const genVoiceMarkerStyle = fc.constantFrom<VoiceMarkerStyle>("inline", "infolin
 /**
  * Generate a tune with infoline voice markers and a voice-markers directive.
  */
-const genTuneWithInfolineVoicesAndDirective = fc.tuple(
-  genVoiceId,
-  genNotes,
-  genVoiceMarkerStyle
-).map(([voiceId, notes, style]) => {
+const genTuneWithInfolineVoicesAndDirective = fc.tuple(genVoiceId, genNotes, genVoiceMarkerStyle).map(([voiceId, notes, style]) => {
   return `X:1
 %%abcls-fmt voice-markers=${style}
 V:${voiceId}
@@ -94,11 +86,7 @@ ${notes}
 /**
  * Generate a tune with inline voice markers and a voice-markers directive.
  */
-const genTuneWithInlineVoicesAndDirective = fc.tuple(
-  genVoiceId,
-  genNotes,
-  genVoiceMarkerStyle
-).map(([voiceId, notes, style]) => {
+const genTuneWithInlineVoicesAndDirective = fc.tuple(genVoiceId, genNotes, genVoiceMarkerStyle).map(([voiceId, notes, style]) => {
   return `X:1
 %%abcls-fmt voice-markers=${style}
 V:${voiceId}

@@ -12,7 +12,7 @@ import { TextEdit, Range } from "vscode-languageserver";
  */
 export function computeTextEditsFromDiff(oldText: string, newText: string): TextEdit[] {
   const changes = diffChars(oldText, newText);
-  return changes.map(change => changeToTextEdit(change, oldText));
+  return changes.map((change) => changeToTextEdit(change, oldText));
 }
 
 /**
@@ -28,7 +28,7 @@ function changeToTextEdit(change: Change, oldText: string): TextEdit {
   // Convert from 1-based to 0-based positions
   const start = {
     line: change.originalStart.line - 1,
-    character: change.originalStart.column - 1
+    character: change.originalStart.column - 1,
   };
 
   let end: { line: number; character: number };

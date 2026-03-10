@@ -29,41 +29,35 @@ describe("discoverVoicesInTuneBody - Property-based tests", () => {
   describe("all voices declared in tune body are discovered", () => {
     it("discovers all unique voice IDs from V: info lines", () => {
       fc.assert(
-        fc.property(
-          fc.array(genVoiceId, { minLength: 1, maxLength: 5 }),
-          (voiceIds) => {
-            // Generate a tune with each voice ID as a V: info line
-            const uniqueIds = [...new Set(voiceIds)];
-            const input = `X:1\nK:C\n${uniqueIds.map((id) => `V:${id}\nCDEF|`).join("\n")}`;
+        fc.property(fc.array(genVoiceId, { minLength: 1, maxLength: 5 }), (voiceIds) => {
+          // Generate a tune with each voice ID as a V: info line
+          const uniqueIds = [...new Set(voiceIds)];
+          const input = `X:1\nK:C\n${uniqueIds.map((id) => `V:${id}\nCDEF|`).join("\n")}`;
 
-            const ctx = new ABCContext();
-            const tuneBody = getTuneBody(input, ctx);
-            const discovered: string[] = [];
-            discoverVoicesInTuneBody(discovered, tuneBody!);
+          const ctx = new ABCContext();
+          const tuneBody = getTuneBody(input, ctx);
+          const discovered: string[] = [];
+          discoverVoicesInTuneBody(discovered, tuneBody!);
 
-            // All unique voice IDs should be discovered
-            expect(new Set(discovered)).to.deep.equal(new Set(uniqueIds));
-          }
-        )
+          // All unique voice IDs should be discovered
+          expect(new Set(discovered)).to.deep.equal(new Set(uniqueIds));
+        })
       );
     });
 
     it("discovers all unique voice IDs from [V:] inline fields", () => {
       fc.assert(
-        fc.property(
-          fc.array(genVoiceId, { minLength: 1, maxLength: 5 }),
-          (voiceIds) => {
-            const uniqueIds = [...new Set(voiceIds)];
-            const input = `X:1\nK:C\n${uniqueIds.map((id) => `[V:${id}]CDEF|`).join("\n")}`;
+        fc.property(fc.array(genVoiceId, { minLength: 1, maxLength: 5 }), (voiceIds) => {
+          const uniqueIds = [...new Set(voiceIds)];
+          const input = `X:1\nK:C\n${uniqueIds.map((id) => `[V:${id}]CDEF|`).join("\n")}`;
 
-            const ctx = new ABCContext();
-            const tuneBody = getTuneBody(input, ctx);
-            const discovered: string[] = [];
-            discoverVoicesInTuneBody(discovered, tuneBody!);
+          const ctx = new ABCContext();
+          const tuneBody = getTuneBody(input, ctx);
+          const discovered: string[] = [];
+          discoverVoicesInTuneBody(discovered, tuneBody!);
 
-            expect(new Set(discovered)).to.deep.equal(new Set(uniqueIds));
-          }
-        )
+          expect(new Set(discovered)).to.deep.equal(new Set(uniqueIds));
+        })
       );
     });
   });
@@ -93,23 +87,19 @@ describe("discoverVoicesInTuneBody - Property-based tests", () => {
   describe("no duplicates in result", () => {
     it("each voice ID appears exactly once even when declared multiple times", () => {
       fc.assert(
-        fc.property(
-          genVoiceId,
-          fc.integer({ min: 2, max: 5 }),
-          (voiceId, repeatCount) => {
-            // Create tune with same voice ID repeated
-            const lines = Array(repeatCount).fill(`V:${voiceId}\nCDEF|`).join("\n");
-            const input = `X:1\nK:C\n${lines}`;
+        fc.property(genVoiceId, fc.integer({ min: 2, max: 5 }), (voiceId, repeatCount) => {
+          // Create tune with same voice ID repeated
+          const lines = Array(repeatCount).fill(`V:${voiceId}\nCDEF|`).join("\n");
+          const input = `X:1\nK:C\n${lines}`;
 
-            const ctx = new ABCContext();
-            const tuneBody = getTuneBody(input, ctx);
-            const discovered: string[] = [];
-            discoverVoicesInTuneBody(discovered, tuneBody!);
+          const ctx = new ABCContext();
+          const tuneBody = getTuneBody(input, ctx);
+          const discovered: string[] = [];
+          discoverVoicesInTuneBody(discovered, tuneBody!);
 
-            // Should have exactly one entry
-            expect(discovered).to.deep.equal([voiceId]);
-          }
-        )
+          // Should have exactly one entry
+          expect(discovered).to.deep.equal([voiceId]);
+        })
       );
     });
   });

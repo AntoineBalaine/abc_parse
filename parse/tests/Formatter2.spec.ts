@@ -22,7 +22,6 @@ function removeTuneHeader(testStr: string): string {
   return testStr.replace(/X:1\n/, "");
 }
 
-
 // Type for system line tests
 type SystemLineTest = {
   title: string;

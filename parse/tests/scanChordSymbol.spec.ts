@@ -138,12 +138,7 @@ describe("scanChordSymbol", () => {
     it('scans "Dm7b5"', () => {
       const result = scanChordSymbol("Dm7b5");
       expect(result).to.deep.equal({
-        tokens: [
-          ROOT("D"),
-          QUALITY("m"),
-          EXTENSION("7"),
-          ALTERATION("b5"),
-        ],
+        tokens: [ROOT("D"), QUALITY("m"), EXTENSION("7"), ALTERATION("b5")],
         consumed: 5,
       });
     });
@@ -151,12 +146,7 @@ describe("scanChordSymbol", () => {
     it('scans "Cmaj7#11"', () => {
       const result = scanChordSymbol("Cmaj7#11");
       expect(result).to.deep.equal({
-        tokens: [
-          ROOT("C"),
-          QUALITY("maj"),
-          EXTENSION("7"),
-          ALTERATION("#11"),
-        ],
+        tokens: [ROOT("C"), QUALITY("maj"), EXTENSION("7"), ALTERATION("#11")],
         consumed: 8,
       });
     });
@@ -164,12 +154,7 @@ describe("scanChordSymbol", () => {
     it('scans "C7#9#11" (multiple alterations)', () => {
       const result = scanChordSymbol("C7#9#11");
       expect(result).to.deep.equal({
-        tokens: [
-          ROOT("C"),
-          EXTENSION("7"),
-          ALTERATION("#9"),
-          ALTERATION("#11"),
-        ],
+        tokens: [ROOT("C"), EXTENSION("7"), ALTERATION("#9"), ALTERATION("#11")],
         consumed: 7,
       });
     });
@@ -210,11 +195,7 @@ describe("scanChordSymbol", () => {
       const result = scanChordSymbol("Am7xyz");
       expect(result).to.not.be.null;
       expect(result!.consumed).to.equal(3);
-      expect(result!.tokens).to.deep.equal([
-        ROOT("A"),
-        QUALITY("m"),
-        EXTENSION("7"),
-      ]);
+      expect(result!.tokens).to.deep.equal([ROOT("A"), QUALITY("m"), EXTENSION("7")]);
     });
   });
 
@@ -229,18 +210,7 @@ describe("scanChordSymbol", () => {
   });
 
   describe("property: token lexemes concatenate to consumed portion", () => {
-    const testCases = [
-      "C",
-      "Am",
-      "G7",
-      "F#m7",
-      "Cmaj7",
-      "Dm7b5",
-      "Bb/D",
-      "C+",
-      "Csus4",
-      "Cadd9",
-    ];
+    const testCases = ["C", "Am", "G7", "F#m7", "Cmaj7", "Dm7b5", "Bb/D", "C+", "Csus4", "Cadd9"];
 
     for (const chord of testCases) {
       it(`lexemes concatenate for "${chord}"`, () => {

@@ -8,28 +8,8 @@
 
 import { ABCContext } from "./Context";
 import { scanDirective } from "./infoLines/scanDirective";
-import {
-  Ctx,
-  EOL,
-  TT,
-  WS,
-  freeText,
-  info_line,
-  isAtEnd,
-  tuneStartBeforeSectBrk,
-  sectionBreak,
-  fileHeader,
-} from "./scan2";
-import {
-  annotation,
-  barline2,
-  collectInvalidToken,
-  comment,
-  inline_field,
-  pEOL,
-  pSectionBrk,
-  rest,
-} from "./scan_tunebody";
+import { Ctx, EOL, TT, WS, freeText, info_line, isAtEnd, tuneStartBeforeSectBrk, sectionBreak, fileHeader } from "./scan2";
+import { annotation, barline2, collectInvalidToken, comment, inline_field, pEOL, pSectionBrk, rest } from "./scan_tunebody";
 
 /**
  * Chord symbol pattern for ABCx format
@@ -96,10 +76,10 @@ function isAbcxRecoveryPoint(ctx: Ctx): boolean {
   return (
     ctx.test(pEOL) ||
     ctx.test(/[ \t]/) ||
-    ctx.test(/[|:[\]]/) ||  // barline characters
-    ctx.test(/[A-Gacdefg]/) ||  // chord symbol start (excluding 'b' which is flat accidental)
-    ctx.test('"') ||         // annotation start
-    ctx.test('%')            // comment start
+    ctx.test(/[|:[\]]/) || // barline characters
+    ctx.test(/[A-Gacdefg]/) || // chord symbol start (excluding 'b' which is flat accidental)
+    ctx.test('"') || // annotation start
+    ctx.test("%") // comment start
   );
 }
 
@@ -137,4 +117,3 @@ function fileStructureAbcx(ctx: Ctx): void {
     freeText(ctx);
   }
 }
-

@@ -1,9 +1,4 @@
-import {
-  IRational,
-  createRational,
-  compareRational,
-  rationalToNumber,
-} from "abc-parser/Visitors/fmt2/rational";
+import { IRational, createRational, compareRational, rationalToNumber } from "abc-parser/Visitors/fmt2/rational";
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { SMF, MMTrk, MMidiEvent } from "../../src/midi2abc/jzz-types";
@@ -28,12 +23,7 @@ const DEFAULT_PPQN = 480;
 // The real jzz event is an Array subclass with methods; we only mock the
 // subset that collectRawEvents actually calls.
 
-function createNoteOnEvent(
-  tick: number,
-  channel: number,
-  pitch: number,
-  velocity: number
-): MMidiEvent {
+function createNoteOnEvent(tick: number, channel: number, pitch: number, velocity: number): MMidiEvent {
   return {
     tt: tick,
     0: 0x90 | channel,
@@ -52,11 +42,7 @@ function createNoteOnEvent(
   };
 }
 
-function createNoteOffEvent(
-  tick: number,
-  channel: number,
-  pitch: number
-): MMidiEvent {
+function createNoteOffEvent(tick: number, channel: number, pitch: number): MMidiEvent {
   return {
     tt: tick,
     0: 0x80 | channel,
@@ -75,10 +61,7 @@ function createNoteOffEvent(
   };
 }
 
-function createTempoEvent(
-  tick: number,
-  microsecondsPerQN: number
-): MMidiEvent {
+function createTempoEvent(tick: number, microsecondsPerQN: number): MMidiEvent {
   return {
     tt: tick,
     0: 0xff,
@@ -97,11 +80,7 @@ function createTempoEvent(
   };
 }
 
-function createTimeSigEvent(
-  tick: number,
-  numerator: number,
-  denominator: number
-): MMidiEvent {
+function createTimeSigEvent(tick: number, numerator: number, denominator: number): MMidiEvent {
   return {
     tt: tick,
     0: 0xff,
@@ -120,11 +99,7 @@ function createTimeSigEvent(
   };
 }
 
-function createProgramChangeEvent(
-  tick: number,
-  channel: number,
-  program: number
-): MMidiEvent {
+function createProgramChangeEvent(tick: number, channel: number, program: number): MMidiEvent {
   return {
     tt: tick,
     0: 0xc0 | channel,
@@ -155,12 +130,7 @@ class TrackBuilder {
     this.parent = parent;
   }
 
-  noteOn(
-    tick: number,
-    channel: number,
-    pitch: number,
-    velocity: number
-  ): TrackBuilder {
+  noteOn(tick: number, channel: number, pitch: number, velocity: number): TrackBuilder {
     this.events.push(createNoteOnEvent(tick, channel, pitch, velocity));
     return this;
   }
@@ -175,20 +145,12 @@ class TrackBuilder {
     return this;
   }
 
-  timeSignature(
-    tick: number,
-    numerator: number,
-    denominator: number
-  ): TrackBuilder {
+  timeSignature(tick: number, numerator: number, denominator: number): TrackBuilder {
     this.events.push(createTimeSigEvent(tick, numerator, denominator));
     return this;
   }
 
-  programChange(
-    tick: number,
-    channel: number,
-    program: number
-  ): TrackBuilder {
+  programChange(tick: number, channel: number, program: number): TrackBuilder {
     this.events.push(createProgramChangeEvent(tick, channel, program));
     return this;
   }
@@ -255,11 +217,7 @@ class SMFBuilder {
 // Assertion helpers
 // =============================================================================
 
-function expectRationalEqual(
-  actual: IRational,
-  expectedNum: number,
-  expectedDen: number
-): void {
+function expectRationalEqual(actual: IRational, expectedNum: number, expectedDen: number): void {
   const expected = createRational(expectedNum, expectedDen);
   expect(compareRational(actual, expected)).to.equal(
     0,
@@ -267,19 +225,9 @@ function expectRationalEqual(
   );
 }
 
-function expectTimeSig(
-  ts: { numerator: number; denominator: number },
-  expectedNum: number,
-  expectedDen: number
-): void {
-  expect(ts.numerator).to.equal(
-    expectedNum,
-    `expected numerator ${ts.numerator} to equal ${expectedNum}`
-  );
-  expect(ts.denominator).to.equal(
-    expectedDen,
-    `expected denominator ${ts.denominator} to equal ${expectedDen}`
-  );
+function expectTimeSig(ts: { numerator: number; denominator: number }, expectedNum: number, expectedDen: number): void {
+  expect(ts.numerator).to.equal(expectedNum, `expected numerator ${ts.numerator} to equal ${expectedNum}`);
+  expect(ts.denominator).to.equal(expectedDen, `expected denominator ${ts.denominator} to equal ${expectedDen}`);
 }
 
 function expectNoteCount(result: MNoteSequence, count: number): void {
@@ -297,35 +245,20 @@ describe("smfToNoteSequence", () => {
 
   describe("PPQN tick conversion", () => {
     it("tick 240 with ppqn 480 produces 1/2", () => {
-      const smf = SMFBuilder.ppqn(480)
-        .addTrack()
-        .noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY)
-        .noteOff(240, 0, MIDDLE_C)
-        .done()
-        .build();
+      const smf = SMFBuilder.ppqn(480).addTrack().noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY).noteOff(240, 0, MIDDLE_C).done().build();
       const result = smfToNoteSequence(smf);
       expectRationalEqual(result.notes[0].startTime, 0, 1);
       expectRationalEqual(result.notes[0].endTime, 1, 2);
     });
 
     it("tick 160 with ppqn 480 produces 1/3 (triplet)", () => {
-      const smf = SMFBuilder.ppqn(480)
-        .addTrack()
-        .noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY)
-        .noteOff(160, 0, MIDDLE_C)
-        .done()
-        .build();
+      const smf = SMFBuilder.ppqn(480).addTrack().noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY).noteOff(160, 0, MIDDLE_C).done().build();
       const result = smfToNoteSequence(smf);
       expectRationalEqual(result.notes[0].endTime, 1, 3);
     });
 
     it("ppqn=1: every tick is a whole quarter note", () => {
-      const smf = SMFBuilder.ppqn(1)
-        .addTrack()
-        .noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY)
-        .noteOff(5, 0, MIDDLE_C)
-        .done()
-        .build();
+      const smf = SMFBuilder.ppqn(1).addTrack().noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY).noteOff(5, 0, MIDDLE_C).done().build();
       const result = smfToNoteSequence(smf);
       expectRationalEqual(result.notes[0].endTime, 5, 1);
     });
@@ -362,12 +295,7 @@ describe("smfToNoteSequence", () => {
     });
 
     it("no tempo events: defaults to 120 BPM", () => {
-      const smf = SMFBuilder.smpte(25, 40)
-        .addTrack()
-        .noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY)
-        .noteOff(1000, 0, MIDDLE_C)
-        .done()
-        .build();
+      const smf = SMFBuilder.smpte(25, 40).addTrack().noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY).noteOff(1000, 0, MIDDLE_C).done().build();
       const result = smfToNoteSequence(smf);
       // 1000 ticks / 1000 tps = 1 second, at 120 BPM = 2 quarter notes
       expectRationalEqual(result.notes[0].endTime, 2, 1);
@@ -380,12 +308,7 @@ describe("smfToNoteSequence", () => {
 
   describe("note pairing", () => {
     it("single note-on/off pair produces one note", () => {
-      const smf = SMFBuilder.ppqn(DEFAULT_PPQN)
-        .addTrack()
-        .noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY)
-        .noteOff(480, 0, MIDDLE_C)
-        .done()
-        .build();
+      const smf = SMFBuilder.ppqn(DEFAULT_PPQN).addTrack().noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY).noteOff(480, 0, MIDDLE_C).done().build();
       const result = smfToNoteSequence(smf);
       expectNoteCount(result, 1);
       expectRationalEqual(result.notes[0].startTime, 0, 1);
@@ -494,12 +417,7 @@ describe("smfToNoteSequence", () => {
 
   describe("program lookup", () => {
     it("no program changes: notes get program 0", () => {
-      const smf = SMFBuilder.ppqn(DEFAULT_PPQN)
-        .addTrack()
-        .noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY)
-        .noteOff(480, 0, MIDDLE_C)
-        .done()
-        .build();
+      const smf = SMFBuilder.ppqn(DEFAULT_PPQN).addTrack().noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY).noteOff(480, 0, MIDDLE_C).done().build();
       const result = smfToNoteSequence(smf);
       expect(result.notes[0].program).to.equal(0);
     });
@@ -569,12 +487,7 @@ describe("smfToNoteSequence", () => {
 
   describe("time signatures and tempos", () => {
     it("no tempo events: default 120 BPM", () => {
-      const smf = SMFBuilder.ppqn(DEFAULT_PPQN)
-        .addTrack()
-        .noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY)
-        .noteOff(480, 0, MIDDLE_C)
-        .done()
-        .build();
+      const smf = SMFBuilder.ppqn(DEFAULT_PPQN).addTrack().noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY).noteOff(480, 0, MIDDLE_C).done().build();
       const result = smfToNoteSequence(smf);
       expect(result.tempos.length).to.equal(1);
       expect(result.tempos[0].microsecondsPerQN).to.equal(DEFAULT_TEMPO);
@@ -582,12 +495,7 @@ describe("smfToNoteSequence", () => {
     });
 
     it("no time signature events: default 4/4", () => {
-      const smf = SMFBuilder.ppqn(DEFAULT_PPQN)
-        .addTrack()
-        .noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY)
-        .noteOff(480, 0, MIDDLE_C)
-        .done()
-        .build();
+      const smf = SMFBuilder.ppqn(DEFAULT_PPQN).addTrack().noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY).noteOff(480, 0, MIDDLE_C).done().build();
       const result = smfToNoteSequence(smf);
       expect(result.timeSignatures.length).to.equal(1);
       expectTimeSig(result.timeSignatures[0], 4, 4);
@@ -894,10 +802,7 @@ const genValidPpqnSMF = fc
     programCount: fc.integer({ min: 0, max: 3 }),
   })
   .chain(({ ppqn, noteSeq, tempoCount, programCount }) => {
-    const maxTick =
-      noteSeq.notes.length > 0
-        ? noteSeq.notes[noteSeq.notes.length - 1].offTick
-        : 0;
+    const maxTick = noteSeq.notes.length > 0 ? noteSeq.notes[noteSeq.notes.length - 1].offTick : 0;
 
     return fc.record({
       ppqn: fc.constant(ppqn),
@@ -931,9 +836,7 @@ const genPpf = fc.integer({ min: 4, max: 100 });
 // grow beyond MAX_SAFE_INTEGER even after GCD reduction. Real MIDI files
 // use standard tempo values that are multiples of 1000, so we generate
 // multiples of 1000 in the 20-600 BPM range.
-const genRealisticTempo = fc
-  .integer({ min: 100, max: 3000 })
-  .map((n) => n * 1000);
+const genRealisticTempo = fc.integer({ min: 100, max: 3000 }).map((n) => n * 1000);
 
 const genValidSmpteSMF = fc.record({
   fps: genFps,
@@ -963,10 +866,7 @@ const genOverlappingNotes = fc
     secondOnTick: fc.integer({ min: 1, max: 2000 }),
     offTick: fc.integer({ min: 1, max: 3000 }),
   })
-  .filter(
-    ({ firstOnTick, secondOnTick, offTick }) =>
-      firstOnTick < secondOnTick && secondOnTick < offTick
-  );
+  .filter(({ firstOnTick, secondOnTick, offTick }) => firstOnTick < secondOnTick && secondOnTick < offTick);
 
 // Generates orphan note-offs (note-off with no preceding note-on).
 const genOrphanNoteOff = fc.record({
@@ -1037,12 +937,7 @@ function buildPpqnSMFFromGen(gen: GenPpqnSMF): SMF {
     track.programChange(p.tick, gen.noteSeq.channel, p.program);
   }
   for (const n of gen.noteSeq.notes) {
-    track.noteOn(
-      n.onTick,
-      gen.noteSeq.channel,
-      gen.noteSeq.pitch,
-      DEFAULT_VELOCITY
-    );
+    track.noteOn(n.onTick, gen.noteSeq.channel, gen.noteSeq.pitch, DEFAULT_VELOCITY);
     track.noteOff(n.offTick, gen.noteSeq.channel, gen.noteSeq.pitch);
   }
   return builder.build();
@@ -1055,12 +950,7 @@ function buildSmpteSMFFromGen(gen: GenSmpteSMF): SMF {
     track.tempo(t.tick, t.microsecondsPerQN);
   }
   for (const n of gen.noteSeq.notes) {
-    track.noteOn(
-      n.onTick,
-      gen.noteSeq.channel,
-      gen.noteSeq.pitch,
-      DEFAULT_VELOCITY
-    );
+    track.noteOn(n.onTick, gen.noteSeq.channel, gen.noteSeq.pitch, DEFAULT_VELOCITY);
     track.noteOff(n.offTick, gen.noteSeq.channel, gen.noteSeq.pitch);
   }
   return builder.build();
@@ -1078,44 +968,26 @@ describe("smfToNoteSequence properties", () => {
   describe("PPQN converter", () => {
     it("property: produces non-negative rationals for any valid tick and ppqn", () => {
       fc.assert(
-        fc.property(
-          genPpqn,
-          fc.integer({ min: 0, max: 100000 }),
-          (ppqn, tick) => {
-            const smf = SMFBuilder.ppqn(ppqn)
-              .addTrack()
-              .noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY)
-              .noteOff(tick, 0, MIDDLE_C)
-              .done()
-              .build();
-            const result = smfToNoteSequence(smf);
-            if (tick === 0) return result.notes.length === 0; // zero-duration discarded
-            const note = result.notes[0];
-            return rationalToNumber(note.endTime) >= 0;
-          }
-        )
+        fc.property(genPpqn, fc.integer({ min: 0, max: 100000 }), (ppqn, tick) => {
+          const smf = SMFBuilder.ppqn(ppqn).addTrack().noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY).noteOff(tick, 0, MIDDLE_C).done().build();
+          const result = smfToNoteSequence(smf);
+          if (tick === 0) return result.notes.length === 0; // zero-duration discarded
+          const note = result.notes[0];
+          return rationalToNumber(note.endTime) >= 0;
+        })
       );
     });
 
     it("property: endTime denominator divides ppqn", () => {
       fc.assert(
-        fc.property(
-          genPpqn,
-          fc.integer({ min: 1, max: 100000 }),
-          (ppqn, tick) => {
-            const smf = SMFBuilder.ppqn(ppqn)
-              .addTrack()
-              .noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY)
-              .noteOff(tick, 0, MIDDLE_C)
-              .done()
-              .build();
-            const result = smfToNoteSequence(smf);
-            const note = result.notes[0];
-            // createRational(tick, ppqn) reduces by GCD, so the resulting
-            // denominator must divide ppqn.
-            return ppqn % note.endTime.denominator === 0;
-          }
-        )
+        fc.property(genPpqn, fc.integer({ min: 1, max: 100000 }), (ppqn, tick) => {
+          const smf = SMFBuilder.ppqn(ppqn).addTrack().noteOn(0, 0, MIDDLE_C, DEFAULT_VELOCITY).noteOff(tick, 0, MIDDLE_C).done().build();
+          const result = smfToNoteSequence(smf);
+          const note = result.notes[0];
+          // createRational(tick, ppqn) reduces by GCD, so the resulting
+          // denominator must divide ppqn.
+          return ppqn % note.endTime.denominator === 0;
+        })
       );
     });
   });
@@ -1147,10 +1019,7 @@ describe("smfToNoteSequence properties", () => {
             track.noteOff(1, 0, MIDDLE_C); // need a non-zero tick for a valid note
             const result = smfToNoteSequence(builder.build());
             const note = result.notes[0];
-            return (
-              note.startTime.numerator === 0 &&
-              note.startTime.denominator === 1
-            );
+            return note.startTime.numerator === 0 && note.startTime.denominator === 1;
           }
         )
       );
@@ -1161,11 +1030,7 @@ describe("smfToNoteSequence properties", () => {
         fc.property(genValidSmpteSMF, (gen) => {
           const smf = buildSmpteSMFFromGen(gen);
           const result = smfToNoteSequence(smf);
-          return result.notes.every(
-            (n) =>
-              rationalToNumber(n.startTime) >= 0 &&
-              rationalToNumber(n.endTime) >= 0
-          );
+          return result.notes.every((n) => rationalToNumber(n.startTime) >= 0 && rationalToNumber(n.endTime) >= 0);
         })
       );
     });
@@ -1179,12 +1044,7 @@ describe("smfToNoteSequence properties", () => {
           // because all notes share the same channel+pitch and are non-overlapping,
           // the notes array should have increasing start times.
           for (let i = 1; i < result.notes.length; i++) {
-            if (
-              compareRational(
-                result.notes[i].startTime,
-                result.notes[i - 1].startTime
-              ) < 0
-            ) {
+            if (compareRational(result.notes[i].startTime, result.notes[i - 1].startTime) < 0) {
               return false;
             }
           }
@@ -1214,9 +1074,7 @@ describe("smfToNoteSequence properties", () => {
         fc.property(genValidPpqnSMF, (gen) => {
           const smf = buildPpqnSMFFromGen(gen);
           const result = smfToNoteSequence(smf);
-          return result.notes.every(
-            (n) => compareRational(n.startTime, n.endTime) < 0
-          );
+          return result.notes.every((n) => compareRational(n.startTime, n.endTime) < 0);
         })
       );
     });
@@ -1230,15 +1088,8 @@ describe("smfToNoteSequence properties", () => {
           const r2 = smfToNoteSequence(smf2);
           if (r1.notes.length !== r2.notes.length) return false;
           for (let i = 0; i < r1.notes.length; i++) {
-            if (
-              compareRational(r1.notes[i].startTime, r2.notes[i].startTime) !==
-              0
-            )
-              return false;
-            if (
-              compareRational(r1.notes[i].endTime, r2.notes[i].endTime) !== 0
-            )
-              return false;
+            if (compareRational(r1.notes[i].startTime, r2.notes[i].startTime) !== 0) return false;
+            if (compareRational(r1.notes[i].endTime, r2.notes[i].endTime) !== 0) return false;
           }
           return true;
         })
@@ -1250,12 +1101,8 @@ describe("smfToNoteSequence properties", () => {
         fc.property(genValidPpqnSMF, (gen) => {
           const smf = buildPpqnSMFFromGen(gen);
           const result = smfToNoteSequence(smf);
-          const temposOk = result.tempos.every(
-            (t) => rationalToNumber(t.time) >= 0
-          );
-          const tsOk = result.timeSignatures.every(
-            (ts) => rationalToNumber(ts.time) >= 0
-          );
+          const temposOk = result.tempos.every((t) => rationalToNumber(t.time) >= 0);
+          const tsOk = result.timeSignatures.every((ts) => rationalToNumber(ts.time) >= 0);
           return temposOk && tsOk;
         })
       );
@@ -1286,11 +1133,7 @@ describe("smfToNoteSequence properties", () => {
     it("property: orphan note-offs produce no notes", () => {
       fc.assert(
         fc.property(genOrphanNoteOff, genPpqn, (gen, ppqn) => {
-          const smf = SMFBuilder.ppqn(ppqn)
-            .addTrack()
-            .noteOff(gen.tick, gen.channel, gen.pitch)
-            .done()
-            .build();
+          const smf = SMFBuilder.ppqn(ppqn).addTrack().noteOff(gen.tick, gen.channel, gen.pitch).done().build();
           const result = smfToNoteSequence(smf);
           return result.notes.length === 0;
         })
@@ -1325,11 +1168,7 @@ describe("smfToNoteSequence properties", () => {
             .build();
           const result = smfToNoteSequence(smf);
           // only one tempo at gen.tick after dedup (plus possible default at tick 0)
-          const temposAtTick = result.tempos.filter(
-            (t) =>
-              rationalToNumber(t.time) ===
-              rationalToNumber(createRational(gen.tick, ppqn))
-          );
+          const temposAtTick = result.tempos.filter((t) => rationalToNumber(t.time) === rationalToNumber(createRational(gen.tick, ppqn)));
           return temposAtTick.length <= 1;
         })
       );
@@ -1347,10 +1186,7 @@ describe("smfToNoteSequence properties", () => {
             .build();
           const result = smfToNoteSequence(smf);
           if (result.notes.length !== 1) return false;
-          return (
-            compareRational(result.notes[0].startTime, result.notes[0].endTime) <
-            0
-          );
+          return compareRational(result.notes[0].startTime, result.notes[0].endTime) < 0;
         })
       );
     });

@@ -82,12 +82,7 @@ describe("parseChord", () => {
   });
 
   it("should parse a chord with a tie", () => {
-    const tokens = [
-      createToken(TT.CHRD_LEFT_BRKT, "["),
-      createToken(TT.NOTE_LETTER, "C"),
-      createToken(TT.CHRD_RIGHT_BRKT, "]"),
-      createToken(TT.TIE, "-"),
-    ];
+    const tokens = [createToken(TT.CHRD_LEFT_BRKT, "["), createToken(TT.NOTE_LETTER, "C"), createToken(TT.CHRD_RIGHT_BRKT, "]"), createToken(TT.TIE, "-")];
     const ctx = createParseCtx(tokens);
 
     const result = parseChord(ctx);
@@ -183,4 +178,3 @@ describe("parseChord", () => {
     assert.isUndefined(((result?.contents[1] as Note).pitch as Pitch).alteration);
   });
 });
-

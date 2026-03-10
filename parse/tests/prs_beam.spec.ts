@@ -116,11 +116,7 @@ describe("prcssBms", () => {
 
     // Create a zero-duration note (B0)
     const zeroRhythm = new Rhythm(abcContext.generateId(), createToken(TT.RHY_NUMER, "0"));
-    const zeroNote = new Note(
-      abcContext.generateId(),
-      new Pitch(abcContext.generateId(), { noteLetter: createToken(TT.NOTE_LETTER, "B") }),
-      zeroRhythm
-    );
+    const zeroNote = new Note(abcContext.generateId(), new Pitch(abcContext.generateId(), { noteLetter: createToken(TT.NOTE_LETTER, "B") }), zeroRhythm);
 
     // Create regular notes
     const note1 = new Note(abcContext.generateId(), new Pitch(abcContext.generateId(), { noteLetter: createToken(TT.NOTE_LETTER, "C") }));
@@ -146,11 +142,7 @@ describe("prcssBms", () => {
     const noteD = new Note(abcContext.generateId(), new Pitch(abcContext.generateId(), { noteLetter: createToken(TT.NOTE_LETTER, "D") }));
 
     const zeroRhythm = new Rhythm(abcContext.generateId(), createToken(TT.RHY_NUMER, "0"));
-    const zeroB = new Note(
-      abcContext.generateId(),
-      new Pitch(abcContext.generateId(), { noteLetter: createToken(TT.NOTE_LETTER, "B") }),
-      zeroRhythm
-    );
+    const zeroB = new Note(abcContext.generateId(), new Pitch(abcContext.generateId(), { noteLetter: createToken(TT.NOTE_LETTER, "B") }), zeroRhythm);
 
     const noteE = new Note(abcContext.generateId(), new Pitch(abcContext.generateId(), { noteLetter: createToken(TT.NOTE_LETTER, "E") }));
     const noteF = new Note(abcContext.generateId(), new Pitch(abcContext.generateId(), { noteLetter: createToken(TT.NOTE_LETTER, "F") }));
@@ -175,11 +167,7 @@ describe("prcssBms", () => {
     // Create three zero-duration notes
     const notes = [1, 2, 3].map(() => {
       const zeroRhythm = new Rhythm(abcContext.generateId(), createToken(TT.RHY_NUMER, "0"));
-      return new Note(
-        abcContext.generateId(),
-        new Pitch(abcContext.generateId(), { noteLetter: createToken(TT.NOTE_LETTER, "B") }),
-        zeroRhythm
-      );
+      return new Note(abcContext.generateId(), new Pitch(abcContext.generateId(), { noteLetter: createToken(TT.NOTE_LETTER, "B") }), zeroRhythm);
     });
 
     // Process beams
@@ -223,11 +211,7 @@ describe("prcssBms", () => {
 
     // Create a chord where first note has zero duration
     const zeroRhythm = new Rhythm(abcContext.generateId(), createToken(TT.RHY_NUMER, "0"));
-    const chordNote1 = new Note(
-      abcContext.generateId(),
-      new Pitch(abcContext.generateId(), { noteLetter: createToken(TT.NOTE_LETTER, "C") }),
-      zeroRhythm
-    );
+    const chordNote1 = new Note(abcContext.generateId(), new Pitch(abcContext.generateId(), { noteLetter: createToken(TT.NOTE_LETTER, "C") }), zeroRhythm);
     const chordNote2 = new Note(abcContext.generateId(), new Pitch(abcContext.generateId(), { noteLetter: createToken(TT.NOTE_LETTER, "E") }));
     const chordNote3 = new Note(abcContext.generateId(), new Pitch(abcContext.generateId(), { noteLetter: createToken(TT.NOTE_LETTER, "G") }));
     // Chord has no rhythm of its own, so first note's rhythm is used
@@ -249,4 +233,3 @@ describe("prcssBms", () => {
     assert.instanceOf(result[2], Note);
   });
 });
-

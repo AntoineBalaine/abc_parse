@@ -38,9 +38,7 @@ describe("H: field multi-line continuation (St Louis Tickle example)", () => {
       const tokens = Scanner(stLouisTickleHeader, ctx);
 
       // Find the H: header token
-      const hIndex = tokens.findIndex(
-        (t) => t.type === TT.INF_HDR && t.lexeme === "H:"
-      );
+      const hIndex = tokens.findIndex((t) => t.type === TT.INF_HDR && t.lexeme === "H:");
       assert.isAbove(hIndex, -1, "H: token should be present");
 
       assert.equal(tokens[hIndex].type, TT.INF_HDR);
@@ -52,18 +50,9 @@ describe("H: field multi-line continuation (St Louis Tickle example)", () => {
 
       // The continuation lines are collected into a single FREE_TXT token
       assert.equal(tokens[hIndex + 2].type, TT.FREE_TXT);
-      assert.include(
-        tokens[hIndex + 2].lexeme,
-        "I believe it was written for the St Louis World's Fair of ca. 1916."
-      );
-      assert.include(
-        tokens[hIndex + 2].lexeme,
-        "Guitar arrangement by Happy Traum"
-      );
-      assert.include(
-        tokens[hIndex + 2].lexeme,
-        "little 'folk processed'."
-      );
+      assert.include(tokens[hIndex + 2].lexeme, "I believe it was written for the St Louis World's Fair of ca. 1916.");
+      assert.include(tokens[hIndex + 2].lexeme, "Guitar arrangement by Happy Traum");
+      assert.include(tokens[hIndex + 2].lexeme, "little 'folk processed'.");
     });
 
     it("should tokenize M:12/8 as a separate info line after the H: continuation", () => {
@@ -71,9 +60,7 @@ describe("H: field multi-line continuation (St Louis Tickle example)", () => {
       const tokens = Scanner(stLouisTickleHeader, ctx);
 
       // Find the M: header token
-      const mIndex = tokens.findIndex(
-        (t) => t.type === TT.INF_HDR && t.lexeme === "M:"
-      );
+      const mIndex = tokens.findIndex((t) => t.type === TT.INF_HDR && t.lexeme === "M:");
       assert.isAbove(mIndex, -1, "M: token should be present");
 
       assert.equal(tokens[mIndex].type, TT.INF_HDR);
@@ -94,19 +81,13 @@ describe("H: field multi-line continuation (St Louis Tickle example)", () => {
 
       // The H: field starts at line 7 (0-indexed), and its continuation spans 4 more lines.
       // So M:12/8 should be at line 12.
-      const mIndex = tokens.findIndex(
-        (t) => t.type === TT.INF_HDR && t.lexeme === "M:"
-      );
+      const mIndex = tokens.findIndex((t) => t.type === TT.INF_HDR && t.lexeme === "M:");
       assert.equal(tokens[mIndex].line, 12, "M: should be on line 12 (0-indexed)");
 
-      const qIndex = tokens.findIndex(
-        (t) => t.type === TT.INF_HDR && t.lexeme === "Q:"
-      );
+      const qIndex = tokens.findIndex((t) => t.type === TT.INF_HDR && t.lexeme === "Q:");
       assert.equal(tokens[qIndex].line, 13, "Q: should be on line 13 (0-indexed)");
 
-      const kIndex = tokens.findIndex(
-        (t) => t.type === TT.INF_HDR && t.lexeme === "K:"
-      );
+      const kIndex = tokens.findIndex((t) => t.type === TT.INF_HDR && t.lexeme === "K:");
       assert.equal(tokens[kIndex].line, 14, "K: should be on line 14 (0-indexed)");
     });
 
@@ -114,9 +95,7 @@ describe("H: field multi-line continuation (St Louis Tickle example)", () => {
       const ctx = new ABCContext();
       const tokens = Scanner(stLouisTickleHeader, ctx);
 
-      const hIndex = tokens.findIndex(
-        (t) => t.type === TT.INF_HDR && t.lexeme === "H:"
-      );
+      const hIndex = tokens.findIndex((t) => t.type === TT.INF_HDR && t.lexeme === "H:");
       const freeTxt = tokens[hIndex + 2];
       assert.equal(freeTxt.type, TT.FREE_TXT);
       assert.notInclude(freeTxt.lexeme, "M:12/8");
@@ -133,9 +112,7 @@ describe("H: field multi-line continuation (St Louis Tickle example)", () => {
       const header = prsTuneHdr(parseCtx);
       assert.isNotNull(header);
 
-      const infoLines = header.info_lines.filter(
-        (expr) => expr instanceof Info_line
-      ) as Info_line[];
+      const infoLines = header.info_lines.filter((expr) => expr instanceof Info_line) as Info_line[];
 
       const hLine = infoLines.find((il) => il.key.lexeme === "H:");
       assert.isDefined(hLine, "H: info line should be present in the parsed header");
@@ -154,9 +131,7 @@ describe("H: field multi-line continuation (St Louis Tickle example)", () => {
       const header = prsTuneHdr(parseCtx);
       assert.isNotNull(header);
 
-      const infoLines = header.info_lines.filter(
-        (expr) => expr instanceof Info_line
-      ) as Info_line[];
+      const infoLines = header.info_lines.filter((expr) => expr instanceof Info_line) as Info_line[];
 
       const mLine = infoLines.find((il) => il.key.lexeme === "M:");
       assert.isDefined(mLine, "M: info line should be present in the parsed header");
@@ -176,14 +151,10 @@ describe("H: field multi-line continuation (St Louis Tickle example)", () => {
       const header = prsTuneHdr(parseCtx);
       assert.isNotNull(header);
 
-      const infoLines = header.info_lines.filter(
-        (expr) => expr instanceof Info_line
-      ) as Info_line[];
+      const infoLines = header.info_lines.filter((expr) => expr instanceof Info_line) as Info_line[];
 
       const keys = infoLines.map((il) => il.key.lexeme);
-      assert.deepEqual(keys, [
-        "X:", "T:", "N:", "N:", "N:", "C:", "R:", "H:", "M:", "Q:", "K:"
-      ]);
+      assert.deepEqual(keys, ["X:", "T:", "N:", "N:", "N:", "C:", "R:", "H:", "M:", "Q:", "K:"]);
     });
   });
 });

@@ -69,59 +69,53 @@ function extractVoiceIds(tuneBody: Tune_Body): Set<string> {
 /**
  * Generate a voice ID (simple alphanumeric).
  */
-const genVoiceId = fc.array(
-  fc.constantFrom(..."123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".split("")),
-  { minLength: 1, maxLength: 5 }
-).map((chars) => chars.join(""));
+const genVoiceId = fc
+  .array(fc.constantFrom(..."123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".split("")), { minLength: 1, maxLength: 5 })
+  .map((chars) => chars.join(""));
 
 /**
  * Generate a simple note sequence.
  */
-const genNotes = fc.array(
-  fc.constantFrom("C", "D", "E", "F", "G", "A", "B"),
-  { minLength: 1, maxLength: 8 }
-).map((notes) => notes.join("") + "|");
+const genNotes = fc.array(fc.constantFrom("C", "D", "E", "F", "G", "A", "B"), { minLength: 1, maxLength: 8 }).map((notes) => notes.join("") + "|");
 
 /**
  * Generate a tune with infoline voice markers.
  */
-const genTuneWithInfolineVoices = fc.tuple(
-  fc.array(genVoiceId, { minLength: 1, maxLength: 3 }),
-  fc.array(genNotes, { minLength: 1, maxLength: 4 })
-).map(([voiceIds, notesList]) => {
-  const uniqueVoices = [...new Set(voiceIds)];
-  const voiceDecls = uniqueVoices.map((v: string) => `V:${v}`).join("\n");
+const genTuneWithInfolineVoices = fc
+  .tuple(fc.array(genVoiceId, { minLength: 1, maxLength: 3 }), fc.array(genNotes, { minLength: 1, maxLength: 4 }))
+  .map(([voiceIds, notesList]) => {
+    const uniqueVoices = [...new Set(voiceIds)];
+    const voiceDecls = uniqueVoices.map((v: string) => `V:${v}`).join("\n");
 
-  // Create body with voice markers
-  const bodyLines: string[] = [];
-  for (let i = 0; i < notesList.length; i++) {
-    const voiceId = uniqueVoices[i % uniqueVoices.length];
-    bodyLines.push(`V:${voiceId}`);
-    bodyLines.push(notesList[i]);
-  }
+    // Create body with voice markers
+    const bodyLines: string[] = [];
+    for (let i = 0; i < notesList.length; i++) {
+      const voiceId = uniqueVoices[i % uniqueVoices.length];
+      bodyLines.push(`V:${voiceId}`);
+      bodyLines.push(notesList[i]);
+    }
 
-  return `X:1\n${voiceDecls}\nK:C\n${bodyLines.join("\n")}\n`;
-});
+    return `X:1\n${voiceDecls}\nK:C\n${bodyLines.join("\n")}\n`;
+  });
 
 /**
  * Generate a tune with inline voice markers.
  */
-const genTuneWithInlineVoices = fc.tuple(
-  fc.array(genVoiceId, { minLength: 1, maxLength: 3 }),
-  fc.array(genNotes, { minLength: 1, maxLength: 4 })
-).map(([voiceIds, notesList]) => {
-  const uniqueVoices = [...new Set(voiceIds)];
-  const voiceDecls = uniqueVoices.map((v: string) => `V:${v}`).join("\n");
+const genTuneWithInlineVoices = fc
+  .tuple(fc.array(genVoiceId, { minLength: 1, maxLength: 3 }), fc.array(genNotes, { minLength: 1, maxLength: 4 }))
+  .map(([voiceIds, notesList]) => {
+    const uniqueVoices = [...new Set(voiceIds)];
+    const voiceDecls = uniqueVoices.map((v: string) => `V:${v}`).join("\n");
 
-  // Create body with inline voice markers
-  const bodyLines: string[] = [];
-  for (let i = 0; i < notesList.length; i++) {
-    const voiceId = uniqueVoices[i % uniqueVoices.length];
-    bodyLines.push(`[V:${voiceId}] ${notesList[i]}`);
-  }
+    // Create body with inline voice markers
+    const bodyLines: string[] = [];
+    for (let i = 0; i < notesList.length; i++) {
+      const voiceId = uniqueVoices[i % uniqueVoices.length];
+      bodyLines.push(`[V:${voiceId}] ${notesList[i]}`);
+    }
 
-  return `X:1\n${voiceDecls}\nK:C\n${bodyLines.join("\n")}\n`;
-});
+    return `X:1\n${voiceDecls}\nK:C\n${bodyLines.join("\n")}\n`;
+  });
 
 describe("VoiceMarkerStyleVisitor - Property-Based Tests", () => {
   describe("Voice count preservation", () => {

@@ -26,4 +26,3 @@ describe("parseAnnotation", () => {
     assert.equal(ctx.current, 0); // Should not advance the current position
   });
 });
-

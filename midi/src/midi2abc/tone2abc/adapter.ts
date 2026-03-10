@@ -8,10 +8,7 @@ import { Note, Tempo, TimeSignature, NoteSequence } from "./types";
 
 // Converts quarter-note time to seconds using the tempo map.
 // The tempos array must be sorted by time.
-function quartersToSeconds(
-  quarterNotes: number,
-  tempos: { time: number; microsecondsPerQN: number }[]
-): number {
+function quartersToSeconds(quarterNotes: number, tempos: { time: number; microsecondsPerQN: number }[]): number {
   let seconds = 0;
   let prevQN = 0;
   let microsecondsPerQN = 500_000; // default: 120 BPM

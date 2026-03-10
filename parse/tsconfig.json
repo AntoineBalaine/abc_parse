@@ -1,26 +1,19 @@
 {
-	"compilerOptions": {
-		"module": "commonjs",
-		"target": "ES2020",
-		"outDir": "./dist",
-		"lib": [
-			"ES2020"
-		],
-		"sourceMap": true,
-		"rootDir": ".",
-		"strict": true, /* enable all strict type-checking options */
-		"noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
-		"noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
-		"esModuleInterop": true,
-		"skipLibCheck": true, /* Skip type checking all .d.ts files. */
-		"declaration": true,
-		"composite": true,
-	},
-	"include": [
-		"**/*.ts"
-	],
-	"exclude": [
-		"node_modules",
-		"dist"
-	]
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2020",
+    "outDir": "./dist",
+    "lib": ["ES2020"],
+    "sourceMap": true,
+    "rootDir": ".",
+    "strict": true /* enable all strict type-checking options */,
+    "noImplicitReturns": true /* Report error when not all code paths in function return a value. */,
+    "noFallthroughCasesInSwitch": true /* Report errors for fallthrough cases in switch statement. */,
+    "esModuleInterop": true,
+    "skipLibCheck": true /* Skip type checking all .d.ts files. */,
+    "declaration": true,
+    "composite": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }

@@ -78,118 +78,121 @@ const scoresByPath = new Map<string, ScoreData>();
 const slugToPath = new Map<string, string>();
 
 // Start server with port detection
-findAvailablePort(startPort).then((port) => {
-  // Create Express app
-  const app = express();
-  const server = http.createServer(app);
-  const wss = new WebSocket.Server({ server });
+findAvailablePort(startPort)
+  .then((port) => {
+    // Create Express app
+    const app = express();
+    const server = http.createServer(app);
+    const wss = new WebSocket.Server({ server });
 
-  // Serve static files from templates directory
-  app.use(express.static(path.join(__dirname, "../templates")));
+    // Serve static files from templates directory
+    app.use(express.static(path.join(__dirname, "../templates")));
 
-  // Serve the main viewer page at root and any slug path
-  app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "../templates/viewer.html"));
-  });
+    // Serve the main viewer page at root and any slug path
+    app.get("/", (req, res) => {
+      res.sendFile(path.join(__dirname, "../templates/viewer.html"));
+    });
 
-  app.get("/:slug", (req, res) => {
-    res.sendFile(path.join(__dirname, "../templates/viewer.html"));
-  });
+    app.get("/:slug", (req, res) => {
+      res.sendFile(path.join(__dirname, "../templates/viewer.html"));
+    });
 
-  // Serve export page
-  app.get("/export", (req, res) => {
-    res.sendFile(path.join(__dirname, "../templates/export.html"));
-  });
+    // Serve export page
+    app.get("/export", (req, res) => {
+      res.sendFile(path.join(__dirname, "../templates/export.html"));
+    });
 
-  // Serve print page
-  app.get("/print", (req, res) => {
-    res.sendFile(path.join(__dirname, "../templates/print.html"));
-  });
+    // Serve print page
+    app.get("/print", (req, res) => {
+      res.sendFile(path.join(__dirname, "../templates/print.html"));
+    });
 
-  // Handle WebSocket connections
-  wss.on("connection", (ws: WebSocket, req: http.IncomingMessage) => {
-    // Extract slug from URL path
-    const urlPath = req.url || "/";
-    const slug = urlPath.substring(1) || "untitled"; // Remove leading slash
+    // Handle WebSocket connections
+    wss.on("connection", (ws: WebSocket, req: http.IncomingMessage) => {
+      // Extract slug from URL path
+      const urlPath = req.url || "/";
+      const slug = urlPath.substring(1) || "untitled"; // Remove leading slash
 
-    console.log(`Client connected for slug: ${slug}`);
+      console.log(`Client connected for slug: ${slug}`);
 
-    // Find the path for this slug
-    const scorePath = slugToPath.get(slug);
+      // Find the path for this slug
+      const scorePath = slugToPath.get(slug);
 
-    if (scorePath && scoresByPath.has(scorePath)) {
-      const scoreData = scoresByPath.get(scorePath)!;
-      scoreData.clients.add(ws);
+      if (scorePath && scoresByPath.has(scorePath)) {
+        const scoreData = scoresByPath.get(scorePath)!;
+        scoreData.clients.add(ws);
 
-      // Send existing content if available
-      if (scoreData.content) {
-        ws.send(JSON.stringify({
-          type: "content",
-          content: scoreData.content
-        }));
-      }
-    } else {
-      // No score data yet, we'll wait for content
-      console.log(`No score data yet for slug: ${slug}`);
-    }
-
-    // Handle messages from client
-    ws.on("message", (message: WebSocket.Data) => {
-      try {
-        // Check if the message is not empty
-        const messageStr = message.toString().trim();
-        if (!messageStr) {
-          console.log("Received empty message, ignoring");
-          return;
+        // Send existing content if available
+        if (scoreData.content) {
+          ws.send(
+            JSON.stringify({
+              type: "content",
+              content: scoreData.content,
+            })
+          );
         }
+      } else {
+        // No score data yet, we'll wait for content
+        console.log(`No score data yet for slug: ${slug}`);
+      }
 
-        const data = JSON.parse(messageStr) as ClientMessage;
-        console.log("Received message:", data.type, "for slug:", slug);
-
-        // Handle click events from the browser
-        if (data.type === "click") {
-          // Forward to Neovim via stdout
-          console.log(
-            JSON.stringify({
-              type: "click",
-              startChar: data.startChar,
-              endChar: data.endChar,
-            })
-          );
-        } else if (data.type === "svgExport") {
-          // Handle SVG export request
-          console.log(
-            JSON.stringify({
-              type: "svgExport",
-              content: data.content,
-            })
-          );
-        } else if (isExportRequest(data)) {
-          // Handle export request
-          const scorePath = slugToPath.get(slug);
-          if (!scorePath || !scoresByPath.has(scorePath)) {
-            console.error("No score found for export");
+      // Handle messages from client
+      ws.on("message", (message: WebSocket.Data) => {
+        try {
+          // Check if the message is not empty
+          const messageStr = message.toString().trim();
+          if (!messageStr) {
+            console.log("Received empty message, ignoring");
             return;
           }
 
-          const scoreData = scoresByPath.get(scorePath)!;
+          const data = JSON.parse(messageStr) as ClientMessage;
+          console.log("Received message:", data.type, "for slug:", slug);
 
-          if (data.format === "svg" || data.format === "html") {
-            // Request SVG from browser
-            scoreData.clients.forEach((client) => {
-              if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({ type: "requestSvg" }));
+          // Handle click events from the browser
+          if (data.type === "click") {
+            // Forward to Neovim via stdout
+            console.log(
+              JSON.stringify({
+                type: "click",
+                startChar: data.startChar,
+                endChar: data.endChar,
+              })
+            );
+          } else if (data.type === "svgExport") {
+            // Handle SVG export request
+            console.log(
+              JSON.stringify({
+                type: "svgExport",
+                content: data.content,
+              })
+            );
+          } else if (isExportRequest(data)) {
+            // Handle export request
+            const scorePath = slugToPath.get(slug);
+            if (!scorePath || !scoresByPath.has(scorePath)) {
+              console.error("No score found for export");
+              return;
+            }
 
-                // Store export request for when SVG is received
-                client.once("message", (svgMessage) => {
-                  try {
-                    const svgData = JSON.parse(svgMessage.toString()) as ClientMessage;
-                    if (hasSvgContent(svgData)) {
-                      if (data.format === "svg") {
-                        handleExport("svg", svgData.content, data.path);
-                      } else {
-                        // Create HTML with the SVG content
-                        const htmlContent = `<!DOCTYPE html>
+            const scoreData = scoresByPath.get(scorePath)!;
+
+            if (data.format === "svg" || data.format === "html") {
+              // Request SVG from browser
+              scoreData.clients.forEach((client) => {
+                if (client.readyState === WebSocket.OPEN) {
+                  client.send(JSON.stringify({ type: "requestSvg" }));
+
+                  // Store export request for when SVG is received
+                  client.once("message", (svgMessage) => {
+                    try {
+                      const svgData = JSON.parse(svgMessage.toString()) as ClientMessage;
+                      if (hasSvgContent(svgData)) {
+                        if (data.format === "svg") {
+                          handleExport("svg", svgData.content, data.path);
+                        } else {
+                          // Create HTML with the SVG content
+                          const htmlContent = `<!DOCTYPE html>
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -199,244 +202,247 @@ findAvailablePort(startPort).then((port) => {
   ${svgData.content}
 </body>
 </html>`;
-                        handleExport("html", htmlContent, data.path);
+                          handleExport("html", htmlContent, data.path);
+                        }
                       }
+                    } catch (error) {
+                      console.error("Error processing SVG response:", error);
                     }
-                  } catch (error) {
-                    console.error("Error processing SVG response:", error);
-                  }
-                });
-              }
-            });
+                  });
+                }
+              });
+            }
           }
-        }
-      } catch (error) {
-        console.error("Error processing message:", error);
-        console.error("Message was:", message.toString());
-      }
-    });
-
-    // Handle client disconnection
-    ws.on("close", () => {
-      console.log(`Client disconnected for slug: ${slug}`);
-      const scorePath = slugToPath.get(slug);
-      if (scorePath && scoresByPath.has(scorePath)) {
-        scoresByPath.get(scorePath)!.clients.delete(ws);
-      }
-    });
-  });
-
-  // Parse base64 line protocol (for Kakoune)
-  // Format: type:path:base64content or type:value
-  function parseBase64Line(line: string): ServerMessage | null {
-    const colonIndex = line.indexOf(':');
-    if (colonIndex === -1) return null;
-
-    const type = line.substring(0, colonIndex);
-    const rest = line.substring(colonIndex + 1);
-
-    if (type === 'content') {
-      const secondColon = rest.indexOf(':');
-      if (secondColon === -1) return null;
-      const filepath = rest.substring(0, secondColon);
-      const base64Content = rest.substring(secondColon + 1);
-      const content = Buffer.from(base64Content, 'base64').toString('utf8');
-      return { type: 'content', path: filepath, content };
-    } else if (type === 'cursor') {
-      const position = parseInt(rest, 10);
-      if (isNaN(position)) return null;
-      return { type: 'cursorMove', position };
-    } else if (type === 'cleanup') {
-      return { type: 'cleanup', path: rest };
-    }
-
-    return null;
-  }
-
-  // Handle a parsed message (from either JSON or base64 protocol)
-  function handleMessage(message: ServerMessage): void {
-    if (message.type === "content") {
-      // Handle content update for a specific score
-      const contentMsg = message as ContentMessage;
-      const filePath = contentMsg.path;
-
-      if (!filePath) {
-        console.error("Content message missing path field");
-        return;
-      }
-
-      // Get or create score data
-      let scoreData = scoresByPath.get(filePath);
-
-      if (!scoreData) {
-        // Generate slug for new score
-        const existingSlugs = new Set(slugToPath.keys());
-        const slug = generateSlug(filePath, existingSlugs);
-
-        scoreData = {
-          content: contentMsg.content,
-          slug: slug,
-          clients: new Set()
-        };
-
-        scoresByPath.set(filePath, scoreData);
-        slugToPath.set(slug, filePath);
-
-        console.log(`Created new score: ${filePath} -> ${slug}`);
-      } else {
-        // Update existing score content
-        scoreData.content = contentMsg.content;
-      }
-
-      // Broadcast to all clients for this score
-      scoreData.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify({
-            type: "content",
-            content: contentMsg.content
-          }));
+        } catch (error) {
+          console.error("Error processing message:", error);
+          console.error("Message was:", message.toString());
         }
       });
-    } else if (message.type === "cleanup") {
-      // Handle cleanup request
-      const cleanupMsg = message as CleanupMessage;
-      const filePath = cleanupMsg.path;
 
-      if (!filePath) {
-        console.error("Cleanup message missing path field");
-        return;
+      // Handle client disconnection
+      ws.on("close", () => {
+        console.log(`Client disconnected for slug: ${slug}`);
+        const scorePath = slugToPath.get(slug);
+        if (scorePath && scoresByPath.has(scorePath)) {
+          scoresByPath.get(scorePath)!.clients.delete(ws);
+        }
+      });
+    });
+
+    // Parse base64 line protocol (for Kakoune)
+    // Format: type:path:base64content or type:value
+    function parseBase64Line(line: string): ServerMessage | null {
+      const colonIndex = line.indexOf(":");
+      if (colonIndex === -1) return null;
+
+      const type = line.substring(0, colonIndex);
+      const rest = line.substring(colonIndex + 1);
+
+      if (type === "content") {
+        const secondColon = rest.indexOf(":");
+        if (secondColon === -1) return null;
+        const filepath = rest.substring(0, secondColon);
+        const base64Content = rest.substring(secondColon + 1);
+        const content = Buffer.from(base64Content, "base64").toString("utf8");
+        return { type: "content", path: filepath, content };
+      } else if (type === "cursor") {
+        const position = parseInt(rest, 10);
+        if (isNaN(position)) return null;
+        return { type: "cursorMove", position };
+      } else if (type === "cleanup") {
+        return { type: "cleanup", path: rest };
       }
 
-      const scoreData = scoresByPath.get(filePath);
-      if (scoreData) {
-        // Close all client connections for this score
-        scoreData.clients.forEach(client => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.close();
-          }
-        });
+      return null;
+    }
 
-        // Remove from maps
-        slugToPath.delete(scoreData.slug);
-        scoresByPath.delete(filePath);
+    // Handle a parsed message (from either JSON or base64 protocol)
+    function handleMessage(message: ServerMessage): void {
+      if (message.type === "content") {
+        // Handle content update for a specific score
+        const contentMsg = message as ContentMessage;
+        const filePath = contentMsg.path;
 
-        console.log(`Cleaned up score: ${filePath}`);
-      }
-    } else if (message.type === "config" || message.type === "cursorMove") {
-      // Broadcast config and cursor move to all clients (for now)
-      scoresByPath.forEach((scoreData) => {
+        if (!filePath) {
+          console.error("Content message missing path field");
+          return;
+        }
+
+        // Get or create score data
+        let scoreData = scoresByPath.get(filePath);
+
+        if (!scoreData) {
+          // Generate slug for new score
+          const existingSlugs = new Set(slugToPath.keys());
+          const slug = generateSlug(filePath, existingSlugs);
+
+          scoreData = {
+            content: contentMsg.content,
+            slug: slug,
+            clients: new Set(),
+          };
+
+          scoresByPath.set(filePath, scoreData);
+          slugToPath.set(slug, filePath);
+
+          console.log(`Created new score: ${filePath} -> ${slug}`);
+        } else {
+          // Update existing score content
+          scoreData.content = contentMsg.content;
+        }
+
+        // Broadcast to all clients for this score
         scoreData.clients.forEach((client) => {
           if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(message));
+            client.send(
+              JSON.stringify({
+                type: "content",
+                content: contentMsg.content,
+              })
+            );
           }
         });
-      });
-    }
-  }
+      } else if (message.type === "cleanup") {
+        // Handle cleanup request
+        const cleanupMsg = message as CleanupMessage;
+        const filePath = cleanupMsg.path;
 
-  // Buffer for stdin line processing
-  let stdinBuffer = '';
-
-  // Listen for input from editor (via stdin)
-  // Supports both JSON protocol (nvim) and base64 line protocol (kak)
-  process.stdin.on("data", (data: Buffer) => {
-    // Add incoming data to buffer
-    stdinBuffer += data.toString();
-
-    // Split by newlines
-    const lines = stdinBuffer.split('\n');
-
-    // Keep last (possibly incomplete) line in buffer
-    stdinBuffer = lines.pop() || '';
-
-    // Process each complete line
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) continue; // Skip empty lines
-
-      // Detect protocol by checking if line starts with '{'
-      if (trimmed.startsWith('{')) {
-        // JSON protocol (nvim)
-        try {
-          const message = JSON.parse(trimmed) as ServerMessage;
-          handleMessage(message);
-        } catch (error) {
-          console.error("Error parsing JSON line:", error);
-          console.error("Line was:", trimmed);
+        if (!filePath) {
+          console.error("Cleanup message missing path field");
+          return;
         }
-      } else {
-        // Base64 line protocol (kak)
-        const message = parseBase64Line(trimmed);
-        if (message) {
-          handleMessage(message);
-        } else {
-          console.error("Error parsing base64 line:", trimmed);
+
+        const scoreData = scoresByPath.get(filePath);
+        if (scoreData) {
+          // Close all client connections for this score
+          scoreData.clients.forEach((client) => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.close();
+            }
+          });
+
+          // Remove from maps
+          slugToPath.delete(scoreData.slug);
+          scoresByPath.delete(filePath);
+
+          console.log(`Cleaned up score: ${filePath}`);
         }
+      } else if (message.type === "config" || message.type === "cursorMove") {
+        // Broadcast config and cursor move to all clients (for now)
+        scoresByPath.forEach((scoreData) => {
+          scoreData.clients.forEach((client) => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify(message));
+            }
+          });
+        });
       }
     }
+
+    // Buffer for stdin line processing
+    let stdinBuffer = "";
+
+    // Listen for input from editor (via stdin)
+    // Supports both JSON protocol (nvim) and base64 line protocol (kak)
+    process.stdin.on("data", (data: Buffer) => {
+      // Add incoming data to buffer
+      stdinBuffer += data.toString();
+
+      // Split by newlines
+      const lines = stdinBuffer.split("\n");
+
+      // Keep last (possibly incomplete) line in buffer
+      stdinBuffer = lines.pop() || "";
+
+      // Process each complete line
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue; // Skip empty lines
+
+        // Detect protocol by checking if line starts with '{'
+        if (trimmed.startsWith("{")) {
+          // JSON protocol (nvim)
+          try {
+            const message = JSON.parse(trimmed) as ServerMessage;
+            handleMessage(message);
+          } catch (error) {
+            console.error("Error parsing JSON line:", error);
+            console.error("Line was:", trimmed);
+          }
+        } else {
+          // Base64 line protocol (kak)
+          const message = parseBase64Line(trimmed);
+          if (message) {
+            handleMessage(message);
+          } else {
+            console.error("Error parsing base64 line:", trimmed);
+          }
+        }
+      }
+    });
+
+    // Validate export path to prevent path traversal attacks
+    function isValidExportPath(filePath: string): boolean {
+      // Path must be absolute
+      if (!path.isAbsolute(filePath)) {
+        return false;
+      }
+      // Normalize and check for path traversal
+      const normalized = path.normalize(filePath);
+      if (normalized !== filePath || filePath.includes("..")) {
+        return false;
+      }
+      // Parent directory must exist
+      const dir = path.dirname(filePath);
+      try {
+        const stat = fs.statSync(dir);
+        return stat.isDirectory();
+      } catch {
+        return false;
+      }
+    }
+
+    // Handle file export requests
+    function handleExport(format: "html" | "svg", content: string, filePath: string): void {
+      if (!isValidExportPath(filePath)) {
+        console.error("Invalid export path:", filePath);
+        console.log(
+          JSON.stringify({
+            type: "exportError",
+            error: "Invalid export path",
+          })
+        );
+        return;
+      }
+
+      try {
+        fs.writeFileSync(filePath, content);
+        console.log(
+          JSON.stringify({
+            type: "exportComplete",
+            format,
+            path: filePath,
+          })
+        );
+      } catch (error) {
+        console.error("Error exporting file:", error);
+        console.log(
+          JSON.stringify({
+            type: "exportError",
+            error: (error as Error).message,
+          })
+        );
+      }
+    }
+
+    // Start the server
+    server.listen(port, () => {
+      // Send server info to Neovim
+      console.log(JSON.stringify({ type: "serverInfo", port }));
+      console.log(`Server running at http://localhost:${port}`);
+    });
+  })
+  .catch((error) => {
+    console.error("Failed to start server:", error);
+    process.exit(1);
   });
-
-  // Validate export path to prevent path traversal attacks
-  function isValidExportPath(filePath: string): boolean {
-    // Path must be absolute
-    if (!path.isAbsolute(filePath)) {
-      return false;
-    }
-    // Normalize and check for path traversal
-    const normalized = path.normalize(filePath);
-    if (normalized !== filePath || filePath.includes("..")) {
-      return false;
-    }
-    // Parent directory must exist
-    const dir = path.dirname(filePath);
-    try {
-      const stat = fs.statSync(dir);
-      return stat.isDirectory();
-    } catch {
-      return false;
-    }
-  }
-
-  // Handle file export requests
-  function handleExport(format: "html" | "svg", content: string, filePath: string): void {
-    if (!isValidExportPath(filePath)) {
-      console.error("Invalid export path:", filePath);
-      console.log(
-        JSON.stringify({
-          type: "exportError",
-          error: "Invalid export path",
-        })
-      );
-      return;
-    }
-
-    try {
-      fs.writeFileSync(filePath, content);
-      console.log(
-        JSON.stringify({
-          type: "exportComplete",
-          format,
-          path: filePath,
-        })
-      );
-    } catch (error) {
-      console.error("Error exporting file:", error);
-      console.log(
-        JSON.stringify({
-          type: "exportError",
-          error: (error as Error).message,
-        })
-      );
-    }
-  }
-
-  // Start the server
-  server.listen(port, () => {
-    // Send server info to Neovim
-    console.log(JSON.stringify({ type: "serverInfo", port }));
-    console.log(`Server running at http://localhost:${port}`);
-  });
-}).catch((error) => {
-  console.error("Failed to start server:", error);
-  process.exit(1);
-});

@@ -757,10 +757,7 @@ describe("scan2", () => {
       assert.equal(ctx.tokens[2].lexeme, "\nContinuation");
       // Should stop at the section break (the \n\n before X:2)
       const remaining = ctx.source.substring(ctx.current);
-      assert.ok(
-        remaining.startsWith("\n\nX:"),
-        `Expected remaining to start with section break before X:, got: "${remaining.substring(0, 20)}"`
-      );
+      assert.ok(remaining.startsWith("\n\nX:"), `Expected remaining to start with section break before X:, got: "${remaining.substring(0, 20)}"`);
     });
   });
 
@@ -1042,7 +1039,7 @@ describe("scan2", () => {
       assert.equal(ctx.tokens.length, 4);
       assert.equal(ctx.tokens[0].type, TT.INLN_FLD_LFT_BRKT);
       assert.equal(ctx.tokens[1].type, TT.INF_HDR);
-      assert.equal(ctx.tokens[2].type, TT.NOTE_LETTER);  // G is key root (note letter)
+      assert.equal(ctx.tokens[2].type, TT.NOTE_LETTER); // G is key root (note letter)
       assert.equal(ctx.tokens[2].lexeme, "G");
       assert.equal(ctx.tokens[3].type, TT.INLN_FLD_RGT_BRKT);
     });
@@ -1054,10 +1051,10 @@ describe("scan2", () => {
       assert.equal(ctx.tokens.length, 6);
       assert.equal(ctx.tokens[0].type, TT.INLN_FLD_LFT_BRKT);
       assert.equal(ctx.tokens[1].type, TT.INF_HDR);
-      assert.equal(ctx.tokens[2].type, TT.NUMBER);      // 3
+      assert.equal(ctx.tokens[2].type, TT.NUMBER); // 3
       assert.equal(ctx.tokens[2].lexeme, "3");
-      assert.equal(ctx.tokens[3].type, TT.SLASH);       // /
-      assert.equal(ctx.tokens[4].type, TT.NUMBER);      // 4
+      assert.equal(ctx.tokens[3].type, TT.SLASH); // /
+      assert.equal(ctx.tokens[4].type, TT.NUMBER); // 4
       assert.equal(ctx.tokens[4].lexeme, "4");
       assert.equal(ctx.tokens[5].type, TT.INLN_FLD_RGT_BRKT);
     });
@@ -1069,11 +1066,11 @@ describe("scan2", () => {
       assert.equal(ctx.tokens.length, 8);
       assert.equal(ctx.tokens[0].type, TT.INLN_FLD_LFT_BRKT);
       assert.equal(ctx.tokens[1].type, TT.INF_HDR);
-      assert.equal(ctx.tokens[2].type, TT.NUMBER);      // 1
-      assert.equal(ctx.tokens[3].type, TT.SLASH);       // /
-      assert.equal(ctx.tokens[4].type, TT.NUMBER);      // 4
-      assert.equal(ctx.tokens[5].type, TT.EQL);         // =
-      assert.equal(ctx.tokens[6].type, TT.NUMBER);      // 120
+      assert.equal(ctx.tokens[2].type, TT.NUMBER); // 1
+      assert.equal(ctx.tokens[3].type, TT.SLASH); // /
+      assert.equal(ctx.tokens[4].type, TT.NUMBER); // 4
+      assert.equal(ctx.tokens[5].type, TT.EQL); // =
+      assert.equal(ctx.tokens[6].type, TT.NUMBER); // 120
       assert.equal(ctx.tokens[7].type, TT.INLN_FLD_RGT_BRKT);
     });
 
@@ -1637,12 +1634,12 @@ describe("scan2", () => {
 
   // Bug fixes: Category 8 - Header Field Value Parsing
   describe("scanInfoLine2 - header value parsing (bug fix)", () => {
-    it("should parse Q: with quoted string: Q:\"Adagio\"", () => {
-      const ctx = createCtx("X:1\nQ:\"Adagio\"\nK:C\n");
+    it('should parse Q: with quoted string: Q:"Adagio"', () => {
+      const ctx = createCtx('X:1\nQ:"Adagio"\nK:C\n');
       scanTune(ctx);
       const annotTokens = ctx.tokens.filter((t) => t.type === TT.ANNOTATION);
       assert.equal(annotTokens.length, 1);
-      assert.equal(annotTokens[0].lexeme, "\"Adagio\"");
+      assert.equal(annotTokens[0].lexeme, '"Adagio"');
     });
 
     it("should handle comment after key signature: K:Eb % 3 flats", () => {

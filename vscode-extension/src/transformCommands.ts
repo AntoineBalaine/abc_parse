@@ -196,13 +196,19 @@ export function registerTransformCommands(context: vscode.ExtensionContext, clie
         prompt: "Target voice IDs (comma-separated, e.g., 1,2,3)",
         placeHolder: "1,2,3",
         validateInput: (v) => {
-          const parts = v.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
+          const parts = v
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0);
           if (parts.length < 2) return "At least 2 target voices required";
           return null;
         },
       });
       if (input === undefined) return;
-      const targetVoiceIds = input.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
+      const targetVoiceIds = input
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
       await applyTransform(client, "explosion", [targetVoiceIds], statusBarItem);
     })
   );

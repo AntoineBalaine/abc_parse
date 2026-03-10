@@ -46,11 +46,7 @@ export function updateStatusBar(statusBarItem: vscode.StatusBarItem, selectionCo
   }
 }
 
-export function registerSelectorCommands(
-  context: vscode.ExtensionContext,
-  client: LanguageClient,
-  statusBarItem: vscode.StatusBarItem
-): void {
+export function registerSelectorCommands(context: vscode.ExtensionContext, client: LanguageClient, statusBarItem: vscode.StatusBarItem): void {
   const selectorCommands: Array<[string, string]> = [
     ["abc.selectChords", "selectChords"],
     ["abc.selectNotes", "selectNotes"],
@@ -108,7 +104,7 @@ export function registerSelectorCommands(
 
       const input = await vscode.window.showInputBox({
         prompt: "Enter n (0 = top, 1 = second from top, ...)",
-        validateInput: (v) => isNaN(Number(v)) ? "Must be a number" : null,
+        validateInput: (v) => (isNaN(Number(v)) ? "Must be a number" : null),
       });
       if (input === undefined) return;
 
@@ -180,9 +176,7 @@ export function registerSelectorCommands(
       if (!editor || editor.document.languageId !== "abc") return;
 
       // Collapse all selections to their start positions (cursors only)
-      editor.selections = editor.selections.map(
-        (s) => new vscode.Selection(s.start, s.start)
-      );
+      editor.selections = editor.selections.map((s) => new vscode.Selection(s.start, s.start));
       statusBarItem.hide();
     })
   );
@@ -201,10 +195,7 @@ export function registerSelectorCommands(
       if (ranges.length <= 1) return;
 
       try {
-        const result = await client.sendRequest<ApplySelectorResult>(
-          "abc.consolidateSelections",
-          { ranges }
-        );
+        const result = await client.sendRequest<ApplySelectorResult>("abc.consolidateSelections", { ranges });
 
         if (result.ranges.length > 0) {
           applySelectionsToEditor(editor, result.ranges);

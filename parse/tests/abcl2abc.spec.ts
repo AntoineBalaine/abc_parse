@@ -424,8 +424,8 @@ G|A|`;
 
       // Verify second system has both V:1 and V:2
       const system2 = converted.tune_body?.sequence[1];
-      const voiceMarkers = system2?.filter(el => isVoiceMarker(el));
-      const voiceIds = voiceMarkers?.map(el => extractVoiceId(el as Info_line));
+      const voiceMarkers = system2?.filter((el) => isVoiceMarker(el));
+      const voiceIds = voiceMarkers?.map((el) => extractVoiceId(el as Info_line));
 
       expect(voiceIds).to.include("1");
       expect(voiceIds).to.include("2");
@@ -451,12 +451,12 @@ G|A|`;
 
       // Verify comment appears in first system
       const system1 = converted.tune_body?.sequence[0];
-      const hasComment = system1?.some(el => isComment(el));
+      const hasComment = system1?.some((el) => isComment(el));
       expect(hasComment).to.be.true;
 
       // Verify comment does not appear in second system
       const system2 = converted.tune_body?.sequence[1];
-      const hasCommentInSystem2 = system2?.some(el => isComment(el));
+      const hasCommentInSystem2 = system2?.some((el) => isComment(el));
       expect(hasCommentInSystem2).to.be.false;
     });
   });

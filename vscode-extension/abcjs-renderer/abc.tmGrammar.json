@@ -70,7 +70,8 @@
             "1": { "name": "keyword.other.meter.abc" },
             "2": { "name": "string.value.meter.abc" }
           }
-        }, {
+        },
+        {
           "match": "(\\[M:)(.*?)\\]",
           "captures": {
             "1": { "name": "keyword.other.meter.abc" },
@@ -220,12 +221,7 @@
         "0": { "name": "keyword.other.region.voice.abc" }
       },
       "while": "(?# include lines until one contains 'V:')^(?!V:\\d|X:)",
-      "patterns": [
-        { "include": "#annotations" },
-        { "include": "#words" },
-        { "include": "#bar" },
-        { "include": "#ornaments" }
-      ]
+      "patterns": [{ "include": "#annotations" }, { "include": "#words" }, { "include": "#bar" }, { "include": "#ornaments" }]
     },
     "accidentalsAndOctaves": {
       "patterns": [

@@ -7,16 +7,7 @@
 
 import * as fc from "fast-check";
 import { Token, TT } from "../parsers/scan2";
-import {
-  sharedContext,
-  genChordSymbolToken,
-  genBarline,
-  genAnnotation,
-  genRest,
-  genWhitespace,
-  genEOL,
-  applyTokenFiltering,
-} from "./scn_pbt.generators.spec";
+import { sharedContext, genChordSymbolToken, genBarline, genAnnotation, genRest, genWhitespace, genEOL, applyTokenFiltering } from "./scn_pbt.generators.spec";
 
 // Re-export shared context and chord symbol token generator
 export { sharedContext, genChordSymbolToken };
@@ -52,25 +43,32 @@ export const genAbcxTuneBodyTokens = fc
 export const genAbcxTuneHeaderTokens = fc
   .tuple(
     // X: field (required)
-    fc.nat({ max: 999 }).map((n) => [
-      new Token(TT.INF_HDR, "X:", sharedContext.generateId()),
-      new Token(TT.INFO_STR, String(n), sharedContext.generateId()),
-      new Token(TT.EOL, "\n", sharedContext.generateId()),
-    ]),
+    fc
+      .nat({ max: 999 })
+      .map((n) => [
+        new Token(TT.INF_HDR, "X:", sharedContext.generateId()),
+        new Token(TT.INFO_STR, String(n), sharedContext.generateId()),
+        new Token(TT.EOL, "\n", sharedContext.generateId()),
+      ]),
     // Optional T: field
     fc.option(
-      fc.string({ minLength: 1, maxLength: 20 }).filter(s => !s.includes("\n")).map((title) => [
-        new Token(TT.INF_HDR, "T:", sharedContext.generateId()),
-        new Token(TT.INFO_STR, title, sharedContext.generateId()),
-        new Token(TT.EOL, "\n", sharedContext.generateId()),
-      ])
+      fc
+        .string({ minLength: 1, maxLength: 20 })
+        .filter((s) => !s.includes("\n"))
+        .map((title) => [
+          new Token(TT.INF_HDR, "T:", sharedContext.generateId()),
+          new Token(TT.INFO_STR, title, sharedContext.generateId()),
+          new Token(TT.EOL, "\n", sharedContext.generateId()),
+        ])
     ),
     // K: field (required, signals end of header)
-    fc.constantFrom("C", "G", "D", "A", "E", "F", "Bb", "Am", "Em", "Dm").map((key) => [
-      new Token(TT.INF_HDR, "K:", sharedContext.generateId()),
-      new Token(TT.INFO_STR, key, sharedContext.generateId()),
-      new Token(TT.EOL, "\n", sharedContext.generateId()),
-    ])
+    fc
+      .constantFrom("C", "G", "D", "A", "E", "F", "Bb", "Am", "Em", "Dm")
+      .map((key) => [
+        new Token(TT.INF_HDR, "K:", sharedContext.generateId()),
+        new Token(TT.INFO_STR, key, sharedContext.generateId()),
+        new Token(TT.EOL, "\n", sharedContext.generateId()),
+      ])
   )
   .map(([xField, tField, kField]) => {
     const tokens = [...xField];
@@ -83,27 +81,23 @@ export const genAbcxTuneHeaderTokens = fc
  * ABCx complete tune tokens generator
  * Combines header and body into a complete tune
  */
-export const genAbcxTuneTokens = fc
-  .tuple(genAbcxTuneHeaderTokens, genAbcxTuneBodyTokens)
-  .map(([header, body]) => [...header, ...body]);
+export const genAbcxTuneTokens = fc.tuple(genAbcxTuneHeaderTokens, genAbcxTuneBodyTokens).map(([header, body]) => [...header, ...body]);
 
 /**
  * ABCx file tokens generator
  * Generates a complete ABCx file with one or more tunes
  */
-export const genAbcxFileTokens = fc
-  .array(genAbcxTuneTokens, { minLength: 1, maxLength: 3 })
-  .map((tunes) => {
-    const result: Token[] = [];
-    for (let i = 0; i < tunes.length; i++) {
-      if (i > 0) {
-        // Add section break between tunes
-        result.push(new Token(TT.SCT_BRK, "\n\n", sharedContext.generateId()));
-      }
-      result.push(...tunes[i]);
+export const genAbcxFileTokens = fc.array(genAbcxTuneTokens, { minLength: 1, maxLength: 3 }).map((tunes) => {
+  const result: Token[] = [];
+  for (let i = 0; i < tunes.length; i++) {
+    if (i > 0) {
+      // Add section break between tunes
+      result.push(new Token(TT.SCT_BRK, "\n\n", sharedContext.generateId()));
     }
-    return result;
-  });
+    result.push(...tunes[i]);
+  }
+  return result;
+});
 
 /**
  * ABCx token sequence for round-trip testing

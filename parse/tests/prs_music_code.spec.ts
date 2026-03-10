@@ -1,24 +1,9 @@
 import { assert } from "chai";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
-import {
-  ParseCtx,
-  parseMusicCode,
-} from "../parsers/parse2";
+import { ParseCtx, parseMusicCode } from "../parsers/parse2";
 import { Token, TT } from "../parsers/scan2";
-import {
-  Annotation,
-  BarLine,
-  Chord,
-  Decoration,
-  Expr,
-  Grace_group,
-  Note,
-  Rest,
-  Symbol,
-  Tuplet,
-  YSPACER,
-} from "../types/Expr2";
+import { Annotation, BarLine, Chord, Decoration, Expr, Grace_group, Note, Rest, Symbol, Tuplet, YSPACER } from "../types/Expr2";
 
 // Helper function to create a token with the given type and lexeme
 export function createToken(type: TT, lexeme: string, line: number = 0, position: number = 0): Token {
@@ -31,8 +16,8 @@ export function createToken(type: TT, lexeme: string, line: number = 0, position
       start: 0,
       current: lexeme.length,
       line,
-      report: () => { },
-      push: () => { },
+      report: () => {},
+      push: () => {},
       test: () => false,
       abcContext: ctx,
     },
@@ -117,12 +102,7 @@ describe("parseMusicCode", () => {
   });
 
   it("should stop parsing at COMMENT", () => {
-    const tokens = [
-      createToken(TT.BARLINE, "|"),
-      createToken(TT.NOTE_LETTER, "C"),
-      createToken(TT.COMMENT, "%comment"),
-      createToken(TT.NOTE_LETTER, "D"),
-    ];
+    const tokens = [createToken(TT.BARLINE, "|"), createToken(TT.NOTE_LETTER, "C"), createToken(TT.COMMENT, "%comment"), createToken(TT.NOTE_LETTER, "D")];
     const ctx = createParseCtx(tokens);
 
     const result = parseMusicCode(ctx);
@@ -262,7 +242,3 @@ describe("parseMusicCode", () => {
     assert.instanceOf(elements[0], Note);
   });
 });
-
-
-
-

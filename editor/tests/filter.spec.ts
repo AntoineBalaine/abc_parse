@@ -85,15 +85,11 @@ describe("filter", () => {
 
     it("output cursor count is <= input cursor count for any type predicate", () => {
       fc.assert(
-        fc.property(
-          genAbcWithChords,
-          fc.constantFrom(isNote, isChord, isRest),
-          (source, predicate) => {
-            const sel = selectNotes(toSelection(source));
-            const result = filter(sel, predicate);
-            expect(result.cursors.length).to.be.at.most(sel.cursors.length);
-          }
-        ),
+        fc.property(genAbcWithChords, fc.constantFrom(isNote, isChord, isRest), (source, predicate) => {
+          const sel = selectNotes(toSelection(source));
+          const result = filter(sel, predicate);
+          expect(result.cursors.length).to.be.at.most(sel.cursors.length);
+        }),
         { numRuns: 200 }
       );
     });

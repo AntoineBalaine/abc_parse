@@ -41,9 +41,7 @@ export function parseAbc(abcText: string): ParseResult {
   const interpreter = new TuneInterpreter(analyzer, ctx, abcText);
   const result = interpreter.interpretFile(ast);
 
-  const errors = ctx.errorReporter.hasErrors()
-    ? ctx.errorReporter.getErrors().map((e) => e.message)
-    : [];
+  const errors = ctx.errorReporter.hasErrors() ? ctx.errorReporter.getErrors().map((e) => e.message) : [];
 
   return {
     tunes: result.tunes,
@@ -58,10 +56,7 @@ export function parseAbc(abcText: string): ParseResult {
  * @param tuneIndex - Which tune to convert (default: 0)
  * @returns ConversionResult with note events, or null if parsing failed
  */
-export function abcToMuseSamplerEvents(
-  abcText: string,
-  tuneIndex: number = 0
-): ConversionResult | null {
+export function abcToMuseSamplerEvents(abcText: string, tuneIndex: number = 0): ConversionResult | null {
   const { tunes, errors } = parseAbc(abcText);
 
   if (errors.length > 0) {
@@ -176,21 +171,12 @@ export function createAbcPlayer(client: IMuseSamplerClient) {
    * @param options - Playback options
    * @returns PlaybackController for controlling playback
    */
-  async function play(
-    abcText: string,
-    options: PlaybackOptions = {}
-  ): Promise<PlaybackController> {
+  async function play(abcText: string, options: PlaybackOptions = {}): Promise<PlaybackController> {
     if (!isInitialized) {
       await initialize();
     }
 
-    const {
-      instrumentId = defaultInstrumentId,
-      tuneIndex = 0,
-      sampleRate = 44100,
-      blockSize = 512,
-      channels = 2,
-    } = options;
+    const { instrumentId = defaultInstrumentId, tuneIndex = 0, sampleRate = 44100, blockSize = 512, channels = 2 } = options;
 
     if (instrumentId === undefined) {
       throw new Error("No instrument ID provided and no instruments available");
@@ -253,20 +239,12 @@ export function createAbcPlayer(client: IMuseSamplerClient) {
    * @param notes - Array of {pitch, duration_ms} objects
    * @param options - Playback options
    */
-  async function playNotes(
-    notes: Array<{ pitch: number; duration_ms: number }>,
-    options: PlaybackOptions = {}
-  ): Promise<PlaybackController> {
+  async function playNotes(notes: Array<{ pitch: number; duration_ms: number }>, options: PlaybackOptions = {}): Promise<PlaybackController> {
     if (!isInitialized) {
       await initialize();
     }
 
-    const {
-      instrumentId = defaultInstrumentId,
-      sampleRate = 44100,
-      blockSize = 512,
-      channels = 2,
-    } = options;
+    const { instrumentId = defaultInstrumentId, sampleRate = 44100, blockSize = 512, channels = 2 } = options;
 
     if (instrumentId === undefined) {
       throw new Error("No instrument ID provided and no instruments available");
@@ -312,9 +290,7 @@ export function createAbcPlayer(client: IMuseSamplerClient) {
   /**
    * Get available instruments.
    */
-  async function getInstruments(): Promise<
-    Array<{ id: number; name: string; category: string }>
-  > {
+  async function getInstruments(): Promise<Array<{ id: number; name: string; category: string }>> {
     if (!isInitialized) {
       await initialize();
     }

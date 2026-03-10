@@ -245,10 +245,7 @@ export type CSVisitor<T extends string, DM extends Record<T, unknown>, Ctx> = Pa
  * We capture nextSibling before recursing so that tree mutations inside
  * handlers do not cause skipped or double-visited siblings.
  */
-export function visit<T extends string, DM extends Record<T, unknown>, Ctx extends { visitor: CSVisitor<T, DM, Ctx> }>(
-  root: CSNode<T, DM>,
-  ctx: Ctx
-): void {
+export function visit<T extends string, DM extends Record<T, unknown>, Ctx extends { visitor: CSVisitor<T, DM, Ctx> }>(root: CSNode<T, DM>, ctx: Ctx): void {
   const handler = ctx.visitor[root.tag as T];
   if (handler) {
     handler(root, ctx);

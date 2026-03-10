@@ -2,10 +2,7 @@ import { CSNode } from "../csTree/types";
 import { Selection } from "../selection";
 import { buildIdMap } from "./treeWalk";
 
-export function selectSiblingsAfter(
-  input: Selection,
-  predicate: (node: CSNode) => boolean
-): Selection {
+export function selectSiblingsAfter(input: Selection, predicate: (node: CSNode) => boolean): Selection {
   const idMap = buildIdMap(input.root);
   const outputCursors: Set<number>[] = [];
 

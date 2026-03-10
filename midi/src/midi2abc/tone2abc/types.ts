@@ -45,12 +45,7 @@ export class KeyLength {
   factor: number;
   error: number;
 
-  constructor(
-    numerator: number,
-    denominator: number,
-    factor: number,
-    error: number
-  ) {
+  constructor(numerator: number, denominator: number, factor: number, error: number) {
     this.numerator = numerator;
     this.denominator = denominator;
     this.factor = factor;

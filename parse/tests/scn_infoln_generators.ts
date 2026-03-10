@@ -95,9 +95,7 @@ export const genDecimalNumber = fc
     // Shorthand notation without leading zero (newly supported)
     fc.constantFrom(".5", ".75", ".9"),
     // Random decimals with leading digit
-    fc
-      .tuple(fc.integer({ min: 0, max: 99 }), fc.integer({ min: 0, max: 99 }))
-      .map(([whole, frac]) => `${whole}.${frac}`),
+    fc.tuple(fc.integer({ min: 0, max: 99 }), fc.integer({ min: 0, max: 99 })).map(([whole, frac]) => `${whole}.${frac}`),
     // Random decimals without leading zero
     fc.integer({ min: 1, max: 99 }).map((frac) => `.${frac}`)
   )
@@ -226,9 +224,7 @@ export const genKeyInfoLine2 = fc
     fc.option(genWhitespace),
     genKeySignature, // Single KEY_SIGNATURE token
     fc.array(
-      fc
-        .tuple(genWhitespace, genIdentifier, genEql, fc.oneof(genIdentifier, genNumber))
-        .map(([ws, key, eq, val]) => (ws ? [ws, key, eq, val] : [key, eq, val]))
+      fc.tuple(genWhitespace, genIdentifier, genEql, fc.oneof(genIdentifier, genNumber)).map(([ws, key, eq, val]) => (ws ? [ws, key, eq, val] : [key, eq, val]))
     ),
     genEOL
   )
@@ -266,22 +262,9 @@ export const genMeterInfoLine2 = fc
           genNumber
         )
         .map(([lparen, ws1, num1, ws2, plus1, ws3, num2, optionalTerm, ws4, rparen, ws5, slash, ws6, denom]) =>
-          [
-            lparen,
-            ws1,
-            num1,
-            ws2,
-            plus1,
-            ws3,
-            num2,
-            ...(optionalTerm ? optionalTerm : []),
-            ws4,
-            rparen,
-            ws5,
-            slash,
-            ws6,
-            denom,
-          ].filter((t): t is Token => t !== null)
+          [lparen, ws1, num1, ws2, plus1, ws3, num2, ...(optionalTerm ? optionalTerm : []), ws4, rparen, ws5, slash, ws6, denom].filter(
+            (t): t is Token => t !== null
+          )
         )
     ),
     genEOL
@@ -301,9 +284,7 @@ export const genNoteLenInfoLine2 = fc
     genNumber,
     genEOL
   )
-  .map(([header, ws, num, ws1, slash, ws2, denom, _eol]) =>
-    [header, ws, num, ws1, slash, ws2, denom].filter((t): t is Token => t !== null)
-  );
+  .map(([header, ws, num, ws1, slash, ws2, denom, _eol]) => [header, ws, num, ws1, slash, ws2, denom].filter((t): t is Token => t !== null));
 
 // Tempo info: Q: "Allegro" 1/4=120
 export const genTempoInfoLine2 = fc
@@ -604,8 +585,7 @@ export const genDirectiveContent = fc
 
         // 2. Pitch token components (^c, a')
         const isPitchSequence =
-          (currentToken.type === TT.ACCIDENTAL && nextToken.type === TT.NOTE_LETTER) ||
-          (currentToken.type === TT.NOTE_LETTER && nextToken.type === TT.OCTAVE);
+          (currentToken.type === TT.ACCIDENTAL && nextToken.type === TT.NOTE_LETTER) || (currentToken.type === TT.NOTE_LETTER && nextToken.type === TT.OCTAVE);
 
         // 3. Rational number components (3/4)
         const isRationalSequence =
@@ -662,7 +642,9 @@ export const genAbclsVoicesDirective = fc
     // Voice IDs (at least one, up to 5)
     // Note: IDs must be at least 2 chars to avoid conflict with note letters (a-g)
     fc.array(
-      fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9_]+$/).filter((id) => id.length >= 2 && id.length <= 20)
+      fc
+        .stringMatching(/^[a-zA-Z][a-zA-Z0-9_]+$/)
+        .filter((id) => id.length >= 2 && id.length <= 20)
         .map((id) => new Token(TT.IDENTIFIER, id, sharedContext.generateId())),
       { minLength: 1, maxLength: 5 }
     ),

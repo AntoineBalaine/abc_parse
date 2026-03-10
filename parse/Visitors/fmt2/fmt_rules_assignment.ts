@@ -1,20 +1,7 @@
 import { isChord, isNote, isToken } from "../../helpers";
 import { ABCContext } from "../../parsers/Context";
 import { Ctx, Token, TT } from "../../parsers/scan2";
-import {
-  BarLine,
-  Beam,
-  Decoration,
-  Expr,
-  Grace_group,
-  MultiMeasureRest,
-  System,
-  Tune,
-  Tune_Body,
-  tune_body_code,
-  Tuplet,
-  YSPACER,
-} from "../../types/Expr2";
+import { BarLine, Beam, Decoration, Expr, Grace_group, MultiMeasureRest, System, Tune, Tune_Body, tune_body_code, Tuplet, YSPACER } from "../../types/Expr2";
 import { isBarLine, isBeam, isMultiMeasureRest } from "./fmt_timeMapHelpers";
 
 // Types for rules assignment

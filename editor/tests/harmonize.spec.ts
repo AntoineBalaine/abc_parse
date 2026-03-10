@@ -22,8 +22,6 @@ import {
 } from "../src/transforms/harmonize";
 import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune, genAbcWithChords } from "./helpers";
 
-
-
 function createPitch(ctx: ABCContext, letter: string, alteration?: string, octaveStr?: string): Pitch {
   const alterationToken = alteration ? new Token(TT.ACCIDENTAL, alteration, ctx.generateId()) : undefined;
   const noteLetterToken = new Token(TT.NOTE_LETTER, letter, ctx.generateId());

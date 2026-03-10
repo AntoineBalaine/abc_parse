@@ -1,10 +1,5 @@
 import { expect } from "chai";
-import {
-  abcPitchToMidi,
-  accidentalToCents,
-  midiToNoteName,
-  abcPitchToNoteName,
-} from "../playback/pitch-utils";
+import { abcPitchToMidi, accidentalToCents, midiToNoteName, abcPitchToNoteName } from "../playback/pitch-utils";
 import { AccidentalType } from "../types/abcjs-ast";
 
 describe("playback/pitch-utils", () => {
@@ -139,7 +134,7 @@ describe("playback/pitch-utils", () => {
       { midi: 72, expected: "C5" },
       { midi: 48, expected: "C3" },
       { midi: 84, expected: "C6" },
-      { midi: 21, expected: "A0" },  // Lowest piano key
+      { midi: 21, expected: "A0" }, // Lowest piano key
       { midi: 108, expected: "C8" }, // Highest piano key
     ];
 

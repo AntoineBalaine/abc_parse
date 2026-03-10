@@ -67,12 +67,7 @@ describe("parseBarline", () => {
   });
 
   it("should parse a barline with multiple repeat numbers", () => {
-    const tokens = [
-      createToken(TT.BARLINE, "|"),
-      createToken(TT.REPEAT_NUMBER, "1"),
-      createToken(TT.REPEAT_COMMA, ","),
-      createToken(TT.REPEAT_NUMBER, "2"),
-    ];
+    const tokens = [createToken(TT.BARLINE, "|"), createToken(TT.REPEAT_NUMBER, "1"), createToken(TT.REPEAT_COMMA, ","), createToken(TT.REPEAT_NUMBER, "2")];
     const ctx = createParseCtx(tokens);
 
     const result = parseBarline(ctx);
@@ -97,4 +92,3 @@ describe("parseBarline", () => {
     assert.equal(ctx.current, 0); // Should not advance the current position
   });
 });
-

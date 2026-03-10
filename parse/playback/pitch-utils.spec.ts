@@ -4,12 +4,7 @@
 
 import { expect } from "chai";
 import { AccidentalType } from "../types/abcjs-ast";
-import {
-  abcPitchToMidi,
-  accidentalToCents,
-  midiToNoteName,
-  abcPitchToNoteName,
-} from "./pitch-utils";
+import { abcPitchToMidi, accidentalToCents, midiToNoteName, abcPitchToNoteName } from "./pitch-utils";
 
 describe("Pitch Utils", () => {
   describe("abcPitchToMidi", () => {

@@ -139,6 +139,4 @@ describe("Lyric Line Scanning", () => {
       assert.equal(ctx.tokens.length, 0);
     });
   });
-
 });
-

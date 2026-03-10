@@ -13,13 +13,7 @@ function parseAbc(source: string): { ast: File_structure; ctx: ABCContext } {
   return { ast, ctx };
 }
 
-function applySelector(
-  ast: File_structure,
-  ctx: ABCContext,
-  selectorName: string,
-  args?: number[],
-  ranges?: Range[]
-): { ranges: Range[] } {
+function applySelector(ast: File_structure, ctx: ABCContext, selectorName: string, args?: number[], ranges?: Range[]): { ranges: Range[] } {
   const root = fromAst(ast, ctx);
 
   const selectorFn = lookupSelector(selectorName);
@@ -33,13 +27,7 @@ function applySelector(
     const allCursors: Set<number>[] = [];
     for (const range of ranges) {
       const baseSelection = createSelection(root);
-      const narrowed = selectRange(
-        baseSelection,
-        range.start.line,
-        range.start.character,
-        range.end.line,
-        range.end.character
-      );
+      const narrowed = selectRange(baseSelection, range.start.line, range.start.character, range.end.line, range.end.character);
       allCursors.push(...narrowed.cursors);
     }
     if (allCursors.length === 0) {
@@ -54,9 +42,7 @@ function applySelector(
   // Use resolveContiguousRanges for selectors that group elements into cursors,
   // which matches the behavior in server.ts
   const resultRanges =
-    selectorName === "selectMeasures" ||
-    selectorName === "selectVoices" ||
-    selectorName === "selectSystem"
+    selectorName === "selectMeasures" || selectorName === "selectVoices" || selectorName === "selectSystem"
       ? resolveContiguousRanges(newSelection)
       : resolveSelectionRanges(newSelection);
   return { ranges: resultRanges };
@@ -100,8 +86,7 @@ describe("Selector Integration (end-to-end flow)", () => {
 
   it("unknown selector name throws an error", () => {
     const { ast, ctx } = parseAbc("X:1\nK:C\nC2 D2|\n");
-    expect(() => applySelector(ast, ctx, "nonExistentSelector"))
-      .to.throw('Unknown selector: "nonExistentSelector"');
+    expect(() => applySelector(ast, ctx, "nonExistentSelector")).to.throw('Unknown selector: "nonExistentSelector"');
   });
 
   it("selectNotes returns one range per note", () => {

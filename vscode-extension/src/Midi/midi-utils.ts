@@ -21,32 +21,18 @@ export const logger = (msg: string, logLevel: LogLevel, mute = false) => {
   const getLogger = () => {
     switch (logLevel) {
       case LogLevel.info:
-        return mute
-          ? debugMode
-            ? console.log
-            : () => undefined
-          : vscode.window.showInformationMessage;
+        return mute ? (debugMode ? console.log : () => undefined) : vscode.window.showInformationMessage;
       case LogLevel.warning:
-        return mute
-          ? debugMode
-            ? console.warn
-            : () => undefined
-          : vscode.window.showWarningMessage;
+        return mute ? (debugMode ? console.warn : () => undefined) : vscode.window.showWarningMessage;
       case LogLevel.error:
-        return mute
-          ? debugMode
-            ? console.error
-            : () => undefined
-          : vscode.window.showErrorMessage;
+        return mute ? (debugMode ? console.error : () => undefined) : vscode.window.showErrorMessage;
     }
   };
   getLogger()(msg);
 };
 
 // get output of `lilypond -v`
-const getLilypondVersion = async (
-  binPath: string
-): Promise<string | undefined> => {
+const getLilypondVersion = async (binPath: string): Promise<string | undefined> => {
   try {
     const versionOutput = cp.execSync(`${binPath} -v`, { encoding: "utf-8" });
     return versionOutput;
@@ -56,36 +42,24 @@ const getLilypondVersion = async (
   }
 };
 
-const getExtensionVersion = async (
-  context: vscode.ExtensionContext
-): Promise<string | undefined> => {
+const getExtensionVersion = async (context: vscode.ExtensionContext): Promise<string | undefined> => {
   const extensionpath = path.join(context.extensionPath, "package.json");
-  const packageFileContents = JSON.parse(
-    fs.readFileSync(extensionpath, `utf-8`)
-  );
+  const packageFileContents = JSON.parse(fs.readFileSync(extensionpath, `utf-8`));
   if (packageFileContents) {
     return packageFileContents.version;
   }
   return undefined;
 };
 
-export const setLilypondVersionInStatusBar = async (
-  context: vscode.ExtensionContext
-): Promise<void> => {
+export const setLilypondVersionInStatusBar = async (context: vscode.ExtensionContext): Promise<void> => {
   const binPath = getBinPath();
   const lilypondVersion = await getLilypondVersion(binPath);
   const extensionVersion = await getExtensionVersion(context);
   if (lilypondVersion) {
     const lilypondVersionShort = lilypondVersion.split(`\n`)[0];
-    const lilypondVersionStatusBarItem = vscode.window.createStatusBarItem(
-      vscode.StatusBarAlignment.Right,
-      10
-    );
+    const lilypondVersionStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 10);
     lilypondVersionStatusBarItem.text = lilypondVersionShort;
-    lilypondVersionStatusBarItem.tooltip =
-      `abc ${extensionVersion}\n\n` +
-      `LilyPond path: ${binPath}\n\n` +
-      `${lilypondVersion}`;
+    lilypondVersionStatusBarItem.tooltip = `abc ${extensionVersion}\n\n` + `LilyPond path: ${binPath}\n\n` + `${lilypondVersion}`;
     lilypondVersionStatusBarItem.show();
   }
 };
@@ -106,23 +80,16 @@ export const notUndefined = <T>(x: T | undefined): x is T => {
 };
 
 // wrapper to get the workspace folder from a document if provided
-export const getConfiguration = (
-  doc: vscode.TextDocument | undefined = undefined
-) => {
+export const getConfiguration = (doc: vscode.TextDocument | undefined = undefined) => {
   // if a doc is provided use its workspace folder
   if (doc) {
     return vscode.workspace.getConfiguration(`abc`, doc.uri);
   }
   // if not, try the active text editor
   if (vscode.window.activeTextEditor) {
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(
-      vscode.window.activeTextEditor.document.uri
-    );
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri);
     if (workspaceFolder) {
-      return vscode.workspace.getConfiguration(
-        `abc`,
-        workspaceFolder.uri
-      );
+      return vscode.workspace.getConfiguration(`abc`, workspaceFolder.uri);
     }
   }
   // try the root workspace folder if present

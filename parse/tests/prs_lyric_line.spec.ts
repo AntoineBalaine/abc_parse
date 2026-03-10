@@ -7,12 +7,7 @@ import { createToken, createParseCtx } from "./prs_music_code.spec";
 
 describe("prsLyricLine", () => {
   it("should parse a simple lyric line with w:", () => {
-    const tokens = [
-      createToken(TT.LY_HDR, "w:"),
-      createToken(TT.LY_TXT, "Hello"),
-      createToken(TT.WS, " "),
-      createToken(TT.LY_TXT, "world")
-    ];
+    const tokens = [createToken(TT.LY_HDR, "w:"), createToken(TT.LY_TXT, "Hello"), createToken(TT.WS, " "), createToken(TT.LY_TXT, "world")];
     const ctx = createParseCtx(tokens);
 
     const result = prsLyricLine(ctx);
@@ -28,12 +23,7 @@ describe("prsLyricLine", () => {
   });
 
   it("should parse a section lyric line with W:", () => {
-    const tokens = [
-      createToken(TT.LY_SECT_HDR, "W:"),
-      createToken(TT.LY_TXT, "Section"),
-      createToken(TT.WS, " "),
-      createToken(TT.LY_TXT, "lyrics")
-    ];
+    const tokens = [createToken(TT.LY_SECT_HDR, "W:"), createToken(TT.LY_TXT, "Section"), createToken(TT.WS, " "), createToken(TT.LY_TXT, "lyrics")];
     const ctx = createParseCtx(tokens);
 
     const result = prsLyricLine(ctx);
@@ -52,7 +42,7 @@ describe("prsLyricLine", () => {
       createToken(TT.LY_HYPH, "-"),
       createToken(TT.LY_TXT, "a"),
       createToken(TT.LY_HYPH, "-"),
-      createToken(TT.LY_TXT, "ble")
+      createToken(TT.LY_TXT, "ble"),
     ];
     const ctx = createParseCtx(tokens);
 
@@ -69,12 +59,7 @@ describe("prsLyricLine", () => {
   });
 
   it("should parse lyric line with underscore extension", () => {
-    const tokens = [
-      createToken(TT.LY_HDR, "w:"),
-      createToken(TT.LY_TXT, "time"),
-      createToken(TT.LY_UNDR, "_"),
-      createToken(TT.LY_UNDR, "_")
-    ];
+    const tokens = [createToken(TT.LY_HDR, "w:"), createToken(TT.LY_TXT, "time"), createToken(TT.LY_UNDR, "_"), createToken(TT.LY_UNDR, "_")];
     const ctx = createParseCtx(tokens);
 
     const result = prsLyricLine(ctx);
@@ -94,7 +79,7 @@ describe("prsLyricLine", () => {
       createToken(TT.WS, " "),
       createToken(TT.LY_STAR, "*"),
       createToken(TT.WS, " "),
-      createToken(TT.LY_TXT, "word")
+      createToken(TT.LY_TXT, "word"),
     ];
     const ctx = createParseCtx(tokens);
 
@@ -113,7 +98,7 @@ describe("prsLyricLine", () => {
       createToken(TT.LY_SPS, "~"),
       createToken(TT.LY_TXT, "the"),
       createToken(TT.LY_SPS, "~"),
-      createToken(TT.LY_TXT, "day")
+      createToken(TT.LY_TXT, "day"),
     ];
     const ctx = createParseCtx(tokens);
 
@@ -133,7 +118,7 @@ describe("prsLyricLine", () => {
       createToken(TT.WS, " "),
       createToken(TT.BARLINE, "|"),
       createToken(TT.WS, " "),
-      createToken(TT.LY_TXT, "word")
+      createToken(TT.LY_TXT, "word"),
     ];
     const ctx = createParseCtx(tokens);
 
@@ -146,12 +131,7 @@ describe("prsLyricLine", () => {
   });
 
   it("should parse lyric line with comments", () => {
-    const tokens = [
-      createToken(TT.LY_HDR, "w:"),
-      createToken(TT.LY_TXT, "lyrics"),
-      createToken(TT.WS, " "),
-      createToken(TT.COMMENT, "%comment")
-    ];
+    const tokens = [createToken(TT.LY_HDR, "w:"), createToken(TT.LY_TXT, "lyrics"), createToken(TT.WS, " "), createToken(TT.COMMENT, "%comment")];
     const ctx = createParseCtx(tokens);
 
     const result = prsLyricLine(ctx);
@@ -192,7 +172,7 @@ describe("prsLyricLine", () => {
       createToken(TT.LY_UNDR, "_"),
       createToken(TT.LY_STAR, "*"),
       createToken(TT.LY_SPS, "~"),
-      createToken(TT.BARLINE, "|")
+      createToken(TT.BARLINE, "|"),
     ];
     const ctx = createParseCtx(tokens);
 
@@ -213,7 +193,7 @@ describe("prsLyricLine", () => {
     const tokens = [
       createToken(TT.LY_HDR, "w:"),
       createToken(TT.LY_TXT, "lyrics"),
-      createToken(TT.NOTE_LETTER, "C") // Non-lyric token
+      createToken(TT.NOTE_LETTER, "C"), // Non-lyric token
     ];
     const ctx = createParseCtx(tokens);
 

@@ -95,12 +95,7 @@ describe("Round Trip Tests", () => {
     const abcContext = new ABCContext();
 
     // Create tokens for a system break surrounded by notes: C ! D
-    const tokens = [
-      createToken(TT.NOTE_LETTER, "C"),
-      createToken(TT.SYSTEM_BREAK, "!"),
-      createToken(TT.NOTE_LETTER, "D"),
-      createToken(TT.EOL, "\n"),
-    ];
+    const tokens = [createToken(TT.NOTE_LETTER, "C"), createToken(TT.SYSTEM_BREAK, "!"), createToken(TT.NOTE_LETTER, "D"), createToken(TT.EOL, "\n")];
 
     // Parse the tokens using prsBody
     const tuneBody = prsBody(new ParseCtx(tokens, abcContext));
@@ -132,4 +127,3 @@ describe("Round Trip Tests", () => {
     assert.equal(((notesAfter[0] as Note).pitch as Pitch).noteLetter.lexeme, "D");
   });
 });
-

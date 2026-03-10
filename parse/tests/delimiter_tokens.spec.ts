@@ -1,27 +1,9 @@
 import { assert } from "chai";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
-import {
-  ParseCtx,
-  parseChord,
-  parseGraceGroup,
-  parseTuplet,
-  parseInlineField,
-  prsMacroDecl,
-  prsUserSymbolDecl,
-  parseTune,
-} from "../parsers/parse2";
+import { ParseCtx, parseChord, parseGraceGroup, parseTuplet, parseInlineField, prsMacroDecl, prsUserSymbolDecl, parseTune } from "../parsers/parse2";
 import { TT, Scanner } from "../parsers/scan2";
-import {
-  Chord,
-  Grace_group,
-  Tuplet,
-  Inline_field,
-  Macro_decl,
-  User_symbol_decl,
-  Note,
-  Pitch,
-} from "../types/Expr2";
+import { Chord, Grace_group, Tuplet, Inline_field, Macro_decl, User_symbol_decl, Note, Pitch } from "../types/Expr2";
 import { AbcFormatter } from "../Visitors/Formatter2";
 import { createToken, createParseCtx } from "./prs_music_code.spec";
 
@@ -49,11 +31,7 @@ describe("Delimiter Token Preservation - Parser", () => {
     });
 
     it("stores leftBracket without rightBracket when bracket is missing", () => {
-      const tokens = [
-        createToken(TT.CHRD_LEFT_BRKT, "["),
-        createToken(TT.NOTE_LETTER, "C"),
-        createToken(TT.EOF, ""),
-      ];
+      const tokens = [createToken(TT.CHRD_LEFT_BRKT, "["), createToken(TT.NOTE_LETTER, "C"), createToken(TT.EOF, "")];
       const ctx = createParseCtx(tokens);
       const result = parseChord(ctx);
 
@@ -106,11 +84,7 @@ describe("Delimiter Token Preservation - Parser", () => {
     });
 
     it("does not store acciaccaturaSlash for regular grace groups", () => {
-      const tokens = [
-        createToken(TT.GRC_GRP_LEFT_BRACE, "{"),
-        createToken(TT.NOTE_LETTER, "g"),
-        createToken(TT.GRC_GRP_RGHT_BRACE, "}"),
-      ];
+      const tokens = [createToken(TT.GRC_GRP_LEFT_BRACE, "{"), createToken(TT.NOTE_LETTER, "g"), createToken(TT.GRC_GRP_RGHT_BRACE, "}")];
       const ctx = createParseCtx(tokens);
       const result = parseGraceGroup(ctx);
 
@@ -123,10 +97,7 @@ describe("Delimiter Token Preservation - Parser", () => {
 
   describe("Tuplet delimiter tokens", () => {
     it("stores leftParen token", () => {
-      const tokens = [
-        createToken(TT.TUPLET_LPAREN, "("),
-        createToken(TT.TUPLET_P, "3"),
-      ];
+      const tokens = [createToken(TT.TUPLET_LPAREN, "("), createToken(TT.TUPLET_P, "3")];
       const ctx = createParseCtx(tokens);
       const result = parseTuplet(ctx);
 
@@ -138,12 +109,7 @@ describe("Delimiter Token Preservation - Parser", () => {
     });
 
     it("stores firstColon when q is present", () => {
-      const tokens = [
-        createToken(TT.TUPLET_LPAREN, "("),
-        createToken(TT.TUPLET_P, "3"),
-        createToken(TT.TUPLET_COLON, ":"),
-        createToken(TT.TUPLET_Q, "2"),
-      ];
+      const tokens = [createToken(TT.TUPLET_LPAREN, "("), createToken(TT.TUPLET_P, "3"), createToken(TT.TUPLET_COLON, ":"), createToken(TT.TUPLET_Q, "2")];
       const ctx = createParseCtx(tokens);
       const result = parseTuplet(ctx);
 
@@ -223,12 +189,7 @@ describe("Delimiter Token Preservation - Parser", () => {
 
   describe("Macro_decl delimiter tokens", () => {
     it("stores equals token", () => {
-      const tokens = [
-        createToken(TT.MACRO_HDR, "m:"),
-        createToken(TT.MACRO_VAR, "var"),
-        createToken(TT.EQL, "="),
-        createToken(TT.MACRO_STR, "content"),
-      ];
+      const tokens = [createToken(TT.MACRO_HDR, "m:"), createToken(TT.MACRO_VAR, "var"), createToken(TT.EQL, "="), createToken(TT.MACRO_STR, "content")];
       const ctx = createParseCtx(tokens);
       const result = prsMacroDecl(ctx);
 
@@ -242,12 +203,7 @@ describe("Delimiter Token Preservation - Parser", () => {
 
   describe("User_symbol_decl delimiter tokens", () => {
     it("stores equals token", () => {
-      const tokens = [
-        createToken(TT.USER_SY_HDR, "U:"),
-        createToken(TT.USER_SY, "T"),
-        createToken(TT.EQL, "="),
-        createToken(TT.SYMBOL, "!trill!"),
-      ];
+      const tokens = [createToken(TT.USER_SY_HDR, "U:"), createToken(TT.USER_SY, "T"), createToken(TT.EQL, "="), createToken(TT.SYMBOL, "!trill!")];
       const ctx = createParseCtx(tokens);
       const result = prsUserSymbolDecl(ctx);
 
@@ -279,11 +235,7 @@ describe("Delimiter Token Preservation - Formatter", () => {
     });
 
     it("formats grace group using stored brace tokens", () => {
-      const tokens = [
-        createToken(TT.GRC_GRP_LEFT_BRACE, "{"),
-        createToken(TT.NOTE_LETTER, "g"),
-        createToken(TT.GRC_GRP_RGHT_BRACE, "}"),
-      ];
+      const tokens = [createToken(TT.GRC_GRP_LEFT_BRACE, "{"), createToken(TT.NOTE_LETTER, "g"), createToken(TT.GRC_GRP_RGHT_BRACE, "}")];
       const ctx = createParseCtx(tokens);
       const gg = parseGraceGroup(ctx)!;
       const formatter = new AbcFormatter(new ABCContext());
@@ -340,12 +292,7 @@ describe("Delimiter Token Preservation - Formatter", () => {
     });
 
     it("formats macro declaration using stored equals token", () => {
-      const tokens = [
-        createToken(TT.MACRO_HDR, "m:"),
-        createToken(TT.MACRO_VAR, "var"),
-        createToken(TT.EQL, "="),
-        createToken(TT.MACRO_STR, "content"),
-      ];
+      const tokens = [createToken(TT.MACRO_HDR, "m:"), createToken(TT.MACRO_VAR, "var"), createToken(TT.EQL, "="), createToken(TT.MACRO_STR, "content")];
       const ctx = createParseCtx(tokens);
       const macro = prsMacroDecl(ctx)!;
       const formatter = new AbcFormatter(new ABCContext());
@@ -355,12 +302,7 @@ describe("Delimiter Token Preservation - Formatter", () => {
     });
 
     it("formats user symbol declaration using stored equals token", () => {
-      const tokens = [
-        createToken(TT.USER_SY_HDR, "U:"),
-        createToken(TT.USER_SY, "T"),
-        createToken(TT.EQL, "="),
-        createToken(TT.SYMBOL, "!trill!"),
-      ];
+      const tokens = [createToken(TT.USER_SY_HDR, "U:"), createToken(TT.USER_SY, "T"), createToken(TT.EQL, "="), createToken(TT.SYMBOL, "!trill!")];
       const ctx = createParseCtx(tokens);
       const decl = prsUserSymbolDecl(ctx)!;
       const formatter = new AbcFormatter(new ABCContext());

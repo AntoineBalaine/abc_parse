@@ -37,26 +37,17 @@ describe("hasCommentAtBoundary", () => {
     });
 
     it("returns true when empty comment follows whitespace", () => {
-      const system: System = [
-        createToken(TT.WS, " "),
-        createComment("%")
-      ];
+      const system: System = [createToken(TT.WS, " "), createComment("%")];
       expect(hasCommentAtBoundary(system, "start")).to.equal(true);
     });
 
     it("returns false when first non-whitespace is not a comment", () => {
-      const system: System = [
-        createToken(TT.WS, " "),
-        createToken(TT.NOTE_LETTER, "C")
-      ];
+      const system: System = [createToken(TT.WS, " "), createToken(TT.NOTE_LETTER, "C")];
       expect(hasCommentAtBoundary(system, "start")).to.equal(false);
     });
 
     it("returns true when empty comment follows EOL", () => {
-      const system: System = [
-        createToken(TT.EOL, "\n"),
-        createComment("%")
-      ];
+      const system: System = [createToken(TT.EOL, "\n"), createComment("%")];
       expect(hasCommentAtBoundary(system, "start")).to.equal(true);
     });
   });
@@ -83,45 +74,29 @@ describe("hasCommentAtBoundary", () => {
     });
 
     it("returns true when empty comment is before trailing whitespace", () => {
-      const system: System = [
-        createComment("%"),
-        createToken(TT.WS, " ")
-      ];
+      const system: System = [createComment("%"), createToken(TT.WS, " ")];
       expect(hasCommentAtBoundary(system, "end")).to.equal(true);
     });
 
     it("returns true when empty comment is before trailing EOL", () => {
-      const system: System = [
-        createComment("%"),
-        createToken(TT.EOL, "\n")
-      ];
+      const system: System = [createComment("%"), createToken(TT.EOL, "\n")];
       expect(hasCommentAtBoundary(system, "end")).to.equal(true);
     });
 
     it("returns false when last non-whitespace is not a comment", () => {
-      const system: System = [
-        createToken(TT.NOTE_LETTER, "C"),
-        createToken(TT.EOL, "\n")
-      ];
+      const system: System = [createToken(TT.NOTE_LETTER, "C"), createToken(TT.EOL, "\n")];
       expect(hasCommentAtBoundary(system, "end")).to.equal(false);
     });
 
     it("returns true when empty comment is before multiple trailing whitespace/EOL", () => {
-      const system: System = [
-        createComment("%"),
-        createToken(TT.WS, " "),
-        createToken(TT.EOL, "\n")
-      ];
+      const system: System = [createComment("%"), createToken(TT.WS, " "), createToken(TT.EOL, "\n")];
       expect(hasCommentAtBoundary(system, "end")).to.equal(true);
     });
   });
 
   describe("edge cases", () => {
     it("handles system with only whitespace", () => {
-      const system: System = [
-        createToken(TT.WS, " "),
-        createToken(TT.EOL, "\n")
-      ];
+      const system: System = [createToken(TT.WS, " "), createToken(TT.EOL, "\n")];
       expect(hasCommentAtBoundary(system, "start")).to.equal(false);
       expect(hasCommentAtBoundary(system, "end")).to.equal(false);
     });

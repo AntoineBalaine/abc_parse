@@ -12,15 +12,7 @@
  * - Info field sequences (contiguous same-type fields)
  */
 
-import {
-  File_structure,
-  Tune,
-  Info_line,
-  Inline_field,
-  RangeVisitor,
-  Token,
-  TT,
-} from "abc-parser";
+import { File_structure, Tune, Info_line, Inline_field, RangeVisitor, Token, TT } from "abc-parser";
 import { FoldingRange, FoldingRangeKind } from "vscode-languageserver";
 
 /**
@@ -60,11 +52,7 @@ export const DEFAULT_FOLDING_CONFIG: FoldingConfig = {
  * @param config - Configuration for which fold types to generate
  * @returns Array of FoldingRange objects
  */
-export function computeFoldingRanges(
-  ast: File_structure,
-  tokens: Token[],
-  config: FoldingConfig = DEFAULT_FOLDING_CONFIG
-): FoldingRange[] {
+export function computeFoldingRanges(ast: File_structure, tokens: Token[], config: FoldingConfig = DEFAULT_FOLDING_CONFIG): FoldingRange[] {
   const ranges: FoldingRange[] = [];
   const rangeVisitor = new RangeVisitor();
 
@@ -196,9 +184,7 @@ function computeVoiceSectionFolds(tunes: Tune[], tokens: Token[]): FoldingRange[
   // Build a map of tune boundaries (by line number of X: field)
   const tuneBoundaries: { startLine: number; endLine: number }[] = [];
   for (const tune of tunes) {
-    const xField = tune.tune_header.info_lines.find(
-      (line) => line instanceof Info_line && line.key.lexeme === "X:"
-    );
+    const xField = tune.tune_header.info_lines.find((line) => line instanceof Info_line && line.key.lexeme === "X:");
     if (!xField) continue;
 
     const startLine = (xField as Info_line).key.line;
@@ -208,13 +194,7 @@ function computeVoiceSectionFolds(tunes: Tune[], tokens: Token[]): FoldingRange[
 
   // Find V: tokens (voice markers) within each tune
   for (const boundary of tuneBoundaries) {
-    const voiceTokens = tokens.filter(
-      (t) =>
-        t.type === TT.INF_HDR &&
-        t.lexeme === "V:" &&
-        t.line >= boundary.startLine &&
-        t.line <= boundary.endLine
-    );
+    const voiceTokens = tokens.filter((t) => t.type === TT.INF_HDR && t.lexeme === "V:" && t.line >= boundary.startLine && t.line <= boundary.endLine);
 
     if (voiceTokens.length === 0) continue;
 
@@ -239,11 +219,7 @@ function computeVoiceSectionFolds(tunes: Tune[], tokens: Token[]): FoldingRange[
 /**
  * Compute folds for part sections (P: markers).
  */
-function computePartSectionFolds(
-  tunes: Tune[],
-  tokens: Token[],
-  _rangeVisitor: RangeVisitor
-): FoldingRange[] {
+function computePartSectionFolds(tunes: Tune[], tokens: Token[], _rangeVisitor: RangeVisitor): FoldingRange[] {
   const ranges: FoldingRange[] = [];
 
   for (const tune of tunes) {
@@ -298,9 +274,7 @@ function computeCommentBlockFolds(tokens: Token[]): FoldingRange[] {
   const ranges: FoldingRange[] = [];
 
   // Find all comment tokens (lines starting with % but not %%)
-  const commentTokens = tokens.filter(
-    (t) => t.type === TT.COMMENT && !t.lexeme.startsWith("%%")
-  );
+  const commentTokens = tokens.filter((t) => t.type === TT.COMMENT && !t.lexeme.startsWith("%%"));
 
   if (commentTokens.length === 0) return ranges;
 
@@ -348,9 +322,7 @@ function computeDirectiveBlockFolds(tokens: Token[]): FoldingRange[] {
   const ranges: FoldingRange[] = [];
 
   // Find all directive tokens (lines starting with %%)
-  const directiveTokens = tokens.filter(
-    (t) => t.type === TT.STYLESHEET_DIRECTIVE || (t.type === TT.COMMENT && t.lexeme.startsWith("%%"))
-  );
+  const directiveTokens = tokens.filter((t) => t.type === TT.STYLESHEET_DIRECTIVE || (t.type === TT.COMMENT && t.lexeme.startsWith("%%")));
 
   if (directiveTokens.length === 0) return ranges;
 
@@ -417,10 +389,7 @@ function computeInfoFieldSequenceFolds(tunes: Tune[], rangeVisitor: RangeVisitor
 /**
  * Find sequences of contiguous info fields of the same type.
  */
-function findInfoFieldSequences(
-  infoLines: unknown[],
-  _rangeVisitor: RangeVisitor
-): FoldingRange[] {
+function findInfoFieldSequences(infoLines: unknown[], _rangeVisitor: RangeVisitor): FoldingRange[] {
   const ranges: FoldingRange[] = [];
 
   // Filter to just Info_line instances

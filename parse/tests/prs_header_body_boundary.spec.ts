@@ -25,9 +25,7 @@ describe("Parser header/body boundary", function () {
     const header = tune!.tune_header;
     const body = tune!.tune_body;
 
-    const headerInfoLineKeys = header.info_lines
-      .filter((il): il is Info_line => il instanceof Info_line)
-      .map(il => il.key.lexeme.trim());
+    const headerInfoLineKeys = header.info_lines.filter((il): il is Info_line => il instanceof Info_line).map((il) => il.key.lexeme.trim());
 
     const bodyInfoLineKeys: string[] = [];
     if (body) {
@@ -56,7 +54,7 @@ describe("Parser header/body boundary", function () {
       const abc = "X:1\nT:Test\nV:0\nV:1\nK:C\nCDEF|";
       const { tune, headerInfoLineKeys } = parseAbc(abc);
 
-      expect(headerInfoLineKeys.filter(k => k === "V:")).to.have.length(2);
+      expect(headerInfoLineKeys.filter((k) => k === "V:")).to.have.length(2);
       expect(tune.tune_header.voices).to.include("0");
       expect(tune.tune_header.voices).to.include("1");
     });
@@ -71,10 +69,8 @@ describe("Parser header/body boundary", function () {
       // because it's followed by music, not by K:
 
       // This assertion documents the EXPECTED (correct) behavior:
-      expect(headerInfoLineKeys).to.not.include("V:",
-        "V: followed by music should NOT be in header");
-      expect(bodyInfoLineKeys).to.include("V:",
-        "V: followed by music should be in body");
+      expect(headerInfoLineKeys).to.not.include("V:", "V: followed by music should NOT be in header");
+      expect(bodyInfoLineKeys).to.include("V:", "V: followed by music should be in body");
       expect(tune.tune_header.voices).to.be.empty;
     });
 
@@ -84,7 +80,7 @@ describe("Parser header/body boundary", function () {
 
       // Both V: lines should be in the body since there's no K: line
       expect(headerInfoLineKeys).to.not.include("V:");
-      expect(bodyInfoLineKeys.filter(k => k === "V:")).to.have.length(2);
+      expect(bodyInfoLineKeys.filter((k) => k === "V:")).to.have.length(2);
       expect(tune.tune_header.voices).to.be.empty;
     });
 
@@ -123,8 +119,8 @@ describe("Parser header/body boundary", function () {
 
       // First V: is followed by another V: (INF_HDR is header-valid), so it stays in header
       // Second V: is followed by music, so it goes to body
-      expect(headerInfoLineKeys.filter(k => k === "V:")).to.have.length(1);
-      expect(bodyInfoLineKeys.filter(k => k === "V:")).to.have.length(1);
+      expect(headerInfoLineKeys.filter((k) => k === "V:")).to.have.length(1);
+      expect(bodyInfoLineKeys.filter((k) => k === "V:")).to.have.length(1);
       expect(tune.tune_header.voices).to.include("0");
       expect(tune.tune_header.voices).to.not.include("1");
     });
