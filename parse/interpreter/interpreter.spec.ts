@@ -12,8 +12,27 @@ import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { parse } from "../parsers/parse2";
 import { Scanner } from "../parsers/scan2";
-import { expectNoErrors, parseWithYourParser } from "../tests/interpreter-comparison/test-helpers";
+import { Tune } from "../types/abcjs-ast";
 import { TuneInterpreter } from "./TuneInterpreter";
+
+function parseWithYourParser(input: string): { tunes: Tune[]; ctx: ABCContext } {
+  const ctx = new ABCContext(new AbcErrorReporter());
+  const tokens = Scanner(input, ctx);
+  const ast = parse(tokens, ctx);
+  const analyzer = new SemanticAnalyzer(ctx);
+  ast.accept(analyzer);
+  const interpreter = new TuneInterpreter(analyzer, ctx, input);
+  const result = interpreter.interpretFile(ast);
+  return { tunes: result.tunes, ctx };
+}
+
+function expectNoErrors(ctx: ABCContext, parserName: string): void {
+  if (ctx.errorReporter.hasErrors()) {
+    const errors = ctx.errorReporter.getErrors();
+    const errorMessages = errors.map((e) => e.message).join("\n  ");
+    throw new Error(`${parserName} had errors:\n  ${errorMessages}`);
+  }
+}
 
 /**
  * Helper to parse ABC input through full pipeline
