@@ -6,8 +6,8 @@ import { expect } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";
 import { ABCContext } from "../../parse/parsers/Context";
-import { TT, Token } from "../../parse/parsers/scan2";
-import { Pitch } from "../../parse/types/Expr2";
+import { TT, Token } from "../../parse/parsers/scan";
+import { Pitch } from "../../parse/types/Expr";
 import { TAGS } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import {

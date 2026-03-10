@@ -1,8 +1,8 @@
 import { assert } from "chai";
 import { ABCContext } from "../parsers/Context";
-import { prsBody, ParseCtx } from "../parsers/parse2";
-import { TT } from "../parsers/scan2";
-import { Tune_Body, Chord, Note, Pitch, SystemBreak } from "../types/Expr2";
+import { prsBody, ParseCtx } from "../parsers/parse";
+import { TT } from "../parsers/scan";
+import { Tune_Body, Chord, Note, Pitch, SystemBreak } from "../types/Expr";
 import { createToken } from "./prs_music_code.spec";
 
 describe("Round Trip Tests", () => {

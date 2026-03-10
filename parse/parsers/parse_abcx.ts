@@ -22,11 +22,11 @@ import {
   tune_body_code,
   Tune_header,
   Comment,
-} from "../types/Expr2";
+} from "../types/Expr";
 import { ABCContext } from "./Context";
 import { parseDirective } from "./infoLines/parseDirective";
-import { ParseCtx, prsComment, prsInfoLine, parseBarline, parseAnnotation, parseInlineField, parseInvalidToken, isTuneStart, isTune } from "./parse2";
-import { Token, TT } from "./scan2";
+import { ParseCtx, prsComment, prsInfoLine, parseBarline, parseAnnotation, parseInlineField, parseInvalidToken, isTuneStart, isTune } from "./parse";
+import { Token, TT } from "./scan";
 
 /**
  * Main ABCx parser function

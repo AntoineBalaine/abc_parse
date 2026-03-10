@@ -1,6 +1,6 @@
 import { exprIsInRange, getTokenRange, isNote, isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
-import { Token } from "../parsers/scan2";
+import { Token } from "../parsers/scan";
 import {
   AbsolutePitch,
   Annotation,
@@ -44,7 +44,7 @@ import {
   Visitor,
   Voice_overlay,
   YSPACER,
-} from "../types/Expr2";
+} from "../types/Expr";
 import { Range } from "../types/types";
 import { RangeVisitor } from "./RangeVisitor";
 
@@ -346,7 +346,7 @@ export class ExpressionCollector implements Visitor<void> {
     }
   }
 
-  visitUnary(expr: import("../types/Expr2").Unary): void {
+  visitUnary(expr: import("../types/Expr").Unary): void {
     if (this.isInRange(expr)) {
       this.collected.push(expr);
     }

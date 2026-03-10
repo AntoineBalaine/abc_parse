@@ -26,9 +26,9 @@
       "types": "./dist/types/*.d.ts",
       "default": "./dist/types/*.js"
     },
-    "./Visitors/fmt2/*": {
-      "types": "./dist/Visitors/fmt2/*.d.ts",
-      "default": "./dist/Visitors/fmt2/*.js"
+    "./Visitors/fmt/*": {
+      "types": "./dist/Visitors/fmt/*.d.ts",
+      "default": "./dist/Visitors/fmt/*.js"
     },
     "./music-theory/*": {
       "types": "./dist/music-theory/*.d.ts",
@@ -72,13 +72,13 @@
     "build": "tsc",
     "start": "tsc && node ./dist/Abc.js",
     "test": "mocha -r ts-node/register '**/*.spec.ts'",
-    "test:scan2": "mocha -r ts-node/register 'tests/scan2_*.spec.ts'",
+    "test:scan": "mocha -r ts-node/register 'tests/scan_*.spec.ts'",
     "test:coverage": "nyc npm run test",
     "lint": "eslint . --ext ts",
     "lint:fix": "eslint . --ext ts --fix",
     "parse-folder": "ts-node tests/parseFolder.ts",
     "parse-file": "ts-node tests/parseFile.ts",
-    "parse-folder:stringify": "ts-node tests/fmt2_parseFolder_stringify.ts"
+    "parse-folder:stringify": "ts-node tests/fmt_parseFolder_stringify.ts"
   },
   "nyc": {
     "extends": "@istanbuljs/nyc-config-typescript",

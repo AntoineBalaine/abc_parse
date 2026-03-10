@@ -1,9 +1,9 @@
 import * as fc from "fast-check";
 import { isInfo_line, isInline_field } from "../helpers";
 import { ABCContext } from "../parsers/Context";
-import { parse } from "../parsers/parse2";
-import { Scanner, TT } from "../parsers/scan2";
-import { Tune, Tune_Body } from "../types/Expr2";
+import { parse } from "../parsers/parse";
+import { Scanner, TT } from "../parsers/scan";
+import { Tune, Tune_Body } from "../types/Expr";
 import { VoiceMarkerStyleVisitor } from "./VoiceMarkerStyleVisitor";
 
 /**

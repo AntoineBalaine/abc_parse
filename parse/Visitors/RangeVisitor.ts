@@ -1,5 +1,5 @@
 import { EMPTY_RANGE, getTokenRange, isNote, isToken, reduceRanges } from "../helpers";
-import { Token } from "../parsers/scan2";
+import { Token } from "../parsers/scan";
 import {
   AbsolutePitch,
   Annotation,
@@ -42,7 +42,7 @@ import {
   Visitor,
   Voice_overlay,
   YSPACER,
-} from "../types/Expr2";
+} from "../types/Expr";
 import { Range } from "../types/types";
 
 /**
@@ -319,7 +319,7 @@ export class RangeVisitor implements Visitor<Range> {
     return [getTokenRange(expr.value), getTokenRange(expr.scale)].reduce(reduceRanges, EMPTY_RANGE);
   }
 
-  visitUnary(expr: import("../types/Expr2").Unary): Range {
+  visitUnary(expr: import("../types/Expr").Unary): Range {
     const operatorRange = getTokenRange(expr.operator);
     const operandRange = expr.operand instanceof Token ? getTokenRange(expr.operand) : expr.operand.accept(this);
     return [operatorRange, operandRange].reduce(reduceRanges, EMPTY_RANGE);

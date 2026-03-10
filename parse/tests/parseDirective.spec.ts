@@ -3,9 +3,9 @@ import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { parseDirective } from "../parsers/infoLines/parseDirective";
-import { ParseCtx } from "../parsers/parse2";
-import { Token, TT } from "../parsers/scan2";
-import { Annotation, Directive, KV, Measurement, Pitch, Rational } from "../types/Expr2";
+import { ParseCtx } from "../parsers/parse";
+import { Token, TT } from "../parsers/scan";
+import { Annotation, Directive, KV, Measurement, Pitch, Rational } from "../types/Expr";
 import {
   genDirectiveContent,
   genStylesheetDirective,

@@ -3,10 +3,10 @@ import * as fc from "fast-check";
 import { SemanticAnalyzer, SemanticData } from "../analyzers/semantic-analyzer";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { parse } from "../parsers/parse2";
-import { Scanner } from "../parsers/scan2";
+import { parse } from "../parsers/parse";
+import { Scanner } from "../parsers/scan";
 import { MeterType } from "../types/abcjs-ast";
-import { File_structure } from "../types/Expr2";
+import { File_structure } from "../types/Expr";
 import { encode, binarySearchFloor, ContextInterpreter, getRangeSnapshots, getSnapshotAtPosition } from "./ContextInterpreter";
 
 // ============================================================================

@@ -1,7 +1,7 @@
 import { assert } from "chai";
-import { parseAnnotation } from "../parsers/parse2";
-import { TT } from "../parsers/scan2";
-import { Annotation } from "../types/Expr2";
+import { parseAnnotation } from "../parsers/parse";
+import { TT } from "../parsers/scan";
+import { Annotation } from "../types/Expr";
 import { createToken, createParseCtx } from "./prs_music_code.spec";
 
 describe("parseAnnotation", () => {

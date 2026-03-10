@@ -1,7 +1,7 @@
 import { assert } from "chai";
-import { parseTuplet } from "../parsers/parse2";
-import { TT } from "../parsers/scan2";
-import { Tuplet } from "../types/Expr2";
+import { parseTuplet } from "../parsers/parse";
+import { TT } from "../parsers/scan";
+import { Tuplet } from "../types/Expr";
 import { createToken, createParseCtx } from "./prs_music_code.spec";
 
 describe("parseTuplet", () => {

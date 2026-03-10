@@ -9,7 +9,7 @@
  */
 
 import { isToken } from "../helpers";
-import { Token, TT } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan";
 import {
   KeyInfo,
   KeyRoot,
@@ -25,9 +25,9 @@ import {
   BracketBracePosition,
   VoiceProperties,
 } from "../types/abcjs-ast";
-import { Info_line, InfoLineUnion, Expr, KV, Binary, Rational, Grouping, Annotation } from "../types/Expr2";
+import { Info_line, InfoLineUnion, Expr, KV, Binary, Rational, Grouping, Annotation } from "../types/Expr";
 import { parseKeyRoot } from "../utils/keyUtils";
-import { IRational } from "../Visitors/fmt2/rational";
+import { IRational } from "../Visitors/fmt/rational";
 import { SemanticAnalyzer } from "./semantic-analyzer";
 
 /**

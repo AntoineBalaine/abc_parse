@@ -2,9 +2,9 @@ import { expect } from "chai";
 import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Token } from "../parsers/scan2";
+import { Token } from "../parsers/scan";
 import { FontSpec, MeasurementSpec } from "../types/directive-specs";
-import { Directive } from "../types/Expr2";
+import { Directive } from "../types/Expr";
 import * as Gen from "./directive-analyzer.pbt.generators";
 import { SemanticAnalyzer } from "./semantic-analyzer";
 

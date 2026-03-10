@@ -1,9 +1,9 @@
 import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Token, TT } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan";
 import { MidiSpec } from "../types/directive-specs";
-import { Directive, Rational, KV, Pitch } from "../types/Expr2";
+import { Directive, Rational, KV, Pitch } from "../types/Expr";
 import { SemanticAnalyzer } from "./semantic-analyzer";
 
 describe("Directive Analyzer - MIDI Part 1 (Simple Commands)", () => {

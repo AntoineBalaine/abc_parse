@@ -1,7 +1,7 @@
 import assert from "assert";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
-import { Scanner, TT, Ctx } from "../parsers/scan2";
+import { Scanner, TT, Ctx } from "../parsers/scan";
 import { systemBreak } from "../parsers/scan_tunebody";
 
 // Helper function to create a Ctx object for testing

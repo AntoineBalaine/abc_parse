@@ -1,6 +1,6 @@
 import { exprIsInRange, getTokenRange, isBeam, isChord, isGraceGroup, isNote, isPitch, isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
-import { Token, TT } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan";
 import {
   AbsolutePitch,
   Annotation,
@@ -44,9 +44,9 @@ import {
   Visitor,
   Voice_overlay,
   YSPACER,
-} from "../types/Expr2";
+} from "../types/Expr";
 import { Range } from "../types/types";
-import { AbcFormatter, toMidiPitch } from "./Formatter2";
+import { AbcFormatter, toMidiPitch } from "./Formatter";
 import { ExpressionCollector } from "./RangeCollector";
 import { RangeVisitor } from "./RangeVisitor";
 
@@ -308,7 +308,7 @@ export class Transposer implements Visitor<Expr | Token> {
     return expr;
   }
 
-  visitUnary(expr: import("../types/Expr2").Unary): Expr | Token {
+  visitUnary(expr: import("../types/Expr").Unary): Expr | Token {
     return expr;
   }
 

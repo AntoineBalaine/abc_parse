@@ -16,7 +16,7 @@ import {
   compareRational,
   multiplyRational,
   isInfiniteRational,
-} from "abc-parser/Visitors/fmt2/rational";
+} from "abc-parser/Visitors/fmt/rational";
 import { cloneSubtree, visit, replace, insertAfter, insertBefore, remove, appendChild } from "cstree";
 import * as barmap from "../context/csBarMap";
 import { CSNode, TAGS, isTokenNode, getTokenData, createCSNode } from "../csTree/types";

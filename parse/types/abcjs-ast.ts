@@ -3,7 +3,7 @@
  * Based on analysis of ABCJS codebase
  */
 
-import { IRational } from "../Visitors/fmt2/rational";
+import { IRational } from "../Visitors/fmt/rational";
 
 export enum ClefType {
   Treble = "treble",

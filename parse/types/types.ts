@@ -1,4 +1,4 @@
-import { Comment, Info_line, music_code } from "./Expr2";
+import { Comment, Info_line, music_code } from "./Expr";
 
 /**
  * List of token types that the scanner is capable of recognizing.

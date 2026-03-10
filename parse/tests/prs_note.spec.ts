@@ -1,7 +1,7 @@
 import { assert } from "chai";
-import { parseNote } from "../parsers/parse2";
-import { TT } from "../parsers/scan2";
-import { Note, Pitch, Rhythm } from "../types/Expr2";
+import { parseNote } from "../parsers/parse";
+import { TT } from "../parsers/scan";
+import { Note, Pitch, Rhythm } from "../types/Expr";
 import { createToken, createParseCtx } from "./prs_music_code.spec";
 
 describe("parseNote", () => {

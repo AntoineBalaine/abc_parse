@@ -2,12 +2,12 @@ import { assert, expect } from "chai";
 import * as fc from "fast-check";
 import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { ABCContext } from "../parsers/Context";
-import { parse } from "../parsers/parse2";
-import { Scanner } from "../parsers/scan2";
-import { File_structure, File_header, Tune, Tune_header, FormatterConfig, DEFAULT_FORMATTER_CONFIG } from "../types/Expr2";
+import { parse } from "../parsers/parse";
+import { Scanner } from "../parsers/scan";
+import { File_structure, File_header, Tune, Tune_header, FormatterConfig, DEFAULT_FORMATTER_CONFIG } from "../types/Expr";
 import { cloneExpr } from "../Visitors/CloneVisitor";
 import { CourtesyAccidentalsTransform } from "../Visitors/CourtesyAccidentalsTransform";
-import { AbcFormatter } from "../Visitors/Formatter2";
+import { AbcFormatter } from "../Visitors/Formatter";
 import { filterVoiceInAst } from "../Visitors/VoiceFilterVisitor";
 
 describe("FormatterConfig", () => {

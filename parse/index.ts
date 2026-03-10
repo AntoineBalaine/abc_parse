@@ -2,13 +2,13 @@ export * from "./helpers";
 export { AbcErrorReporter, AbcError } from "./parsers/ErrorReporter";
 export * from "./parsers/Context";
 export { Range, Position } from "./types/types";
-export * from "./parsers/parse2";
-export * from "./parsers/scan2";
-export { Scanner, Token, TT } from "./parsers/scan2";
-export * from "./parsers/voices2";
-export * from "./types/Expr2";
+export * from "./parsers/parse";
+export * from "./parsers/scan";
+export { Scanner, Token, TT } from "./parsers/scan";
+export * from "./parsers/voices";
+export * from "./types/Expr";
 export * from "./Visitors/CourtesyAccidentalsTransform";
-export * from "./Visitors/Formatter2";
+export * from "./Visitors/Formatter";
 export * from "./Visitors/RangeCollector";
 export * from "./Visitors/RangeVisitor";
 export * from "./Visitors/RhythmTransform";
@@ -28,7 +28,7 @@ export {
   equalRational,
   greaterRational,
   rationalFromNumber,
-} from "./Visitors/fmt2/rational";
+} from "./Visitors/fmt/rational";
 export { SemanticAnalyzer } from "./analyzers/semantic-analyzer";
 export { ContextInterpreter, DocumentSnapshots, ContextSnapshot, getRangeSnapshots, getSnapshotAtPosition, encode } from "./interpreter/ContextInterpreter";
 export { ChordPosition, ChordPositionCollector } from "./interpreter/ChordPositionCollector";

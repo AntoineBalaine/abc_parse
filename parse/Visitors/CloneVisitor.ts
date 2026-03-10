@@ -1,6 +1,6 @@
 import { cloneText, cloneToken, isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
-import { Token } from "../parsers/scan2";
+import { Token } from "../parsers/scan";
 import {
   AbsolutePitch,
   Annotation,
@@ -47,7 +47,7 @@ import {
   Voice_overlay,
   YSPACER,
   Unary,
-} from "../types/Expr2";
+} from "../types/Expr";
 import { System } from "../types/types";
 
 /**

@@ -1,8 +1,8 @@
 import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Token, TT } from "../parsers/scan2";
-import { KV, Binary } from "../types/Expr2";
+import { Token, TT } from "../parsers/scan";
+import { KV, Binary } from "../types/Expr";
 
 // Create a shared context for all generators
 export const sharedContext = new ABCContext(new AbcErrorReporter());

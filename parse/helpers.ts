@@ -1,6 +1,6 @@
 import { ABCContext } from "./parsers/Context";
-import { ParseCtx } from "./parsers/parse2";
-import { Token, TT } from "./parsers/scan2";
+import { ParseCtx } from "./parsers/parse";
+import { Token, TT } from "./parsers/scan";
 import {
   Annotation,
   BarLine,
@@ -29,7 +29,7 @@ import {
   Tuplet,
   Voice_overlay,
   YSPACER,
-} from "./types/Expr2";
+} from "./types/Expr";
 import { Range } from "./types/types";
 
 // Check if an element is a token

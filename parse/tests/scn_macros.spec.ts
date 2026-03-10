@@ -2,7 +2,7 @@ import assert from "assert";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
-import { Ctx, TT, Token, macro_decl, macro_invocation } from "../parsers/scan2";
+import { Ctx, TT, Token, macro_decl, macro_invocation } from "../parsers/scan";
 import { genCommentToken, genEOL, genMacroHeader, genMacroScenario, genMacroString, genMacroVariable } from "./scn_pbt.generators.spec";
 import { createRoundTripPredicate } from "./scn_pbt.spec";
 

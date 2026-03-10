@@ -1,9 +1,9 @@
 import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { parse } from "../parsers/parse2";
-import { Scanner } from "../parsers/scan2";
-import { Tune, Info_line } from "../types/Expr2";
+import { parse } from "../parsers/parse";
+import { Scanner } from "../parsers/scan";
+import { Tune, Info_line } from "../types/Expr";
 
 /**
  * Tests for parser header/body boundary detection.

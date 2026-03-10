@@ -15,7 +15,7 @@
 import { isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { parseAbcx } from "../parsers/parse_abcx";
-import { Token, TT } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan";
 import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
 import {
   Annotation,
@@ -31,9 +31,9 @@ import {
   Tune_Body,
   Tune_header,
   tune_body_code,
-} from "../types/Expr2";
-import { IRational, createRational } from "./fmt2/rational";
-import { AbcFormatter } from "./Formatter2";
+} from "../types/Expr";
+import { IRational, createRational } from "./fmt/rational";
+import { AbcFormatter } from "./Formatter";
 
 /**
  * Configuration for ABCx to ABC conversion

@@ -1,7 +1,7 @@
 import { assert } from "chai";
-import { parseBarline } from "../parsers/parse2";
-import { TT } from "../parsers/scan2";
-import { BarLine } from "../types/Expr2";
+import { parseBarline } from "../parsers/parse";
+import { TT } from "../parsers/scan";
+import { BarLine } from "../types/Expr";
 import { createParseCtx, createToken } from "./prs_music_code.spec";
 
 describe("parseBarline", () => {

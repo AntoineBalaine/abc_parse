@@ -1,8 +1,8 @@
 import { followedBy } from "../../helpers";
-import { Annotation, Directive, Expr, KV, Measurement, Pitch, Rational, VoiceMarkerStyle } from "../../types/Expr2";
-import { parseAnnotation, ParseCtx, parsePitch } from "../parse2";
-import { Token, TT } from "../scan2";
-import { parseKV } from "./parseInfoLine2";
+import { Annotation, Directive, Expr, KV, Measurement, Pitch, Rational, VoiceMarkerStyle } from "../../types/Expr";
+import { parseAnnotation, ParseCtx, parsePitch } from "../parse";
+import { Token, TT } from "../scan";
+import { parseKV } from "./parseInfoLine";
 
 /**
  * Context indicating whether we are parsing a file header or tune header.

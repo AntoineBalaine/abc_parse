@@ -1,7 +1,7 @@
 // SMF Mapper: converts a parsed SMF object into an MNoteSequence.
 // See private/designs/smf-mapper-design.md for the full design document.
 
-import { IRational, createRational } from "abc-parser/Visitors/fmt2/rational";
+import { IRational, createRational } from "abc-parser/Visitors/fmt/rational";
 import { SMF, MMidiEvent } from "./jzz-types";
 import { MNote, MTempo, MTimeSignature, MNoteSequence } from "./types";
 

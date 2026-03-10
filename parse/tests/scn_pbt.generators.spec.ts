@@ -1,7 +1,7 @@
 import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Token, TT } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan";
 import {
   genInfoLine2,
   genKeyInfoLine2,

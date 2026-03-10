@@ -1,7 +1,7 @@
 import { assert } from "chai";
-import { parseSymbol } from "../parsers/parse2";
-import { TT } from "../parsers/scan2";
-import { Symbol } from "../types/Expr2";
+import { parseSymbol } from "../parsers/parse";
+import { TT } from "../parsers/scan";
+import { Symbol } from "../types/Expr";
 import { createToken, createParseCtx } from "./prs_music_code.spec";
 
 describe("parseSymbol", () => {

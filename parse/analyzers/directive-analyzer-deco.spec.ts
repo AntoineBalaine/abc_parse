@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Token, TT } from "../parsers/scan2";
-import { Directive } from "../types/Expr2";
+import { Token, TT } from "../parsers/scan";
+import { Directive } from "../types/Expr";
 import { SemanticAnalyzer } from "./semantic-analyzer";
 
 /**

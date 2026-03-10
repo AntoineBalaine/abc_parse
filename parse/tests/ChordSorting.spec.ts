@@ -2,10 +2,10 @@ import { expect } from "chai";
 import * as fc from "fast-check";
 import { isNote, isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
-import { parse } from "../parsers/parse2";
-import { Scanner, Token, TT } from "../parsers/scan2";
-import { Annotation, Chord, Note, Pitch } from "../types/Expr2";
-import { AbcFormatter, getSplits, sortNotes, toMidiPitch } from "../Visitors/Formatter2";
+import { parse } from "../parsers/parse";
+import { Scanner, Token, TT } from "../parsers/scan";
+import { Annotation, Chord, Note, Pitch } from "../types/Expr";
+import { AbcFormatter, getSplits, sortNotes, toMidiPitch } from "../Visitors/Formatter";
 import * as ParseGen from "./prs_pbt.generators.spec";
 import * as ScanGen from "./scn_pbt.generators.spec";
 

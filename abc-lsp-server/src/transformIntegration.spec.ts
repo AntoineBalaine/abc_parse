@@ -1,6 +1,6 @@
 import { Scanner, parse, ABCContext, SemanticAnalyzer } from "abc-parser";
 import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
-import { File_structure } from "abc-parser/types/Expr2";
+import { File_structure } from "abc-parser/types/Expr";
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { TAGS, Selection, fromAst, isTokenNode, getTokenData } from "../../editor";

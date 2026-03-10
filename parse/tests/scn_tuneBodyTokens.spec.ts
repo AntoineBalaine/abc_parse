@@ -2,7 +2,7 @@ import assert from "assert";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Ctx, TT, info_line, stylesheet_directive } from "../parsers/scan2";
+import { Ctx, TT, info_line, stylesheet_directive } from "../parsers/scan";
 import {
   accidental,
   ampersand,

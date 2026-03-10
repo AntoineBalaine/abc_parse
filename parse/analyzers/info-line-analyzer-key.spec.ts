@@ -1,9 +1,9 @@
 import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Token, TT } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan";
 import { KeyRoot, KeyAccidental, Mode, ClefType, NoteHeadStyle } from "../types/abcjs-ast";
-import { Info_line, KV } from "../types/Expr2";
+import { Info_line, KV } from "../types/Expr";
 import { SemanticAnalyzer } from "./semantic-analyzer";
 
 describe("Key Info Line Analyzer - Example-Based Tests", () => {

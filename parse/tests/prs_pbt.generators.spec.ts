@@ -1,9 +1,9 @@
 import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { parseExpression } from "../parsers/infoLines/parseInfoLine2";
-import { ParseCtx } from "../parsers/parse2";
-import { Token, TT } from "../parsers/scan2";
+import { parseExpression } from "../parsers/infoLines/parseInfoLine";
+import { ParseCtx } from "../parsers/parse";
+import { Token, TT } from "../parsers/scan";
 import {
   Annotation,
   BarLine,
@@ -26,7 +26,7 @@ import {
   Symbol,
   Tuplet,
   YSPACER,
-} from "../types/Expr2";
+} from "../types/Expr";
 import * as ScannerGen from "./scn_pbt.generators.spec";
 
 // Create a shared context for all generators

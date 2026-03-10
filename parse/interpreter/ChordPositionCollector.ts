@@ -13,7 +13,7 @@
 import { SemanticData } from "../analyzers/semantic-analyzer";
 import { NATURAL_SEMITONES } from "../music-theory/constants";
 import { getKeyAccidentalForPitch, accidentalTypeToSemitones as pitchUtilsAccidentalTypeToSemitones } from "../music-theory/pitchUtils";
-import { Token, TT } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan";
 import {
   Visitor,
   File_structure,
@@ -60,7 +60,7 @@ import {
   InfoLineUnion,
   isKeyInfo,
   isVoiceInfo,
-} from "../types/Expr2";
+} from "../types/Expr";
 import { encode } from "./ContextInterpreter";
 import { convertAccidentalToType } from "./helpers";
 import { TuneDefaults, VoiceState, newVxState, createTuneDefaults, createFileDefaults, FileDefaults } from "./InterpreterState";

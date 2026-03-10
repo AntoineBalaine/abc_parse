@@ -15,7 +15,7 @@ import { convertAccidentalToType } from "../interpreter/helpers";
 import { VoiceState, newVxState, TuneDefaults, createTuneDefaults, createFileDefaults } from "../interpreter/InterpreterState";
 import { getKeyAccidentalForPitch, semitonesToAccidentalString, accidentalTypeToSemitones } from "../music-theory";
 import { ABCContext } from "../parsers/Context";
-import { Token, TT } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan";
 import { AccidentalType } from "../types/abcjs-ast";
 import {
   Visitor,
@@ -60,7 +60,7 @@ import {
   YSPACER,
   ChordSymbol,
   Directive,
-} from "../types/Expr2";
+} from "../types/Expr";
 
 // ============================================================================
 // State

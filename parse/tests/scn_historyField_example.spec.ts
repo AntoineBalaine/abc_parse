@@ -1,8 +1,8 @@
 import { assert } from "chai";
 import { ABCContext } from "../parsers/Context";
-import { ParseCtx, prsTuneHdr } from "../parsers/parse2";
-import { Scanner, TT } from "../parsers/scan2";
-import { Info_line } from "../types/Expr2";
+import { ParseCtx, prsTuneHdr } from "../parsers/parse";
+import { Scanner, TT } from "../parsers/scan";
+import { Info_line } from "../types/Expr";
 
 /**
  * Example-based test for the H: (history) info field with multi-line continuation.

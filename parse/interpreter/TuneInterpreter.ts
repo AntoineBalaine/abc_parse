@@ -10,7 +10,7 @@ import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { SemanticData } from "../analyzers/semantic-analyzer";
 import { isComment, isInfo_line } from "../helpers";
 import { ABCContext } from "../parsers/Context";
-import { Token, TT } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan";
 import {
   Tune,
   StaffSystem,
@@ -46,7 +46,7 @@ import {
   BooleanValueDirectiveType,
   PositionDirectiveType,
 } from "../types/directive-specs";
-import { InfoLineUnion } from "../types/Expr2";
+import { InfoLineUnion } from "../types/Expr";
 import {
   Visitor,
   File_structure,
@@ -106,8 +106,8 @@ import {
   isTranscriptionInfo,
   isHistoryInfo,
   isAuthorInfo,
-} from "../types/Expr2";
-import { IRational, createRational, multiplyRational, rationalToNumber } from "../Visitors/fmt2/rational";
+} from "../types/Expr";
+import { IRational, createRational, multiplyRational, rationalToNumber } from "../Visitors/fmt/rational";
 import { RangeVisitor } from "../Visitors/RangeVisitor";
 import { convertAccidentalToType, determineBarType, fontSpecToFont } from "./helpers";
 import {
@@ -2019,7 +2019,7 @@ export class TuneInterpreter implements Visitor<void> {
   visitAbsolutePitch(_expr: AbsolutePitch): void {}
   visitRationalExpr(_expr: Rational): void {}
   visitMeasurementExpr(_expr: Measurement): void {}
-  visitUnary(_expr: import("../types/Expr2").Unary): void {}
+  visitUnary(_expr: import("../types/Expr").Unary): void {}
   // ChordSymbol is ABCx-specific - ABCx files must be converted to ABC before interpretation
   visitChordSymbolExpr(_expr: ChordSymbol): void {}
 

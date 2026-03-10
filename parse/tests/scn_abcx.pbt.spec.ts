@@ -11,7 +11,7 @@
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
-import { Token, TT } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan";
 import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
 import { genChordSymbolToken, genAbcxTokenSequence } from "./scn_abcx.generators.spec";
 

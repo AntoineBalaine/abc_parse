@@ -5,8 +5,8 @@ import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/Co
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { ABCContext } from "../../parse/parsers/Context";
-import { Token, TT } from "../../parse/parsers/scan2";
-import { Pitch } from "../../parse/types/Expr2";
+import { Token, TT } from "../../parse/parsers/scan";
+import { Pitch } from "../../parse/types/Expr";
 import { fromAst } from "../src/csTree/fromAst";
 import { CSNode, TAGS } from "../src/csTree/types";
 import { Selection } from "../src/selection";

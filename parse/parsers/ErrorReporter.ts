@@ -1,8 +1,8 @@
 import { isToken } from "../helpers";
-import { Expr } from "../types/Expr2";
+import { Expr } from "../types/Expr";
 import { ParserErrorType } from "../types/types";
 import { RangeVisitor } from "../Visitors/RangeVisitor";
-import { Ctx, Token } from "./scan2";
+import { Ctx, Token } from "./scan";
 
 export type AbcError = { message: string; token: Token | Expr; origin: ParserErrorType };
 

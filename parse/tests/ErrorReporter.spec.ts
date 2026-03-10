@@ -1,7 +1,7 @@
 import chai from "chai";
 import { ABCContext } from "../parsers/Context";
-import { ParseCtx, parseTune } from "../parsers/parse2";
-import { Scanner } from "../parsers/scan2";
+import { ParseCtx, parseTune } from "../parsers/parse";
+import { Scanner } from "../parsers/scan";
 import { tuneHeader } from "./RhythmTransform.spec";
 
 const expect = chai.expect;

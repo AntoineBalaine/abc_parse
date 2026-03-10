@@ -1,7 +1,7 @@
-import { Ctx, isAtEnd, TT, WS, collectInvalidInfoLn } from "../scan2";
+import { Ctx, isAtEnd, TT, WS, collectInvalidInfoLn } from "../scan";
 import { pEOL } from "../scan_tunebody";
 import { infoHeader } from "./infoLnHelper";
-import { identifier, singleChar, stringLiteral, unsignedNumber } from "./scanInfoLine2";
+import { identifier, singleChar, stringLiteral, unsignedNumber } from "./scanInfoLine";
 
 /**
  * Dedicated scanner for K: (key) info lines

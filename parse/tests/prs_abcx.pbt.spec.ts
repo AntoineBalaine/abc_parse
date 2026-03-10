@@ -13,8 +13,8 @@ import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { parseAbcx } from "../parsers/parse_abcx";
 import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
-import { ChordSymbol, Tune, File_structure } from "../types/Expr2";
-import { AbcFormatter } from "../Visitors/Formatter2";
+import { ChordSymbol, Tune, File_structure } from "../types/Expr";
+import { AbcFormatter } from "../Visitors/Formatter";
 import { sharedContext, genChordSymbolExpr, genAbcxMusicSequence, genAbcxMultiBarSequence } from "./prs_abcx.generators.spec";
 
 /**

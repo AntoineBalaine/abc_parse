@@ -10,11 +10,11 @@
 import { isGraceGroup, isInfo_line, isTuplet, isVoiceMarker } from "../helpers";
 import { isBarLine } from "../helpers";
 import { ABCContext } from "../parsers/Context";
-import { Token, TT } from "../parsers/scan2";
-import { extractVoiceId, VoiceSequenceMap } from "../parsers/voices2";
-import { File_structure, Info_line, MultiMeasureRest, System, Tune, Tune_Body, tune_body_code } from "../types/Expr2";
+import { Token, TT } from "../parsers/scan";
+import { extractVoiceId, VoiceSequenceMap } from "../parsers/voices";
+import { File_structure, Info_line, MultiMeasureRest, System, Tune, Tune_Body, tune_body_code } from "../types/Expr";
 import { cloneLine } from "../Visitors/CloneVisitor";
-import { isTimeEvent } from "../Visitors/fmt2/fmt_timeMap";
+import { isTimeEvent } from "../Visitors/fmt/fmt_timeMap";
 
 /**
  * Silence a music line by removing time events, grace groups, and tuplet markers,

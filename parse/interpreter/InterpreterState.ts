@@ -35,7 +35,7 @@ import {
   TuneFormatting,
 } from "../types/abcjs-ast";
 import { FontSpec } from "../types/directive-specs";
-import { IRational, createRational } from "../Visitors/fmt2/rational";
+import { IRational, createRational } from "../Visitors/fmt/rational";
 import { ABCJS_FORMATTING_DEFAULTS } from "./FormattingDefaults";
 
 /**

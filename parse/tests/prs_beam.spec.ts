@@ -1,8 +1,8 @@
 import { assert } from "chai";
 import { ABCContext } from "../parsers/Context";
-import { parseNote, prcssBms } from "../parsers/parse2";
-import { TT } from "../parsers/scan2";
-import { Note, Beam, Pitch, BarLine, Chord, Rhythm } from "../types/Expr2";
+import { parseNote, prcssBms } from "../parsers/parse";
+import { TT } from "../parsers/scan";
+import { Note, Beam, Pitch, BarLine, Chord, Rhythm } from "../types/Expr";
 import { createToken, createParseCtx } from "./prs_music_code.spec";
 
 describe("prcssBms", () => {

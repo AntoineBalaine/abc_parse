@@ -1,9 +1,9 @@
 import { assert } from "chai";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
-import { ParseCtx, parseMusicCode } from "../parsers/parse2";
-import { Token, TT } from "../parsers/scan2";
-import { Annotation, BarLine, Chord, Decoration, Expr, Grace_group, Note, Rest, Symbol, Tuplet, YSPACER } from "../types/Expr2";
+import { ParseCtx, parseMusicCode } from "../parsers/parse";
+import { Token, TT } from "../parsers/scan";
+import { Annotation, BarLine, Chord, Decoration, Expr, Grace_group, Note, Rest, Symbol, Tuplet, YSPACER } from "../types/Expr";
 
 // Helper function to create a token with the given type and lexeme
 export function createToken(type: TT, lexeme: string, line: number = 0, position: number = 0): Token {

@@ -13,9 +13,9 @@ import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { parseAbcx } from "../parsers/parse_abcx";
 import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
-import { Rest, Tune } from "../types/Expr2";
+import { Rest, Tune } from "../types/Expr";
 import { AbcxToAbcConverter } from "../Visitors/AbcxToAbcConverter";
-import { createRational } from "../Visitors/fmt2/rational";
+import { createRational } from "../Visitors/fmt/rational";
 
 describe("Rest Duration Calculation", () => {
   /**

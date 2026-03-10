@@ -9,11 +9,11 @@ import * as fc from "fast-check";
 import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { parse } from "../parsers/parse2";
-import { Scanner, Token } from "../parsers/scan2";
+import { parse } from "../parsers/parse";
+import { Scanner, Token } from "../parsers/scan";
 import { genNote, genChord, genRest, genBarline } from "../tests/scn_pbt.generators.spec";
 import { StaffSystem, ElementType } from "../types/abcjs-ast";
-import { AbcFormatter } from "../Visitors/Formatter2";
+import { AbcFormatter } from "../Visitors/Formatter";
 import { TuneInterpreter } from "./TuneInterpreter";
 
 // ============================================================================

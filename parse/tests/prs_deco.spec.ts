@@ -1,7 +1,7 @@
 import { assert } from "chai";
-import { parseDecoration } from "../parsers/parse2";
-import { TT } from "../parsers/scan2";
-import { Decoration } from "../types/Expr2";
+import { parseDecoration } from "../parsers/parse";
+import { TT } from "../parsers/scan";
+import { Decoration } from "../types/Expr";
 import { createToken, createParseCtx } from "./prs_music_code.spec";
 
 describe("parseDecoration", () => {

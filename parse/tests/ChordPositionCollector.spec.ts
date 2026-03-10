@@ -3,8 +3,8 @@ import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { ChordPositionCollector, ChordPosition, ChordCollectorConfig } from "../interpreter/ChordPositionCollector";
 import { findPreviousChordInVoice, findNextChordInVoice } from "../music-theory/voiceLeading";
 import { ABCContext } from "../parsers/Context";
-import { parse } from "../parsers/parse2";
-import { Scanner } from "../parsers/scan2";
+import { parse } from "../parsers/parse";
+import { Scanner } from "../parsers/scan";
 
 /**
  * Helper to parse ABC source and collect chord positions.

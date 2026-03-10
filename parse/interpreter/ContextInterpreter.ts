@@ -16,9 +16,9 @@
 import { SemanticData } from "../analyzers/semantic-analyzer";
 import { ParsedChord, scanChordSymbol, parseChordSymbol } from "../music-theory";
 import { ABCContext } from "../parsers/Context";
-import { Token, TT } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan";
 import { Meter, KeySignature, ClefProperties, TempoProperties, MeterType, AccidentalType } from "../types/abcjs-ast";
-import { InfoLineUnion } from "../types/Expr2";
+import { InfoLineUnion } from "../types/Expr";
 import {
   Visitor,
   File_structure,
@@ -63,9 +63,9 @@ import {
   YSPACER,
   ChordSymbol,
   Expr,
-} from "../types/Expr2";
+} from "../types/Expr";
 import { Range } from "../types/types";
-import { IRational } from "../Visitors/fmt2/rational";
+import { IRational } from "../Visitors/fmt/rational";
 import { RangeVisitor } from "../Visitors/RangeVisitor";
 import { convertAccidentalToType } from "./helpers";
 import { TuneDefaults, VoiceState, newVxState, createTuneDefaults, createFileDefaults } from "./InterpreterState";

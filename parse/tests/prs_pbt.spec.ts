@@ -1,7 +1,7 @@
 import * as fc from "fast-check";
-import { ParseCtx, prsBody, parseTune } from "../parsers/parse2";
-import { Token, TT } from "../parsers/scan2";
-import { AbcFormatter } from "../Visitors/Formatter2";
+import { ParseCtx, prsBody, parseTune } from "../parsers/parse";
+import { Token, TT } from "../parsers/scan";
+import { AbcFormatter } from "../Visitors/Formatter";
 import * as ParserGen from "./prs_pbt.generators.spec";
 
 describe("Parser Property Tests", () => {

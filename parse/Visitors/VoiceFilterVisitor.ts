@@ -23,9 +23,9 @@
 import { analyzeDirective } from "../analyzers/directive-analyzer";
 import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { ABCContext } from "../parsers/Context";
-import { parse } from "../parsers/parse2";
-import { Token } from "../parsers/scan2";
-import { Scanner } from "../parsers/scan2";
+import { parse } from "../parsers/parse";
+import { Token } from "../parsers/scan";
+import { Scanner } from "../parsers/scan";
 import { AbclsVoicesDirectiveData } from "../types/directive-specs";
 import {
   Directive,
@@ -39,8 +39,8 @@ import {
   tune_body_code,
   Voice_overlay,
   System,
-} from "../types/Expr2";
-import { AbcFormatter } from "./Formatter2";
+} from "../types/Expr";
+import { AbcFormatter } from "./Formatter";
 
 /**
  * Filter state for a single scope (file or tune)

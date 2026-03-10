@@ -6,10 +6,10 @@ import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { parseDirective } from "../parsers/infoLines/parseDirective";
 import { scanDirective } from "../parsers/infoLines/scanDirective";
-import { ParseCtx, parse } from "../parsers/parse2";
-import { Scanner, Ctx, Token, TT } from "../parsers/scan2";
+import { ParseCtx, parse } from "../parsers/parse";
+import { Scanner, Ctx, Token, TT } from "../parsers/scan";
 import { AbclsVoicesDirectiveData } from "../types/directive-specs";
-import { Directive, File_structure, Tune } from "../types/Expr2";
+import { Directive, File_structure, Tune } from "../types/Expr";
 import { genAbclsVoicesDirective } from "./scn_infoln_generators";
 
 describe("%%abcls-voices Directive Tests", () => {

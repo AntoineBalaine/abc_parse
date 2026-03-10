@@ -1,6 +1,6 @@
 import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
-import { Ctx, Scanner, Token, TT } from "../parsers/scan2";
+import { Ctx, Scanner, Token, TT } from "../parsers/scan";
 import { pitch, pPitch, scanTune } from "../parsers/scan_tunebody";
 import {
   genInfoLine2,
@@ -322,4 +322,3 @@ export function createRoundTripPredicate(originalTokens: Array<Token>): boolean 
 
   return isEqual;
 }
-

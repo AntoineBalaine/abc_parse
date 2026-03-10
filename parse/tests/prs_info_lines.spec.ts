@@ -1,9 +1,9 @@
 import { assert } from "chai";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
-import { ParseCtx, prsLyricSection } from "../parsers/parse2";
-import { Token, TT } from "../parsers/scan2";
-import { Info_line, Lyric_section } from "../types/Expr2";
+import { ParseCtx, prsLyricSection } from "../parsers/parse";
+import { Token, TT } from "../parsers/scan";
+import { Info_line, Lyric_section } from "../types/Expr";
 import { createToken } from "./prs_music_code.spec";
 
 // Helper function to create a token with the given type and lexeme

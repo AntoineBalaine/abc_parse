@@ -21,4 +21,4 @@ export { parseAbcx } from "../parsers/parse_abcx";
 export { AbcxToAbcConverter, AbcxConversionConfig, convertAbcxToAbc, convertAbcxToAbcAst } from "../Visitors/AbcxToAbcConverter";
 
 // AST Types (ChordSymbol is the ABCx-specific node type)
-export { ChordSymbol } from "../types/Expr2";
+export { ChordSymbol } from "../types/Expr";

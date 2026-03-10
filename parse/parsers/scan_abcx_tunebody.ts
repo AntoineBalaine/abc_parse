@@ -8,7 +8,7 @@
 
 import { ABCContext } from "./Context";
 import { scanDirective } from "./infoLines/scanDirective";
-import { Ctx, EOL, TT, WS, freeText, info_line, isAtEnd, tuneStartBeforeSectBrk, sectionBreak, fileHeader } from "./scan2";
+import { Ctx, EOL, TT, WS, freeText, info_line, isAtEnd, tuneStartBeforeSectBrk, sectionBreak, fileHeader } from "./scan";
 import { annotation, barline2, collectInvalidToken, comment, inline_field, pEOL, pSectionBrk, rest } from "./scan_tunebody";
 
 /**
@@ -87,7 +87,7 @@ function isAbcxRecoveryPoint(ctx: Ctx): boolean {
  * Main ABCx Scanner function
  * Scans ABCx source text into tokens
  */
-export function ScannerAbcx(source: string, abcContext: ABCContext): Array<import("./scan2").Token> {
+export function ScannerAbcx(source: string, abcContext: ABCContext): Array<import("./scan").Token> {
   const ctx = new Ctx(String.raw`${source}`, abcContext);
 
   while (!isAtEnd(ctx)) {

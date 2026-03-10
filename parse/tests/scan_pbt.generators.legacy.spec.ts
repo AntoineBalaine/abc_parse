@@ -1,5 +1,5 @@
 // import fc from "fast-check";
-// import { Token, TT } from "../parsers/scan2";
+// import { Token, TT } from "../parsers/scan";
 // import { ABCContext } from "../parsers/Context";
 // import { AbcErrorReporter } from "../parsers/ErrorReporter";
 

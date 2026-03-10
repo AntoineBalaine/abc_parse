@@ -1,8 +1,8 @@
 import { assert } from "chai";
 import { describe, it } from "mocha";
-import { prsLyricLine } from "../parsers/parse2";
-import { TT } from "../parsers/scan2";
-import { Lyric_line } from "../types/Expr2";
+import { prsLyricLine } from "../parsers/parse";
+import { TT } from "../parsers/scan";
+import { Lyric_line } from "../types/Expr";
 import { createToken, createParseCtx } from "./prs_music_code.spec";
 
 describe("prsLyricLine", () => {

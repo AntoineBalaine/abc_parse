@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { durationToMicroseconds, createSimpleNoteEvents, convertTuneToMuseSamplerEvents } from "../playback/converter";
 import { NoteArticulation } from "../playback/types";
-import { createRational } from "../Visitors/fmt2/rational";
+import { createRational } from "../Visitors/fmt/rational";
 
 describe("playback/converter", () => {
   describe("durationToMicroseconds", () => {

@@ -1,4 +1,4 @@
-import { advance, Ctx, isAtEnd, precededBy, TT, WS } from "../scan2";
+import { advance, Ctx, isAtEnd, precededBy, TT, WS } from "../scan";
 import { pInfoLine, pNumber } from "../scan_tunebody";
 
 export function infoHeader(ctx: Ctx): boolean {

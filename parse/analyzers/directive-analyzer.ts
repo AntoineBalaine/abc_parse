@@ -1,6 +1,6 @@
 import { isToken } from "../helpers";
 import { StaffNomenclature, VxNomenclature } from "../interpreter/InterpreterState";
-import { Token, TT } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan";
 import { BracketBracePosition } from "../types/abcjs-ast";
 import {
   createDirectiveData,
@@ -19,8 +19,8 @@ import {
   MeasurementDirectiveType,
   lookupDirectiveType,
 } from "../types/directive-specs";
-import { Directive, Annotation, Measurement, Rational, KV, Pitch } from "../types/Expr2";
-import { IRational } from "../Visitors/fmt2/rational";
+import { Directive, Annotation, Measurement, Rational, KV, Pitch } from "../types/Expr";
+import { IRational } from "../Visitors/fmt/rational";
 import { SemanticAnalyzer } from "./semantic-analyzer";
 
 /**

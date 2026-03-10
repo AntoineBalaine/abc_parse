@@ -1,4 +1,4 @@
-import { Token } from "../parsers/scan2";
+import { Token } from "../parsers/scan";
 import { AccidentalType, BarType, Font } from "../types/abcjs-ast";
 import { FontSpec } from "../types/directive-specs";
 

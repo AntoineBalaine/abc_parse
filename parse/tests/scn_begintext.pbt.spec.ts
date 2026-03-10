@@ -1,7 +1,7 @@
 import { assert } from "chai";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
-import { Scanner, TT } from "../parsers/scan2";
+import { Scanner, TT } from "../parsers/scan";
 
 describe("Scanner Example-Based: Text Directive (%%begintext)", () => {
   it("should scan complete begintext/endtext block", () => {

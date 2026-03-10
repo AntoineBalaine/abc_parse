@@ -1,8 +1,8 @@
 import assert from "assert";
 import { ABCContext } from "../parsers/Context";
-import { ParseCtx, parseTune } from "../parsers/parse2";
-import { Scanner } from "../parsers/scan2";
-import { File_header, File_structure } from "../types/Expr2";
+import { ParseCtx, parseTune } from "../parsers/parse";
+import { Scanner } from "../parsers/scan";
+import { File_header, File_structure } from "../types/Expr";
 import { RhythmVisitor } from "../Visitors/RhythmTransform";
 
 export function tuneHeader(testStr: string) {

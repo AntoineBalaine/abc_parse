@@ -3,10 +3,10 @@ import { describe, it } from "mocha";
 import { analyzeDirective } from "../analyzers/directive-analyzer";
 import { SemanticAnalyzer } from "../analyzers/semantic-analyzer";
 import { parseDirective } from "../parsers/infoLines/parseDirective";
-import { ParseCtx } from "../parsers/parse2";
-import { Token, TT } from "../parsers/scan2";
-import { Directive } from "../types/Expr2";
-import { AbcFormatter } from "../Visitors/Formatter2";
+import { ParseCtx } from "../parsers/parse";
+import { Token, TT } from "../parsers/scan";
+import { Directive } from "../types/Expr";
+import { AbcFormatter } from "../Visitors/Formatter";
 import { genTextDirectiveExpr, sharedContext } from "./prs_pbt.generators.spec";
 
 describe("Parser Property-Based: Text Directive (%%begintext)", () => {

@@ -6,7 +6,7 @@
 
 import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
-import { TT } from "../parsers/scan2";
+import { TT } from "../parsers/scan";
 import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
 
 describe("ABCx Scanner", () => {

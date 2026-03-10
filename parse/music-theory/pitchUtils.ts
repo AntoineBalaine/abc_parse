@@ -1,5 +1,5 @@
 import { KeySignature, AccidentalType, KeyAccidental } from "../types/abcjs-ast";
-import { Pitch } from "../types/Expr2";
+import { Pitch } from "../types/Expr";
 import { Spelling, LETTERS, NATURAL_SEMITONES, SHARP_ORDER, FLAT_ORDER, MAJOR_KEY_SHARPS, MODE_FIFTH_OFFSET } from "./constants";
 import { NoteSpellings } from "./types";
 

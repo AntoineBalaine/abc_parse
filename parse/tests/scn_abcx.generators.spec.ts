@@ -6,7 +6,7 @@
  */
 
 import * as fc from "fast-check";
-import { Token, TT } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan";
 import { sharedContext, genChordSymbolToken, genBarline, genAnnotation, genRest, genWhitespace, genEOL, applyTokenFiltering } from "./scn_pbt.generators.spec";
 
 // Re-export shared context and chord symbol token generator

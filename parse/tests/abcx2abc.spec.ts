@@ -13,7 +13,7 @@ import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { parseAbcx } from "../parsers/parse_abcx";
 import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
-import { Annotation, BarLine, ChordSymbol, Rest, Tune, File_structure, tune_body_code } from "../types/Expr2";
+import { Annotation, BarLine, ChordSymbol, Rest, Tune, File_structure, tune_body_code } from "../types/Expr";
 import { AbcxToAbcConverter, convertAbcxToAbc } from "../Visitors/AbcxToAbcConverter";
 import { genChordSymbolExpr, genAbcxMultiBarSequence } from "./prs_abcx.generators.spec";
 

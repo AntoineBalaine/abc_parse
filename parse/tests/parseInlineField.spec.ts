@@ -2,10 +2,10 @@ import { expect } from "chai";
 import { describe, it, beforeEach } from "mocha";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
-import { parseExpression } from "../parsers/infoLines/parseInfoLine2";
-import { ParseCtx } from "../parsers/parse2";
-import { Token, TT } from "../parsers/scan2";
-import { Inline_field, Binary, KV, AbsolutePitch, Unary, Expr } from "../types/Expr2";
+import { parseExpression } from "../parsers/infoLines/parseInfoLine";
+import { ParseCtx } from "../parsers/parse";
+import { Token, TT } from "../parsers/scan";
+import { Inline_field, Binary, KV, AbsolutePitch, Unary, Expr } from "../types/Expr";
 
 // Helper to access private parseInlineField function
 // We'll need to test through the public API or export it for testing

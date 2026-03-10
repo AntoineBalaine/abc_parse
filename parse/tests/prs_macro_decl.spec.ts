@@ -1,9 +1,9 @@
 import { assert } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";
-import { prsMacroDecl, parseMacroInvocation } from "../parsers/parse2";
-import { TT } from "../parsers/scan2";
-import { Macro_decl, Macro_invocation } from "../types/Expr2";
+import { prsMacroDecl, parseMacroInvocation } from "../parsers/parse";
+import { TT } from "../parsers/scan";
+import { Macro_decl, Macro_invocation } from "../types/Expr";
 import { createToken, createParseCtx } from "./prs_music_code.spec";
 import * as ScannerGen from "./scn_pbt.generators.spec";
 

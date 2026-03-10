@@ -1,6 +1,6 @@
-import { advance, Ctx, isAtEnd, TT, WS } from "../scan2";
+import { advance, Ctx, isAtEnd, TT, WS } from "../scan";
 import { collectInvalidToken, pEOL, pitch, pPitch } from "../scan_tunebody";
-import { identifier, stringLiteral, singleChar } from "./scanInfoLine2";
+import { identifier, stringLiteral, singleChar } from "./scanInfoLine";
 
 /**
  * Directive scanner for stylesheet directives (%%directive content)

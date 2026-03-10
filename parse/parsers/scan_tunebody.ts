@@ -1,5 +1,5 @@
 import { scanDirective } from "./infoLines/scanDirective";
-import { absolutePitch, infoLineIdentifier, singleChar, specialLiteral, stringLiteral, unsignedNumber } from "./infoLines/scanInfoLine2";
+import { absolutePitch, infoLineIdentifier, singleChar, specialLiteral, stringLiteral, unsignedNumber } from "./infoLines/scanInfoLine";
 import {
   Ctx,
   EOL,
@@ -13,7 +13,7 @@ import {
   tuneStartBeforeSectBrk,
   user_symbol_decl,
   user_symbol_invocation,
-} from "./scan2";
+} from "./scan";
 
 export const pEOL = "\n";
 export const pMacroLine = /[m][ \t]*:/;

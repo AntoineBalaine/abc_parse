@@ -11,7 +11,7 @@ import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { parseAbcx } from "../parsers/parse_abcx";
 import { ScannerAbcx } from "../parsers/scan_abcx_tunebody";
-import { ChordSymbol, BarLine, Tune, File_structure } from "../types/Expr2";
+import { ChordSymbol, BarLine, Tune, File_structure } from "../types/Expr";
 
 describe("ABCx Parser", () => {
   function parse(source: string): File_structure {

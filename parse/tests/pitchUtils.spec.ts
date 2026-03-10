@@ -21,9 +21,9 @@ import {
   chooseBestChromatic,
 } from "../music-theory/pitchUtils";
 import { NoteSpellings } from "../music-theory/types";
-import { Token, TT } from "../parsers/scan2";
+import { Token, TT } from "../parsers/scan";
 import { KeySignature, AccidentalType, KeyRoot, KeyAccidental, Mode, NoteLetter } from "../types/abcjs-ast";
-import { Pitch } from "../types/Expr2";
+import { Pitch } from "../types/Expr";
 
 // Helper to create a basic key signature
 function makeKey(root: KeyRoot, acc: KeyAccidental, mode: Mode, accidentals: Array<{ note: string; acc: AccidentalType }> = []): KeySignature {

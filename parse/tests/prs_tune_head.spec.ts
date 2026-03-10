@@ -1,7 +1,7 @@
 import { assert } from "chai";
-import { prsTuneHdr } from "../parsers/parse2";
-import { TT } from "../parsers/scan2";
-import { Tune_header, Info_line, Comment, Directive } from "../types/Expr2";
+import { prsTuneHdr } from "../parsers/parse";
+import { TT } from "../parsers/scan";
+import { Tune_header, Info_line, Comment, Directive } from "../types/Expr";
 import { createToken, createParseCtx } from "./prs_music_code.spec";
 
 describe("prsTuneHdr", () => {

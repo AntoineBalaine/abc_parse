@@ -4,7 +4,7 @@ import path from "path";
 import { isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
 import { AbcError, AbcErrorReporter } from "../parsers/ErrorReporter";
-import { Scanner } from "../parsers/scan2";
+import { Scanner } from "../parsers/scan";
 
 function formatError(error: AbcError, sourceContent: string): string {
   const lines = sourceContent.split("\n");

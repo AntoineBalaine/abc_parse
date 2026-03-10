@@ -1,6 +1,6 @@
 import { cloneToken, exprIsInRange, getPitchRange, getTokenRange, isChord, isEmptyRhythm, isNote, isRhythmInRange, isToken, isTune_Body } from "../helpers";
 import { ABCContext } from "../parsers/Context";
-import { Token, TT as TokenType } from "../parsers/scan2";
+import { Token, TT as TokenType } from "../parsers/scan";
 import {
   AbsolutePitch,
   Annotation,
@@ -46,10 +46,10 @@ import {
   Visitor,
   Voice_overlay,
   YSPACER,
-} from "../types/Expr2";
+} from "../types/Expr";
 import { Range } from "../types/types";
-import { createRational, divideRational, multiplyRational, IRational } from "./fmt2/rational";
-import { AbcFormatter } from "./Formatter2";
+import { createRational, divideRational, multiplyRational, IRational } from "./fmt/rational";
+import { AbcFormatter } from "./Formatter";
 import { ExpressionCollector } from "./RangeCollector";
 import { RangeVisitor } from "./RangeVisitor";
 
@@ -432,7 +432,7 @@ export class RhythmVisitor implements Visitor<Expr> {
     return expr;
   }
 
-  visitUnary(expr: import("../types/Expr2").Unary): Expr {
+  visitUnary(expr: import("../types/Expr").Unary): Expr {
     return expr;
   }
 

@@ -1,10 +1,10 @@
 import { assert } from "chai";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
-import { ParseCtx, parseChord, parseGraceGroup, parseTuplet, parseInlineField, prsMacroDecl, prsUserSymbolDecl, parseTune } from "../parsers/parse2";
-import { TT, Scanner } from "../parsers/scan2";
-import { Chord, Grace_group, Tuplet, Inline_field, Macro_decl, User_symbol_decl, Note, Pitch } from "../types/Expr2";
-import { AbcFormatter } from "../Visitors/Formatter2";
+import { ParseCtx, parseChord, parseGraceGroup, parseTuplet, parseInlineField, prsMacroDecl, prsUserSymbolDecl, parseTune } from "../parsers/parse";
+import { TT, Scanner } from "../parsers/scan";
+import { Chord, Grace_group, Tuplet, Inline_field, Macro_decl, User_symbol_decl, Note, Pitch } from "../types/Expr";
+import { AbcFormatter } from "../Visitors/Formatter";
 import { createToken, createParseCtx } from "./prs_music_code.spec";
 
 describe("Delimiter Token Preservation - Parser", () => {

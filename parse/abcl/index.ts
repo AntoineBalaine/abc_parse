@@ -7,10 +7,10 @@
  */
 
 import { ABCContext } from "../parsers/Context";
-import { parse } from "../parsers/parse2";
-import { Scanner } from "../parsers/scan2";
-import { File_structure } from "../types/Expr2";
-import { AbcFormatter } from "../Visitors/Formatter2";
+import { parse } from "../parsers/parse";
+import { Scanner } from "../parsers/scan";
+import { File_structure } from "../types/Expr";
+import { AbcFormatter } from "../Visitors/Formatter";
 import { convertFileToDeferred } from "./AbclToAbcConverter";
 
 // Re-export converter functions for direct access

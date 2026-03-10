@@ -10,7 +10,7 @@
  */
 
 import { StaffNomenclature, VxNomenclature } from "../interpreter/InterpreterState";
-import { IRational } from "../Visitors/fmt2/rational";
+import { IRational } from "../Visitors/fmt/rational";
 
 export interface StaffDirectiveData {
   staves: StaffNomenclature[];

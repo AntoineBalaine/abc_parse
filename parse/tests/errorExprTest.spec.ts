@@ -1,9 +1,9 @@
 import { assert } from "chai";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
-import { ParseCtx, parseTune } from "../parsers/parse2";
-import { Scanner } from "../parsers/scan2";
-import { AbcFormatter } from "../Visitors/Formatter2";
+import { ParseCtx, parseTune } from "../parsers/parse";
+import { Scanner } from "../parsers/scan";
+import { AbcFormatter } from "../Visitors/Formatter";
 
 describe("ErrorExpr Preservation in Formatter", () => {
   it("should preserve invalid tokens in the formatter output", () => {

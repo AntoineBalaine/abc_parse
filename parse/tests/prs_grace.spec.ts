@@ -1,7 +1,7 @@
 import { assert } from "chai";
-import { parseGraceGroup } from "../parsers/parse2";
-import { TT } from "../parsers/scan2";
-import { Grace_group, Note } from "../types/Expr2";
+import { parseGraceGroup } from "../parsers/parse";
+import { TT } from "../parsers/scan";
+import { Grace_group, Note } from "../types/Expr";
 import { createToken, createParseCtx } from "./prs_music_code.spec";
 
 describe("parseGraceGroup", () => {

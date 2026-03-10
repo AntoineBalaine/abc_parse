@@ -6,7 +6,7 @@
  */
 
 import { Tune, Decorations, isNoteElement, isMusicLine, isTempoElement, Pitch as ABCJSPitch, VoiceElement } from "../types/abcjs-ast";
-import { IRational, rationalToNumber, isRational } from "../Visitors/fmt2/rational";
+import { IRational, rationalToNumber, isRational } from "../Visitors/fmt/rational";
 import { decorationsToArticulation, extractDynamics, hasFermata } from "./articulation-map";
 import { abcPitchToMidi, accidentalToCents } from "./pitch-utils";
 import { NoteEvent, DynamicsEvent, NoteHead, NoteArticulation, ConversionResult } from "./types";

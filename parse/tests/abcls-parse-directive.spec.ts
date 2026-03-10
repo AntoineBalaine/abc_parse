@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
-import { parse } from "../parsers/parse2";
-import { Scanner } from "../parsers/scan2";
-import { Tune } from "../types/Expr2";
+import { parse } from "../parsers/parse";
+import { Scanner } from "../parsers/scan";
+import { Tune } from "../types/Expr";
 
 describe("%%abcls-parse Directive Parser Tests", () => {
   function parseAbc(source: string): ReturnType<typeof parse> {

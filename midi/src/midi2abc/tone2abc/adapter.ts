@@ -2,7 +2,7 @@
 // timing) into the NoteSequence format expected by tone2abc (seconds-based
 // floating-point timing).
 
-import { rationalToNumber } from "abc-parser/Visitors/fmt2/rational";
+import { rationalToNumber } from "abc-parser/Visitors/fmt/rational";
 import { MNoteSequence } from "../types";
 import { Note, Tempo, TimeSignature, NoteSequence } from "./types";
 

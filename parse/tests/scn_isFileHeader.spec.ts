@@ -1,7 +1,7 @@
 import assert from "assert";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
-import { Ctx, isFileHeader } from "../parsers/scan2";
+import { Ctx, isFileHeader } from "../parsers/scan";
 
 // Helper function to create a Ctx object for testing
 function createCtx(source: string): Ctx {

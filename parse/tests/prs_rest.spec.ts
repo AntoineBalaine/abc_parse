@@ -1,7 +1,7 @@
 import { assert } from "chai";
-import { parseRest } from "../parsers/parse2";
-import { TT } from "../parsers/scan2";
-import { Rest, Rhythm, MultiMeasureRest } from "../types/Expr2";
+import { parseRest } from "../parsers/parse";
+import { TT } from "../parsers/scan";
+import { Rest, Rhythm, MultiMeasureRest } from "../types/Expr";
 import { createToken, createParseCtx } from "./prs_music_code.spec";
 
 describe("parseRest", () => {

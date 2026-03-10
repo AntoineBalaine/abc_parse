@@ -7,9 +7,9 @@
  */
 
 import { ABCContext } from "../parsers/Context";
-import { Token } from "../parsers/scan2";
+import { Token } from "../parsers/scan";
 import { DirectiveSemanticData } from "../types/directive-specs";
-import { InfoLineUnion, Visitor, Expr } from "../types/Expr2";
+import { InfoLineUnion, Visitor, Expr } from "../types/Expr";
 import {
   Directive,
   Annotation,
@@ -51,7 +51,7 @@ import {
   Rational,
   Measurement,
   SystemBreak,
-} from "../types/Expr2";
+} from "../types/Expr";
 import { analyzeDirective } from "./directive-analyzer";
 import { analyzeInfoLine } from "./info-line-analyzer";
 
@@ -342,7 +342,7 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
     return null;
   }
 
-  visitUnary(expr: import("../types/Expr2").Unary): SemanticData | null {
+  visitUnary(expr: import("../types/Expr").Unary): SemanticData | null {
     if (expr.operand instanceof Token) {
       return null;
     }

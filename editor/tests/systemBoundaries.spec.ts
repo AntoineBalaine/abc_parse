@@ -1,7 +1,7 @@
 import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
 import { expect } from "chai";
 import * as fc from "fast-check";
-import { Tune } from "../../parse/types/Expr2";
+import { Tune } from "../../parse/types/Expr";
 import { fromAst } from "../src/csTree/fromAst";
 import { toAst } from "../src/csTree/toAst";
 import { CSNode, TAGS } from "../src/csTree/types";

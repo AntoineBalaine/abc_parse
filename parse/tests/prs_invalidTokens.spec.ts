@@ -1,9 +1,9 @@
 import { assert } from "chai";
 import { describe, it } from "mocha";
 import { ABCContext } from "../parsers/Context";
-import { ParseCtx, parseInvalidToken, parseTune } from "../parsers/parse2";
-import { Scanner, Token, TT } from "../parsers/scan2";
-import { ErrorExpr, Tune } from "../types/Expr2";
+import { ParseCtx, parseInvalidToken, parseTune } from "../parsers/parse";
+import { Scanner, Token, TT } from "../parsers/scan";
+import { ErrorExpr, Tune } from "../types/Expr";
 
 // Helper function to create a token with the given type and lexeme
 function createToken(type: TT, lexeme: string, line: number = 0, position: number = 0): Token {

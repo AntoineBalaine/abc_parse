@@ -1,11 +1,11 @@
 import { expect } from "chai";
 import { isToken } from "../helpers";
 import { ABCContext } from "../parsers/Context";
-import { parse } from "../parsers/parse2";
-import { Scanner, Token, TT } from "../parsers/scan2";
-import { File_header, File_structure, Note, Pitch, Tune, Tune_Body, Tune_header } from "../types/Expr2";
+import { parse } from "../parsers/parse";
+import { Scanner, Token, TT } from "../parsers/scan";
+import { File_header, File_structure, Note, Pitch, Tune, Tune_Body, Tune_header } from "../types/Expr";
 import { Range } from "../types/types";
-import { AbcFormatter, toMidiPitch } from "../Visitors/Formatter2";
+import { AbcFormatter, toMidiPitch } from "../Visitors/Formatter";
 import { ExpressionCollector } from "../Visitors/RangeCollector";
 import { fromMidiPitch, Transposer } from "../Visitors/Transposer";
 

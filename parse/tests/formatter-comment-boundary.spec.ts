@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
-import { Token, TT } from "../parsers/scan2";
-import { Comment, System } from "../types/Expr2";
-import { hasCommentAtBoundary } from "../Visitors/Formatter2";
+import { Token, TT } from "../parsers/scan";
+import { Comment, System } from "../types/Expr";
+import { hasCommentAtBoundary } from "../Visitors/Formatter";
 
 describe("hasCommentAtBoundary", () => {
   function createToken(type: TT, lexeme: string): Token {

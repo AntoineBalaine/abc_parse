@@ -1,4 +1,4 @@
-import { FormatterConfig, DEFAULT_FORMATTER_CONFIG } from "../types/Expr2";
+import { FormatterConfig, DEFAULT_FORMATTER_CONFIG } from "../types/Expr";
 import { AbcErrorReporter } from "./ErrorReporter";
 
 class IdGenerator {

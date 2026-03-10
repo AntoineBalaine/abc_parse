@@ -1,4 +1,4 @@
-import { IRational, createRational, compareRational, rationalToNumber } from "abc-parser/Visitors/fmt2/rational";
+import { IRational, createRational, compareRational, rationalToNumber } from "abc-parser/Visitors/fmt/rational";
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { SMF, MMTrk, MMidiEvent } from "../../src/midi2abc/jzz-types";

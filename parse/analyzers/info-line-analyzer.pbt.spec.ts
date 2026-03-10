@@ -3,7 +3,7 @@ import * as fc from "fast-check";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { KeyInfo, Meter, MeterType } from "../types/abcjs-ast";
-import { IRational } from "../Visitors/fmt2/rational";
+import { IRational } from "../Visitors/fmt/rational";
 import * as Gen from "./info-line-analyzer.pbt.generators";
 import { SemanticAnalyzer } from "./semantic-analyzer";
 

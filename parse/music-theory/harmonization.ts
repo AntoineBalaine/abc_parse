@@ -1,5 +1,5 @@
 import { KeyRoot, KeyAccidental, KeySignature, AccidentalType, Mode } from "../types/abcjs-ast";
-import { Chord, Note } from "../types/Expr2";
+import { Chord, Note } from "../types/Expr";
 import { Spelling, LETTERS, NATURAL_SEMITONES, SHARP_ORDER, FLAT_ORDER, MAJOR_KEY_SHARPS, MODE_FIFTH_OFFSET } from "./constants";
 import { accidentalTypeToSemitones, computeOctaveFromPitch, noteLetterToMidi, accidentalToSemitones, spellPitch } from "./pitchUtils";
 import { ChordQuality, ParsedChord, NoteSpellings } from "./types";
