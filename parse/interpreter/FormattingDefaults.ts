@@ -8,20 +8,14 @@
  * simple ABC files with the abcjs parser.
  */
 
-export interface FontProperties {
-  face: string;
-  size: number;
-  weight: "normal" | "bold";
-  style: "normal" | "italic";
-  decoration: "none" | "underline";
-}
+import { TuneFormatting } from "../types/abcjs-ast";
 
 /**
  * Default formatting properties that match abcjs behavior.
  * Because abcjs initializes all font properties with sensible defaults,
  * we replicate that behavior to ensure consistent output structure.
  */
-export const ABCJS_FORMATTING_DEFAULTS: Record<string, any> = {
+export const ABCJS_FORMATTING_DEFAULTS: TuneFormatting = {
   // Font definitions for various text elements
   composerfont: {
     face: '"Times New Roman"',

@@ -89,7 +89,7 @@ export function isMeterInfo(info: InfoLineUnion): info is { type: "meter"; data:
   return info.type === "meter";
 }
 
-export function isVoiceInfo(info: InfoLineUnion): info is { type: "voice"; data: { id: string; properties: any } } {
+export function isVoiceInfo(info: InfoLineUnion): info is { type: "voice"; data: { id: string; properties: VoiceProperties } } {
   return info.type === "voice";
 }
 

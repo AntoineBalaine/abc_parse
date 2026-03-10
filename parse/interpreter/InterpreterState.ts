@@ -23,13 +23,18 @@ import {
   Mode,
   ClefType,
   MediaType,
+  MeterType,
   VoiceProperties,
   Decorations,
   Staff,
   StaffSystem,
   BracketBracePosition,
   SlurStyle,
+  GraceNote,
+  ChordProperties,
+  TuneFormatting,
 } from "../types/abcjs-ast";
+import { FontSpec } from "../types/directive-specs";
 import { IRational, createRational } from "../Visitors/fmt2/rational";
 import { ABCJS_FORMATTING_DEFAULTS } from "./FormattingDefaults";
 
@@ -48,13 +53,13 @@ export interface ParserConfig {
  */
 export interface FileDefaults {
   noteLength?: IRational;
-  formatting: { [key: string]: any };
+  formatting: TuneFormatting;
   parserConfig: ParserConfig;
   version?: string;
   metaText: Partial<MetaText>;
   // Font registration (setfont directive support)
   // Maps font numbers (1-9) to font specifications, shared across all tunes
-  registeredFonts: Map<number, any>;
+  registeredFonts: Map<number, FontSpec>;
 }
 
 /**
@@ -131,10 +136,10 @@ export interface VoiceState {
   pendingDecorations: Decorations[]; // Decorations to apply to next note
 
   // Grace note tracking (for ornamental notes before main note)
-  pendingGraceNotes: any[]; // Grace notes to apply to next note
+  pendingGraceNotes: GraceNote[]; // Grace notes to apply to next note
 
   // Chord symbol tracking (for guitar chord annotations)
-  pendingChordSymbols: any[]; // Chord symbols to apply to next note
+  pendingChordSymbols: ChordProperties[]; // Chord symbols to apply to next note
 
   // Broken rhythm tracking (for dotted rhythms like < and >)
   nextNoteDurationMultiplier?: IRational; // Multiplier for next note's duration from broken rhythm
@@ -164,7 +169,7 @@ export interface InterpreterState {
 
   // Font registration (setfont directive support)
   // Maps font numbers (1-9) to font specifications for inline font switching
-  registeredFonts: Map<number, any>;
+  registeredFonts: Map<number, FontSpec>;
 
   // Multi-staff tracking
   stavesNomenclatures: StaffNomenclature[]; // Staff configuration (one per staff)
@@ -179,11 +184,12 @@ export interface InterpreterState {
   // Output being constructed
   tune: Tune;
 
-  // Temporary working variables (for beaming, slurs, etc.)
-  potentialStartBeam?: any;
-  potentialEndBeam?: any;
-  openSlurs: any[];
-  inTie: Map<string, any>;
+  // Cross-line state (for carrying beaming, slur, and tie state across system breaks)
+  // These mirror the per-voice fields but track state at the tune level for line cleanup.
+  potentialStartBeam?: NoteElement; // First note of a potential beam group spanning a line break
+  potentialEndBeam?: NoteElement; // Last note of a potential beam group spanning a line break
+  openSlurs: number[][][]; // Open slur IDs: [staffNum][voiceNum][chordPos] = slurId[]
+  inTie: boolean[][]; // Whether a voice is inside a tie: [overlayLevel][voiceIndex] = boolean
 }
 
 /**
@@ -231,8 +237,10 @@ export function createInterpreterState(semanticData: Map<number, SemanticData>, 
     currentVoiceIndex: -1,
 
     tune: createEmptyTune(),
+
+    // Cross-line state (initially empty, populated during line cleanup)
     openSlurs: [],
-    inTie: new Map(),
+    inTie: [],
   };
 }
 
@@ -257,9 +265,8 @@ export function createEmptyTune(): Tune {
     millisecondsPerMeasure: () => 1000,
     getBeatsPerMeasure: () => 4,
     getMeter: function () {
-      // WRONG: meter is NOT the same as BPM.
-      // meter is an info line that needs to be retrieved. let’s leave the implementation empty.
-      return this.metaText.tempo?.bpm ? ({ type: 0 } as any) : ({ type: 0 } as any);
+      // TODO: meter should be retrieved from the parsed M: info line, not from tempo.
+      return { type: MeterType.Specified } as Meter;
     },
     getMeterFraction: () => createRational(4, 4),
     getKeySignature: function () {

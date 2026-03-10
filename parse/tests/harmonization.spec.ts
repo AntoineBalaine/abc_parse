@@ -747,7 +747,6 @@ describe("harmonization", () => {
   });
 
   describe("getArrangements4", () => {
-    const root = mockVoicedNote(8, 60);
     const fifth = mockVoicedNote(5, 67);
     const seventh = mockVoicedNote(7, 71);
 

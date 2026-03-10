@@ -264,20 +264,9 @@ export interface CharRange {
   endChar: number;
 }
 
-export enum FontWeight {
-  Normal = "normal",
-  Bold = "bold",
-}
-
-export enum FontStyle {
-  Normal = "normal",
-  Italic = "italic",
-}
-
-export enum FontDecoration {
-  None = "none",
-  Underline = "underline",
-}
+export type FontWeight = "normal" | "bold";
+export type FontStyle = "normal" | "italic";
+export type FontDecoration = "none" | "underline";
 
 export interface Font {
   face: string;
@@ -339,7 +328,7 @@ export interface RestProperties {
 
 export interface ChordProperties {
   name: string;
-  chord: {
+  chord?: {
     root: string;
     type: string;
   };

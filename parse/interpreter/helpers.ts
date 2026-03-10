@@ -1,5 +1,6 @@
 import { Token } from "../parsers/scan2";
-import { AccidentalType, BarType } from "../types/abcjs-ast";
+import { AccidentalType, BarType, Font } from "../types/abcjs-ast";
+import { FontSpec } from "../types/directive-specs";
 
 export function determineBarType(barTokens: Token[]): BarType {
   const barString = barTokens.map((t) => t.lexeme).join("");
@@ -41,4 +42,21 @@ export function convertAccidentalToType(accidental: string): AccidentalType {
     default:
       return AccidentalType.Natural;
   }
+}
+
+/**
+ * Converts a FontSpec (from the semantic analyzer, all fields optional) to a Font
+ * (for the abcjs Tune output, all fields required). Because FontSpec represents
+ * a partial font specification from a directive (e.g., %%titlefont Times 20),
+ * missing fields are filled from `defaults` if provided, or from hardcoded
+ * fallback values.
+ */
+export function fontSpecToFont(spec: FontSpec, defaults?: Font): Font {
+  return {
+    face: spec.face ?? defaults?.face ?? "",
+    size: spec.size ?? defaults?.size ?? 12,
+    weight: spec.weight ?? defaults?.weight ?? "normal",
+    style: spec.style ?? defaults?.style ?? "normal",
+    decoration: spec.decoration ?? defaults?.decoration ?? "none",
+  };
 }

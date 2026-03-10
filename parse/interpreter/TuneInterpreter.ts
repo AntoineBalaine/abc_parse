@@ -28,12 +28,24 @@ import {
   MeterElement,
   TextLine,
   TextFieldProperties,
-  FontWeight,
-  FontStyle,
-  FontDecoration,
   SlurStyle,
+  GraceNote,
+  ChordProperties,
+  ChordPlacement,
+  Font,
+  TuneFormatting,
 } from "../types/abcjs-ast";
-import { FontSpec, MeasurementSpec, MidiSpec, StaffDirectiveData } from "../types/directive-specs";
+import {
+  FontSpec,
+  MeasurementSpec,
+  MidiSpec,
+  StaffDirectiveData,
+  FontDirectiveType,
+  MeasurementDirectiveType,
+  NumberDirectiveType,
+  BooleanValueDirectiveType,
+  PositionDirectiveType,
+} from "../types/directive-specs";
 import { InfoLineUnion } from "../types/Expr2";
 import {
   Visitor,
@@ -97,7 +109,7 @@ import {
 } from "../types/Expr2";
 import { IRational, createRational, multiplyRational, rationalToNumber } from "../Visitors/fmt2/rational";
 import { RangeVisitor } from "../Visitors/RangeVisitor";
-import { convertAccidentalToType, determineBarType } from "./helpers";
+import { convertAccidentalToType, determineBarType, fontSpecToFont } from "./helpers";
 import {
   InterpreterState,
   FileDefaults,
@@ -681,34 +693,104 @@ function applyInfoLine(semanticData: InfoLineUnion, context: HeaderContext): str
 /**
  * Type predicate: Check if directive is a measurement directive
  */
-function isMeasurementDirective(type: string, data: unknown): data is MeasurementSpec {
-  const measurementDirectives = [
-    "botmargin",
-    "botspace",
-    "composerspace",
-    "indent",
-    "leftmargin",
-    "linesep",
-    "musicspace",
-    "partsspace",
-    "pageheight",
-    "pagewidth",
-    "rightmargin",
-    "stafftopmargin",
-    "staffsep",
-    "staffwidth",
-    "subtitlespace",
-    "sysstaffsep",
-    "systemsep",
-    "textspace",
-    "titlespace",
-    "topmargin",
-    "topspace",
-    "vocalspace",
-    "vskip",
-    "wordsspace",
-  ];
-  return measurementDirectives.includes(type) && typeof data === "object" && data !== null && "value" in data;
+// -- Directive category sets ------------------------------------------------
+// Because we dispatch formatting directives by category, we use sets derived
+// from the subtype unions in directive-specs.ts. The sets contain all font
+// keys that exist in TuneFormatting (excluding barlabelfont, barnumberfont,
+// barnumfont which have no TuneFormatting counterpart).
+const FONT_DIRECTIVES: Set<string> = new Set<FontDirectiveType>([
+  "titlefont",
+  "gchordfont",
+  "composerfont",
+  "subtitlefont",
+  "tempofont",
+  "footerfont",
+  "headerfont",
+  "voicefont",
+  "partsfont",
+  "tripletfont",
+  "vocalfont",
+  "textfont",
+  "annotationfont",
+  "historyfont",
+  "infofont",
+  "measurefont",
+  "repeatfont",
+  "wordsfont",
+  "tablabelfont",
+  "tabnumberfont",
+  "tabgracefont",
+]);
+const MEASUREMENT_DIRECTIVES: Set<string> = new Set<MeasurementDirectiveType>([
+  "botmargin",
+  "botspace",
+  "composerspace",
+  "indent",
+  "leftmargin",
+  "linesep",
+  "musicspace",
+  "partsspace",
+  "pageheight",
+  "pagewidth",
+  "rightmargin",
+  "stafftopmargin",
+  "staffsep",
+  "staffwidth",
+  "subtitlespace",
+  "sysstaffsep",
+  "systemsep",
+  "textspace",
+  "titlespace",
+  "topmargin",
+  "topspace",
+  "vocalspace",
+  "wordsspace",
+  "vskip",
+]);
+const NUMBER_DIRECTIVES: Set<string> = new Set<NumberDirectiveType>([
+  "lineThickness",
+  "voicescale",
+  "scale",
+  "barsperstaff",
+  "measurenb",
+  "barnumbers",
+  "setbarnb",
+  "fontboxpadding",
+  "bar",
+  "bar10",
+]);
+const BOOLEAN_VALUE_DIRECTIVES: Set<string> = new Set<BooleanValueDirectiveType>(["graceslurs", "staffnonote", "printtempo", "partsbox", "freegchord"]);
+const POSITION_DIRECTIVES: Set<string> = new Set<PositionDirectiveType>(["vocal", "dynamic", "gchord", "ornament", "volume"]);
+
+/**
+ * Routes a formatting directive's data to the appropriate TuneFormatting field.
+ * Because the semantic analyzer produces typed data (FontSpec, MeasurementSpec, etc.)
+ * but TuneFormatting expects converted types (Font, number, etc.), we dispatch
+ * by directive category and apply the appropriate conversion.
+ */
+function applyFormattingDirective(formatting: TuneFormatting, directiveName: string, data: unknown): void {
+  if (FONT_DIRECTIVES.has(directiveName)) {
+    const fontKey = directiveName as keyof TuneFormatting & string;
+    const currentFont = formatting[fontKey] as Font | undefined;
+    formatting[fontKey] = fontSpecToFont(data as FontSpec, currentFont) as never;
+  } else if (MEASUREMENT_DIRECTIVES.has(directiveName)) {
+    const key = directiveName as keyof TuneFormatting & string;
+    formatting[key] = (data as MeasurementSpec).value as never;
+  } else if (NUMBER_DIRECTIVES.has(directiveName)) {
+    const key = directiveName as keyof TuneFormatting & string;
+    formatting[key] = data as number as never;
+  } else if (BOOLEAN_VALUE_DIRECTIVES.has(directiveName)) {
+    const key = directiveName as keyof TuneFormatting & string;
+    formatting[key] = data as boolean as never;
+  } else if (POSITION_DIRECTIVES.has(directiveName)) {
+    // Position directives (vocal, dynamic, etc.) are not yet in TuneFormatting
+    const fmt = formatting as Record<string, unknown>;
+    fmt[directiveName] = data;
+  } else {
+    // Fallback for uncategorized directives (percmap, sep, deco, etc.)
+    const fmt = formatting as Record<string, unknown>;
+    fmt[directiveName] = data;
+  }
 }
 
 /**
@@ -802,18 +884,7 @@ function applyDirective(semanticData: SemanticData, directiveName: string, conte
     }
     // TODO: Handle other MIDI commands (transpose, program, etc.)
   } else {
-    const data = semanticData.data;
-    // All other directives go in formatting
-    // Because our semantic analyzer wraps directive values in {type, data} objects,
-    // we need to extract just the data to match abcjs behavior
-
-    if (isMeasurementDirective(semanticData.type, data)) {
-      // MeasurementSpec directives: extract numeric value
-      formatting[directiveName as keyof typeof formatting] = data.value;
-    } else {
-      // Fallback for directives not yet categorized (percmap, etc.)
-      formatting[directiveName as keyof typeof formatting] = data;
-    }
+    applyFormattingDirective(formatting, directiveName, semanticData.data);
   }
 
   return null;
@@ -978,9 +1049,9 @@ function handleTextDirective(
       field.font = {
         face: segment.font.face || "",
         size: segment.font.size || 12,
-        weight: segment.font.weight === "bold" ? FontWeight.Bold : FontWeight.Normal,
-        style: segment.font.style === "italic" ? FontStyle.Italic : FontStyle.Normal,
-        decoration: segment.font.decoration === "underline" ? FontDecoration.Underline : FontDecoration.None,
+        weight: segment.font.weight === "bold" ? "bold" : "normal",
+        style: segment.font.style === "italic" ? "italic" : "normal",
+        decoration: segment.font.decoration === "underline" ? "underline" : "none",
       };
     }
 
@@ -1658,9 +1729,9 @@ export class TuneInterpreter implements Visitor<void> {
     }
 
     // Create chord symbol object matching abcjs format
-    const chordSymbol = {
+    const chordSymbol: ChordProperties = {
       name: chordName,
-      position: "default" as const, // abcjs uses 'default' as the position
+      position: ChordPlacement.Default,
     };
 
     // Store chord symbol to be applied to the next note
@@ -1706,8 +1777,7 @@ export class TuneInterpreter implements Visitor<void> {
     // Get current clef for vertical position calculations
     const clef = voiceState.currentClef;
 
-    // FIXME: why must this be untyped?
-    const graceNotes: any[] = [];
+    const graceNotes: GraceNote[] = [];
     let isFirstNote = true;
 
     for (const item of expr.notes) {
@@ -1723,23 +1793,14 @@ export class TuneInterpreter implements Visitor<void> {
       const octaveOffset = octave ? this.getOctaveOffset(octave) : 0;
       const pitchNumber = basePitch + octaveOffset;
 
-      // FIXME: why must this be untyped?
-      const graceNote: any = {
+      const graceNote: GraceNote = {
         pitch: pitchNumber,
         name: (accidental || "") + noteLetter,
         duration: 0.125, // Grace notes are typically 1/8th notes in abcjs
         verticalPos: this.calculateVerticalPos(pitchNumber, clef),
+        ...(accidental ? { accidental: convertAccidentalToType(accidental) } : {}),
+        ...(isFirstNote && expr.isAccacciatura ? { acciaccatura: true } : {}),
       };
-
-      // Add accidental if present
-      if (accidental) {
-        graceNote.accidental = convertAccidentalToType(accidental);
-      }
-
-      // Mark first note as acciaccatura if the grace group has the slash
-      if (isFirstNote && expr.isAccacciatura) {
-        graceNote.acciaccatura = true;
-      }
 
       graceNotes.push(graceNote);
       isFirstNote = false;
