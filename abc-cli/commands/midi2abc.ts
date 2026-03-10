@@ -18,8 +18,9 @@ export const midi2abcCommand = new Command("midi2abc")
     let midiBytes: Buffer;
     try {
       midiBytes = readFileSync(file);
-    } catch (error: any) {
-      console.error(`Error: could not read file: ${error.message}`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(`Error: could not read file: ${msg}`);
       process.exit(1);
     }
 
@@ -34,8 +35,9 @@ export const midi2abcCommand = new Command("midi2abc")
       } else {
         process.stdout.write(abcString);
       }
-    } catch (error: any) {
-      console.error(`Error: ${error.message}`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(`Error: ${msg}`);
       process.exit(1);
     }
   });

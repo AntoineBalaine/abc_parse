@@ -35,8 +35,9 @@ export const abc2midiCommand = new Command("abc2midi")
       } else {
         process.stdout.write(Buffer.from(midiBytes));
       }
-    } catch (error: any) {
-      console.error(`Error: ${error.message}`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(`Error: ${msg}`);
       process.exit(1);
     }
   });

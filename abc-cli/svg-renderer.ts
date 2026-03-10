@@ -53,13 +53,15 @@ export class SvgRenderError extends Error {
 /**
  * Load svgdom lazily and provide helpful error messages if it fails
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function loadSvgdom(): Promise<{ createHTMLWindow: () => any }> {
   try {
     return await import("svgdom");
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
     throw new SvgRenderError(
       "Failed to load SVG rendering library.",
-      error.message || String(error),
+      msg,
       `This usually means the 'svgdom' package is not installed or failed to build.
 If you installed abcls globally, try reinstalling:
   npm uninstall -g abcls && npm install -g abcls
@@ -76,10 +78,11 @@ If you're running from source:
 async function loadAbcjs(): Promise<typeof import("abcjs")> {
   try {
     return await import("abcjs");
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
     throw new SvgRenderError(
       "Failed to load ABC rendering library.",
-      error.message || String(error),
+      msg,
       `This usually means the 'abcjs' package is not installed.
 If you installed abcls globally, try reinstalling:
   npm uninstall -g abcls && npm install -g abcls
@@ -148,6 +151,7 @@ export async function renderAbcToSvg(abcContent: string): Promise<SvgRenderResul
     const svgElements = container.querySelectorAll("svg");
     const svgs: string[] = [];
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     svgElements.forEach((svgElement: any) => {
       // Because abcjs generates SVG for browser embedding (inline in HTML),
       // it doesn't include the xmlns attribute required for standalone SVG files.
@@ -171,10 +175,11 @@ export async function renderAbcToSvg(abcContent: string): Promise<SvgRenderResul
         warnings: warnings.length > 0 ? warnings : undefined,
       },
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
     throw new SvgRenderError(
       "SVG rendering failed.",
-      error.message || String(error),
+      msg,
       `The ABC content may be valid but contains elements that cannot be rendered
 in a headless environment. Try rendering in a browser instead.`
     );
@@ -183,17 +188,17 @@ in a headless environment. Try rendering in a browser instead.`
     if (originalWindowDescriptor) {
       Object.defineProperty(global, "window", originalWindowDescriptor);
     } else {
-      delete (global as any).window;
+      delete (global as Record<string, unknown>).window;
     }
     if (originalDocumentDescriptor) {
       Object.defineProperty(global, "document", originalDocumentDescriptor);
     } else {
-      delete (global as any).document;
+      delete (global as Record<string, unknown>).document;
     }
     if (originalNavigatorDescriptor) {
       Object.defineProperty(global, "navigator", originalNavigatorDescriptor);
     } else {
-      delete (global as any).navigator;
+      delete (global as Record<string, unknown>).navigator;
     }
   }
 }

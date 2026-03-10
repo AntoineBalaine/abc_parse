@@ -857,10 +857,6 @@ const genVelocity = fc.integer({ min: 1, max: 127 });
 const genTempo = fc.integer({ min: 1, max: 16_777_215 });
 const genProgram = fc.integer({ min: 0, max: 127 });
 
-// MIDI stores the denominator as a power of 2; jzz decodes it for us,
-// so we generate the decoded value directly.
-const genTimeSigDenominator = fc.constantFrom(1, 2, 4, 8, 16, 32, 64);
-
 // Generates a non-overlapping sequence of note-on/off pairs on a single
 // channel and pitch, with strictly increasing ticks.
 // Returns an array of {onTick, offTick} pairs and the channel/pitch used.

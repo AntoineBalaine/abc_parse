@@ -11,8 +11,9 @@ import { ABCContext, Scanner, parse, AbcError } from "abc-parser";
 export function readAbcFile(filePath: string): string {
   try {
     return readFileSync(filePath, "utf-8");
-  } catch (error: any) {
-    console.error(`Error reading file: ${error.message}`);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error(`Error reading file: ${msg}`);
     process.exit(1);
   }
 }
@@ -23,8 +24,9 @@ export function readAbcFile(filePath: string): string {
 export function writeFile(filePath: string, content: string): void {
   try {
     writeFileSync(filePath, content, "utf-8");
-  } catch (error: any) {
-    console.error(`Error writing file: ${error.message}`);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error(`Error writing file: ${msg}`);
     process.exit(1);
   }
 }

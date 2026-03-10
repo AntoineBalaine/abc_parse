@@ -102,11 +102,12 @@ export const renderCommand = new Command("render")
 
       // Output to stdout
       console.log(svgOutput);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof SvgRenderError) {
         console.error(error.toString());
       } else {
-        console.error(`Error rendering SVG: ${error.message}`);
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error(`Error rendering SVG: ${msg}`);
       }
       process.exit(1);
     }
