@@ -32,6 +32,7 @@ import {
   walkAndFilterMulti,
   explosion,
 } from "../src/transforms/explosionTimed";
+import { computeNodeRange, rangesOverlap } from "../src/utils/rangeUtils";
 
 function parseToCSTree(input: string): CSNode {
   const ctx = new ABCContext();
@@ -896,6 +897,51 @@ function createExplosionTestContext(
   };
 }
 
+/**
+ * Builds the cursor the same way the LSP server does: only Note and Chord
+ * nodes whose ranges overlap the selection are included. This matches the
+ * GROUPED_CURSOR_TRANSFORMS path in the server, where TRANSFORM_NODE_TAGS
+ * defaults to [Note, Chord] for the explosion transform.
+ */
+function createLspStyleTestContext(
+  abc: string,
+  startLine: number,
+  startCol: number,
+  endLine: number,
+  endCol: number
+): {
+  selection: Selection;
+  ctx: ABCContext;
+  snapshots: DocumentSnapshots;
+} {
+  const { selection, ctx, snapshots } = createFullTestContext(abc);
+  const editorRange = {
+    start: { line: startLine, character: startCol },
+    end: { line: endLine, character: endCol },
+  };
+  const tags = new Set([TAGS.Note, TAGS.Chord]);
+  const groupedIds = new Set<number>();
+  function collect(node: CSNode): void {
+    if (tags.has(node.tag)) {
+      const nr = computeNodeRange(node);
+      if (nr && rangesOverlap(editorRange, nr)) {
+        groupedIds.add(node.id);
+      }
+    }
+    let child = node.firstChild;
+    while (child) {
+      collect(child);
+      child = child.nextSibling;
+    }
+  }
+  collect(selection.root);
+  return {
+    selection: { root: selection.root, cursors: [groupedIds] },
+    ctx,
+    snapshots,
+  };
+}
+
 describe("explosion CSTree end-to-end", () => {
   describe("deferred style (ctx.tuneLinear = false)", () => {
     it("simple two-note chords exploded into two voices", () => {
@@ -1004,11 +1050,17 @@ describe("explosion CSTree end-to-end", () => {
       // Trailing z = rest for the unselected time after the cursor.
       // The second bar (_BAC) is outside the selection, so the target voices
       // receive a rest-filled placeholder bar (Z) to match the source voice's length.
-      expect(text).to.equal(
-        'X:1\nL:1/4\nK:F\n[V:1] [DGB] "G7" =B "Fm7" B | _BAC\n' +
-          '[V:2]B "G7" =Bz|Z|\n' +
-          '[V:3][DG] "G7" zz|Z|\n'
-      );
+      expect(text).to.equal('X:1\nL:1/4\nK:F\n[V:1] [DGB] "G7" =B "Fm7" B | _BAC\n' + '[V:2]B "G7" =Bz|Z|\n' + '[V:3][DG] "G7" zz|Z|\n');
+    });
+
+    it("LSP-style cursor (Note/Chord only) preserves annotations and whitespace", () => {
+      const abc = 'X:1\nL:1/4\nK:F\n[V:1] [DGB] "G7" =B "Fm7" B | _BAC\n';
+      const { selection, ctx, snapshots } = createLspStyleTestContext(abc, 3, 6, 3, 19);
+
+      const result = explosion(selection, ["2", "3"], ctx, snapshots);
+      const text = serializeSelection(result, ctx);
+
+      expect(text).to.equal('X:1\nL:1/4\nK:F\n[V:1] [DGB] "G7" =B "Fm7" B | _BAC\n' + '[V:2]B "G7" =Bz|Z|\n' + '[V:3][DG] "G7" zz|Z|\n');
     });
   });
 

@@ -1,9 +1,26 @@
 import { ABCContext, TT } from "abc-parser";
 import { remove, appendChild } from "cstree";
-import { createCSNode, CSNode, TAGS } from "../csTree/types";
+import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { Selection } from "../selection";
 import { findRhythmChild } from "./treeUtils";
 import { findNodesById } from "./types";
+
+/**
+ * Finds the first leaf Token descendant of a node and returns its line and position.
+ */
+function firstLeafPosition(node: CSNode): { line: number; position: number } | null {
+  if (isTokenNode(node)) {
+    const data = getTokenData(node);
+    return { line: data.line, position: data.position };
+  }
+  let child = node.firstChild;
+  while (child !== null) {
+    const result = firstLeafPosition(child);
+    if (result !== null) return result;
+    child = child.nextSibling;
+  }
+  return null;
+}
 
 export function toRest(selection: Selection, ctx: ABCContext): Selection {
   for (const cursor of selection.cursors) {
@@ -24,6 +41,12 @@ export function noteToRest(csNode: CSNode, ctx: ABCContext): void {
   const rhythmNode = findRhythmChild(csNode);
   if (rhythmNode) remove(rhythmNode);
 
+  // Capture the original position from the first leaf token before removing
+  // children, so that the rest token inherits it. This is needed by the
+  // explosion transform's trimToSelection, which uses character positions
+  // to determine overlap.
+  const orig = firstLeafPosition(csNode) ?? { line: 0, position: 0 };
+
   // Remove all existing children
   while (csNode.firstChild) remove(csNode.firstChild);
 
@@ -31,8 +54,8 @@ export function noteToRest(csNode: CSNode, ctx: ABCContext): void {
   const restToken = createCSNode(TAGS.Token, ctx.generateId(), {
     lexeme: "z",
     tokenType: TT.REST,
-    line: 0,
-    position: 0,
+    line: orig.line,
+    position: orig.position,
   });
 
   // Rebuild child chain: [REST_TOKEN, Rhythm?]
@@ -59,6 +82,9 @@ export function chordToRest(csNode: CSNode, ctx: ABCContext): void {
     remove(rhythmNode);
   }
 
+  // Capture the original position from the first leaf token before removing children.
+  const orig = firstLeafPosition(csNode) ?? { line: 0, position: 0 };
+
   // Remove all existing children
   while (csNode.firstChild) remove(csNode.firstChild);
 
@@ -66,8 +92,8 @@ export function chordToRest(csNode: CSNode, ctx: ABCContext): void {
   const restToken = createCSNode(TAGS.Token, ctx.generateId(), {
     lexeme: "z",
     tokenType: TT.REST,
-    line: 0,
-    position: 0,
+    line: orig.line,
+    position: orig.position,
   });
 
   // Rebuild child chain: [REST_TOKEN, Rhythm?]

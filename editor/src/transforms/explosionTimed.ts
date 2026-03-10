@@ -1037,27 +1037,17 @@ export function getVoiceIdsFromSelection(selection: Selection, snapshots: Docume
 // --- explodeParts ---
 
 /**
- * Checks whether a node or any of its descendants has an ID in the
- * given set. Because the filtered content is cloned with preserveData,
- * its IDs match the original source tree's IDs, which allows us to
- * cross-check against the cursor selection set.
+ * Trims a list of nodes to only those whose character position overlaps
+ * the cursor range. This keeps all node types (annotations, WS, etc.)
+ * that fall within the selection, not just those whose IDs happen to
+ * be in the cursor set.
  */
-function nodeInSet(node: CSNode, ids: Set<number>): boolean {
-  if (ids.has(node.id)) return true;
-  let child = node.firstChild;
-  while (child !== null) {
-    if (nodeInSet(child, ids)) return true;
-    child = child.nextSibling;
-  }
-  return false;
-}
-
-/**
- * Trims a list of nodes to only those that overlap the cursor selection.
- * Each node is checked against the cursor ID set via nodeInSet.
- */
-function trimToSelection(nodes: CSNode[], cursorIds: Set<number>): CSNode[] {
-  return nodes.filter((n) => nodeInSet(n, cursorIds));
+function trimToSelection(nodes: CSNode[], cursorRange: Range): CSNode[] {
+  return nodes.filter((n) => {
+    const nodeRange = computeNodeRange(n);
+    if (nodeRange === null) return false;
+    return rangesOverlap(nodeRange, cursorRange);
+  });
 }
 
 /**
@@ -1089,7 +1079,6 @@ function explodeParts(
   barMap: barmap.BarMap,
   barRange: BarRange,
   cursorRange: Range,
-  cursorIds: Set<number>,
   rootNode: CSNode,
   ctx: ABCContext,
   outputSelections: Map<string, Set<number>>,
@@ -1153,7 +1142,7 @@ function explodeParts(
 
       // Trim filtered nodes to only those within the cursor selection, then
       // clone with fresh IDs so the original prepared content is not consumed.
-      const selectedNodes = trimToSelection(filteredSeg.nodes, cursorIds);
+      const selectedNodes = trimToSelection(filteredSeg.nodes, cursorRange);
       const replacementNodes = selectedNodes.map((n) => cloneSubtree(n, () => ctx.generateId()));
 
       replaceTimeRangeInBar(targetSlice, timeRange, replacementNodes, ctx, sourceBarDuration);
@@ -1253,7 +1242,7 @@ function explosionLinear(selection: Selection, targetVoiceIds: string[], ctx: AB
 
       const parts = prepareParts(barMap, barRange, Array.from(sourceVoiceIds), targetVoiceIds, currentSystem, ctx);
 
-      explodeParts(parts, barMap, barRange, cursorRange, cursor, currentSystem, ctx, outputSelections, voiceOrder, "linear");
+      explodeParts(parts, barMap, barRange, cursorRange, currentSystem, ctx, outputSelections, voiceOrder, "linear");
 
       currentSystem = nextSystem;
     }
@@ -1312,7 +1301,7 @@ function explosionDeferred(selection: Selection, targetVoiceIds: string[], ctx: 
 
     const parts = prepareParts(barMap, barRange, Array.from(sourceVoiceIds), targetVoiceIds, clonedTuneBody, ctx);
 
-    explodeParts(parts, barMap, barRange, cursorRange, cursor, clonedTuneBody, ctx, outputSelections, voiceOrder, "deferred");
+    explodeParts(parts, barMap, barRange, cursorRange, clonedTuneBody, ctx, outputSelections, voiceOrder, "deferred");
   }
 
   // Replace the original Tune_Body with the modified clone
