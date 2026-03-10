@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { toCSTreeWithContext, findByTag, formatSelection } from "../../editor/tests/helpers";
-import { TAGS, Selection, fromAst } from "editor";
+import { TAGS, Selection, fromAst, isTokenNode, getTokenData } from "editor";
 import { lookupTransform, CONTEXT_AWARE_TRANSFORMS } from "./transformLookup";
 import { collectSurvivingCursorIds } from "./cursorPreservation";
 import { serializeCSTree } from "./csTreeSerializer";
@@ -229,8 +229,8 @@ describe("Transform integration (simulated LSP flow)", () => {
       const { root } = toCSTreeWithContext(source);
       const infoLines = findByTag(root, TAGS.Info_line).filter((n) => {
         const firstChild = n.firstChild;
-        if (!firstChild) return false;
-        return firstChild.data.type === "token" && firstChild.data.lexeme === "V:";
+        if (!firstChild || !isTokenNode(firstChild)) return false;
+        return getTokenData(firstChild).lexeme === "V:";
       });
       const cursorIds = infoLines.map((n) => n.id);
 
@@ -247,7 +247,7 @@ describe("Transform integration (simulated LSP flow)", () => {
       const inlineFields = findByTag(root, TAGS.Inline_field).filter((n) => {
         let child = n.firstChild;
         while (child) {
-          if (child.data.type === "token" && child.data.lexeme === "V:") {
+          if (isTokenNode(child) && getTokenData(child).lexeme === "V:") {
             return true;
           }
           child = child.nextSibling;
