@@ -79,7 +79,7 @@ kak-spec -title "empty results leave selections unchanged" \
     -expect-%val(selections_desc) "1.1,1.12"
 
 # Test: abc-select-rhythm returns rhythm expressions
-# Note: Mock client returns fixed values; edge cases tested in abct2/tests/typeSelectors.spec.ts
+# Note: Mock client returns fixed values; edge cases tested in editor/tests/typeSelectors.spec.ts
 kak-spec -title "abc-select-rhythm returns rhythm positions" \
     -input "X:1\nK:C\nC2 D E/4" \
     -eval %{

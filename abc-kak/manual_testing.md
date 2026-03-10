@@ -25,7 +25,7 @@ This document describes how to manually test the ABC selector integration in Kak
    ```bash
    cd /path/to/abc_parse
    npm install
-   npm run build:parse && npm run build:abct && npm run build:abct2 && npm run build:lsp
+   npm run build:parse && npm run build:editor && npm run build:lsp
    ```
 
 ---

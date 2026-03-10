@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "abcls-midi": "*",
+    "abcls-editor": "*",
     "abcls-parser": "*",
     "abcjs": "^6.5.2",
     "svgdom": "^0.1.23",

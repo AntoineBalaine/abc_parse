@@ -54,7 +54,7 @@ export class PreviewManager {
 
   // Resolve preview server path using require.resolve
   getServerPath(): string {
-    const packagePath = require.resolve("abc-preview-server/package.json");
+    const packagePath = require.resolve("abcls-preview-server/package.json");
     return path.join(path.dirname(packagePath), "dist", "server.js");
   }
 

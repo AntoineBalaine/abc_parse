@@ -5,8 +5,9 @@ This document describes how to test the VSCode transform integration implemented
 ## Prerequisites
 
 1. Build the project:
+
    ```bash
-   npm run build:parse && npm run build:abct && npm run build:abct2 && npm run build:lsp && npm run build:vscode
+   npm run build:parse && npm run build:editor && npm run build:lsp && npm run build:vscode
    ```
 
 2. Open the extension in VSCode:
@@ -18,6 +19,7 @@ This document describes how to test the VSCode transform integration implemented
 ### 1. Basic Transform Commands
 
 Open an ABC file with content like:
+
 ```abc
 X:1
 K:C
@@ -32,6 +34,7 @@ CDE FGA|
 4. Verify the note changes (C becomes D)
 
 Preset transpose commands:
+
 - `ABC: Transpose Octave Up` (Ctrl+Shift+Up) - transposes by 12 semitones
 - `ABC: Transpose Octave Down` (Ctrl+Shift+Down) - transposes by -12 semitones
 - `ABC: Transpose Half Step Up` - transposes by 1 semitone
@@ -117,15 +120,18 @@ Test with multiple independent cursors:
 ### 5. Edge Cases
 
 #### Empty Selection
+
 1. Clear any selection
 2. Run a transform command
 3. Verify the command applies to the entire document or handles gracefully
 
 #### Invalid Input
+
 1. Run `ABC: Transpose` and enter non-numeric input
 2. Verify appropriate error handling
 
 #### Chords
+
 1. Create a chord: `[CEG]2`
 2. Select the chord
 3. Run transpose
@@ -134,13 +140,15 @@ Test with multiple independent cursors:
 ## Running Automated Tests
 
 Run the integration tests:
+
 ```bash
 npx mocha --require tsx 'abc-lsp-server/src/transformIntegration.spec.ts'
 ```
 
-Run all abct2 tests:
+Run all editor tests:
+
 ```bash
-npm run test -w abct2
+npm run test -w editor
 ```
 
 ## Known Limitations
