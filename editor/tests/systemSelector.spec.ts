@@ -36,11 +36,6 @@ function findFirstSystem(root: CSNode): CSNode | undefined {
   return collectAll(root).find((n) => n.tag === TAGS.System);
 }
 
-function findSystemByIndex(root: CSNode, index: number): CSNode | undefined {
-  const systems = findByTag(root, TAGS.System);
-  return systems[index];
-}
-
 describe("systemSelector", () => {
   describe("single system tunes", () => {
     it("should expand single element to entire system", () => {

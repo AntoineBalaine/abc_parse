@@ -2,7 +2,7 @@ import { addRational, createRational, IRational, TT } from "abc-parser";
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";
-import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
+import { CSNode, TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { consolidateRests } from "../src/transforms/consolidateRests";
 import { getNodeRhythm } from "../src/transforms/rhythm";
@@ -19,7 +19,7 @@ function countRests(formatted: string): number {
   return count;
 }
 
-function sumRestDurations(root: any): IRational {
+function sumRestDurations(root: CSNode): IRational {
   const rests = findByTag(root, TAGS.Rest);
   let sum = createRational(0, 1);
   for (const rest of rests) {
@@ -28,7 +28,7 @@ function sumRestDurations(root: any): IRational {
   return sum;
 }
 
-function getRestType(restNode: any): string | null {
+function getRestType(restNode: CSNode): string | null {
   let current = restNode.firstChild;
   while (current !== null) {
     if (isTokenNode(current)) {

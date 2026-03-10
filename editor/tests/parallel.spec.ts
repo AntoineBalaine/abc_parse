@@ -8,7 +8,7 @@ import { ABCContext } from "../../parse/parsers/Context";
 import { Token, TT } from "../../parse/parsers/scan2";
 import { Pitch } from "../../parse/types/Expr2";
 import { fromAst } from "../src/csTree/fromAst";
-import { TAGS } from "../src/csTree/types";
+import { CSNode, TAGS } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { parallelVoicing, parallelDiatonic, parallelChromatic, calcDiatonicOffset, getPitch, getRhythm, getTie } from "../src/transforms/parallel";
 import { formatSelection, findByTag, toCSTreeWithContext } from "./helpers";
@@ -63,8 +63,8 @@ function setupParallelTest(source: string, options: SetupOptions = {}): Parallel
   return { selection, ctx, snapshots, chordPositions };
 }
 
-function findParentByRoot(root: any, target: any): any | null {
-  const stack: any[] = [{ node: root, parent: null }];
+function findParentByRoot(root: CSNode, target: CSNode): CSNode | null {
+  const stack: { node: CSNode; parent: CSNode | null }[] = [{ node: root, parent: null }];
   while (stack.length > 0) {
     const { node, parent } = stack.pop()!;
     if (node === target) return parent;

@@ -16,14 +16,14 @@ import { toPitchComponents } from "../src/transforms/pitchHelpers";
 import { findChildByTag, getNodeLineAndChar } from "../src/transforms/treeUtils";
 import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune } from "./helpers";
 
-function getNoteMidi(noteNode: any): number {
+function getNoteMidi(noteNode: CSNode): number {
   const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
   if (!pitchResult) throw new Error("No pitch child");
   const pitchExpr = toAst(pitchResult) as Pitch;
   return toMidiPitch(pitchExpr);
 }
 
-function getAccidentalLexeme(noteNode: any): string | null {
+function getAccidentalLexeme(noteNode: CSNode): string | null {
   const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
   if (!pitchResult) return null;
   let current = pitchResult.firstChild;

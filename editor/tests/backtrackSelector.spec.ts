@@ -4,11 +4,7 @@ import { describe, it } from "mocha";
 import { TAGS, CSNode } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { selectPreviousChordSymbol } from "../src/selectors/backtrackSelector";
-import { toSelection, findByTag, collectAll } from "./helpers";
-
-function findNodeByTag(root: CSNode, tag: string): CSNode | undefined {
-  return collectAll(root).find((n) => n.tag === tag);
-}
+import { toSelection, findByTag } from "./helpers";
 
 function selectionOnNode(root: CSNode, targetNode: CSNode): Selection {
   return {

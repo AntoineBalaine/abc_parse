@@ -8,7 +8,7 @@ import { describe, it } from "mocha";
 import { ABCContext } from "../../parse/parsers/Context";
 import { TT, Token } from "../../parse/parsers/scan2";
 import { Pitch } from "../../parse/types/Expr2";
-import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
+import { TAGS } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import {
   harmonize,
@@ -20,22 +20,9 @@ import {
   formatNote,
   HarmonizeSnapshot,
 } from "../src/transforms/harmonize";
-import { findChildByTag } from "../src/transforms/treeUtils";
 import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune, genAbcWithChords } from "./helpers";
 
-function getPitchLexeme(noteNode: any): string {
-  const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
-  if (!pitchResult) return "";
-  let result = "";
-  let current = pitchResult.firstChild;
-  while (current !== null) {
-    if (isTokenNode(current)) {
-      result += getTokenData(current).lexeme;
-    }
-    current = current.nextSibling;
-  }
-  return result;
-}
+
 
 function createPitch(ctx: ABCContext, letter: string, alteration?: string, octaveStr?: string): Pitch {
   const alterationToken = alteration ? new Token(TT.ACCIDENTAL, alteration, ctx.generateId()) : undefined;

@@ -2,13 +2,13 @@ import { addRational, createRational, IRational, TT } from "abc-parser";
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";
-import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
+import { CSNode, TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { consolidateTiedNotes } from "../src/transforms/consolidateTiedNotes";
 import { getNodeRhythm } from "../src/transforms/rhythm";
 import { toCSTreeWithContext, formatSelection, findByTag } from "./helpers";
 
-function selectAll(root: any, tags: string[]): Set<number> {
+function selectAll(root: CSNode, tags: string[]): Set<number> {
   const ids = new Set<number>();
   for (const tag of tags) {
     const nodes = findByTag(root, tag);
@@ -19,7 +19,7 @@ function selectAll(root: any, tags: string[]): Set<number> {
   return ids;
 }
 
-function sumNoteDurations(root: any): IRational {
+function sumNoteDurations(root: CSNode): IRational {
   const notes = findByTag(root, TAGS.Note);
   let sum = createRational(0, 1);
   for (const note of notes) {
@@ -28,11 +28,11 @@ function sumNoteDurations(root: any): IRational {
   return sum;
 }
 
-function countByTag(root: any, tag: string): number {
+function countByTag(root: CSNode, tag: string): number {
   return findByTag(root, tag).length;
 }
 
-function hasTie(node: any): boolean {
+function hasTie(node: CSNode): boolean {
   let current = node.firstChild;
   while (current !== null) {
     if (isTokenNode(current) && getTokenData(current).tokenType === TT.TIE) {
@@ -43,7 +43,7 @@ function hasTie(node: any): boolean {
   return false;
 }
 
-function getPitchFromNote(node: any): string | null {
+function getPitchFromNote(node: CSNode): string | null {
   let current = node.firstChild;
   while (current !== null) {
     if (current.tag === TAGS.Pitch) {

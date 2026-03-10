@@ -3,12 +3,12 @@ import { expect } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";
 import { toAst } from "../src/csTree/toAst";
-import { createCSNode, TAGS } from "../src/csTree/types";
+import { CSNode, createCSNode, TAGS } from "../src/csTree/types";
 import { rhythmToRational, rationalToRhythm, extractBrokenToken, getNodeRhythm } from "../src/transforms/rhythm";
 import { findChildByTag } from "../src/transforms/treeUtils";
 import { toCSTreeWithContext, findByTag } from "./helpers";
 
-function formatRhythmCSNode(rhythmResult: any, ctx: ABCContext): string {
+function formatRhythmCSNode(rhythmResult: CSNode, ctx: ABCContext): string {
   const ast = toAst(rhythmResult);
   return new AbcFormatter(ctx).stringify(ast as Expr);
 }

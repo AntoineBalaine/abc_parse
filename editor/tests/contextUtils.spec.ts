@@ -36,7 +36,7 @@ K:C
 
       const { ast, ctx, snapshots } = parseWithContext(input);
 
-      const tune = ast.contents.find((c: any) => c.constructor.name === "Tune");
+      const tune = ast.contents.find((c) => c.constructor.name === "Tune");
       expect(tune).to.not.be.undefined;
 
       const csTree = fromAst(tune!, ctx);
@@ -79,7 +79,7 @@ K:G
 |G A B c|`;
 
       const { ast, ctx, snapshots } = parseWithContext(input);
-      const tune = ast.contents.find((c: any) => c instanceof Tune) as Tune;
+      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
       const csTree = fromAst(tune, ctx);
 
       // Find a note node
@@ -114,7 +114,7 @@ K:C
 |C D E F|`;
 
       const { ast, ctx, snapshots } = parseWithContext(input);
-      const tune = ast.contents.find((c: any) => c instanceof Tune) as Tune;
+      const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
       const csTree = fromAst(tune, ctx);
 
       // Find a note node

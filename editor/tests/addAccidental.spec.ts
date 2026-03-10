@@ -1,13 +1,13 @@
 import { TT } from "abc-parser";
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
+import { CSNode, TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { addSharp, addFlat } from "../src/transforms/addAccidental";
 import { findChildByTag } from "../src/transforms/treeUtils";
 import { toCSTreeWithContext, formatSelection, findByTag } from "./helpers";
 
-function getAccidentalLexeme(noteNode: any): string | null {
+function getAccidentalLexeme(noteNode: CSNode): string | null {
   const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
   if (!pitchResult) return null;
   let current = pitchResult.firstChild;

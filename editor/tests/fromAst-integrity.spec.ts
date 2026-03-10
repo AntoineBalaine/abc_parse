@@ -1,14 +1,14 @@
 import { ABCContext, Scanner, parse, AbcErrorReporter, Tune } from "abc-parser";
 import { expect } from "chai";
-import { verifyIntegrity } from "cstree";
 import { describe, it } from "mocha";
+import { verifyIntegrity } from "../../cstree/src/cstree";
 import { fromAst } from "../src/csTree/fromAst";
 
 function parseAndConvert(source: string) {
   const ctx = new ABCContext(new AbcErrorReporter());
   const tokens = Scanner(source, ctx);
   const ast = parse(tokens, ctx);
-  const tune = ast.contents.find((c: any) => c instanceof Tune) as Tune;
+  const tune = ast.contents.find((c) => c instanceof Tune) as Tune;
   return fromAst(tune, ctx);
 }
 

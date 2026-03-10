@@ -285,12 +285,10 @@ describe("csTree - Delimiter Token Children", () => {
 
     it("isAccacciatura is correctly derived from slash token presence in toAst", () => {
       // Acciaccatura case
-      const root1 = toCSTree("X:1\nK:C\n{/c}D|\n");
       const rt1 = roundtrip("X:1\nK:C\n{/c}D|\n");
       expect(rt1).to.include("{/c}");
 
       // Non-acciaccatura case
-      const root2 = toCSTree("X:1\nK:C\n{ga}C|\n");
       const rt2 = roundtrip("X:1\nK:C\n{ga}C|\n");
       expect(rt2).to.include("{ga}");
       expect(rt2).to.not.include("{/");
@@ -524,8 +522,6 @@ describe("csTree - Info_line value2 reconstruction (Phase 2: toAst)", () => {
     it("CSTree with only token children produces Info_line without value2", () => {
       // Title line has simple token value, no expressions
       const input = "X:1\nT:Simple Title\nK:C\nCDE|\n";
-      const root = toCSTree(input);
-      const ast = toAst(root);
 
       // Roundtrip should work
       const result = roundtrip(input);

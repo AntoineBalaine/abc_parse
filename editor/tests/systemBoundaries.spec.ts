@@ -1,6 +1,7 @@
-import { Scanner, parse, ABCContext } from "abc-parser";
+import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
 import { expect } from "chai";
 import * as fc from "fast-check";
+import { Tune } from "../../parse/types/Expr2";
 import { fromAst } from "../src/csTree/fromAst";
 import { toAst } from "../src/csTree/toAst";
 import { CSNode, TAGS } from "../src/csTree/types";
@@ -93,12 +94,12 @@ CDEF|GABc|`;
       const ctx = new ABCContext();
       const tokens = Scanner(source, ctx);
       const ast = parse(tokens, ctx);
-      const originalSystemCount = ast.contents[0].tune_body?.sequence.length ?? 0;
+      const originalSystemCount = (ast.contents[0] as Tune).tune_body?.sequence.length ?? 0;
 
       const csTree = fromAst(ast, ctx);
       const reconstructed = toAst(csTree);
 
-      const reconstructedSystemCount = (reconstructed as any).contents[0].tune_body?.sequence.length ?? 0;
+      const reconstructedSystemCount = ((reconstructed as File_structure).contents[0] as Tune).tune_body?.sequence.length ?? 0;
       expect(reconstructedSystemCount).to.equal(originalSystemCount);
     });
 
@@ -114,12 +115,12 @@ cdef|`;
       const ctx = new ABCContext();
       const tokens = Scanner(source, ctx);
       const ast = parse(tokens, ctx);
-      const originalSystemCount = ast.contents[0].tune_body?.sequence.length ?? 0;
+      const originalSystemCount = (ast.contents[0] as Tune).tune_body?.sequence.length ?? 0;
 
       const csTree = fromAst(ast, ctx);
       const reconstructed = toAst(csTree);
 
-      const reconstructedSystemCount = (reconstructed as any).contents[0].tune_body?.sequence.length ?? 0;
+      const reconstructedSystemCount = ((reconstructed as File_structure).contents[0] as Tune).tune_body?.sequence.length ?? 0;
       expect(reconstructedSystemCount).to.equal(originalSystemCount);
     });
 
@@ -135,8 +136,8 @@ CDEF|GABc|`;
       const reconstructed = toAst(csTree);
 
       // The first system should have the same elements
-      const originalSystem = ast.contents[0].tune_body?.sequence[0] ?? [];
-      const reconstructedSystem = (reconstructed as any).contents[0].tune_body?.sequence[0] ?? [];
+      const originalSystem = (ast.contents[0] as Tune).tune_body?.sequence[0] ?? [];
+      const reconstructedSystem = ((reconstructed as File_structure).contents[0] as Tune).tune_body?.sequence[0] ?? [];
 
       expect(reconstructedSystem.length).to.equal(originalSystem.length);
     });
@@ -149,7 +150,7 @@ CDEF|GABc|`;
           const ctx = new ABCContext();
           const tokens = Scanner(source, ctx);
           const ast = parse(tokens, ctx);
-          const expectedSystemCount = ast.contents[0].tune_body?.sequence.length ?? 0;
+          const expectedSystemCount = (ast.contents[0] as Tune).tune_body?.sequence.length ?? 0;
 
           const csTree = fromAst(ast, ctx);
           const actualSystemCount = countSystems(csTree);
@@ -166,11 +167,11 @@ CDEF|GABc|`;
           const ctx = new ABCContext();
           const tokens = Scanner(source, ctx);
           const ast = parse(tokens, ctx);
-          const originalCount = ast.contents[0].tune_body?.sequence.length ?? 0;
+          const originalCount = (ast.contents[0] as Tune).tune_body?.sequence.length ?? 0;
 
           const csTree = fromAst(ast, ctx);
           const reconstructed = toAst(csTree);
-          const reconstructedCount = (reconstructed as any).contents[0].tune_body?.sequence.length ?? 0;
+          const reconstructedCount = ((reconstructed as File_structure).contents[0] as Tune).tune_body?.sequence.length ?? 0;
 
           return reconstructedCount === originalCount;
         }),

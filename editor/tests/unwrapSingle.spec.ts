@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";
-import { TAGS } from "../src/csTree/types";
+import { CSNode, TAGS } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { getNodeRhythm } from "../src/transforms/rhythm";
 import { unwrapSingle } from "../src/transforms/unwrapSingle";
@@ -91,7 +91,7 @@ describe("unwrapSingle", () => {
           const { root } = toCSTreeWithContext(source);
           const chords = findByTag(root, TAGS.Chord);
           const singleNoteChords = chords.filter((c) => {
-            const noteChildren: any[] = [];
+            const noteChildren: CSNode[] = [];
             let current = c.firstChild;
             while (current) {
               if (current.tag === TAGS.Note) noteChildren.push(current);

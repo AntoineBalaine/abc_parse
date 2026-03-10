@@ -1,4 +1,4 @@
-import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter, Tune } from "abc-parser";
+import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter, Tune, File_structure } from "abc-parser";
 import { SemanticData } from "abc-parser/analyzers/semantic-analyzer";
 import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
 import { expect } from "chai";
@@ -11,7 +11,7 @@ import { findByTag } from "../src/selectors/treeWalk";
 import { toSlashNotation } from "../src/transforms/toSlashNotation";
 
 function parseWithContext(source: string): {
-  ast: any;
+  ast: File_structure;
   ctx: ABCContext;
   semanticData: Map<number, SemanticData>;
   snapshots: DocumentSnapshots;
@@ -27,7 +27,7 @@ function parseWithContext(source: string): {
   const interpreter = new ContextInterpreter();
   const snapshots = interpreter.interpret(ast, analyzer.data, ctx);
 
-  const tune = ast.contents.find((c: any) => c.constructor.name === "Tune") as Tune;
+  const tune = ast.contents.find((c) => c.constructor.name === "Tune") as Tune;
   const csTree = fromAst(tune, ctx);
 
   return { ast, ctx, semanticData: analyzer.data, snapshots, tune, csTree };

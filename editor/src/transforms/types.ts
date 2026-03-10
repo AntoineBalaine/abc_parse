@@ -2,7 +2,7 @@ import { IRational } from "abc-parser";
 import { CSNode } from "../csTree/types";
 import { Selection } from "../selection";
 
-export type TransformFn = (selection: Selection, ...args: any[]) => Selection;
+export type TransformFn = (selection: Selection, ...args: unknown[]) => Selection;
 
 export type InspectionFn = (selection: Selection) => IRational[];
 

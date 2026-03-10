@@ -34,7 +34,7 @@ import { KeySignature } from "abc-parser/types/abcjs-ast";
 import { remove, replace, getParent, appendChild, insertAfter } from "cstree";
 import { fromAst } from "../csTree/fromAst";
 import { toAst } from "../csTree/toAst";
-import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
+import { createCSNode, CSNode, TAGS } from "../csTree/types";
 import { Selection } from "../selection";
 import { toPitchComponents, NoteLetter } from "./pitchHelpers";
 import { findChildByTag, findTieChild, getNodeLineAndChar } from "./treeUtils";
@@ -308,20 +308,6 @@ export function contextToHarmonizeSnapshot(context: ContextSnapshot, localAccide
     currentChord: context.currentChord ?? null,
     measureAccidentals,
   };
-}
-
-/**
- * Gets the position (character offset) of a CSNode from its first token.
- */
-function getNodePosition(node: CSNode): number {
-  let current: CSNode | null = node;
-  while (current !== null) {
-    if (isTokenNode(current)) {
-      return getTokenData(current).position;
-    }
-    current = current.firstChild;
-  }
-  return 0;
 }
 
 /**

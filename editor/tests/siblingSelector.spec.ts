@@ -3,14 +3,13 @@ import * as fc from "fast-check";
 import { describe, it } from "mocha";
 import { TAGS, isBarLine } from "../src/csTree/types";
 import { selectSiblingsAfter } from "../src/selectors/siblingSelector";
-import { toCSTree, findByTag, collectAll, genAbcTune } from "./helpers";
+import { toCSTree, findByTag, genAbcTune } from "./helpers";
 
 describe("siblingSelector", () => {
   describe("examples", () => {
     it("predicate () => true collects all siblings after the selected node", () => {
       const root = toCSTree("X:1\nK:C\nC D E|\n");
       // The Tune_Body has children: Note(C), space, Note(D), space, Note(E), BarLine, \n
-      const bodies = findByTag(root, TAGS.Tune_Body);
       const firstNote = findByTag(root, TAGS.Note)[0];
       const sel = { root, cursors: [new Set([firstNote.id])] };
       const result = selectSiblingsAfter(sel, () => true);
@@ -30,7 +29,6 @@ describe("siblingSelector", () => {
     it("selected node has no nextSibling returns empty cursors", () => {
       const root = toCSTree("X:1\nK:C\nC|\n");
       // The last child of Tune_Body is the \n token
-      const allNodes = collectAll(root);
       // Find the last sibling in Tune_Body
       const body = findByTag(root, TAGS.Tune_Body)[0];
       let last = body.firstChild;

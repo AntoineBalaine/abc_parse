@@ -11,7 +11,7 @@ import { describe, it } from "mocha";
 import * as ParserGen from "../../parse/tests/prs_pbt.generators.spec";
 import { fromAst } from "../src/csTree/fromAst";
 import { toAst } from "../src/csTree/toAst";
-import { TAGS } from "../src/csTree/types";
+import { CSNode, TAGS } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { transpose } from "../src/transforms/transpose";
 import { findChildByTag } from "../src/transforms/treeUtils";
@@ -224,7 +224,7 @@ function buildPitchContext(key: KeySignature, measureAcc: Map<string, number>): 
 // Helper functions
 // ============================================================================
 
-function getNoteMidi(noteNode: any): number {
+function getNoteMidi(noteNode: CSNode): number {
   const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
   if (!pitchResult) throw new Error("No pitch child");
   const pitchExpr = toAst(pitchResult) as Pitch;
@@ -235,7 +235,7 @@ function getNoteMidi(noteNode: any): number {
  * Creates a CSTree with context and DocumentSnapshots for context-aware testing.
  * Enables snapshotAccidentals to track measure accidentals.
  */
-function toCSTreeWithSnapshots(source: string): { root: any; ctx: ABCContext; snapshots: DocumentSnapshots } {
+function toCSTreeWithSnapshots(source: string): { root: CSNode; ctx: ABCContext; snapshots: DocumentSnapshots } {
   const ctx = new ABCContext();
   const tokens = Scanner(source, ctx);
   const ast = parse(tokens, ctx);
@@ -255,7 +255,7 @@ function toCSTreeWithSnapshots(source: string): { root: any; ctx: ABCContext; sn
 /**
  * Gets the accidental string from a note node (e.g., "^", "_", "=", or "").
  */
-function getNoteAccidental(noteNode: any): string {
+function getNoteAccidental(noteNode: CSNode): string {
   const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
   if (!pitchResult) return "";
   const pitchExpr = toAst(pitchResult) as Pitch;
@@ -265,7 +265,7 @@ function getNoteAccidental(noteNode: any): string {
 /**
  * Gets the note letter from a note node (preserving case).
  */
-function getNoteLetter(noteNode: any): string {
+function getNoteLetter(noteNode: CSNode): string {
   const pitchResult = findChildByTag(noteNode, TAGS.Pitch);
   if (!pitchResult) return "";
   const pitchExpr = toAst(pitchResult) as Pitch;

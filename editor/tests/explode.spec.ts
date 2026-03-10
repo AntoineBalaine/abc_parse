@@ -192,7 +192,6 @@ describe("explode", () => {
 
       explode(sel, 2, ctx);
 
-      const result = formatSelection(sel);
       // Part 0 should have grace group: {g}E
       // Part 1 should not have grace group: C
       const graceGroupsAfter = findByTag(root, TAGS.Grace_group);
@@ -208,7 +207,6 @@ describe("explode", () => {
 
       explode(sel, 2, ctx);
 
-      const result = formatSelection(sel);
       // Part 0: {g}A E (grace kept, standalone note kept, top chord note)
       // Part 1: z C (grace removed, note became rest, bottom chord note)
       const graceGroupsAfter = findByTag(root, TAGS.Grace_group);
@@ -240,7 +238,6 @@ describe("explode", () => {
 
       explode(sel, 2, ctx);
 
-      const result = formatSelection(sel);
       // Decorations should be preserved in all parts
       const decorations = findByTag(root, TAGS.Decoration);
       // Original + part 0 + part 1 = 3 decorations
@@ -372,7 +369,6 @@ describe("explode", () => {
 
       // Get notes/rests from the tree - after the original chord
       const allNotes = findByTag(root, TAGS.Note);
-      const allRests = findByTag(root, TAGS.Rest);
 
       // Find which notes are in each cursor
       const cursor0Ids = result.cursors[0];
@@ -419,17 +415,14 @@ describe("explode", () => {
             const sel: Selection = { root, cursors: [new Set([chords[0].id])] };
 
             // Count original rhythm-bearing elements
-            const originalChordCount = findByTag(root, TAGS.Chord).length;
             const originalNoteCount = findByTag(root, TAGS.Note).filter((n) => !findByTag(root, TAGS.Chord).some((c) => isDescendant(c, n))).length;
             const originalRestCount = findByTag(root, TAGS.Rest).length;
-            const originalTotal = originalChordCount + originalNoteCount + originalRestCount;
 
             explode(sel, partCount, ctx);
 
             // After explosion, we should have:
             // - original elements (1 chord)
             // - partCount new elements (each is either a note or rest)
-            const afterChordCount = findByTag(root, TAGS.Chord).length;
             const afterNoteCount = findByTag(root, TAGS.Note).filter((n) => !findByTag(root, TAGS.Chord).some((c) => isDescendant(c, n))).length;
             const afterRestCount = findByTag(root, TAGS.Rest).length;
 

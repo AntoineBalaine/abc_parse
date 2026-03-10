@@ -49,15 +49,6 @@ interface BrokenRhythmState {
 }
 
 /**
- * A measure segment within a region, containing nodes between barlines.
- */
-interface MeasureSegment {
-  nodes: CSNode[];
-  startIndex: number;
-  endIndex: number;
-}
-
-/**
  * A region of nodes that share the same context snapshot.
  * Extends Region with a snapshot reference.
  */
