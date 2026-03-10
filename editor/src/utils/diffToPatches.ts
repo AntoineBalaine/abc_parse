@@ -1,5 +1,5 @@
 /**
- * Character-level diff algorithm for ABCT patch generation
+ * Character-level diff algorithm for editor patch generation
  *
  * Uses LCS (Longest Common Subsequence) to find character differences
  * and converts them to line:column positions for patch expressions.

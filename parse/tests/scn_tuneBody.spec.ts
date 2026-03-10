@@ -33,12 +33,6 @@ describe("scanTuneBody", () => {
     const ctx = new ABCContext();
     const tokens = Scanner(input, ctx);
 
-    // Debug: Print out all tokens for inspection
-    console.log("Actual tokens generated:");
-    tokens.forEach((token, i) => {
-      console.log(`${i}: ${TT[token.type]} - "${token.lexeme}"`);
-    });
-
     // Expected tokens in order with both type and lexeme
     const expectedTokens = [
       // First tune

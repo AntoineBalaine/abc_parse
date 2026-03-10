@@ -42,32 +42,6 @@ describe("processBar function", () => {
     return durations;
   }
 
-  // Helper function to log debug information
-  function logDebugInfo(
-    message: string,
-    timeEvents?: Array<Note | Beam | MultiMeasureRest | Chord | Rest | Token>,
-    expectedDurations?: IRational[],
-    timeMap?: Map<string, number>
-  ): void {
-    console.log("===================================");
-    console.log("ERROR DETECTED - Debug information:");
-    console.log(message);
-
-    if (timeEvents) {
-      console.log(
-        "Expected time events:",
-        timeEvents.map((e) => e.constructor.name)
-      );
-    }
-
-    if (expectedDurations) {
-      console.log("Expected durations:", expectedDurations);
-    }
-
-    if (timeMap) {
-      console.log("Actual time map entries:", Array.from(timeMap.entries()));
-    }
-  }
 
   // Helper function to verify time map
   function verifyTimeMap(
@@ -77,7 +51,6 @@ describe("processBar function", () => {
   ): boolean {
     // Check that the time map has the correct number of entries
     if (timeMap.size !== timeEvents.length) {
-      logDebugInfo(`expected ${timeEvents.length}, got ${timeMap.size}`, timeEvents, expectedDurations, timeMap);
       return false;
     }
 
@@ -90,12 +63,10 @@ describe("processBar function", () => {
 
       // Check that the event is in the map at the correct time
       if (!timeMap.has(timeKey)) {
-        logDebugInfo(`Time map should have an entry at time ${timeKey}`, timeEvents, expectedDurations, timeMap);
         return false;
       }
 
       if (timeMap.get(timeKey) !== eventId) {
-        logDebugInfo(`Time map should have event ${eventId} at time ${timeKey}, but got ${timeMap.get(timeKey)}`, timeEvents, expectedDurations, timeMap);
         return false;
       }
 
@@ -240,19 +211,16 @@ describe("processBar function", () => {
 
           // Check that the time map has one entry
           if (result.map.size !== 1) {
-            logDebugInfo("Time map should have one entry for the multi-measure rest", [mmRest], [], result.map);
             return false;
           }
 
           // Check that the multi-measure rest is in the map at time 0
           const zeroKey = rationalToString(createRational(0, 1));
           if (!result.map.has(zeroKey)) {
-            logDebugInfo("Time map should have an entry at time 0", [mmRest], [], result.map);
             return false;
           }
 
           if (result.map.get(zeroKey) !== getNodeId(mmRest)) {
-            logDebugInfo(`Time map should have the multi-measure rest at time 0, but got ${result.map.get(zeroKey)}`, [mmRest], [], result.map);
             return false;
           }
 
@@ -396,7 +364,6 @@ describe("processBar function", () => {
 
       // Check that the time map is empty
       if (result.map.size !== 0) {
-        logDebugInfo("Time map should be empty for an empty bar", [], [], result.map);
         return false;
       }
       return true;
@@ -412,7 +379,6 @@ describe("processBar function", () => {
 
       // Check that the time map is empty
       if (result.map.size !== 0) {
-        logDebugInfo("Time map should be empty for a bar with only non-time events", bar, [], result.map);
         return false;
       }
       return true;
@@ -436,12 +402,10 @@ describe("processBar function", () => {
 
       // Verify the rhythm is set correctly
       if (!noteWithBrokenRhythm.rhythm || !noteWithBrokenRhythm.rhythm.broken) {
-        logDebugInfo("Rhythm or broken rhythm is not set correctly", [noteWithBrokenRhythm], [], undefined);
         return false;
       }
 
       if (noteWithBrokenRhythm.rhythm.broken.lexeme !== ">") {
-        logDebugInfo(`Expected broken rhythm '>', got '${noteWithBrokenRhythm.rhythm.broken.lexeme}'`, [noteWithBrokenRhythm], [], undefined);
         return false;
       }
 
@@ -463,40 +427,33 @@ describe("processBar function", () => {
 
       // The broken rhythm should update the context
       if (!context.brokenRhythmPending) {
-        logDebugInfo("brokenRhythmPending should be set after calculating duration for a note with broken rhythm", bar, [], result.map);
         return false;
       }
 
       if (!context.brokenRhythmPending.isGreater) {
-        logDebugInfo("brokenRhythmPending.isGreater should be true for '>' broken rhythm", bar, [], result.map);
         return false;
       }
 
       // Verify the time map
       if (result.map.size !== 2) {
-        logDebugInfo(`Expected time map size 2, got ${result.map.size}`, bar, [], result.map);
         return false;
       }
 
       const time0 = rationalToString(createRational(0, 1));
       if (!result.map.has(time0)) {
-        logDebugInfo(`Time map should have an entry at time ${time0}`, bar, [], result.map);
         return false;
       }
 
       if (result.map.get(time0) !== getNodeId(noteWithBrokenRhythm)) {
-        logDebugInfo(`Time map should have note with broken rhythm at time ${time0}, but got ${result.map.get(time0)}`, bar, [], result.map);
         return false;
       }
 
       const time1 = rationalToString(duration1);
       if (!result.map.has(time1)) {
-        logDebugInfo(`Time map should have an entry at time ${time1}`, bar, [], result.map);
         return false;
       }
 
       if (result.map.get(time1) !== getNodeId(regularNote)) {
-        logDebugInfo(`Time map should have regular note at time ${time1}, but got ${result.map.get(time1)}`, bar, [], result.map);
         return false;
       }
 
@@ -596,77 +553,64 @@ describe("processBar function", () => {
       // First chord should have duration 0.5 (due to broken rhythm '<')
       const duration1 = calculateDuration(chord1, context);
       if (rationalToNumber(duration1) !== 0.5) {
-        logDebugInfo(`Expected duration 0.5, got ${rationalToNumber(duration1)}`, chords, [], result.map);
         return false;
       }
 
       // Context should now have brokenRhythmPending
       if (!context.brokenRhythmPending) {
-        logDebugInfo("brokenRhythmPending should be set after calculating duration for a chord with broken rhythm", chords, [], result.map);
         return false;
       }
 
       if (context.brokenRhythmPending.isGreater) {
-        logDebugInfo("brokenRhythmPending.isGreater should be false for '<' broken rhythm", chords, [], result.map);
         return false;
       }
 
       // Second chord should have duration 1.5 (1/1 * 1.5 due to preceding broken rhythm)
       const duration2 = calculateDuration(chord2, context);
       if (rationalToNumber(duration2) !== 1.5) {
-        logDebugInfo(`Expected duration 1.5, got ${rationalToNumber(duration2)}`, chords, [], result.map);
         return false;
       }
 
       // Context should no longer have brokenRhythmPending
       if (context.brokenRhythmPending) {
-        logDebugInfo("brokenRhythmPending should be undefined after calculating duration for the second chord", chords, [], result.map);
         return false;
       }
 
       // Third chord should have normal duration 1
       const duration3 = calculateDuration(chord3, context);
       if (rationalToNumber(duration3) !== 1) {
-        logDebugInfo(`Expected duration 1, got ${rationalToNumber(duration3)}`, chords, [], result.map);
         return false;
       }
 
       // Verify the time map
       if (result.map.size !== 3) {
-        logDebugInfo(`Expected time map size 3, got ${result.map.size}`, chords, [], result.map);
         return false;
       }
 
       const time0 = rationalToString(createRational(0, 1));
       if (!result.map.has(time0)) {
-        logDebugInfo(`Time map should have an entry at time ${time0}`, chords, [], result.map);
         return false;
       }
 
       if (result.map.get(time0) !== getNodeId(chord1)) {
-        logDebugInfo(`Time map should have first chord at time ${time0}, but got ${result.map.get(time0)}`, chords, [], result.map);
         return false;
       }
 
       const time05 = rationalToString(createRational(1, 2));
       if (!result.map.has(time05)) {
-        logDebugInfo(`Time map should have an entry at time ${time05}`, chords, [], result.map);
         return false;
       }
 
       if (result.map.get(time05) !== getNodeId(chord2)) {
-        logDebugInfo(`Time map should have second chord at time ${time05}, but got ${result.map.get(time05)}`, chords, [], result.map);
         return false;
       }
 
       const time2 = rationalToString(createRational(2, 1));
       if (!result.map.has(time2)) {
-        logDebugInfo(`Time map should have an entry at time ${time2}`, chords, [], result.map);
         return false;
       }
 
       if (result.map.get(time2) !== getNodeId(chord3)) {
-        logDebugInfo(`Time map should have third chord at time ${time2}, but got ${result.map.get(time2)}`, chords, [], result.map);
         return false;
       }
 

@@ -16,7 +16,6 @@ describe("Parser Property Tests", () => {
           prsBody(new ParseCtx(sequence.tokens, testContext));
           return true;
         } catch (e) {
-          console.error("Parsing crashed with error:", e);
           return false;
         }
       }),
@@ -38,7 +37,6 @@ describe("Parser Property Tests", () => {
 
           // Check if we got a valid tune body
           if (!tuneBody || !tuneBody.sequence || tuneBody.sequence.length === 0) {
-            console.log("Failed to parse tokens:", tokens.map((t) => `${TT[t.type]}:${t.lexeme}`).join(", "));
             return false;
           }
 
@@ -49,11 +47,6 @@ describe("Parser Property Tests", () => {
           const formatter = new AbcFormatter(testContext);
           const originalStr = formatter.stringify(gen.expr);
           const parsedStr = formatter.stringify(parsedExpr);
-
-          if (originalStr !== parsedStr) {
-            console.log("Original:", originalStr);
-            console.log("Parsed:", parsedStr);
-          }
 
           return originalStr === parsedStr;
         }),
@@ -110,14 +103,6 @@ describe("Parser Property Tests", () => {
           const formatter = new AbcFormatter(testContext);
           const originalStr = formatter.stringify(gen.expr);
           const parsedStr = formatter.stringify(parsedExpr);
-          if (originalStr !== parsedStr) {
-            console.log("====================================");
-            console.log("Original tokens:");
-            console.log("", originalStr);
-            console.log(tokens);
-            console.log("Original expressions:");
-            console.log(gen.expr);
-          }
           return originalStr === parsedStr;
         }),
         { numRuns: 50 }
@@ -164,7 +149,6 @@ describe("Parser Property Tests", () => {
 
           // Check if we got a valid tune body
           if (!tuneBody || !tuneBody.sequence || tuneBody.sequence.length === 0) {
-            console.log("Failed to parse tokens:", tokens.map((t) => `${TT[t.type]}:${t.lexeme}`).join(", "));
             return false;
           }
 
@@ -177,12 +161,6 @@ describe("Parser Property Tests", () => {
           // Convert all expressions to strings and join them
           const originalStr = sequence.exprs.map((expr) => formatter.stringify(expr)).join("");
           const parsedStr = parsedExprs.map((expr) => formatter.stringify(expr)).join("");
-
-          if (originalStr !== parsedStr) {
-            console.log("Original:", originalStr);
-            console.log("Parsed:", parsedStr);
-            console.log("Original tokens:", sequence.tokens.map((t) => `${TT[t.type]}:${t.lexeme}`).join(", "));
-          }
 
           return originalStr === parsedStr;
         }),
@@ -200,7 +178,6 @@ describe("Parser Property Tests", () => {
 
           // Check if we got a valid tune body
           if (!tuneBody || !tuneBody.sequence || tuneBody.sequence.length === 0) {
-            console.log("Failed to parse macro scenario tokens:", scenario.tokens.map((t) => `${TT[t.type]}:${t.lexeme}`).join(", "));
             return false;
           }
 
@@ -213,13 +190,6 @@ describe("Parser Property Tests", () => {
           // Convert all expressions to strings and join them
           const originalStr = scenario.exprs.map((expr) => formatter.stringify(expr)).join("");
           const parsedStr = parsedExprs.map((expr) => formatter.stringify(expr)).join("");
-
-          if (originalStr !== parsedStr) {
-            console.log("Macro scenario mismatch:");
-            console.log("Original:", originalStr);
-            console.log("Parsed:", parsedStr);
-            console.log("Original tokens:", scenario.tokens.map((t) => `${TT[t.type]}:${t.lexeme}`).join(", "));
-          }
 
           return originalStr === parsedStr;
         }),

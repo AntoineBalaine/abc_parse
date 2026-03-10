@@ -71,12 +71,9 @@
   "scripts": {
     "build": "tsc",
     "start": "tsc && node ./dist/Abc.js",
-    "start_debug": "tsc && node ./dist/Abc.js /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/all/blues_my_naughty_sweetie_gives.abc",
-    "start_debug2": "tsc && node ./dist/Abc.js /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/visual/triplet-alignment-overlay.abc",
     "test": "mocha -r ts-node/register '**/*.spec.ts'",
     "test:scan2": "mocha -r ts-node/register 'tests/scan2_*.spec.ts'",
     "test:coverage": "nyc npm run test",
-    "file": "ts-node Abc.ts /home/antoine/Documents/Experiments/Abcjs/abcjs-workshop-docker/server/test-data/abc/all/lazy_river.abc",
     "lint": "eslint . --ext ts",
     "lint:fix": "eslint . --ext ts --fix",
     "parse-folder": "ts-node tests/parseFolder.ts",

@@ -1017,13 +1017,7 @@ K:C
           // System detection now happens in the parser via buildLinearSystems
           const actualSystemCount = tune.tune_body!.sequence.length;
 
-          if (actualSystemCount !== expectedSystemCount) {
-            console.log("ABC:", abc);
-            console.log("Expected systems:", expectedSystemCount);
-            console.log("Actual systems:", actualSystemCount);
-            return false;
-          }
-          return true;
+          return actualSystemCount === expectedSystemCount;
         }),
         { numRuns: 100, verbose: true }
       );
@@ -1142,13 +1136,7 @@ K:C
           // System detection now happens in the parser via buildLinearSystems
           const actualSystemCount = tune.tune_body!.sequence.length;
 
-          if (actualSystemCount !== expectedSystemCount) {
-            console.log("ABC:", abc);
-            console.log("Expected:", expectedSystemCount, "Actual:", actualSystemCount);
-            console.log("Systems with missing voices:", systemsWithMissingVoices);
-            return false;
-          }
-          return true;
+          return actualSystemCount === expectedSystemCount;
         }),
         { numRuns: 100 }
       );

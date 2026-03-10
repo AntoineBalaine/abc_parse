@@ -21,7 +21,6 @@ export const genDirectiveExpr = ScannerGen.genStylesheetDirective.map((dir) => {
 
 // Info line expression generator
 export const genInfoLineExpr = ScannerGen.genInfoLine2.map((tokens) => {
-  // FIXME: urgent
   // tokens array: [eol, header, content, eol]
   return new Info_line(sharedContext.generateId(), tokens);
 });

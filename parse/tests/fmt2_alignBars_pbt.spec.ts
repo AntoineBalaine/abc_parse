@@ -113,15 +113,6 @@ describe("alignBars function - Property-Based Tests", () => {
         if (acc === null) return null;
         if (acc === -1) return loc.str.length;
         if (acc !== loc.str.length) {
-          console.log("==== ERR ====");
-          console.log("OR:");
-          console.log(orig_str);
-          console.log("NU:");
-          console.log(alignedVoiceSplits.map((v) => v.content.map((e) => stringifyVisitor.stringify(e)).join("")).join("\n"));
-          if (clone) {
-            alignBars(clone.voiceSplits, clone.barAlignment, stringifyVisitor, ctx);
-          }
-
           return null;
         }
         return acc;
@@ -133,29 +124,6 @@ describe("alignBars function - Property-Based Tests", () => {
     return true;
   }
 
-  /**
-   * Helper function to log debug information
-   */
-  function logDebugInfo(message: string, voiceSplits?: VoiceSplit[], barAlignment?: BarAlignment): void {
-    console.log("===================================");
-    console.log("ERROR DETECTED - Debug information:");
-    console.log(message);
-
-    if (voiceSplits) {
-      console.log(
-        "Voice splits:",
-        voiceSplits.map((vs) => ({
-          type: vs.type,
-          contentLength: vs.content.length,
-        }))
-      );
-    }
-
-    if (barAlignment) {
-      console.log("Start nodes:", Array.from(barAlignment.startNodes.entries()));
-      console.log("Time points:", Array.from(barAlignment.map.entries()));
-    }
-  }
 
   describe("basic alignment", () => {
     // Add a simple, controlled test case first
@@ -262,9 +230,6 @@ describe("alignBars function - Property-Based Tests", () => {
             // 6. Verify alignment
             const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor, orig_str, clone);
 
-            if (!result) {
-              logDebugInfo("Alignment verification failed", voiceSplits, barAlignment);
-            }
 
             return result;
           }
@@ -512,9 +477,6 @@ describe("alignBars function - Property-Based Tests", () => {
             // 6. Verify alignment
             const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor, orig_str, clone);
 
-            if (!result) {
-              logDebugInfo("Complex alignment verification failed", voiceSplits, barAlignment);
-            }
 
             return result;
           }
@@ -631,9 +593,6 @@ describe("alignBars function - Property-Based Tests", () => {
             // 6. Verify alignment
             const result = verifyAlignment(alignedVoiceSplits, barAlignment, stringifyVisitor, orig_str, clone);
 
-            if (!result) {
-              logDebugInfo("Mixed elements alignment verification failed", voiceSplits, barAlignment);
-            }
 
             return result;
           }

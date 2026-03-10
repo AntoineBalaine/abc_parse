@@ -94,12 +94,6 @@ describe("Scanner Property Tests", () => {
         const sectionBreaks = tokens.filter((t) => t.type === TT.SCT_BRK);
         const inputBreaks = (input.match(/\n\n/g) || []).length;
 
-        if (sectionBreaks.length !== inputBreaks) {
-          console.log("mis-structured tune:", {
-            input,
-            scanned: tokens,
-          });
-        }
         return sectionBreaks.length === inputBreaks;
       }),
       { verbose: true } // Enable verbose mode
@@ -318,12 +312,6 @@ export function createRoundTripPredicate(originalTokens: Array<Token>): boolean 
   const normalizedRescanned = rescannedTokens.filter((t) => t.type !== TT.EOF && t.type !== TT.DISCARD).map(normalizeToken);
 
   if (normalizedOriginal.length !== normalizedRescanned.length) {
-    compareTokenArrays(trimmedTokens, rescannedTokens, input);
-    console.log("Token count mismatch:", {
-      input,
-      original: normalizedOriginal,
-      rescanned: normalizedRescanned,
-    });
     return false;
   }
 
@@ -332,87 +320,6 @@ export function createRoundTripPredicate(originalTokens: Array<Token>): boolean 
     return orig.type === rescanned.type && orig.lexeme === rescanned.lexeme;
   });
 
-  if (!isEqual) {
-    compareTokenArrays(trimmedTokens, rescannedTokens, input);
-    console.log("Token mismatch:", {
-      input,
-      original: normalizedOriginal,
-      rescanned: normalizedRescanned,
-    });
-  }
-
   return isEqual;
 }
 
-/**
- * Compares two arrays of tokens and returns true if they match.
- * Logs detailed diagnostic information for mismatches.
- */
-function compareTokenArrays(
-  originalTokens: Array<{ type: number; lexeme: string }>,
-  rescannedTokens: Array<{ type: number; lexeme: string }>,
-  input: string
-): boolean {
-  // Skip position-related properties in comparison
-  const normalizeToken = (token: { type: number; lexeme: string }) => ({
-    type: token.type,
-    lexeme: token.lexeme,
-  });
-
-  // Compare token sequences
-  const normalizedOriginal = originalTokens.map(normalizeToken);
-  const normalizedRescanned = rescannedTokens
-    .filter((t) => t.type !== TT.EOF) // Exclude EOF token
-    .map(normalizeToken);
-
-  if (normalizedOriginal.length !== normalizedRescanned.length) {
-    console.log("Token count mismatch:", {
-      input,
-      original: normalizedOriginal.map((t) => `${TT[t.type]}:${t.lexeme}`),
-      rescanned: normalizedRescanned.map((t) => `${TT[t.type]}:${t.lexeme}`),
-      originalCount: normalizedOriginal.length,
-      rescannedCount: normalizedRescanned.length,
-    });
-    return false;
-  }
-
-  // Find the first token that doesn't match
-  let firstMismatchIndex = -1;
-  for (let i = 0; i < normalizedOriginal.length; i++) {
-    const orig = normalizedOriginal[i];
-    const rescanned = normalizedRescanned[i];
-
-    if (orig.type !== rescanned.type || orig.lexeme !== rescanned.lexeme) {
-      firstMismatchIndex = i;
-      break;
-    }
-  }
-
-  if (firstMismatchIndex !== -1) {
-    // Show the mismatch with some context (3 tokens before and after)
-    const contextStart = Math.max(0, firstMismatchIndex - 3);
-    const contextEnd = Math.min(normalizedOriginal.length, firstMismatchIndex + 4);
-
-    console.log("Token mismatch at position", firstMismatchIndex);
-    console.log("Input string:", input);
-
-    console.log("Original tokens (with context):");
-    for (let i = contextStart; i < contextEnd; i++) {
-      const t = normalizedOriginal[i];
-      const marker = i === firstMismatchIndex ? ">>> " : "    ";
-      console.log(`${marker}[${i}] ${TT[t.type]}: "${t.lexeme}"`);
-    }
-
-    console.log("Rescanned tokens (with context):");
-    const rescannedContextEnd = Math.min(normalizedRescanned.length, firstMismatchIndex + 4);
-    for (let i = contextStart; i < rescannedContextEnd; i++) {
-      const t = normalizedRescanned[i];
-      const marker = i === firstMismatchIndex ? ">>> " : "    ";
-      console.log(`${marker}[${i}] ${TT[t.type]}: "${t.lexeme}"`);
-    }
-
-    return false;
-  }
-
-  return true;
-}

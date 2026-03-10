@@ -1,5 +1,4 @@
 export { findNodesById, TransformFn, InspectionFn } from "./types";
-export { spellingToPitch, convertMeasureAccidentalsToSemitones } from "./pitchHelpers";
 export { findChildByTag, findRhythmChild, findTieChild, replaceRhythm, replaceNodeWithSequence, getNodeLineAndChar } from "./treeUtils";
 export { rhythmToRational, rationalToRhythm, extractBrokenToken, getNodeRhythm } from "./rhythm";
 export { remove } from "./remove";
@@ -22,7 +21,6 @@ export {
   // Phase 5: Chord-symbol-based harmonization
   VoicingType,
   HarmonizeSnapshot,
-  contextToHarmonizeSnapshot,
   extractLead,
   formatNote,
   toChordAst,
@@ -31,7 +29,6 @@ export {
 } from "./harmonize";
 export { consolidateRests } from "./consolidateRests";
 export { consolidateTiedNotes } from "./consolidateTiedNotes";
-export { isPowerOfTwo, isPowerOfTwoRational, nextMeaningfulSibling } from "./consolidationUtils";
 export { insertVoiceLine } from "./insertVoiceLine";
 export { voiceInfoLineToInline, voiceInlineToInfoLine } from "./voiceMarkerTransform";
 export { explode, explode2, explode3, explode4 } from "./explode";

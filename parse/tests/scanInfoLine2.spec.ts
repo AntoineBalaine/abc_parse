@@ -8,70 +8,32 @@ import { info_line } from "../parsers/scan2";
 import { genInfoLine2, genKeyInfoLine2, genMeterInfoLine2, genNoteLenInfoLine2, genTempoInfoLine2, genGenericInfoLine } from "./scn_infoln_generators";
 
 /**
- * Pretty print token arrays for debugging mismatches
+ * Compares two token arrays and returns true if they match in type and lexeme.
  */
 function compareTokenArraysDetailed(
   originalTokens: Array<{ type: number; lexeme: string }>,
   scannedTokens: Array<{ type: number; lexeme: string }>,
-  input: string
+  _input: string
 ): boolean {
-  // Skip position-related properties in comparison
   const normalizeToken = (token: { type: number; lexeme: string }) => ({
     type: token.type,
     lexeme: token.lexeme,
   });
 
-  // Compare token sequences
   const normalizedOriginal = originalTokens.map(normalizeToken);
   const normalizedScanned = scannedTokens.map(normalizeToken);
 
   if (normalizedOriginal.length !== normalizedScanned.length) {
-    console.log("Token count mismatch:", {
-      input,
-      original: normalizedOriginal.map((t) => `${TT[t.type]}:${t.lexeme}`),
-      scanned: normalizedScanned.map((t) => `${TT[t.type]}:${t.lexeme}`),
-      originalCount: normalizedOriginal.length,
-      scannedCount: normalizedScanned.length,
-    });
     return false;
   }
 
-  // Find the first token that doesn't match
-  let firstMismatchIndex = -1;
   for (let i = 0; i < normalizedOriginal.length; i++) {
     const orig = normalizedOriginal[i];
     const scanned = normalizedScanned[i];
 
     if (orig.type !== scanned.type || orig.lexeme !== scanned.lexeme) {
-      firstMismatchIndex = i;
-      break;
+      return false;
     }
-  }
-
-  if (firstMismatchIndex !== -1) {
-    // Show the mismatch with some context (3 tokens before and after)
-    const contextStart = Math.max(0, firstMismatchIndex - 3);
-    const contextEnd = Math.min(normalizedOriginal.length, firstMismatchIndex + 4);
-
-    console.log("Token mismatch at position", firstMismatchIndex);
-    console.log("Input string:", input);
-
-    console.log("Original tokens (with context):");
-    for (let i = contextStart; i < contextEnd; i++) {
-      const t = normalizedOriginal[i];
-      const marker = i === firstMismatchIndex ? ">>> " : "    ";
-      console.log(`${marker}[${i}] ${TT[t.type]}: "${t.lexeme}"`);
-    }
-
-    console.log("Scanned tokens (with context):");
-    const scannedContextEnd = Math.min(normalizedScanned.length, firstMismatchIndex + 4);
-    for (let i = contextStart; i < scannedContextEnd; i++) {
-      const t = normalizedScanned[i];
-      const marker = i === firstMismatchIndex ? ">>> " : "    ";
-      console.log(`${marker}[${i}] ${TT[t.type]}: "${t.lexeme}"`);
-    }
-
-    return false;
   }
 
   return true;
@@ -423,18 +385,6 @@ describe("scanInfoLine2 - Unified Info Line Scanner", () => {
 
           // Use info_line which dispatches to the correct scanner
           const result = info_line(ctx);
-
-          if (!result) {
-            console.log("info_line returned false for input:", source);
-            console.log(
-              "Generated tokens:",
-              tokens.map((t) => `${TT[t.type]}:"${t.lexeme}"`)
-            );
-            console.log(
-              "Info line tokens:",
-              infoLineTokens.map((t) => `${TT[t.type]}:"${t.lexeme}"`)
-            );
-          }
 
           expect(result).to.be.true;
 

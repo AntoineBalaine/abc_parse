@@ -4,40 +4,6 @@ import { ABCContext } from "../parsers/Context";
 import { Scanner, TT } from "../parsers/scan2";
 
 describe("Scanner Example-Based: Text Directive (%%begintext)", () => {
-  it("DEBUG: should show token positions for failing case", () => {
-    const input = `%%begintext\n%%;\n%%endtext\n\nm:a!\n`;
-
-    const ctx = new ABCContext();
-    const tokens = Scanner(input, ctx);
-
-    console.log("Input:", JSON.stringify(input));
-    console.log("\nTokens:");
-    tokens.forEach((token, i) => {
-      console.log(`[${i}] ${TT[token.type].padEnd(25)} line:${token.line} pos:${token.position} lexeme:${JSON.stringify(token.lexeme)}`);
-    });
-
-    // Check position integrity
-    for (let i = 0; i < tokens.length - 1; i++) {
-      const current = tokens[i];
-      if (current.type === TT.EOL || current.type === TT.SCT_BRK || current.type === TT.EOF) {
-        continue;
-      }
-      const next = tokens[i + 1];
-
-      console.log(`\nChecking token ${i} (${TT[current.type]}) vs token ${i + 1} (${TT[next.type]})`);
-      console.log(`  Current: line ${current.line}, pos ${current.position}, length ${current.lexeme.length}`);
-      console.log(`  Next: line ${next.line}, pos ${next.position}`);
-
-      if (current.line === next.line) {
-        const currentEnd = current.position + current.lexeme.length - 1;
-        console.log(`  Same line check: ${currentEnd} > ${next.position}? ${currentEnd > next.position}`);
-        if (currentEnd > next.position) {
-          console.log(`  ❌ OVERLAP DETECTED!`);
-        }
-      }
-    }
-  });
-
   it("should scan complete begintext/endtext block", () => {
     const input = `%%begintext
 This is some free text.

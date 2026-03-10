@@ -172,7 +172,6 @@ class GCtx {
           const time = key as IRational;
 
           if (prevTime !== null && !greaterRational(time, prevTime)) {
-            console.error(`Time point ${rationalToString(time)} is not greater than previous time point ${rationalToString(prevTime)}`);
             return false;
           }
 

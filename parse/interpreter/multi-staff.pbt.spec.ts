@@ -174,14 +174,7 @@ describe("Multi-Staff Property-Based Tests", () => {
         const actualCount = countAllElements(tune);
 
         // Elements should be conserved
-        if (expectedCount !== actualCount) {
-          console.log("Element mismatch!");
-          console.log("ABC:", abc);
-          console.log(`Expected: ${expectedCount}, Actual: ${actualCount}`);
-          return false;
-        }
-
-        return true;
+        return expectedCount === actualCount;
       }),
       { numRuns: 100, verbose: false }
     );
@@ -196,14 +189,7 @@ describe("Multi-Staff Property-Based Tests", () => {
         const expectedVoiceCount = declaredVoices.length;
 
         // tune.voiceNum should match
-        if (tune.voiceNum !== expectedVoiceCount) {
-          console.log("Voice count mismatch!");
-          console.log("ABC:", abc);
-          console.log(`Expected: ${expectedVoiceCount}, Actual: ${tune.voiceNum}`);
-          return false;
-        }
-
-        return true;
+        return tune.voiceNum === expectedVoiceCount;
       }),
       { numRuns: 100, verbose: false }
     );
@@ -223,14 +209,7 @@ describe("Multi-Staff Property-Based Tests", () => {
         }
 
         // tune.staffNum should match max staff count
-        if (tune.staffNum !== maxStaffCount) {
-          console.log("Staff count mismatch!");
-          console.log("ABC:", abc);
-          console.log(`tune.staffNum: ${tune.staffNum}, max: ${maxStaffCount}`);
-          return false;
-        }
-
-        return true;
+        return tune.staffNum === maxStaffCount;
       }),
       { numRuns: 100, verbose: false }
     );
@@ -254,9 +233,6 @@ describe("Multi-Staff Property-Based Tests", () => {
               if (staff.voices[voiceIdx].length > 0) {
                 const key = `${staffNum},${voiceIdx}`;
                 if (occupied.has(key)) {
-                  console.log("Duplicate voice in system!");
-                  console.log("ABC:", abc);
-                  console.log(`Position: ${key} appears twice`);
                   return false;
                 }
                 occupied.add(key);
@@ -291,13 +267,9 @@ describe("Multi-Staff Property-Based Tests", () => {
           for (const staff of staffSystem.staff) {
             // Staff should exist and have a clef
             if (!staff) {
-              console.log("Undefined staff found!");
-              console.log("ABC:", abc);
               return false;
             }
             if (!staff.clef) {
-              console.log("Staff missing clef!");
-              console.log("ABC:", abc);
               return false;
             }
             expect(staff.clef.type).to.be.oneOf(["treble", "bass", "alto", "tenor"]);
@@ -324,22 +296,15 @@ describe("Multi-Staff Property-Based Tests", () => {
           for (const staff of staffSystem.staff) {
             // Check if staff exists
             if (!staff) {
-              console.log("Undefined staff found!");
-              console.log("ABC:", abc);
               return false;
             }
             if (!staff.voices) {
-              console.log("Staff missing voices array!");
-              console.log("ABC:", abc);
               return false;
             }
 
             for (const voice of staff.voices) {
               for (const element of voice) {
                 if (!validTypes.includes(element.el_type)) {
-                  console.log("Invalid element type!");
-                  console.log("ABC:", abc);
-                  console.log("Type:", element.el_type);
                   return false;
                 }
               }

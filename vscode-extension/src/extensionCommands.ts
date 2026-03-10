@@ -93,7 +93,7 @@ function registerMidiImport(context: vscode.ExtensionContext, client: LanguageCl
 /**
  * Register the commands that the extension will use to ask the server to do special things.
  * The old transform commands (divideRhythm, multiplyRhythm, transposeUp, transposeDn) have been
- * replaced by the new abct2-based transform commands in transformCommands.ts.
+ * replaced by the new editor-based transform commands in transformCommands.ts.
  */
 export function registerCommands(context: vscode.ExtensionContext, client: LanguageClient) {
   registerMidiInputs(context);
