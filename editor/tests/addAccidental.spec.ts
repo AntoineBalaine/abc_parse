@@ -1,4 +1,4 @@
-import { TT } from "abc-parser";
+import { TT } from "abcls-parser";
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../src/csTree/types";

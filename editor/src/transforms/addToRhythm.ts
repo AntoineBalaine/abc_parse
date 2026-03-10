@@ -1,4 +1,4 @@
-import { ABCContext, IRational, addRational } from "abc-parser";
+import { ABCContext, IRational, addRational } from "abcls-parser";
 import { TAGS } from "../csTree/types";
 import { Selection } from "../selection";
 import { extractBrokenToken, rationalToRhythm, getNodeRhythm } from "./rhythm";

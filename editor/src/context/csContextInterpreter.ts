@@ -11,17 +11,17 @@
  * - Uses the visit dispatch mechanism instead of the Visitor<void> interface
  */
 
-import { InfoLineUnion } from "abc-parser";
-import { TT } from "abc-parser";
-import { SemanticData } from "abc-parser/analyzers/semantic-analyzer";
-import { ContextSnapshot, DocumentSnapshots, ContextInterpreterConfig, encode } from "abc-parser/interpreter/ContextInterpreter";
-import { convertAccidentalToType } from "abc-parser/interpreter/helpers";
-import { TuneDefaults, VoiceState, newVxState, createTuneDefaults, createFileDefaults } from "abc-parser/interpreter/InterpreterState";
-import { parseChordSymbol } from "abc-parser/music-theory/parseChordSymbol";
-import { scanChordSymbol } from "abc-parser/music-theory/scanChordSymbol";
-import { ParsedChord } from "abc-parser/music-theory/types";
-import { Meter, MeterType, TempoProperties } from "abc-parser/types/abcjs-ast";
-import { visit, findChild, type CSVisitor } from "cstree";
+import { visit, findChild, type CSVisitor } from "abcls-cstree";
+import { InfoLineUnion } from "abcls-parser";
+import { TT } from "abcls-parser";
+import { SemanticData } from "abcls-parser/analyzers/semantic-analyzer";
+import { ContextSnapshot, DocumentSnapshots, ContextInterpreterConfig, encode } from "abcls-parser/interpreter/ContextInterpreter";
+import { convertAccidentalToType } from "abcls-parser/interpreter/helpers";
+import { TuneDefaults, VoiceState, newVxState, createTuneDefaults, createFileDefaults } from "abcls-parser/interpreter/InterpreterState";
+import { parseChordSymbol } from "abcls-parser/music-theory/parseChordSymbol";
+import { scanChordSymbol } from "abcls-parser/music-theory/scanChordSymbol";
+import { ParsedChord } from "abcls-parser/music-theory/types";
+import { Meter, MeterType, TempoProperties } from "abcls-parser/types/abcjs-ast";
 import { CSNode, TAGS, isTokenNode, getTokenData, type EditorDataMap } from "../csTree/types";
 import { firstTokenData } from "../selectors/treeWalk";
 

@@ -1,4 +1,4 @@
-import { TT, File_structure, Tune, Inline_field, KV, isToken, Scanner, parse, ABCContext, Token } from "abc-parser";
+import { TT, File_structure, Tune, Inline_field, KV, isToken, Scanner, parse, ABCContext, Token } from "abcls-parser";
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";

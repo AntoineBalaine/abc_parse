@@ -1,7 +1,7 @@
-import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter } from "abc-parser";
-import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
-import { Token } from "abc-parser/parsers/scan";
-import { Expr } from "abc-parser/types/Expr";
+import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter } from "abcls-parser";
+import { ContextInterpreter, DocumentSnapshots } from "abcls-parser/interpreter/ContextInterpreter";
+import { Token } from "abcls-parser/parsers/scan";
+import { Expr } from "abcls-parser/types/Expr";
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { fromAst } from "../src/csTree/fromAst";

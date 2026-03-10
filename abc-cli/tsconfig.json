@@ -9,8 +9,8 @@
     "noResolve": false,
     "baseUrl": ".",
     "paths": {
-      "abc-parser/*": ["../parse/dist/*"],
-      "abc-midi": ["../midi/dist/src/index"]
+      "abcls-parser/*": ["../parse/dist/*"],
+      "abcls-midi": ["../midi/dist/src/index"]
     }
   },
   "include": ["*.ts", "commands/**/*.ts", "utils/**/*.ts"],

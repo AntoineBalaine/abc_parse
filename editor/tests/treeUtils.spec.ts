@@ -1,6 +1,6 @@
-import { TT } from "abc-parser";
+import { replace, appendChild, getParent } from "abcls-cstree";
+import { TT } from "abcls-parser";
 import { expect } from "chai";
-import { replace, appendChild, getParent } from "cstree";
 import { describe, it } from "mocha";
 import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import { findChildByTag, findTieChild, findRhythmChild, replaceRhythm } from "../src/transforms/treeUtils";

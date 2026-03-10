@@ -1,5 +1,5 @@
-import { ABCContext, TT } from "abc-parser";
-import { remove, replace, insertBefore } from "cstree";
+import { remove, replace, insertBefore } from "abcls-cstree";
+import { ABCContext, TT } from "abcls-parser";
 import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { Selection } from "../selection";
 import { findChildByTag } from "./treeUtils";

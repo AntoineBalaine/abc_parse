@@ -1,4 +1,4 @@
-import { TT, ABCContext, AbcFormatter, Expr, createRational } from "abc-parser";
+import { TT, ABCContext, AbcFormatter, Expr, createRational } from "abcls-parser";
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";

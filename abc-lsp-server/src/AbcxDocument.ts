@@ -1,4 +1,4 @@
-import { ABCContext, File_structure, parseAbcx, RangeVisitor, ScannerAbcx, Token } from "abc-parser";
+import { ABCContext, File_structure, parseAbcx, RangeVisitor, ScannerAbcx, Token } from "abcls-parser";
 import { Diagnostic } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { mapAbcErrorsToDiagnostics, mapAbcWarningsToDiagnostics } from "./server_helpers";

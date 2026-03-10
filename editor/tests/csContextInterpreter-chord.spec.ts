@@ -1,6 +1,6 @@
-import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter } from "abc-parser";
-import { ChordQuality } from "abc-parser/music-theory/types";
-import { KeyRoot } from "abc-parser/types/abcjs-ast";
+import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter } from "abcls-parser";
+import { ChordQuality } from "abcls-parser/music-theory/types";
+import { KeyRoot } from "abcls-parser/types/abcjs-ast";
 import { expect } from "chai";
 import { interpretContext } from "../src/context/csContextInterpreter";
 import { fromAst } from "../src/csTree/fromAst";

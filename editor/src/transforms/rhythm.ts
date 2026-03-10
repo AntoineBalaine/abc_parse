@@ -1,5 +1,5 @@
-import { IRational, createRational, Rhythm, Token, TT, ABCContext } from "abc-parser";
-import { appendChild, remove, findChild } from "cstree";
+import { appendChild, remove, findChild } from "abcls-cstree";
+import { IRational, createRational, Rhythm, Token, TT, ABCContext } from "abcls-parser";
 import { fromAst } from "../csTree/fromAst";
 import { toAst } from "../csTree/toAst";
 import { CSNode, isTokenNode, getTokenData } from "../csTree/types";

@@ -14,9 +14,9 @@
     "strict": true,
     "target": "es2020",
     "paths": {
-      "editor": ["../editor/src/index"],
-      "abc-midi": ["../midi/dist/src/index"],
-      "cstree": ["../cstree/src/cstree"]
+      "abcls-editor": ["../editor/src/index"],
+      "abcls-midi": ["../midi/dist/src/index"],
+      "abcls-cstree": ["../cstree/src/cstree"]
     }
   },
   "include": ["./src/**/*.ts"],

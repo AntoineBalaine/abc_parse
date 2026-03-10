@@ -1,4 +1,4 @@
-import { ABCContext, Scanner, parse } from "abc-parser";
+import { ABCContext, Scanner, parse } from "abcls-parser";
 import { expect } from "chai";
 import * as barmap from "../src/context/csBarMap";
 import { fromAst } from "../src/csTree/fromAst";

@@ -1,7 +1,7 @@
-import { SemanticAnalyzer } from "abc-parser";
-import { Scanner, parse } from "abc-parser";
-import { ContextInterpreter } from "abc-parser/interpreter/ContextInterpreter";
-import { KeyRoot, KeyAccidental, Mode, AccidentalType, NoteLetter } from "abc-parser/types/abcjs-ast";
+import { SemanticAnalyzer } from "abcls-parser";
+import { Scanner, parse } from "abcls-parser";
+import { ContextInterpreter } from "abcls-parser/interpreter/ContextInterpreter";
+import { KeyRoot, KeyAccidental, Mode, AccidentalType, NoteLetter } from "abcls-parser/types/abcjs-ast";
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";

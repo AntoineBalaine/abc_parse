@@ -1,7 +1,7 @@
-import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter } from "abc-parser";
-import { SemanticData } from "abc-parser/analyzers/semantic-analyzer";
-import { encode, getRangeSnapshots, getSnapshotAtPosition } from "abc-parser/interpreter/ContextInterpreter";
-import { MeterType } from "abc-parser/types/abcjs-ast";
+import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter } from "abcls-parser";
+import { SemanticData } from "abcls-parser/analyzers/semantic-analyzer";
+import { encode, getRangeSnapshots, getSnapshotAtPosition } from "abcls-parser/interpreter/ContextInterpreter";
+import { MeterType } from "abcls-parser/types/abcjs-ast";
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { interpretContext } from "../src/context/csContextInterpreter";

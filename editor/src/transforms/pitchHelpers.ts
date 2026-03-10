@@ -1,7 +1,7 @@
-import { ABCContext, Pitch, Token, TT, Spelling, semitonesToAccidentalString, accidentalTypeToSemitones } from "abc-parser";
-import { NATURAL_SEMITONES } from "abc-parser/music-theory/constants";
-import { countOctaveMarkers } from "abc-parser/music-theory/pitchUtils";
-import { AccidentalType } from "abc-parser/types/abcjs-ast";
+import { ABCContext, Pitch, Token, TT, Spelling, semitonesToAccidentalString, accidentalTypeToSemitones } from "abcls-parser";
+import { NATURAL_SEMITONES } from "abcls-parser/music-theory/constants";
+import { countOctaveMarkers } from "abcls-parser/music-theory/pitchUtils";
+import { AccidentalType } from "abcls-parser/types/abcjs-ast";
 import { toAst } from "../csTree/toAst";
 import { CSNode, TAGS } from "../csTree/types";
 import { findChildByTag } from "./treeUtils";

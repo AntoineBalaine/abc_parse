@@ -1,5 +1,5 @@
 {
-  "name": "abc-preview-server",
+  "name": "abcls-preview-server",
   "version": "1.0.0",
   "description": "Preview server for ABC music notation",
   "main": "dist/server.js",

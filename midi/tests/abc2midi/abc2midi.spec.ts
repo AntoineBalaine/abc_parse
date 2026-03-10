@@ -1,4 +1,4 @@
-import { Scanner, parse, ABCContext, Tune } from "abc-parser";
+import { Scanner, parse, ABCContext, Tune } from "abcls-parser";
 import { expect } from "chai";
 import { abc2midi, getXNumber } from "../../src/abc2midi/abc2midi";
 

@@ -1,8 +1,8 @@
-import { ABCContext, Pitch, toMidiPitch, TT } from "abc-parser";
-import { Scanner, parse } from "abc-parser";
-import { SemanticAnalyzer } from "abc-parser/analyzers/semantic-analyzer";
-import { ContextInterpreter, ContextInterpreterConfig, DocumentSnapshots, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
-import { resolveMelodyPitch, PitchContext } from "abc-parser/music-theory/pitchUtils";
+import { ABCContext, Pitch, toMidiPitch, TT } from "abcls-parser";
+import { Scanner, parse } from "abcls-parser";
+import { SemanticAnalyzer } from "abcls-parser/analyzers/semantic-analyzer";
+import { ContextInterpreter, ContextInterpreterConfig, DocumentSnapshots, getSnapshotAtPosition, encode } from "abcls-parser/interpreter/ContextInterpreter";
+import { resolveMelodyPitch, PitchContext } from "abcls-parser/music-theory/pitchUtils";
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";

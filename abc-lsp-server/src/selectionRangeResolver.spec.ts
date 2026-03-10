@@ -1,6 +1,6 @@
-import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
+import { fromAst, createSelection, selectChords, selectNotes, selectTop, selectVoices } from "abcls-editor";
+import { Scanner, parse, ABCContext, File_structure } from "abcls-parser";
 import { expect } from "chai";
-import { fromAst, createSelection, selectChords, selectNotes, selectTop, selectVoices } from "editor";
 import { describe, it } from "mocha";
 import { resolveSelectionRanges, resolveContiguousRanges, findNodeById } from "./selectionRangeResolver";
 

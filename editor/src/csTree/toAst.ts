@@ -46,7 +46,7 @@ import {
   SymbolLine,
   tune_body_code,
   Beam_contents,
-} from "abc-parser";
+} from "abcls-parser";
 import { CSNode, TAGS, isTokenNode, getTokenData, TuneBodyData } from "./types";
 
 function collectChildren(node: CSNode): CSNode[] {

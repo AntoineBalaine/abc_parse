@@ -1,5 +1,5 @@
 {
-  "name": "abc-lsp-server",
+  "name": "abcls-server",
   "version": "0.1.0",
   "description": "Language Server for ABC music notation",
   "main": "../out/abc-lsp-server/server.js",
@@ -12,8 +12,8 @@
     "lint:fix": "eslint . --ext ts --fix"
   },
   "dependencies": {
-    "abc-midi": "*",
-    "abc-parser": "*",
+    "abcls-midi": "*",
+    "abcls-parser": "*",
     "abcjs": "^6.5.2",
     "svgdom": "^0.1.23",
     "vscode-uri": "^3.0.8"

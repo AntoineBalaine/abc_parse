@@ -1,7 +1,7 @@
-import { abc2midi, midi2abc } from "abc-midi";
-import type { ConversionOptions } from "abc-midi";
-import { AbcFormatter, convertTuneToDeferred, File_structure, Tune } from "abc-parser";
-import { Token } from "abc-parser";
+import { abc2midi, midi2abc } from "abcls-midi";
+import type { ConversionOptions } from "abcls-midi";
+import { AbcFormatter, convertTuneToDeferred, File_structure, Tune } from "abcls-parser";
+import { Token } from "abcls-parser";
 import { ResponseError } from "vscode-languageserver";
 import { HandlerResult, Position, Range, SemanticTokens, SemanticTokensBuilder, TextDocuments, TextEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";

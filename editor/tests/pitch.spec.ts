@@ -1,4 +1,4 @@
-import { Pitch as PitchExpr, toMidiPitch } from "abc-parser";
+import { Pitch as PitchExpr, toMidiPitch } from "abcls-parser";
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";

@@ -1,5 +1,5 @@
-import { ABCContext, addRational, equalRational, TT } from "abc-parser";
-import { remove } from "cstree";
+import { remove } from "abcls-cstree";
+import { ABCContext, addRational, equalRational, TT } from "abcls-parser";
 import { CSNode, isRest, isBarLine, isTokenNode, getTokenData } from "../csTree/types";
 import { Selection } from "../selection";
 import { isVoiceMarker } from "../selectors/voiceSelector";

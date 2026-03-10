@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "fs";
-import { midi2abc } from "abc-midi";
-import type { ConversionOptions } from "abc-midi";
+import { midi2abc } from "abcls-midi";
+import type { ConversionOptions } from "abcls-midi";
 import { Command } from "commander";
 
 export const midi2abcCommand = new Command("midi2abc")

@@ -1,4 +1,4 @@
-import { AbcFormatter } from "abc-parser";
+import { AbcFormatter } from "abcls-parser";
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { TextDocument } from "vscode-languageserver-textdocument";

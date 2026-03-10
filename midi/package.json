@@ -1,11 +1,11 @@
 {
-  "name": "abc-midi",
+  "name": "abcls-midi",
   "version": "0.0.1",
   "private": true,
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
   "dependencies": {
-    "abc-parser": "*",
+    "abcls-parser": "*",
     "abcjs": "^6.5.2",
     "jzz": "^1.7.4",
     "jzz-midi-smf": "^1.8.1"

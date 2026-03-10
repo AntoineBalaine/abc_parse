@@ -1,5 +1,5 @@
-import { TT } from "abc-parser";
-import { remove, insertBefore, appendChild, getParent } from "cstree";
+import { remove, insertBefore, appendChild, getParent } from "abcls-cstree";
+import { TT } from "abcls-parser";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { Selection } from "../selection";
 import { findRhythmChild, findTieChild, replaceRhythm } from "./treeUtils";

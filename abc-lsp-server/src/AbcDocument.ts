@@ -1,7 +1,7 @@
-import { ABCContext, File_structure, parse, RangeVisitor, Scanner, Token, SemanticAnalyzer } from "abc-parser";
-import { ChordPosition, ChordPositionCollector } from "abc-parser/interpreter/ChordPositionCollector";
-import { DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
-import { fromAst, interpretContext } from "editor";
+import { fromAst, interpretContext } from "abcls-editor";
+import { ABCContext, File_structure, parse, RangeVisitor, Scanner, Token, SemanticAnalyzer } from "abcls-parser";
+import { ChordPosition, ChordPositionCollector } from "abcls-parser/interpreter/ChordPositionCollector";
+import { DocumentSnapshots } from "abcls-parser/interpreter/ContextInterpreter";
 import { Diagnostic } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { mapAbcErrorsToDiagnostics, mapAbcWarningsToDiagnostics } from "./server_helpers";

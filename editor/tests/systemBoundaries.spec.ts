@@ -1,4 +1,4 @@
-import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
+import { Scanner, parse, ABCContext, File_structure } from "abcls-parser";
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { Tune } from "../../parse/types/Expr";

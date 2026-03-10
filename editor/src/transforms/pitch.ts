@@ -1,4 +1,4 @@
-import { Pitch as PitchExpr, toMidiPitch } from "abc-parser";
+import { Pitch as PitchExpr, toMidiPitch } from "abcls-parser";
 import { toAst } from "../csTree/toAst";
 import { CSNode, TAGS } from "../csTree/types";
 import { Selection } from "../selection";

@@ -1,5 +1,6 @@
-import { ABCContext, Pitch, Token, TT, toMidiPitch, fromMidiPitch, mergeAccidentals, semitonesToAccidentalType } from "abc-parser";
-import { DocumentSnapshots, ContextSnapshot, encode, getSnapshotAtPosition, binarySearchFloor } from "abc-parser/interpreter/ContextInterpreter";
+import { replace } from "abcls-cstree";
+import { ABCContext, Pitch, Token, TT, toMidiPitch, fromMidiPitch, mergeAccidentals, semitonesToAccidentalType } from "abcls-parser";
+import { DocumentSnapshots, ContextSnapshot, encode, getSnapshotAtPosition, binarySearchFloor } from "abcls-parser/interpreter/ContextInterpreter";
 import {
   findDiatonicSpelling,
   getEnharmonicSpellings,
@@ -8,8 +9,7 @@ import {
   PitchContext,
   noteLetterToMidi,
   accidentalToSemitones,
-} from "abc-parser/music-theory/pitchUtils";
-import { replace } from "cstree";
+} from "abcls-parser/music-theory/pitchUtils";
 import { fromAst } from "../csTree/fromAst";
 import { toAst } from "../csTree/toAst";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";

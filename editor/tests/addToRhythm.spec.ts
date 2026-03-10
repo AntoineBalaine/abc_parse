@@ -1,4 +1,4 @@
-import { createRational } from "abc-parser";
+import { createRational } from "abcls-parser";
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";

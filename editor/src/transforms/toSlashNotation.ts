@@ -11,14 +11,14 @@
  * separately, and broken rhythm does not persist across barlines.
  */
 
-import { DocumentSnapshots, ContextSnapshot, getRangeSnapshots, encode } from "abc-parser/interpreter/ContextInterpreter";
-import { ABCContext } from "abc-parser/parsers/Context";
-import { Token, TT } from "abc-parser/parsers/scan";
-import { ClefProperties, ClefType } from "abc-parser/types/abcjs-ast";
-import { Note, Pitch, Rhythm, Inline_field } from "abc-parser/types/Expr";
-import { Range } from "abc-parser/types/types";
-import { IRational, createRational, addRational, multiplyRational, divideRational, greaterRational } from "abc-parser/Visitors/fmt/rational";
-import { remove, insertBefore, insertAfter } from "cstree";
+import { remove, insertBefore, insertAfter } from "abcls-cstree";
+import { DocumentSnapshots, ContextSnapshot, getRangeSnapshots, encode } from "abcls-parser/interpreter/ContextInterpreter";
+import { ABCContext } from "abcls-parser/parsers/Context";
+import { Token, TT } from "abcls-parser/parsers/scan";
+import { ClefProperties, ClefType } from "abcls-parser/types/abcjs-ast";
+import { Note, Pitch, Rhythm, Inline_field } from "abcls-parser/types/Expr";
+import { Range } from "abcls-parser/types/types";
+import { IRational, createRational, addRational, multiplyRational, divideRational, greaterRational } from "abcls-parser/Visitors/fmt/rational";
 import { fromAst } from "../csTree/fromAst";
 import { CSNode, TAGS, isTokenNode, getTokenData, isBarLine } from "../csTree/types";
 import { Selection } from "../selection";

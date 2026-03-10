@@ -1,4 +1,4 @@
-import { TT, Tune_Body } from "abc-parser";
+import { TT, Tune_Body } from "abcls-parser";
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { toAst } from "../src/csTree/toAst";

@@ -1,3 +1,4 @@
+import { appendChild } from "abcls-cstree";
 import {
   Token,
   Expr,
@@ -45,8 +46,7 @@ import {
   ErrorExpr,
   Visitor,
   ABCContext,
-} from "abc-parser";
-import { appendChild } from "cstree";
+} from "abcls-parser";
 import { CSNode, TAGS, createCSNode } from "./types";
 
 function createCsNodeFromAst(node: Expr | Token): CSNode {

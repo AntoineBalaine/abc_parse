@@ -3,7 +3,7 @@
 
 import * as os from "os";
 import * as path from "path";
-import { setMscorePath } from "abc-musesampler-native";
+import { setMscorePath } from "abcls-native";
 import * as vscode from "vscode";
 import { ExtensionContext } from "vscode";
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";

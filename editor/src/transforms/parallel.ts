@@ -1,4 +1,5 @@
-import { ABCContext, Pitch, Rhythm, Token, Note } from "abc-parser";
+import { replace, getParent } from "abcls-cstree";
+import { ABCContext, Pitch, Rhythm, Token, Note } from "abcls-parser";
 import {
   accidentalTypeToSemitones,
   findPreviousChordInVoice,
@@ -10,12 +11,11 @@ import {
   computeOctaveFromPitch,
   mergeAccidentals,
   semitonesToAccidentalType,
-} from "abc-parser";
-import { ChordPosition } from "abc-parser/interpreter/ChordPositionCollector";
-import { DocumentSnapshots, ContextSnapshot, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
-import { AccidentalType } from "abc-parser/types/abcjs-ast";
-import { cloneExpr, cloneToken } from "abc-parser/Visitors/CloneVisitor";
-import { replace, getParent } from "cstree";
+} from "abcls-parser";
+import { ChordPosition } from "abcls-parser/interpreter/ChordPositionCollector";
+import { DocumentSnapshots, ContextSnapshot, getSnapshotAtPosition, encode } from "abcls-parser/interpreter/ContextInterpreter";
+import { AccidentalType } from "abcls-parser/types/abcjs-ast";
+import { cloneExpr, cloneToken } from "abcls-parser/Visitors/CloneVisitor";
 import { fromAst } from "../csTree/fromAst";
 import { toAst } from "../csTree/toAst";
 import { CSNode, TAGS } from "../csTree/types";

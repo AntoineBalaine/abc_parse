@@ -1,10 +1,10 @@
-import { ABCContext, Pitch, toMidiPitch, Scanner, parse } from "abc-parser";
-import { SemanticAnalyzer } from "abc-parser/analyzers/semantic-analyzer";
-import { ContextInterpreter, DocumentSnapshots, ContextInterpreterConfig } from "abc-parser/interpreter/ContextInterpreter";
-import { NATURAL_SEMITONES, LETTERS } from "abc-parser/music-theory/constants";
-import { mergeAccidentals } from "abc-parser/music-theory/harmonization";
-import { spellPitch, resolveMelodyPitch, computeOctaveFromPitch, PitchContext } from "abc-parser/music-theory/pitchUtils";
-import { KeySignature, AccidentalType, KeyRoot, KeyAccidental, Mode } from "abc-parser/types/abcjs-ast";
+import { ABCContext, Pitch, toMidiPitch, Scanner, parse } from "abcls-parser";
+import { SemanticAnalyzer } from "abcls-parser/analyzers/semantic-analyzer";
+import { ContextInterpreter, DocumentSnapshots, ContextInterpreterConfig } from "abcls-parser/interpreter/ContextInterpreter";
+import { NATURAL_SEMITONES, LETTERS } from "abcls-parser/music-theory/constants";
+import { mergeAccidentals } from "abcls-parser/music-theory/harmonization";
+import { spellPitch, resolveMelodyPitch, computeOctaveFromPitch, PitchContext } from "abcls-parser/music-theory/pitchUtils";
+import { KeySignature, AccidentalType, KeyRoot, KeyAccidental, Mode } from "abcls-parser/types/abcjs-ast";
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { describe, it } from "mocha";

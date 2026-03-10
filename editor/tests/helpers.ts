@@ -1,4 +1,4 @@
-import { Scanner, Token, parse, ABCContext, AbcFormatter, Expr, Inline_field, Info_line, IRational, createRational } from "abc-parser";
+import { Scanner, Token, parse, ABCContext, AbcFormatter, Expr, Inline_field, Info_line, IRational, createRational } from "abcls-parser";
 import * as fc from "fast-check";
 import * as ParserGen from "../../parse/tests/prs_pbt.generators.spec";
 import { fromAst, childrenVisitor } from "../src/csTree/fromAst";

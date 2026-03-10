@@ -2,7 +2,7 @@
  * Format command: Format ABC files with optional write-back
  */
 
-import { AbcFormatter } from "abc-parser";
+import { AbcFormatter } from "abcls-parser";
 import { Command } from "commander";
 import { readAbcFile, writeFile, parseAbc, printDiagnostics } from "../utils/shared";
 

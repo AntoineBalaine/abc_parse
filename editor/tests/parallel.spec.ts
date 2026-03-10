@@ -1,7 +1,7 @@
-import { SemanticAnalyzer } from "abc-parser";
-import { Scanner, parse } from "abc-parser";
-import { ChordPositionCollector, ChordPosition, ChordCollectorConfig } from "abc-parser/interpreter/ChordPositionCollector";
-import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
+import { SemanticAnalyzer } from "abcls-parser";
+import { Scanner, parse } from "abcls-parser";
+import { ChordPositionCollector, ChordPosition, ChordCollectorConfig } from "abcls-parser/interpreter/ChordPositionCollector";
+import { ContextInterpreter, DocumentSnapshots } from "abcls-parser/interpreter/ContextInterpreter";
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { ABCContext } from "../../parse/parsers/Context";

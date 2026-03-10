@@ -1,4 +1,4 @@
-import { Scanner, parse, ABCContext, File_structure, Token } from "abc-parser";
+import { Scanner, parse, ABCContext, File_structure, Token } from "abcls-parser";
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { FoldingRangeKind } from "vscode-languageserver";

@@ -1,4 +1,4 @@
-import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
+import { Scanner, parse, ABCContext, File_structure } from "abcls-parser";
 import { expect } from "chai";
 import { abc2midi } from "../../src/abc2midi/abc2midi";
 import { midi2abc } from "../../src/midi2abc/midi2abc";

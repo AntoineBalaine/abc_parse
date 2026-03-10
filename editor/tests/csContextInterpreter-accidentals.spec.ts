@@ -1,6 +1,6 @@
-import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter } from "abc-parser";
-import { encode, getSnapshotAtPosition } from "abc-parser/interpreter/ContextInterpreter";
-import { AccidentalType } from "abc-parser/types/abcjs-ast";
+import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter } from "abcls-parser";
+import { encode, getSnapshotAtPosition } from "abcls-parser/interpreter/ContextInterpreter";
+import { AccidentalType } from "abcls-parser/types/abcjs-ast";
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { interpretContext } from "../src/context/csContextInterpreter";

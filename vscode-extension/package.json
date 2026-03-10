@@ -1,5 +1,5 @@
 {
-  "name": "abc-ls",
+  "name": "abcls",
   "displayName": "abc-ls",
   "description": "",
   "version": "0.0.4",
@@ -891,8 +891,8 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "abc-parser": "*",
-    "abc-musesampler-native": "*",
+    "abcls-parser": "*",
+    "abcls-native": "*",
     "jzz": "^1.7.4",
     "jzz-midi-smf": "^1.8.1",
     "vscode-languageclient": "^9.0.1",

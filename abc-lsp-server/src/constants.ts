@@ -2,7 +2,7 @@
 // Error Codes (JSON-RPC style)
 // ============================================================================
 
-import { TAGS } from "editor";
+import { TAGS } from "abcls-editor";
 
 export const ERROR_CODES = {
   DOCUMENT_NOT_FOUND: -32001,

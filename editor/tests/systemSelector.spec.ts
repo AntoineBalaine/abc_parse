@@ -1,4 +1,4 @@
-import { Scanner, parse, ABCContext } from "abc-parser";
+import { Scanner, parse, ABCContext } from "abcls-parser";
 import { expect } from "chai";
 import * as fc from "fast-check";
 import { fromAst } from "../src/csTree/fromAst";

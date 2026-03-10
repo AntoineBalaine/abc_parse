@@ -8,9 +8,6 @@
  * from the ContextInterpreter. These are identified by CONTEXT_AWARE_TRANSFORMS.
  */
 
-import { ABCContext, IRational, Position } from "abc-parser";
-import { ChordPosition } from "abc-parser/interpreter/ChordPositionCollector";
-import { DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
 import {
   Selection,
   transpose,
@@ -45,7 +42,10 @@ import {
   ParallelMode,
   splitSystems,
   explosion,
-} from "editor";
+} from "abcls-editor";
+import { ABCContext, IRational, Position } from "abcls-parser";
+import { ChordPosition } from "abcls-parser/interpreter/ChordPositionCollector";
+import { DocumentSnapshots } from "abcls-parser/interpreter/ContextInterpreter";
 
 export type TransformFn = (selection: Selection, ctx: ABCContext, ...args: unknown[]) => Selection;
 

@@ -12,7 +12,7 @@
  * - Info field sequences (contiguous same-type fields)
  */
 
-import { File_structure, Tune, Info_line, Inline_field, RangeVisitor, Token, TT } from "abc-parser";
+import { File_structure, Tune, Info_line, Inline_field, RangeVisitor, Token, TT } from "abcls-parser";
 import { FoldingRange, FoldingRangeKind } from "vscode-languageserver";
 
 /**

@@ -10,7 +10,7 @@
     "declaration": true,
     "sourceMap": true,
     "paths": {
-      "cstree": ["../cstree/src/cstree"]
+      "abcls-cstree": ["../cstree/src/cstree"]
     }
   },
   "include": ["src/**/*"],

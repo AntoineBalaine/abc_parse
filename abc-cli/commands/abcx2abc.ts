@@ -4,7 +4,7 @@
  * Converts ABCx chord sheet notation to standard ABC notation
  */
 
-import { ABCContext, ScannerAbcx, parseAbcx, AbcxToAbcConverter, AbcFormatter } from "abc-parser";
+import { ABCContext, ScannerAbcx, parseAbcx, AbcxToAbcConverter, AbcFormatter } from "abcls-parser";
 import { Command } from "commander";
 import { readAbcFile, writeFile, printDiagnostics } from "../utils/shared";
 

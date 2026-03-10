@@ -5,9 +5,10 @@
  * operating directly on CSNode sibling chains instead of System arrays.
  */
 
-import { ABCContext, TT } from "abc-parser";
-import { DocumentSnapshots, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
-import { Range } from "abc-parser/types/types";
+import { cloneSubtree, visit, replace, insertAfter, insertBefore, remove, appendChild } from "abcls-cstree";
+import { ABCContext, TT } from "abcls-parser";
+import { DocumentSnapshots, getSnapshotAtPosition, encode } from "abcls-parser/interpreter/ContextInterpreter";
+import { Range } from "abcls-parser/types/types";
 import {
   IRational,
   createRational,
@@ -16,8 +17,7 @@ import {
   compareRational,
   multiplyRational,
   isInfiniteRational,
-} from "abc-parser/Visitors/fmt/rational";
-import { cloneSubtree, visit, replace, insertAfter, insertBefore, remove, appendChild } from "cstree";
+} from "abcls-parser/Visitors/fmt/rational";
 import * as barmap from "../context/csBarMap";
 import { CSNode, TAGS, isTokenNode, getTokenData, createCSNode } from "../csTree/types";
 import { Selection } from "../selection";

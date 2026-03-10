@@ -1,6 +1,6 @@
-import { ABCContext, Scanner, parse, AbcFormatter, Expr, AbcErrorReporter, SemanticAnalyzer } from "abc-parser";
-import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
-import { createRational, isInfiniteRational } from "abc-parser/Visitors/fmt/rational";
+import { ABCContext, Scanner, parse, AbcFormatter, Expr, AbcErrorReporter, SemanticAnalyzer } from "abcls-parser";
+import { ContextInterpreter, DocumentSnapshots } from "abcls-parser/interpreter/ContextInterpreter";
+import { createRational, isInfiniteRational } from "abcls-parser/Visitors/fmt/rational";
 import { expect } from "chai";
 import { cloneSubtree, visit } from "../../cstree/src/cstree";
 import * as barmap from "../src/context/csBarMap";

@@ -1,5 +1,5 @@
-import { abc2midi, midi2abc } from "abc-midi";
-import { Scanner, parse, ABCContext, File_structure } from "abc-parser";
+import { abc2midi, midi2abc } from "abcls-midi";
+import { Scanner, parse, ABCContext, File_structure } from "abcls-parser";
 import { expect } from "chai";
 import { validateImportMidiParams } from "./socketHandler";
 

@@ -1,7 +1,7 @@
-import { ABCContext, createRational, Scanner, parse, AbcErrorReporter, SemanticAnalyzer } from "abc-parser";
-import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
+import { verifyIntegrity } from "abcls-cstree";
+import { ABCContext, createRational, Scanner, parse, AbcErrorReporter, SemanticAnalyzer } from "abcls-parser";
+import { ContextInterpreter, DocumentSnapshots } from "abcls-parser/interpreter/ContextInterpreter";
 import { expect } from "chai";
-import { verifyIntegrity } from "cstree";
 import { describe, it } from "mocha";
 import { TAGS, isTokenNode } from "../src/csTree/types";
 import { addToRhythm } from "../src/transforms/addToRhythm";

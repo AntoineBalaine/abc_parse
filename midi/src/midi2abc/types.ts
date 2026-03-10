@@ -1,4 +1,4 @@
-import { IRational } from "abc-parser/Visitors/fmt/rational";
+import { IRational } from "abcls-parser/Visitors/fmt/rational";
 
 export interface MNote {
   pitch: number; // MIDI pitch 0-127

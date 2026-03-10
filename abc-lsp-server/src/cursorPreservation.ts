@@ -5,7 +5,7 @@
  * map them to positions in freshly-parsed trees for accurate highlighting.
  */
 
-import { CSNode, TAGS, Selection } from "editor";
+import { CSNode, TAGS, Selection } from "abcls-editor";
 import { Range } from "vscode-languageserver";
 import { computeNodeRange } from "./selectionRangeResolver";
 

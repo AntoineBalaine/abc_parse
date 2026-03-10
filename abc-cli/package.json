@@ -1,5 +1,5 @@
 {
-  "name": "abc-cli",
+  "name": "abcls-cli",
   "version": "0.1.0",
   "description": "Command-line tool for ABC music notation",
   "main": "../out/abc-cli/abcls-cli.js",
@@ -14,8 +14,8 @@
     "lint:fix": "eslint . --ext ts --fix"
   },
   "dependencies": {
-    "abc-midi": "*",
-    "abc-parser": "*",
+    "abcls-midi": "*",
+    "abcls-parser": "*",
     "abcjs": "^6.5.2",
     "commander": "^12.0.0",
     "svgdom": "^0.1.23"

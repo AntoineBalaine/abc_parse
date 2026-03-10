@@ -1,5 +1,5 @@
-import { ABCContext, TT } from "abc-parser";
-import { replace, appendChild, getParent, remove, cloneSubtree } from "cstree";
+import { replace, appendChild, getParent, remove, cloneSubtree } from "abcls-cstree";
+import { ABCContext, TT } from "abcls-parser";
 import { createCSNode, CSNode, TAGS, isNote, isChord, isYSpacer } from "../csTree/types";
 import { Selection } from "../selection";
 import { isVoiceMarker } from "../selectors/voiceSelector";

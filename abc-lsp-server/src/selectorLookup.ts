@@ -24,7 +24,7 @@ import {
   selectMeasures,
   selectVoices,
   selectSystem,
-} from "editor";
+} from "abcls-editor";
 
 type SelectorFn = (sel: Selection, ...args: (number | string)[]) => Selection;
 

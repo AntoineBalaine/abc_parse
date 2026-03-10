@@ -1,4 +1,4 @@
-import { Position } from "abc-parser/types/types";
+import { Position } from "abcls-parser/types/types";
 import { CSNode, isTokenNode, TokenData, getTokenData } from "../csTree/types";
 
 export interface FindByPosResult {

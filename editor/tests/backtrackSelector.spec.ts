@@ -1,4 +1,4 @@
-import { ChordQuality } from "abc-parser/music-theory/types";
+import { ChordQuality } from "abcls-parser/music-theory/types";
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { TAGS, CSNode } from "../src/csTree/types";

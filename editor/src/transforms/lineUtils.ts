@@ -1,4 +1,4 @@
-import { ABCContext } from "abc-parser";
+import { ABCContext } from "abcls-parser";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { findFirstByTag } from "../selectors/treeWalk";
 

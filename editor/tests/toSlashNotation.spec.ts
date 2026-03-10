@@ -1,6 +1,6 @@
-import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter, Tune, File_structure } from "abc-parser";
-import { SemanticData } from "abc-parser/analyzers/semantic-analyzer";
-import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
+import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter, Tune, File_structure } from "abcls-parser";
+import { SemanticData } from "abcls-parser/analyzers/semantic-analyzer";
+import { ContextInterpreter, DocumentSnapshots } from "abcls-parser/interpreter/ContextInterpreter";
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { fromAst } from "../src/csTree/fromAst";

@@ -2,9 +2,9 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
-import { File_structure, Scanner, parse, ABCContext, SemanticAnalyzer } from "abc-parser";
-import { ChordPositionCollector } from "abc-parser/interpreter/ChordPositionCollector";
-import { fromAst, createSelection, Selection, CSNode, TAGS, selectRange } from "editor";
+import { fromAst, createSelection, Selection, CSNode, TAGS, selectRange } from "abcls-editor";
+import { File_structure, Scanner, parse, ABCContext, SemanticAnalyzer } from "abcls-parser";
+import { ChordPositionCollector } from "abcls-parser/interpreter/ChordPositionCollector";
 import {
   CompletionItem,
   CompletionItemKind,

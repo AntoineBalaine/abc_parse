@@ -1,7 +1,7 @@
-import { TT } from "abc-parser";
-import { parseChordSymbol } from "abc-parser/music-theory/parseChordSymbol";
-import { scanChordSymbol } from "abc-parser/music-theory/scanChordSymbol";
-import { ParsedChord } from "abc-parser/music-theory/types";
+import { TT } from "abcls-parser";
+import { parseChordSymbol } from "abcls-parser/music-theory/parseChordSymbol";
+import { scanChordSymbol } from "abcls-parser/music-theory/scanChordSymbol";
+import { ParsedChord } from "abcls-parser/music-theory/types";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { Selection } from "../selection";
 import { buildIdMap } from "./treeWalk";

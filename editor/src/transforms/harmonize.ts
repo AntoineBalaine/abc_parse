@@ -1,4 +1,5 @@
-import { ABCContext, Pitch, TT, Token, Note, Chord } from "abc-parser";
+import { remove, replace, getParent, appendChild, insertAfter } from "abcls-cstree";
+import { ABCContext, Pitch, TT, Token, Note, Chord } from "abcls-parser";
 import {
   VoicedNote,
   Spelling,
@@ -28,10 +29,9 @@ import {
   ChordPosition,
   findPreviousChordInVoice,
   voicedNoteOctave,
-} from "abc-parser";
-import { DocumentSnapshots, ContextSnapshot, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
-import { KeySignature } from "abc-parser/types/abcjs-ast";
-import { remove, replace, getParent, appendChild, insertAfter } from "cstree";
+} from "abcls-parser";
+import { DocumentSnapshots, ContextSnapshot, getSnapshotAtPosition, encode } from "abcls-parser/interpreter/ContextInterpreter";
+import { KeySignature } from "abcls-parser/types/abcjs-ast";
 import { fromAst } from "../csTree/fromAst";
 import { toAst } from "../csTree/toAst";
 import { createCSNode, CSNode, TAGS } from "../csTree/types";

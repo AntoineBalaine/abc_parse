@@ -10,8 +10,8 @@
  * a closing node ID that anchors the bar's position in the tree.
  */
 
-import { TT } from "abc-parser";
-import { visit, type CSVisitor } from "cstree";
+import { visit, type CSVisitor } from "abcls-cstree";
+import { TT } from "abcls-parser";
 import { type CSNode, type EditorDataMap, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { isVoiceMarker, extractVoiceId } from "../selectors/voiceSelector";
 

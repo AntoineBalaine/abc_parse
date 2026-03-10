@@ -1,4 +1,4 @@
-import { IRational, TT } from "abc-parser";
+import { IRational, TT } from "abcls-parser";
 import { CSNode, isTokenNode, getTokenData } from "../csTree/types";
 
 /**

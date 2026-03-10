@@ -1,4 +1,4 @@
-import { TT } from "abc-parser";
+import { TT } from "abcls-parser";
 import { CSNode, TAGS, isTokenNode, getTokenData } from "../csTree/types";
 import { Selection } from "../selection";
 

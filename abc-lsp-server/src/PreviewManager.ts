@@ -1,6 +1,6 @@
 import { ChildProcess, spawn } from "child_process";
 import path from "path";
-import { ABCContext, AbcErrorReporter, filterVoicesInAbc } from "abc-parser";
+import { ABCContext, AbcErrorReporter, filterVoicesInAbc } from "abcls-parser";
 
 // Convert file URI to filesystem path
 function uriToPath(uri: string): string {

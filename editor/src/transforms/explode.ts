@@ -1,5 +1,5 @@
-import { ABCContext } from "abc-parser";
-import { cloneSubtree, appendChild, insertAfter, remove } from "cstree";
+import { cloneSubtree, appendChild, insertAfter, remove } from "abcls-cstree";
+import { ABCContext } from "abcls-parser";
 import { createCSNode, CSNode, TAGS } from "../csTree/types";
 import { Selection } from "../selection";
 import { consolidateRests } from "./consolidateRests";

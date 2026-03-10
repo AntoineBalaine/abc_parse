@@ -1,4 +1,4 @@
-import { remove as cstreeRemove } from "cstree";
+import { remove as cstreeRemove } from "abcls-cstree";
 import { CSNode } from "../csTree/types";
 import { Selection, Cursor } from "../selection";
 

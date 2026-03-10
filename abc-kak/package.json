@@ -1,5 +1,5 @@
 {
-  "name": "abc-kak",
+  "name": "abcls-kak",
   "version": "0.0.1",
   "private": true,
   "description": "ABC notation support for Kakoune via kak-lsp",
@@ -15,6 +15,6 @@
     "esbuild": "^0.25.10"
   },
   "dependencies": {
-    "abc-lsp-server": "*"
+    "abcls-server": "*"
   }
 }

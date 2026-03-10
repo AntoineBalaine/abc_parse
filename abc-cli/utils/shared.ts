@@ -3,7 +3,7 @@
  */
 
 import { readFileSync, writeFileSync } from "fs";
-import { ABCContext, Scanner, parse, AbcError } from "abc-parser";
+import { ABCContext, Scanner, parse, AbcError } from "abcls-parser";
 
 /**
  * Read an ABC file from disk

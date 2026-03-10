@@ -1,6 +1,6 @@
-import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter, File_structure, Tune } from "abc-parser";
-import { SemanticData } from "abc-parser/analyzers/semantic-analyzer";
-import { ContextInterpreter, DocumentSnapshots, encode, getSnapshotAtPosition } from "abc-parser/interpreter/ContextInterpreter";
+import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter, File_structure, Tune } from "abcls-parser";
+import { SemanticData } from "abcls-parser/analyzers/semantic-analyzer";
+import { ContextInterpreter, DocumentSnapshots, encode, getSnapshotAtPosition } from "abcls-parser/interpreter/ContextInterpreter";
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { getContextForNode } from "../src/context/contextUtils";

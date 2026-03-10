@@ -1,5 +1,5 @@
-import { TT } from "abc-parser";
-import type { CSNode as CSTNode, CSNodeOf, ParentRef } from "cstree";
+import type { CSNode as CSTNode, CSNodeOf, ParentRef } from "abcls-cstree";
+import { TT } from "abcls-parser";
 
 export type { ParentRef, CSNodeOf };
 

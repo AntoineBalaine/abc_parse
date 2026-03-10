@@ -1,4 +1,4 @@
-import { Range, Position } from "abc-parser/types/types";
+import { Range, Position } from "abcls-parser/types/types";
 import { CSNode, isTokenNode, TokenData } from "../csTree/types";
 
 function tokenRange(data: TokenData): Range {

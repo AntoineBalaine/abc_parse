@@ -1,4 +1,4 @@
-import { ABCContext, Scanner, parse, AbcErrorReporter, Tune } from "abc-parser";
+import { ABCContext, Scanner, parse, AbcErrorReporter, Tune } from "abcls-parser";
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { verifyIntegrity } from "../../cstree/src/cstree";

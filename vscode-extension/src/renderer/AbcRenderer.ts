@@ -6,7 +6,7 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { pathToFileURL } from "url";
-import { ABCContext, AbcErrorReporter, filterVoicesInAbc } from "abc-parser";
+import { ABCContext, AbcErrorReporter, filterVoicesInAbc } from "abcls-parser";
 import * as vscode from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
 

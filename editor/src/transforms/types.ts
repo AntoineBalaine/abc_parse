@@ -1,4 +1,4 @@
-import { IRational } from "abc-parser";
+import { IRational } from "abcls-parser";
 import { CSNode } from "../csTree/types";
 import { Selection } from "../selection";
 

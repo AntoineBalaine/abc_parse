@@ -1,6 +1,16 @@
-import { ABCContext, Pitch, Token, TT, resolveMelodyPitch, semitonesToAccidentalType, spellPitch, mergeAccidentals, computeOctaveFromPitch } from "abc-parser";
-import { DocumentSnapshots, ContextSnapshot, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
-import { replace } from "cstree";
+import { replace } from "abcls-cstree";
+import {
+  ABCContext,
+  Pitch,
+  Token,
+  TT,
+  resolveMelodyPitch,
+  semitonesToAccidentalType,
+  spellPitch,
+  mergeAccidentals,
+  computeOctaveFromPitch,
+} from "abcls-parser";
+import { DocumentSnapshots, ContextSnapshot, getSnapshotAtPosition, encode } from "abcls-parser/interpreter/ContextInterpreter";
 import { fromAst } from "../csTree/fromAst";
 import { toAst } from "../csTree/toAst";
 import { CSNode, TAGS } from "../csTree/types";
