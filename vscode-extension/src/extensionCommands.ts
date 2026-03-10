@@ -57,8 +57,9 @@ function registerMidiExport(context: vscode.ExtensionContext, client: LanguageCl
       const bytes = Buffer.from(result.midi, "base64");
       await vscode.workspace.fs.writeFile(saveUri, bytes);
       vscode.window.showInformationMessage(`MIDI exported to ${saveUri.fsPath}`);
-    } catch (error: any) {
-      vscode.window.showErrorMessage(`MIDI export failed: ${error.message || error}`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      vscode.window.showErrorMessage(`MIDI export failed: ${msg}`);
     }
   });
   context.subscriptions.push(exportMidiCmd);
@@ -81,8 +82,9 @@ function registerMidiImport(context: vscode.ExtensionContext, client: LanguageCl
       });
       const doc = await vscode.workspace.openTextDocument({ content: result.abc, language: "abc" });
       await vscode.window.showTextDocument(doc);
-    } catch (error: any) {
-      vscode.window.showErrorMessage(`MIDI import failed: ${error.message || error}`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      vscode.window.showErrorMessage(`MIDI import failed: ${msg}`);
     }
   });
   context.subscriptions.push(importMidiCmd);

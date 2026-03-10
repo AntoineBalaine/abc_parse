@@ -156,7 +156,7 @@ export namespace MIDIIn {
     }
   };
   export const processNote = (MIDINoteNumber: number, keyDown: boolean, MIDIInputConfig: MIDIInputConfig) => (outputNoteFn: OutputNotesFnType) => {
-    const { accidentals, relativeMode, chordTimeWindow } = MIDIInputConfig;
+    const { accidentals, relativeMode } = MIDIInputConfig;
 
     if (keyDown) {
       const currentTime = Date.now();
@@ -167,9 +167,6 @@ export namespace MIDIIn {
       // Note is released
       // If this is the first note being released after the last note was pressed
       if (activeNotes.has(MIDINoteNumber)) {
-        const currentTime = Date.now();
-        const timeSinceLastNote = currentTime - MIDIInState.lastNoteTime;
-
         // Clear any existing timeout
         if (MIDIInState.chordTimeout) {
           clearTimeout(MIDIInState.chordTimeout);
