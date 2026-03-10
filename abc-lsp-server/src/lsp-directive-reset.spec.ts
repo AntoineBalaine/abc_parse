@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { TextEdit } from "vscode-languageserver";
+import { TextDocuments, TextEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AbcLspServer } from "./AbcLspServer";
 
@@ -100,7 +100,7 @@ V:2
 `;
 
   // Content with only system-comments directive (no linear)
-  const contentWithOnlySystemComments = `%%abcls-fmt system-comments
+  const _contentWithOnlySystemComments = `%%abcls-fmt system-comments
 X:1
 T:my cool title
 V:1
@@ -111,7 +111,7 @@ V:2
 `;
 
   // Expected output: no separator because linear not enabled
-  const expectedWithOnlySystemComments = `%%abcls-fmt system-comments
+  const _expectedWithOnlySystemComments = `%%abcls-fmt system-comments
 X:1
 T:my cool title
 V:1
@@ -124,7 +124,7 @@ V:2
   it("should produce correct formatter output across document changes", () => {
     const mockDocuments = new MockTextDocuments();
 
-    const server = new AbcLspServer(mockDocuments as any, () => {});
+    const server = new AbcLspServer(mockDocuments as unknown as TextDocuments<TextDocument>, () => {});
 
     // Step 1: Open document with base content (no directives)
     mockDocuments.update(TEST_URI, baseContent);

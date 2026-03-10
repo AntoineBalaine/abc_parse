@@ -67,7 +67,7 @@ V:2
     expect(doc.ctx.formatterConfig.voiceMarkerStyle).to.equal("infoline");
 
     // The formatted output should be different (the formatter attempts transformation)
-    const formattedWithout = new AbcFormatter(doc.ctx).formatFile(doc.AST!);
+    const _formattedWithout = new AbcFormatter(doc.ctx).formatFile(doc.AST!);
 
     // Now remove directive and re-parse
     doc.document = createTextDocument("file:///test.abc", baseContentWithInlineMarkers);

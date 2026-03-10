@@ -42,7 +42,7 @@ describe("importMidi", () => {
 
 describe("validateImportMidiParams", () => {
   it("accepts valid params with midi only", () => {
-    const result = validateImportMidiParams({ midi: "AAAA" } as any);
+    const result = validateImportMidiParams({ midi: "AAAA" } as unknown as Parameters<typeof validateImportMidiParams>[0]);
     expect(result.midi).to.equal("AAAA");
     expect(result.title).to.be.undefined;
     expect(result.composer).to.be.undefined;
@@ -53,7 +53,7 @@ describe("validateImportMidiParams", () => {
       midi: "AAAA",
       title: "My Title",
       composer: "My Composer",
-    } as any);
+    } as unknown as Parameters<typeof validateImportMidiParams>[0]);
     expect(result.midi).to.equal("AAAA");
     expect(result.title).to.equal("My Title");
     expect(result.composer).to.equal("My Composer");
@@ -63,46 +63,51 @@ describe("validateImportMidiParams", () => {
     try {
       validateImportMidiParams(undefined);
       expect.fail("should have thrown");
-    } catch (err: any) {
-      expect(err.code).to.exist;
-      expect(err.message).to.include("Missing params");
+    } catch (err: unknown) {
+      const e = err as { code: number; message: string };
+      expect(e.code).to.exist;
+      expect(e.message).to.include("Missing params");
     }
   });
 
   it("throws on missing midi parameter", () => {
     try {
-      validateImportMidiParams({} as any);
+      validateImportMidiParams({} as unknown as Parameters<typeof validateImportMidiParams>[0]);
       expect.fail("should have thrown");
-    } catch (err: any) {
-      expect(err.code).to.exist;
-      expect(err.message).to.include("midi");
+    } catch (err: unknown) {
+      const e = err as { code: number; message: string };
+      expect(e.code).to.exist;
+      expect(e.message).to.include("midi");
     }
   });
 
   it("throws on empty midi parameter", () => {
     try {
-      validateImportMidiParams({ midi: "" } as any);
+      validateImportMidiParams({ midi: "" } as unknown as Parameters<typeof validateImportMidiParams>[0]);
       expect.fail("should have thrown");
-    } catch (err: any) {
-      expect(err.message).to.include("midi");
+    } catch (err: unknown) {
+      const e = err as { code: number; message: string };
+      expect(e.message).to.include("midi");
     }
   });
 
   it("throws on non-string title", () => {
     try {
-      validateImportMidiParams({ midi: "AAAA", title: 42 } as any);
+      validateImportMidiParams({ midi: "AAAA", title: 42 } as unknown as Parameters<typeof validateImportMidiParams>[0]);
       expect.fail("should have thrown");
-    } catch (err: any) {
-      expect(err.message).to.include("title");
+    } catch (err: unknown) {
+      const e = err as { code: number; message: string };
+      expect(e.message).to.include("title");
     }
   });
 
   it("throws on non-string composer", () => {
     try {
-      validateImportMidiParams({ midi: "AAAA", composer: 42 } as any);
+      validateImportMidiParams({ midi: "AAAA", composer: 42 } as unknown as Parameters<typeof validateImportMidiParams>[0]);
       expect.fail("should have thrown");
-    } catch (err: any) {
-      expect(err.message).to.include("composer");
+    } catch (err: unknown) {
+      const e = err as { code: number; message: string };
+      expect(e.message).to.include("composer");
     }
   });
 });

@@ -606,7 +606,7 @@ connection.onRequest("abc.exportMidi", (params: { uri: string; tuneNumbers?: num
 });
 
 connection.onRequest("abc.importMidi", (params: Record<string, unknown>): { abc: string } => {
-  const { midi, ...options } = validateImportMidiParams(params as any);
+  const { midi, ...options } = validateImportMidiParams(params as unknown as Parameters<typeof validateImportMidiParams>[0]);
   const abc = abcServer.importMidi(midi, options);
   return { abc };
 });

@@ -242,7 +242,7 @@ function computeVoiceSectionFolds(tunes: Tune[], tokens: Token[]): FoldingRange[
 function computePartSectionFolds(
   tunes: Tune[],
   tokens: Token[],
-  rangeVisitor: RangeVisitor
+  _rangeVisitor: RangeVisitor
 ): FoldingRange[] {
   const ranges: FoldingRange[] = [];
 
@@ -419,7 +419,7 @@ function computeInfoFieldSequenceFolds(tunes: Tune[], rangeVisitor: RangeVisitor
  */
 function findInfoFieldSequences(
   infoLines: unknown[],
-  rangeVisitor: RangeVisitor
+  _rangeVisitor: RangeVisitor
 ): FoldingRange[] {
   const ranges: FoldingRange[] = [];
 
@@ -471,7 +471,7 @@ function findInfoFieldSequences(
 /**
  * Find the end line of a tune by looking at the last token before the next X: or EOF.
  */
-function findTuneEndLine(tune: Tune, tokens: Token[]): number {
+function findTuneEndLine(tune: Tune, _tokens: Token[]): number {
   const rangeVisitor = new RangeVisitor();
   const tuneRange = tune.accept(rangeVisitor);
   return tuneRange.end.line;

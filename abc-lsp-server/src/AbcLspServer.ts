@@ -177,7 +177,7 @@ export class AbcLspServer {
     }
     const doc = abcDocument.document;
     const lineText = doc.getText().split("\n")[line];
-    const charIndex = lineText.indexOf(String.fromCharCode(char));
+    const _charIndex = lineText.indexOf(String.fromCharCode(char));
     return lineText.charAt(char);
   }
 

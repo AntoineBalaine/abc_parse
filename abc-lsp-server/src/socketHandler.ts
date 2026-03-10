@@ -30,6 +30,14 @@ interface LSPRange {
   end: LSPPosition;
 }
 
+class SocketError extends Error {
+  code: number;
+  constructor(code: number, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
 interface SocketRequest {
   id: number | string;
   method: string;
@@ -172,17 +180,17 @@ function validateUri(uri: unknown): uri is string {
 
 function validateRequest(request: unknown): SocketRequest {
   if (typeof request !== "object" || request === null) {
-    throw { code: ERROR_CODES.INVALID_REQUEST, message: "Request must be an object" };
+    throw new SocketError(ERROR_CODES.INVALID_REQUEST, "Request must be an object");
   }
 
   const req = request as Record<string, unknown>;
 
   if (req.id === undefined || req.id === null) {
-    throw { code: ERROR_CODES.INVALID_REQUEST, message: "Request must have an id" };
+    throw new SocketError(ERROR_CODES.INVALID_REQUEST, "Request must have an id");
   }
 
   if (typeof req.method !== "string") {
-    throw { code: ERROR_CODES.INVALID_REQUEST, message: "Request must have a method string" };
+    throw new SocketError(ERROR_CODES.INVALID_REQUEST, "Request must have a method string");
   }
 
   return {
@@ -199,36 +207,33 @@ function validateApplySelectorParams(params: SocketRequest["params"]): {
   ranges: LSPRange[];
 } {
   if (!params) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Missing params" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "Missing params");
   }
 
   if (!validateUri(params.uri)) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Invalid or missing URI" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "Invalid or missing URI");
   }
 
   if (typeof params.selector !== "string") {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Missing selector name" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "Missing selector name");
   }
 
   const availableSelectors = getAvailableSelectors();
   if (!availableSelectors.includes(params.selector)) {
-    throw {
-      code: ERROR_CODES.INVALID_PARAMS,
-      message: `Unknown selector: "${params.selector}". Available: ${availableSelectors.join(", ")}`,
-    };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, `Unknown selector: "${params.selector}". Available: ${availableSelectors.join(", ")}`);
   }
 
   if (params.args !== undefined) {
     if (!Array.isArray(params.args)) {
-      throw { code: ERROR_CODES.INVALID_PARAMS, message: "args must be an array" };
+      throw new SocketError(ERROR_CODES.INVALID_PARAMS, "args must be an array");
     }
     if (!params.args.every((arg) => typeof arg === "number" || typeof arg === "string")) {
-      throw { code: ERROR_CODES.INVALID_PARAMS, message: "args must be an array of numbers or strings" };
+      throw new SocketError(ERROR_CODES.INVALID_PARAMS, "args must be an array of numbers or strings");
     }
   }
 
   if (params.ranges !== undefined && !Array.isArray(params.ranges)) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "ranges must be an array" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "ranges must be an array");
   }
 
   return {
@@ -246,31 +251,28 @@ function validateApplyTransformParams(params: SocketRequest["params"]): {
   ranges: LSPRange[];
 } {
   if (!params) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Missing params" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "Missing params");
   }
 
   if (!validateUri(params.uri)) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Invalid or missing URI" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "Invalid or missing URI");
   }
 
   if (typeof params.transform !== "string") {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Missing transform name" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "Missing transform name");
   }
 
   const transformFn = lookupTransform(params.transform);
   if (!transformFn) {
-    throw {
-      code: ERROR_CODES.INVALID_PARAMS,
-      message: `Unknown transform: "${params.transform}"`,
-    };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, `Unknown transform: "${params.transform}"`);
   }
 
   if (params.args !== undefined && !Array.isArray(params.args)) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "args must be an array" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "args must be an array");
   }
 
   if (params.ranges !== undefined && !Array.isArray(params.ranges)) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "ranges must be an array" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "ranges must be an array");
   }
 
   return {
@@ -283,11 +285,11 @@ function validateApplyTransformParams(params: SocketRequest["params"]): {
 
 function validatePreviewUriParams(params: SocketRequest["params"]): { uri: string } {
   if (!params) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Missing params" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "Missing params");
   }
 
   if (!validateUri(params.uri)) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Invalid or missing URI" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "Invalid or missing URI");
   }
 
   return { uri: params.uri };
@@ -295,20 +297,20 @@ function validatePreviewUriParams(params: SocketRequest["params"]): { uri: strin
 
 function validatePreviewCursorParams(params: SocketRequest["params"]): { uri: string; positions: number[] } {
   if (!params) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Missing params" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "Missing params");
   }
 
   if (!validateUri(params.uri)) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Invalid or missing URI" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "Invalid or missing URI");
   }
 
   const rawParams = params as { uri?: string; positions?: unknown };
   if (!Array.isArray(rawParams.positions)) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "positions must be an array" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "positions must be an array");
   }
 
   if (!rawParams.positions.every((p) => typeof p === "number")) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "positions must be an array of numbers" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "positions must be an array of numbers");
   }
 
   return { uri: params.uri!, positions: rawParams.positions as number[] };
@@ -316,17 +318,17 @@ function validatePreviewCursorParams(params: SocketRequest["params"]): { uri: st
 
 function validateExportMidiParams(params: SocketRequest["params"]): { uri: string; tuneNumbers?: number[] } {
   if (!params) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Missing params" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "Missing params");
   }
 
   const rawParams = params as { uri?: string; tuneNumbers?: number[] };
   if (!validateUri(rawParams.uri)) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Invalid or missing URI" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "Invalid or missing URI");
   }
 
   if (rawParams.tuneNumbers !== undefined) {
     if (!Array.isArray(rawParams.tuneNumbers) || !rawParams.tuneNumbers.every((n) => typeof n === "number")) {
-      throw { code: ERROR_CODES.INVALID_PARAMS, message: "tuneNumbers must be an array of numbers" };
+      throw new SocketError(ERROR_CODES.INVALID_PARAMS, "tuneNumbers must be an array of numbers");
     }
   }
 
@@ -339,21 +341,21 @@ export function validateImportMidiParams(params: SocketRequest["params"]): {
   composer?: string;
 } {
   if (!params) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Missing params" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "Missing params");
   }
 
   const rawParams = params as { midi?: string; title?: string; composer?: string };
 
   if (typeof rawParams.midi !== "string" || rawParams.midi.length === 0) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "Missing required 'midi' parameter" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "Missing required 'midi' parameter");
   }
 
   if (rawParams.title !== undefined && typeof rawParams.title !== "string") {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "'title' must be a string" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "'title' must be a string");
   }
 
   if (rawParams.composer !== undefined && typeof rawParams.composer !== "string") {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: "'composer' must be a string" };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, "'composer' must be a string");
   }
 
   return {
@@ -380,22 +382,22 @@ function handleApplySelector(
   const doc = getDocument(params.uri);
 
   if (!doc) {
-    throw { code: ERROR_CODES.DOCUMENT_NOT_FOUND, message: "Document not yet opened" };
+    throw new SocketError(ERROR_CODES.DOCUMENT_NOT_FOUND, "Document not yet opened");
   }
 
   if (doc instanceof AbcxDocument) {
-    throw { code: ERROR_CODES.FILE_TYPE_NOT_SUPPORTED, message: "Selectors are not supported for ABCx files" };
+    throw new SocketError(ERROR_CODES.FILE_TYPE_NOT_SUPPORTED, "Selectors are not supported for ABCx files");
   }
 
   if (!(doc instanceof AbcDocument) || !doc.AST) {
-    throw { code: ERROR_CODES.DOCUMENT_NOT_FOUND, message: "Document has no parsed AST" };
+    throw new SocketError(ERROR_CODES.DOCUMENT_NOT_FOUND, "Document has no parsed AST");
   }
 
   const root = getCsTree(doc.AST, doc.ctx);
   const selectorFn = lookupSelector(params.selector);
 
   if (!selectorFn) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: `Unknown selector: "${params.selector}"` };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, `Unknown selector: "${params.selector}"`);
   }
 
   // Stateless approach: use provided ranges to create initial selection
@@ -437,20 +439,20 @@ function handleApplyTransform(
   const doc = getDocument(params.uri);
 
   if (!doc) {
-    throw { code: ERROR_CODES.DOCUMENT_NOT_FOUND, message: "Document not yet opened" };
+    throw new SocketError(ERROR_CODES.DOCUMENT_NOT_FOUND, "Document not yet opened");
   }
 
   if (doc instanceof AbcxDocument) {
-    throw { code: ERROR_CODES.FILE_TYPE_NOT_SUPPORTED, message: "Transforms are not supported for ABCx files" };
+    throw new SocketError(ERROR_CODES.FILE_TYPE_NOT_SUPPORTED, "Transforms are not supported for ABCx files");
   }
 
   if (!(doc instanceof AbcDocument) || !doc.AST) {
-    throw { code: ERROR_CODES.DOCUMENT_NOT_FOUND, message: "Document has no parsed AST" };
+    throw new SocketError(ERROR_CODES.DOCUMENT_NOT_FOUND, "Document has no parsed AST");
   }
 
   const transformFn = lookupTransform(params.transform);
   if (!transformFn) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: `Unknown transform: "${params.transform}"` };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, `Unknown transform: "${params.transform}"`);
   }
 
   // Build a fresh CSTree from the AST (transforms mutate in place)
@@ -578,15 +580,15 @@ function handlePositionBasedTransform(
   const doc = getDocument(params.uri);
 
   if (!doc) {
-    throw { code: ERROR_CODES.DOCUMENT_NOT_FOUND, message: "Document not yet opened" };
+    throw new SocketError(ERROR_CODES.DOCUMENT_NOT_FOUND, "Document not yet opened");
   }
 
   if (doc instanceof AbcxDocument) {
-    throw { code: ERROR_CODES.FILE_TYPE_NOT_SUPPORTED, message: "Transforms are not supported for ABCx files" };
+    throw new SocketError(ERROR_CODES.FILE_TYPE_NOT_SUPPORTED, "Transforms are not supported for ABCx files");
   }
 
   if (!(doc instanceof AbcDocument) || !doc.AST) {
-    throw { code: ERROR_CODES.DOCUMENT_NOT_FOUND, message: "Document has no parsed AST" };
+    throw new SocketError(ERROR_CODES.DOCUMENT_NOT_FOUND, "Document has no parsed AST");
   }
 
   // Position-based transforms require at least one range to determine the position
@@ -608,7 +610,7 @@ function handlePositionBasedTransform(
 
   const transformFn = lookupTransform(params.transform);
   if (!transformFn) {
-    throw { code: ERROR_CODES.INVALID_PARAMS, message: `Unknown transform: "${params.transform}"` };
+    throw new SocketError(ERROR_CODES.INVALID_PARAMS, `Unknown transform: "${params.transform}"`);
   }
 
   // Build transform arguments: [snapshots, positions, ...additionalArgs]
@@ -777,54 +779,54 @@ export class SocketHandler {
         }
       } else if (request.method === "abc.startPreview") {
         if (!this.previewManager) {
-          throw { code: ERROR_CODES.INVALID_REQUEST, message: "Preview manager not initialized" };
+          throw new SocketError(ERROR_CODES.INVALID_REQUEST, "Preview manager not initialized");
         }
         const validatedParams = validatePreviewUriParams(request.params);
         result = await this.previewManager.startPreview(validatedParams.uri);
       } else if (request.method === "abc.stopPreview") {
         if (!this.previewManager) {
-          throw { code: ERROR_CODES.INVALID_REQUEST, message: "Preview manager not initialized" };
+          throw new SocketError(ERROR_CODES.INVALID_REQUEST, "Preview manager not initialized");
         }
         const validatedParams = validatePreviewUriParams(request.params);
         this.previewManager.stopPreview(validatedParams.uri);
         result = { success: true };
       } else if (request.method === "abc.previewCursor") {
         if (!this.previewManager) {
-          throw { code: ERROR_CODES.INVALID_REQUEST, message: "Preview manager not initialized" };
+          throw new SocketError(ERROR_CODES.INVALID_REQUEST, "Preview manager not initialized");
         }
         const validatedParams = validatePreviewCursorParams(request.params);
         this.previewManager.pushCursorUpdate(validatedParams.uri, validatedParams.positions);
         result = { success: true };
       } else if (request.method === "abc.shutdownPreview") {
         if (!this.previewManager) {
-          throw { code: ERROR_CODES.INVALID_REQUEST, message: "Preview manager not initialized" };
+          throw new SocketError(ERROR_CODES.INVALID_REQUEST, "Preview manager not initialized");
         }
         this.previewManager.shutdown();
         result = { success: true };
       } else if (request.method === "abc.exportMidi") {
         if (!this.exportMidiFn) {
-          throw { code: ERROR_CODES.INVALID_REQUEST, message: "MIDI export not initialized" };
+          throw new SocketError(ERROR_CODES.INVALID_REQUEST, "MIDI export not initialized");
         }
         const validatedParams = validateExportMidiParams(request.params);
         const midi = this.exportMidiFn(validatedParams.uri, validatedParams.tuneNumbers);
         result = { midi };
       } else if (request.method === "abc.importMidi") {
         if (!this.importMidiFn) {
-          throw { code: ERROR_CODES.INVALID_REQUEST, message: "MIDI import not initialized" };
+          throw new SocketError(ERROR_CODES.INVALID_REQUEST, "MIDI import not initialized");
         }
         const { midi, ...options } = validateImportMidiParams(request.params);
         const abc = this.importMidiFn(midi, options);
         result = { abc };
       } else {
-        throw { code: ERROR_CODES.UNKNOWN_METHOD, message: `Unknown method: "${request.method}"` };
+        throw new SocketError(ERROR_CODES.UNKNOWN_METHOD, `Unknown method: "${request.method}"`);
       }
 
       response = { id: request.id, result };
     } catch (err) {
-      if (typeof err === "object" && err !== null && "code" in err) {
+      if (err instanceof SocketError) {
         response = {
           id: request.id,
-          error: err as { code: number; message: string },
+          error: { code: err.code, message: err.message },
         };
       } else {
         response = {
