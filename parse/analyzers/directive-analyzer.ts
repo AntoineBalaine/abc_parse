@@ -2,7 +2,23 @@ import { isToken } from "../helpers";
 import { StaffNomenclature, VxNomenclature } from "../interpreter/InterpreterState";
 import { Token, TT } from "../parsers/scan2";
 import { BracketBracePosition } from "../types/abcjs-ast";
-import { DirectiveSemanticData, FontSpec, DRUM_SOUND_NAMES, DrumSoundName, AbclsVoicesDirectiveData } from "../types/directive-specs";
+import {
+  createDirectiveData,
+  DirectiveSemanticData,
+  FontSpec,
+  DRUM_SOUND_NAMES,
+  DrumSoundName,
+  AbclsVoicesDirectiveData,
+  PositionValue,
+  FontDirectiveType,
+  BooleanFlagDirectiveType,
+  StringDirectiveType,
+  NumberDirectiveType,
+  BooleanValueDirectiveType,
+  PositionDirectiveType,
+  MeasurementDirectiveType,
+  lookupDirectiveType,
+} from "../types/directive-specs";
 import { Directive, Annotation, Measurement, Rational, KV, Pitch } from "../types/Expr2";
 import { IRational } from "../Visitors/fmt2/rational";
 import { SemanticAnalyzer } from "./semantic-analyzer";
@@ -22,8 +38,14 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
   }
 
   const keyLower = key.toLowerCase();
+  const tag = lookupDirectiveType(keyLower);
 
-  switch (keyLower) {
+  if (!tag) {
+    analyzer.report(`Unknown directive: ${key}`, directive);
+    return null;
+  }
+
+  switch (tag) {
     // ============================================================================
     // Font Directives with Box Support
     // ============================================================================
@@ -41,7 +63,7 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     case "barlabelfont":
     case "barnumberfont":
     case "barnumfont":
-      return parseFontDirective(directive, analyzer, { supportsBox: true });
+      return parseFontDirective(tag, directive, analyzer, { supportsBox: true });
 
     // ============================================================================
     // Font Directives without Box Support
@@ -56,7 +78,7 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     case "tablabelfont":
     case "tabnumberfont":
     case "tabgracefont":
-      return parseFontDirective(directive, analyzer, { supportsBox: false });
+      return parseFontDirective(tag, directive, analyzer, { supportsBox: false });
 
     // ============================================================================
     // Layout and Formatting Directives (Boolean flags - no parameters)
@@ -64,8 +86,8 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     case "bagpipes":
     case "flatbeams":
     case "jazzchords":
-    case "accentabove":
-    case "germanalphabet":
+    case "accentAbove":
+    case "germanAlphabet":
     case "landscape":
     case "titlecaps":
     case "titleleft":
@@ -80,12 +102,12 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     case "slurgraces":
     case "exprabove":
     case "exprbelow":
-      return parseBooleanFlag(directive, analyzer);
+      return parseBooleanFlag(tag);
 
     // Multi-column and title format directives (accept identifier parameter)
     case "multicol":
     case "titleformat":
-      return parseIdentifier(directive, analyzer);
+      return parseIdentifier(tag, directive, analyzer);
 
     // ============================================================================
     // Multi-line Text Directive
@@ -101,7 +123,7 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     case "auquality":
     case "continuous":
     case "voicecolor":
-      return parseIdentifier(directive, analyzer);
+      return parseIdentifier(tag, directive, analyzer);
 
     // Map directive - accepts multiple parameters
     case "map":
@@ -115,18 +137,18 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     case "printtempo":
     case "partsbox":
     case "freegchord":
-      return parseBooleanValue(directive, analyzer);
+      return parseBooleanValue(tag, directive, analyzer);
 
     // ============================================================================
     // Simple Number Directives (no constraints)
     // ============================================================================
-    case "linethickness":
+    case "lineThickness":
     case "voicescale":
     case "scale":
     case "fontboxpadding":
     case "bar":
     case "bar10":
-      return parseNumber(directive, analyzer);
+      return parseNumber(tag, directive, analyzer);
 
     // ============================================================================
     // Number Directives with Constraints
@@ -134,12 +156,12 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     case "stretchlast":
       return parseStretchLast(directive, analyzer);
     case "barsperstaff":
-      return parseNumber(directive, analyzer, { min: 1 });
+      return parseNumber(tag, directive, analyzer, { min: 1 });
     case "measurenb":
     case "barnumbers":
-      return parseNumber(directive, analyzer, { min: 0 });
+      return parseNumber(tag, directive, analyzer, { min: 0 });
     case "setbarnb":
-      return parseNumber(directive, analyzer, { min: 1 });
+      return parseNumber(tag, directive, analyzer, { min: 1 });
 
     // ============================================================================
     // Position Directives
@@ -149,7 +171,7 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     case "gchord":
     case "ornament":
     case "volume":
-      return parsePositionChoice(directive, analyzer);
+      return parsePositionChoice(tag, directive, analyzer);
 
     // ============================================================================
     // Margin and Spacing Directives (Measurements)
@@ -178,7 +200,7 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     case "vocalspace":
     case "wordsspace":
     case "vskip":
-      return parseMeasurement(directive, analyzer);
+      return parseMeasurement(tag, directive, analyzer);
 
     // ============================================================================
     // Complex Directives
@@ -186,19 +208,20 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     case "sep":
       return parseSep(directive, analyzer);
     case "text":
-      return parseText(directive, analyzer);
     case "center":
-      return parseCenter(directive, analyzer);
+      return parseAnnotation(tag, directive, analyzer);
     case "newpage":
       return parseNewpage(directive, analyzer);
+    case "setfont":
+      return parseSetfont(directive, analyzer);
     case "staves":
       return parseStaves(directive, analyzer);
     case "score":
       return parseScore(directive, analyzer);
     case "header":
-      return parseHeader(directive, analyzer);
+      return parseHeaderFooter(directive, analyzer, "header");
     case "footer":
-      return parseFooter(directive, analyzer);
+      return parseHeaderFooter(directive, analyzer, "footer");
     case "midi":
       return parseMidi(directive, analyzer);
     case "percmap":
@@ -220,14 +243,15 @@ export function analyzeDirective(directive: Directive, analyzer: SemanticAnalyze
     case "abc-edited-by":
     case "abc-version":
     case "abc-charset":
-      return parseAnnotation(directive, analyzer);
+      return parseAnnotation(tag, directive, analyzer);
 
-    // ============================================================================
-    // Unknown Directive
-    // ============================================================================
-    default:
-      analyzer.report(`Unknown directive: ${key}`, directive);
-      return null;
+    default: {
+      // Because lookupDirectiveType returned a valid tag, every DirectiveType key
+      // must be covered above. This exhaustive check ensures we never silently
+      // drop a directive.
+      const _exhaustive: never = tag;
+      return _exhaustive;
+    }
   }
 }
 
@@ -296,7 +320,12 @@ function isPartOfFaceName(token: Token, word: string, hyphenLast: boolean): bool
  * 2. <size> [box]             - keep current face, change size
  * 3. <face> [utf8] [size] [modifiers...] [box] - full definition
  */
-function parseFontDirective(directive: Directive, analyzer: SemanticAnalyzer, options: { supportsBox: boolean }): DirectiveSemanticData | null {
+function parseFontDirective(
+  type: FontDirectiveType,
+  directive: Directive,
+  analyzer: SemanticAnalyzer,
+  options: { supportsBox: boolean }
+): DirectiveSemanticData | null {
   if (directive.values.length === 0) {
     analyzer.report(`Directive "${directive.key.lexeme}" requires font parameters`, directive);
     return null;
@@ -317,7 +346,8 @@ function parseFontDirective(directive: Directive, analyzer: SemanticAnalyzer, op
       analyzer.report("Expected font size number after *", directive);
       return null;
     }
-    return parseSizeOnlyFormat(directive, tokens, currentIdx, options, analyzer);
+    const font = parseSizeOnlyFormat(directive, tokens, currentIdx, options, analyzer);
+    return font ? createDirectiveData(type, font) : null;
   }
 
   // Format 2: number only (with optional box)
@@ -330,24 +360,27 @@ function parseFontDirective(directive: Directive, analyzer: SemanticAnalyzer, op
         const word = next.lexeme.toLowerCase();
         if (word === "bold" || word === "italic" || word === "underline") {
           // This is format 3 (size + modifiers), not format 2
-          return parseFullFontDefinition(directive, tokens, options, analyzer);
+          const font = parseFullFontDefinition(directive, tokens, options, analyzer);
+          return font ? createDirectiveData(type, font) : null;
         }
       }
     }
-    return parseSizeOnlyFormat(directive, tokens, currentIdx, options, analyzer);
+    const font = parseSizeOnlyFormat(directive, tokens, currentIdx, options, analyzer);
+    return font ? createDirectiveData(type, font) : null;
   }
 
   // Format 3: full definition
-  return parseFullFontDefinition(directive, tokens, options, analyzer);
+  const font = parseFullFontDefinition(directive, tokens, options, analyzer);
+  return font ? createDirectiveData(type, font) : null;
 }
 
 function parseSizeOnlyFormat(
   directive: Directive,
-  tokens: Array<Token | any>,
+  tokens: Array<Token | Rational | Pitch | KV | Measurement | Annotation>,
   startIdx: number,
   options: { supportsBox: boolean },
   analyzer: SemanticAnalyzer
-): DirectiveSemanticData | null {
+): FontSpec | null {
   const sizeToken = tokens[startIdx];
 
   if (!isToken(sizeToken) || sizeToken.type !== TT.NUMBER) {
@@ -374,10 +407,7 @@ function parseSizeOnlyFormat(
     }
   }
 
-  return {
-    type: directive.key.lexeme as any,
-    data: result,
-  };
+  return result;
 }
 
 function parseFullFontDefinition(
@@ -385,7 +415,7 @@ function parseFullFontDefinition(
   tokens: (Token | Annotation | Pitch | KV | Rational | Measurement)[],
   options: { supportsBox: boolean },
   analyzer: SemanticAnalyzer
-): DirectiveSemanticData | null {
+): FontSpec | null {
   const face: string[] = [];
   let size: number | undefined;
   let weight: "normal" | "bold" = "normal";
@@ -546,10 +576,7 @@ function parseFullFontDefinition(
     return null;
   }
 
-  return {
-    type: directive.key.lexeme as any,
-    data: result,
-  };
+  return result;
 }
 
 /**
@@ -559,18 +586,15 @@ function parseFullFontDefinition(
  * and silently ignore any trailing parameters. This matches how abcjs handles
  * directives like flatbeams, landscape, titlecaps, measurebox, jazzchords, bagpipes.
  */
-function parseBooleanFlag(directive: Directive, _analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
+function parseBooleanFlag(type: BooleanFlagDirectiveType): DirectiveSemanticData {
   // Silently ignore any parameters - this matches abcjs behavior
-  return {
-    type: directive.key.lexeme as any,
-    data: true,
-  };
+  return createDirectiveData(type, true);
 }
 
 /**
  * Parses directives that expect a single identifier
  */
-function parseIdentifier(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
+function parseIdentifier(type: StringDirectiveType, directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   if (directive.values.length === 0) {
     analyzer.report(`Directive "${directive.key.lexeme}" expects an identifier parameter`, directive);
     return null;
@@ -586,10 +610,7 @@ function parseIdentifier(directive: Directive, analyzer: SemanticAnalyzer): Dire
     analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive);
   }
 
-  return {
-    type: directive.key.lexeme as any,
-    data: value.lexeme,
-  };
+  return createDirectiveData(type, value.lexeme);
 }
 
 /**
@@ -605,16 +626,13 @@ function parseMapDirective(directive: Directive, _analyzer: SemanticAnalyzer): D
     }
   }
 
-  return {
-    type: "map" as any,
-    data: values.join(" "),
-  };
+  return createDirectiveData("map", values.join(" "));
 }
 
 /**
  * Parses directives that expect a boolean value (true/false or 0/1)
  */
-function parseBooleanValue(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
+function parseBooleanValue(type: BooleanValueDirectiveType, directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   if (directive.values.length === 0) {
     analyzer.report(`Directive "${directive.key.lexeme}" expects a boolean parameter`, directive);
     return null;
@@ -656,16 +674,18 @@ function parseBooleanValue(directive: Directive, analyzer: SemanticAnalyzer): Di
     analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive);
   }
 
-  return {
-    type: directive.key.lexeme as any,
-    data: boolValue,
-  };
+  return createDirectiveData(type, boolValue);
 }
 
 /**
  * Parses directives that expect a number
  */
-function parseNumber(directive: Directive, analyzer: SemanticAnalyzer, constraints?: { min?: number; max?: number }): DirectiveSemanticData | null {
+function parseNumber(
+  type: NumberDirectiveType,
+  directive: Directive,
+  analyzer: SemanticAnalyzer,
+  constraints?: { min?: number; max?: number }
+): DirectiveSemanticData | null {
   if (directive.values.length === 0) {
     analyzer.report(`Directive "${directive.key.lexeme}" expects a number parameter`, directive);
     return null;
@@ -697,10 +717,7 @@ function parseNumber(directive: Directive, analyzer: SemanticAnalyzer, constrain
     analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive);
   }
 
-  return {
-    type: directive.key.lexeme as any,
-    data: num,
-  };
+  return createDirectiveData(type, num);
 }
 
 /**
@@ -709,10 +726,7 @@ function parseNumber(directive: Directive, analyzer: SemanticAnalyzer, constrain
 function parseStretchLast(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   // No parameters: default to 1 (true)
   if (directive.values.length === 0) {
-    return {
-      type: directive.key.lexeme as any,
-      data: 1,
-    };
+    return createDirectiveData("stretchlast", 1);
   }
 
   const value = directive.values[0];
@@ -723,17 +737,11 @@ function parseStretchLast(directive: Directive, analyzer: SemanticAnalyzer): Dir
 
   // Handle boolean keywords
   if (value.lexeme === "false") {
-    return {
-      type: directive.key.lexeme as any,
-      data: 0,
-    };
+    return createDirectiveData("stretchlast", 0);
   }
 
   if (value.lexeme === "true") {
-    return {
-      type: directive.key.lexeme as any,
-      data: 1,
-    };
+    return createDirectiveData("stretchlast", 1);
   }
 
   // Handle numeric value
@@ -749,10 +757,7 @@ function parseStretchLast(directive: Directive, analyzer: SemanticAnalyzer): Dir
       return null;
     }
 
-    return {
-      type: directive.key.lexeme as any,
-      data: num,
-    };
+    return createDirectiveData("stretchlast", num);
   }
 
   analyzer.report(`Directive "${directive.key.lexeme}" expects false, true, or a number between 0 and 1 (received ${value.lexeme})`, directive);
@@ -762,7 +767,7 @@ function parseStretchLast(directive: Directive, analyzer: SemanticAnalyzer): Dir
 /**
  * Parses position choice directives (auto, above, below, hidden)
  */
-function parsePositionChoice(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
+function parsePositionChoice(type: PositionDirectiveType, directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   if (directive.values.length === 0) {
     analyzer.report(`Directive "${directive.key.lexeme}" expects a position parameter (auto, above, below, hidden)`, directive);
     return null;
@@ -785,16 +790,13 @@ function parsePositionChoice(directive: Directive, analyzer: SemanticAnalyzer): 
     analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive);
   }
 
-  return {
-    type: directive.key.lexeme as any,
-    data: lexeme as "auto" | "above" | "below" | "hidden",
-  };
+  return createDirectiveData(type, lexeme as PositionValue);
 }
 
 /**
  * Parses measurement directives (number with optional unit)
  */
-function parseMeasurement(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
+function parseMeasurement(type: MeasurementDirectiveType, directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   if (directive.values.length === 0) {
     analyzer.report(`Directive "${directive.key.lexeme}" expects a measurement parameter`, directive);
     return null;
@@ -814,13 +816,10 @@ function parseMeasurement(directive: Directive, analyzer: SemanticAnalyzer): Dir
       analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive);
     }
 
-    return {
-      type: directive.key.lexeme as any,
-      data: {
-        value: numValue,
-        unit: value.scale.lexeme as "pt" | "in" | "cm" | "mm",
-      },
-    };
+    return createDirectiveData(type, {
+      value: numValue,
+      unit: value.scale.lexeme as "pt" | "in" | "cm" | "mm",
+    });
   }
 
   // Otherwise, expect a plain number (default unit)
@@ -835,12 +834,7 @@ function parseMeasurement(directive: Directive, analyzer: SemanticAnalyzer): Dir
       analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive);
     }
 
-    return {
-      type: directive.key.lexeme as any,
-      data: {
-        value: numValue,
-      },
-    };
+    return createDirectiveData(type, { value: numValue });
   }
 
   analyzer.report(`Directive "${directive.key.lexeme}" expects a measurement (number with optional unit)`, directive);
@@ -886,26 +880,7 @@ function parseSep(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSe
     analyzer.report(`Directive "sep" expects at most 3 parameters, ignoring extra parameters`, directive);
   }
 
-  return {
-    type: directive.key.lexeme as any,
-    data: result,
-  };
-}
-
-/**
- * Parses %%text directive (quoted string)
- */
-function parseText(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
-  // Same as parseAnnotation - accepts text content
-  return parseAnnotation(directive, analyzer);
-}
-
-/**
- * Parses %%center directive (quoted string)
- */
-function parseCenter(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
-  // Same as parseAnnotation - accepts text content
-  return parseAnnotation(directive, analyzer);
+  return createDirectiveData("sep", result);
 }
 
 /**
@@ -934,20 +909,13 @@ function parseSetfont(directive: Directive, analyzer: SemanticAnalyzer): Directi
 
   // Parse the font specification using existing font parsing logic
   // setfont does not support the box parameter
-  const fontResult = parseFullFontDefinition(directive, directive.values, { supportsBox: false }, analyzer);
+  const font = parseFullFontDefinition(directive, directive.values, { supportsBox: false }, analyzer);
 
-  if (!fontResult) {
+  if (!font) {
     return null;
   }
 
-  // Return setfont-specific data structure
-  return {
-    type: "setfont",
-    data: {
-      number: fontNumber,
-      font: fontResult.data as FontSpec,
-    },
-  };
+  return createDirectiveData("setfont", { number: fontNumber, font });
 }
 
 /**
@@ -956,10 +924,7 @@ function parseSetfont(directive: Directive, analyzer: SemanticAnalyzer): Directi
 function parseNewpage(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   if (directive.values.length === 0) {
     // No page number specified
-    return {
-      type: directive.key.lexeme as any,
-      data: null,
-    };
+    return createDirectiveData("newpage", null);
   }
 
   const value = directive.values[0];
@@ -978,10 +943,7 @@ function parseNewpage(directive: Directive, analyzer: SemanticAnalyzer): Directi
     analyzer.report(`Directive "${directive.key.lexeme}" expects only one parameter, ignoring extra parameters`, directive);
   }
 
-  return {
-    type: directive.key.lexeme as any,
-    data: pageNum,
-  };
+  return createDirectiveData("newpage", pageNum);
 }
 
 /**
@@ -1232,12 +1194,7 @@ function parseStaves(directive: Directive, analyzer: SemanticAnalyzer): Directiv
   const result = parseStaffDirective(directive, analyzer, true);
   if (!result) return null;
 
-  // Store the full data as an opaque object that the interpreter will use
-  // Type system expects StaffLayoutSpec[] but we're passing richer data
-  return {
-    type: "staves",
-    data: result as any,
-  };
+  return createDirectiveData("staves", { staves: result.staves, voiceAssignments: result.voiceAssignments });
 }
 
 /**
@@ -1247,12 +1204,7 @@ function parseScore(directive: Directive, analyzer: SemanticAnalyzer): Directive
   const result = parseStaffDirective(directive, analyzer, false);
   if (!result) return null;
 
-  // Store the full data as an opaque object that the interpreter will use
-  // Type system expects StaffLayoutSpec[] but we're passing richer data
-  return {
-    type: "score",
-    data: result as any,
-  };
+  return createDirectiveData("score", { staves: result.staves, voiceAssignments: result.voiceAssignments });
 }
 
 /**
@@ -1304,24 +1256,7 @@ function parseHeaderFooter(directive: Directive, analyzer: SemanticAnalyzer, typ
     }
   }
 
-  return {
-    type: type,
-    data: result,
-  };
-}
-
-/**
- * Parses %%header directive (tab-separated left/center/right)
- */
-function parseHeader(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
-  return parseHeaderFooter(directive, analyzer, "header");
-}
-
-/**
- * Parses %%footer directive (tab-separated left/center/right)
- */
-function parseFooter(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
-  return parseHeaderFooter(directive, analyzer, "footer");
+  return createDirectiveData(type, result);
 }
 
 /**
@@ -1686,14 +1621,7 @@ function parseMidi(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
     return null;
   }
 
-  const result = {
-    type: "midi",
-    data: {
-      command: command,
-      params: params,
-    },
-  };
-  return result as any;
+  return createDirectiveData("midi", { command, params });
 }
 
 /**
@@ -1774,14 +1702,7 @@ function parsePercmap(directive: Directive, analyzer: SemanticAnalyzer): Directi
     noteHead = headToken.lexeme;
   }
 
-  return {
-    type: "percmap",
-    data: {
-      note: note,
-      sound: sound,
-      noteHead: noteHead,
-    },
-  };
+  return createDirectiveData("percmap", { note, sound, noteHead });
 }
 
 /**
@@ -1829,20 +1750,14 @@ function parseDeco(directive: Directive, analyzer: SemanticAnalyzer): DirectiveS
   // we report an informational warning matching the abcjs behavior
   analyzer.report("Decoration redefinition is parsed but not fully implemented", directive);
 
-  return {
-    type: "deco",
-    data: {
-      name: name,
-      definition: definition,
-    },
-  };
+  return createDirectiveData("deco", { name, definition });
 }
 
 /**
  * Parses annotation directives (quoted string or plain text)
  * Note: Quotes are preserved to match abcjs behavior
  */
-function parseAnnotation(directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
+function parseAnnotation(type: StringDirectiveType, directive: Directive, analyzer: SemanticAnalyzer): DirectiveSemanticData | null {
   if (directive.values.length === 0) {
     analyzer.report(`Directive "${directive.key.lexeme}" expects a text parameter`, directive);
     return null;
@@ -1862,10 +1777,7 @@ function parseAnnotation(directive: Directive, analyzer: SemanticAnalyzer): Dire
     }
   }
 
-  return {
-    type: directive.key.lexeme as any,
-    data: textParts.join(" "),
-  };
+  return createDirectiveData(type, textParts.join(" "));
 }
 
 /**
@@ -1884,10 +1796,7 @@ function parseBeginText(directive: Directive, analyzer: SemanticAnalyzer): Direc
     return null;
   }
 
-  return {
-    type: "begintext",
-    data: value.lexeme,
-  };
+  return createDirectiveData("begintext", value.lexeme);
 }
 
 /**
@@ -1936,8 +1845,5 @@ function parseAbclsVoicesDirective(directive: Directive, analyzer: SemanticAnaly
     voiceIds: voiceIds,
   };
 
-  return {
-    type: "abcls-voices",
-    data: data,
-  };
+  return createDirectiveData("abcls-voices", data);
 }

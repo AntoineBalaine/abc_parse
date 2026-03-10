@@ -9,7 +9,13 @@
  * Based on analysis of abcjs parser implementation
  */
 
+import { StaffNomenclature, VxNomenclature } from "../interpreter/InterpreterState";
 import { IRational } from "../Visitors/fmt2/rational";
+
+export interface StaffDirectiveData {
+  staves: StaffNomenclature[];
+  voiceAssignments: Map<string, VxNomenclature>;
+}
 
 export interface FontSpec {
   face?: string;
@@ -144,8 +150,14 @@ export const DIRECTIVE_SPECS: Record<string, { params: ParamSpec[] }> = {
   titleleft: { params: [] },
   measurebox: { params: [] },
   continueall: { params: [] },
+  staffbreak: { params: [] },
+  slurgraces: { params: [] },
+  exprabove: { params: [] },
+  exprbelow: { params: [] },
 
   // Simple Parameter Directives
+  multicol: { params: [{ type: "identifier" }] },
+  titleformat: { params: [{ type: "identifier" }] },
   papersize: { params: [{ type: "identifier" }] },
   graceslurs: { params: [{ type: "boolean" }] },
   lineThickness: { params: [{ type: "number" }] },
@@ -183,6 +195,8 @@ export const DIRECTIVE_SPECS: Record<string, { params: ParamSpec[] }> = {
   vocalspace: { params: [{ type: "measurement" }] },
   wordsspace: { params: [{ type: "measurement" }] },
   fontboxpadding: { params: [{ type: "number" }] },
+  bar: { params: [{ type: "number" }] },
+  bar10: { params: [{ type: "number" }] },
 
   // Voice-Specific Directives
   voicescale: { params: [{ type: "number" }] },
@@ -382,136 +396,232 @@ export const FontDirectiveNames = Object.keys(DIRECTIVE_SPECS).filter((key) => k
 
 /**
  * Tagged Union Types for Semantic Data
+ *
+ * Uses the DataMap pattern (same as the CSTree/editor module): a record type
+ * maps each directive type string to its data type, and the discriminated union
+ * is derived from it. A factory function enforces type safety at construction.
+ *
+ * Because directive names are case-insensitive in ABC notation, the switch in
+ * the analyzer dispatches on the lowercased lexeme. A lookup table maps each
+ * lowercase form to the canonical DirectiveType key (which preserves the
+ * original casing for keys like "accentAbove" and "lineThickness").
  */
 
-/**
- * Extract the type field from the discriminated union
- */
-export type DirectiveType = DirectiveSemanticData["type"];
+export type PositionValue = "auto" | "above" | "below" | "hidden";
 
-export type DirectiveSemanticData =
+export type DirectiveDataMap = {
   // Font directives
-  | { type: "titlefont"; data: FontSpec }
-  | { type: "gchordfont"; data: FontSpec }
-  | { type: "composerfont"; data: FontSpec }
-  | { type: "subtitlefont"; data: FontSpec }
-  | { type: "tempofont"; data: FontSpec }
-  | { type: "footerfont"; data: FontSpec }
-  | { type: "headerfont"; data: FontSpec }
-  | { type: "voicefont"; data: FontSpec }
-  | { type: "partsfont"; data: FontSpec }
-  | { type: "tripletfont"; data: FontSpec }
-  | { type: "vocalfont"; data: FontSpec }
-  | { type: "textfont"; data: FontSpec }
-  | { type: "annotationfont"; data: FontSpec }
-  | { type: "historyfont"; data: FontSpec }
-  | { type: "infofont"; data: FontSpec }
-  | { type: "measurefont"; data: FontSpec }
-  | { type: "repeatfont"; data: FontSpec }
-  | { type: "wordsfont"; data: FontSpec }
-  | { type: "tablabelfont"; data: FontSpec }
-  | { type: "tabnumberfont"; data: FontSpec }
-  | { type: "tabgracefont"; data: FontSpec }
-  | { type: "barlabelfont"; data: FontSpec }
-  | { type: "barnumberfont"; data: FontSpec }
-  | { type: "barnumfont"; data: FontSpec }
+  titlefont: FontSpec;
+  gchordfont: FontSpec;
+  composerfont: FontSpec;
+  subtitlefont: FontSpec;
+  tempofont: FontSpec;
+  footerfont: FontSpec;
+  headerfont: FontSpec;
+  voicefont: FontSpec;
+  partsfont: FontSpec;
+  tripletfont: FontSpec;
+  vocalfont: FontSpec;
+  textfont: FontSpec;
+  annotationfont: FontSpec;
+  historyfont: FontSpec;
+  infofont: FontSpec;
+  measurefont: FontSpec;
+  repeatfont: FontSpec;
+  wordsfont: FontSpec;
+  tablabelfont: FontSpec;
+  tabnumberfont: FontSpec;
+  tabgracefont: FontSpec;
+  barlabelfont: FontSpec;
+  barnumberfont: FontSpec;
+  barnumfont: FontSpec;
 
-  // Boolean directives
-  | { type: "bagpipes"; data: true }
-  | { type: "flatbeams"; data: true }
-  | { type: "jazzchords"; data: true }
-  | { type: "accentAbove"; data: true }
-  | { type: "germanAlphabet"; data: true }
-  | { type: "landscape"; data: true }
-  | { type: "titlecaps"; data: true }
-  | { type: "titleleft"; data: true }
-  | { type: "measurebox"; data: true }
-  | { type: "continueall"; data: true }
-  | { type: "endtext"; data: true }
-  | { type: "beginps"; data: true }
-  | { type: "endps"; data: true }
-  | { type: "font"; data: true }
-  | { type: "nobarcheck"; data: true }
+  // Boolean flag directives
+  bagpipes: true;
+  flatbeams: true;
+  jazzchords: true;
+  accentAbove: true;
+  germanAlphabet: true;
+  landscape: true;
+  titlecaps: true;
+  titleleft: true;
+  measurebox: true;
+  continueall: true;
+  endtext: true;
+  beginps: true;
+  endps: true;
+  font: true;
+  nobarcheck: true;
+  staffbreak: true;
+  slurgraces: true;
+  exprabove: true;
+  exprbelow: true;
 
   // String directives
-  | { type: "papersize"; data: string }
-  | { type: "text"; data: string }
-  | { type: "center"; data: string }
-  | { type: "begintext"; data: string }
-  | { type: "abc-copyright"; data: string }
-  | { type: "abc-creator"; data: string }
-  | { type: "abc-edited-by"; data: string }
-  | { type: "abc-version"; data: string }
-  | { type: "abc-charset"; data: string }
-  | { type: "map"; data: string }
-  | { type: "playtempo"; data: string }
-  | { type: "auquality"; data: string }
-  | { type: "continuous"; data: string }
+  papersize: string;
+  text: string;
+  center: string;
+  begintext: string;
+  "abc-copyright": string;
+  "abc-creator": string;
+  "abc-edited-by": string;
+  "abc-version": string;
+  "abc-charset": string;
+  map: string;
+  playtempo: string;
+  auquality: string;
+  continuous: string;
+  multicol: string;
+  titleformat: string;
 
   // Number directives
-  | { type: "lineThickness"; data: number }
-  | { type: "stretchlast"; data: number }
-  | { type: "voicescale"; data: number }
-  | { type: "scale"; data: number }
-  | { type: "barsperstaff"; data: number }
-  | { type: "measurenb"; data: number }
-  | { type: "barnumbers"; data: number }
-  | { type: "setbarnb"; data: number }
-  | { type: "newpage"; data: number | null }
-  | { type: "fontboxpadding"; data: number }
+  lineThickness: number;
+  stretchlast: number;
+  voicescale: number;
+  scale: number;
+  barsperstaff: number;
+  measurenb: number;
+  barnumbers: number;
+  setbarnb: number;
+  newpage: number | null;
+  fontboxpadding: number;
+  bar: number;
+  bar10: number;
 
   // Boolean value directives
-  | { type: "graceslurs"; data: boolean }
-  | { type: "staffnonote"; data: boolean }
-  | { type: "printtempo"; data: boolean }
-  | { type: "partsbox"; data: boolean }
-  | { type: "freegchord"; data: boolean }
+  graceslurs: boolean;
+  staffnonote: boolean;
+  printtempo: boolean;
+  partsbox: boolean;
+  freegchord: boolean;
 
   // Position directives
-  | { type: "vocal"; data: "auto" | "above" | "below" | "hidden" }
-  | { type: "dynamic"; data: "auto" | "above" | "below" | "hidden" }
-  | { type: "gchord"; data: "auto" | "above" | "below" | "hidden" }
-  | { type: "ornament"; data: "auto" | "above" | "below" | "hidden" }
-  | { type: "volume"; data: "auto" | "above" | "below" | "hidden" }
+  vocal: PositionValue;
+  dynamic: PositionValue;
+  gchord: PositionValue;
+  ornament: PositionValue;
+  volume: PositionValue;
 
   // Measurement directives
-  | { type: "botmargin"; data: MeasurementSpec }
-  | { type: "botspace"; data: MeasurementSpec }
-  | { type: "composerspace"; data: MeasurementSpec }
-  | { type: "indent"; data: MeasurementSpec }
-  | { type: "leftmargin"; data: MeasurementSpec }
-  | { type: "linesep"; data: MeasurementSpec }
-  | { type: "musicspace"; data: MeasurementSpec }
-  | { type: "partsspace"; data: MeasurementSpec }
-  | { type: "pageheight"; data: MeasurementSpec }
-  | { type: "pagewidth"; data: MeasurementSpec }
-  | { type: "rightmargin"; data: MeasurementSpec }
-  | { type: "stafftopmargin"; data: MeasurementSpec }
-  | { type: "staffsep"; data: MeasurementSpec }
-  | { type: "staffwidth"; data: MeasurementSpec }
-  | { type: "subtitlespace"; data: MeasurementSpec }
-  | { type: "sysstaffsep"; data: MeasurementSpec }
-  | { type: "systemsep"; data: MeasurementSpec }
-  | { type: "textspace"; data: MeasurementSpec }
-  | { type: "titlespace"; data: MeasurementSpec }
-  | { type: "topmargin"; data: MeasurementSpec }
-  | { type: "topspace"; data: MeasurementSpec }
-  | { type: "vocalspace"; data: MeasurementSpec }
-  | { type: "wordsspace"; data: MeasurementSpec }
-  | { type: "vskip"; data: MeasurementSpec }
+  botmargin: MeasurementSpec;
+  botspace: MeasurementSpec;
+  composerspace: MeasurementSpec;
+  indent: MeasurementSpec;
+  leftmargin: MeasurementSpec;
+  linesep: MeasurementSpec;
+  musicspace: MeasurementSpec;
+  partsspace: MeasurementSpec;
+  pageheight: MeasurementSpec;
+  pagewidth: MeasurementSpec;
+  rightmargin: MeasurementSpec;
+  stafftopmargin: MeasurementSpec;
+  staffsep: MeasurementSpec;
+  staffwidth: MeasurementSpec;
+  subtitlespace: MeasurementSpec;
+  sysstaffsep: MeasurementSpec;
+  systemsep: MeasurementSpec;
+  textspace: MeasurementSpec;
+  titlespace: MeasurementSpec;
+  topmargin: MeasurementSpec;
+  topspace: MeasurementSpec;
+  vocalspace: MeasurementSpec;
+  wordsspace: MeasurementSpec;
+  vskip: MeasurementSpec;
 
   // Complex directives
-  | { type: "voicecolor"; data: string }
-  | { type: "sep"; data: { above?: number; below?: number; length?: number } }
-  | { type: "setfont"; data: { number: number; font: FontSpec } }
-  | { type: "staves"; data: StaffLayoutSpec[] }
-  | { type: "score"; data: StaffLayoutSpec[] }
-  | { type: "header"; data: { left: string; center: string; right: string } }
-  | { type: "footer"; data: { left: string; center: string; right: string } }
-  | { type: "midi"; data: MidiSpec }
-  | { type: "percmap"; data: PercMapSpec }
-  | { type: "deco"; data: { name: string; definition?: string } }
-  | { type: "abcls-voices"; data: AbclsVoicesDirectiveData };
+  voicecolor: string;
+  sep: { above?: number; below?: number; length?: number };
+  setfont: { number: number; font: FontSpec };
+  staves: StaffDirectiveData;
+  score: StaffDirectiveData;
+  header: { left: string; center: string; right: string };
+  footer: { left: string; center: string; right: string };
+  midi: MidiSpec;
+  percmap: PercMapSpec;
+  deco: { name: string; definition?: string };
+  "abcls-voices": AbclsVoicesDirectiveData;
+};
+
+// -- Subtype unions --------------------------------------------------------
+// Each groups all DirectiveDataMap keys that share the same data type, so that
+// a generic function constrained to the group can call createDirectiveData
+// without casts.
+
+export type FontDirectiveType =
+  | "titlefont" | "gchordfont" | "composerfont" | "subtitlefont"
+  | "tempofont" | "footerfont" | "headerfont" | "voicefont"
+  | "partsfont" | "tripletfont" | "vocalfont" | "textfont"
+  | "annotationfont" | "historyfont" | "infofont" | "measurefont"
+  | "repeatfont" | "wordsfont" | "tablabelfont" | "tabnumberfont"
+  | "tabgracefont" | "barlabelfont" | "barnumberfont" | "barnumfont";
+
+export type BooleanFlagDirectiveType =
+  | "bagpipes" | "flatbeams" | "jazzchords" | "accentAbove"
+  | "germanAlphabet" | "landscape" | "titlecaps" | "titleleft"
+  | "measurebox" | "continueall" | "endtext" | "beginps"
+  | "endps" | "font" | "nobarcheck" | "staffbreak"
+  | "slurgraces" | "exprabove" | "exprbelow";
+
+export type StringDirectiveType =
+  | "papersize" | "text" | "center" | "begintext"
+  | "abc-copyright" | "abc-creator" | "abc-edited-by"
+  | "abc-version" | "abc-charset" | "map" | "playtempo"
+  | "auquality" | "continuous" | "voicecolor"
+  | "multicol" | "titleformat";
+
+export type NumberDirectiveType =
+  | "lineThickness" | "voicescale" | "scale"
+  | "barsperstaff" | "measurenb" | "barnumbers" | "setbarnb"
+  | "fontboxpadding" | "bar" | "bar10";
+
+export type BooleanValueDirectiveType =
+  | "graceslurs" | "staffnonote" | "printtempo" | "partsbox" | "freegchord";
+
+export type PositionDirectiveType =
+  | "vocal" | "dynamic" | "gchord" | "ornament" | "volume";
+
+export type MeasurementDirectiveType =
+  | "botmargin" | "botspace" | "composerspace" | "indent"
+  | "leftmargin" | "linesep" | "musicspace" | "partsspace"
+  | "pageheight" | "pagewidth" | "rightmargin" | "stafftopmargin"
+  | "staffsep" | "staffwidth" | "subtitlespace" | "sysstaffsep"
+  | "systemsep" | "textspace" | "titlespace" | "topmargin"
+  | "topspace" | "vocalspace" | "wordsspace" | "vskip";
+
+// -- Derived types ---------------------------------------------------------
+
+export type DirectiveType = keyof DirectiveDataMap;
+
+export type DirectiveSemanticDataOf<K extends DirectiveType> = {
+  type: K;
+  data: DirectiveDataMap[K];
+};
+
+export type DirectiveSemanticData = {
+  [K in DirectiveType]: DirectiveSemanticDataOf<K>;
+}[DirectiveType];
+
+export function createDirectiveData<K extends DirectiveType>(
+  type: K,
+  data: DirectiveDataMap[K]
+): DirectiveSemanticDataOf<K> {
+  return { type, data };
+}
+
+// -- Lookup table ----------------------------------------------------------
+// Because ABC directive names are case-insensitive, the analyzer's switch
+// dispatches on the lowercased lexeme. This table maps each lowercase form
+// to the canonical DirectiveType key (preserving casing for keys like
+// "accentAbove" and "lineThickness").
+
+const LOWERCASE_TO_DIRECTIVE_TYPE: Record<string, DirectiveType> = {};
+for (const key of Object.keys(DIRECTIVE_SPECS)) {
+  LOWERCASE_TO_DIRECTIVE_TYPE[key.toLowerCase()] = key as DirectiveType;
+}
+
+export function lookupDirectiveType(lowercase: string): DirectiveType | undefined {
+  return LOWERCASE_TO_DIRECTIVE_TYPE[lowercase];
+}
 
 // ============================================================================
 // Drum Sound Names (MIDI notes 35-81)
@@ -570,7 +680,7 @@ export const DRUM_SOUND_NAMES = [
 export type DrumSoundName = (typeof DRUM_SOUND_NAMES)[number];
 
 export function isValidDirective(name: string): name is DirectiveType {
-  return name in DIRECTIVE_SPECS;
+  return lookupDirectiveType(name.toLowerCase()) !== undefined;
 }
 
 export function isValidMidiCommand(command: string): boolean {
@@ -593,67 +703,3 @@ export function getMidiCommandSpec(command: string): { params: ParamSpec[] } | u
   return MIDI_COMMAND_SPECS[command];
 }
 
-// export function isFontDirective(data: DirectiveSemanticData): data is { type: string; data: FontSpec } {
-//   return data.type.endsWith("font");
-// }
-
-// export function isMeasurementDirective(data: DirectiveSemanticData): data is { type: string; data: MeasurementSpec } {
-//   const measurementTypes = [
-//     "botmargin",
-//     "botspace",
-//     "composerspace",
-//     "indent",
-//     "leftmargin",
-//     "linesep",
-//     "musicspace",
-//     "partsspace",
-//     "pageheight",
-//     "pagewidth",
-//     "rightmargin",
-//     "stafftopmargin",
-//     "staffsep",
-//     "staffwidth",
-//     "subtitlespace",
-//     "sysstaffsep",
-//     "systemsep",
-//     "textspace",
-//     "titlespace",
-//     "topmargin",
-//     "topspace",
-//     "vocalspace",
-//     "wordsspace",
-//     "vskip",
-//   ];
-//   return measurementTypes.includes(data.type);
-// }
-
-// export function isMidiDirective(data: DirectiveSemanticData): data is { type: "midi"; data: MidiSpec } {
-//   return data.type === "midi";
-// }
-
-// export function isBooleanDirective(data: DirectiveSemanticData): data is { type: string; data: boolean | true } {
-//   const booleanTypes = [
-//     "bagpipes",
-//     "flatbeams",
-//     "jazzchords",
-//     "accentAbove",
-//     "germanAlphabet",
-//     "landscape",
-//     "titlecaps",
-//     "titleleft",
-//     "measurebox",
-//     "continueall",
-//     "begintext",
-//     "endtext",
-//     "beginps",
-//     "endps",
-//     "font",
-//     "nobarcheck",
-//     "graceslurs",
-//     "staffnonote",
-//     "printtempo",
-//     "partsbox",
-//     "freegchord",
-//   ];
-//   return booleanTypes.includes(data.type);
-// }

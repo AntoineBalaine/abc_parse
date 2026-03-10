@@ -26,7 +26,6 @@ import {
   ClefProperties,
   KeyElement,
   MeterElement,
-  BracketBracePosition,
   TextLine,
   TextFieldProperties,
   FontWeight,
@@ -34,7 +33,7 @@ import {
   FontDecoration,
   SlurStyle,
 } from "../types/abcjs-ast";
-import { FontSpec, MeasurementSpec, MidiSpec } from "../types/directive-specs";
+import { FontSpec, MeasurementSpec, MidiSpec, StaffDirectiveData } from "../types/directive-specs";
 import { InfoLineUnion } from "../types/Expr2";
 import {
   Visitor,
@@ -825,23 +824,6 @@ function applyDirective(semanticData: SemanticData, directiveName: string, conte
  */
 
 /**
- * Internal type from directive analyzer (richer than StaffInfo)
- */
-interface InternalStaffInfo {
-  index: number;
-  numVoices: number;
-  voices: string[];
-  bracket?: BracketBracePosition;
-  brace?: BracketBracePosition;
-  connectBarLines?: BracketBracePosition;
-}
-
-interface InternalVxStaff {
-  staffNum: number;
-  index: number;
-}
-
-/**
  * Handles %%score and %%staves directives by populating the interpreter state
  * with pre-defined staff/voice assignments.
  *
@@ -852,15 +834,8 @@ interface InternalVxStaff {
  * @param state - The interpreter state to update
  * @param data - Parsed staff layout data from the directive analyzer
  */
-function handleScoreDirective(state: InterpreterState, data: { staves: InternalStaffInfo[]; voiceAssignments: Map<string, InternalVxStaff> }): void {
-  // Convert internal format to interpreter format
-  state.stavesNomenclatures = data.staves.map((staff) => ({
-    index: staff.index,
-    numVoices: staff.numVoices,
-    bracket: staff.bracket,
-    brace: staff.brace,
-    connectBarLines: staff.connectBarLines,
-  }));
+function handleScoreDirective(state: InterpreterState, data: StaffDirectiveData): void {
+  state.stavesNomenclatures = data.staves;
   state.vxNomenclatures = data.voiceAssignments;
 }
 
@@ -1301,8 +1276,7 @@ export class TuneInterpreter implements Visitor<void> {
     if (semanticData) {
       // Handle score/staves directives specially - they configure staff layout
       if (semanticData.type === "score" || semanticData.type === "staves") {
-        // Type assertion: we know this is our internal format, not StaffLayoutSpec[]
-        handleScoreDirective(this.state, semanticData.data as any);
+        handleScoreDirective(this.state, semanticData.data);
         return;
       }
 
