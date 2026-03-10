@@ -1,5 +1,5 @@
-import { expect } from "chai";
 import { Scanner, parse, ABCContext, Tune } from "abc-parser";
+import { expect } from "chai";
 import { abc2midi, getXNumber } from "../../src/abc2midi/abc2midi";
 
 // =============================================================================

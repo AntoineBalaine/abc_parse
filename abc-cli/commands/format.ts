@@ -2,8 +2,8 @@
  * Format command: Format ABC files with optional write-back
  */
 
-import { Command } from "commander";
 import { AbcFormatter } from "abc-parser";
+import { Command } from "commander";
 import { readAbcFile, writeFile, parseAbc, printDiagnostics } from "../utils/shared";
 
 export const formatCommand = new Command("format")

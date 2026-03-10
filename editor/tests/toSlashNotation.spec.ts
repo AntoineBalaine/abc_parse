@@ -1,14 +1,14 @@
+import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter, Tune } from "abc-parser";
+import { SemanticData } from "abc-parser/analyzers/semantic-analyzer";
+import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter, Tune } from "abc-parser";
-import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
-import { SemanticData } from "abc-parser/analyzers/semantic-analyzer";
 import { fromAst } from "../src/csTree/fromAst";
 import type { CSNode } from "../src/csTree/types";
 import { TAGS } from "../src/csTree/types";
-import { toSlashNotation } from "../src/transforms/toSlashNotation";
 import { Selection } from "../src/selection";
 import { findByTag } from "../src/selectors/treeWalk";
+import { toSlashNotation } from "../src/transforms/toSlashNotation";
 
 function parseWithContext(source: string): {
   ast: any;

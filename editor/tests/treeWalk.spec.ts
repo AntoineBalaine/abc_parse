@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
+import { describe, it } from "mocha";
 import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import {
   firstTokenData,

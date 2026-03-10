@@ -1,9 +1,9 @@
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
+import { describe, it } from "mocha";
 import { TAGS } from "../src/csTree/types";
-import { selectChords } from "../src/selectors/typeSelectors";
 import { selectTop, selectBottom, selectNthFromTop, selectAllButTop, selectAllButBottom } from "../src/selectors/chordSelectors";
+import { selectChords } from "../src/selectors/typeSelectors";
 import { toSelection, findById, genAbcWithChords } from "./helpers";
 
 describe("chordSelectors", () => {

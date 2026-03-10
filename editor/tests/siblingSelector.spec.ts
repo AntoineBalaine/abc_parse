@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
+import { describe, it } from "mocha";
 import { TAGS, isBarLine } from "../src/csTree/types";
 import { selectSiblingsAfter } from "../src/selectors/siblingSelector";
 import { toCSTree, findByTag, collectAll, genAbcTune } from "./helpers";

@@ -1,17 +1,17 @@
+import { SemanticAnalyzer } from "abc-parser";
+import { Scanner, parse } from "abc-parser";
+import { ChordPositionCollector, ChordPosition, ChordCollectorConfig } from "abc-parser/interpreter/ChordPositionCollector";
+import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { formatSelection, findByTag, toCSTreeWithContext } from "./helpers";
-import { TAGS } from "../src/csTree/types";
 import { ABCContext } from "../../parse/parsers/Context";
-import { Selection } from "../src/selection";
-import { parallelVoicing, parallelDiatonic, parallelChromatic, calcDiatonicOffset, getPitch, getRhythm, getTie } from "../src/transforms/parallel";
-import { SemanticAnalyzer } from "abc-parser";
-import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
-import { ChordPositionCollector, ChordPosition, ChordCollectorConfig } from "abc-parser/interpreter/ChordPositionCollector";
-import { Scanner, parse } from "abc-parser";
 import { Token, TT } from "../../parse/parsers/scan2";
 import { Pitch } from "../../parse/types/Expr2";
 import { fromAst } from "../src/csTree/fromAst";
+import { TAGS } from "../src/csTree/types";
+import { Selection } from "../src/selection";
+import { parallelVoicing, parallelDiatonic, parallelChromatic, calcDiatonicOffset, getPitch, getRhythm, getTie } from "../src/transforms/parallel";
+import { formatSelection, findByTag, toCSTreeWithContext } from "./helpers";
 
 interface ParallelTestSetup {
   selection: Selection;

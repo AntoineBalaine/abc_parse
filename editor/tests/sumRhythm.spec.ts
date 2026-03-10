@@ -1,10 +1,10 @@
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
-import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune } from "./helpers";
+import { describe, it } from "mocha";
 import { TAGS } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { sumRhythm } from "../src/transforms/sumRhythm";
+import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune } from "./helpers";
 
 describe("sumRhythm", () => {
   describe("example-based", () => {

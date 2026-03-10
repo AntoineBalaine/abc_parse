@@ -1,20 +1,20 @@
-import { expect } from "chai";
-import { describe, it } from "mocha";
-import * as fc from "fast-check";
-import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune } from "./helpers";
-import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import { ABCContext, Pitch, toMidiPitch, TT } from "abc-parser";
+import { Scanner, parse } from "abc-parser";
+import { SemanticAnalyzer } from "abc-parser/analyzers/semantic-analyzer";
+import { ContextInterpreter, ContextInterpreterConfig, DocumentSnapshots, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
+import { resolveMelodyPitch, PitchContext } from "abc-parser/music-theory/pitchUtils";
+import { expect } from "chai";
+import * as fc from "fast-check";
+import { describe, it } from "mocha";
+import { fromAst } from "../src/csTree/fromAst";
+import { toAst } from "../src/csTree/toAst";
+import { CSNode } from "../src/csTree/types";
+import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import { createSelection, Selection } from "../src/selection";
 import { enharmonize, enharmonizeToKey } from "../src/transforms/enharmonize";
-import { ContextInterpreter, ContextInterpreterConfig, DocumentSnapshots, getSnapshotAtPosition, encode } from "abc-parser/interpreter/ContextInterpreter";
-import { SemanticAnalyzer } from "abc-parser/analyzers/semantic-analyzer";
-import { Scanner, parse } from "abc-parser";
-import { toAst } from "../src/csTree/toAst";
-import { fromAst } from "../src/csTree/fromAst";
-import { findChildByTag, getNodeLineAndChar } from "../src/transforms/treeUtils";
-import { CSNode } from "../src/csTree/types";
-import { resolveMelodyPitch, PitchContext } from "abc-parser/music-theory/pitchUtils";
 import { toPitchComponents } from "../src/transforms/pitchHelpers";
+import { findChildByTag, getNodeLineAndChar } from "../src/transforms/treeUtils";
+import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune } from "./helpers";
 
 function getNoteMidi(noteNode: any): number {
   const pitchResult = findChildByTag(noteNode, TAGS.Pitch);

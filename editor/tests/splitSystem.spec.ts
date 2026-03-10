@@ -1,13 +1,13 @@
-import { expect } from "chai";
-import { describe, it } from "mocha";
 import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter } from "abc-parser";
 import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
+import { expect } from "chai";
+import { describe, it } from "mocha";
 import { fromAst } from "../src/csTree/fromAst";
+import { TAGS } from "../src/csTree/types";
 import { createSelection, Selection } from "../src/selection";
+import { firstTokenData } from "../src/selectors/treeWalk";
 import { splitSystem, splitSystems } from "../src/transforms/splitSystem";
 import { findByTag, formatSelection } from "./helpers";
-import { TAGS } from "../src/csTree/types";
-import { firstTokenData } from "../src/selectors/treeWalk";
 
 function createTestContext(abc: string): {
   selection: Selection;

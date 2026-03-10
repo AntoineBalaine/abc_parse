@@ -1,7 +1,8 @@
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
+import { describe, it } from "mocha";
 import { TAGS } from "../src/csTree/types";
+import { createSelection } from "../src/selection";
 import {
   selectChords,
   selectNotes,
@@ -11,7 +12,6 @@ import {
   selectRhythm,
   selectRhythmParent,
 } from "../src/selectors/typeSelectors";
-import { createSelection } from "../src/selection";
 import { toSelection, toCSTree, findById, findByTag, genAbcTune, genAbcWithChords, genAbcWithMultiMeasureRests } from "./helpers";
 
 describe("typeSelectors", () => {

@@ -1,10 +1,10 @@
-import { expect } from "chai";
-import { describe, it } from "mocha";
-import { toCSTree, findByTag, collectAll } from "./helpers";
-import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import { TT } from "abc-parser";
+import { expect } from "chai";
+import { replace, appendChild, getParent } from "cstree";
+import { describe, it } from "mocha";
+import { createCSNode, CSNode, TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import { findChildByTag, findTieChild, findRhythmChild, replaceRhythm } from "../src/transforms/treeUtils";
-import { remove, replace, insertBefore, appendChild, getParent } from "cstree";
+import { toCSTree, findByTag } from "./helpers";
 
 function collectChildren(parent: CSNode): CSNode[] {
   const result: CSNode[] = [];

@@ -1,12 +1,12 @@
+import { addRational, createRational, IRational, TT } from "abc-parser";
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
-import { toCSTreeWithContext, formatSelection, findByTag } from "./helpers";
+import { describe, it } from "mocha";
 import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { consolidateRests } from "../src/transforms/consolidateRests";
 import { getNodeRhythm } from "../src/transforms/rhythm";
-import { addRational, createRational, IRational, TT } from "abc-parser";
+import { toCSTreeWithContext, formatSelection, findByTag } from "./helpers";
 
 function countRests(formatted: string): number {
   // Count both visible (z) and invisible (x) rests

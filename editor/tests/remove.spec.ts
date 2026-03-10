@@ -1,10 +1,10 @@
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
-import { toCSTreeWithContext, formatSelection, findByTag, collectAll, collectSubtree, genAbcTune } from "./helpers";
+import { describe, it } from "mocha";
 import { TAGS } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { remove } from "../src/transforms/remove";
+import { toCSTreeWithContext, formatSelection, findByTag, collectAll, collectSubtree, genAbcTune } from "./helpers";
 
 describe("remove", () => {
   describe("example-based", () => {

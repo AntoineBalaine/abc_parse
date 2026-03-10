@@ -1,11 +1,12 @@
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
-import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune } from "./helpers";
+import { describe, it } from "mocha";
 import { TAGS } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { divideRhythm } from "../src/transforms/divideRhythm";
+import { multiplyRhythm } from "../src/transforms/multiplyRhythm";
 import { getNodeRhythm } from "../src/transforms/rhythm";
+import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune } from "./helpers";
 
 describe("divideRhythm", () => {
   describe("example-based", () => {
@@ -98,7 +99,6 @@ describe("divideRhythm", () => {
           divideRhythm(sel, 2, ctx);
 
           // Multiply by 2
-          const { multiplyRhythm } = require("../src/transforms/multiplyRhythm");
           multiplyRhythm(sel, 2, ctx);
 
           // Check that we got back to original

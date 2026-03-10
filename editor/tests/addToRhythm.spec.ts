@@ -1,12 +1,12 @@
+import { createRational } from "abc-parser";
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
-import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune } from "./helpers";
+import { describe, it } from "mocha";
 import { TAGS } from "../src/csTree/types";
 import { Selection } from "../src/selection";
-import { createRational } from "abc-parser";
 import { addToRhythm } from "../src/transforms/addToRhythm";
 import { getNodeRhythm } from "../src/transforms/rhythm";
+import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune } from "./helpers";
 
 describe("addToRhythm", () => {
   describe("example-based", () => {

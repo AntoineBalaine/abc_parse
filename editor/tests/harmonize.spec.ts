@@ -1,14 +1,18 @@
+import { SemanticAnalyzer } from "abc-parser";
+import { Scanner, parse } from "abc-parser";
+import { ContextInterpreter } from "abc-parser/interpreter/ContextInterpreter";
+import { KeyRoot, KeyAccidental, Mode, AccidentalType, NoteLetter } from "abc-parser/types/abcjs-ast";
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
-import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune, genAbcWithChords } from "./helpers";
-import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
+import { describe, it } from "mocha";
 import { ABCContext } from "../../parse/parsers/Context";
+import { TT, Token } from "../../parse/parsers/scan2";
+import { Pitch } from "../../parse/types/Expr2";
+import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import {
   harmonize,
   harmonizeVoicing,
-  VoicingType,
   pitchToDiatonic,
   diatonicToPitch,
   stepDiatonic,
@@ -16,14 +20,8 @@ import {
   formatNote,
   HarmonizeSnapshot,
 } from "../src/transforms/harmonize";
-import { SemanticAnalyzer } from "abc-parser";
-import { ContextInterpreter } from "abc-parser/interpreter/ContextInterpreter";
-import { Scanner, parse } from "abc-parser";
-import { KeyRoot, KeyAccidental, Mode, AccidentalType, NoteLetter } from "abc-parser/types/abcjs-ast";
-import { toAst } from "../src/csTree/toAst";
-import { Pitch } from "../../parse/types/Expr2";
-import { TT, Token } from "../../parse/parsers/scan2";
 import { findChildByTag } from "../src/transforms/treeUtils";
+import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune, genAbcWithChords } from "./helpers";
 
 function getPitchLexeme(noteNode: any): string {
   const pitchResult = findChildByTag(noteNode, TAGS.Pitch);

@@ -1,10 +1,10 @@
+import { ChordQuality } from "abc-parser/music-theory/types";
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { TAGS, isTokenNode, getTokenData, CSNode } from "../src/csTree/types";
-import { selectPreviousChordSymbol } from "../src/selectors/backtrackSelector";
-import { ChordQuality } from "abc-parser/music-theory/types";
-import { toSelection, findByTag, collectAll } from "./helpers";
+import { TAGS, CSNode } from "../src/csTree/types";
 import { Selection } from "../src/selection";
+import { selectPreviousChordSymbol } from "../src/selectors/backtrackSelector";
+import { toSelection, findByTag, collectAll } from "./helpers";
 
 function findNodeByTag(root: CSNode, tag: string): CSNode | undefined {
   return collectAll(root).find((n) => n.tag === tag);

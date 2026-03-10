@@ -9,7 +9,9 @@
   "scripts": {
     "build": "tsc --build",
     "watch": "tsc --build --watch",
-    "prepublish": "npm run build"
+    "prepublish": "npm run build",
+    "lint": "eslint . --ext ts",
+    "lint:fix": "eslint . --ext ts --fix"
   },
   "dependencies": {
     "abc-midi": "*",

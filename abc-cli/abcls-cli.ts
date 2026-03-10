@@ -6,12 +6,12 @@
  */
 
 import { Command } from "commander";
-import { formatCommand } from "./commands/format";
-import { checkCommand } from "./commands/check";
-import { renderCommand } from "./commands/render";
-import { abcx2abcCommand } from "./commands/abcx2abc";
 import { abc2midiCommand } from "./commands/abc2midi";
+import { abcx2abcCommand } from "./commands/abcx2abc";
+import { checkCommand } from "./commands/check";
+import { formatCommand } from "./commands/format";
 import { midi2abcCommand } from "./commands/midi2abc";
+import { renderCommand } from "./commands/render";
 
 const program = new Command();
 

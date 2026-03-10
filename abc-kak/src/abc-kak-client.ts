@@ -34,8 +34,8 @@
  *   stderr: error message
  */
 
-import * as net from "net";
 import * as fs from "fs";
+import * as net from "net";
 import * as readline from "readline";
 
 // ============================================================================

@@ -1,16 +1,15 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 
-import * as path from "path";
 import * as os from "os";
+import * as path from "path";
+import { setMscorePath } from "abc-musesampler-native";
 import * as vscode from "vscode";
-
 import { ExtensionContext } from "vscode";
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
-import { setMscorePath } from "abc-musesampler-native";
 import { registerCommands } from "./extensionCommands";
-import { registerRendererCommands, setLspClient } from "./renderer";
 import { registerPlaybackCommands } from "./playback";
+import { registerRendererCommands, setLspClient } from "./renderer";
 import { registerSelectorCommands } from "./selectorCommands";
 import { registerTransformCommands } from "./transformCommands";
 
@@ -29,7 +28,7 @@ export async function activate(context: ExtensionContext) {
   // The server is implemented in node
   const serverModule = context.asAbsolutePath(path.join("dist", "server.js"));
 
-  let debugOptions = { execArgv: ["--nolazy", "--inspect=6009"] };
+  const debugOptions = { execArgv: ["--nolazy", "--inspect=6009"] };
 
   // If the extension is launched in debug mode then the debug server options are used
   // Otherwise the run options are used

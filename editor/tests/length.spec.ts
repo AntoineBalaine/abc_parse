@@ -1,11 +1,11 @@
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
-import { toSelection, findByTag, genAbcTune } from "./helpers";
+import { describe, it } from "mocha";
 import { TAGS } from "../src/csTree/types";
-import { length } from "../src/transforms/length";
-import { filter } from "../src/transforms/filter";
 import { selectNotes, selectChords, selectChordNotes } from "../src/selectors/typeSelectors";
+import { filter } from "../src/transforms/filter";
+import { length } from "../src/transforms/length";
+import { toSelection, findByTag, genAbcTune } from "./helpers";
 
 describe("length", () => {
   describe("example-based", () => {

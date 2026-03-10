@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "fs";
-import { Command } from "commander";
 import { midi2abc } from "abc-midi";
 import type { ConversionOptions } from "abc-midi";
+import { Command } from "commander";
 
 export const midi2abcCommand = new Command("midi2abc")
   .description("Convert a MIDI file to ABC notation")

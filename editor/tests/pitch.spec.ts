@@ -1,13 +1,13 @@
-import { expect } from "chai";
-import { describe, it } from "mocha";
-import * as fc from "fast-check";
-import { toSelection, findByTag, genAbcTune } from "./helpers";
-import { TAGS } from "../src/csTree/types";
-import { pitch } from "../src/transforms/pitch";
-import { selectNotes, selectChords, selectRests } from "../src/selectors/typeSelectors";
-import { toAst } from "../src/csTree/toAst";
 import { Pitch as PitchExpr, toMidiPitch } from "abc-parser";
+import { expect } from "chai";
+import * as fc from "fast-check";
+import { describe, it } from "mocha";
+import { toAst } from "../src/csTree/toAst";
+import { TAGS } from "../src/csTree/types";
+import { selectNotes, selectChords, selectRests } from "../src/selectors/typeSelectors";
+import { pitch } from "../src/transforms/pitch";
 import { findChildByTag } from "../src/transforms/treeUtils";
+import { toSelection, findByTag, genAbcTune } from "./helpers";
 
 describe("pitch", () => {
   describe("example-based", () => {

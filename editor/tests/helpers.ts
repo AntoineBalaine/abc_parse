@@ -1,10 +1,10 @@
-import * as fc from "fast-check";
 import { Scanner, Token, parse, ABCContext, AbcFormatter, Expr, Inline_field, Info_line, IRational, createRational } from "abc-parser";
+import * as fc from "fast-check";
+import * as ParserGen from "../../parse/tests/prs_pbt.generators.spec";
 import { fromAst, childrenVisitor } from "../src/csTree/fromAst";
 import { toAst } from "../src/csTree/toAst";
 import { CSNode } from "../src/csTree/types";
 import { createSelection, Selection } from "../src/selection";
-import * as ParserGen from "../../parse/tests/prs_pbt.generators.spec";
 
 export function toCSTree(source: string): CSNode {
   const ctx = new ABCContext();

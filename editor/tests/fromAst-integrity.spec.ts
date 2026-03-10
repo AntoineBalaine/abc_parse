@@ -1,6 +1,6 @@
 import { ABCContext, Scanner, parse, AbcErrorReporter, Tune } from "abc-parser";
-import { verifyIntegrity } from "cstree";
 import { expect } from "chai";
+import { verifyIntegrity } from "cstree";
 import { describe, it } from "mocha";
 import { fromAst } from "../src/csTree/fromAst";
 

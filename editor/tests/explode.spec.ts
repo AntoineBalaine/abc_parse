@@ -1,11 +1,10 @@
-import { describe, it } from "mocha";
 import { expect } from "chai";
 import fc from "fast-check";
-import { toCSTreeWithContext, formatSelection, findByTag } from "./helpers";
+import { describe, it } from "mocha";
 import { TAGS, CSNode } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { explode, explode2, explode3, explode4 } from "../src/transforms/explode";
-import { getNodeRhythm } from "../src/transforms/rhythm";
+import { toCSTreeWithContext, formatSelection, findByTag } from "./helpers";
 
 describe("explode", () => {
   describe("example-based tests", () => {

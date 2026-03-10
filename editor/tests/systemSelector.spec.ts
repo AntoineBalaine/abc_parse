@@ -1,12 +1,12 @@
+import { Scanner, parse, ABCContext } from "abc-parser";
 import { expect } from "chai";
 import * as fc from "fast-check";
-import { Scanner, parse, ABCContext } from "abc-parser";
 import { fromAst } from "../src/csTree/fromAst";
 import { CSNode, TAGS } from "../src/csTree/types";
 import { createSelection, Selection } from "../src/selection";
 import { selectSystem } from "../src/selectors/systemSelector";
 import { findByTag, findNodeById } from "../src/selectors/treeWalk";
-import { collectAll, findById } from "./helpers";
+import { collectAll } from "./helpers";
 
 function parseToSelection(source: string): Selection {
   const ctx = new ABCContext();

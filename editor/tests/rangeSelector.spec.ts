@@ -1,11 +1,11 @@
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
-import { TAGS, isTokenNode, getTokenData, CSNode } from "../src/csTree/types";
+import { describe, it } from "mocha";
+import { TAGS } from "../src/csTree/types";
 import { selectRange } from "../src/selectors/rangeSelector";
-import { selectNotes } from "../src/selectors/typeSelectors";
 import { firstTokenData, lastTokenData } from "../src/selectors/treeWalk";
-import { toCSTree, toSelection, findByTag, findById, genAbcTune } from "./helpers";
+import { selectNotes } from "../src/selectors/typeSelectors";
+import { toSelection, findById, genAbcTune } from "./helpers";
 
 describe("rangeSelector", () => {
   describe("examples", () => {

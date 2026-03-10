@@ -1,10 +1,10 @@
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
-import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune } from "./helpers";
+import { describe, it } from "mocha";
 import { TAGS, CSNode, isTokenNode, getTokenData } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { addVoice } from "../src/transforms/addVoice";
+import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune } from "./helpers";
 
 function hasVoiceInfoLine(tuneHeader: CSNode, voiceId: string): boolean {
   let child = tuneHeader.firstChild;

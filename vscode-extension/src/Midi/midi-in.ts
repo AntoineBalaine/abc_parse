@@ -1,10 +1,11 @@
 import JZZ from "jzz";
-import { Accidentals, LogLevel, getConfiguration, logger } from "./midi-utils";
 // no types for jzz-midi-smf
-// @ts-ignore
+// @ts-expect-error no types available
 import jzzMidiSmf from "jzz-midi-smf";
 import { StatusBarAlignment, StatusBarItem, TextEditorEdit, window } from "vscode";
+import { Accidentals, LogLevel, getConfiguration, logger } from "./midi-utils";
 jzzMidiSmf(JZZ);
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace MIDIIn {
   type MIDIInStateType = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -197,7 +198,7 @@ export namespace MIDIIn {
   };
 
   // ._receive is passed to JZZ from jzz-midi-smf
-  // @ts-ignore
+  // @ts-expect-error _receive is an internal JZZ property
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   midiInMsgProcessor._receive = (msg: any) => {
     const statusByte: number = msg[0] & 0xf0; // Get only the status byte type, ignore the channel

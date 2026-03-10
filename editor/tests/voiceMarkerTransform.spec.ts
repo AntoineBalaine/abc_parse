@@ -1,9 +1,9 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { toCSTreeWithContext, findByTag, formatSelection } from "./helpers";
 import { TAGS, isTokenNode } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { voiceInfoLineToInline, voiceInlineToInfoLine } from "../src/transforms/voiceMarkerTransform";
+import { toCSTreeWithContext, findByTag, formatSelection } from "./helpers";
 
 /**
  * Applies voiceInfoLineToInline to all V: info lines in the input and returns the formatted result.

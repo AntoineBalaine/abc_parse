@@ -1,9 +1,9 @@
-import { expect } from "chai";
-import { describe, it } from "mocha";
-import * as fc from "fast-check";
 import { ABCContext, Pitch, toMidiPitch } from "abc-parser";
-import { AccidentalType } from "abc-parser/types/abcjs-ast";
 import { NATURAL_SEMITONES, LETTERS } from "abc-parser/music-theory/constants";
+import { AccidentalType } from "abc-parser/types/abcjs-ast";
+import { expect } from "chai";
+import * as fc from "fast-check";
+import { describe, it } from "mocha";
 import { spellingToPitch, convertMeasureAccidentalsToSemitones } from "../src/transforms/pitchHelpers";
 
 // ============================================================================

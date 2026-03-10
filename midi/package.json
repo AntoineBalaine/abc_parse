@@ -12,6 +12,8 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "test": "mocha --require tsx 'tests/**/*.spec.ts'"
+    "test": "mocha --require tsx 'tests/**/*.spec.ts'",
+    "lint": "eslint . --ext ts",
+    "lint:fix": "eslint . --ext ts --fix"
   }
 }

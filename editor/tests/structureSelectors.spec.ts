@@ -1,6 +1,6 @@
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
+import { describe, it } from "mocha";
 import { TAGS } from "../src/csTree/types";
 import { selectTune } from "../src/selectors/structureSelectors";
 import { selectChords, selectNotes } from "../src/selectors/typeSelectors";

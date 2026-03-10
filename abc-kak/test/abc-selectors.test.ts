@@ -1,6 +1,6 @@
-import { expect } from "chai";
 import { writeFileSync, existsSync } from "fs";
 import { join } from "path";
+import { expect } from "chai";
 import { KakouneSession } from "./helpers/kakoune-session";
 
 describe("abc-kak selectors", function () {

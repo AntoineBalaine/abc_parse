@@ -34,8 +34,8 @@
     "watch:vscode": "npm run watch -w vscode-extension",
     "package:vscode": "npm run package -w vscode-extension",
     "test": "npm run test -w parse && npm run test -w abc-midi  && npm run test -w cstree && npm run test -w editor && npm run test -w abc-lsp-server && npm run test -w abc-kak",
-    "lint": "npm run lint -w parse && npm run lint -w abc-lsp-server",
-    "lint:fix": "npm run lint:fix -w parse && npm run lint:fix -w abc-lsp-server",
+    "lint": "npm run lint -w parse && npm run lint -w cstree && npm run lint -w editor && npm run lint -w abc-midi && npm run lint -w abc-lsp-server && npm run lint -w abc-cli && npm run lint -w vscode-extension && npm run lint -w abc-preview-server && npm run lint -w abc-kak",
+    "lint:fix": "npm run lint:fix -w parse && npm run lint:fix -w cstree && npm run lint:fix -w editor && npm run lint:fix -w abc-midi && npm run lint:fix -w abc-lsp-server && npm run lint:fix -w abc-cli && npm run lint:fix -w vscode-extension && npm run lint:fix -w abc-preview-server && npm run lint:fix -w abc-kak",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,js,json,md}\""
   },

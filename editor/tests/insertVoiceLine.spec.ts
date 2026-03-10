@@ -1,11 +1,11 @@
-import { describe, it } from "mocha";
 import { expect } from "chai";
 import fc from "fast-check";
-import { toCSTreeWithContext, formatSelection, findByTag } from "./helpers";
+import { describe, it } from "mocha";
+import * as ParserGen from "../../parse/tests/prs_pbt.generators.spec";
 import { TAGS } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { insertVoiceLine } from "../src/transforms/insertVoiceLine";
-import * as ParserGen from "../../parse/tests/prs_pbt.generators.spec";
+import { toCSTreeWithContext, formatSelection, findByTag } from "./helpers";
 
 describe("insertVoiceLine", () => {
   describe("example-based tests", () => {

@@ -2,9 +2,9 @@ import { expect } from "chai";
 import { describe, it } from "mocha";
 import { TAGS, isTokenNode } from "../src/csTree/types";
 import { Selection } from "../src/selection";
-import { selectVoices } from "../src/selectors/voiceSelector";
 import { selectRange } from "../src/selectors/rangeSelector";
-import { toSelection, findByTag, findById } from "./helpers";
+import { selectVoices } from "../src/selectors/voiceSelector";
+import { toSelection, findByTag } from "./helpers";
 
 describe("voiceSelector", () => {
   describe("single voice file (no V: markers)", () => {

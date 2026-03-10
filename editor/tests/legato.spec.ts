@@ -1,12 +1,12 @@
+import { addRational, createRational, IRational, TT } from "abc-parser";
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
-import { toCSTreeWithContext, formatSelection, findByTag } from "./helpers";
+import { describe, it } from "mocha";
 import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { legato } from "../src/transforms/legato";
 import { getNodeRhythm } from "../src/transforms/rhythm";
-import { addRational, createRational, IRational, TT } from "abc-parser";
+import { toCSTreeWithContext, formatSelection, findByTag } from "./helpers";
 
 function selectAll(root: any, tags: string[]): Set<number> {
   const ids = new Set<number>();

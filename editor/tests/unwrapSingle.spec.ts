@@ -1,11 +1,11 @@
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
-import { toCSTreeWithContext, formatSelection, findByTag, genAbcWithChords } from "./helpers";
+import { describe, it } from "mocha";
 import { TAGS } from "../src/csTree/types";
 import { Selection } from "../src/selection";
-import { unwrapSingle } from "../src/transforms/unwrapSingle";
 import { getNodeRhythm } from "../src/transforms/rhythm";
+import { unwrapSingle } from "../src/transforms/unwrapSingle";
+import { toCSTreeWithContext, formatSelection, findByTag, genAbcWithChords } from "./helpers";
 
 describe("unwrapSingle", () => {
   describe("example-based", () => {

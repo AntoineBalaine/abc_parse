@@ -7,7 +7,9 @@
     "build": "node esbuild.js",
     "build:production": "node esbuild.js --production",
     "watch": "node esbuild.js --watch",
-    "test": "mocha --require ts-node/register 'test/**/*.test.ts'"
+    "test": "mocha --require ts-node/register 'test/**/*.test.ts'",
+    "lint": "eslint . --ext ts",
+    "lint:fix": "eslint . --ext ts --fix"
   },
   "devDependencies": {
     "esbuild": "^0.25.10"

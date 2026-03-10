@@ -3,9 +3,9 @@ import { describe, it } from "mocha";
 import { TAGS } from "../src/csTree/types";
 import { selectMeasures } from "../src/selectors/measureSelector";
 import { selectRange } from "../src/selectors/rangeSelector";
-import { selectNotes } from "../src/selectors/typeSelectors";
 import { firstTokenData } from "../src/selectors/treeWalk";
-import { toSelection, findByTag, findById } from "./helpers";
+import { selectNotes } from "../src/selectors/typeSelectors";
+import { toSelection, findById } from "./helpers";
 
 describe("measureSelector", () => {
   describe("splits selection by barlines", () => {

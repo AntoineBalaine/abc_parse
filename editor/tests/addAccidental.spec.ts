@@ -1,11 +1,11 @@
+import { TT } from "abc-parser";
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { toCSTreeWithContext, formatSelection, findByTag } from "./helpers";
 import { TAGS, isTokenNode, getTokenData } from "../src/csTree/types";
-import { TT } from "abc-parser";
 import { Selection } from "../src/selection";
 import { addSharp, addFlat } from "../src/transforms/addAccidental";
 import { findChildByTag } from "../src/transforms/treeUtils";
+import { toCSTreeWithContext, formatSelection, findByTag } from "./helpers";
 
 function getAccidentalLexeme(noteNode: any): string | null {
   const pitchResult = findChildByTag(noteNode, TAGS.Pitch);

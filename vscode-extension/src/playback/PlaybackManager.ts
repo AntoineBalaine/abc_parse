@@ -5,9 +5,9 @@
  * Handles initialization, playback control, and resource cleanup.
  */
 
-import * as vscode from "vscode";
 import { MuseSamplerClient } from "abc-musesampler-native";
 import { parseAbc, PlaybackController, convertTuneToMuseSamplerEvents } from "abc-parser";
+import * as vscode from "vscode";
 
 /**
  * Singleton manager for MuseSampler playback.

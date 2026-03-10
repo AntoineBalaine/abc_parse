@@ -1,10 +1,10 @@
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
+import { describe, it } from "mocha";
 import { TAGS } from "../src/csTree/types";
-import { selectChords, selectNotes, selectNonChordNotes, selectRests } from "../src/selectors/typeSelectors";
 import { selectTop, selectNthFromTop, selectAllButTop } from "../src/selectors/chordSelectors";
 import { selectTune } from "../src/selectors/structureSelectors";
+import { selectChords, selectNotes, selectNonChordNotes, selectRests } from "../src/selectors/typeSelectors";
 import { toSelection, findById, genAbcTune } from "./helpers";
 
 describe("composition", () => {

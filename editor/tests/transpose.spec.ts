@@ -1,21 +1,21 @@
-import { expect } from "chai";
-import { describe, it } from "mocha";
-import * as fc from "fast-check";
-import { toCSTreeWithContext, formatSelection, findByTag, genAbcTune } from "./helpers";
-import { TAGS } from "../src/csTree/types";
 import { ABCContext, Pitch, toMidiPitch, Scanner, parse } from "abc-parser";
+import { SemanticAnalyzer } from "abc-parser/analyzers/semantic-analyzer";
+import { ContextInterpreter, DocumentSnapshots, ContextInterpreterConfig } from "abc-parser/interpreter/ContextInterpreter";
+import { NATURAL_SEMITONES, LETTERS } from "abc-parser/music-theory/constants";
+import { mergeAccidentals } from "abc-parser/music-theory/harmonization";
+import { spellPitch, resolveMelodyPitch, computeOctaveFromPitch, PitchContext } from "abc-parser/music-theory/pitchUtils";
 import { KeySignature, AccidentalType, KeyRoot, KeyAccidental, Mode } from "abc-parser/types/abcjs-ast";
+import { expect } from "chai";
+import * as fc from "fast-check";
+import { describe, it } from "mocha";
+import * as ParserGen from "../../parse/tests/prs_pbt.generators.spec";
+import { fromAst } from "../src/csTree/fromAst";
+import { toAst } from "../src/csTree/toAst";
+import { TAGS } from "../src/csTree/types";
 import { Selection } from "../src/selection";
 import { transpose } from "../src/transforms/transpose";
-import { toAst } from "../src/csTree/toAst";
 import { findChildByTag } from "../src/transforms/treeUtils";
-import { fromAst } from "../src/csTree/fromAst";
-import { ContextInterpreter, DocumentSnapshots, ContextInterpreterConfig } from "abc-parser/interpreter/ContextInterpreter";
-import { SemanticAnalyzer } from "abc-parser/analyzers/semantic-analyzer";
-import { spellPitch, resolveMelodyPitch, computeOctaveFromPitch, accidentalTypeToSemitones, PitchContext } from "abc-parser/music-theory/pitchUtils";
-import { mergeAccidentals } from "abc-parser/music-theory/harmonization";
-import { NATURAL_SEMITONES, LETTERS } from "abc-parser/music-theory/constants";
-import * as ParserGen from "../../parse/tests/prs_pbt.generators.spec";
+import { formatSelection, findByTag, genAbcTune } from "./helpers";
 
 // ============================================================================
 // Generators for property tests (matching transpo_test.lua spec)

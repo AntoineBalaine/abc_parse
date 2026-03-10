@@ -1,15 +1,15 @@
-import { expect } from "chai";
-import * as fc from "fast-check";
 import { ABCContext, Scanner, parse, SemanticAnalyzer, AbcErrorReporter } from "abc-parser";
 import { ContextInterpreter, DocumentSnapshots } from "abc-parser/interpreter/ContextInterpreter";
-import { fromAst } from "../src/csTree/fromAst";
-import { createSelection, Selection } from "../src/selection";
-import { splitSystem } from "../src/transforms/splitSystem";
-import { findFirstByTag } from "../src/selectors/treeWalk";
-import { TAGS, CSNode } from "../src/csTree/types";
-import { toAst } from "../src/csTree/toAst";
-import { Expr } from "abc-parser/types/Expr2";
 import { Token } from "abc-parser/parsers/scan2";
+import { Expr } from "abc-parser/types/Expr2";
+import { expect } from "chai";
+import * as fc from "fast-check";
+import { fromAst } from "../src/csTree/fromAst";
+import { toAst } from "../src/csTree/toAst";
+import { TAGS, CSNode } from "../src/csTree/types";
+import { createSelection, Selection } from "../src/selection";
+import { findFirstByTag } from "../src/selectors/treeWalk";
+import { splitSystem } from "../src/transforms/splitSystem";
 import { genSplitTestCase, findSplitPositionByTime, SplitTestCase } from "../src/transforms/splitSystem.pbt.generators";
 
 type SystemAst = Array<Expr | Token>;

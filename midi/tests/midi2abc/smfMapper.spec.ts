@@ -1,14 +1,14 @@
-import * as fc from "fast-check";
-import { expect } from "chai";
 import {
   IRational,
   createRational,
   compareRational,
   rationalToNumber,
 } from "abc-parser/Visitors/fmt2/rational";
-import { smfToNoteSequence } from "../../src/midi2abc/smfMapper";
-import { MNote, MNoteSequence } from "../../src/midi2abc/types";
+import { expect } from "chai";
+import * as fc from "fast-check";
 import { SMF, MMTrk, MMidiEvent } from "../../src/midi2abc/jzz-types";
+import { smfToNoteSequence } from "../../src/midi2abc/smfMapper";
+import { MNoteSequence } from "../../src/midi2abc/types";
 
 // =============================================================================
 // Constants

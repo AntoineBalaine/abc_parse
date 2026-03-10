@@ -1,10 +1,10 @@
 import { expect } from "chai";
-import { describe, it } from "mocha";
 import * as fc from "fast-check";
-import { toSelection, genAbcTune, genAbcWithChords } from "./helpers";
+import { describe, it } from "mocha";
 import { isNote, isChord, isRest } from "../src/csTree/types";
-import { filter } from "../src/transforms/filter";
 import { selectNotes, selectChords } from "../src/selectors/typeSelectors";
+import { filter } from "../src/transforms/filter";
+import { toSelection, genAbcTune, genAbcWithChords } from "./helpers";
 
 describe("filter", () => {
   describe("example-based", () => {

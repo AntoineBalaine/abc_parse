@@ -2,14 +2,13 @@
  * ABC Renderer - handles preview panel and ABCx conversion
  * Based on abcjs-vscode by Alen Siljak (GPL-3.0)
  */
-import * as vscode from "vscode";
-import * as path from "path";
+import * as fs from "fs";
 import * as os from "os";
+import * as path from "path";
 import { pathToFileURL } from "url";
-import { LanguageClient } from "vscode-languageclient/node";
-
-// Import ABC parser for voice filtering
 import { ABCContext, AbcErrorReporter, filterVoicesInAbc } from "abc-parser";
+import * as vscode from "vscode";
+import { LanguageClient } from "vscode-languageclient/node";
 
 let panel: vscode.WebviewPanel | undefined;
 let outputChannel: vscode.OutputChannel;
@@ -377,7 +376,6 @@ function getTempFilePath(filename: string): string {
 }
 
 function saveToFile(filePath: string, content: string) {
-  const fs = require("fs");
   fs.writeFileSync(filePath, content);
 }
 
