@@ -311,12 +311,12 @@ export class Cloner implements Visitor<Expr | Token> {
 
   // New expression visitor methods for unified info line parsing
   visitKV(expr: KV): KV {
-    let newKey: Token | AbsolutePitch | undefined;
+    let newKey: Token | Expr | undefined;
     if (expr.key) {
       if (isToken(expr.key)) {
         newKey = cloneToken(expr.key, this.ctx, this.preservePosition);
       } else {
-        newKey = expr.key.accept(this) as AbsolutePitch;
+        newKey = expr.key.accept(this);
       }
     }
     const newEquals = expr.equals ? cloneToken(expr.equals, this.ctx, this.preservePosition) : undefined;
@@ -324,7 +324,7 @@ export class Cloner implements Visitor<Expr | Token> {
     if (isToken(expr.value)) {
       newValue = cloneToken(expr.value, this.ctx, this.preservePosition);
     } else {
-      newValue = expr.value.accept(this) as Expr;
+      newValue = expr.value.accept(this);
     }
     return new KV(this.ctx.generateId(), newValue, newKey, newEquals);
   }

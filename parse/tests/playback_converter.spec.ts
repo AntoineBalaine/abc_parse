@@ -1,9 +1,5 @@
 import { expect } from "chai";
-import {
-  durationToMicroseconds,
-  createSimpleNoteEvents,
-  convertTuneToMuseSamplerEvents,
-} from "../playback/converter";
+import { durationToMicroseconds, createSimpleNoteEvents, convertTuneToMuseSamplerEvents } from "../playback/converter";
 import { NoteArticulation } from "../playback/types";
 import { createRational } from "../Visitors/fmt2/rational";
 
@@ -73,9 +69,9 @@ describe("playback/converter", () => {
   describe("createSimpleNoteEvents", () => {
     it("should create note events from a simple note list", () => {
       const notes = [
-        { pitch: 60, duration_ms: 500 },  // C4, 500ms
-        { pitch: 62, duration_ms: 500 },  // D4, 500ms
-        { pitch: 64, duration_ms: 500 },  // E4, 500ms
+        { pitch: 60, duration_ms: 500 }, // C4, 500ms
+        { pitch: 62, duration_ms: 500 }, // D4, 500ms
+        { pitch: 64, duration_ms: 500 }, // E4, 500ms
       ];
 
       const result = createSimpleNoteEvents(notes, 120);
@@ -164,6 +160,7 @@ describe("playback/converter", () => {
 /**
  * Creates a minimal mock Tune object for testing.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createMockTune(systems: any[]): any {
   return {
     version: "1.0",

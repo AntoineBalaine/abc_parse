@@ -510,7 +510,7 @@ describe("Directive Analyzer - Property-Based Tests", () => {
 
           expect(result.type).to.equal("deco");
           expect(result.data).to.have.property("name");
-          expect((result.data as any).name).to.equal(gen.expected.name);
+          expect((result.data as { name: string; definition?: string }).name).to.equal(gen.expected.name);
 
           return true;
         }),
@@ -528,9 +528,9 @@ describe("Directive Analyzer - Property-Based Tests", () => {
           expect(result.type).to.equal("deco");
 
           if (gen.expected.definition !== undefined) {
-            expect((result.data as any).definition).to.equal(gen.expected.definition);
+            expect((result.data as { name: string; definition?: string }).definition).to.equal(gen.expected.definition);
           } else {
-            expect((result.data as any).definition).to.be.undefined;
+            expect((result.data as { name: string; definition?: string }).definition).to.be.undefined;
           }
 
           return true;

@@ -170,17 +170,21 @@ export interface DurationContext {
   };
 }
 
-// Helper function to check if an element has a broken rhythm
-function hasBrokenRhythm(element: any): boolean {
-  return !!element.rhythm?.broken;
+// Helper function to extract rhythm from elements that may or may not have one
+function getRhythm(element: Note | Beam | MultiMeasureRest | Chord | Rest): Rhythm | undefined {
+  if (element instanceof Note || element instanceof Chord || element instanceof Rest) {
+    return element.rhythm;
+  }
+  return undefined;
 }
 
 // Helper function to update broken rhythm context
-function updateBrokenRhythmContext(element: any, context: DurationContext): void {
-  if (hasBrokenRhythm(element) && element.rhythm?.broken?.lexeme) {
+function updateBrokenRhythmContext(element: Note | Beam | MultiMeasureRest | Chord | Rest, context: DurationContext): void {
+  const rhythm = getRhythm(element);
+  if (rhythm?.broken?.lexeme) {
     context.brokenRhythmPending = {
-      token: element.rhythm.broken,
-      isGreater: element.rhythm.broken.lexeme.includes(">"),
+      token: rhythm.broken,
+      isGreater: rhythm.broken.lexeme.includes(">"),
     };
   } else {
     context.brokenRhythmPending = undefined;

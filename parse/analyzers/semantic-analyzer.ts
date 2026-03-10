@@ -194,7 +194,7 @@ export class SemanticAnalyzer implements Visitor<SemanticData | null> {
     // Create a temporary Info_line object to reuse the existing analysis logic
     const tempInfoLine = new Info_line(expr.id, expr.text, undefined, expr.value2);
     // Set the key to the field for the analyzer
-    (tempInfoLine as any).key = expr.field;
+    tempInfoLine.key = expr.field;
 
     // Delegate to the info line analyzer
     const result = analyzeInfoLine(tempInfoLine, this);

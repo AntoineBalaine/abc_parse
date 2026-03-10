@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { ABCContext } from "../parsers/Context";
 import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { Token, TT } from "../parsers/scan2";
+import { MidiSpec } from "../types/directive-specs";
 import { Directive, Rational, KV, Pitch } from "../types/Expr2";
 import { SemanticAnalyzer } from "./semantic-analyzer";
 
@@ -225,7 +226,7 @@ describe("Directive Analyzer - MIDI Part 1 (Simple Commands)", () => {
 
       expect(result).to.not.be.null;
       expect(result!.type).to.equal("midi");
-      expect((result!.data as any).command).to.equal("nobarlines");
+      expect((result!.data as MidiSpec).command).to.equal("nobarlines");
     });
 
     it("should accept mixed-case command names", () => {
@@ -237,7 +238,7 @@ describe("Directive Analyzer - MIDI Part 1 (Simple Commands)", () => {
 
       expect(result).to.not.be.null;
       expect(result!.type).to.equal("midi");
-      expect((result!.data as any).command).to.equal("nobarlines");
+      expect((result!.data as MidiSpec).command).to.equal("nobarlines");
     });
   });
 
@@ -1703,8 +1704,8 @@ describe("Directive Analyzer - MIDI Part 5 (Special Cases)", () => {
       const result = analyzer.visitDirectiveExpr(directive);
 
       expect(result).to.not.be.null;
-      expect((result!.data as any).command).to.equal("drummap");
-      expect((result!.data as any).params).to.deep.equal(["C", 36]);
+      expect((result!.data as MidiSpec).command).to.equal("drummap");
+      expect((result!.data as MidiSpec).params).to.deep.equal(["C", 36]);
     });
 
     it("should accept mixed-case command names for drum", () => {
@@ -1717,7 +1718,7 @@ describe("Directive Analyzer - MIDI Part 5 (Special Cases)", () => {
       const result = analyzer.visitDirectiveExpr(directive);
 
       expect(result).to.not.be.null;
-      expect((result!.data as any).command).to.equal("drum");
+      expect((result!.data as MidiSpec).command).to.equal("drum");
     });
 
     it("should accept uppercase command names for chordname", () => {
@@ -1732,7 +1733,7 @@ describe("Directive Analyzer - MIDI Part 5 (Special Cases)", () => {
       const result = analyzer.visitDirectiveExpr(directive);
 
       expect(result).to.not.be.null;
-      expect((result!.data as any).command).to.equal("chordname");
+      expect((result!.data as MidiSpec).command).to.equal("chordname");
     });
   });
 });

@@ -79,7 +79,7 @@ describe("Tempo Info Line Analyzer - Example-Based Tests", () => {
       const tempoKV = new KV(
         context.generateId(),
         new Token(TT.NUMBER, "120", context.generateId()),
-        durationBinary as any,
+        durationBinary,
         new Token(TT.EQL, "=", context.generateId())
       );
 
@@ -104,7 +104,7 @@ describe("Tempo Info Line Analyzer - Example-Based Tests", () => {
       const tempoKV = new KV(
         context.generateId(),
         new Token(TT.NUMBER, "90", context.generateId()),
-        durationBinary as any,
+        durationBinary,
         new Token(TT.EQL, "=", context.generateId())
       );
 
@@ -129,7 +129,7 @@ describe("Tempo Info Line Analyzer - Example-Based Tests", () => {
       const tempoKV = new KV(
         context.generateId(),
         new Token(TT.NUMBER, "60", context.generateId()),
-        durationBinary as any,
+        durationBinary,
         new Token(TT.EQL, "=", context.generateId())
       );
 
@@ -175,7 +175,7 @@ describe("Tempo Info Line Analyzer - Example-Based Tests", () => {
       const tempoKV = new KV(
         context.generateId(),
         new Token(TT.NUMBER, "120", context.generateId()),
-        durationBinary as any,
+        durationBinary,
         new Token(TT.EQL, "=", context.generateId())
       );
 
@@ -201,7 +201,7 @@ describe("Tempo Info Line Analyzer - Example-Based Tests", () => {
       const tempoKV = new KV(
         context.generateId(),
         new Token(TT.NUMBER, "120", context.generateId()),
-        durationBinary as any,
+        durationBinary,
         new Token(TT.EQL, "=", context.generateId())
       );
 
@@ -231,7 +231,7 @@ describe("Tempo Info Line Analyzer - Example-Based Tests", () => {
       const tempoKV = new KV(
         context.generateId(),
         new Token(TT.NUMBER, "160", context.generateId()),
-        durationBinary as any,
+        durationBinary,
         new Token(TT.EQL, "=", context.generateId())
       );
 
@@ -284,7 +284,7 @@ describe("Tempo Info Line Analyzer - Example-Based Tests", () => {
       const tempoKV = new KV(
         context.generateId(),
         new Token(TT.NUMBER, "108", context.generateId()),
-        durationBinary as any,
+        durationBinary,
         new Token(TT.EQL, "=", context.generateId())
       );
 
@@ -312,7 +312,7 @@ describe("Tempo Info Line Analyzer - Example-Based Tests", () => {
       const tempoKV = new KV(
         context.generateId(),
         new Token(TT.NUMBER, "140", context.generateId()),
-        durationBinary as any,
+        durationBinary,
         new Token(TT.EQL, "=", context.generateId())
       );
 

@@ -380,7 +380,7 @@ function processBeaming(noteElement: NoteElement, voiceState: VoiceState, isRest
  * Processes tie start for a note or chord.
  * When a note has a tie (-), we mark it with startTie and add it to pendingTies.
  */
-function processTieStart(pitches: any[], voiceState: VoiceState): void {
+function processTieStart(pitches: ABCJSPitch[], voiceState: VoiceState): void {
   for (const pitch of pitches) {
     if (pitch.pitch !== undefined) {
       pitch.startTie = {};
@@ -396,14 +396,14 @@ function processTieStart(pitches: any[], voiceState: VoiceState): void {
  * - If the next note/chord has different pitches, ALL pending ties end (on ANY pitch in the chord)
  * This matches abcjs behavior where C2-|D2 sets endTie on D.
  */
-function processTieEnd(pitches: any[], voiceState: VoiceState): void {
+function processTieEnd(pitches: ABCJSPitch[], voiceState: VoiceState): void {
   if (voiceState.pendingTies.size === 0) return;
 
   // First, try to match pitches exactly
   const matchedPitches = new Set<number>();
   for (const pitch of pitches) {
     if (pitch.pitch !== undefined && voiceState.pendingTies.has(pitch.pitch)) {
-      pitch.endTie = true;
+      pitch.endTie = {};
       matchedPitches.add(pitch.pitch);
     }
   }
@@ -416,7 +416,7 @@ function processTieEnd(pitches: any[], voiceState: VoiceState): void {
   // If there are still pending ties and we didn't match them, end them on the first pitch
   // This handles the case where C2-|D2 should set endTie on D
   if (voiceState.pendingTies.size > 0 && pitches.length > 0 && pitches[0].pitch !== undefined) {
-    pitches[0].endTie = true;
+    pitches[0].endTie = {};
     voiceState.pendingTies.clear();
   }
 }
@@ -1430,8 +1430,7 @@ export class TuneInterpreter implements Visitor<void> {
 
     const range = this.rangeVisitor.visitNoteExpr(expr);
 
-    // Convert rational to float for abcjs compatibility
-    const duration = rationalToNumber(rhythmResult.duration);
+    const duration = rhythmResult.duration;
 
     const startChar = this.toAbsolutePosition(range.start.line, range.start.character);
     const endChar = this.toAbsolutePosition(range.end.line, range.end.character);
@@ -1440,8 +1439,7 @@ export class TuneInterpreter implements Visitor<void> {
       el_type: ElementType.Note,
       startChar,
       endChar,
-      // FIXME: what the eff is this
-      duration: duration as any, // abcjs uses float, not IRational
+      duration,
       pitches: [pitch],
     };
 
@@ -1496,8 +1494,7 @@ export class TuneInterpreter implements Visitor<void> {
 
     const range = this.rangeVisitor.visitRestExpr(expr);
 
-    // Convert rational to float for abcjs compatibility
-    const duration = rationalToNumber(rhythmResult.duration);
+    const duration = rhythmResult.duration;
 
     // Determine rest type from lexeme
     // Initial classification (abcjs compatible):
@@ -1526,7 +1523,7 @@ export class TuneInterpreter implements Visitor<void> {
     // If rest has FINAL duration==1 (after broken rhythm) and measure duration <=1, upgrade to "whole"
     // This matches abcjs behavior from abc_parse_music.js line 550-554
     // Note: Uses final duration, not base duration!
-    if (restLexeme === "z" && duration === 1.0) {
+    if (restLexeme === "z" && duration.numerator === duration.denominator) {
       const measureDuration = this.getMeasureDuration(voiceState);
       if (measureDuration <= 1.0) {
         restType = RestType.Whole;
@@ -1537,7 +1534,7 @@ export class TuneInterpreter implements Visitor<void> {
       el_type: ElementType.Note,
       startChar: this.toAbsolutePosition(range.start.line, range.start.character),
       endChar: this.toAbsolutePosition(range.end.line, range.end.character),
-      duration: duration as any,
+      duration,
       rest: { type: restType },
     };
 
@@ -1588,14 +1585,13 @@ export class TuneInterpreter implements Visitor<void> {
 
     const range = this.rangeVisitor.visitChordExpr(expr);
 
-    // Convert rational to float for abcjs compatibility
-    const duration = rationalToNumber(rhythmResult.duration);
+    const duration = rhythmResult.duration;
 
     const element: NoteElement = {
       el_type: ElementType.Note,
       startChar: this.toAbsolutePosition(range.start.line, range.start.character),
       endChar: this.toAbsolutePosition(range.end.line, range.end.character),
-      duration: duration as any,
+      duration,
       pitches,
     };
 
@@ -1963,7 +1959,7 @@ export class TuneInterpreter implements Visitor<void> {
       el_type: ElementType.Note,
       startChar: this.toAbsolutePosition(range.start.line, range.start.character),
       endChar: this.toAbsolutePosition(range.end.line, range.end.character),
-      duration: ((length * this.state.tuneDefaults.noteLength.numerator) / this.state.tuneDefaults.noteLength.denominator) as any,
+      duration: createRational(length * this.state.tuneDefaults.noteLength.numerator, this.state.tuneDefaults.noteLength.denominator),
       rest: { type: restType },
     };
 

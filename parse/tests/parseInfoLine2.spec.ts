@@ -5,7 +5,7 @@ import { AbcErrorReporter } from "../parsers/ErrorReporter";
 import { parseInfoLine2 } from "../parsers/infoLines/parseInfoLine2";
 import { ParseCtx, prsInfoLine } from "../parsers/parse2";
 import { Token, TT } from "../parsers/scan2";
-import { KV, Binary, Unary, Grouping, Info_line, AbsolutePitch, Pitch } from "../types/Expr2";
+import { KV, Binary, Unary, Grouping, Info_line, AbsolutePitch, Pitch, Expr } from "../types/Expr2";
 import { AbcFormatter } from "../Visitors/Formatter2";
 import {
   genKVExpr,
@@ -225,7 +225,7 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
           expect(expressions.length).to.be.greaterThan(0);
 
           expressions.forEach((expr) => {
-            expect(expr).to.satisfy((e: any) => e instanceof KV || e instanceof Binary);
+            expect(expr).to.satisfy((e: Expr) => e instanceof KV || e instanceof Binary);
           });
         })
       );
@@ -249,7 +249,7 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
           expect(expressions.length).to.be.greaterThan(0);
 
           expressions.forEach((expr) => {
-            expect(expr).to.satisfy((e: any) => e instanceof KV || e instanceof Binary);
+            expect(expr).to.satisfy((e: Expr) => e instanceof KV || e instanceof Binary);
           });
         })
       );
@@ -408,7 +408,7 @@ describe("parseInfoLine2 - Unified Info Line Parser", () => {
             result.value2?.forEach((expr) => {
               // For debugging: check what we actually got
               expect(expr).to.satisfy(
-                (e: any) =>
+                (e: Expr) =>
                   e instanceof KV || e instanceof Binary || e instanceof Grouping || e instanceof Token || e instanceof AbsolutePitch || e instanceof Pitch // Allow tokens for now
               );
             });

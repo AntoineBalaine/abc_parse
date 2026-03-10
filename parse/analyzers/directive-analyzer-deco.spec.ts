@@ -94,8 +94,9 @@ describe("Directive Analyzer - %%deco", () => {
 
       expect(result).to.not.be.null;
       expect(result!.type).to.equal("deco");
-      expect((result!.data as any).name).to.equal("my-custom-deco");
-      expect((result!.data as any).definition).to.equal("some definition");
+      const data = result!.data as { name: string; definition?: string };
+      expect(data.name).to.equal("my-custom-deco");
+      expect(data.definition).to.equal("some definition");
 
       expect(errorReporter.getErrors()).to.have.lengthOf(1);
       expect(errorReporter.getErrors()[0].message).to.include("parsed but not fully implemented");
@@ -111,8 +112,9 @@ describe("Directive Analyzer - %%deco", () => {
 
       expect(result).to.not.be.null;
       expect(result!.type).to.equal("deco");
-      expect((result!.data as any).name).to.equal("T");
-      expect((result!.data as any).definition).to.equal("postscript");
+      const data = result!.data as { name: string; definition?: string };
+      expect(data.name).to.equal("T");
+      expect(data.definition).to.equal("postscript");
     });
   });
 
@@ -154,9 +156,10 @@ describe("Directive Analyzer - %%deco", () => {
 
       expect(result).to.not.be.null;
       expect(result!.type).to.equal("deco");
-      expect((result!.data as any).name).to.equal("myDeco");
+      const data = result!.data as { name: string; definition?: string };
+      expect(data.name).to.equal("myDeco");
       // Because the definition is joined with spaces, we expect 50 words
-      expect((result!.data as any).definition?.split(" ")).to.have.lengthOf(50);
+      expect(data.definition?.split(" ")).to.have.lengthOf(50);
     });
 
     it("should handle definition with mixed token types", () => {
@@ -171,9 +174,10 @@ describe("Directive Analyzer - %%deco", () => {
       const result = analyzer.visitDirectiveExpr(directive);
 
       expect(result).to.not.be.null;
-      expect((result!.data as any).name).to.equal("custom");
+      const data = result!.data as { name: string; definition?: string };
+      expect(data.name).to.equal("custom");
       // Because the definition is joined with spaces, we expect mixed content
-      expect((result!.data as any).definition).to.equal("abc 123 def 456");
+      expect(data.definition).to.equal("abc 123 def 456");
     });
   });
 });

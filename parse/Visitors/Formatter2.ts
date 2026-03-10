@@ -639,10 +639,10 @@ export class AbcFormatter implements Visitor<string> {
     if (expr.key && expr.equals) {
       // Format as key=value (no spaces around =)
       let keyStr: string;
-      if (expr.key instanceof AbsolutePitch) {
-        keyStr = this.visitAbsolutePitch(expr.key);
-      } else {
+      if (expr.key instanceof Token) {
         keyStr = expr.key.lexeme;
+      } else {
+        keyStr = expr.key.accept(this);
       }
       return keyStr + expr.equals.lexeme + valueStr;
     } else {

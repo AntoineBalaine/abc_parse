@@ -11,6 +11,7 @@ import {
   BarLine,
   Chord,
   Decoration,
+  Expr,
   Grace_group,
   Note,
   Rest,
@@ -252,7 +253,7 @@ describe("parseMusicCode", () => {
   it("should use the provided array to store elements if given", () => {
     const tokens = [createToken(TT.NOTE_LETTER, "C")];
     const ctx = createParseCtx(tokens);
-    const elements: Array<any> = [];
+    const elements: Array<Expr | Token> = [];
 
     const result = parseMusicCode(ctx, elements);
 

@@ -826,11 +826,11 @@ export class User_symbol_invocation extends Expr {
  * Used for both key-value pairs (K:clef=treble) and standalone values (K:major)
  */
 export class KV extends Expr {
-  key?: Token | AbsolutePitch; // IDENTIFIER (optional)
+  key?: Token | Expr; // IDENTIFIER, AbsolutePitch, Binary (for tempo durations like 1/4), etc.
   equals?: Token; // EQL (optional, only present if key is present)
   value: Token | Expr; // IDENTIFIER, ANNOTATION, NUMBER, SPECIAL_LITERAL, or any Expr (e.g., Unary)
 
-  constructor(id: number, value: Token | Expr, key?: Token | AbsolutePitch, equals?: Token) {
+  constructor(id: number, value: Token | Expr, key?: Token | Expr, equals?: Token) {
     super(id);
     this.value = value;
     this.key = key;

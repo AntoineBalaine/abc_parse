@@ -124,6 +124,7 @@ function interpretABC(abc: string) {
 /**
  * Count all elements in the tune structure
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function countAllElements(tune: any): number {
   let total = 0;
   for (const system of tune.systems) {
@@ -141,6 +142,7 @@ function countAllElements(tune: any): number {
  * Count expected elements from the generated pattern
  * NOTE: We count ELEMENTS, not tokens. genNote/genChord/genRest each produce ONE element.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function countExpectedElements(bodySections: any[]): number {
   let total = 0;
   for (const section of bodySections) {

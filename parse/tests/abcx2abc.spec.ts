@@ -52,6 +52,7 @@ function getTuneBodyExprs(ast: File_structure): tune_body_code[] {
 /**
  * Helper: Count specific node types in AST
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function countNodeType<T>(ast: File_structure, nodeType: new (...args: any[]) => T): number {
   const exprs = getTuneBodyExprs(ast);
   return exprs.filter((e) => e instanceof nodeType).length;

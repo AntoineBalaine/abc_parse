@@ -22,7 +22,7 @@ import {
 } from "../music-theory/pitchUtils";
 import { NoteSpellings } from "../music-theory/types";
 import { Token, TT } from "../parsers/scan2";
-import { KeySignature, AccidentalType, KeyRoot, KeyAccidental, Mode } from "../types/abcjs-ast";
+import { KeySignature, AccidentalType, KeyRoot, KeyAccidental, Mode, NoteLetter } from "../types/abcjs-ast";
 import { Pitch } from "../types/Expr2";
 
 // Helper to create a basic key signature
@@ -32,7 +32,7 @@ function makeKey(root: KeyRoot, acc: KeyAccidental, mode: Mode, accidentals: Arr
     acc,
     mode,
     accidentals: accidentals.map((a) => ({
-      note: a.note as any,
+      note: a.note as NoteLetter,
       acc: a.acc,
       verticalPos: 0,
     })),

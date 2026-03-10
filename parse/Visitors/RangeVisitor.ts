@@ -278,10 +278,10 @@ export class RangeVisitor implements Visitor<Range> {
     const ranges = [valueRange];
 
     if (expr.key) {
-      if (expr.key instanceof AbsolutePitch) {
-        ranges.push(expr.key.accept(this));
-      } else {
+      if (expr.key instanceof Token) {
         ranges.push(getTokenRange(expr.key));
+      } else {
+        ranges.push(expr.key.accept(this));
       }
     }
     if (expr.equals) {

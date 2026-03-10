@@ -187,7 +187,7 @@ describe("CloneVisitor", () => {
       for (let i = 0; i < 4; i++) {
         expect(cloned[i]).to.not.equal(line[i]);
         if ("id" in cloned[i] && "id" in line[i]) {
-          expect((cloned[i] as any).id).to.not.equal((line[i] as any).id);
+          expect((cloned[i] as { id: number }).id).to.not.equal((line[i] as { id: number }).id);
         }
       }
     });
@@ -284,7 +284,7 @@ C2 D E/2 F|`;
         const orig = line[i];
         const clone = cloned[i];
         if ("id" in orig && "id" in clone) {
-          expect((clone as any).id).to.not.equal((orig as any).id);
+          expect((clone as { id: number }).id).to.not.equal((orig as { id: number }).id);
         }
       }
     });

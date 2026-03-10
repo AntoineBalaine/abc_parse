@@ -675,7 +675,7 @@ export interface TuneFormatting {
   };
 
   // Percussion mapping
-  percmap?: { [key: string]: any };
+  percmap?: { [key: string]: unknown };
 
   // String properties (various directive parameters)
   map?: string;
@@ -717,11 +717,11 @@ export interface Tune {
   getKeySignature(): KeySignature;
   getElementFromChar(char: number): VoiceElement | null;
   getBpm(tempo?: TempoProperties): number;
-  setTiming(bpm?: number, measuresOfDelay?: number): any[];
-  setUpAudio(options?: any): any;
-  deline(options?: any): any;
-  findSelectableElement(target: any): any;
-  getSelectableArray(): any[];
+  setTiming(bpm?: number, measuresOfDelay?: number): unknown[];
+  setUpAudio(options?: unknown): unknown;
+  deline(options?: unknown): unknown;
+  findSelectableElement(target: unknown): unknown;
+  getSelectableArray(): unknown[];
 }
 
 /**

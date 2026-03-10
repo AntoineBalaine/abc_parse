@@ -67,7 +67,7 @@ export const genFontDirectiveFormat1 = fc
     box: fc.boolean(),
   })
   .map(({ name, size, box }) => {
-    const supportsBox = fontDirectivesWithBox.includes(name as any);
+    const supportsBox = (fontDirectivesWithBox as readonly string[]).includes(name);
     const tokens = [new Token(TT.IDENTIFIER, "*", sharedContext.generateId()), new Token(TT.NUMBER, size.toString(), sharedContext.generateId())];
     if (box && supportsBox) {
       tokens.push(new Token(TT.IDENTIFIER, "box", sharedContext.generateId()));
@@ -93,7 +93,7 @@ export const genFontDirectiveFormat2 = fc
     box: fc.boolean(),
   })
   .map(({ name, size, box }) => {
-    const supportsBox = fontDirectivesWithBox.includes(name as any);
+    const supportsBox = (fontDirectivesWithBox as readonly string[]).includes(name);
     const tokens = [new Token(TT.NUMBER, size.toString(), sharedContext.generateId())];
     if (box && supportsBox) {
       tokens.push(new Token(TT.IDENTIFIER, "box", sharedContext.generateId()));
@@ -124,7 +124,7 @@ export const genFontDirectiveFormat3 = fc
   // Format 3 must have either a face or modifiers (not just size alone - that's format 2)
   .filter(({ face, modifiers }) => face !== null || modifiers.length > 0)
   .map(({ name, face, utf8, size, modifiers, box }) => {
-    const supportsBox = fontDirectivesWithBox.includes(name as any);
+    const supportsBox = (fontDirectivesWithBox as readonly string[]).includes(name);
     const tokens: Token[] = [];
 
     if (face) {

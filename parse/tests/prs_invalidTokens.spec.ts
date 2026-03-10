@@ -87,6 +87,7 @@ describe("Invalid Token Handling in Parser", () => {
 
       // Find the ErrorExpr in the tune body
       let foundErrorExpr = false;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const visitTuneBody = (expr: any) => {
         if (expr instanceof ErrorExpr) {
           foundErrorExpr = true;
@@ -127,6 +128,7 @@ describe("Invalid Token Handling in Parser", () => {
 
       // Collect all lexemes from the AST
       const lexemes: string[] = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const collectLexemes = (expr: any) => {
         if (expr instanceof Token) {
           lexemes.push(expr.lexeme);
@@ -177,6 +179,7 @@ describe("Invalid Token Handling in Parser", () => {
 
       // Find all ErrorExpr instances in the tune body
       const errorExprs: ErrorExpr[] = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const findErrorExprs = (expr: any) => {
         if (expr instanceof ErrorExpr) {
           errorExprs.push(expr);

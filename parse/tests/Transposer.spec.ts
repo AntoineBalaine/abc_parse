@@ -134,6 +134,7 @@ describe("Transposer", () => {
     abcNotations.forEach((abc) => {
       it(`should correctly roundtrip convert "${abc}"`, () => {
         // Create a mock pitch object
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mockPitch = createPitchFromAbc(abc) as any;
 
         // Convert to MIDI pitch
