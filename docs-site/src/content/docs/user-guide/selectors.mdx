@@ -1,5 +1,176 @@
 ---
 title: Selectors
+description: How to select musical elements in ABC notation
 ---
 
-Coming soon.
+Selectors narrow the current editor selection to elements matching a criterion. They can be composed: apply one selector to establish a scope, then apply another to refine the result within that scope.
+
+For example, selecting a region of measures and then applying `selectChords` will select only the chords within those measures.
+
+## Type selectors
+
+These selectors filter the current scope by node type.
+
+### selectNotes
+
+Selects all note nodes within the current scope.
+
+```
+|: C D E F | G A B c :|
+   ^         ^
+```
+
+Applying `selectNotes` to the first measure selects `C`, `D`, `E`, `F`.
+
+### selectChords
+
+Selects all chord nodes (square-bracket groups) within the current scope.
+
+```
+[CEG] A [FAc] B
+^       ^
+```
+
+### selectRests
+
+Selects all rest nodes within the current scope.
+
+```
+C z D z2 E
+  ^   ^
+```
+
+### selectNonChordNotes
+
+Selects notes that are not children of a chord. Given a mix of chords and standalone notes, this picks only the standalone ones.
+
+```
+C [CEG] D [FAc] E
+^       ^       ^
+```
+
+### selectChordNotes
+
+Selects notes that are direct children of a chord. This is the inverse of `selectNonChordNotes`.
+
+```
+[CEG] D [FAc]
+ ^^^     ^^^
+```
+
+### selectRhythm
+
+Selects all rhythm nodes within the current scope. Useful for inspecting or modifying durations without affecting pitch.
+
+### selectRhythmParent
+
+Selects all nodes that have a rhythm child -- i.e. notes, chords, and rests that carry a duration value.
+
+## Chord note selectors
+
+These selectors operate on the notes inside chord brackets.
+
+### selectTop
+
+From each chord in scope, selects only the topmost (highest-pitched) note.
+
+```
+[CEG] -> G selected
+[FAc] -> c selected
+```
+
+### selectBottom
+
+From each chord in scope, selects only the bottommost (lowest-pitched) note.
+
+```
+[CEG] -> C selected
+[FAc] -> F selected
+```
+
+### selectNthFromTop
+
+From each chord in scope, selects the Nth note from the top. Takes `n` as an argument (1-indexed, where 1 is the top).
+
+```
+[CEGB] with n=2 -> G selected
+```
+
+### selectAllButTop
+
+From each chord in scope, selects all notes except the topmost.
+
+```
+[CEG] -> C, E selected
+```
+
+### selectAllButBottom
+
+From each chord in scope, selects all notes except the bottommost.
+
+```
+[CEG] -> E, G selected
+```
+
+## Delimiter selectors
+
+These selectors work like text objects in vim: "inside" selects the content between delimiters, "around" selects the delimiters as well.
+
+### selectInsideChord / selectAroundChord
+
+`selectInsideChord` selects the notes between the chord brackets. `selectAroundChord` expands the selection to include the brackets themselves.
+
+```
+[CEG]
+ ^^^   <- inside
+^^^^^  <- around
+```
+
+### selectInsideGraceGroup / selectAroundGraceGroup
+
+Same pattern for grace note groups delimited by braces.
+
+```
+{abc}
+ ^^^   <- inside
+^^^^^  <- around
+```
+
+### selectInsideInlineField / selectAroundInlineField
+
+Same pattern for inline fields delimited by `[` and `]`.
+
+```
+[K:Dm]
+ ^^^^   <- inside
+^^^^^^  <- around
+```
+
+### selectInsideGrouping / selectAroundGrouping
+
+Same pattern for groupings delimited by parentheses.
+
+## Structure selectors
+
+These selectors expand the scope to larger structural units.
+
+### selectMeasures
+
+Splits the selection by barlines, returning one selection per measure.
+
+```
+C D E F | G A B c | d e f g |
+^^^^^^^   ^^^^^^^   ^^^^^^^
+```
+
+### selectSystem
+
+Expands the selection to cover the entire system (line) that the selection touches.
+
+### selectVoices
+
+Selects all tune-body elements belonging to one or more voice IDs. Takes a voice ID string as an argument.
+
+### selectTune
+
+Expands the selection to cover the enclosing tune. If no scope is set, selects all tunes in the file.

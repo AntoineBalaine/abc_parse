@@ -1,5 +1,197 @@
 ---
 title: Transforms
+description: Operations for modifying ABC notation
 ---
 
-Coming soon.
+Transforms modify the selected elements in an ABC document. They are applied through the editor (via LSP commands) or through the CLI. Each transform operates on the current selection and returns the modified text along with updated cursor positions.
+
+Some transforms are context-aware: they use the key signature, chord symbols, or measure accidental state from the surrounding document to produce correct results.
+
+## Transposition and pitch
+
+### transpose
+
+Transposes selected notes by N semitones, respecting the key signature and measure accidentals. Context-aware.
+
+```
+Before: K:C  C D E F
+After (transpose +2): K:C  D E ^F G
+```
+
+### enharmonize
+
+Cycles through the enharmonic spellings of selected notes.
+
+```
+^F -> _G -> ^F
+```
+
+### enharmonizeToKey
+
+Re-spells selected notes to best fit the current key signature. Context-aware.
+
+```
+K:F  ^E -> F
+K:Bb _A -> _A (already fits)
+```
+
+### addSharp
+
+Advances the accidental state of selected notes one step toward sharp. A natural note becomes sharp, a flat becomes natural, etc.
+
+### addFlat
+
+Advances the accidental state of selected notes one step toward flat. A natural note becomes flat, a sharp becomes natural, etc.
+
+## Harmonization
+
+### harmonize
+
+Adds a harmonizing note N diatonic steps above or below each selected note.
+
+```
+Before: K:C  C E G
+After (harmonize +3): K:C  [CE] [EG] [GB]
+```
+
+### harmonizeVoicing
+
+Generates a fully-voiced harmonic arrangement from chord symbols using a specified voicing type. Context-aware.
+
+Available voicing types: `close`, `drop2`, `drop24`, `drop3`, `cluster`, `spread`.
+
+```
+Before: "Cmaj7"C
+After (close voicing): "Cmaj7"[CEGB]
+```
+
+### parallelVoicing
+
+Shifts selected notes in parallel motion, following chord symbols. Can move diatonically, chromatically, or in a voicing-aware manner. Context-aware.
+
+## Rhythm
+
+### setRhythm
+
+Sets the rhythm of selected notes and chords to a given rational duration (numerator/denominator).
+
+```
+Before: C D E F
+After (setRhythm 1/4): C/4 D/4 E/4 F/4
+```
+
+### addToRhythm
+
+Adds a rational duration to the rhythm of selected notes and chords.
+
+### multiplyRhythm
+
+Multiplies the duration of selected notes by a factor (default 2).
+
+```
+Before: C D E F
+After (multiplyRhythm 2): C2 D2 E2 F2
+```
+
+### divideRhythm
+
+Divides the duration of selected notes by a factor (default 2).
+
+```
+Before: C2 D2 E2 F2
+After (divideRhythm 2): C D E F
+```
+
+## Conversion
+
+### toRest
+
+Converts selected notes or chords to rests of the same duration.
+
+```
+Before: C2 [CEG] D
+After: z2 z D
+```
+
+### consolidateRests
+
+Merges consecutive rests into a single rest of the combined duration.
+
+```
+Before: z z z z
+After: z4
+```
+
+### legato
+
+Merges tied note sequences into single notes of the combined duration.
+
+```
+Before: C2-C2-C2
+After: C6
+```
+
+### toSlashNotation
+
+Replaces selected measures with slash notation (stemless quarter-note slashes). Context-aware.
+
+## Structure
+
+### remove
+
+Removes all selected nodes from the tree.
+
+### unwrapSingle
+
+Unwraps single-note chords into plain notes by removing the chord brackets.
+
+```
+Before: [C] [E] [G]
+After: C E G
+```
+
+### explode2, explode3, explode4
+
+Splits chords into 2, 3, or 4 separate voice lines, distributing chord notes across the voices.
+
+```
+Before: [CEGB]
+After (explode2):
+V:1  [GB]
+V:2  [CE]
+```
+
+### explosion
+
+Time-aware chord explosion: distributes chord notes into separate voice lines synchronized by duration. Context-aware.
+
+### splitSystems
+
+Splits or joins system line breaks at the given cursor positions. Context-aware.
+
+## Voice
+
+### addVoice
+
+Inserts a new `V:` voice declaration into the tune header.
+
+### insertVoiceLine
+
+Duplicates lines containing selected notes into a new voice. Non-selected notes are replaced with rests.
+
+### voiceInfoLineToInline
+
+Converts `V:` info-line voice markers to inline `[V:...]` form.
+
+```
+Before:
+V:1
+C D E F
+
+After:
+[V:1] C D E F
+```
+
+### voiceInlineToInfoLine
+
+Converts `[V:...]` inline voice markers to `V:` info-line form. The inverse of `voiceInfoLineToInline`.
