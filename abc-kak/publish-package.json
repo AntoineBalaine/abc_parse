@@ -1,0 +1,21 @@
+{
+  "name": "abcls-kak",
+  "version": "0.1.0",
+  "description": "ABC notation editing for Kakoune",
+  "bin": {
+    "abcls-kak-install": "./dist/install.js",
+    "abcls-kak-client": "./dist/abc-kak-client.js"
+  },
+  "dependencies": {
+    "abcls": "0.1.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/antoinebalaine/abc_parse"
+  },
+  "keywords": ["abc", "abc-notation", "music", "kakoune", "kak"]
+}

@@ -1,13 +1,11 @@
 # kak-lsp configuration for ABC notation files
 # Add this to your ~/.config/kak-lsp/kak-lsp.toml
 
-[language_server.abc-lsp]
+[language_server.abcls]
 filetypes = ["abc", "abcx"]
 roots = [".git"]
-command = "node"
-# Update the path to match your installation
-# Use the bundled server from abc-kak/dist/server.js
-args = ["/path/to/abc-kak/dist/server.js", "--stdio", "--socket=auto"]
+command = "abcls"
+args = ["lsp", "--stdio", "--socket=auto"]
 
 # The --socket=auto argument tells the server to create a Unix socket
 # for custom commands (selectors). The socket path is computed automatically:
@@ -15,7 +13,7 @@ args = ["/path/to/abc-kak/dist/server.js", "--stdio", "--socket=auto"]
 #   - /tmp/abc-lsp-$USER/lsp.sock (fallback)
 
 # To use a custom socket path instead:
-# args = ["/path/to/abc-lsp-server/out/server.js", "--stdio", "--socket=/custom/path/abc-lsp.sock"]
+# args = ["lsp", "--stdio", "--socket=/custom/path/abc-lsp.sock"]
 # Then also set in your kakrc:
 # set-option global abc_socket_path "/custom/path/abc-lsp.sock"
 

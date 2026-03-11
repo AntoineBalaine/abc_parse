@@ -37,14 +37,14 @@ This document describes how to manually test the ABC selector integration in Kak
 Add to your `~/.config/kak-lsp/kak-lsp.toml`:
 
 ```toml
-[language_server.abc-lsp]
+[language_server.abcls]
 filetypes = ["abc"]
 roots = [".git"]
 command = "node"
-args = ["/path/to/abc_parse/abc-lsp-server/out/server.js", "--stdio", "--socket=auto"]
+args = ["/path/to/abc_parse/abc-kak/dist/server.js", "--stdio", "--socket=auto"]
 ```
 
-Replace `/path/to/abc_parse` with the actual path.
+Replace `/path/to/abc_parse` with the actual path. For a global install, use `command = "abcls"` and `args = ["lsp", "--stdio", "--socket=auto"]` instead.
 
 ### 2. Load the Kakoune plugin
 

@@ -98,7 +98,8 @@ source "${join(abcKakDir, "rc", "abc-modes.kak")}"
 
 # Override abc plugin options with test-specific paths
 set-option global abc_client_path "${clientPath}"
-set-option global abc_server_path "${serverPath}"
+set-option global abc_server_command "node"
+set-option global abc_server_args "${serverPath}"
 set-option global abc_socket_path "${socketPath}"
 `;
 

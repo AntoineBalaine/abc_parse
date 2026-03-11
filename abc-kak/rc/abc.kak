@@ -29,9 +29,15 @@ declare-option -docstring "Timeout for selector requests (ms)" \
 declare-option -docstring "Automatically open preview when ABC files are opened" \
     bool abc_auto_preview false
 
-# Path to the bundled LSP server
-declare-option -docstring "Path to the ABC LSP server script" \
-    str abc_server_path "%sh{dirname $(dirname $kak_source)}/dist/server.js"
+# LSP server command and arguments.
+# For global installs (npm install -g abcls), the default "abcls" is on PATH.
+# For local development, override these in your kakrc:
+#   set-option global abc_server_command "node"
+#   set-option global abc_server_args "<path>/dist/server.js"
+declare-option -docstring "Command to start the ABC LSP server" \
+    str abc_server_command "abcls"
+declare-option -docstring "Base arguments for the LSP server (before --stdio and --socket)" \
+    str abc_server_args "lsp"
 
 # Key mappings for ABC modes (set to empty string to disable)
 declare-option -docstring "Key to enter ABC select mode" \
@@ -68,10 +74,10 @@ hook global BufCreate .*\.abcx %{
 hook global BufSetOption filetype=(?:abc|abcx) %{
     # Configure LSP server for this buffer
     set-option buffer lsp_servers %sh{
-        printf '[abc-lsp]\n'
+        printf '[abcls]\n'
         printf 'root_globs = [".git", ".hg"]\n'
-        printf 'command = "node"\n'
-        printf 'args = ["%s", "--stdio", "--socket=%s"]\n' "$kak_opt_abc_server_path" "$kak_opt_abc_socket_path"
+        printf 'command = "%s"\n' "$kak_opt_abc_server_command"
+        printf 'args = ["%s", "--stdio", "--socket=%s"]\n' "$kak_opt_abc_server_args" "$kak_opt_abc_socket_path"
     }
     set-option buffer lsp_language_id "abc"
 }
