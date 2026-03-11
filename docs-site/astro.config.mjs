@@ -2,6 +2,8 @@ import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 
 export default defineConfig({
+  site: "https://antoinebalaine.github.io",
+  base: "/abc_parse",
   // Workaround for zod v3/v4 conflict in the Astro SSR build.
   // See https://github.com/withastro/astro/issues/14117
   vite: {
