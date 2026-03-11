@@ -832,6 +832,13 @@
           "group": "Renderer",
           "description": "Show transposed ABC source code.",
           "scope": "resource"
+        },
+        "abc.experimental.playback": {
+          "type": "boolean",
+          "default": false,
+          "group": "Experimental",
+          "description": "Enable experimental MuseSampler playback. Requires building the native binary from source. See MUSESAMPLER_SETUP.md.",
+          "scope": "window"
         }
       }
     },

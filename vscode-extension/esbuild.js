@@ -33,7 +33,7 @@ async function main() {
     sourcesContent: !production,
     platform: "node",
     outfile: "dist/extension.js",
-    external: ["vscode"],
+    external: ["vscode", "abcls-native"],
     logLevel: "silent",
     plugins: [esbuildProblemMatcherPlugin],
   });

@@ -3,12 +3,10 @@
 
 import * as os from "os";
 import * as path from "path";
-import { setMscorePath } from "abcls-native";
 import * as vscode from "vscode";
 import { ExtensionContext } from "vscode";
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
 import { registerCommands } from "./extensionCommands";
-import { registerPlaybackCommands } from "./playback";
 import { registerRendererCommands, setLspClient } from "./renderer";
 import { registerSelectorCommands } from "./selectorCommands";
 import { registerTransformCommands } from "./transformCommands";
@@ -21,9 +19,17 @@ let client: LanguageClient;
  * The extension is activated the very first time the command is executed
  */
 export async function activate(context: ExtensionContext) {
-  // Configure the path to the mscore binary for MuseSampler playback
-  const binaryName = os.platform() === "win32" ? "mscore.exe" : "mscore";
-  setMscorePath(context.asAbsolutePath(path.join("bin", binaryName)));
+  const playbackEnabled = vscode.workspace.getConfiguration("abc").get<boolean>("experimental.playback", false);
+
+  if (playbackEnabled) {
+    try {
+      const { setMscorePath } = await import("abcls-native");
+      const binaryName = os.platform() === "win32" ? "mscore.exe" : "mscore";
+      setMscorePath(context.asAbsolutePath(path.join("bin", binaryName)));
+    } catch {
+      vscode.window.showWarningMessage("Playback is enabled but the native module could not be loaded. See MUSESAMPLER_SETUP.md.");
+    }
+  }
 
   // The server is implemented in node
   const serverModule = context.asAbsolutePath(path.join("dist", "server.js"));
@@ -59,8 +65,11 @@ export async function activate(context: ExtensionContext) {
   // register renderer commands (preview, export, print)
   registerRendererCommands(context);
 
-  // register playback commands (play, stop, pause)
-  registerPlaybackCommands(context);
+  // register playback commands (play, stop, pause) only if experimental playback is enabled
+  if (playbackEnabled) {
+    const { registerPlaybackCommands } = await import("./playback");
+    registerPlaybackCommands(context);
+  }
 
   // Start the client. This will also launch the server
   await client.start();

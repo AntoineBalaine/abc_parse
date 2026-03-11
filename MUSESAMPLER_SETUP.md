@@ -350,3 +350,30 @@ node --version  # Should be 18+
 ```
 
 The binary is named `mscore` because MuseSampler checks the calling process name and refuses to load if it is not `mscore`. This is a limitation of the closed-source library.
+
+## Enabling Playback in VS Code
+
+Playback is gated behind an experimental setting and is disabled by default.
+
+1. Build the native binary (see above).
+
+2. Copy the binary into the VS Code extension:
+
+   ```bash
+   cd vscode-extension
+   npm run copy-binary
+   ```
+
+   This copies `native/build/mscore` into `vscode-extension/bin/`.
+
+3. Enable the setting in VS Code:
+
+   Open Settings and set `abc.experimental.playback` to `true`, or add this to your `settings.json`:
+
+   ```json
+   {
+     "abc.experimental.playback": true
+   }
+   ```
+
+4. Reload the VS Code window. The playback commands (Play Document, Stop, Pause, etc.) will now be active.
