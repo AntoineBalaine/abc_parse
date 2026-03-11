@@ -28,6 +28,8 @@
     "build:preview": "npm run build -w abcls-preview-server",
     "build:kak": "npm run build -w abcls-kak",
     "build:midi": "npm run build -w abcls-midi",
+    "build:publish-cli": "node abc-cli/esbuild.js",
+    "build:publish-kak": "node abc-kak/esbuild-publish.js",
     "watch:parse": "npm run watch -w parse",
     "watch:lsp": "npm run watch -w abcls-server",
     "watch:cli": "npm run watch -w abcls-cli",

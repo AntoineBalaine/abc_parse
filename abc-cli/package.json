@@ -21,6 +21,7 @@
     "svgdom": "^0.1.23"
   },
   "devDependencies": {
-    "@types/svgdom": "^0.1.2"
+    "@types/svgdom": "^0.1.2",
+    "esbuild": "^0.25.10"
   }
 }
