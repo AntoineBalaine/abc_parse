@@ -1,0 +1,83 @@
+---
+title: ABCx Chord Sheets
+---
+
+ABCx is a simplified notation for writing chord charts and lead sheets. Instead of writing full ABC music notation, you write chord symbols directly and abcls converts them to renderable ABC.
+
+## Syntax
+
+An ABCx file has the same header as a standard ABC file, but the tune body contains chord symbols instead of notes:
+
+```
+X:1
+T:Autumn Leaves
+M:4/4
+K:G
+Em7 | A7 | Dmaj7 | Gmaj7 |
+Cmaj7 | F#m7b5 | B7 | Em |
+```
+
+### Chord symbols
+
+A chord symbol follows this structure:
+
+```
+Root[accidental][quality][extension][alteration][/bass]
+```
+
+- Root: A-G (uppercase), or a, c, d, e, f, g (lowercase). Lowercase `b` is excluded because it conflicts with the flat accidental.
+- Accidental: `#` or `b`
+- Quality: `maj`, `min`, `dim`, `aug`, `sus`, `add`, `m`, `M`
+- Extension: `7`, `9`, `11`, `13`, `6`
+- Alteration: `#5`, `b5`, `#9`, `b9`
+- Bass note: `/` followed by a root and optional accidental
+
+Examples: `C`, `Am`, `G7`, `Cmaj7`, `Dm7b5`, `F#m7`, `Bb/D`, `Cmaj7#11`
+
+### Other elements
+
+ABCx supports these standard ABC elements alongside chord symbols:
+
+- Barlines: `|`, `||`, `|]`, `[|`, `:|`, `|:`, `::`, `[1`, `[2`
+- Annotations: `"text"`
+- Multi-measure rests: `Z4` (4 bars of rest)
+- Inline fields: `[K:G]`, `[M:3/4]`
+- Comments: `% comment`
+
+## How the conversion works
+
+The `abcx2abc` command converts chord symbols into ABC annotations placed above invisible rests. The rest durations are calculated to fill each bar evenly based on the number of chords in that bar.
+
+Input:
+```
+X:1
+T:Example
+M:4/4
+K:C
+C Am | F G |
+```
+
+Output:
+```
+X:1
+T:Example
+M:4/4
+K:C
+"C"x4 "Am"x4 | "F"x4 "G"x4 |
+```
+
+A single chord per bar gets a full-bar rest. Two chords per bar each get half the bar, and so on. When rendered, the chord names appear at the correct rhythmic positions without any visible notes or rests.
+
+## CLI usage
+
+```bash
+# Convert and print to stdout
+abcls abcx2abc song.abcx
+
+# Convert and write to a file
+abcls abcx2abc song.abcx -o song.abc
+```
+
+## Rendering
+
+The VS Code extension recognizes `.abcx` files and renders them through the preview panel, performing the conversion to ABC automatically before passing the result to the renderer.

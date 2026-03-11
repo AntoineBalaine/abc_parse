@@ -29,6 +29,7 @@ abcls-kak-install
 - Completions for decorations (`!`), directives (`%%`), and info lines
 - Score preview (VS Code) with SVG export
 - MIDI input and export
+- [ABCx chord sheet notation](https://antoinebalaine.github.io/abc_parse/user-guide/abcx-chord-sheets/) for writing chord charts without full music notation
 - Selectors and transforms for programmatic score editing (transposition, rhythm manipulation, voice management, enharmonic spelling, etc.)
 
 ## CLI usage

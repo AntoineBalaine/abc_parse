@@ -7,6 +7,30 @@ abcls introduces three custom directives that control the language server's beha
 
 All abcls directives are fully supported by the autocomplete system. In any LSP-enabled editor, typing `%%abcls-` triggers completions for the directive names, and typing a space after the directive name triggers completions for the available options.
 
+## Directive scoping
+
+abcls directives can be placed in the file header or in a tune header. Their scope depends on where they appear:
+
+- In the file header (before the first `X:` line): the directive applies to all tunes in the file as a default.
+- In a tune header (between `X:` and `K:`): the directive applies only to that tune, overriding any file-header value.
+
+For example, if the file header sets `%%abcls-fmt courtesy-accidentals`, all tunes in the file will use courtesy accidentals. A specific tune can override this by not including the directive in its own header (the file-header default applies) or by setting a different value.
+
+```
+%%abcls-fmt courtesy-accidentals    % default for all tunes
+%%abcls-parse linear                % default for all tunes
+
+X:1
+T:First Tune
+K:C
+...                                 % uses courtesy-accidentals and linear mode
+
+X:2
+T:Second Tune
+%%abcls-parse linear                % overrides: this tune uses linear mode explicitly
+K:G
+...                                 % uses courtesy-accidentals from file header
+```
 
 ## abcls-fmt
 
@@ -36,6 +60,16 @@ Controls how the formatter writes voice markers:
   C D E F
   ```
 
+### courtesy-accidentals
+
+```
+%%abcls-fmt courtesy-accidentals
+```
+
+Inserts courtesy accidentals when formatting. When a note was altered by an accidental in the previous measure but appears without an explicit accidental in the current measure, the formatter inserts the accidental that corresponds to the key signature value for that note. This makes the return to the key signature explicit, which helps the reader avoid misreading the pitch.
+
+For example, in the key of C major, if a measure contains `^F` (F sharp), and the next measure contains a plain `F`, the formatter will insert `=F` (F natural) as a courtesy accidental.
+
 ## abcls-voices
 
 Filters which voices are included in the rendered output. This is useful for isolating individual parts in a multi-voice score without modifying the source file.
@@ -60,26 +94,36 @@ Excludes the listed voices from the rendered output. All other voices are includ
 
 Controls how the parser processes the ABC file.
 
+
+ABCLS allows two ways to lay out multi-voice music. They look similar but differ in how time is tracked across voices.
+
+### Deferred mode (default)
+
+In deferred mode, each voice has its own independent time cursor. When a voice block appears, its notes start from wherever that voice last left off, regardless of what other voices have done since. There are no implicit rests.
+
+```
+V:1
+C D E F | G A B c |
+c B A G | F E D C |
+V:2
+E, F, G, A, | B, C D E |
+E D C B, | A, G, F, E, |
+```
+
+Here, voice 2 starts at the beginning of the tune (time 0), even though it appears after voice 1's two bars. Each voice's block is a self-contained continuation from where it left off.
+
+This style is suited for scores where each voice is written out in full before moving on to the next. The reader can follow one voice's part from start to finish without interruption.
+
+
 ### linear
 
 ```
 %%abcls-parse linear
 ```
 
-Enables linear (interleaved voice) parsing mode. In this mode, voice segments are expected to appear interleaved line by line, rather than grouped by voice in separate blocks.
+Enables linear parsing mode. This changes how time progresses across voices in a multi-voice score.
 
-Standard (non-linear) layout:
-
-```
-V:1
-C D E F | G A B c |
-c B A G | F E D C |
-V:2
-E, F, G, A, | B, C D E |
-E D C B, | A, G, F, E, |
-```
-
-Linear layout (with `%%abcls-parse linear`):
+In linear mode, all voices within a system share the same time frame. The voices are interleaved system by system, and system boundaries act as sync points: when a new system begins, all voices are aligned to the same position in time.
 
 ```
 %%abcls-parse linear
@@ -87,9 +131,36 @@ V:1
 C D E F | G A B c |
 V:2
 E, F, G, A, | B, C D E |
+%
 V:1
 c B A G | F E D C |
 V:2
 E D C B, | A, G, F, E, |
 ```
+
+Here, voice 1 and voice 2 in the first system are simultaneous (both cover bars 1-2). In the second system, both voices continue from bar 3.
+
+If a voice is omitted from a system, it is considered to be tacitly resting for the duration of that system. In the following example, voice 2 only appears in the first and third systems:
+
+```
+%%abcls-parse linear
+V:1
+C D E F | G A B c |
+V:2
+E, F, G, A, | B, C D E |
+%
+V:1
+c B A G | F E D C |
+%
+V:1
+C E G c | c G E C |
+V:2
+C, E, G, C | C G, E, C, |
+```
+
+Voice 2 is absent from the second system. Because we are in linear mode, voice 2 advances by two bars of implicit rest (matching the duration of voice 1 in that system). When voice 2 reappears in the third system, it picks up at bar 5, synchronized with voice 1.
+
+In deferred mode, the same layout would mean something different: voice 2's second block would start at bar 3 (right after its first block ended), not bar 5, because there is no implicit resting in deferred mode.
+
+This style reads like a conductor's score: you see all the voices playing at the same moment grouped together, system by system.
 

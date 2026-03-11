@@ -44,6 +44,7 @@ export default defineConfig({
               label: "Preview and Playback",
               slug: "user-guide/preview-and-playback",
             },
+            { label: "ABCx Chord Sheets", slug: "user-guide/abcx-chord-sheets" },
             { label: "Kakoune Integration", slug: "user-guide/kakoune" },
           ],
         },

@@ -7,17 +7,21 @@ ABC is a text-based music notation format. This page only covers its basics. The
 
 ## Structure of an ABC file
 
-An ABC file contains one or more tunes. Each tune starts with a set of header lines followed by the tune body:
+An ABC file can contain one or more tunes. Before the first tune, the file can have a file header where directives and info lines are shared across all tunes. Each tune then starts with its own header lines followed by the tune body:
 
 ```
-            % comments are started with a percent-sign
-X:1         % tune number (required, must be first)
+%%abcls-fmt courtesy-accidentals   % file header: applies to all tunes
+%%pagewidth 21cm
+
+X:1         % tune number (required, must be first header line)
 T:My Tune   % title
 M:4/4       % meter (time signature)
 L:1/8       % default note length
 K:C         % key signature (must be the last header line)
 CDEF GABc|  % some music
 ```
+
+The file header is the area before the first `X:` line. It is typically used for stylesheet directives (page layout, fonts, spacing) and abcls configuration that should apply to all tunes in the file. Any directive or setting placed in the file header acts as a default that individual tunes can override in their own headers.
 
 ## Notes
 
