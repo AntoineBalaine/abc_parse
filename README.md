@@ -1,218 +1,91 @@
-# ABC Parser & Language Server
+# abcls
 
-A TypeScript parser and Language Server for ABC music notation. Implements the [ABC 2.2 standard](https://abcnotation.com/wiki/abc:standard:v2.2) with extensions from [ABCJS](https://github.com/paulrosen/abcjs).
+A language server, CLI, and editor extensions for [ABC music notation](https://abcnotation.com/wiki/abc:standard:v2.2).
 
-This monorepo contains four packages:
-- `parse/` - Parser library for ABC notation
-- `abc-lsp-server/` - Language Server providing IDE features
-- `abc-cli/` - Command-line tool for rendering, formatting, and validation
-- `vscode-extension/` - VSCode extension (LSP client)
+![Syntax highlighting and preview](vscode-extension/assets/abcls_highlighting.png)
 
-## Goals
+## Install
 
-Build a complete IDE for ABC music notation, focused on small scores (transcriptions, lead sheets).
+VS Code: install [abc-ls](https://marketplace.visualstudio.com/items?itemName=AntoineBalaine.abc-ls) from the marketplace.
 
-1. Provide syntax highlighting, formatting, and semantic analysis
-2. Support CLI operations (part extraction, transposition, format conversion)
-3. Match ABCJS output exactly to enable substitution in rendering pipelines
-4. Extend ABC standard while maintaining renderability
-
-This project does not provide playback or sheet music rendering.
-
-## Installation & Usage
-
-### Install Dependencies
+CLI and LSP server (for Neovim, Helix, Emacs, Kakoune, etc.):
 
 ```bash
-npm install
+npm install -g abcls
 ```
 
-### Building
+Kakoune users can install the dedicated plugin, which includes `abcls` as a dependency:
 
 ```bash
-# Build both packages
-npm run build
-
-# Build parser only
-npm run build:parse
-
-# Build LSP server only
-npm run build:lsp
-
-# Watch mode for development
-npm run watch:parse
-npm run watch:lsp
+npm install -g abcls-kak
+abcls-kak-install
 ```
 
-Build outputs: `out/parse/` (parser, standalone) and `out/abc-lsp-server/` (LSP server, requires parser).
+## What it does
 
-### Using the Parser as a Library
-
-```typescript
-import { parse, Scanner2, ABCContext, AbcFormatter } from "abc-parser";
-
-const source = `X:1\nT:Example\nK:C\nCDEF|`;
-const ctx = new ABCContext();
-const tokens = Scanner2(source, ctx);
-const ast = parse(tokens, ctx);
-
-// Format the parsed AST
-const formatter = new AbcFormatter(ctx);
-const formatted = formatter.format(ast);
-console.log(formatted);
-```
-
-### Using the LSP Server
-
-Integrate the LSP server with editor clients like [AbcLsp](https://github.com/AntoineBalaine/AbcLsp).
-
-**Features:**
+- Syntax highlighting and semantic tokens
 - Diagnostics (errors and warnings)
-- Semantic tokens (syntax highlighting)
 - Document formatting (barline alignment for multi-voice systems)
-- Completions (decoration symbols triggered by `!`)
-- Custom commands: `divideRhythm`, `multiplyRhythm`, `transposeUp`, `transposeDn`
+- Completions for decorations (`!`), directives (`%%`), and info lines
+- Score preview (VS Code) with SVG export
+- MIDI input and export
+- Selectors and transforms for programmatic score editing (transposition, rhythm manipulation, voice management, enharmonic spelling, etc.)
 
-### Using the CLI
+## CLI usage
 
 ```bash
-# Render ABC to SVG
-node out/abc-cli/abcls-cli.js render file.abc > output.svg
-
-# Render specific tunes by X: number
-node out/abc-cli/abcls-cli.js render file.abc -t 1,2,3 > output.svg
-
-# Format ABC files
-node out/abc-cli/abcls-cli.js format file.abc
-
-# Check ABC files for errors
-node out/abc-cli/abcls-cli.js check file.abc
+abcls format file.abc        # Format an ABC file
+abcls check file.abc         # Check for errors and warnings
+abcls render file.abc        # Render to SVG
+abcls abc2midi file.abc      # Export to MIDI
+abcls midi2abc file.midi     # Convert MIDI to ABC
+abcls abcx2abc file.abcx     # Convert ABCx chord sheet to ABC
+abcls lsp --stdio            # Start the language server
 ```
 
-Note: SVG rendering via the CLI is experimental. The server-side DOM implementation (svgdom) has known inaccuracies in bounding box calculations (~15% deviation from browser values), which may cause minor positioning issues with text elements (lyrics, chord symbols) and path elements (slurs, ties). For production rendering, use abcjs directly in a browser environment.
+## LSP setup
 
-## Architecture
+Point your editor's LSP client at `abcls lsp --stdio`. For example, in Neovim with lspconfig:
 
-### Parser Pipeline
-
+```lua
+require('lspconfig').abcls.setup {
+  cmd = { 'abcls', 'lsp', '--stdio' },
+  filetypes = { 'abc' },
+}
 ```
-Source Text → Scanner → Tokens → Parser → AST → Visitors
-                                            ↓
-                                   Semantic Analysis
-```
 
-**Components:**
+## Documentation
 
-1. **Scanner**: Tokenizes ABC notation (`scan2.ts`, `scan_tunebody.ts`, `scanInfoLine2.ts`, `scanDirective.ts`)
-2. **Parser**: Builds AST from tokens (`parse2.ts`, `parseInfoLine2.ts`, `parseDirective.ts`)
-3. **AST Types**: Strongly-typed nodes (`types/Expr2.ts`)
-4. **Semantic Analyzer**: Validates info lines and directives (`info-line-analyzer.ts`, `directive-analyzer.ts`)
-5. **Visitors**: Transform AST (`Formatter2.ts`, `RhythmTransform.ts`, `Transposer.ts`, `RangeVisitor.ts`, `RangeCollector.ts`)
-
-### ABC Standard Support
-
-Implements ABC 2.2 standard with ABCJS extensions.
-
-**Supported:**
-- Basic notation (notes, rhythms, chords, beams, tuplets)
-- Info lines (X, T, K, M, L, etc.)
-- Directives (`%%` commands)
-- Decorations (standard and ABCJS)
-- Redefinable symbols (`U:`)
-- Comments, barlines, repeats, grace notes
-- Lyrics, multi-voice music, voice modifiers
-- Field continuation (`+:`)
-
-**Missing:**
-- Macros (`m:`)
-- Free text blocks (`%%begintext`/`%%endtext`)
-- Voice overlay line continuation (`&\` at EOL)
-
-## Compatibility with ABCJS
-
-Aims for 1:1 output compatibility with ABCJS to enable parser substitution in rendering pipelines, ABC standard extensions, and property-based testing.
-
-**Status:** Experimental. Tune headers match ABCJS output; music body compatibility is in progress.
-
-**Rationale:** ABCJS lacks static typing and tightly couples lexing, parsing, and interpretation, making it unsuitable for IDE features (syntax highlighting, formatting, diagnostics, completions).
+Full documentation is available at [antoinebalaine.github.io/abc_parse](https://antoinebalaine.github.io/abc_parse/).
 
 ## Development
 
 ```bash
-# Run tests
-npm run test
-npm run test:coverage
-
-# Lint
-npm run lint
-
-# Parse ABC files
-npm run parse-folder -- /path/to/your/abc/files
-```
-
-## Contributing
-
-```bash
-git clone <repo-url>
+git clone https://github.com/AntoineBalaine/abc_parse.git
 cd abc_parse
 npm install
 npm run build
+npm run test
 ```
 
-Uses TypeScript with strict checking. Tests use Mocha and fast-check.
-
-### Monorepo Structure
-
-Uses npm workspaces for shared dependencies.
+The monorepo uses npm workspaces:
 
 ```
 abc_parse/
-├── parse/              # Parser library (parsers/, Visitors/, analyzers/, types/)
-├── abc-lsp-server/     # LSP server (server.ts, AbcLspServer.ts, AbcDocument.ts, completions.ts)
-├── abc-cli/            # CLI tool (render, format, check commands)
-├── vscode-extension/   # VSCode extension (LSP client)
-└── out/                # Build output
+  parse/              # Parser library (scanner, parser, formatter, semantic analyzer, interpreter)
+  editor/             # CSTree, selectors, and transforms
+  cstree/             # Concrete syntax tree data model
+  midi/               # MIDI export
+  abc-lsp-server/     # Language server
+  abc-cli/            # CLI tool
+  abc-kak/            # Kakoune plugin
+  vscode-extension/   # VS Code extension
+  docs-site/          # Documentation website (Astro/Starlight)
+  native/             # Optional MuseSampler integration (experimental)
 ```
 
-## Docker
+Tests use Mocha with fast-check for property-based testing.
 
-Run Claude Code in a Docker container:
+## License
 
-```bash
-# Build the image
-docker build -t abc-claude .
-
-# Run the container with the workspace mounted
-docker run -it -v $(pwd):/workspace abc-claude
-```
-
-## TODO
-
-### Parser
-- `H:` history and free text
-- Voice overlay line continuation (`&\` at EOL)
-- Complete voice overlays (`&` in tune body)
-- Linebreak directives
-- Line continuations (`\\n`)
-- Improve macro support (`m:`)
-
-### Formatter
-- Group tuplets as beams in rules resolution
-- Warn about incomplete voice overlay markers
-- Mark incomplete bars
-
-### Standard Extensions
-- `.//.` symbol for repeat two previous bars
-- Chord symbol lines: `x: am | g | c | f/ e/g/ :|2`
-- Chord symbols in `W:` lines
-- Score formatting with `!` system breaks
-
-### Format Conversion
-- MusicXML to ABC conversion (research porting xml2abc or alternative approaches)
-- ABC to MusicXML conversion (research porting abc2xml or leveraging existing parser pipeline)
-
-## Related Projects
-
-- [AbcLsp](https://github.com/AntoineBalaine/AbcLsp) - LSP client implementation
-- [ABCJS](https://github.com/paulrosen/abcjs) - ABC notation rendering library
-- [ABC Notation Standard](https://abcnotation.com/wiki/abc:standard:v2.2)
+GPL-3.0-or-later
