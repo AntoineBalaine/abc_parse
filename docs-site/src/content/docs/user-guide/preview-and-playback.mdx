@@ -1,5 +1,65 @@
 ---
 title: Preview and Playback
+description: Live notation rendering and MIDI playback
 ---
 
-Coming soon.
+## Preview
+
+abcls provides a live preview that renders ABC notation as sheet music using the [abcjs](https://www.abcjs.net/) library. The preview updates in real time as you edit the document.
+
+### VS Code
+
+The preview opens as a side panel in VS Code. Use the command palette or the editor title bar button to toggle it. The panel shows the rendered notation and updates on every keystroke.
+
+### Kakoune
+
+The Kakoune preview opens in a web browser. The plugin starts a local preview server and connects to it via WebSocket so that changes are pushed to the browser in real time.
+
+Commands:
+
+- `abc-preview-open` -- opens the browser preview for the current buffer
+- `abc-preview-close` -- closes the preview for the current buffer
+- `abc-preview-shutdown` -- shuts down the preview server entirely
+
+When the preview is open, cursor position updates are sent to the browser so that the current note is highlighted in the rendered score.
+
+The preview hooks into `NormalIdle` and `InsertIdle` so that cursor tracking works in both normal and insert modes. When the buffer is closed, the preview is automatically stopped.
+
+## Playback (VS Code only)
+
+Playback requires the MuseSampler native library. MuseSampler is a high-quality audio engine that renders MIDI data to audio using sampled instruments.
+
+### Setting up MuseSampler
+
+MuseSampler is distributed as a native binary. Install it following the instructions at the [MuseScore download page](https://musescore.org/en/download). The abcls VS Code extension detects MuseSampler automatically if it is installed in the default location.
+
+### Using playback
+
+Once MuseSampler is available, playback commands appear in the VS Code command palette:
+
+- Play / Pause / Stop
+- Select instrument
+
+### MIDI instrument selection
+
+Use the `%%MIDI program` directive in your ABC file to assign MIDI instruments to voices:
+
+```
+%%MIDI program 0
+```
+
+The program number follows the General MIDI specification (0 = Acoustic Grand Piano, 24 = Acoustic Guitar, etc.).
+
+## MIDI export and import
+
+Both VS Code and Kakoune support MIDI export and import through the LSP:
+
+- Export: converts the current ABC document to a MIDI file
+- Import: converts a MIDI file to ABC notation
+
+In Kakoune, use `m` (export) and `M` (import) in transform mode. In VS Code, use the command palette. From the CLI:
+
+```bash
+abcls abc2midi myfile.abc -o myfile.mid
+abcls midi2abc myfile.mid -o myfile.abc
+```

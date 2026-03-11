@@ -1,5 +1,179 @@
 ---
 title: Kakoune Integration
+description: Modal editing for ABC notation in Kakoune
 ---
 
-Coming soon.
+The Kakoune plugin provides a modal editing experience for ABC notation, with dedicated modes for selecting musical elements and applying transforms. The keybindings follow Kakoune's modal philosophy: enter a mode, press a key, and the operation is applied.
+
+## Setup
+
+The plugin requires [kak-lsp](https://github.com/kakoune-lsp/kakoune-lsp) to be installed and configured. See the [getting started](/getting-started/) page for installation instructions.
+
+The server communicates with Kakoune over a Unix socket. The socket path is configured automatically by the plugin. If you need to override it, set the `abc_socket_path` option in your kakrc.
+
+## Mode entry
+
+The plugin adds two entry points in normal mode (configurable via the `abc_select_key` and `abc_transform_key` options):
+
+| Key | Action               |
+| --- | -------------------- |
+| `h` | Enter selection mode |
+| `k` | Enter transform mode |
+
+## Selection mode
+
+Selection mode lets you narrow the current selection to specific musical elements. Compose selectors by first selecting a region (e.g. with Kakoune's built-in `x` to select lines), then entering selection mode to refine.
+
+### Type selectors
+
+| Key | Action                                                                  |
+| --- | ----------------------------------------------------------------------- |
+| `n` | Select all notes                                                        |
+| `N` | Select notes not inside chords                                          |
+| `c` | Select all chords                                                       |
+| `C` | Select notes inside chords                                              |
+| `z` | Select all rests                                                        |
+| `r` | Select all rhythm expressions                                           |
+| `R` | Select rhythm-bearing parents (notes/chords/rests with explicit rhythm) |
+
+### Structure selectors
+
+| Key | Action                                 |
+| --- | -------------------------------------- |
+| `m` | Select all measures                    |
+| `s` | Expand selection to entire system(s)   |
+| `x` | Select individual tunes                |
+| `v` | Select by voice ID (prompts for input) |
+
+### Chord position selectors
+
+| Key     | Action                                         |
+| ------- | ---------------------------------------------- |
+| `t`     | Select the top note of each chord              |
+| `T`     | Select all notes except the top                |
+| `b`     | Select the bottom note of each chord           |
+| `B`     | Select all notes except the bottom             |
+| `1`-`9` | Select the Nth note from the top of each chord |
+
+### Inside/around submodes
+
+Press `i` for "inside" or `a` for "around", then:
+
+| Key | Inside                                | Around                                 |
+| --- | ------------------------------------- | -------------------------------------- |
+| `c` | Content between chord brackets        | Entire chord including brackets        |
+| `g` | Content between grace group braces    | Entire grace group including braces    |
+| `f` | Content between inline field brackets | Entire inline field including brackets |
+| `p` | Content between grouping parentheses  | Entire grouping including parentheses  |
+
+## Transform mode
+
+Transform mode applies operations to the current selection. Many transforms accept a count prefix (e.g. `3p` transposes up by 3 semitones).
+
+### Pitch: transposition
+
+| Key | Action                                          |
+| --- | ----------------------------------------------- |
+| `p` | Transpose up by [count] semitones (default 1)   |
+| `P` | Transpose down by [count] semitones (default 1) |
+| `o` | Transpose up by [count] octaves (default 1)     |
+| `O` | Transpose down by [count] octaves (default 1)   |
+
+### Pitch: harmonization
+
+| Key     | Action                                               |
+| ------- | ---------------------------------------------------- |
+| `<a-p>` | Harmonize up by [count] diatonic steps (default 1)   |
+| `<a-P>` | Harmonize down by [count] diatonic steps (default 1) |
+| `<a-o>` | Harmonize up by [count] octaves (default 1)          |
+| `<a-O>` | Harmonize down by [count] octaves (default 1)        |
+
+### Pitch: accidentals and enharmonics
+
+| Key | Action                                   |
+| --- | ---------------------------------------- |
+| `+` | Add sharp                                |
+| `-` | Add flat                                 |
+| `e` | Enharmonize (cycle enharmonic spellings) |
+| `E` | Re-spell notes to fit the key signature  |
+
+### Rhythm
+
+| Key | Action                                      |
+| --- | ------------------------------------------- |
+| `*` | Multiply note length by [count] (default 2) |
+| `/` | Divide note length by [count] (default 2)   |
+
+### Conversion
+
+| Key | Action                                        |
+| --- | --------------------------------------------- |
+| `r` | Convert selected notes to rests               |
+| `R` | Consolidate consecutive rests                 |
+| `l` | Legato (extend notes through following rests) |
+
+### Voicing
+
+| Key     | Action                            |
+| ------- | --------------------------------- |
+| `h`     | 4-voice close voicing             |
+| `H`     | 5-voice close voicing             |
+| `<a-h>` | 6-voice close voicing             |
+| `g`     | Enter voicing submode (see below) |
+
+### Voicing submode (via `g`)
+
+| Key | Action           |
+| --- | ---------------- |
+| `c` | Close voicing    |
+| `2` | Drop-2 voicing   |
+| `4` | Drop-2-4 voicing |
+| `3` | Drop-3 voicing   |
+| `k` | Cluster voicing  |
+
+### Parallel voicing
+
+| Key     | Action                                 |
+| ------- | -------------------------------------- |
+| `y`     | Parallel diatonic from previous chord  |
+| `Y`     | Parallel diatonic from next chord      |
+| `<a-y>` | Parallel chromatic from previous chord |
+| `<a-Y>` | Parallel chromatic from next chord     |
+
+### Voice
+
+| Key     | Action                                     |
+| ------- | ------------------------------------------ |
+| `v`     | Convert voice info line to inline format   |
+| `V`     | Convert inline voice marker to info line   |
+| `<a-v>` | Insert a voice line (prompts for voice ID) |
+| `<a-V>` | Add a new voice (prompts for voice ID)     |
+
+### Explode and dynamics
+
+| Key | Action                                              |
+| --- | --------------------------------------------------- |
+| `x` | Explode chords into [count] voice parts (default 2) |
+| `<` | Wrap selection in crescendo markers                 |
+| `>` | Wrap selection in decrescendo markers               |
+
+### Export
+
+| Key | Action                      |
+| --- | --------------------------- |
+| `m` | Export current file to MIDI |
+| `M` | Import from MIDI            |
+
+## Troubleshooting
+
+### The server does not start
+
+Verify that `abcls` is installed globally (`npm list -g abcls`). Check that `kak-lsp` is running by inspecting its log file (typically `~/.local/share/kak-lsp/kak-lsp.log`). Make sure your `kak-lsp.toml` has an entry for the `abc` language ID pointing to `abcls lsp --stdio`.
+
+### Socket connection issues
+
+The plugin creates a Unix socket for communication between the editor and the server. If you see socket errors, check that the socket directory exists and is writable. The default socket path can be overridden with the `abc_socket_path` option.
+
+### Keybindings do not work
+
+The plugin's keybindings are only active in buffers with the `abc` filetype. Make sure your file has a `.abc` or `.abcx` extension, or set the filetype manually with `:set buffer filetype abc`.
