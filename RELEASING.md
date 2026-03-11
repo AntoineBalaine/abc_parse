@@ -7,6 +7,7 @@ Releases are automated via GitHub Actions. Pushing a version tag triggers the re
 - `abcls` to npm (CLI + LSP server bundle)
 - `abcls-kak` to npm (Kakoune plugin, depends on `abcls`)
 - `abcls` to the VS Code Marketplace
+- The documentation site to GitHub Pages
 
 ## Prerequisites
 
@@ -49,21 +50,29 @@ Files to update:
 
 2. Update version numbers (see list above).
 
-3. Commit the version bump:
+3. Generate the changelog:
+
+   ```bash
+   bash docs-site/scripts/changelog.sh
+   ```
+
+   Review the generated section in `CHANGELOG.md`. Edit commit messages for clarity, remove noise, and reorder entries as needed.
+
+4. Commit the version bump and changelog:
 
    ```bash
    git add -A
    git commit -m "chore: bump version to X.Y.Z"
    ```
 
-4. Create and push the tag:
+5. Create and push the tag:
 
    ```bash
    git tag vX.Y.Z
    git push origin vX.Y.Z
    ```
 
-5. The release workflow runs automatically. Monitor it at: `https://github.com/antoinebalaine/abc_parse/actions`
+6. The release workflow runs automatically. Monitor it at: `https://github.com/antoinebalaine/abc_parse/actions`
 
 ## Local Verification
 
@@ -82,4 +91,4 @@ cd abc-kak/publish-dist && npm pack --dry-run
 ## Workflows
 
 - `.github/workflows/run_tests.yml`: runs on every PR, builds and tests the monorepo.
-- `.github/workflows/release.yml`: runs on `v*` tag push, publishes to npm and VS Code Marketplace.
+- `.github/workflows/release.yml`: runs on `v*` tag push, publishes to npm and VS Code Marketplace, and deploys docs to GitHub Pages.
