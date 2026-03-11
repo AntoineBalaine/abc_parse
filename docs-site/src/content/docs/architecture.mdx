@@ -1,5 +1,114 @@
 ---
 title: Architecture
+description: Codebase overview for contributors
 ---
 
-Coming soon.
+This page is aimed at contributors who want to understand the codebase. It covers the processing pipeline, the package structure, and how to add new selectors and transforms.
+
+## Processing pipeline
+
+ABC text flows through a sequence of stages. Each stage lives in the `parse/` package:
+
+```
+ABC text
+  |
+  v
+Scanner (parse/parsers/scan.ts)
+  |  Converts raw text into a stream of tokens.
+  v
+Parser (parse/parsers/parse.ts)
+  |  Builds an AST (Expr nodes) from the token stream.
+  v
+Formatter (parse/Visitors/Formatter.ts)
+  |  Pretty-prints the AST back to text, normalizing whitespace and layout.
+  v
+Semantic Analyzer (parse/Visitors/SemanticAnalyser.ts)
+  |  Validates the AST: checks for undefined voices, invalid directives,
+  |  duplicate headers, and other semantic constraints.
+  v
+Interpreter (parse/Visitors/Interpreter.ts)
+  |  Walks the AST and produces an abcjs-compatible tune object.
+  |  This is what the preview and renderer consume.
+  v
+abcjs Tune Object
+```
+
+The scanner and parser also handle voice declarations (`V:`) and multi-voice scores. The `parse/parsers/voices.ts` module splits a multi-voice tune body into per-voice segments before parsing.
+
+## The editor module
+
+The `editor/` package provides structural editing operations on ABC documents. It uses a different data structure from the AST: the CSTree (Concrete Syntax Tree).
+
+### CSTree
+
+The CSTree is an intermediate representation optimized for selection and transformation. Unlike the AST, the CSTree preserves all whitespace and formatting, and its nodes are sibling-linked for efficient traversal. The CSTree is built from the AST by the `cstree/` package.
+
+### Selectors and transforms
+
+The editor module exposes two kinds of operations:
+
+- Selectors narrow the current selection to elements matching a criterion (e.g. "all notes", "the top note of each chord").
+- Transforms modify the selected elements (e.g. "transpose up by 2 semitones", "convert to rests").
+
+Both are pure functions that take a document and a set of ranges, and return either new ranges (selectors) or text edits and updated ranges (transforms).
+
+### LSP server bridge
+
+The `abc-lsp-server/` package implements the Language Server Protocol. It bridges the editor module to clients (VS Code, Kakoune, Neovim, etc.) via two custom LSP methods:
+
+- `abc.applySelector` -- runs a named selector and returns the resulting ranges
+- `abc.applyTransform` -- runs a named transform and returns text edits and updated cursor positions
+
+## Package structure
+
+The monorepo contains the following workspace packages:
+
+| Directory           | Package name         | Purpose                                                               |
+| ------------------- | -------------------- | --------------------------------------------------------------------- |
+| `parse/`            | abcls-parser         | Scanner, parser, formatter, semantic analyzer, interpreter            |
+| `cstree/`           | abcls-cstree         | CSTree data structure and conversion from AST                         |
+| `editor/`           | abcls-editor         | Selectors, transforms, and the selection model                        |
+| `midi/`             | abcls-midi           | MIDI export (ABC to MIDI) and import (MIDI to ABC)                    |
+| `abc-lsp-server/`   | abcls-server         | LSP server implementation                                             |
+| `abc-cli/`          | abcls-cli            | CLI entry point (format, check, render, abc2midi, midi2abc, lsp)      |
+| `vscode-extension/` | abcls                | VS Code extension (language client, preview panel, playback)          |
+| `preview-server/`   | abcls-preview-server | Browser-based preview server (WebSocket, used by VS Code and Kakoune) |
+| `abc-kak/`          | abcls-kak            | Kakoune plugin (modes, keybindings, kak-lsp integration)              |
+| `native/`           | abcls-native         | Native bindings for MuseSampler (optional, playback only)             |
+| `docs-site/`        | docs-site            | This documentation website (Astro + Starlight)                        |
+
+### Dependency graph
+
+```
+abcls-parser
+  ^
+  |
+abcls-cstree  abcls-midi
+  ^              ^
+  |              |
+abcls-editor ---+
+  ^
+  |
+abcls-server
+  ^       ^
+  |       |
+abcls-cli  vscode-extension
+  ^
+  |
+abcls-kak
+```
+
+`abcls-preview-server` and `abcls-native` are used by the VS Code extension only.
+
+## How to add a new transform
+
+1. Create a new file in `editor/src/transforms/` (e.g. `myTransform.ts`).
+2. Implement a function that takes a CSTree document and a set of ranges, and returns text edits. Follow the pattern of existing transforms.
+3. Register the transform in `abc-lsp-server/src/transformLookup.ts` by adding an entry to the lookup map.
+4. To expose the transform in VS Code, add a command entry in `vscode-extension/src/extensionCommands.ts`.
+5. To expose the transform in Kakoune, add a keybinding in `abc-kak/rc/abc-modes.kak`.
+6. Write tests in `editor/tests/` following the patterns in `testing-patterns`.
+
+## How to add a new selector
+
+The process is the same as for transforms, but the files are in `editor/src/selectors/` and the lookup is in `abc-lsp-server/src/selectorLookup.ts`.
