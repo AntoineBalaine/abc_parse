@@ -1,10 +1,10 @@
 {
-  "name": "abcls",
+  "name": "abc-ls",
   "displayName": "abc-ls",
   "description": "",
   "version": "0.1.0",
   "publisher": "antoinebalaine",
-  "repository": "https://github.com/AntoineBalaine/AbcLsp",
+  "repository": "https://github.com/AntoineBalaine/abc_parse",
   "engines": {
     "vscode": "^1.84.0"
   },
