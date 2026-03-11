@@ -41,7 +41,7 @@ jobs:
       - name: Build abcls package
         run: bash abc-cli/publish.sh
       - name: Publish abcls
-        run: cd abc-cli/dist && npm publish
+        run: cd abc-cli/dist && npm publish || echo "Version already published, skipping"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -49,7 +49,7 @@ jobs:
       - name: Build abcls-kak package
         run: bash abc-kak/publish.sh
       - name: Publish abcls-kak
-        run: cd abc-kak/publish-dist && npm publish
+        run: cd abc-kak/publish-dist && npm publish || echo "Version already published, skipping"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -67,7 +67,7 @@ jobs:
       - name: Package and publish VS Code extension
         run: |
           npm run package:vscode
-          npx vsce publish
+          npx vsce publish --packagePath abc-ls-*.vsix
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
