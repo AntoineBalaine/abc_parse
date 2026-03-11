@@ -1,7 +1,7 @@
 /**
  * ABCJS Tune to MuseSampler Event Converter
  *
- * Converts the output of abc_parse's TuneInterpreter (ABCJS Tune format)
+ * Converts the output of the TuneInterpreter (ABCJS Tune format)
  * into MuseSampler events for playback.
  */
 

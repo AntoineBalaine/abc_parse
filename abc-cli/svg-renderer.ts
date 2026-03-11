@@ -66,7 +66,7 @@ If you installed abcls globally, try reinstalling:
   npm uninstall -g abcls && npm install -g abcls
 
 If you're running from source:
-  cd <path-to-abc_parse>/abc-cli && npm install`
+  cd <path-to-abcls>/abc-cli && npm install`
     );
   }
 }
@@ -87,7 +87,7 @@ If you installed abcls globally, try reinstalling:
   npm uninstall -g abcls && npm install -g abcls
 
 If you're running from source:
-  cd <path-to-abc_parse>/abc-cli && npm install`
+  cd <path-to-abcls>/abc-cli && npm install`
     );
   }
 }

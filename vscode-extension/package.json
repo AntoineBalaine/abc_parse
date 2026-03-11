@@ -4,7 +4,7 @@
   "description": "",
   "version": "0.1.0",
   "publisher": "antoinebalaine",
-  "repository": "https://github.com/AntoineBalaine/abc_parse",
+  "repository": "https://github.com/AntoineBalaine/abcls",
   "engines": {
     "vscode": "^1.84.0"
   },

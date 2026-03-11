@@ -29,7 +29,7 @@ abcls-kak-install
 - Completions for decorations (`!`), directives (`%%`), and info lines
 - Score preview (VS Code) with SVG export
 - MIDI input and export
-- [ABCx chord sheet notation](https://antoinebalaine.github.io/abc_parse/user-guide/abcx-chord-sheets/) for writing chord charts without full music notation
+- [ABCx chord sheet notation](https://antoinebalaine.github.io/abcls/user-guide/abcx-chord-sheets/) for writing chord charts without full music notation
 - Selectors and transforms for programmatic score editing (transposition, rhythm manipulation, voice management, enharmonic spelling, etc.)
 
 ## CLI usage
@@ -57,13 +57,13 @@ require('lspconfig').abcls.setup {
 
 ## Documentation
 
-Full documentation is available at [antoinebalaine.github.io/abc_parse](https://antoinebalaine.github.io/abc_parse/).
+Full documentation is available at [antoinebalaine.github.io/abcls](https://antoinebalaine.github.io/abcls/).
 
 ## Development
 
 ```bash
-git clone https://github.com/AntoineBalaine/abc_parse.git
-cd abc_parse
+git clone https://github.com/AntoineBalaine/abcls.git
+cd abcls
 npm install
 npm run build
 npm run test
@@ -72,7 +72,7 @@ npm run test
 The monorepo uses npm workspaces:
 
 ```
-abc_parse/
+abcls/
   parse/              # Parser library (scanner, parser, formatter, semantic analyzer, interpreter)
   editor/             # CSTree, selectors, and transforms
   cstree/             # Concrete syntax tree data model

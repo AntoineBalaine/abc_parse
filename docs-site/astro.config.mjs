@@ -3,7 +3,7 @@ import starlight from "@astrojs/starlight";
 
 export default defineConfig({
   site: "https://antoinebalaine.github.io",
-  base: "/abc_parse",
+  base: "/abcls",
   // Workaround for zod v3/v4 conflict in the Astro SSR build.
   // See https://github.com/withastro/astro/issues/14117
   vite: {
@@ -18,7 +18,7 @@ export default defineConfig({
         {
           icon: "github",
           label: "GitHub",
-          href: "https://github.com/AntoineBalaine/abc_parse",
+          href: "https://github.com/AntoineBalaine/abcls",
         },
         {
           icon: "npm",

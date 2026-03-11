@@ -72,7 +72,7 @@ Files to update:
    git push origin vX.Y.Z
    ```
 
-6. The release workflow runs automatically. Monitor it at: `https://github.com/antoinebalaine/abc_parse/actions`
+6. The release workflow runs automatically. Monitor it at: `https://github.com/antoinebalaine/abcls/actions`
 
 ## Local Verification
 

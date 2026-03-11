@@ -13,7 +13,7 @@ This plugin integrates ABC notation selectors with Kakoune, enabling AST-level p
 1. Build the bundled LSP server:
 
 ```bash
-cd /path/to/abc_parse
+cd /path/to/abcls
 npm install
 npm run build:kak
 ```

@@ -1,4 +1,4 @@
-// abc_parse/src/tests/parseFolder.ts
+// parse/tests/parseFolder.ts
 import fs from "fs";
 import path from "path";
 import { isToken } from "../helpers";
