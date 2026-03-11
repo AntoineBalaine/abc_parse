@@ -1,5 +1,98 @@
 ---
 title: CLI Reference
+description: Command-line interface for ABC notation tools
 ---
 
-Coming soon.
+The `abcls` CLI provides subcommands for formatting, validating, rendering, and converting ABC notation files. Install it with:
+
+```bash
+npm install -g abcls
+```
+
+Run `abcls --help` or `abcls <subcommand> --help` for the full option listing.
+
+## format
+
+Formats an ABC file according to the formatter's rules.
+
+```bash
+abcls format myfile.abc
+```
+
+Options:
+
+- `-w, --write` -- write the formatted output back to the file (otherwise prints to stdout)
+
+## check
+
+Validates an ABC file and reports syntax or semantic errors.
+
+```bash
+abcls check myfile.abc
+```
+
+## render
+
+Renders ABC notation to SVG. Produces one SVG file per tune.
+
+```bash
+abcls render myfile.abc
+```
+
+Options:
+
+- `-t, --tune <numbers...>` -- render only the specified tunes by X: number (supports comma-separated, dash-separated, or repeated flags)
+- `--ignore-parse-errors` -- continue rendering even if the ABC file has parsing errors
+- `--ignore-missing-tunes` -- continue rendering even if some requested tunes are not found
+
+## abc2midi
+
+Converts an ABC file to MIDI.
+
+```bash
+abcls abc2midi myfile.abc -o myfile.mid
+```
+
+Options:
+
+- `-o, --output <file>` -- output MIDI file path (writes to stdout if omitted)
+- `-t, --tune <numbers...>` -- export only the specified tunes by X: number
+
+## midi2abc
+
+Converts a MIDI file to ABC notation.
+
+```bash
+abcls midi2abc myfile.mid -o myfile.abc
+```
+
+Options:
+
+- `-o, --output <file>` -- output ABC file path (writes to stdout if omitted)
+- `--title <title>` -- set the title (T: field)
+- `--composer <composer>` -- set the composer (C: field)
+
+## abcx2abc
+
+Converts an ABCx chord sheet to standard ABC notation.
+
+```bash
+abcls abcx2abc myfile.abcx -o myfile.abc
+```
+
+Options:
+
+- `-o, --output <file>` -- write output to a file instead of stdout
+
+## lsp
+
+Starts the ABC language server. This is used by editor integrations (VS Code, Kakoune, Neovim, etc.) and is not typically invoked directly.
+
+```bash
+abcls lsp --stdio
+```
+
+Options:
+
+- `--stdio` -- use stdio transport (default)
+- `--socket <path>` -- use Unix socket transport at the given path
