@@ -5,14 +5,14 @@ Language features for [ABC music notation](https://abcnotation.com/)
 ## Features
 - Syntax highlighting.
 
-![side by side view of syntax highlighting and score](assets/lsp_side_sm.jpg "Syntax Highlighting")
+![side by side view of syntax highlighting and score](assets/abcls_highlighting.png "Syntax Highlighting")
 - Diagnostics warning when the server can't read the score.
 
 ![diagnostics view of abc score](assets/lsp_diagnostic_sm.jpg "Abc diagnostics" )
 
 - Code formatter.
 
-![abc score formatting](./assets/lsp_format.gif "Abc score formatting" )
+![abc score formatting](./assets/formatting.gif "Abc score formatting" )
 - `Divide rhythms`, and `Multiply rhythms` commands: select some notes and the commands will divide/multiple their time value by two.
 - Single note midi input from you midi keyboard (Chord-input from midi will come at some point)
 
@@ -44,7 +44,7 @@ Em Am | Dm G |
 Chord symbols follow this pattern: `Root[accidental][quality][extension][alteration][/bass]`
 
 | Component  | Options                            | Example        |
-|------------|------------------------------------|----------------|
+| ---------- | ---------------------------------- | -------------- |
 | Root       | A-G (or lowercase a,c,d,e,f,g)     | C, A, g        |
 | Accidental | # or b                             | F#, Bb         |
 | Quality    | maj, min, m, M, dim, aug, sus, add | Am, Cmaj, Bdim |
@@ -78,18 +78,6 @@ Am7 | D7 | Gmaj7 | Cmaj7 |
 F#m7b5 | B7 | Em | Em ||
 ```
 
-## Known Issues
-
-- Doesn't support lyric sections yet.
-- Doesn't support ranges in repeat bars (`|1-2` or `|1,2`).
-- Doesn't allow rhythms in grace note groups.
-- `Divide rhythms` or `Multiply rhythms` might accidentally duplicate the last character in a text selection.
-
-## Maybe coming to the extension
-
-- Arranging routine capabilities
-- Live preview of the score
-
 ## Development
 
 To build and install the extension locally:
@@ -100,18 +88,6 @@ npm run build && npm run package:vscode && code --install-extension <extension_v
 ```
 
 Then reload VSCode to pick up the changes.
-
-### MuseSampler Playback (Native Binary)
-
-The extension includes optional playback support via MuseSampler. This requires a native `mscore` binary that communicates with the MuseSampler library (installed via MuseHub).
-
-The build process copies the binary from `native/build/` to `vscode-extension/bin/` via the `copy-binary` script. This is a temporary solution for local development.
-
-For distribution, this should be replaced with platform-specific extension builds (see `platform-specific-extensions.md` at the repo root). The proper approach is to:
-
-1. Build the `mscore` binary for each target platform (darwin-x64, darwin-arm64, linux-x64, win32-x64)
-2. Package separate `.vsix` files for each platform using `vsce package --target <platform>`
-3. Publish all variants so VS Code downloads the correct one for the user's system
 
 ## Release Notes
 
