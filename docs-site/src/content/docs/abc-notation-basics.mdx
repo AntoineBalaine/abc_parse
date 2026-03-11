@@ -1,5 +1,97 @@
 ---
 title: ABC Notation Basics
+description: A short primer on ABC music notation
 ---
 
-Coming soon.
+ABC is a text-based music notation format. This page covers enough of the basics to understand the examples in the rest of the documentation. For the full specification, see the [ABC standard (v2.1)](https://abcnotation.com/wiki/abc:standard:v2.1).
+
+## Structure of an ABC file
+
+An ABC file contains one or more tunes. Each tune starts with a set of header lines followed by the tune body. Here is a minimal example:
+
+```
+X:1
+T:My Tune
+M:4/4
+L:1/8
+K:C
+CDEF GABc|
+```
+
+The header lines are:
+
+- `X:` -- tune number (required, must be first)
+- `T:` -- title
+- `M:` -- meter (time signature)
+- `L:` -- default note length
+- `K:` -- key signature (required, must be the last header line)
+
+## Notes
+
+Notes are written as letters. Uppercase letters represent the lower octave, lowercase letters represent the octave above:
+
+```
+C D E F G A B c d e f g a b
+```
+
+Octave modifiers shift notes further up or down:
+
+- `c'` -- one octave above `c`
+- `C,` -- one octave below `C`
+- These can be stacked: `c''` is two octaves above `c`
+
+## Accidentals
+
+Accidentals are written before the note letter:
+
+- `^C` -- C sharp
+- `_C` -- C flat
+- `=C` -- C natural
+- `^^C` -- C double-sharp
+- `__C` -- C double-flat
+
+## Rhythm
+
+Note lengths are written relative to the default length (`L:` header). If `L:1/8`, then:
+
+- `A` -- eighth note
+- `A2` -- quarter note (twice the default)
+- `A/2` -- sixteenth note (half the default)
+- `A3/2` -- dotted eighth (1.5 times the default)
+
+## Rests
+
+- `z` -- rest (same length rules as notes)
+- `z2` -- rest lasting two default units
+- `Z` -- whole-measure rest
+
+## Bars
+
+Bar lines separate measures:
+
+- `|` -- regular bar line
+- `||` -- double bar line
+- `|]` -- thin-thick double bar (end of piece)
+- `[|` -- thick-thin double bar
+
+## Chords
+
+Square brackets group simultaneous notes into a chord:
+
+```
+[CEG] [FAc] [GBd]
+```
+
+## Chord symbols
+
+Chord symbols are written in double quotes before a note:
+
+```
+"Cmaj7"c "Dm7"d "G7"G
+```
+
+## Further reading
+
+- [ABC notation standard (v2.1)](https://abcnotation.com/wiki/abc:standard:v2.1) -- the full specification
+- [ABC notation tutorial](https://abcnotation.com/learn) -- a more comprehensive introduction
+- [abcjs library](https://www.abcjs.net/) -- the rendering library used by abcls for preview
