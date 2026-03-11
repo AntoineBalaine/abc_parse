@@ -1,15 +1,15 @@
-#!/usr/bin/env bash
+#!/bin/sh
 #
 # Generates a changelog section from git log, grouped by commit prefix.
 #
 # Usage:
-#   bash docs-site/scripts/changelog.sh [from-tag] [to-ref]
+#   sh docs-site/scripts/changelog.sh [from-tag] [to-ref]
 #
 # If both arguments are provided, generates the log between from-tag and to-ref.
 # If only from-tag is provided, generates the log from from-tag to HEAD.
 # If no arguments are provided, generates the log from the most recent tag to HEAD.
 
-set -euo pipefail
+set -eu
 
 from_ref="${1:-}"
 to_ref="${2:-HEAD}"
@@ -22,8 +22,6 @@ if [ -z "$from_ref" ]; then
   fi
 fi
 
-# Determine the version label from to_ref (use tag name if it looks like a version,
-# otherwise use the ref as-is).
 if [ "$to_ref" = "HEAD" ]; then
   version="Unreleased"
 else
@@ -32,7 +30,6 @@ fi
 
 date_str=$(date +%Y-%m-%d)
 
-# Collect commits as "prefix|message" lines.
 commits=$(git log --oneline "${from_ref}..${to_ref}" --format="%s")
 
 if [ -z "$commits" ]; then
@@ -40,62 +37,60 @@ if [ -z "$commits" ]; then
   exit 0
 fi
 
-# Parse each commit into prefix and message, then group by prefix.
-declare -A groups
-
-while IFS= read -r line; do
-  if [[ "$line" =~ ^([^:]+):\ (.+)$ ]]; then
-    prefix="${BASH_REMATCH[1]}"
-    msg="${BASH_REMATCH[2]}"
-  else
-    prefix="other"
-    msg="$line"
-  fi
-
-  if [ -z "${groups[$prefix]+x}" ]; then
-    groups[$prefix]="- ${msg}"
-  else
-    groups[$prefix]="${groups[$prefix]}
-- ${msg}"
-  fi
-done <<< "$commits"
+# Extract unique prefixes (the part before the colon), sorted.
+prefixes=$(echo "$commits" | sed -n 's/^\([^:]*\): .*/\1/p' | sort -u)
 
 # Build the markdown output.
-output="## ${version} (${date_str})
+tmpfile=$(mktemp)
 
-"
+echo "## ${version} (${date_str})" > "$tmpfile"
+echo "" >> "$tmpfile"
 
-# Sort the prefixes for consistent output.
-sorted_prefixes=$(echo "${!groups[@]}" | tr ' ' '\n' | sort)
-
-for prefix in $sorted_prefixes; do
-  output+="### ${prefix}
-
-${groups[$prefix]}
-
-"
+for prefix in $prefixes; do
+  echo "### ${prefix}" >> "$tmpfile"
+  echo "" >> "$tmpfile"
+  echo "$commits" | while IFS= read -r line; do
+    case "$line" in
+      "$prefix: "*)
+        msg="${line#"$prefix": }"
+        echo "- ${msg}" >> "$tmpfile"
+        ;;
+    esac
+  done
+  echo "" >> "$tmpfile"
 done
+
+# Collect any commits without a prefix.
+others=$(echo "$commits" | grep -v '^[^:]*: ' || true)
+if [ -n "$others" ]; then
+  echo "### other" >> "$tmpfile"
+  echo "" >> "$tmpfile"
+  echo "$others" | while IFS= read -r line; do
+    echo "- ${line}" >> "$tmpfile"
+  done
+  echo "" >> "$tmpfile"
+fi
 
 # Append to CHANGELOG.md (prepend after the first line if the file exists,
 # or create it with a heading).
 changelog="CHANGELOG.md"
 
 if [ -f "$changelog" ]; then
-  # Insert the new section after the first heading line.
   head_line=$(head -1 "$changelog")
-  rest=$(tail -n +2 "$changelog")
+  rest=$(tail -n +3 "$changelog")
   {
     echo "$head_line"
     echo ""
-    echo "$output"
+    cat "$tmpfile"
     echo "$rest"
   } > "$changelog"
 else
   {
     echo "# Changelog"
     echo ""
-    echo "$output"
+    cat "$tmpfile"
   } > "$changelog"
 fi
 
+rm -f "$tmpfile"
 echo "Changelog updated in ${changelog}."
