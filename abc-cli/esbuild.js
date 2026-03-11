@@ -38,8 +38,7 @@ async function main() {
     outfile: path.join(CLI_DIR, "dist/abcls.js"),
     external,
     banner: {
-      js: `#!/usr/bin/env node
-${importMetaShim.banner.js}`,
+      js: importMetaShim.banner.js,
     },
     define: importMetaShim.define,
     tsconfig: path.join(CLI_DIR, "tsconfig.json"),

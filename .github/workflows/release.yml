@@ -1,0 +1,72 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ["22.x"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+      - run: npm install
+      # Build all packages except native (requires cmake and MuseSampler)
+      - run: npm run build:ci
+      - run: npm test
+
+  publish-npm:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: "npm"
+          registry-url: "https://registry.npmjs.org"
+      - run: npm install
+      # Build the monorepo (esbuild needs compiled output)
+      - run: npm run build:ci
+
+      # Publish abcls (CLI + LSP server)
+      - name: Build abcls package
+        run: bash abc-cli/publish.sh
+      - name: Publish abcls
+        run: cd abc-cli/dist && npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Publish abcls-kak (Kakoune plugin)
+      - name: Build abcls-kak package
+        run: bash abc-kak/publish.sh
+      - name: Publish abcls-kak
+        run: cd abc-kak/publish-dist && npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-vscode:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: "npm"
+      - run: npm install
+      - run: npm run build:ci
+      - name: Package and publish VS Code extension
+        run: |
+          npm run package:vscode
+          npx vsce publish
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}

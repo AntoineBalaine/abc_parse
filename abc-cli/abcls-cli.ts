@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * ABC CLI Tool - Main entry point
  *
