@@ -3,28 +3,21 @@ title: ABC Notation Basics
 description: A short primer on ABC music notation
 ---
 
-ABC is a text-based music notation format. This page covers enough of the basics to understand the examples in the rest of the documentation. For the full specification, see the [ABC standard (v2.1)](https://abcnotation.com/wiki/abc:standard:v2.1).
+ABC is a text-based music notation format. This page only covers its basics. The full specification is [here](https://abcnotation.com/wiki/abc:standard:v2.2).
 
 ## Structure of an ABC file
 
-An ABC file contains one or more tunes. Each tune starts with a set of header lines followed by the tune body. Here is a minimal example:
+An ABC file contains one or more tunes. Each tune starts with a set of header lines followed by the tune body:
 
 ```
-X:1
-T:My Tune
-M:4/4
-L:1/8
-K:C
-CDEF GABc|
+            % comments are started with a percent-sign
+X:1         % tune number (required, must be first)
+T:My Tune   % title
+M:4/4       % meter (time signature)
+L:1/8       % default note length
+K:C         % key signature (must be the last header line)
+CDEF GABc|  % some music
 ```
-
-The header lines are:
-
-- `X:` -- tune number (required, must be first)
-- `T:` -- title
-- `M:` -- meter (time signature)
-- `L:` -- default note length
-- `K:` -- key signature (required, must be the last header line)
 
 ## Notes
 
@@ -73,6 +66,7 @@ Bar lines separate measures:
 - `||` -- double bar line
 - `|]` -- thin-thick double bar (end of piece)
 - `[|` -- thick-thin double bar
+- `:|` and `|:` -- repeat bars, can be numbered using `:|1,2`
 
 ## Chords
 
@@ -87,11 +81,13 @@ Square brackets group simultaneous notes into a chord:
 Chord symbols are written in double quotes before a note:
 
 ```
-"Cmaj7"c "Dm7"d "G7"G
+"Cmaj7" c "Dm7" d "G7" G
 ```
+
+Note that content in double quotes can also be anything you want to write.
 
 ## Further reading
 
-- [ABC notation standard (v2.1)](https://abcnotation.com/wiki/abc:standard:v2.1) -- the full specification
+- [ABC notation standard (v2.2)](https://abcnotation.com/wiki/abc:standard:v2.2) -- the full specification
 - [ABC notation tutorial](https://abcnotation.com/learn) -- a more comprehensive introduction
-- [abcjs library](https://www.abcjs.net/) -- the rendering library used by abcls for preview
+- [ABCJS library](https://www.abcjs.net/) -- the rendering library used by abcls for preview

@@ -1,0 +1,95 @@
+---
+title: abcls Directives
+description: Directives specific to the abcls language server
+---
+
+abcls introduces three custom directives that control the language server's behavior. These directives are prefixed with `abcls-` to distinguish them from standard ABC directives.
+
+All abcls directives are fully supported by the autocomplete system. In any LSP-enabled editor, typing `%%abcls-` triggers completions for the directive names, and typing a space after the directive name triggers completions for the available options.
+
+
+## abcls-fmt
+
+Controls the formatter's output style.
+
+### system-comments
+
+```
+%%abcls-fmt system-comments
+```
+
+Inserts empty comment lines between systems when formatting linear tunes. This improves readability by visually separating each system (a set of concurrent voice lines).
+
+### voice-markers
+
+```
+%%abcls-fmt voice-markers=inline
+%%abcls-fmt voice-markers=infoline
+```
+
+Controls how the formatter writes voice markers:
+
+- `voice-markers=inline` -- uses inline voice markers: `[V:1] C D E F`
+- `voice-markers=infoline` -- uses info-line voice markers on their own line:
+  ```
+  V:1
+  C D E F
+  ```
+
+## abcls-voices
+
+Filters which voices are included in the rendered output. This is useful for isolating individual parts in a multi-voice score without modifying the source file.
+
+### show
+
+```
+%%abcls-voices show 1 3
+```
+
+Includes only the listed voices in the rendered output. All other voices are excluded.
+
+### hide
+
+```
+%%abcls-voices hide 2
+```
+
+Excludes the listed voices from the rendered output. All other voices are included.
+
+## abcls-parse
+
+Controls how the parser processes the ABC file.
+
+### linear
+
+```
+%%abcls-parse linear
+```
+
+Enables linear (interleaved voice) parsing mode. In this mode, voice segments are expected to appear interleaved line by line, rather than grouped by voice in separate blocks.
+
+Standard (non-linear) layout:
+
+```
+V:1
+C D E F | G A B c |
+c B A G | F E D C |
+V:2
+E, F, G, A, | B, C D E |
+E D C B, | A, G, F, E, |
+```
+
+Linear layout (with `%%abcls-parse linear`):
+
+```
+%%abcls-parse linear
+V:1
+C D E F | G A B c |
+V:2
+E, F, G, A, | B, C D E |
+V:1
+c B A G | F E D C |
+V:2
+E D C B, | A, G, F, E, |
+```
+

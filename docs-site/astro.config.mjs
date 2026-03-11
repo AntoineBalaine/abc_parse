@@ -12,12 +12,30 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "abcls",
+      social: [
+        {
+          icon: "github",
+          label: "GitHub",
+          href: "https://github.com/AntoineBalaine/abc_parse",
+        },
+        {
+          icon: "npm",
+          label: "npm",
+          href: "https://www.npmjs.com/package/abcls",
+        },
+        {
+          icon: "vscode",
+          label: "VS Code Marketplace",
+          href: "https://marketplace.visualstudio.com/items?itemName=AntoineBalaine.abc-ls",
+        },
+      ],
       sidebar: [
-        { label: "Getting Started", slug: "getting-started" },
+        { label: "Getting Started", link: "/" },
         { label: "ABC Notation Basics", slug: "abc-notation-basics" },
         {
           label: "User Guide",
           items: [
+            { label: "abcls Directives", slug: "user-guide/abcls-directives" },
             { label: "Selectors", slug: "user-guide/selectors" },
             { label: "Transforms", slug: "user-guide/transforms" },
             {

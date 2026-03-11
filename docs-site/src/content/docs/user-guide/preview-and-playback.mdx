@@ -27,28 +27,9 @@ The preview hooks into `NormalIdle` and `InsertIdle` so that cursor tracking wor
 
 ## Playback (VS Code only)
 
-Playback requires the MuseSampler native library. MuseSampler is a high-quality audio engine that renders MIDI data to audio using sampled instruments.
+PRE-ALPHA, EXPERIMENTAL, BROKEN, WILL PROBABLY NEVER LAND. 
 
-### Setting up MuseSampler
-
-MuseSampler is distributed as a native binary. Install it following the instructions at the [MuseScore download page](https://musescore.org/en/download). The abcls VS Code extension detects MuseSampler automatically if it is installed in the default location.
-
-### Using playback
-
-Once MuseSampler is available, playback commands appear in the VS Code command palette:
-
-- Play / Pause / Stop
-- Select instrument
-
-### MIDI instrument selection
-
-Use the `%%MIDI program` directive in your ABC file to assign MIDI instruments to voices:
-
-```
-%%MIDI program 0
-```
-
-The program number follows the General MIDI specification (0 = Acoustic Grand Piano, 24 = Acoustic Guitar, etc.).
+There is an experimental playback solution in the `native/` directory that relies on a hack involving abcls impersonating MuseScore to MuseScore's playback engine (MuseSampler). Because there is no public API for MuseSampler and there likely never will be (see the [MuseSampler API discussion](https://github.com/orgs/musescore/discussions/17801)), this feature is not part of the standard build and requires building from source. It is intended for experimentally-minded users only.
 
 ## MIDI export and import
 
