@@ -12,7 +12,8 @@
     "editor",
     "preview-server",
     "abc-kak",
-    "midi"
+    "midi",
+    "docs-site"
   ],
   "scripts": {
     "build": "npm run build:parse && npm run build:midi && npm run build:cstree && npm run build:editor && npm run build:native && npm run build:lsp && npm run build:cli && npm run build:vscode && npm run build:preview && npm run build:kak",
@@ -29,6 +30,8 @@
     "build:preview": "npm run build -w abcls-preview-server",
     "build:kak": "npm run build -w abcls-kak",
     "build:midi": "npm run build -w abcls-midi",
+    "build:docs": "npm run build -w docs-site",
+    "dev:docs": "npm run dev -w docs-site",
     "build:publish-cli": "node abc-cli/esbuild.js",
     "build:publish-kak": "node abc-kak/esbuild-publish.js",
     "watch:parse": "npm run watch -w parse",
