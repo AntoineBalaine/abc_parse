@@ -9,6 +9,7 @@
     "esModuleInterop": true,
     "declaration": true,
     "sourceMap": true,
+    "skipLibCheck": true,
     "paths": {
       "abcls-cstree": ["../cstree/src/cstree"]
     }
