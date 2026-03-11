@@ -69,6 +69,14 @@ After (close voicing): "Cmaj7"[CEGB]
 
 Shifts selected notes in parallel motion, following chord symbols. Can move diatonically, chromatically, or in a voicing-aware manner. Context-aware.
 
+### parallelDiatonic
+
+Shifts selected notes to match the voicing of an adjacent chord (previous or next) using diatonic intervals. Each note is moved by the diatonic distance between the current chord root and the reference chord root. Context-aware.
+
+### parallelChromatic
+
+Shifts selected notes to match the voicing of an adjacent chord (previous or next) using chromatic intervals. Each note is moved by the semitone distance between the current chord root and the reference chord root. Context-aware.
+
 ## Rhythm
 
 ### setRhythm
@@ -124,7 +132,16 @@ After: z4
 
 ### legato
 
-Merges tied note sequences into single notes of the combined duration.
+Extends selected notes through the rests that follow them by replacing the rests with tied copies of the preceding note. Only regular rests are targeted (multi-measure rests are left unchanged).
+
+```
+Before: C2 z2 z2
+After: C2-C2-C2
+```
+
+### consolidateTiedNotes
+
+Merges tied note sequences into single notes of the combined duration. This is the inverse of `legato`.
 
 ```
 Before: C2-C2-C2

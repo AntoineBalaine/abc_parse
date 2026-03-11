@@ -58,6 +58,15 @@ Selects notes that are direct children of a chord. This is the inverse of `selec
  ^^^     ^^^
 ```
 
+### selectNotesOrChords
+
+Selects all notes and chords within the current scope. Unlike `selectNotes` (which only selects individual notes), this selector includes both standalone notes and chord groups.
+
+```
+C [CEG] D [FAc] E
+^  ^    ^  ^    ^
+```
+
 ### selectRhythm
 
 Selects all rhythm nodes within the current scope. Useful for inspecting or modifying durations without affecting pitch.
