@@ -21,6 +21,8 @@ K:C         % key signature (must be the last header line)
 CDEF GABc|  % some music
 ```
 
+![Structure example](/abcls/examples/structure.svg)
+
 The file header is the area before the first `X:` line. It is typically used for stylesheet directives (page layout, fonts, spacing) and abcls configuration that should apply to all tunes in the file. Any directive or setting placed in the file header acts as a default that individual tunes can override in their own headers.
 
 ## Notes
@@ -30,6 +32,8 @@ Notes are written as letters. Uppercase letters represent the lower octave, lowe
 ```
 C D E F G A B c d e f g a b
 ```
+
+![Notes example](/abcls/examples/notes.svg)
 
 Octave modifiers shift notes further up or down:
 
@@ -47,6 +51,12 @@ Accidentals are written before the note letter:
 - `^^C` -- C double-sharp
 - `__C` -- C double-flat
 
+```
+^C _C =C ^^C __C
+```
+
+![Accidentals example](/abcls/examples/accidentals.svg)
+
 ## Rhythm
 
 Note lengths are written relative to the default length (`L:` header). If `L:1/8`, then:
@@ -56,11 +66,23 @@ Note lengths are written relative to the default length (`L:` header). If `L:1/8
 - `A/2` -- sixteenth note (half the default)
 - `A3/2` -- dotted eighth (1.5 times the default)
 
+```
+A A2 A/2 A3/2 A/ A3
+```
+
+![Rhythm example](/abcls/examples/rhythm.svg)
+
 ## Rests
 
 - `z` -- rest (same length rules as notes)
 - `z2` -- rest lasting two default units
 - `Z` -- whole-measure rest
+
+```
+z z2 z/2 | Z |
+```
+
+![Rests example](/abcls/examples/rests.svg)
 
 ## Bars
 
@@ -80,6 +102,8 @@ Square brackets group simultaneous notes into a chord:
 [CEG] [FAc] [GBd]
 ```
 
+![Chords example](/abcls/examples/chords.svg)
+
 ## Chord symbols
 
 Chord symbols are written in double quotes before a note:
@@ -87,6 +111,8 @@ Chord symbols are written in double quotes before a note:
 ```
 "Cmaj7" c "Dm7" d "G7" G
 ```
+
+![Chord symbols example](/abcls/examples/chordsymbols.svg)
 
 Note that content in double quotes can also be anything you want to write.
 

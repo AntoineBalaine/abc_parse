@@ -1,0 +1,4 @@
+/* Invert score SVG images in dark mode so they remain readable. */
+:root[data-theme="dark"] img[src*="/examples/"] {
+  filter: invert(1);
+}

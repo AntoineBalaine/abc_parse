@@ -14,6 +14,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "abcls",
+      customCss: ["./src/styles/custom.css"],
       social: [
         {
           icon: "github",
