@@ -51,6 +51,7 @@ export default defineConfig({
         { label: "Directives Reference", slug: "directives-reference" },
         { label: "CLI Reference", slug: "cli-reference" },
         { label: "Architecture", slug: "architecture" },
+        { label: "Gallery", slug: "gallery" },
       ],
     }),
   ],
